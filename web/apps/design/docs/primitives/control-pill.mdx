@@ -1,0 +1,24 @@
+---
+title: Control pill
+description: A removable chip for one active filter, read as field, operator and value.
+---
+
+<Component path="control-pill/variants" />
+
+## Anatomy
+
+- `ControlPill` renders the field, the operator, the value and a remove button. `variant` picks `solid` (the default) or `outline`.
+
+## Best practices
+
+### Variant
+
+Use `solid` in the logs control cloud. Use `outline` on a card or a table toolbar, where a filled chip is too heavy.
+
+### Copy
+
+Pass the field label and the display value through `formatFieldName` and `formatValue`. The remove button reads them out, so keep both human.
+
+### Removal
+
+Remove the filter in `onRemove`. Backspace and Delete on a focused pill call it too.

@@ -9,6 +9,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
@@ -35,12 +36,17 @@ func (s *Service) Delete(
 
 	logger.Info("starting environment deletion", "environment_id", envID)
 
-	// Capture env metadata before the row is deleted, for the audit log.
 	env, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
-		return s.db.FindEnvironmentById(runCtx, envID)
+		row, findErr := s.db.FindEnvironmentById(runCtx, envID)
+		return row, restateutil.TerminalNotFound(findErr)
 	}, restate.WithName("find environment"))
 	if err != nil {
-		return nil, fmt.Errorf("find environment: %w", err)
+		if !restateutil.IsNotFoundTerminal(err) {
+			return nil, fmt.Errorf("find environment: %w", err)
+		}
+		// The row is already gone, so a repeat delete has nothing left to do
+		logger.Info("environment already deleted", "environment_id", envID)
+		return &hydrav1.DeleteEnvironmentResponse{}, nil
 	}
 
 	if err := s.cancelProgressingDeployments(ctx, env, req); err != nil {
@@ -117,13 +123,9 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("delete deployments: %w", err)
 	}
 
-	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteEnvironmentById(runCtx, envID)
-	}, restate.WithName("delete environment")); err != nil {
-		return nil, fmt.Errorf("delete environment: %w", err)
-	}
-
-	// The environment has no display name, so its slug stands in.
+	// Audit before the row delete: once the row is gone a repeat delete returns
+	// early, so an audit still owed by a killed earlier delete would never be
+	// written. The environment has no display name, so its slug stands in
 	if err := audit.Insert(ctx, s.auditlogs, audit.Event{
 		Actor:         req.GetActor(),
 		CorrelationID: req.GetCorrelationId(),
@@ -139,6 +141,12 @@ func (s *Service) Delete(
 		}},
 	}); err != nil {
 		return nil, fmt.Errorf("insert audit log: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return s.db.DeleteEnvironmentById(runCtx, envID)
+	}, restate.WithName("delete environment")); err != nil {
+		return nil, fmt.Errorf("delete environment: %w", err)
 	}
 
 	logger.Info("environment deletion complete", "environment_id", envID)

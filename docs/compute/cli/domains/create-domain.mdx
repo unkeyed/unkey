@@ -45,7 +45,7 @@ unkey api domains create-domain --project=<project> --app=<app> --environment=<e
 </ParamField>
 
 <ParamField body="--project" type="string" required>
-  Project ID or slug. Both forms resolve to the same project.
+  <Tooltip tip="A group of apps, usually one per codebase or product.">Project</Tooltip> ID or slug. Both forms resolve to the same project.
 </ParamField>
 
 ### Shared flags
@@ -79,7 +79,7 @@ Your root key needs one of:
 - `environment.*.create_domain` (any environment)
 - `environment.<environment_id>.create_domain` (a specific environment)
 
-If the environment doesn't exist or your key doesn't have the permission, you get the same 404: `The requested environment does not exist.` See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
+If the environment doesn't exist or your key doesn't have the permission, you get the same 404: `The requested environment does not exist.` If your key can read the environment, you get a 403 that names the missing permission instead. See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
 
 ## Examples
 

@@ -2,7 +2,7 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 
 export type Branch = { kind: "default"; name: string } | { kind: "unassigned" } | { kind: "none" };
 
-export function trackedBranch(
+function trackedBranch(
   environment: Pick<Environment, "kind">,
   defaultBranch: string | null,
 ): Branch {

@@ -57,7 +57,7 @@ Sign a user into the [developer portal](/api-management/portal/overview) from yo
 
 ## Permissions your root key needs
 
-Your root key needs `portal.*.create_portal_session` or `portal.<portalId>.create_portal_session`. Without it, the request fails with **404**, not 403.
+Your root key needs `portal.*.create_portal_session` or `portal.<portalId>.create_portal_session`. Without it, the request fails with **404**, or with **403** naming the missing permission if your root key can read the portal.
 
 It also needs a matching permission for each scope, on every keyspace the portal shows, either as `*` or for each `api_` ID:
 

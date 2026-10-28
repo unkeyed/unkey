@@ -2,7 +2,8 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 var (
@@ -10,38 +11,40 @@ var (
 	// Use this to monitor deployment throughput and error rates.
 	//
 	// Labels:
-	//   - "resource_type": "deployment" or "cilium_network_policy"
+	//   - "resource_type": "deployment"
 	//   - "operation": "apply" or "delete"
 	//   - "result": "success" or "error"
-	ReconcileOperationsTotal = lazy.NewCounterVec(
+	ReconcileOperationsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "reconcile_operations_total",
 			Help:      "Total number of reconciliation operations (apply/delete).",
 		},
-		[]string{"resource_type", "operation", "result"},
+		vec.Values("resource_type", "deployment"),
+		vec.Values("operation", "apply", "delete"),
+		vec.Values("result", "success", "error"),
 	)
 
 	// ResyncCorrectionsTotal counts corrections made by the periodic resync loop.
 	// High values indicate the streaming path is missing events and resync is compensating.
 	//
 	// Labels:
-	//   - "resource_type": "deployment" or "cilium_network_policy"
-	ResyncCorrectionsTotal = lazy.NewCounterVec(
+	//   - "resource_type": "deployment"
+	ResyncCorrectionsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "resync_corrections_total",
 			Help:      "Total number of corrections made by the resync loop (indicates missed streaming events).",
 		},
-		[]string{"resource_type"},
+		vec.Values("resource_type", "deployment"),
 	)
 
 	// WatcherFullSyncsTotal counts how often the watcher performs a full sync
 	// via SyncDesiredState. Under normal operation this fires once per
 	// fullSyncInterval (10 minutes) plus once on startup.
-	WatcherFullSyncsTotal = lazy.NewCounter(
+	WatcherFullSyncsTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -54,18 +57,18 @@ var (
 	//
 	// Labels:
 	//   - "status": "success" or "error"
-	StreamConnectionsTotal = lazy.NewCounterVec(
+	StreamConnectionsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "stream_connections_total",
 			Help:      "Total number of incremental stream connection attempts.",
 		},
-		[]string{"status"},
+		vec.Values("status", "success", "error"),
 	)
 
 	// StreamEventsReceivedTotal counts events received on the incremental stream.
-	StreamEventsReceivedTotal = lazy.NewCounter(
+	StreamEventsReceivedTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -80,19 +83,19 @@ var (
 	//   - "state": "rolling" (holds a slot), "stalled" (exceeded its
 	//     progress deadline, paused until a new template or a retry), or
 	//     "waiting" (template changed, no slot yet)
-	RolloutGateWorkloads = lazy.NewGaugeVec(
+	RolloutGateWorkloads = vec.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "rollout_gate_workloads",
 			Help:      "Workloads by rollout gate state.",
 		},
-		[]string{"state"},
+		vec.Values("state", "rolling", "stalled", "waiting"),
 	)
 
 	// LastSuccessfulCheckpointUnixSeconds records when Krane last saved a token
 	// after applying all earlier events.
-	LastSuccessfulCheckpointUnixSeconds = lazy.NewGauge(
+	LastSuccessfulCheckpointUnixSeconds = promauto.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -105,20 +108,50 @@ var (
 	//
 	// Labels:
 	//   - "source": "stream" or "full_sync"
-	//   - "resource_type": "deployment" or "cilium_network_policy"
+	//   - "resource_type": "deployment", or "unknown" for an unrecognized event
 	//   - "status": "success" or "error"
-	DispatchTotal = lazy.NewCounterVec(
+	DispatchTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "dispatch_total",
 			Help:      "Total number of event dispatches to controllers.",
 		},
-		[]string{"source", "resource_type", "status"},
+		vec.Values("source", "stream", "full_sync"),
+		vec.Values("resource_type", "deployment"),
+		vec.Values("status", "success", "error"),
+	)
+
+	// StreamErrorsTotal counts incremental streams that connected and then
+	// ended with an error. Failed connection attempts are counted on
+	// [StreamConnectionsTotal] instead.
+	StreamErrorsTotal = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "stream_errors_total",
+			Help:      "Total number of incremental streams that ended with an error after connecting.",
+		},
+	)
+
+	// FullSyncErrorsTotal counts full syncs that failed before reading every
+	// event. Errors applying individual events are counted on [DispatchTotal].
+	//
+	// Labels:
+	//   - "stage": "open" (the stream could not be opened) or "receive" (the
+	//     stream ended with an error partway through)
+	FullSyncErrorsTotal = vec.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "full_sync_errors_total",
+			Help:      "Total number of full syncs that failed to open or ended with an error.",
+		},
+		vec.Values("stage", "open", "receive"),
 	)
 
 	// FullSyncEventsReceivedTotal counts events received during a full sync.
-	FullSyncEventsReceivedTotal = lazy.NewCounter(
+	FullSyncEventsReceivedTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -128,7 +161,7 @@ var (
 	)
 
 	// FullSyncDurationSeconds tracks how long the krane-side full sync takes.
-	FullSyncDurationSeconds = lazy.NewHistogram(
+	FullSyncDurationSeconds = promauto.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -145,15 +178,17 @@ var (
 	//   - "component": "deployment"
 	//   - "event_type": k8s watch event type ("added", "modified", "deleted")
 	//   - "outcome": "reported", "deduped", "skipped_no_rs", "skipped_rs_gone",
-	//                "skipped_no_deployment", "error"
-	PodWatchEventsTotal = lazy.NewCounterVec(
+	//                "error"
+	PodWatchEventsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "pod_watch_events_total",
 			Help:      "Pod watch events received by krane controllers.",
 		},
-		[]string{"component", "event_type", "outcome"},
+		vec.Values("component", "deployment"),
+		vec.Dynamic("event_type"),
+		vec.Values("outcome", "reported", "deduped", "skipped_no_rs", "skipped_rs_gone", "error"),
 	)
 
 	// PodWatchDeliveryLagSeconds measures time between the kubelet publishing
@@ -170,7 +205,7 @@ var (
 	//   - "component": "deployment"
 	//   - "source": "watch" (real-time) — kept as a label for future
 	//               resync-sourced samples.
-	PodWatchDeliveryLagSeconds = lazy.NewHistogramVec(
+	PodWatchDeliveryLagSeconds = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -178,7 +213,8 @@ var (
 			Help:      "Lag between pod ContainersReady=True and krane observing it via the watch.",
 			Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60},
 		},
-		[]string{"component", "source"},
+		vec.Values("component", "deployment"),
+		vec.Values("source", "watch"),
 	)
 
 	// PodWatchReconnectsTotal counts pod watch reconnect attempts by reason.
@@ -189,14 +225,15 @@ var (
 	// Labels:
 	//   - "component": "deployment"
 	//   - "reason": "channel_closed", "error"
-	PodWatchReconnectsTotal = lazy.NewCounterVec(
+	PodWatchReconnectsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "pod_watch_reconnects_total",
 			Help:      "Pod watch reconnect attempts by reason.",
 		},
-		[]string{"component", "reason"},
+		vec.Values("component", "deployment"),
+		vec.Values("reason", "channel_closed", "error"),
 	)
 
 	// ReportStatusDurationSeconds measures krane-side latency of the
@@ -205,7 +242,7 @@ var (
 	// Labels:
 	//   - "component": "deployment"
 	//   - "result": "success", "error"
-	ReportStatusDurationSeconds = lazy.NewHistogramVec(
+	ReportStatusDurationSeconds = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -213,7 +250,8 @@ var (
 			Help:      "Duration of ReportDeploymentStatus calls from krane.",
 			Buckets:   []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5},
 		},
-		[]string{"component", "result"},
+		vec.Values("component", "deployment"),
+		vec.Values("result", "success", "error"),
 	)
 
 	// ReportDedupedTotal counts reportIfChanged invocations that were skipped
@@ -221,31 +259,32 @@ var (
 	//
 	// Labels:
 	//   - "component": "deployment"
-	ReportDedupedTotal = lazy.NewCounterVec(
+	ReportDedupedTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "report_deduped_total",
 			Help:      "Status reports skipped by fingerprint dedup.",
 		},
-		[]string{"component"},
+		vec.Values("component", "deployment"),
 	)
 
 	// InstanceEventsEmittedTotal counts container lifecycle events
 	// successfully reported to the control plane.
 	//
 	// Labels:
-	//   - "kind": "terminated" or "crashloop_backoff"
+	//   - "kind": "running", "terminated" or "waiting"
 	//   - "reason": kubelet-supplied reason ("OOMKilled", "Error",
 	//     "ContainerCannotRun", "CrashLoopBackOff", ...)
-	InstanceEventsEmittedTotal = lazy.NewCounterVec(
+	InstanceEventsEmittedTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "instance_events_emitted_total",
 			Help:      "Container lifecycle events successfully reported via ReportInstanceEvents.",
 		},
-		[]string{"kind", "reason"},
+		vec.Values("kind", "running", "terminated", "waiting"),
+		vec.Dynamic("reason"),
 	)
 
 	// InstanceEventsDedupDroppedTotal counts events dropped by the
@@ -254,21 +293,32 @@ var (
 	// counter — every pod-watch tick after the first will hit dedup.
 	//
 	// Labels:
-	//   - "kind": "terminated" or "crashloop_backoff"
-	InstanceEventsDedupDroppedTotal = lazy.NewCounterVec(
+	//   - "kind": "running", "terminated" or "waiting"
+	InstanceEventsDedupDroppedTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
 			Name:      "instance_events_dedup_dropped_total",
 			Help:      "Container lifecycle events skipped because the LRU already saw them.",
 		},
-		[]string{"kind"},
+		vec.Values("kind", "running", "terminated", "waiting"),
+	)
+
+	// Leader is 1 on the replica that holds the krane leader lease and 0 on
+	// every other replica.
+	Leader = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "leader",
+			Help:      "1 if this replica holds the krane leader lease, 0 otherwise.",
+		},
 	)
 
 	// InstanceEventsReportFailuresTotal counts ReportInstanceEvents RPC
 	// transport failures. Should track the existing krane→ctrl RPC
 	// failure rate; a divergence means something specific to this RPC.
-	InstanceEventsReportFailuresTotal = lazy.NewCounter(
+	InstanceEventsReportFailuresTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "krane",
@@ -277,6 +327,16 @@ var (
 		},
 	)
 )
+
+// ResetLeaderGauges zeroes the gauges only the leader sets, so a replica that
+// lost leadership stops exporting its last values.
+func ResetLeaderGauges() {
+	for _, state := range []string{"rolling", "stalled", "waiting"} {
+		RolloutGateWorkloads.WithLabelValues(state).Set(0)
+	}
+	LastSuccessfulCheckpointUnixSeconds.Set(0)
+	Leader.Set(0)
+}
 
 // RecordReconcile records a reconciliation operation result. Intended for use
 // with defer and named returns:

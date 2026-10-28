@@ -8,19 +8,17 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/nullable"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	github "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -31,9 +29,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	Auditlogs  auditlogs.AuditLogService
-	CtrlClient ctrl.AppServiceClient
+	DB        db.Database
+	Auditlogs auditlogs.AuditLogService
 
 	// GitHubClient resolves and verifies repositories for the `git` connection.
 	// GitHubAppName is the App slug used to build actionable install URLs in
@@ -134,6 +131,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("cannot update OCI image configuration for a non-OCI app"),
 				fault.Public("OCI image configuration can only be updated for OCI-sourced apps."),
 			)
+		}
+		imageReference := ""
+		if req.Oci != nil {
+			imageReference, err = imageref.Normalize(req.Oci.Image)
+			if err != nil {
+				return openapi.App{}, fault.Wrap(err,
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Public("The OCI image reference must be valid and include an explicit tag or digest."),
+				)
+			}
 		}
 		if gitSpecified {
 			err = principal.Authorize(rbac.Or(
@@ -282,25 +289,54 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				},
 			})
 		}
+		var oci *openapi.AppOCI
+		if app.SourceType == db.AppsSourceTypeOci {
+			ociSource, ociErr := db.Query.FindAppSourceOciByAppId(ctx, tx, app.ID)
+			if ociErr != nil {
+				return openapi.App{}, ociErr
+			}
+			if req.Oci != nil {
+				if err = db.Query.UpdateAppSourceOciImageReference(ctx, tx, db.UpdateAppSourceOciImageReferenceParams{
+					ImageReference: imageReference,
+					UpdatedAt:      sql.NullInt64{Valid: true, Int64: updatedAt},
+					AppID:          app.ID,
+					WorkspaceID:    principal.AuthorizedWorkspaceID,
+				}); err != nil {
+					return openapi.App{}, err
+				}
+				logs = append(logs, auditlog.AuditLog{
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
+					Event:         auditlog.AppUpdateEvent,
+					Display:       fmt.Sprintf("Updated OCI image source for app %s", app.ID),
+					ActorID:       principal.Subject.ID,
+					ActorName:     principal.Subject.Name,
+					ActorMeta:     map[string]any{},
+					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+					RemoteIP:      s.Location(),
+					UserAgent:     s.UserAgent(),
+					CorrelationID: "",
+					Targets: []auditlog.AuditLogTarget{
+						{
+							ID:          app.ID,
+							Type:        auditlog.AppTargetType,
+							Name:        name,
+							DisplayName: name,
+							Meta: map[string]any{
+								"previousImageReference": ociSource.ImageReference,
+								"imageReference":         imageReference,
+							},
+						},
+					},
+				})
+			} else {
+				imageReference = ociSource.ImageReference
+			}
+			oci = &openapi.AppOCI{Image: imageReference}
+		}
 		if len(logs) > 0 {
 			if err = h.Auditlogs.Insert(ctx, tx, logs); err != nil {
 				return openapi.App{}, err
 			}
-		}
-
-		var oci *openapi.AppOCI
-		if app.SourceType == db.AppsSourceTypeOci {
-			imageReference := ""
-			if req.Oci != nil {
-				imageReference = req.Oci.Image
-			} else {
-				ociSource, ociErr := db.Query.FindAppSourceOciByAppId(ctx, tx, app.ID)
-				if ociErr != nil {
-					return openapi.App{}, ociErr
-				}
-				imageReference = ociSource.ImageReference
-			}
-			oci = &openapi.AppOCI{Image: imageReference}
 		}
 		sourceType := openapi.AppSourceType("")
 		switch app.SourceType {
@@ -327,23 +363,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		return err
-	}
-
-	if req.Oci != nil {
-		actor, actorErr := ctrlclient.Actor(s)
-		if actorErr != nil {
-			return actorErr
-		}
-		ctrlRes, ctrlErr := h.CtrlClient.UpdateOciImageSource(ctx, &ctrlv1.UpdateOciImageSourceRequest{
-			WorkspaceId:    principal.AuthorizedWorkspaceID,
-			AppId:          data.Id,
-			ImageReference: req.Oci.Image,
-			Actor:          actor,
-		})
-		if ctrlErr != nil {
-			return ctrlclient.HandleError(ctrlErr, "update OCI image source")
-		}
-		data.Oci = &openapi.AppOCI{Image: ctrlRes.GetImageReference()}
 	}
 
 	return s.JSON(http.StatusOK, Response{

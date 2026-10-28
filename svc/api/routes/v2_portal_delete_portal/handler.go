@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -25,11 +26,12 @@ type (
 	Response = openapi.V2PortalDeletePortalResponseBody
 )
 
-// notFoundMessage is the single public message every unresolved delete returns.
+// notFoundMessage is the public message for a delete the caller cannot read.
 //
-// A denial, a portal in another workspace, an unknown id or slug, and a portal
-// that was already deleted all share it, so no response body can be used to tell
-// them apart.
+// A portal in another workspace, an unknown id or slug, a portal that was
+// already deleted, and a denial from a caller who cannot read the portal all
+// share it. A caller who can read the portal gets a 403 that names the missing
+// permission.
 const notFoundMessage = "Portal not found."
 
 type Handler struct {
@@ -90,7 +92,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// matches literally and does not expand.
 		//
 		// The legacy tuple arms stay until callers have migrated to portal URNs.
-		err = principal.Authorize(rbac.Or(
+		permissionQuery := rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,
 				ResourceID:   "*",
@@ -105,18 +107,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID),
 				permissions.Delete,
 			),
-		))
+		)
+		err = principal.Authorize(permissionQuery)
 		if err != nil {
-			// A fresh chain, not a wrap: UserFacingMessage concatenates every public
-			// message in the chain, so wrapping would append the rendered RBAC query
-			// -- which names the resolved portal id -- to the response. A caller may
-			// have addressed the portal by slug and never seen that id. The internal
-			// message carries the denial across so logs still distinguish it from a
-			// genuinely absent portal.
-			return fault.New("portal not found",
-				fault.Code(codes.Data.Portal.NotFound.URN()),
-				fault.Internal(fmt.Sprintf("delete denied for portal %s: %s", found.ID, fault.InternalMessage(err))),
-				fault.Public(notFoundMessage),
+			return apierrors.MaskInsufficientPermissionsAsNotFound(
+				err,
+				principal.Permissions,
+				permissionQuery,
+				codes.Data.Portal.NotFound.URN(),
+				notFoundMessage,
 			)
 		}
 

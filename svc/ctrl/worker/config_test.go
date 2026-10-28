@@ -125,3 +125,60 @@ password = "depot-token"
 		require.Equal(t, "us-east-1", cfg.GetDepotConfig().ProjectRegion)
 	})
 }
+
+func TestConfigEmailFrom(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		email string
+		from  string
+	}{
+		{name: "omitted keeps template sender"},
+		{name: "empty keeps template sender", email: "[email]\nfrom = \"${UNKEY_EMAIL_FROM}\""},
+		{
+			name:  "canary overrides template sender",
+			email: "[email]\nfrom = \"${UNKEY_EMAIL_FROM}\"",
+			from:  "James from Unkey <james@updates.unkey-canary.com>",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("UNKEY_EMAIL_FROM", tt.from)
+			cfg, err := config.LoadBytes[Config]([]byte(`
+cname_domain = "unkey.local"
+database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
+
+[vault]
+url = "http://vault:8060"
+token = "vault-token"
+` + tt.email))
+
+			require.NoError(t, err)
+			require.Equal(t, tt.from, cfg.Email.From)
+		})
+	}
+}
+
+func TestConfigAcmeDirectoryURL(t *testing.T) {
+	base := `
+cname_domain = "unkey.local"
+database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true"
+
+[vault]
+url = "http://vault:8060"
+token = "vault-token"
+`
+
+	t.Run("defaults to lets encrypt production", func(t *testing.T) {
+		cfg, err := config.LoadBytes[Config]([]byte(base))
+		require.NoError(t, err)
+		require.Equal(t, "https://acme-v02.api.letsencrypt.org/directory", cfg.Acme.DirectoryURL)
+	})
+
+	t.Run("accepts staging directory", func(t *testing.T) {
+		cfg, err := config.LoadBytes[Config]([]byte(base + `
+[acme]
+directory_url = "https://acme-staging-v02.api.letsencrypt.org/directory"
+`))
+		require.NoError(t, err)
+		require.Equal(t, "https://acme-staging-v02.api.letsencrypt.org/directory", cfg.Acme.DirectoryURL)
+	})
+}

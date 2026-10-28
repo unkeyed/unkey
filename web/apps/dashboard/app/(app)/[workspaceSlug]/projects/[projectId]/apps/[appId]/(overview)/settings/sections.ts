@@ -8,7 +8,6 @@ export const SETTINGS_RAIL: readonly SettingsSection[] = ["general", ...APP_SETT
 export const SETTINGS_SECTIONS: Record<SettingsSection, { label: string; description?: string }> = {
   general: { label: "General" },
   build: { label: "Build" },
-  runtime: { label: "Runtime" },
   environments: {
     label: "Environments",
     description: "Configure how each environment deploys and runs.",

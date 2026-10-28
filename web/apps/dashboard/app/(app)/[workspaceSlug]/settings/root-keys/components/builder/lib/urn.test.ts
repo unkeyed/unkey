@@ -95,10 +95,10 @@ describe("rowOffers", () => {
     for (const scope of RESOURCE_SCOPES) {
       for (const row of catalogueRows(CATALOGUES[scope])) {
         const readOnly = row.id.endsWith("_log") || row.id === "limits" || row.id === "usage";
-        const session = row.id === "portal_session";
+        const noDelete = row.id === "portal_session" || row.id === "flags";
         expect(rowOffers(row, "read"), `${scope}:${row.id}:read`).toBe(true);
         expect(rowOffers(row, "write"), `${scope}:${row.id}:write`).toBe(!readOnly);
-        expect(rowOffers(row, "delete"), `${scope}:${row.id}:delete`).toBe(!readOnly && !session);
+        expect(rowOffers(row, "delete"), `${scope}:${row.id}:delete`).toBe(!readOnly && !noDelete);
       }
     }
   });
@@ -209,6 +209,8 @@ describe("catalogue grammar", () => {
       "github/apps/*",
       "limits",
       "usage",
+      "flags",
+      "logs/apiRequests",
     ]);
   });
 });
@@ -216,6 +218,19 @@ describe("catalogue grammar", () => {
 describe("buildUrns", () => {
   it("returns nothing for a policy with no grants", () => {
     expect(buildUrns(ws, [newPolicy()])).toEqual([]);
+  });
+
+  it("offers workspace flags read and write without a delete grant", () => {
+    const row = rowOf("workspace", "flags");
+    expect(ACTIONS.filter((action) => rowOffers(row, action))).toEqual(["read", "write"]);
+    const policy = {
+      ...newPolicy("workspace"),
+      selection: setRowsActions({}, [row], ACTIONS),
+    };
+    expect(buildUrns(ws, [policy])).toEqual([
+      "unkey:v1:ws_123:flags#read",
+      "unkey:v1:ws_123:flags#write",
+    ]);
   });
 
   it("uses verb-only actions for each resource path", () => {

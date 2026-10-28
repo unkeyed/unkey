@@ -15,7 +15,7 @@ With an Unkey MCP server added, your assistant can create keys, check analytics,
 | Server | URL | What it can do |
 | --- | --- | --- |
 | Unkey | `https://mcp.unkey.com/mcp/v2` | Every v2 API endpoint: keys, keyspaces, identities, permissions, rate limits, analytics, portals, and Compute |
-| Compute | `https://mcp.unkey.com/mcp/compute` | Projects, apps, environments and their variables, deployments, domains, gateway policies, and the GitHub app |
+| Compute | `https://mcp.unkey.com/mcp/compute` | <Tooltip tip="Groups of apps, usually one per codebase or product.">Projects</Tooltip>, apps, environments and their variables, deployments, domains, gateway policies, and the GitHub app |
 
 Add the Unkey server if you're not sure. If you only use Compute, the Compute server gives your assistant a shorter list of tools to choose from.
 
@@ -23,7 +23,7 @@ Add the Unkey server if you're not sure. If you only use Compute, the Compute se
 
 The server acts with the permissions of the root key you give it, so create a key just for your assistant.
 
-1. Under **Settings > Root Keys**, click **New root key** and name it after the assistant, for example "Claude Code".
+1. Under **Root Keys** in the dashboard sidebar, click **New root key** and name it after the assistant, for example "Claude Code".
 2. Select only the permissions for what you want the assistant to do. See [Root key permissions](/platform/root-keys/permissions).
 3. Copy the key and store it as an environment variable, for example `UNKEY_ROOT_KEY`.
 

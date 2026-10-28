@@ -8,6 +8,7 @@ sources:
   - cmd/api/util/flags.go
   - cmd/api/analytics/root.go
   - cmd/auth/main.go
+  - cmd/auth/login/login.go
   - cmd/deploy/main.go
   - cmd/healthcheck/main.go
   - pkg/cli/parser.go
@@ -16,7 +17,7 @@ sources:
 
 The `unkey` CLI lets you do from your terminal what you'd do with the API. It covers both products. Nearly every API endpoint has a matching `unkey api <group> <command>`. The exception is the customer portal's end-user endpoints, which use a portal session instead of a root key.
 
-There are also three top-level commands: `unkey deploy` deploys a prebuilt container image to Compute, `unkey auth login` stores a root key so you don't pass it on every call, and `unkey healthcheck` checks a URL from a script.
+There are also four top-level commands: `unkey deploy` deploys a prebuilt container image to Compute, `unkey login` signs you in and stores a root key so you don't pass it on every call, `unkey auth login` does the same thing, and `unkey healthcheck` checks a URL from a script.
 
 <Warning>
   The CLI is early and best effort. Commands, flags, and output can change without notice. The HTTP API is versioned and stable, so use the API for scripts that must not break.
@@ -38,7 +39,7 @@ Every `unkey api` command shares five flags for auth, output, and a raw request 
 
 | Group | What it manages |
 | --- | --- |
-| [`unkey api projects`](/compute/cli/projects/create-project) | Create, read, update, and delete workspace projects |
+| [`unkey api projects`](/compute/cli/projects/create-project) | Create, read, update, and delete workspace <Tooltip tip="Groups of apps, usually one per codebase or product.">projects</Tooltip> |
 | [`unkey api apps`](/compute/cli/apps/create-app) | Create, read, update, and delete apps within projects |
 | [`unkey api environments`](/compute/cli/environments/list-environments) | Environment variables and settings |
 | [`unkey api deployments`](/compute/cli/deployments/create-deployment) | Create and control deployments |
@@ -67,8 +68,11 @@ Keyspaces, keys, identities, permissions and roles, <Tooltip tip="Here: the stan
 
 | Command | Product | What it does |
 | --- | --- | --- |
-| `unkey deploy <image>` | Compute | Deploys a prebuilt container image to a project and waits until the deployment is active. Needs `--project` (or `UNKEY_PROJECT`), and a root key from `--root-key` or `UNKEY_ROOT_KEY`. It doesn't read the stored key. Reference: [unkey deploy](/compute/cli/deploy). |
-| `unkey auth login` | Platform | Prompts for a root key and stores it in `~/.unkey/config.toml`. Reference: [unkey auth login](/platform/cli/auth/login). |
+| `unkey deploy <image>` | Compute | Deploys a prebuilt container image to a project and waits until the deployment is active. Needs `--project` (or `UNKEY_PROJECT`). Uses `--root-key`, then `UNKEY_ROOT_KEY`, then `unkey login`. Reference: [unkey deploy](/compute/cli/deploy). |
+| `unkey login` | Platform | Signs you in with a device code and stores a CLI session. `--root-key=-` stores an existing root key instead. Reference: [unkey login](/platform/cli/login). |
+| `unkey logout` | Platform | Revokes the active CLI session. |
+| `unkey workspace switch` | Platform | Changes the active signed-in workspace. |
+| `unkey auth login` | Platform | Same command as `unkey login`. Reference: [unkey auth login](/platform/cli/auth/login). |
 | `unkey healthcheck <url>` | Compute | Sends one HTTP GET and exits 0 on a 200 response, or 1 otherwise. Useful in CI and monitoring scripts. Reference: [unkey healthcheck](/compute/cli/healthcheck). |
 
 ## Next steps

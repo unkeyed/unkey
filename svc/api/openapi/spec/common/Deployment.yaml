@@ -8,6 +8,7 @@ required:
   - project
   - availableActions
   - regions
+  - issues
   - trigger
   - runtime
   - createdAt
@@ -71,6 +72,13 @@ properties:
     "$ref": "./DeploymentError.yaml"
     description: |
       Why the deployment failed. Present only when `status` is `failed`.
+  issues:
+    type: array
+    items:
+      "$ref": "./DeploymentIssue.yaml"
+    description: |
+      Problems with the running app right now, at most one per type. An issue
+      is removed when it is resolved. Empty when nothing is wrong.
   finishedAt:
     type: integer
     format: int64

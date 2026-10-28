@@ -58,6 +58,14 @@ import (
 	v2PermissionsUpdatePermission "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_update_permission"
 	v2PermissionsUpdateRole "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_update_role"
 
+	v2CliApproveDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_approve_device_login"
+	v2CliDenyDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_deny_device_login"
+	v2CliGetDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_get_device_login"
+	v2CliListSessions "github.com/unkeyed/unkey/svc/api/routes/v2_cli_list_sessions"
+	v2CliPollDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_poll_device_login"
+	v2CliRefreshToken "github.com/unkeyed/unkey/svc/api/routes/v2_cli_refresh_token"
+	v2CliRevokeSession "github.com/unkeyed/unkey/svc/api/routes/v2_cli_revoke_session"
+	v2CliStartDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_start_device_login"
 	v2KeysAddPermissions "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_permissions"
 	v2KeysAddRoles "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_roles"
 	v2KeysCreateKey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_create_key"
@@ -84,6 +92,8 @@ import (
 	v2AnalyticsGetRuntimeLogs "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_runtime_logs"
 	v2AnalyticsGetVerifications "github.com/unkeyed/unkey/svc/api/routes/v2_analytics_get_verifications"
 
+	v2LogsGetApiRequestMetrics "github.com/unkeyed/unkey/svc/api/routes/v2_logs_get_api_request_metrics"
+	v2LogsListApiRequests "github.com/unkeyed/unkey/svc/api/routes/v2_logs_list_api_requests"
 	v2PortalCreatePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 	v2PortalCreateSession "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 	v2PortalDeletePortal "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
@@ -241,7 +251,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
-			TestMode:        srv.Flags().TestMode,
 		},
 	)
 
@@ -254,7 +263,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
-			TestMode:        srv.Flags().TestMode,
 		},
 	)
 
@@ -650,6 +658,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
+	srv.RegisterRoute(publicMiddlewares, &v2CliStartDeviceLogin.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(publicMiddlewares, &v2CliPollDeviceLogin.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(publicMiddlewares, &v2CliRefreshToken.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliGetDeviceLogin.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliApproveDeviceLogin.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliDenyDeviceLogin.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliListSessions.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliRevokeSession.Handler{Devices: svc.CLIDevice})
+
 	// ---------------------------------------------------------------------------
 	// v2/keys
 
@@ -726,6 +743,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		},
 	)
 
@@ -847,6 +865,31 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			DB:        svc.Database,
 			Auditlogs: svc.Auditlogs,
 			KeyCache:  svc.Caches.VerificationKeyByHash,
+		},
+	)
+
+	// ---------------------------------------------------------------------------
+	// v2/logs
+
+	// v2/logs.listApiRequests
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2LogsListApiRequests.Handler{
+			ClickHouse:  svc.ClickHouse,
+			DB:          svc.Database,
+			LimitsCache: svc.Caches.WorkspaceLimits,
+			Clock:       svc.Clock,
+		},
+	)
+
+	// v2/logs.getApiRequestMetrics
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v2LogsGetApiRequestMetrics.Handler{
+			ClickHouse:  svc.ClickHouse,
+			DB:          svc.Database,
+			LimitsCache: svc.Caches.WorkspaceLimits,
+			Clock:       svc.Clock,
 		},
 	)
 
@@ -988,6 +1031,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			Keys:      svc.Keys,
 			Auditlogs: svc.Auditlogs,
 			Vault:     svc.Vault,
+			KeyCache:  svc.Caches.VerificationKeyByHash,
 		}),
 	)
 
@@ -996,6 +1040,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
 			ClickHouse:       svc.ClickHouse,
+			Clock:            svc.Clock,
 			DB:               svc.Database,
 			LimitsCache:      svc.Caches.WorkspaceLimits,
 			MaxPerKeySeries:  v2PortalGetVerifications.DefaultMaxPerKeySeries,
@@ -1119,7 +1164,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2AppsUpdateApp.Handler{
 			DB:            svc.Database,
 			Auditlogs:     svc.Auditlogs,
-			CtrlClient:    svc.CtrlAppClient,
 			GitHubClient:  svc.GitHubClient,
 			GitHubAppName: svc.GitHubAppName,
 		},

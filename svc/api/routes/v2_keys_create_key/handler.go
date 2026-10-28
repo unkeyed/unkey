@@ -46,6 +46,23 @@ type Handler struct {
 	Vault     vault.VaultServiceClient
 }
 
+// maskCreateKeyPermissions hides a keyspace from callers who cannot read it
+// or its keys. Callers who can read it get a 403 that names the missing
+// action. Resource ids in that 403 are removed by the error middleware.
+func maskCreateKeyPermissions(err error, granted []string, query rbac.PermissionQuery, keyspace urn.Keyspace) error {
+	return apierrors.MaskInsufficientPermissionsWithVisibility(
+		err,
+		granted,
+		query,
+		rbac.Or(
+			rbac.U(keyspace, permissions.Read),
+			rbac.U(keyspace.Key("*"), permissions.Read),
+		),
+		codes.Data.Api.NotFound.URN(),
+		"Resource does not exist.",
+	)
+}
+
 // Method returns the HTTP method this route responds to
 func (h *Handler) Method() string {
 	return "POST"
@@ -79,10 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("api not found",
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api not found"), fault.Public("The specified API was not found."),
-			)
+			return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -92,17 +106,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if api.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api belongs to different workspace"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api is deleted"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	keySpace, keySpaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
@@ -114,10 +122,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if keySpaceErr == nil && keySpace.DeletedAtM.Valid {
-		return fault.New("keyspace not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("keyspace is deleted"), fault.Public("The specified API was not found."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	keySpaceProjectID := api.ProjectID
@@ -128,7 +133,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// 3. Permission check. Creating a key is authorized against the keyspace
 	// because the key does not exist until after the operation succeeds. The
 	// tuple legs accept legacy API-scoped grants until those are migrated.
-	err = principal.Authorize(rbac.Or(
+	keyspaceURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String)
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   req.ApiId,
@@ -140,16 +146,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"),
+			keyspaceURN.Key("*"),
 			permissions.Write,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
-			err,
-			codes.Data.Api.NotFound.URN(),
-			"The specified API was not found.",
-		)
+		return maskCreateKeyPermissions(err, principal.Permissions, permissionQuery, keyspaceURN)
 	}
 
 	// Portal sessions are scoped to a single external identity. Force the
@@ -220,7 +223,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.Or(
+		encryptQuery := rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
 				ResourceID:   "*",
@@ -232,16 +235,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.EncryptKey,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Key("*"),
+				keyspaceURN.Key("*"),
 				permissions.Write,
 			),
-		))
+		)
+		err = principal.Authorize(encryptQuery)
 		if err != nil {
-			return apierrors.MaskInsufficientPermissionsAsNotFound(
-				err,
-				codes.Data.Api.NotFound.URN(),
-				"The specified API was not found.",
-			)
+			return maskCreateKeyPermissions(err, principal.Permissions, encryptQuery, keyspaceURN)
 		}
 
 		if !keySpace.StoreEncryptedKeys {

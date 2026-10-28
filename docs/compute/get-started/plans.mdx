@@ -20,15 +20,20 @@ sources:
   - svc/ctrl/worker/deployteardown/doc.go
 ---
 
-You need a Compute plan to deploy. API Management is separate: you can be on the free API tier and still buy Compute, and a paid API plan still can't deploy until you add Compute. How billing and cancellation work for both products is on [Plans](/platform/billing/plans). Here we focus on the Compute plan.
+You need a Compute plan to deploy. Compute is billed separately from API Management, so a paid API plan doesn't include Compute, and you can buy Compute while on the free API tier. For billing and cancellation across both products, see [Plans](/platform/billing/plans).
 
-## Before you can deploy
+## When the plan is checked
 
-We check for a plan whenever you create or bring back compute: creating a project, creating a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>, promoting or rolling back, approving a fork deployment, or handling a GitHub push.
+Unkey checks for a Compute plan whenever you:
+
+- Create a <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> or a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>.
+- Promote or roll back a deployment.
+- Approve a fork deployment.
+- Push to a connected GitHub repository.
 
 ## Plans and their limits
 
-There are three plans, cheapest to most capable: Starter, Pro, and Business. The plan sets the limits for your workspace. See [Limits](/platform/billing/limits). These are the same numbers the dashboard shows. [Compute limits](/compute/configure/limits) covers where each limit is enforced.
+Each plan sets the limits for your workspace. The dashboard shows the same numbers on [Limits](/platform/billing/limits), and [Compute limits](/compute/configure/limits) covers where each one is enforced.
 
 | Limit | Starter | Pro | Business |
 | --- | --- | --- | --- |
@@ -46,13 +51,17 @@ There are three plans, cheapest to most capable: Starter, Pro, and Business. The
 
 ## Spend budget
 
-A Compute plan meters usage above what the plan includes. Workspace admins can set a monthly spend budget in whole dollars under **Settings > Billing**. Unkey emails the admins when month-to-date Compute spend crosses 50, 75, and 100 percent of the budget. If you also turn on the stop option, hitting 100 percent suspends the workspace's compute: running deployments are stopped, the gateway answers every request with `402` and [`spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached), and starting or waking a deployment is refused. Raise or remove the budget, or turn the stop option off, and compute comes back. You do not need to pick a new plan. Full detail is on [Spend budget](/compute/configure/spend-budget).
+Usage above what your plan includes is metered. Workspace admins can set a monthly spend budget under **Settings > Billing**, and Unkey emails them at 50, 75, and 100 percent of it. If you turn on **Stop workloads at the budget**, reaching 100 percent stops every deployment in the workspace until you raise the budget, remove it, or turn the option off. See [Spend budget](/compute/configure/spend-budget).
 
-## If you cancel Compute
+## Canceling or downgrading
 
-Canceling Compute takes effect immediately: running deployments are torn down for good, the plan is cleared, and the subscription won't renew. The current period isn't refunded. Until someone picks a plan again, you can't deploy, promote, or roll back.
+Canceling Compute takes effect immediately:
 
-If the workspace is on the free API Management tier and your Compute plan includes team members (Pro or Business), canceling deactivates every member except the workspace creator. Downgrading from Pro or Business to Starter does the same.
+- Running deployments are torn down permanently.
+- The current period isn't refunded.
+- You can't deploy, promote, or roll back until you pick a plan again.
+
+If the workspace is on the free API Management tier, canceling Pro or Business, or downgrading to Starter, deactivates every team member except the workspace creator.
 
 ## Next steps
 

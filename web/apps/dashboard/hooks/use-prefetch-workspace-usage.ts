@@ -1,6 +1,7 @@
 import { workspaceUsageQuery } from "@/hooks/use-workspace-usage";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useQueryClient } from "@tanstack/react-query";
 import { getQueryKey } from "@trpc/react-query";
 import { useCallback } from "react";
@@ -11,14 +12,15 @@ import { useCallback } from "react";
  */
 export function usePrefetchWorkspaceUsage(): () => void {
   const billingUpgrades = useBillingUIUpgrades();
+  const { user } = useWorkspace();
   const queryClient = useQueryClient();
   const trpcUtils = trpc.useUtils();
 
   return useCallback(() => {
-    if (!billingUpgrades) {
+    if (!billingUpgrades || !user?.orgId) {
       return;
     }
-    void queryClient.prefetchQuery(workspaceUsageQuery("current"));
+    void queryClient.prefetchQuery(workspaceUsageQuery("current", user.orgId, user.id));
     void queryClient.prefetchQuery({
       queryKey: getQueryKey(trpc.stripe.getBillingInfo, undefined, "query"),
       queryFn: () =>
@@ -27,5 +29,5 @@ export function usePrefetchWorkspaceUsage(): () => void {
         }),
       staleTime: 30_000,
     });
-  }, [billingUpgrades, queryClient, trpcUtils]);
+  }, [billingUpgrades, queryClient, trpcUtils, user]);
 }

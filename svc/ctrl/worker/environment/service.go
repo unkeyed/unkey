@@ -25,9 +25,10 @@ const runMaxAttempts uint = 5
 // never overlap.
 type Service struct {
 	hydrav1.UnimplementedEnvironmentServiceServer
-	db        db.Database
-	admin     *restateadmin.Client
-	auditlogs auditlogs.AuditLogService
+	db           db.Database
+	admin        *restateadmin.Client
+	auditlogs    auditlogs.AuditLogService
+	standbyDelay time.Duration
 }
 
 var _ hydrav1.EnvironmentServiceServer = (*Service)(nil)
@@ -44,6 +45,9 @@ type Config struct {
 	// the deletion workflow. Environment deletes are cascade-only, so the event
 	// always carries the actor and correlation ID of the parent teardown.
 	Auditlogs auditlogs.AuditLogService
+
+	// StandbyDelay defaults to 30 minutes when unset.
+	StandbyDelay time.Duration
 }
 
 // New creates a [Service] with the given configuration.
@@ -54,11 +58,15 @@ func New(cfg Config) (*Service, error) {
 	); err != nil {
 		return nil, err
 	}
+	if cfg.StandbyDelay <= 0 {
+		cfg.StandbyDelay = standbyDelay
+	}
 	return &Service{
 		UnimplementedEnvironmentServiceServer: hydrav1.UnimplementedEnvironmentServiceServer{},
 		db:                                    cfg.DB,
 		admin:                                 cfg.Admin,
 		auditlogs:                             cfg.Auditlogs,
+		standbyDelay:                          cfg.StandbyDelay,
 	}, nil
 }
 

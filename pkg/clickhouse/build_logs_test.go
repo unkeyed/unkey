@@ -269,6 +269,29 @@ func TestGetBuildLogs(t *testing.T) {
 		require.Equal(t, strings.Repeat("ü", BuildStepNameRunesMax), res.Entries[0].Step)
 	})
 
+	t.Run("skips builder auth lines", func(t *testing.T) {
+		target := newTarget()
+		stepID := newStepID()
+		insertLogMessages(t, target, stepID, firstSeq, false, []string{
+			"KEBAP 0",
+			"[auth] Started resolving credentials from the client for registry.depot.dev\n",
+			"[auth] Completed resolving credentials from the client for registry.depot.dev after 0.002s\n",
+			"KEBAP 1",
+		})
+
+		target.Limit = 1
+		res, err := client.GetBuildLogs(ctx, target)
+		require.NoError(t, err)
+		require.Equal(t, []string{"KEBAP 0"}, messages(res.Entries))
+		require.True(t, res.HasMore)
+
+		target.AfterSeq = res.Entries[0].Seq
+		res, err = client.GetBuildLogs(ctx, target)
+		require.NoError(t, err)
+		require.Equal(t, []string{"KEBAP 1"}, messages(res.Entries), "the page after the cursor skips the auth lines")
+		require.False(t, res.HasMore)
+	})
+
 	t.Run("excludes rows of other deployments and workspaces", func(t *testing.T) {
 		target := newTarget()
 		stepID := newStepID()

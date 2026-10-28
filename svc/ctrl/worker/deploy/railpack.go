@@ -27,15 +27,15 @@ const (
 	// It provides the /railpack binary for plan generation and acts as the
 	// gateway frontend for the image build.
 	//
-	// This is our fork build (github.com/unkeyed/railpack, branch
-	// unkey/git-context): upstream's frontend can only read the build context
+	// This is our fork build (github.com/unkeyed/railpack):
+	// upstream's frontend can only read the build context
 	// from a session local mount, which would force the worker to download
 	// and stream untrusted repository content. The fork adds git context
 	// support so the build machine fetches the repository itself. Generated
 	// plans are only guaranteed to be understood by the same frontend
 	// version, which is why this is a constant rather than configuration —
 	// bump it together with code changes, not at deploy time.
-	railpackFrontendImage = "ghcr.io/unkeyed/railpack-frontend:v0.27.0-unkey.1"
+	railpackFrontendImage = "ghcr.io/unkeyed/railpack-frontend:v0.40.1-unkey.1"
 
 	// railpackBuilderImage is the image the prepare step runs in. It must be
 	// glibc-based: railpack downloads a gnu-libc mise binary at plan time to
@@ -44,7 +44,7 @@ const (
 	// run in, so the build machine pulls it regardless. The mise version in
 	// the tag is pinned by the railpack release (core/mise/version.txt) —
 	// keep it in sync when bumping railpackFrontendImage.
-	railpackBuilderImage = "ghcr.io/railwayapp/railpack-builder:mise-2026.6.1"
+	railpackBuilderImage = "ghcr.io/unkeyed/railpack-builder:mise-2026.10.3"
 
 	// railpackPlanFilename is the build plan filename the Railpack BuildKit
 	// frontend expects inside the "dockerfile" local mount.

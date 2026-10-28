@@ -249,6 +249,7 @@ const repositoryEventSchema = z.object({
   payload: z
     .object({
       ref: z.string().optional(),
+      ref_type: z.string().optional(),
       size: z.number().optional(),
     })
     // GitHub event payloads vary by type; passthrough avoids parse failures on extra fields
@@ -296,40 +297,64 @@ export async function getMostActiveBranches(
     }
   }
 
-  const pushEvents = allEvents.filter((e) => e.type === "PushEvent" && e.payload.ref);
+  const deletedAt = new Map<string, string>();
+  for (const event of allEvents) {
+    const name = event.payload.ref;
+    if (event.type !== "DeleteEvent" || event.payload.ref_type !== "branch" || !name) {
+      continue;
+    }
+    const previous = deletedAt.get(name);
+    if (!previous || event.created_at > previous) {
+      deletedAt.set(name, event.created_at);
+    }
+  }
+
+  const pushes = allEvents.flatMap((event) => {
+    const ref = event.payload.ref;
+    if (event.type === "PushEvent" && ref?.startsWith("refs/heads/")) {
+      return [
+        {
+          name: ref.slice("refs/heads/".length),
+          commits: event.payload.size ?? 0,
+          at: event.created_at,
+        },
+      ];
+    }
+    // The first push of a new branch is reported as a CreateEvent, not a PushEvent.
+    if (event.type === "CreateEvent" && event.payload.ref_type === "branch" && ref) {
+      return [{ name: ref, commits: 0, at: event.created_at }];
+    }
+    return [];
+  });
 
   const branchMap = new Map<
     string,
     { pushCount: number; commitCount: number; lastPushDate: string }
   >();
 
-  for (const event of pushEvents) {
-    const ref = event.payload.ref;
-    if (!ref) {
-      continue;
-    }
-    const branchName = ref.replace("refs/heads/", "");
-    const existing = branchMap.get(branchName);
-    const commits = event.payload.size ?? 0;
-
+  for (const push of pushes) {
+    const existing = branchMap.get(push.name);
     if (existing) {
       existing.pushCount += 1;
-      existing.commitCount += commits;
-      if (event.created_at > existing.lastPushDate) {
-        existing.lastPushDate = event.created_at;
+      existing.commitCount += push.commits;
+      if (push.at > existing.lastPushDate) {
+        existing.lastPushDate = push.at;
       }
     } else {
-      branchMap.set(branchName, {
+      branchMap.set(push.name, {
         pushCount: 1,
-        commitCount: commits,
-        lastPushDate: event.created_at,
+        commitCount: push.commits,
+        lastPushDate: push.at,
       });
     }
   }
 
   const branches: BranchActivity[] = [];
   for (const [name, data] of branchMap) {
-    branches.push({ name, ...data });
+    const deleted = deletedAt.get(name);
+    if (!deleted || deleted < data.lastPushDate) {
+      branches.push({ name, ...data });
+    }
   }
 
   branches.sort((a, b) => {
@@ -396,25 +421,8 @@ export async function getRepositoryById(
   installationId: number,
   repositoryId: number,
 ): Promise<GitHubRepository | null> {
-  const { token } = await getInstallationAccessToken(installationId);
-
-  const response = await fetch(`https://api.github.com/repositories/${repositoryId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...GITHUB_API_HEADERS,
-    },
-  });
-
-  if (response.status === 404) {
-    return null;
-  }
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to get repository: ${error}`);
-  }
-
-  return gitHubRepositorySchema.parse(await response.json());
+  const repositories = await getInstallationRepositories(installationId);
+  return repositories.find((repository) => repository.id === repositoryId) ?? null;
 }
 
 const pullRequestSchema = z.object({

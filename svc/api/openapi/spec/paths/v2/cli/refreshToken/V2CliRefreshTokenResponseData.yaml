@@ -1,0 +1,23 @@
+type: object
+required:
+  - accessToken
+  - refreshToken
+  - expiresIn
+  - workspaceId
+  - sessionId
+properties:
+  accessToken:
+    type: string
+    x-unkey-redact: true
+  refreshToken:
+    type: string
+    x-unkey-redact: true
+    description: The next refresh token. The previous one no longer works.
+  expiresIn:
+    type: integer
+    format: int64
+    description: Seconds until the access token expires. Access tokens last 15 minutes.
+  workspaceId:
+    type: string
+  sessionId:
+    type: string

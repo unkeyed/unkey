@@ -1,6 +1,10 @@
-import { METHODS } from "@/app/(app)/[workspaceSlug]/logs/constants";
-import { filterOutputSchema, logsFilterFieldConfig } from "@/lib/schemas/logs.filter.schema";
+import {
+  logsFilterFieldConfig,
+  logsSearchFieldEnum,
+  logsSearchOutputSchema,
+} from "@/lib/schemas/logs.filter.schema";
 import { TRPCError } from "@trpc/server";
+import { HttpMethod } from "@unkey/api/models/components";
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 
@@ -31,7 +35,7 @@ export async function getStructuredSearchFromLLM(
           content: userSearchMsg,
         },
       ],
-      response_format: zodResponseFormat(filterOutputSchema, "searchQuery"),
+      response_format: zodResponseFormat(logsSearchOutputSchema, "searchQuery"),
     });
 
     if (!completion.choices[0].message.parsed) {
@@ -74,12 +78,13 @@ export async function getStructuredSearchFromLLM(
   }
 }
 export const getSystemPrompt = (usersReferenceMS: number) => {
-  const operatorsByField = Object.entries(logsFilterFieldConfig)
-    .map(([field, config]) => {
+  const operatorsByField = logsSearchFieldEnum.options
+    .map((field) => {
+      const config = logsFilterFieldConfig[field];
       const operators = config.operators.join(", ");
       let constraints = "";
       if (field === "methods") {
-        constraints = ` and must be one of: ${METHODS.join(", ")}`;
+        constraints = ` and must be one of: ${Object.values(HttpMethod).join(", ")}`;
       } else if (field === "status") {
         constraints = " and must be between 200-599";
       }
@@ -91,29 +96,6 @@ export const getSystemPrompt = (usersReferenceMS: number) => {
   return `You are an expert at converting natural language queries into filters, understanding context and inferring filter types from natural expressions. Handle complex, ambiguous queries by breaking them down into clear filters. For status codes, use 200,400,500 variants - the application handles status grouping. Use ${usersReferenceMS} timestamp for time-related queries.
 
 Examples:
-
-# Complex Host Patterns
-Query: "show requests from api.staging.company.com and test.company.com"
-Result: [
-  {
-    field: "host",
-    filters: [
-      { operator: "is", value: "api.staging.company.com" },
-      { operator: "is", value: "test.company.com" }
-    ]
-  }
-]
-
-Query: "localhost and 127.0.0.1 requests"
-Result: [
-  {
-    field: "host",
-    filters: [
-      { operator: "is", value: "localhost" },
-      { operator: "is", value: "127.0.0.1" }
-    ]
-  }
-]
 
 # Complex Path Patterns
 Query: "find /api/v2/users/{userId}/profile and /api/v2/users/search requests"
@@ -177,14 +159,11 @@ Result: [
   }
 ]
 
-Query: "show successful and not found requests"
+Query: "show successful requests"
 Result: [
   {
     field: "status",
-    filters: [
-      { operator: "is", value: 200 },
-      { operator: "is", value: 404 }
-    ]
+    filters: [{ operator: "is", value: 200 }]
   }
 ]
 
@@ -217,7 +196,7 @@ Result: [
 ]
 
 # Complex Combinations
-Query: "failed requests to /v1/users or /v2/users from api.prod.com in last 2h"
+Query: "failed requests to /v1/users or /v2/users in last 2h"
 Result: [
   {
     field: "status",
@@ -234,10 +213,6 @@ Result: [
     ]
   },
   {
-    field: "host",
-    filters: [{ operator: "is", value: "api.prod.com" }]
-  },
-  {
     field: "startTime",
     filters: [{
       operator: "is",
@@ -246,12 +221,8 @@ Result: [
   }
 ]
 
-Query: "localhost GET and POST /api errors since 2h and 30m ago"
+Query: "GET and POST /api errors since 2h and 30m ago"
 Result: [
-  {
-    field: "host",
-    filters: [{ operator: "is", value: "localhost" }]
-  },
   {
     field: "methods",
     filters: [
@@ -286,6 +257,7 @@ ${operatorsByField}
   • 200 for successful responses
   • 400 for client errors (4XX series)
   • 500 for server errors (5XX series)
+- Use one status value, or 400 and 500 together for errors. Never combine 200 with 400 or 500
 - For relative time queries, support any combination of:
   • Nx[m] for minutes (e.g., 30m, 45m)
   • Nx[h] for hours (e.g., 1h, 24h)
@@ -298,7 +270,6 @@ Special handling rules:
 3. For ambiguous terms like "failed", include both 400 and 500 status codes
 4. Treat "read" operations as GET and "write" operations as POST
 5. When seeing path parameters (e.g., {id}), match the base path
-6. For IP addresses and localhost, treat them as host values
 
 Error Handling Rules:
 1. Invalid time formats: Convert to nearest supported range (e.g., "1w" → "7d")
@@ -320,7 +291,6 @@ Output Validation:
    - methods: must be valid HTTP method
    - status: must be 200, 400, or 500
    - paths: must be normalized string
-   - host: must be valid hostname/IP
    - time: must be valid timestamp or duration
 
 Additional Examples:

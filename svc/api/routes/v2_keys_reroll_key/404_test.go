@@ -22,6 +22,7 @@ func TestRerollKeyNotFound(t *testing.T) {
 		Keys:      h.Keys,
 		Auditlogs: h.Auditlogs,
 		Vault:     h.Vault,
+		KeyCache:  h.Caches.VerificationKeyByHash,
 	}
 
 	h.Register(route)

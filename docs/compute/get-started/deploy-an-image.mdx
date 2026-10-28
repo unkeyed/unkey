@@ -12,6 +12,10 @@ sources:
   - svc/krane/internal/deployment/apply.go
   - cmd/deploy/main.go
   - cmd/deploy/control_plane.go
+  - cmd/api/projects/create_project.go
+  - cmd/api/apps/create_app.go
+  - svc/api/routes/v2_apps_create_app/handler.go
+  - svc/api/internal/deployment/create_outcome.go
   - cmd/api/deployments/create_deployment.go
   - cmd/api/deployments/get_deployment.go
   - cmd/api/util/flags.go
@@ -19,6 +23,7 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/wizard-model.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/app-name.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/deploy-target.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/use-app-lifecycle.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/source-pane.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/image-pane.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/panes/configure-pane.tsx
@@ -28,61 +33,130 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image.tsx
 ---
 
-An <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> deploys and serves traffic without any API key. This path is for images you build yourself, in CI or on your machine, and push to a registry. Unkey pulls the image and runs it. There's no build step, no repository connection, and no GitHub App. Choose it when you already have a build pipeline, when your source isn't on GitHub, or when you want to decide exactly when a version ships.
+Deploy an image you built yourself, in CI or on your machine, and Unkey pulls and runs it. There's no build step and no repository connection, so you decide exactly when a version ships. By the end of this guide you have a <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> that runs your image, and a production <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> live on a `unkey.app` domain.
 
-The image must be pullable without credentials, and your container must listen on the port in the `PORT` environment variable, which Unkey sets to the configured port (8080 unless you change it). Reference the image with a tag (`ghcr.io/acme/api:v1.2.3`) or a digest (`ghcr.io/acme/api@sha256:...`). A reference with neither pulls `latest` at deploy time, so which version a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> got depends on when you ran it.
+To have Unkey build and deploy on every push instead, see [Deploy from GitHub](/compute/get-started/deploy-from-github).
+
+Before you start, make sure that:
+
+- The image is pullable without credentials.
+- Your container listens on the port in the `PORT` environment variable, which is 8080 by default.
+- The reference has a tag (`ghcr.io/acme/api:v1.2.3`) or a digest (`ghcr.io/acme/api@sha256:...`). A reference with neither pulls `latest` at deploy time.
 
 <Note>
-    You need a Compute plan before you can deploy. If you don't have one yet, the dashboard asks you to pick one the first time you try (the dialog is titled **Choose a Compute plan**). Only a workspace admin can do that. See [Compute plans](/compute/get-started/plans) for what each plan includes.
+    You need a Compute plan before you can deploy. If you don't have one yet, the dashboard asks you to pick one the first time you try (the dialog is titled **Choose a Compute plan**), and the CLI rejects the deployment until you do. Only a workspace admin can pick a plan. See [Compute plans](/compute/get-started/plans) for what each plan includes.
 </Note>
 
+<Tabs>
+  <Tab title="Dashboard" icon="browser">
+    <Steps titleSize="h3">
+      <Step title="Create a project">
+        Open **Projects** in the dashboard and choose **Create project**. Enter a **Project Name**, and Unkey fills in a **Slug** from it. You'll use the slug to refer to the project in the API and the CLI. You can change it, as long as it's unique in your workspace and isn't `default`.
 
-<Steps titleSize="h3">
-  <Step title="Create a project">
-    Open **Projects** in the dashboard and choose **Create project**. An app always lives in a project. When the project exists, the dashboard opens the new-app flow. To add an app to a project later, open the project and choose **Create app**.
-  </Step>
-  <Step title="Deploy from the dashboard">
-    On **Deploy a new app**, pick **Container image**. Enter the **Image** reference and choose **Continue**. This creates the app, named after the last part of the image path.
+        The dashboard then opens the new-app flow. To add an app to a project later, open the project and choose **Create app**.
+      </Step>
+      <Step title="Pick the image">
+        On **Deploy a new app**, pick **Container image**. Enter the **Image** reference and choose **Continue** to create the app, named after the last part of the image path (with `-2`, `-3`, and so on if the project already has an app by that name).
 
-    <Frame>
-      <img src="/images/dashboard/compute--get-started-deploy-an-image--image.png" alt="Run a container image card with ghcr.io/acme/storefront-worker:v1.4.2 in the Image field and a Continue button" />
-    </Frame>
+        <Frame>
+          <img src="/images/dashboard/compute--get-started-deploy-an-image--image.png" alt="Run a container image card with ghcr.io/acme/storefront-worker:v1.4.2 in the Image field and a Continue button" />
+        </Frame>
+      </Step>
+      <Step title="Check app configuration">
+        The default configuration is enough to run most images without changes:
 
-    Build and scaling settings you save on **Set up your app** apply to both environments.
+        - **Build**: the image reference. An image app has no build step, and you can't connect a repository to it later.
+        - **Scaling**: 0.25 vCPU, 256 MiB of memory, and one instance in `us-east-1`. See [Runtime settings](/compute/configure/runtime-settings).
+        - **Environment variables**: mark secrets as sensitive to make them write-only. See [Environment variables](/compute/configure/environment-variables).
 
-    <Frame>
-      <img src="/images/dashboard/compute--get-started-deploy-an-image--configure.png" alt="Set up your app card with the app name, and Build, Scaling, and Environment variables blocks, each with an Edit button, above Back and Deploy" />
-    </Frame>
+        <Frame>
+          <img src="/images/dashboard/compute--get-started-deploy-an-image--configure.png" alt="Set up your app card with the app name, and Build, Scaling, and Environment variables blocks, each with an Edit button, above Back and Deploy" />
+        </Frame>
 
-    Choose **Deploy**. The dashboard creates the app's first deployment in the preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and opens it, so you can check the image before anything reaches production. Leaving before you deploy asks you to discard the app.
+        Build and scaling settings you save here apply to both the production and preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>. The port can be changed for each environment individually later by navigating to **App settings** > **Environments**, selecting the environment, and clicking **Configure** on the **Runtime** card.
 
-    An image app has no build step, and its source kind is fixed: you can't later connect a repository to it. Its **App settings** > **Build** page shows the image. To ship a new version or reach production, open the app's **Deployments** page and choose **Create deployment**. Pick the **Environment** and enter the **Image Reference**, or pick an image you deployed before.
-  </Step>
-  <Step title="Deploy with unkey api deployments create-deployment">
-    The `unkey api` commands match the public API one to one. `create-deployment` returns immediately with the deployment ID, and `get-deployment` reads its status. Both take the root key from `--root-key` or `UNKEY_ROOT_KEY` and print JSON with `--output json`.
+        Leaving before you deploy asks you to discard the app.
+      </Step>
+      <Step title="Deploy">
+        Choose **Deploy**. The dashboard deploys the image to production and opens the deployment page. The deployment moves through `pending`, `starting`, `building`, `deploying`, `network` (shown as **Assigning Domains**), and `finalizing` to `ready`. The `building` step has nothing to build, so it's short. If another deployment in the workspace is running, it waits its turn.
 
-    <CodeGroup>
-      ```bash Create the deployment
-      unkey api deployments create-deployment \
-        --project=payments --app=api --environment=production \
-        --oci='{"image":"ghcr.io/acme/api:v1.2.3"}'
-      ```
-      ```bash Check its status
-      unkey api deployments get-deployment --deployment-id=d_... --output json
-      ```
-      ```bash Run an earlier deployment again
-      unkey api deployments create-deployment \
-        --project=payments --app=api --environment=production \
-        --deployment='{"deploymentId":"d_..."}'
-      ```
-    </CodeGroup>
+        At `ready` the app is live. For project `payments`, app `api`, and workspace `acme`, production answers on `payments-api-acme.unkey.app` (or `payments-acme.unkey.app` if the app slug is `default`). The deployment page lists every domain.
 
-    Pass at most one of `--oci`, `--git`, or `--deployment`. Omit all three and the app deploys its configured default: its default image for an image app, its default branch for a Git app. A tag such as `:latest` is pinned to the exact image it points to when you deploy, so the deployment doesn't change when the tag moves. The root key needs `environment.*.create_deployment` to create and `unkey:v1:<workspace_id>:projects/*/apps/*/environments/*/deployments/*#read` to read. See [Root keys](/platform/root-keys/overview).
-  </Step>
-  <Step title="Wait for ready">
-    An image deployment runs the same steps as a Git one: `pending`, `starting`, `building`, `deploying`, `network`, and `finalizing` before `ready`. The `building` step doesn't build anything, so it's short. The deployment still waits its turn if another deployment in the workspace is running. A production deployment that reaches `ready` becomes the live one and takes over the production domains, unless the app is rolled back. A preview deployment gets its own domains. If the status is `failed`, the `error.code` says why. [Deployments](/compute/concepts/deployments) lists the codes.
-  </Step>
-</Steps>
+        If the deployment ends `failed`, the page shows the failed step and an error code. [Deployments](/compute/concepts/deployments) lists the codes and how to fix them.
+      </Step>
+      <Step title="Ship a new version">
+        Push a new image to your registry. Then open the app's **Deployments** page and choose **Create deployment**. Pick the **Environment** and enter the **Image Reference**, or pick an image you deployed before.
+
+        A production deployment that reaches `ready` becomes the live deployment and the production domains move to it, unless the app is rolled back. A preview deployment gets its own domains.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="CLI" icon="terminal">
+    <Steps titleSize="h3">
+      <Step title="Set up the CLI">
+        [Install the CLI](/platform/cli/install) and store a root key with `unkey auth login`, or set `UNKEY_ROOT_KEY`. See [CLI authentication](/platform/cli/authentication).
+
+        The root key needs permission to create projects, apps, and deployments, and to read deployments. See the [Permission reference](/platform/root-keys/permission-reference).
+      </Step>
+      <Step title="Create a project">
+        The slug is what you pass to later commands. It must be unique in your workspace, and `default` is reserved.
+
+        ```bash
+        unkey api projects create-project --name=Payments --slug=payments
+        ```
+      </Step>
+      <Step title="Create the app">
+        Pass the image with `--oci`. It becomes the app's default image, and you can't connect a repository to the app later.
+
+        ```bash
+        unkey api apps create-app \
+          --project=payments --name=API --slug=api \
+          --oci='{"image":"ghcr.io/acme/api:v1.2.3"}'
+        ```
+
+        The app gets production and preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>, and starts with 0.25 vCPU, 256 MiB of memory, and one instance in one region. See [Runtime settings](/compute/configure/runtime-settings).
+      </Step>
+      <Step title="Deploy">
+        With no source flag, the app deploys its default image. The command returns the deployment ID right away, and the rollout runs in the background.
+
+        ```bash
+        unkey api deployments create-deployment \
+          --project=payments --app=api --environment=production
+        ```
+
+        Check its status with the ID it returned:
+
+        ```bash
+        unkey api deployments get-deployment --deployment-id=d_... --output json
+        ```
+
+        The deployment moves through `pending`, `starting`, `building`, `deploying`, `network`, and `finalizing` to `ready`. The `building` step has nothing to build, so it's short. If another deployment in the workspace is running, it waits its turn.
+
+        At `ready` the app is live. For project `payments`, app `api`, and workspace `acme`, production answers on `payments-api-acme.unkey.app` (or `payments-acme.unkey.app` if the app slug is `default`). The deployment page in the dashboard lists every domain.
+
+        If the deployment ends `failed`, `error.code` says why. [Deployments](/compute/concepts/deployments) lists the codes and how to fix them.
+      </Step>
+      <Step title="Ship a new version">
+        Push a new image to your registry, then deploy it with `--oci`. A tag such as `:latest` is pinned to the exact image it points to at deploy time, so the deployment doesn't change when the tag moves.
+
+        <CodeGroup>
+          ```bash Deploy a new image
+          unkey api deployments create-deployment \
+            --project=payments --app=api --environment=production \
+            --oci='{"image":"ghcr.io/acme/api:v1.2.4"}'
+          ```
+          ```bash Run an earlier deployment again
+          unkey api deployments create-deployment \
+            --project=payments --app=api --environment=production \
+            --deployment='{"deploymentId":"d_..."}'
+          ```
+        </CodeGroup>
+
+        A production deployment that reaches `ready` becomes the live deployment and the production domains move to it, unless the app is rolled back. A preview deployment gets its own domains.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
 
 <Visibility for="agents">
   `unkey api deployments create-deployment` calls `POST /v3/deployments.createDeployment` with an `oci` source. `POST /v2/deployments.createDeployment` still works and takes `image.dockerImage` instead, but it's deprecated. The `POST /v2/deploy.createDeployment` that `unkey deploy` uses is internal and deprecated, and may change; call the public endpoint directly instead.

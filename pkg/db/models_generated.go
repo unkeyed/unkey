@@ -576,6 +576,51 @@ func (ns NullDeploymentsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.DeploymentsUpstreamProtocol), nil
 }
 
+type DeviceAuthorizationsStatus string
+
+const (
+	DeviceAuthorizationsStatusPending  DeviceAuthorizationsStatus = "pending"
+	DeviceAuthorizationsStatusApproved DeviceAuthorizationsStatus = "approved"
+	DeviceAuthorizationsStatusConsumed DeviceAuthorizationsStatus = "consumed"
+	DeviceAuthorizationsStatusDenied   DeviceAuthorizationsStatus = "denied"
+	DeviceAuthorizationsStatusExpired  DeviceAuthorizationsStatus = "expired"
+)
+
+func (e *DeviceAuthorizationsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeviceAuthorizationsStatus(s)
+	case string:
+		*e = DeviceAuthorizationsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeviceAuthorizationsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDeviceAuthorizationsStatus struct {
+	DeviceAuthorizationsStatus DeviceAuthorizationsStatus
+	Valid                      bool // Valid is true if DeviceAuthorizationsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeviceAuthorizationsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeviceAuthorizationsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeviceAuthorizationsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeviceAuthorizationsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeviceAuthorizationsStatus), nil
+}
+
 type FrontlineRoutesSticky string
 
 const (
@@ -619,6 +664,50 @@ func (ns NullFrontlineRoutesSticky) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.FrontlineRoutesSticky), nil
+}
+
+type InstancesStatus string
+
+const (
+	InstancesStatusInactive InstancesStatus = "inactive"
+	InstancesStatusPending  InstancesStatus = "pending"
+	InstancesStatusRunning  InstancesStatus = "running"
+	InstancesStatusFailed   InstancesStatus = "failed"
+)
+
+func (e *InstancesStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = InstancesStatus(s)
+	case string:
+		*e = InstancesStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for InstancesStatus: %T", src)
+	}
+	return nil
+}
+
+type NullInstancesStatus struct {
+	InstancesStatus InstancesStatus
+	Valid           bool // Valid is true if InstancesStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullInstancesStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.InstancesStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.InstancesStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullInstancesStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.InstancesStatus), nil
 }
 
 type KeyMigrationsAlgorithm string
@@ -706,6 +795,50 @@ func (ns NullLogdrainsStream) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.LogdrainsStream), nil
+}
+
+type PortalDomainsVerificationStatus string
+
+const (
+	PortalDomainsVerificationStatusPending   PortalDomainsVerificationStatus = "pending"
+	PortalDomainsVerificationStatusVerifying PortalDomainsVerificationStatus = "verifying"
+	PortalDomainsVerificationStatusVerified  PortalDomainsVerificationStatus = "verified"
+	PortalDomainsVerificationStatusFailed    PortalDomainsVerificationStatus = "failed"
+)
+
+func (e *PortalDomainsVerificationStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PortalDomainsVerificationStatus(s)
+	case string:
+		*e = PortalDomainsVerificationStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PortalDomainsVerificationStatus: %T", src)
+	}
+	return nil
+}
+
+type NullPortalDomainsVerificationStatus struct {
+	PortalDomainsVerificationStatus PortalDomainsVerificationStatus
+	Valid                           bool // Valid is true if PortalDomainsVerificationStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPortalDomainsVerificationStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.PortalDomainsVerificationStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PortalDomainsVerificationStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPortalDomainsVerificationStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PortalDomainsVerificationStatus), nil
 }
 
 type UnkeyPrincipalPermissionsPrincipalType string
@@ -823,6 +956,24 @@ type AppSourceOci struct {
 	UpdatedAt      sql.NullInt64 `db:"updated_at"`
 }
 
+type CliSession struct {
+	Pk                       uint64          `db:"pk"`
+	ID                       string          `db:"id"`
+	WorkspaceID              string          `db:"workspace_id"`
+	UserID                   string          `db:"user_id"`
+	UserName                 sql.NullString  `db:"user_name"`
+	Permissions              json.RawMessage `db:"permissions"`
+	DeviceName               sql.NullString  `db:"device_name"`
+	RefreshTokenHash         string          `db:"refresh_token_hash"`
+	PreviousRefreshTokenHash sql.NullString  `db:"previous_refresh_token_hash"`
+	RefreshFamily            string          `db:"refresh_family"`
+	RotatedAt                sql.NullInt64   `db:"rotated_at"`
+	CreatedAt                int64           `db:"created_at"`
+	LastUsedAt               int64           `db:"last_used_at"`
+	ExpiresAt                int64           `db:"expires_at"`
+	RevokedAt                sql.NullInt64   `db:"revoked_at"`
+}
+
 type Deployment struct {
 	Pk                            uint64                            `db:"pk"`
 	ID                            string                            `db:"id"`
@@ -877,6 +1028,25 @@ type DeploymentStep struct {
 	StartedAt     uint64              `db:"started_at"`
 	EndedAt       sql.NullInt64       `db:"ended_at"`
 	Error         sql.NullString      `db:"error"`
+}
+
+type DeviceAuthorization struct {
+	Pk                 uint64                     `db:"pk"`
+	ID                 string                     `db:"id"`
+	UserCode           string                     `db:"user_code"`
+	ExpiresAt          int64                      `db:"expires_at"`
+	Status             DeviceAuthorizationsStatus `db:"status"`
+	DeviceName         sql.NullString             `db:"device_name"`
+	RequesterIp        sql.NullString             `db:"requester_ip"`
+	RequesterUserAgent sql.NullString             `db:"requester_user_agent"`
+	WorkspaceID        sql.NullString             `db:"workspace_id"`
+	ApproverUserID     sql.NullString             `db:"approver_user_id"`
+	ApproverName       sql.NullString             `db:"approver_name"`
+	ApproverRoles      []byte                     `db:"approver_roles"`
+	Permissions        []byte                     `db:"permissions"`
+	SessionID          sql.NullString             `db:"session_id"`
+	CreatedAt          int64                      `db:"created_at"`
+	ApprovedAt         sql.NullInt64              `db:"approved_at"`
 }
 
 type EncryptedKey struct {
@@ -1067,14 +1237,15 @@ type Ratelimit struct {
 }
 
 type RatelimitNamespace struct {
-	Pk          uint64        `db:"pk"`
-	ID          string        `db:"id"`
-	WorkspaceID string        `db:"workspace_id"`
-	ProjectID   string        `db:"project_id"`
-	Name        string        `db:"name"`
-	CreatedAtM  int64         `db:"created_at_m"`
-	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
-	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
+	Pk                 uint64        `db:"pk"`
+	ID                 string        `db:"id"`
+	WorkspaceID        string        `db:"workspace_id"`
+	ProjectID          string        `db:"project_id"`
+	Name               string        `db:"name"`
+	UseGlobalRatelimit bool          `db:"use_global_ratelimit"`
+	CreatedAtM         int64         `db:"created_at_m"`
+	UpdatedAtM         sql.NullInt64 `db:"updated_at_m"`
+	DeletedAtM         sql.NullInt64 `db:"deleted_at_m"`
 }
 
 type RatelimitOverride struct {

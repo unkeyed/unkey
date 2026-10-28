@@ -62,12 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New(
-				"environment not found",
-				fault.Code(codes.Data.Environment.NotFound.URN()),
-				fault.Internal("environment not found"),
-				fault.Public("The requested environment does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Environment.NotFound.URN())
 		}
 		return fault.Wrap(
 			err,
@@ -77,7 +72,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if err = principal.Authorize(rbac.Or(
+	environmentURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID)
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
 			ResourceID:   "*",
@@ -89,14 +85,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateDomain,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Domain("*"),
+			environmentURN.Domain("*"),
 			permissions.Write,
 		),
-	)); err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
+	)
+	if err = principal.Authorize(permissionQuery); err != nil {
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
 			err,
+			principal.Permissions,
+			permissionQuery,
+			rbac.Or(
+				rbac.U(environmentURN, permissions.Read),
+				rbac.U(environmentURN.Domain("*"), permissions.Read),
+			),
 			codes.Data.Environment.NotFound.URN(),
-			"The requested environment does not exist.",
+			"Resource does not exist.",
 		)
 	}
 

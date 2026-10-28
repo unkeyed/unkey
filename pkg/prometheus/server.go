@@ -17,24 +17,18 @@ package prometheus
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// NewWithRegistry creates a zen server that exposes metrics from a custom
-// prometheus.Registry at the /metrics endpoint.
-func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
-	if reg == nil {
-		return nil, fmt.Errorf("prometheus: nil registry")
-	}
-
+// New creates a zen server that exposes the default Prometheus registry at
+// the /metrics endpoint.
+func New() (*zen.Server, error) {
 	z, err := zen.New(zen.Config{
 		MaxRequestBodySize: 0,
 		TrustedProxyCIDRs:  nil,
-		Flags:              nil,
 		TLS:                nil,
 		EnableH2C:          false,
 		StreamRequestBody:  false,
@@ -46,7 +40,7 @@ func NewWithRegistry(reg *prometheus.Registry) (*zen.Server, error) {
 		return nil, err
 	}
 
-	h := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
+	h := promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{})
 
 	z.RegisterRoute([]zen.Middleware{}, zen.NewRoute("GET", "/metrics", func(ctx context.Context, s *zen.Session) error {
 		h.ServeHTTP(s.ResponseWriter(), s.Request())

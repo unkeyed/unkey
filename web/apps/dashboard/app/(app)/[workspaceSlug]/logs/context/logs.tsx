@@ -1,6 +1,6 @@
 "use client";
 
-import type { Log } from "@unkey/clickhouse/src/logs";
+import type { Log } from "@/lib/api-request-logs";
 import { type PropsWithChildren, createContext, useContext, useState } from "react";
 
 type DisplayProperty =

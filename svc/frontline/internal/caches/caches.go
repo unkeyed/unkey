@@ -45,44 +45,48 @@ type Config struct {
 
 func New(config Config) (*Caches, error) {
 	frontlineRoute, err := cache.New(cache.Config[string, db.FindFrontlineRouteByFQDNRow]{
-		Fresh:    5 * time.Second,
-		Stale:    5 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "frontline_route",
-		Clock:    config.Clock,
+		Fresh:     5 * time.Second,
+		Stale:     5 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "frontline_route",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create frontline route cache: %w", err)
 	}
 
 	policies, err := cache.New(cache.Config[string, []*frontlinev1.Policy]{
-		Fresh:    30 * time.Second,
-		Stale:    5 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "policies",
-		Clock:    config.Clock,
+		Fresh:     30 * time.Second,
+		Stale:     5 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "policies",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create policies cache: %w", err)
 	}
 
 	instancesByDeployment, err := cache.New(cache.Config[string, []db.FindInstancesByDeploymentIDRow]{
-		Fresh:    10 * time.Second,
-		Stale:    60 * time.Second,
-		MaxSize:  10_000,
-		Resource: "instances_by_deployment",
-		Clock:    config.Clock,
+		Fresh:     10 * time.Second,
+		Stale:     60 * time.Second,
+		MaxSize:   10_000,
+		Resource:  "instances_by_deployment",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instances by deployment cache: %w", err)
 	}
 
 	tlsCertificate, err := cache.New(cache.Config[string, tls.Certificate]{
-		Fresh:    time.Hour,
-		Stale:    time.Hour * 12,
-		MaxSize:  10_000,
-		Resource: "tls_certificate",
-		Clock:    config.Clock,
+		Fresh:     time.Hour,
+		Stale:     time.Hour * 12,
+		MaxSize:   10_000,
+		Resource:  "tls_certificate",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create certificate cache: %w", err)

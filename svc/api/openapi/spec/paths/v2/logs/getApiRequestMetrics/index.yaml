@@ -1,0 +1,145 @@
+post:
+  tags:
+    - logs
+  summary: Get API request metrics
+  description: |
+    Count the requests that the Unkey API served for your workspace per time bucket, split by status class.
+
+    The filters have the same shape as in `logs.listApiRequests`, without `requestId`. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
+
+    `filters.time` sets the window. A missing lower bound is the start of your log retention, and a missing upper bound is now. Unkey picks the bucket width from the window. It is the distance between the `time` of two points. The first bucket starts at or before the window start and counts its whole width. Windows reach back at most 100 days, and requests outside the log retention of your workspace are not counted.
+
+    **Required Permissions**
+
+    Your root key must have the following permission:
+    - `unkey:v1:<workspace_id>:logs/apiRequests#read`
+  operationId: logs.getApiRequestMetrics
+  x-speakeasy-name-override: getApiRequestMetrics
+  x-unkey-idempotency: idempotent
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2LogsGetApiRequestMetricsRequestBody.yaml"
+  responses:
+    "200":
+      description: One point per bucket, oldest first, with zero counts for buckets without requests.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2LogsGetApiRequestMetricsResponseBody.yaml"
+          examples:
+            series:
+              summary: Two buckets of 30 minutes
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data:
+                  - time: 1792018800000
+                    success: 1200
+                    clientError: 31
+                    serverError: 2
+                    total: 1233
+                  - time: 1792020600000
+                    success: 0
+                    clientError: 0
+                    serverError: 0
+                    total: 0
+            empty:
+              summary: A window that ends before it starts
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: []
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+          examples:
+            unknownField:
+              summary: A filter field the metrics do not have
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Bad Request
+                  detail: POST request body for '/v2/logs.getApiRequestMetrics' failed to validate schema
+                  status: 400
+                  type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                  errors:
+                    - location: /properties/filters/$ref/additionalProperties
+                      message: "additional properties 'requestId' not allowed"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:logs/apiRequests#read`)
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+          examples:
+            missingPermission:
+              summary: Missing required permission
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Insufficient Permissions
+                  detail: "Missing permission: 'unkey:v1:ws_1234abcd:logs/apiRequests#read'"
+                  status: 403
+                  type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+    "422":
+      description: The query exceeds a query limit
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnprocessableEntityErrorResponse.yaml"
+          examples:
+            timeout:
+              summary: Query took too long
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Unprocessable Entity
+                  detail: The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again.
+                  status: 422
+                  type: https://unkey.com/docs/errors/user/unprocessable_entity/query_execution_timeout
+    "429":
+      description: The workspace rate limit is exceeded
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+          examples:
+            workspaceRateLimited:
+              summary: Workspace rate limit exceeded
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Too Many Requests
+                  detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
+                  status: 429
+                  type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+    "503":
+      description: The log store is not available
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"

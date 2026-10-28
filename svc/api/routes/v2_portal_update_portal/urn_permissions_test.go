@@ -119,8 +119,12 @@ func TestUpdatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				return
 			}
 
-			require.Equal(t, http.StatusNotFound, res.Status,
-				"expected a masked 404 for %s#%s, got: %s", tc.resource, tc.action, res.RawBody)
+			expectedStatus := http.StatusNotFound
+			if tc.action == "read" {
+				expectedStatus = http.StatusForbidden
+			}
+			require.Equal(t, expectedStatus, res.Status,
+				"unexpected denial for %s#%s: %s", tc.resource, tc.action, res.RawBody)
 			require.NotContains(t, res.RawBody, projectID,
 				"a denial must not disclose the project id")
 			require.NotEqual(t, displayName, fetchPortal(t, h, workspace.ID, stored.ID).DisplayName,

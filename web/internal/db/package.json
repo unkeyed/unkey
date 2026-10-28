@@ -15,13 +15,14 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "20.14.9",
+    "@types/node": "24.19.2",
     "@unkey/tsconfig": "workspace:^",
     "dotenv-cli": "7.4.1",
     "drizzle-kit": "0.31.4",
     "mysql2": "catalog:",
     "typescript": "5.5.3",
-    "vitest": "5.0.1"
+    "vitest": "5.0.1",
+    "zod": "catalog:"
   },
   "dependencies": {
     "@unkey/id": "workspace:^",

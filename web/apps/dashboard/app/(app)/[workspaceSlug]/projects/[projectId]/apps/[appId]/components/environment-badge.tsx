@@ -13,6 +13,24 @@ import { cn } from "cn";
 
 export type EnvironmentBadgeRollout = "none" | "live" | "liveAfterRollback" | "rolledBackFrom";
 
+export function badgeRollout({
+  isCurrent,
+  isRolledBack,
+  isRolledBackFrom,
+}: {
+  isCurrent: boolean;
+  isRolledBack: boolean;
+  isRolledBackFrom: boolean;
+}): EnvironmentBadgeRollout {
+  if (isRolledBackFrom) {
+    return "rolledBackFrom";
+  }
+  if (!isCurrent) {
+    return "none";
+  }
+  return isRolledBack ? "liveAfterRollback" : "live";
+}
+
 type EnvironmentBadgeProps = {
   environment: Environment;
   rollout: EnvironmentBadgeRollout;

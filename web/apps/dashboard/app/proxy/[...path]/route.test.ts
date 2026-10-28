@@ -48,6 +48,7 @@ describe("dashboard proxy POST", () => {
     mockedEnv.mockReturnValue({
       UNKEY_API_URL: "https://api.example.test",
       UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+      UNKEY_JWT_AUDIENCE: "api.unkey.com",
     } as ReturnType<typeof env>);
   });
 
@@ -77,7 +78,12 @@ describe("dashboard proxy POST", () => {
     expect(res.status).toBe(401);
   });
 
-  it("forwards the WorkOS access token when present", async () => {
+  it.each(["api.unkey.com"])("forwards the WorkOS access token to %s", async (hostname) => {
+    mockedEnv.mockReturnValue({
+      ...env(),
+      UNKEY_API_URL: `https://${hostname}`,
+      UNKEY_JWT_AUDIENCE: "api.unkey.local",
+    });
     mockedGetAuth.mockResolvedValue({
       userId: "user_1",
       orgId: "org_1",
@@ -96,10 +102,16 @@ describe("dashboard proxy POST", () => {
     expect(headers.get("authorization")).toBe("Bearer workos_access_token");
   });
 
-  it("mints a fallback proxy JWT with roles", async () => {
+  it("mints a proxy JWT for a local API even when a WorkOS access token exists", async () => {
+    mockedEnv.mockReturnValue({
+      UNKEY_API_URL: "http://localhost:7070",
+      UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+      UNKEY_JWT_AUDIENCE: "api.unkey.com",
+    } as ReturnType<typeof env>);
     mockedGetAuth.mockResolvedValue({
       userId: "user_1",
       orgId: "org_1",
+      accessToken: "workos_access_token",
       role: "admin",
       user: {
         id: "user_1",
@@ -110,23 +122,20 @@ describe("dashboard proxy POST", () => {
         fullName: "Test User",
       },
     });
+
     const res = await POST(makeRequest({ accept: "application/json" }), { params });
 
     expect(res.status).toBe(200);
-    // The sealed session already carries the profile, so minting must not
-    // cost a provider round trip.
-    expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledOnce();
-    const [, init] = vi.mocked(fetch).mock.calls[0];
-    expect(init).toBeDefined();
+    const [target, init] = vi.mocked(fetch).mock.calls[0];
+    const url = new URL(target instanceof Request ? target.url : String(target));
+    expect(url.origin).toBe("http://localhost:7070");
     const headers = new Headers(init?.headers);
     const authorization = headers.get("authorization");
-    expect(authorization).toMatch(/^Bearer /);
-
-    const token = authorization?.replace("Bearer ", "");
-    expect(token).toBeDefined();
+    expect(authorization).not.toBe("Bearer workos_access_token");
+    const token = authorization?.replace("Bearer ", "") ?? "";
     const { payload } = await jwtVerify(
-      token ?? "",
+      token,
       encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"),
       {
         issuer: "app.unkey.com",
@@ -135,13 +144,90 @@ describe("dashboard proxy POST", () => {
       },
     );
     expect(payload.org).toEqual({ id: "org_1" });
-    expect(payload["org.id"]).toBeUndefined();
-    expect(payload.wid).toBeUndefined();
-    expect(payload.name).toBe("Test User");
     expect(payload.roles).toEqual(["admin"]);
-    expect(payload.role).toBeUndefined();
-    expect(payload.perms).toBeUndefined();
   });
+
+  it.each(["http://127.0.0.1:7070", "http://[::1]:7070", "http://api.unkey.local"])(
+    "mints a proxy JWT instead of forwarding WorkOS for %s",
+    async (apiURL) => {
+      mockedEnv.mockReturnValue({
+        UNKEY_API_URL: apiURL,
+        UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+        UNKEY_JWT_AUDIENCE: "api.unkey.com",
+      } as ReturnType<typeof env>);
+      mockedGetAuth.mockResolvedValue({
+        userId: "user_1",
+        orgId: "org_1",
+        accessToken: "workos_access_token",
+        role: "admin",
+      });
+
+      const res = await POST(makeRequest(), { params });
+
+      expect(res.status).toBe(200);
+      const [, init] = vi.mocked(fetch).mock.calls[0];
+      const headers = new Headers(init?.headers);
+      expect(headers.get("authorization")).toMatch(/^Bearer /);
+      expect(headers.get("authorization")).not.toBe("Bearer workos_access_token");
+    },
+  );
+
+  it.each(["api.unkey.com", "api.unkey.local"])(
+    "mints a fallback JWT with configured audience %s",
+    async (audience) => {
+      mockedEnv.mockReturnValue({ ...env(), UNKEY_JWT_AUDIENCE: audience });
+      mockedGetAuth.mockResolvedValue({
+        userId: "user_1",
+        orgId: "org_1",
+        role: "admin",
+        user: {
+          id: "user_1",
+          email: "test@example.test",
+          firstName: "Test",
+          lastName: "User",
+          avatarUrl: null,
+          fullName: "Test User",
+        },
+      });
+      const res = await POST(makeRequest({ accept: "application/json" }), { params });
+
+      expect(res.status).toBe(200);
+      // The sealed session already carries the profile, so minting must not
+      // cost a provider round trip.
+      expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledOnce();
+      const [, init] = vi.mocked(fetch).mock.calls[0];
+      expect(init).toBeDefined();
+      const headers = new Headers(init?.headers);
+      const authorization = headers.get("authorization");
+      expect(authorization).toMatch(/^Bearer /);
+
+      const token = authorization?.replace("Bearer ", "");
+      expect(token).toBeDefined();
+      const { payload } = await jwtVerify(
+        token ?? "",
+        encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"),
+        {
+          issuer: "app.unkey.com",
+          audience,
+          subject: "user_1",
+        },
+      );
+      expect(payload.org).toEqual({ id: "org_1" });
+      expect(payload["org.id"]).toBeUndefined();
+      expect(payload.wid).toBeUndefined();
+      expect(payload.name).toBe("Test User");
+      expect(payload.roles).toEqual(["admin"]);
+      expect(payload.role).toBeUndefined();
+      expect(payload.perms).toBeUndefined();
+      expect(payload.aud).toEqual([audience]);
+      await expect(
+        jwtVerify(token ?? "", encoder.encode("test-secret-with-at-least-32-bytes-of-entropy"), {
+          audience: audience === "api.unkey.local" ? "api.unkey.com" : "api.unkey.local",
+        }),
+      ).rejects.toThrow();
+    },
+  );
 
   it.each([
     ["leading backslash host", ["\\evil.com", "v1", "keys"]],

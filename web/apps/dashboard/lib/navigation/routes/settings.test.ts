@@ -8,7 +8,6 @@ describe("settings-scoped paths", () => {
     const scope = { workspaceSlug: ws };
     expect(routes.settings.general(scope)).toBe("/acme/settings/general");
     expect(routes.settings.team(scope)).toBe("/acme/settings/team");
-    expect(routes.settings.rootKeys(scope)).toBe("/acme/settings/root-keys");
     expect(routes.settings.logdrains.list(scope)).toBe("/acme/settings/logdrains");
     expect(routes.settings.logdrains.detail({ ...scope, drainId: "ld_1" })).toBe(
       "/acme/settings/logdrains/ld_1",

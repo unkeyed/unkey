@@ -7,6 +7,7 @@ import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
 import { InfoTooltip } from "./info-tooltip";
 import { type GroupSave, type SaveState, resolveGroupSave } from "./settings-save";
+import { Skeleton } from "./skeleton";
 import {
   SlidePanel,
   SlidePanelClose,
@@ -161,7 +162,7 @@ function GroupSaveButton({
       return;
     }
     const results = await Promise.all(save.submit.map((member) => member.submit()));
-    if (results.every(Boolean)) {
+    if (save.complete && results.every(Boolean)) {
       onSaved?.();
     }
   };
@@ -358,7 +359,7 @@ function SettingsForm({
   return (
     <form
       ref={formRef}
-      className={className}
+      className={cn(useLayoutClass("body"), className)}
       onSubmit={(e) => {
         if (saveState.status !== "ready") {
           e.preventDefault();
@@ -433,6 +434,43 @@ function SettingsRowContent({ className, ...props }: React.ComponentProps<"div">
 
 SettingsRowContent.displayName = "SettingsRowContent";
 
+function SettingsRowSkeleton({
+  descriptionLines = 1,
+  control,
+}: {
+  descriptionLines?: 0 | 1 | 2;
+  control?: React.ReactNode;
+}) {
+  return (
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>
+          <div className="flex h-5 items-center">
+            <Skeleton className="h-3.5 w-24" />
+          </div>
+        </SettingsRowTitle>
+        {descriptionLines > 0 ? (
+          <SettingsRowDescription>
+            <div className="flex h-5 items-center">
+              <Skeleton className="h-3.5 w-full" />
+            </div>
+            {descriptionLines === 2 ? (
+              <div className="flex h-5 items-center">
+                <Skeleton className="h-3.5 w-2/3" />
+              </div>
+            ) : null}
+          </SettingsRowDescription>
+        ) : null}
+      </SettingsRowHeader>
+      <SettingsRowContent>
+        {control ?? <Skeleton className="h-9 w-full max-w-(--setting-w) rounded-md" />}
+      </SettingsRowContent>
+    </SettingsRow>
+  );
+}
+
+SettingsRowSkeleton.displayName = "SettingsRowSkeleton";
+
 function SettingsGroups({
   pendingNote = null,
   className,
@@ -469,5 +507,6 @@ export {
   SettingsRowContent,
   SettingsRowDescription,
   SettingsRowHeader,
+  SettingsRowSkeleton,
   SettingsRowTitle,
 };

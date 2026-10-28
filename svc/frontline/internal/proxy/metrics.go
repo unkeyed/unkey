@@ -2,13 +2,7 @@ package proxy
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
-)
-
-// Destination labels distinguish where the proxy sent the request.
-const (
-	destinationInstance  = "instance"  // local h2c forward to a deployment pod
-	destinationFrontline = "frontline" // cross-region HTTPS forward to peer frontline
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 // Outcome labels for upstreamDialsTotal.
@@ -25,7 +19,7 @@ var (
 	//
 	// Buckets cover the full range up to the 300s function timeout —
 	// these requests can be intentionally long.
-	upstreamSeconds = lazy.NewHistogramVec(
+	upstreamSeconds = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -33,7 +27,7 @@ var (
 			Help:      "Upstream call duration.",
 			Buckets:   []float64{0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300},
 		},
-		[]string{"destination"},
+		vec.Values("destination", "instance", "frontline"),
 	)
 
 	// hopsHistogram records cross-region hop counts. Hops=1 is the only
@@ -45,7 +39,7 @@ var (
 	// hop depth via _sum/_count and alerts can use bucket boundaries to
 	// distinguish "all good" (everything in le=1) from "drift" (any rate
 	// past le=1).
-	hopsHistogram = lazy.NewHistogramVec(
+	hopsHistogram = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
@@ -53,20 +47,22 @@ var (
 			Help:      "Cross-region hop count distribution by source and destination region.",
 			Buckets:   []float64{1, 2, 3},
 		},
-		[]string{"src_region", "dst_region"},
+		vec.Dynamic("src_region"),
+		vec.Dynamic("dst_region"),
 	)
 
 	// upstreamDialsTotal counts new TCP dials issued by the upstream
 	// transport. Healthy operation reuses pooled connections; a high dial
 	// rate per destination signals pool churn — a leading indicator of
 	// upstream-saturation outages before errors fire.
-	upstreamDialsTotal = lazy.NewCounterVec(
+	upstreamDialsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "frontline",
 			Name:      "upstream_dials_total",
 			Help:      "TCP dials issued for upstream connections.",
 		},
-		[]string{"destination", "outcome"},
+		vec.Values("destination", "instance", "frontline"),
+		vec.Values("outcome", "success", "error"),
 	)
 )

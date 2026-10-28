@@ -56,11 +56,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Search:      req.Role,
 		})
 		if db.IsNotFound(err) {
-			return openapi.V2PermissionsUpdateRoleResponseData{}, fault.New("role not found",
-				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Internal("role not found"),
-				fault.Public("The requested role does not exist."),
-			)
+			return openapi.V2PermissionsUpdateRoleResponseData{}, apierrors.NotFound(codes.Data.Role.NotFound.URN())
 		}
 		if err != nil {
 			return openapi.V2PermissionsUpdateRoleResponseData{}, fault.Wrap(err,
@@ -70,15 +66,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.U(
+		permissionQuery := rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
 			permissions.Write,
-		))
+		)
+		err = principal.Authorize(permissionQuery)
 		if err != nil {
 			return openapi.V2PermissionsUpdateRoleResponseData{}, apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
+				principal.Permissions,
+				permissionQuery,
 				codes.Data.Role.NotFound.URN(),
-				"The requested role does not exist.",
+				"Resource does not exist.",
 			)
 		}
 

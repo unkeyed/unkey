@@ -39,7 +39,7 @@ func TestListSessionsUnknownPortal(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, request(target))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-			require.Equal(t, "Portal not found.", res.Body.Error.Detail)
+			require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		})
 	}
 }
@@ -64,7 +64,7 @@ func TestListSessionsWithoutPermission(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, permissions...)
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headersFor(rootKey), request(stored.ID))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-			require.Equal(t, "Portal not found.", res.Body.Error.Detail)
+			require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 			require.NotContains(t, res.RawBody, "user_1", "a denial must not disclose end users")
 		})
 	}

@@ -5,6 +5,7 @@ import * as React from "react";
 import { cn, findScrollParent } from "../lib/utils";
 import { Button } from "./buttons/button";
 import { InfoTooltip } from "./info-tooltip";
+import { Skeleton } from "./skeleton";
 
 export type ChevronState = "hidden" | "interactive" | "disabled";
 
@@ -316,6 +317,8 @@ const zoneButtonProps: Record<
   warning: { variant: "primary", color: "warning" },
 };
 
+const ZONE_ROW = "flex flex-col gap-3 p-4 @2xl:flex-row @2xl:items-center @2xl:justify-between";
+
 function SettingsZoneRow({
   title,
   description,
@@ -329,7 +332,7 @@ function SettingsZoneRow({
   const btnProps = zoneButtonProps[zoneVariant];
 
   return (
-    <div className="flex flex-col gap-3 p-4 @2xl:flex-row @2xl:items-center @2xl:justify-between">
+    <div className={ZONE_ROW}>
       <div className="space-y-1">
         <div className="font-medium text-gray-12 text-sm">{title}</div>
         <div className="text-gray-11 text-sm">{description}</div>
@@ -350,6 +353,24 @@ function SettingsZoneRow({
 }
 
 SettingsZoneRow.displayName = "SettingsZoneRow";
+
+function SettingsZoneRowSkeleton({ actionClassName }: { actionClassName: string }) {
+  return (
+    <div className={ZONE_ROW}>
+      <div className="space-y-1">
+        <div className="flex h-5 items-center">
+          <Skeleton className="h-3.5 w-32" />
+        </div>
+        <div className="flex h-5 items-center">
+          <Skeleton className="h-3.5 w-80 max-w-full" />
+        </div>
+      </div>
+      <Skeleton className={cn("h-8 shrink-0 rounded-md", actionClassName)} />
+    </div>
+  );
+}
+
+SettingsZoneRowSkeleton.displayName = "SettingsZoneRowSkeleton";
 
 function SettingsShell({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
@@ -373,4 +394,5 @@ export {
   SettingsShell,
   SettingsZone,
   SettingsZoneRow,
+  SettingsZoneRowSkeleton,
 };

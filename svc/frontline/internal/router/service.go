@@ -36,7 +36,7 @@ func New(cfg Config) (*service, error) {
 	}, nil
 }
 
-func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, error) {
+func (s *service) Route(ctx context.Context, hostname string, excludedRegions ...string) (RouteDecision, error) {
 	start := time.Now()
 	defer func() { routingDecisionSeconds.Observe(time.Since(start).Seconds()) }()
 
@@ -80,7 +80,7 @@ func (s *service) Route(ctx context.Context, hostname string) (RouteDecision, er
 		return RouteDecision{}, err
 	}
 
-	decision, err := s.selectDestination(route, instances, policies)
+	decision, err := s.selectDestination(route, instances, policies, excludedRegions)
 	if err != nil {
 		return RouteDecision{}, err
 	}

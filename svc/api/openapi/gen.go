@@ -104,6 +104,48 @@ func (e DeploymentErrorCode) Valid() bool {
 	}
 }
 
+// Defines values for DeploymentExitReason.
+const (
+	DeploymentExitReasonExitedCleanly   DeploymentExitReason = "exited_cleanly"
+	DeploymentExitReasonExitedWithError DeploymentExitReason = "exited_with_error"
+	DeploymentExitReasonOutOfMemory     DeploymentExitReason = "out_of_memory"
+	DeploymentExitReasonStartFailed     DeploymentExitReason = "start_failed"
+	DeploymentExitReasonUnknown         DeploymentExitReason = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the DeploymentExitReason enum.
+func (e DeploymentExitReason) Valid() bool {
+	switch e {
+	case DeploymentExitReasonExitedCleanly:
+		return true
+	case DeploymentExitReasonExitedWithError:
+		return true
+	case DeploymentExitReasonOutOfMemory:
+		return true
+	case DeploymentExitReasonStartFailed:
+		return true
+	case DeploymentExitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for DeploymentIssueType.
+const (
+	DeploymentIssueTypeCrashLoop DeploymentIssueType = "crash_loop"
+)
+
+// Valid indicates whether the value is a known member of the DeploymentIssueType enum.
+func (e DeploymentIssueType) Valid() bool {
+	switch e {
+	case DeploymentIssueTypeCrashLoop:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeploymentStatus.
 const (
 	DeploymentStatusAwaitingApproval DeploymentStatus = "awaiting_approval"
@@ -368,6 +410,39 @@ func (e FirewallPolicyAction) Valid() bool {
 	}
 }
 
+// Defines values for HttpMethod.
+const (
+	HttpMethodDELETE  HttpMethod = "DELETE"
+	HttpMethodGET     HttpMethod = "GET"
+	HttpMethodHEAD    HttpMethod = "HEAD"
+	HttpMethodOPTIONS HttpMethod = "OPTIONS"
+	HttpMethodPATCH   HttpMethod = "PATCH"
+	HttpMethodPOST    HttpMethod = "POST"
+	HttpMethodPUT     HttpMethod = "PUT"
+)
+
+// Valid indicates whether the value is a known member of the HttpMethod enum.
+func (e HttpMethod) Valid() bool {
+	switch e {
+	case HttpMethodDELETE:
+		return true
+	case HttpMethodGET:
+		return true
+	case HttpMethodHEAD:
+		return true
+	case HttpMethodOPTIONS:
+		return true
+	case HttpMethodPATCH:
+		return true
+	case HttpMethodPOST:
+		return true
+	case HttpMethodPUT:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for KeyCreditsRefillInterval.
 const (
 	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
@@ -431,6 +506,30 @@ func (e UpdateKeyCreditsRefillInterval) Valid() bool {
 	case UpdateKeyCreditsRefillIntervalDaily:
 		return true
 	case UpdateKeyCreditsRefillIntervalMonthly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for V2CliPollDeviceLoginResponseDataStatus.
+const (
+	AccessDenied        V2CliPollDeviceLoginResponseDataStatus = "access_denied"
+	Complete            V2CliPollDeviceLoginResponseDataStatus = "complete"
+	ExpiredToken        V2CliPollDeviceLoginResponseDataStatus = "expired_token"
+	PermissionsRequired V2CliPollDeviceLoginResponseDataStatus = "permissions_required"
+)
+
+// Valid indicates whether the value is a known member of the V2CliPollDeviceLoginResponseDataStatus enum.
+func (e V2CliPollDeviceLoginResponseDataStatus) Valid() bool {
+	switch e {
+	case AccessDenied:
+		return true
+	case Complete:
+		return true
+	case ExpiredToken:
+		return true
+	case PermissionsRequired:
 		return true
 	default:
 		return false
@@ -585,6 +684,92 @@ func (e V2PortalListSessionsSessionStatus) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// ApiRequestLog One request that the Unkey API served for your workspace.
+type ApiRequestLog struct {
+	// Host The host the request was sent to.
+	//
+	// Example: api.unkey.com
+	Host string `json:"host"`
+
+	// LatencyMs How long the Unkey API took to serve the request, in milliseconds.
+	//
+	// Example: 38
+	LatencyMs int64 `json:"latencyMs"`
+
+	// Method The HTTP method of the request.
+	//
+	// Example: POST
+	Method string `json:"method"`
+
+	// Path The path of the request.
+	//
+	// Example: /v2/keys.updateKey
+	Path string `json:"path"`
+
+	// RequestBody The request body. Secret values are redacted.
+	//
+	// Example: {"keyId":"key_1234abcd","name":"Payments"}
+	RequestBody string `json:"requestBody"`
+
+	// RequestHeaders Request headers as `Name: value` strings. Credential headers show `[REDACTED]`.
+	//
+	// Example: ["Content-Type: application/json","Authorization: [REDACTED]"]
+	RequestHeaders []string `json:"requestHeaders"`
+
+	// RequestId The ID that the Unkey API returned in `meta.requestId` for this request.
+	//
+	// Example: req_1234abcd
+	RequestId string `json:"requestId"`
+
+	// ResponseBody The response body. Secret values are redacted.
+	//
+	// Example: {"meta":{"requestId":"req_1234abcd"},"error":{"status":404}}
+	ResponseBody string `json:"responseBody"`
+
+	// ResponseHeaders Response headers as `Name: value` strings.
+	//
+	// Example: ["Content-Type: application/json"]
+	ResponseHeaders []string `json:"responseHeaders"`
+
+	// Status The HTTP status of the response.
+	//
+	// Example: 404
+	Status int32 `json:"status"`
+
+	// Time When the Unkey API received the request, in Unix milliseconds.
+	//
+	// Example: 1792021850123
+	Time int64 `json:"time"`
+}
+
+// ApiRequestMetricsPoint The number of requests in one bucket.
+type ApiRequestMetricsPoint struct {
+	// ClientError The number of requests with a 4xx status.
+	//
+	// Example: 31
+	ClientError int64 `json:"clientError"`
+
+	// ServerError The number of requests with a 5xx status.
+	//
+	// Example: 2
+	ServerError int64 `json:"serverError"`
+
+	// Success The number of requests with a 2xx status.
+	//
+	// Example: 1200
+	Success int64 `json:"success"`
+
+	// Time The start of the bucket, in Unix milliseconds.
+	//
+	// Example: 1792020600000
+	Time int64 `json:"time"`
+
+	// Total The number of requests with any status. It also counts 1xx and 3xx responses, which have no field of their own.
+	//
+	// Example: 1233
+	Total int64 `json:"total"`
 }
 
 // App defines model for App.
@@ -899,6 +1084,10 @@ type Deployment struct {
 	// Example: true
 	IsCurrent bool `json:"isCurrent"`
 
+	// Issues Problems with the running app right now, at most one per type. An issue
+	// is removed when it is resolved. Empty when nothing is wrong.
+	Issues []DeploymentIssue `json:"issues"`
+
 	// Project Slug of the project this deployment belongs to.
 	//
 	// Example: acme
@@ -980,6 +1169,20 @@ type DeploymentError struct {
 // Example: no_schedulable_regions
 type DeploymentErrorCode string
 
+// DeploymentExitReason Why the app stopped:
+//
+//   - `out_of_memory`: the app used more memory than its limit and was stopped.
+//   - `exited_with_error`: the app exited with a non-zero `exitCode`.
+//   - `start_failed`: the start command could not run, for example because the
+//     entrypoint does not exist.
+//   - `exited_cleanly`: the app exited with code 0. A service must keep running,
+//     so Unkey restarts it.
+//   - `unknown`: Unkey could not classify the exit. Handle this value, because
+//     new reasons can be added.
+//
+// Example: out_of_memory
+type DeploymentExitReason string
+
 // DeploymentGit defines model for DeploymentGit.
 type DeploymentGit struct {
 	Author *DeploymentGitAuthor `json:"author,omitempty"`
@@ -1029,6 +1232,85 @@ type DeploymentGitAuthor struct {
 	// Example: octocat
 	Handle string `json:"handle"`
 }
+
+// DeploymentIssue defines model for DeploymentIssue.
+type DeploymentIssue struct {
+	// Message Human-readable explanation of the issue and what to do about it. The
+	// wording can change. For programmatic handling, use `type` and `meta`.
+	//
+	//
+	// Example: Your app used more memory than its limit and keeps stopping, so Unkey waits longer before each restart. Check its memory usage, or raise the limit.
+	Message string `json:"message"`
+
+	// Meta Details of the issue. Which fields are set depends on `type`:
+	//
+	// - `crash_loop`: `restartCount`, and `reason` and `exitCode` of the last exit
+	//   when one was recorded.
+	Meta *DeploymentIssueMeta `json:"meta,omitempty"`
+
+	// Time Unix timestamp in milliseconds of the last occurrence. For `crash_loop`,
+	// this is the time of the last exit. Omitted when unknown.
+	//
+	//
+	// Example: 1704067260000
+	Time *int64 `json:"time,omitempty"`
+
+	// Type What is wrong with the running app:
+	//
+	// - `crash_loop`: the app keeps stopping, so Unkey waits longer before each
+	//   restart. `meta` describes the last exit.
+	//
+	// Handle unknown values, because new types can be added.
+	//
+	//
+	// Example: crash_loop
+	Type DeploymentIssueType `json:"type"`
+}
+
+// DeploymentIssueMeta Details of the issue. Which fields are set depends on `type`:
+//
+//   - `crash_loop`: `restartCount`, and `reason` and `exitCode` of the last exit
+//     when one was recorded.
+type DeploymentIssueMeta struct {
+	// ExitCode Exit code of the last exit. Codes above 128 mean the process was killed
+	// by signal `exitCode - 128`, for example 137 for SIGKILL.
+	//
+	//
+	// Example: 137
+	ExitCode *int32 `json:"exitCode,omitempty"`
+
+	// Reason Why the app stopped:
+	//
+	// - `out_of_memory`: the app used more memory than its limit and was stopped.
+	// - `exited_with_error`: the app exited with a non-zero `exitCode`.
+	// - `start_failed`: the start command could not run, for example because the
+	//   entrypoint does not exist.
+	// - `exited_cleanly`: the app exited with code 0. A service must keep running,
+	//   so Unkey restarts it.
+	// - `unknown`: Unkey could not classify the exit. Handle this value, because
+	//   new reasons can be added.
+	//
+	//
+	// Example: out_of_memory
+	Reason *DeploymentExitReason `json:"reason,omitempty"`
+
+	// RestartCount How many times the affected instance was restarted. This is not a total
+	// across the instances of the deployment.
+	//
+	//
+	// Example: 12
+	RestartCount *int64 `json:"restartCount,omitempty"`
+}
+
+// DeploymentIssueType What is wrong with the running app:
+//
+//   - `crash_loop`: the app keeps stopping, so Unkey waits longer before each
+//     restart. `meta` describes the last exit.
+//
+// Handle unknown values, because new types can be added.
+//
+// Example: crash_loop
+type DeploymentIssueType string
 
 // DeploymentRuntime defines model for DeploymentRuntime.
 type DeploymentRuntime struct {
@@ -1644,12 +1926,34 @@ type EnvironmentVariableInput struct {
 // Example: writeonly
 type EnvironmentVariableKind string
 
-// FieldMatch Matches a named request field (header or query parameter). Exactly one of
-// `present` or `value` must be set.
+// ExactFilter Filters a field that matches only as a whole value, such as a host or a request ID.
+// Matching is exact and case-sensitive.
+//
+// Example: {"isNot":["api.unkey.dev"]}
+type ExactFilter struct {
+	// Is The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+	Is *ExactValues `json:"is,omitempty"`
+
+	// IsNot The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+	IsNot *ExactValues `json:"isNot,omitempty"`
+}
+
+// ExactValues The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+// A row matches `isNot` only when it equals none of the values.
+// Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+type ExactValues = []string
+
+// FieldMatch Matches a named request field (header or query parameter). Set `present` or
+// `value`, not both. If neither is supplied, the field must be present.
 type FieldMatch struct {
 	Name string `json:"name"`
 
 	// Present Matches when the field is present if true, or absent if false, regardless of value.
+	// Defaults to true when neither `present` nor `value` is supplied.
 	Present *bool `json:"present,omitempty"`
 
 	// Value String matcher. Exactly one of `exact`, `prefix` or `regex` must be set.
@@ -1710,6 +2014,11 @@ type HeaderKeyLocation struct {
 	StripPrefix *string `json:"stripPrefix,omitempty"`
 }
 
+// HttpMethod An HTTP method in upper case.
+//
+// Example: POST
+type HttpMethod string
+
 // Identity defines model for Identity.
 type Identity struct {
 	// ExternalId External identity ID
@@ -1724,6 +2033,36 @@ type Identity struct {
 	// Ratelimits Identity ratelimits
 	Ratelimits []RatelimitResponse `json:"ratelimits,omitempty"`
 }
+
+// IntFilter Filters an integer field. `is` keeps rows that equal one of its values.
+// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+//
+// Example: {"gte":400,"isNot":[429],"lt":600}
+type IntFilter struct {
+	// Gt Keep rows where the field is greater than this value.
+	Gt *int64 `json:"gt,omitempty"`
+
+	// Gte Keep rows where the field is greater than or equal to this value.
+	Gte *int64 `json:"gte,omitempty"`
+
+	// Is The values of one filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	Is *IntValues `json:"is,omitempty"`
+
+	// IsNot The values of one filter operator. A row matches `is` when it equals any value in the list.
+	// A row matches `isNot` only when it equals none of the values.
+	IsNot *IntValues `json:"isNot,omitempty"`
+
+	// Lt Keep rows where the field is less than this value.
+	Lt *int64 `json:"lt,omitempty"`
+
+	// Lte Keep rows where the field is less than or equal to this value.
+	Lte *int64 `json:"lte,omitempty"`
+}
+
+// IntValues The values of one filter operator. A row matches `is` when it equals any value in the list.
+// A row matches `isNot` only when it equals none of the values.
+type IntValues = []int64
 
 // InternalServerErrorResponse Error response when an unexpected error occurs on the server. This indicates a problem with Unkey's systems rather than your request.
 //
@@ -1973,8 +2312,8 @@ type LoggingPolicy struct {
 //
 // Example: {"path":{"path":{"prefix":"/api/"}}}
 type MatchExpr struct {
-	// Header Matches a named request field (header or query parameter). Exactly one of
-	// `present` or `value` must be set.
+	// Header Matches a named request field (header or query parameter). Set `present` or
+	// `value`, not both. If neither is supplied, the field must be present.
 	Header *FieldMatch `json:"header,omitempty"`
 
 	// Method Matches when the request method is one of the listed methods.
@@ -1983,8 +2322,8 @@ type MatchExpr struct {
 	// Path Matches on the request path.
 	Path *PathMatch `json:"path,omitempty"`
 
-	// QueryParam Matches a named request field (header or query parameter). Exactly one of
-	// `present` or `value` must be set.
+	// QueryParam Matches a named request field (header or query parameter). Set `present` or
+	// `value`, not both. If neither is supplied, the field must be present.
 	QueryParam *FieldMatch `json:"queryParam,omitempty"`
 
 	// RemoteIp Matches the remote IP against IPv4 or IPv6 CIDR ranges. Exactly one of `in`
@@ -2002,6 +2341,17 @@ type Meta struct {
 	//
 	// Example: req_123
 	RequestId string `json:"requestId"`
+}
+
+// MethodFilter Filters by HTTP method.
+//
+// Example: {"is":["POST","PUT"]}
+type MethodFilter struct {
+	// Is Keep rows with one of these methods.
+	Is *[]HttpMethod `json:"is,omitempty"`
+
+	// IsNot Remove rows with one of these methods.
+	IsNot *[]HttpMethod `json:"isNot,omitempty"`
 }
 
 // MethodMatch Matches when the request method is one of the listed methods.
@@ -2665,6 +3015,59 @@ type StringMatch struct {
 	Regex *string `json:"regex,omitempty"`
 }
 
+// StringValues The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+// A row matches a negated operator only when it matches none of the values.
+type StringValues = []string
+
+// TextFilter Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+// The negated operators (`isNot`, `notContains`) are combined with AND.
+//
+// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
+type TextFilter struct {
+	// Contains The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	Contains *StringValues `json:"contains,omitempty"`
+
+	// EndsWith The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	EndsWith *StringValues `json:"endsWith,omitempty"`
+
+	// Is The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	Is *StringValues `json:"is,omitempty"`
+
+	// IsNot The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	IsNot *StringValues `json:"isNot,omitempty"`
+
+	// NotContains The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	NotContains *StringValues `json:"notContains,omitempty"`
+
+	// StartsWith The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+	// A row matches a negated operator only when it matches none of the values.
+	StartsWith *StringValues `json:"startsWith,omitempty"`
+}
+
+// TimeFilter Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
+//
+// Example: {"gte":1791936000000,"lt":1792022400000}
+type TimeFilter struct {
+	// Gt Keep events after this time.
+	Gt *int64 `json:"gt,omitempty"`
+
+	// Gte Keep events at or after this time.
+	Gte *int64 `json:"gte,omitempty"`
+
+	// Lt Keep events before this time.
+	Lt *int64 `json:"lt,omitempty"`
+
+	// Lte Keep events at or before this time.
+	Lte *int64 `json:"lte,omitempty"`
+}
+
 // TooManyRequestsErrorResponse Error response when the client has sent too many requests in a given time period. This occurs when you've exceeded a rate limit or quota for the resource you're accessing.
 //
 // The rate limit resets automatically after the time window expires. To avoid this error:
@@ -3211,6 +3614,233 @@ type V2AppsUpdateAppResponseBody struct {
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2CliApproveDeviceLoginRequestBody defines model for V2CliApproveDeviceLoginRequestBody.
+type V2CliApproveDeviceLoginRequestBody struct {
+	// Permissions Permissions to grant. Each permission must be within the caller's role.
+	Permissions []string `json:"permissions"`
+
+	// UserCode Code shown in the terminal.
+	UserCode string `json:"userCode"`
+}
+
+// V2CliApproveDeviceLoginResponseBody defines model for V2CliApproveDeviceLoginResponseBody.
+type V2CliApproveDeviceLoginResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliDenyDeviceLoginRequestBody defines model for V2CliDenyDeviceLoginRequestBody.
+type V2CliDenyDeviceLoginRequestBody struct {
+	UserCode string `json:"userCode"`
+}
+
+// V2CliDenyDeviceLoginResponseBody defines model for V2CliDenyDeviceLoginResponseBody.
+type V2CliDenyDeviceLoginResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliGetDeviceLoginRequestBody defines model for V2CliGetDeviceLoginRequestBody.
+type V2CliGetDeviceLoginRequestBody struct {
+	// UserCode Code shown by `unkey login`.
+	UserCode string `json:"userCode"`
+}
+
+// V2CliGetDeviceLoginResponseBody defines model for V2CliGetDeviceLoginResponseBody.
+type V2CliGetDeviceLoginResponseBody struct {
+	Data V2CliGetDeviceLoginResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliGetDeviceLoginResponseData defines model for V2CliGetDeviceLoginResponseData.
+type V2CliGetDeviceLoginResponseData struct {
+	// CreatedAt Unix millisecond time the login was started.
+	CreatedAt int64 `json:"createdAt"`
+
+	// DeviceName Label sent by the CLI. The requester chooses it, so do not trust it.
+	DeviceName *string `json:"deviceName,omitempty"`
+
+	// ExpiresAt Unix millisecond expiry.
+	ExpiresAt int64 `json:"expiresAt"`
+
+	// GrantablePermissions Permissions the signed-in member's role allows. The approval page starts with all of them selected.
+	GrantablePermissions *[]string `json:"grantablePermissions,omitempty"`
+
+	// RequesterIp IP address that started the login. Empty when the API could not determine it.
+	RequesterIp *string `json:"requesterIp,omitempty"`
+
+	// RequesterUserAgent User agent of the client that started the login.
+	RequesterUserAgent *string `json:"requesterUserAgent,omitempty"`
+
+	// Status pending, approved, consumed, denied, or expired.
+	Status   string `json:"status"`
+	UserCode string `json:"userCode"`
+
+	// WorkspaceId Workspace selected at approval. Empty until the login is approved.
+	WorkspaceId *string `json:"workspaceId,omitempty"`
+}
+
+// V2CliListSessionsRequestBody defines model for V2CliListSessionsRequestBody.
+type V2CliListSessionsRequestBody = map[string]interface{}
+
+// V2CliListSessionsResponseBody defines model for V2CliListSessionsResponseBody.
+type V2CliListSessionsResponseBody struct {
+	Data V2CliListSessionsResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliListSessionsResponseData defines model for V2CliListSessionsResponseData.
+type V2CliListSessionsResponseData struct {
+	Sessions []V2CliListSessionsSession `json:"sessions"`
+}
+
+// V2CliListSessionsSession defines model for V2CliListSessionsSession.
+type V2CliListSessionsSession struct {
+	CreatedAt  int64   `json:"createdAt"`
+	DeviceName *string `json:"deviceName,omitempty"`
+
+	// ExpiresAt Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
+	ExpiresAt   int64    `json:"expiresAt"`
+	Id          string   `json:"id"`
+	LastUsedAt  int64    `json:"lastUsedAt"`
+	Permissions []string `json:"permissions"`
+
+	// RevokedAt Unix millisecond time the session was revoked. Omitted when the session is still active.
+	RevokedAt *int64 `json:"revokedAt,omitempty"`
+	UserId    string `json:"userId"`
+}
+
+// V2CliPollDeviceLoginRequestBody defines model for V2CliPollDeviceLoginRequestBody.
+type V2CliPollDeviceLoginRequestBody struct {
+	// LoginId loginId from cli.startDeviceLogin.
+	LoginId string `json:"loginId"`
+}
+
+// V2CliPollDeviceLoginResponseBody defines model for V2CliPollDeviceLoginResponseBody.
+type V2CliPollDeviceLoginResponseBody struct {
+	Data V2CliPollDeviceLoginResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliPollDeviceLoginResponseData defines model for V2CliPollDeviceLoginResponseData.
+type V2CliPollDeviceLoginResponseData struct {
+	// AccessToken Short-lived access token. Present only when status is complete.
+	AccessToken *string `json:"accessToken,omitempty"`
+
+	// Detail Human-readable reason for a terminal status.
+	Detail *string `json:"detail,omitempty"`
+
+	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
+	ExpiresIn *int64 `json:"expiresIn,omitempty"`
+
+	// Interval Seconds to wait before polling again.
+	Interval int64 `json:"interval"`
+
+	// RefreshToken Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
+	RefreshToken *string `json:"refreshToken,omitempty"`
+
+	// SessionId CLI session id. Present only when status is complete.
+	SessionId *string `json:"sessionId,omitempty"`
+
+	// Status `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+	Status V2CliPollDeviceLoginResponseDataStatus `json:"status"`
+
+	// WorkspaceId Workspace the session belongs to. Present only when status is complete.
+	WorkspaceId *string `json:"workspaceId,omitempty"`
+}
+
+// V2CliPollDeviceLoginResponseDataStatus `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+type V2CliPollDeviceLoginResponseDataStatus string
+
+// V2CliRefreshTokenRequestBody defines model for V2CliRefreshTokenRequestBody.
+type V2CliRefreshTokenRequestBody struct {
+	// RefreshToken Refresh token from the previous login or refresh.
+	RefreshToken string `json:"refreshToken"`
+}
+
+// V2CliRefreshTokenResponseBody defines model for V2CliRefreshTokenResponseBody.
+type V2CliRefreshTokenResponseBody struct {
+	Data V2CliRefreshTokenResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliRefreshTokenResponseData defines model for V2CliRefreshTokenResponseData.
+type V2CliRefreshTokenResponseData struct {
+	AccessToken string `json:"accessToken"`
+
+	// ExpiresIn Seconds until the access token expires. Access tokens last 15 minutes.
+	ExpiresIn int64 `json:"expiresIn"`
+
+	// RefreshToken The next refresh token. The previous one no longer works.
+	RefreshToken string `json:"refreshToken"`
+	SessionId    string `json:"sessionId"`
+	WorkspaceId  string `json:"workspaceId"`
+}
+
+// V2CliRevokeSessionRequestBody defines model for V2CliRevokeSessionRequestBody.
+type V2CliRevokeSessionRequestBody struct {
+	// SessionId CLI session id.
+	SessionId string `json:"sessionId"`
+}
+
+// V2CliRevokeSessionResponseBody defines model for V2CliRevokeSessionResponseBody.
+type V2CliRevokeSessionResponseBody struct {
+	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
+	Data EmptyResponse `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliStartDeviceLoginRequestBody defines model for V2CliStartDeviceLoginRequestBody.
+type V2CliStartDeviceLoginRequestBody struct {
+	// DeviceName Hostname or other label shown on the authorize page.
+	DeviceName *string `json:"deviceName,omitempty"`
+}
+
+// V2CliStartDeviceLoginResponseBody defines model for V2CliStartDeviceLoginResponseBody.
+type V2CliStartDeviceLoginResponseBody struct {
+	Data V2CliStartDeviceLoginResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2CliStartDeviceLoginResponseData defines model for V2CliStartDeviceLoginResponseData.
+type V2CliStartDeviceLoginResponseData struct {
+	// ExpiresIn Seconds until the login expires.
+	ExpiresIn int64 `json:"expiresIn"`
+
+	// Interval Seconds to wait between polls.
+	Interval int64 `json:"interval"`
+
+	// LoginId Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+	LoginId string `json:"loginId"`
+
+	// UserCode Code the user confirms in the browser.
+	UserCode string `json:"userCode"`
+
+	// VerificationUri Dashboard page where the user enters the code.
+	VerificationUri string `json:"verificationUri"`
+
+	// VerificationUriComplete Dashboard page with the code filled in.
+	VerificationUriComplete string `json:"verificationUriComplete"`
 }
 
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
@@ -5519,6 +6149,116 @@ type V2LivenessResponseData struct {
 	Message string `json:"message"`
 }
 
+// V2LogsGetApiRequestMetricsFilters Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+type V2LogsGetApiRequestMetricsFilters struct {
+	// Method Filters by HTTP method.
+	//
+	// Example: {"is":["POST","PUT"]}
+	Method *MethodFilter `json:"method,omitempty"`
+
+	// Path Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+	// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+	// The negated operators (`isNot`, `notContains`) are combined with AND.
+	//
+	//
+	// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
+	Path *TextFilter `json:"path,omitempty"`
+
+	// Status Filters an integer field. `is` keeps rows that equal one of its values.
+	// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+	//
+	//
+	// Example: {"gte":400,"isNot":[429],"lt":600}
+	Status *IntFilter `json:"status,omitempty"`
+
+	// Time Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+	// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
+	//
+	//
+	// Example: {"gte":1791936000000,"lt":1792022400000}
+	Time *TimeFilter `json:"time,omitempty"`
+}
+
+// V2LogsGetApiRequestMetricsRequestBody defines model for V2LogsGetApiRequestMetricsRequestBody.
+type V2LogsGetApiRequestMetricsRequestBody struct {
+	// Filters Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+	Filters *V2LogsGetApiRequestMetricsFilters `json:"filters,omitempty"`
+}
+
+// V2LogsGetApiRequestMetricsResponseBody defines model for V2LogsGetApiRequestMetricsResponseBody.
+type V2LogsGetApiRequestMetricsResponseBody struct {
+	// Data One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
+	Data []ApiRequestMetricsPoint `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2LogsListApiRequestsFilters Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+type V2LogsListApiRequestsFilters struct {
+	// Method Filters by HTTP method.
+	//
+	// Example: {"is":["POST","PUT"]}
+	Method *MethodFilter `json:"method,omitempty"`
+
+	// Path Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+	// The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+	// The negated operators (`isNot`, `notContains`) are combined with AND.
+	//
+	//
+	// Example: {"notContains":["verifyKey"],"startsWith":["/v2/keys."]}
+	Path *TextFilter `json:"path,omitempty"`
+
+	// RequestId Filters a field that matches only as a whole value, such as a host or a request ID.
+	// Matching is exact and case-sensitive.
+	//
+	//
+	// Example: {"isNot":["api.unkey.dev"]}
+	RequestId *ExactFilter `json:"requestId,omitempty"`
+
+	// Status Filters an integer field. `is` keeps rows that equal one of its values.
+	// `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+	//
+	//
+	// Example: {"gte":400,"isNot":[429],"lt":600}
+	Status *IntFilter `json:"status,omitempty"`
+
+	// Time Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+	// Rows older than the workspace's retention are never returned or counted, whatever the bounds.
+	//
+	//
+	// Example: {"gte":1791936000000,"lt":1792022400000}
+	Time *TimeFilter `json:"time,omitempty"`
+}
+
+// V2LogsListApiRequestsRequestBody defines model for V2LogsListApiRequestsRequestBody.
+type V2LogsListApiRequestsRequestBody struct {
+	// Cursor The `pagination.cursor` of the previous page. Send the same `filters` with every page of one listing.
+	// Omit the cursor to get the first page.
+	//
+	//
+	// Example: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Filters Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+	Filters *V2LogsListApiRequestsFilters `json:"filters,omitempty"`
+
+	// Limit The maximum number of requests to return in one page.
+	Limit *int `json:"limit,omitempty"`
+}
+
+// V2LogsListApiRequestsResponseBody defines model for V2LogsListApiRequestsResponseBody.
+type V2LogsListApiRequestsResponseBody struct {
+	// Data The requests that match the filters, newest first.
+	Data []ApiRequestLog `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
 // V2PermissionsCreatePermissionRequestBody defines model for V2PermissionsCreatePermissionRequestBody.
 type V2PermissionsCreatePermissionRequestBody struct {
 	// Description Provides detailed documentation of what this permission grants access to.
@@ -7714,6 +8454,30 @@ type AppsListAppsJSONRequestBody = V2AppsListAppsRequestBody
 // AppsUpdateAppJSONRequestBody defines body for AppsUpdateApp for application/json ContentType.
 type AppsUpdateAppJSONRequestBody = V2AppsUpdateAppRequestBody
 
+// CliApproveDeviceLoginJSONRequestBody defines body for CliApproveDeviceLogin for application/json ContentType.
+type CliApproveDeviceLoginJSONRequestBody = V2CliApproveDeviceLoginRequestBody
+
+// CliDenyDeviceLoginJSONRequestBody defines body for CliDenyDeviceLogin for application/json ContentType.
+type CliDenyDeviceLoginJSONRequestBody = V2CliDenyDeviceLoginRequestBody
+
+// CliGetDeviceLoginJSONRequestBody defines body for CliGetDeviceLogin for application/json ContentType.
+type CliGetDeviceLoginJSONRequestBody = V2CliGetDeviceLoginRequestBody
+
+// CliListSessionsJSONRequestBody defines body for CliListSessions for application/json ContentType.
+type CliListSessionsJSONRequestBody = V2CliListSessionsRequestBody
+
+// CliPollDeviceLoginJSONRequestBody defines body for CliPollDeviceLogin for application/json ContentType.
+type CliPollDeviceLoginJSONRequestBody = V2CliPollDeviceLoginRequestBody
+
+// CliRefreshTokenJSONRequestBody defines body for CliRefreshToken for application/json ContentType.
+type CliRefreshTokenJSONRequestBody = V2CliRefreshTokenRequestBody
+
+// CliRevokeSessionJSONRequestBody defines body for CliRevokeSession for application/json ContentType.
+type CliRevokeSessionJSONRequestBody = V2CliRevokeSessionRequestBody
+
+// CliStartDeviceLoginJSONRequestBody defines body for CliStartDeviceLogin for application/json ContentType.
+type CliStartDeviceLoginJSONRequestBody = V2CliStartDeviceLoginRequestBody
+
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 //
 // Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -7857,6 +8621,12 @@ type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
 // KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
 type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+
+// LogsGetApiRequestMetricsJSONRequestBody defines body for LogsGetApiRequestMetrics for application/json ContentType.
+type LogsGetApiRequestMetricsJSONRequestBody = V2LogsGetApiRequestMetricsRequestBody
+
+// LogsListApiRequestsJSONRequestBody defines body for LogsListApiRequests for application/json ContentType.
+type LogsListApiRequestsJSONRequestBody = V2LogsListApiRequestsRequestBody
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody

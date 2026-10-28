@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -19,7 +18,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -43,7 +41,6 @@ type Handler struct {
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
-	TestMode        bool
 }
 
 // Method returns the HTTP method this route responds to
@@ -170,18 +167,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ratelimitReqs := make([]ratelimit.RatelimitRequest, len(req))
 	checkMetadata := make([]checkMeta, len(req))
 
-	reqTime := time.Now()
-	if h.TestMode {
-		header := s.Request().Header.Get("X-Test-Time")
-		if header != "" {
-			if ts, parseErr := strconv.ParseInt(header, 10, 64); parseErr != nil {
-				logger.Warn("invalid test time", "header", header)
-			} else {
-				reqTime = time.UnixMilli(ts)
-			}
-		}
-	}
-
 	for i, check := range req {
 		ns := namespaces[check.Namespace]
 
@@ -210,7 +195,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Duration:    time.Duration(duration) * time.Millisecond,
 			Limit:       limit,
 			Cost:        cost,
-			Time:        reqTime,
+			Time:        time.Time{},
 		}
 
 		checkMetadata[i] = checkMeta{
@@ -404,15 +389,16 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 			for _, name := range names {
 				id := nameToID[name]
 				result[name] = db.FindRatelimitNamespace{
-					ID:                id,
-					WorkspaceID:       principal.AuthorizedWorkspaceID,
-					ProjectID:         projectID,
-					Name:              name,
-					CreatedAtM:        now,
-					UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
-					DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},
-					DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-					WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+					ID:                 id,
+					WorkspaceID:        principal.AuthorizedWorkspaceID,
+					ProjectID:          projectID,
+					Name:               name,
+					UseGlobalRatelimit: false,
+					CreatedAtM:         now,
+					UpdatedAtM:         sql.NullInt64{Valid: false, Int64: 0},
+					DeletedAtM:         sql.NullInt64{Valid: false, Int64: 0},
+					DirectOverrides:    make(map[string]db.FindRatelimitNamespaceLimitOverride),
+					WildcardOverrides:  make([]db.FindRatelimitNamespaceLimitOverride, 0),
 				}
 			}
 

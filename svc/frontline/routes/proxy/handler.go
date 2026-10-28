@@ -43,8 +43,15 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		return err
 	}
 
+	excludedRegions := make([]string, 0, len(hops))
+	for _, hop := range hops {
+		if hop.RegionPlatform != "" {
+			excludedRegions = append(excludedRegions, hop.RegionPlatform)
+		}
+	}
+
 	hostname := proxy.ExtractHostname(req.Host)
-	decision, err := h.RouterService.Route(ctx, hostname)
+	decision, err := h.RouterService.Route(ctx, hostname, excludedRegions...)
 	if err != nil {
 		return err
 	}
@@ -90,15 +97,15 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// or bodies.
 	if len(decision.Policies) > 0 && h.Engine != nil {
 		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.AppID, decision.Policies)
-		if evalErr != nil {
-			return evalErr
-		}
 		tracking.LogRequestHeaders = result.LogRequestHeaders
 		tracking.LogResponseHeaders = result.LogResponseHeaders
 		tracking.LogRequestBody = result.LogRequestBody
 		tracking.LogResponseBody = result.LogResponseBody
 		tracking.LogQuery = result.LogQuery
 		tracking.BodyRedactors = result.BodyRedactors
+		if evalErr != nil {
+			return evalErr
+		}
 		if result.Principal != nil {
 			principalJSON, serErr := result.Principal.Marshal()
 			if serErr != nil {
@@ -227,6 +234,9 @@ func applyPeerMetadata(sess *zen.Session, codec *meta.Codec, now time.Time) ([]m
 			return nil, nil
 		}
 		sess.SetClientIP(ip)
+	}
+	if len(metadata.Hops) > 0 && metadata.Hops[0].RequestID != "" {
+		sess.SetRequestID(metadata.Hops[0].RequestID)
 	}
 	sess.SetDebugTelemetryEnabled(metadata.DebugTelemetryEnabled)
 	return metadata.Hops, nil

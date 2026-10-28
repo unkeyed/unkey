@@ -20,7 +20,7 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/build-settings.tsx
 ---
 
-Your workspace holds projects. A project holds <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">apps</Tooltip>. Every app has exactly two <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>: production and preview. A <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> belongs to one environment. Almost everything you configure (environment variables, gateway policies, the container's CPU) is set per environment.
+Your workspace holds <Tooltip tip="Groups of apps, usually one per codebase or product.">projects</Tooltip>. A project holds <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">apps</Tooltip>. Every app has exactly two <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>: production and preview. A <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> belongs to one environment. Almost everything you configure (environment variables, gateway policies, the container's CPU) is set per environment.
 
 <Tree>
   <Tree.Folder name="acme (workspace)" defaultOpen>

@@ -9,6 +9,7 @@ description: How to compose the rows of a settings group.
 
 `SettingsGroups` stacks the groups of a settings page. Each `SettingsGroupContent` draws one card and collects the `SettingsForm` rows inside it. The card shows one Save button for all of its rows, and saves only the rows with changes.
 
+- One `SettingsForm` can hold more than one row. It spaces its rows the same as the card or panel around it, so do not add divider or gap classes.
 - `pendingNote` on `SettingsGroups` shows beside Save while a card has unsaved changes. Use it to say when the change takes effect.
 - A card reports its unsaved changes to the nearest unsaved-changes scope. See [Slide panel](/primitives/slide-panel#unsaved-changes-registry).
 

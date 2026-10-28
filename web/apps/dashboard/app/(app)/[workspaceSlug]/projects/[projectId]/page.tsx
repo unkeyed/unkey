@@ -32,13 +32,13 @@ export default function ProjectPage() {
           {/* Without a Compute plan the button opens the paywall instead of the
               new-app wizard. */}
           {gated ? (
-            <Button size="md" variant="primary" onClick={openPaywall}>
+            <Button size="sm" variant="primary" onClick={openPaywall}>
               <IconPlusOutline18 />
               Create app
             </Button>
           ) : (
             <Button
-              size="md"
+              size="sm"
               variant="primary"
               render={
                 <Link

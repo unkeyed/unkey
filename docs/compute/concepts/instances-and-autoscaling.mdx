@@ -21,7 +21,7 @@ An instance is one running container of a <Tooltip tip="One built and running ve
 
 ## How many replicas you get
 
-Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> sets, per region, a minimum and a maximum replica count. A new <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> created with the API or CLI starts with one replica in its default region. In the dashboard, the **Instances** field on the environment's **Compute** card sets the bounds as **Min** and **Max**, and both start at 1. With minimum and maximum equal, the count is pinned and autoscaling is off. Autoscaling starts only when you raise the maximum above the minimum.
+Each <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> sets, per region, a minimum and a maximum replica count. A new <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> created with the API or CLI starts with one replica in its default region. In the dashboard, the **Instances** field on the environment's **Runtime** card sets the bounds as **Min** and **Max**, and both start at 1. With minimum and maximum equal, the count is pinned and autoscaling is off. Autoscaling starts only when you raise the maximum above the minimum.
 
 The minimum is at least 1, so you can't scale to zero. The maximum is capped by your plan's replicas-per-region limit: 4 on Starter, 8 on Pro, and 16 on Business. Every region uses the same minimum and maximum.
 

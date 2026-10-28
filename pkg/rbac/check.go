@@ -23,6 +23,6 @@ func Check(query PermissionQuery, granted []string) error {
 	return fault.New("insufficient permissions",
 		fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
 		fault.Internal(message),
-		fault.Public(message),
+		fault.Public(denialHint(message)),
 	)
 }

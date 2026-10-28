@@ -19,6 +19,10 @@ type newDomain struct {
 	// remain pinned to their original deployment, while sticky domains automatically
 	// update to point to new deployments matching their criteria.
 	sticky db.FrontlineRoutesSticky
+
+	// fallback is domain with the app code added. It is used only when another
+	// app already owns domain
+	fallback string
 }
 
 // buildDomains generates the list of domains that should be assigned to a deployment.
@@ -57,22 +61,22 @@ type newDomain struct {
 // repeat a SHA so they don't need it. Callers derive this from the deployment's
 // trigger column.
 //
+// Each domain also carries a fallback with the app code, see [appCode].
+//
 // Every domain goes through [cappedDomain], so no label is longer than
-// [dnsLabelMaxLength]
+// [dnsLabelLengthMax]
 func buildDomains(
 	workspaceSlug, projectSlug, appSlug, environmentSlug,
 	gitSha, branchName, forkOwner, apex string,
 	isProduction bool,
 	uniquifyCommitDomain bool,
-	deploymentID string,
+	deploymentID, appID string,
 ) []newDomain {
-	// Build the project-app prefix for domain names.
-	// Skip "default" app slug since it's not configurable yet and would just
-	// add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
-	prefix := projectSlug
-	if appSlug != "default" {
-		prefix = projectSlug + "-" + appSlug
-	}
+	code := appCode(appID)
+
+	// Skip the "default" app slug since it's not configurable yet and would
+	// just add noise to URLs (e.g. "myproject-default-..." vs "myproject-...").
+	prefix := formatDomainPrefix(projectSlug, appSlug)
 
 	// Fork PRs include the fork owner in the domain to distinguish from same-repo
 	// deployments (e.g. "myproject-fork-contributor-git-abc1234-acme.unkey.app").
@@ -98,6 +102,13 @@ func buildDomains(
 	}
 
 	var domains []newDomain
+	add := func(head string, sticky db.FrontlineRoutesSticky) {
+		domains = append(domains, newDomain{
+			domain:   cappedDomain(head, workspaceSlug, "", apex),
+			sticky:   sticky,
+			fallback: cappedDomain(head, workspaceSlug, code, apex),
+		})
+	}
 
 	if gitSha != "" {
 		short := gitSha
@@ -105,79 +116,72 @@ func buildDomains(
 			short = short[:7]
 		}
 		short += disambiguator
-		domains = append(domains,
-			newDomain{
-				domain: cappedDomain(prefix+"-git-"+short, workspaceSlug, apex),
-				//nolint: exhaustruct
-				sticky: db.FrontlineRoutesStickyNone,
-			},
-		)
+		add(prefix+"-git-"+short, db.FrontlineRoutesStickyNone)
 	}
 
 	if branchName != "" {
-		domains = append(
-			domains,
-			newDomain{
-				domain: cappedDomain(prefix+"-git-"+sluggify(branchName), workspaceSlug, apex),
-				sticky: db.FrontlineRoutesStickyBranch,
-			},
-		)
+		add(prefix+"-git-"+sluggify(branchName), db.FrontlineRoutesStickyBranch)
 	}
 
-	domains = append(
-		domains,
-		newDomain{
-			domain: cappedDomain(prefix+"-"+environmentSlug, workspaceSlug, apex),
-			sticky: db.FrontlineRoutesStickyEnvironment,
-		},
-	)
+	add(prefix+"-"+environmentSlug, db.FrontlineRoutesStickyEnvironment)
 
 	if isProduction {
-		domains = append(domains,
-			newDomain{
-				domain: cappedDomain(prefix, workspaceSlug, apex),
-				sticky: db.FrontlineRoutesStickyLive,
-			})
+		add(prefix, db.FrontlineRoutesStickyLive)
 	}
 
 	// deployment-specific domain for stable public access.
-	domains = append(domains, newDomain{
-		domain: cappedDomain(prefix+"-"+sluggify(deploymentID), workspaceSlug, apex),
-		//nolint: exhaustruct
-		sticky: db.FrontlineRoutesStickyDeployment,
-	})
+	add(prefix+"-"+sluggify(deploymentID), db.FrontlineRoutesStickyDeployment)
 
 	return domains
 }
 
-// dnsLabelMaxLength is the length limit for one label of a domain name, from
+// dnsLabelLengthMax is the length limit for one label of a domain name, from
 // [RFC 1035 section 2.3.4]. DNS clients reject a longer label, so a domain
 // with one never resolves
 //
 // [RFC 1035 section 2.3.4]: https://www.rfc-editor.org/rfc/rfc1035.html#section-2.3.4
-const dnsLabelMaxLength = 63
+const dnsLabelLengthMax = 63
 
 // labelHashLength is the number of hex characters of the hash that
 // [cappedDomain] puts in a cut label
 const labelHashLength = 8
 
-// workspaceSlugMaxLength is the longest workspace slug a cut label keeps. It
-// leaves room for the hash, two hyphens, and one character of head
-const workspaceSlugMaxLength = dnsLabelMaxLength - labelHashLength - 3
+// workspaceSlugLengthMax is the longest workspace slug a cut label without an
+// app code keeps. It leaves room for the hash, two hyphens, and one character
+// of head
+const workspaceSlugLengthMax = dnsLabelLengthMax - labelHashLength - 3
 
-// cappedDomain returns `<head>-<workspaceSlug>.<apex>`. A label longer than
-// [dnsLabelMaxLength] becomes `<cut head>-<hash of full label>-<workspaceSlug>`.
-// The hash keeps long labels apart and is stable, so a branch keeps its sticky
-// domain across deploys
-func cappedDomain(head, workspaceSlug, apex string) string {
-	label := head + "-" + workspaceSlug
-	if len(label) <= dnsLabelMaxLength {
+// cappedDomain returns `<head>-<workspaceSlug>.<apex>`, or
+// `<head>-<workspaceSlug>-<code>.<apex>` when code is set. A label longer than
+// [dnsLabelLengthMax] becomes `<cut head>-<hash of full label>-<workspaceSlug>`
+// with the code kept at the end. The hash keeps long labels apart and is
+// stable, so a branch keeps its sticky domain across deploys
+func cappedDomain(head, workspaceSlug, code, apex string) string {
+	codePart := ""
+	if code != "" {
+		codePart = "-" + code
+	}
+
+	label := head + "-" + workspaceSlug + codePart
+	if len(label) <= dnsLabelLengthMax {
 		return label + "." + apex
 	}
 
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(label)))[:labelHashLength]
-	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugMaxLength)
-	return cutLabel(head, dnsLabelMaxLength-len(tail)) + tail + "." + apex
+	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugLengthMax-len(codePart)) + codePart
+	return cutLabel(head, dnsLabelLengthMax-len(tail)) + tail + "." + apex
+}
+
+// appCodeLength is the number of characters [appCode] returns
+const appCodeLength = 6
+
+// appCode returns a code that is stable for the life of an app and differs
+// between apps. A label is joined from user-chosen slugs, so two apps can build
+// the same one: workspace "testing" on branch "main-x" and workspace
+// "x-testing" on branch "main" both end in "git-main-x-testing". The app that
+// comes second gets the label with this code instead
+func appCode(appID string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte("app:"+appID)))[:appCodeLength]
 }
 
 // cutLabel shortens s to at most length characters and drops the hyphens

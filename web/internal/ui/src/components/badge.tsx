@@ -1,5 +1,5 @@
-import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
+import { type VariantProps, cva } from "../lib/cva";
 
 import { cn } from "../lib/utils";
 
@@ -19,6 +19,7 @@ const badgeVariants = cva("inline-flex items-center rounded-md border px-2.5 py-
     size: {
       DEFAULT: "",
       sm: "px-1.5 py-0.5",
+      compact: "h-5 gap-1.5 px-1.5 py-0",
     },
     font: {
       mono: "font-mono",

@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/google/go-containerregistry/pkg/authn"
-	"github.com/google/go-containerregistry/pkg/name"
+	imagename "github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 type ociImageResolver struct {
-	internalRepository string
+	internalRepository *imagename.Repository
 	internalAuth       authn.Authenticator
 	publicTransport    http.RoundTripper
 	internalTransport  http.RoundTripper
@@ -22,7 +22,7 @@ type ociImageResolver struct {
 // build-registry credentials for historical Unkey-built images.
 func NewImageResolver(config RegistryConfig) (ImageResolver, error) {
 	resolver := &ociImageResolver{
-		internalRepository: "",
+		internalRepository: nil,
 		internalAuth:       authn.Anonymous,
 		publicTransport:    newRegistryTransport(""),
 		internalTransport:  nil,
@@ -32,11 +32,11 @@ func NewImageResolver(config RegistryConfig) (ImageResolver, error) {
 		return resolver, nil
 	}
 
-	repository, err := name.NewRepository(config.Repository, name.WeakValidation)
+	repository, err := imagename.NewRepository(config.Repository, imagename.WeakValidation)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("invalid internal registry repository"))
 	}
-	resolver.internalRepository = repository.Name()
+	resolver.internalRepository = &repository
 	resolver.internalTransport = newRegistryTransport(repository.RegistryStr())
 	if config.Username != "" || config.Password != "" {
 		resolver.internalAuth = authn.FromConfig(authn.AuthConfig{
@@ -51,14 +51,14 @@ func NewImageResolver(config RegistryConfig) (ImageResolver, error) {
 }
 
 func (r *ociImageResolver) Resolve(ctx context.Context, imageReference string) (string, error) {
-	reference, err := name.ParseReference(imageReference, name.WeakValidation)
+	reference, err := imagename.ParseReference(imageReference, imagename.WeakValidation)
 	if err != nil {
 		return "", fault.Wrap(err, fault.Internal("invalid OCI image reference"))
 	}
 
 	authenticator := authn.Anonymous
 	transport := r.publicTransport
-	if reference.Context().Name() == r.internalRepository {
+	if r.internalRepository != nil && sameRepository(reference.Context(), *r.internalRepository) {
 		authenticator = r.internalAuth
 		transport = r.internalTransport
 	}

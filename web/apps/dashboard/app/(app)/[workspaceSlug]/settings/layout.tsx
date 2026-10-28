@@ -5,16 +5,19 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
-import { useWorkspace } from "@/providers/workspace-provider";
 import { SecondaryNav, SecondaryNavGroup, SecondaryNavItem, SecondaryNavTitle } from "@unkey/ui";
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
+import type { ReactNode } from "react";
 
 const ITEMS = [
   { segment: "general", label: "General", getHref: routes.settings.general },
+  {
+    segment: "platform-features",
+    label: "Feature previews",
+    getHref: routes.settings.platformFeatures,
+  },
   { segment: "team", label: "Team", getHref: routes.settings.team },
-  { segment: "root-keys", label: "Root Keys", getHref: routes.settings.rootKeys },
   { segment: "logdrains", label: "Log Drains", getHref: routes.settings.logdrains.list },
   { segment: "billing", label: "Billing", getHref: routes.settings.billing },
   { segment: "usage", label: "Usage", getHref: routes.settings.usage },
@@ -28,18 +31,12 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const segments = useSelectedLayoutSegments();
   const active = segments[0] ?? "general";
   const billingUpgrades = useBillingUIUpgrades();
-  const { user } = useWorkspace();
-  const projectsNav = useFlag("projectsNav");
-  // Under projects-first navigation Root Keys has its own sidebar entry.
-  const rootKeysInRail = user?.role === "admin" && !projectsNav;
+  const platformFeatures = useFlag("platformFeatures");
   const items = ITEMS.filter(
     (item) => billingUpgrades || !BILLING_UPGRADE_SEGMENTS.has(item.segment),
-  ).filter((item) => rootKeysInRail || item.segment !== "root-keys");
+  ).filter((item) => platformFeatures || item.segment !== "platform-features");
 
   const prefetchUsage = usePrefetchWorkspaceUsage();
-  useEffect(() => {
-    prefetchUsage();
-  }, [prefetchUsage]);
 
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">
@@ -57,6 +54,9 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
               {item.label}
             </SecondaryNavItem>
           ))}
+          <SecondaryNavItem active={false} render={<Link href={routes.cli.sessions()} />}>
+            CLI sessions
+          </SecondaryNavItem>
         </SecondaryNavGroup>
       </SecondaryNav>
       <div className="flex-1 min-w-0">{children}</div>

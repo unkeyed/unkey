@@ -1,25 +1,12 @@
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
-
-type MethodOption = {
-  id: number;
-  method: string;
-  checked: boolean;
-};
-
-const options: MethodOption[] = [
-  { id: 1, method: "GET", checked: false },
-  { id: 2, method: "POST", checked: false },
-  { id: 3, method: "PUT", checked: false },
-  { id: 4, method: "DELETE", checked: false },
-  { id: 5, method: "PATCH", checked: false },
-] as const;
+import { methodOptions } from "../request-logs-filter-items";
 
 export const RequestMethodsFilter = () => {
   const { filters, updateFilters } = useRequestLogsFilters();
   return (
     <FilterCheckbox
-      options={options}
+      options={methodOptions}
       filterField="methods"
       checkPath="method"
       renderOptionContent={(checkbox) => (

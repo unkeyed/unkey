@@ -6,11 +6,11 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -105,33 +105,36 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 
 	tokenCache, err := cache.New(cache.Config[int64, InstallationToken]{
-		Fresh:    50 * time.Minute,
-		Stale:    55 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "github_installation_token",
-		Clock:    clock.New(),
+		Fresh:     50 * time.Minute,
+		Stale:     55 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "github_installation_token",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	scopedTokenCache, err := cache.New(cache.Config[string, InstallationToken]{
-		Fresh:    50 * time.Minute,
-		Stale:    55 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "github_scoped_installation_token",
-		Clock:    clock.New(),
+		Fresh:     50 * time.Minute,
+		Stale:     55 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "github_scoped_installation_token",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	collaboratorCache, err := cache.New(cache.Config[collaboratorKey, bool]{
-		Fresh:    5 * time.Minute,
-		Stale:    30 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "github_collaborator",
-		Clock:    clock.New(),
+		Fresh:     5 * time.Minute,
+		Stale:     30 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "github_collaborator",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
@@ -148,11 +151,12 @@ func NewClient(config ClientConfig) (*Client, error) {
 	//     needlessly, but it only reads a now-public repo. Harmless.
 	// A flip never escalates access; worst case it delays the optimal choice.
 	visibilityCache, err := cache.New(cache.Config[string, bool]{
-		Fresh:    10 * time.Minute,
-		Stale:    1 * time.Hour,
-		MaxSize:  10_000,
-		Resource: "github_repo_visibility",
-		Clock:    clock.New(),
+		Fresh:     10 * time.Minute,
+		Stale:     1 * time.Hour,
+		MaxSize:   10_000,
+		Resource:  "github_repo_visibility",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, err
@@ -270,35 +274,78 @@ func (c *Client) IsRepoPublic(repo string) (bool, error) {
 	return value, nil
 }
 
-// ghRepoResponse is the subset of GitHub's GET /repos/{owner}/{repo} response we need.
 type ghRepoResponse struct {
 	ID            int64  `json:"id"`
 	FullName      string `json:"full_name"`
 	DefaultBranch string `json:"default_branch"`
+	Private       bool   `json:"private"`
 }
 
-// GetInstallationRepo fetches repo metadata using the installation's token. The
-// token is scoped to only the repositories the installation was granted, so a
-// 404 (nil result) means the installation cannot see the repo, which is exactly
-// the access check we need before connecting it to an app.
+type ghInstallationReposResponse struct {
+	Repositories []ghRepoResponse `json:"repositories"`
+}
+
+// GetInstallationRepo returns canonical metadata only for repositories granted
+// to the installation, or nil if repo is absent from its repository list.
 func (c *Client) GetInstallationRepo(installationID int64, repo string) (*RepoInfo, error) {
 	headers, err := c.ghHeaders(installationID)
 	if err != nil {
 		return nil, err
 	}
 
-	apiURL := fmt.Sprintf("%s/repos/%s", c.baseURL, repo)
+	const perPage = 100
+	for page := 1; ; page++ {
+		apiURL := fmt.Sprintf("%s/installation/repositories?per_page=%d&page=%d", c.baseURL, perPage, page)
+		response, err := request[ghInstallationReposResponse](
+			c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK,
+		)
+		if err != nil {
+			return nil, err
+		}
+		for _, repository := range response.Repositories {
+			if strings.EqualFold(repository.FullName, repo) {
+				info := RepoInfo(repository)
+				return &info, nil
+			}
+		}
+		if len(response.Repositories) < perPage {
+			return nil, nil
+		}
+	}
+}
+
+// maxFileContentBytes bounds [Client.GetFileContents] so a large file cannot
+// exhaust worker memory.
+const maxFileContentBytes = 1 << 20
+
+// GetFileContents returns the raw contents of path in repo ("owner/repo") at
+// ref, using the installation's token. found is false when the file does not
+// exist at that ref. Files larger than 1 MiB return an error.
+func (c *Client) GetFileContents(installationID int64, repo, ref, path string) ([]byte, bool, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return nil, false, err
+	}
+	headers["Accept"] = "application/vnd.github.raw+json"
+
+	apiURL := fmt.Sprintf("%s/repos/%s/contents/%s?ref=%s", c.baseURL, repo, path, url.QueryEscape(ref))
+	return getRawFile(c.httpClient, apiURL, headers)
+}
+
+// getRawFile fetches a raw file body. A 404 is reported as not found rather
+// than as an error.
+func getRawFile(client *http.Client, apiURL string, headers map[string]string) ([]byte, bool, error) {
 	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to create request"))
+		return nil, false, fault.Wrap(err, fault.Internal("failed to create request"))
 	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal(fmt.Sprintf("GET %s failed", apiURL)))
+		return nil, false, fault.Wrap(err, fault.Internal(fmt.Sprintf("GET %s failed", apiURL)))
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)
@@ -306,23 +353,24 @@ func (c *Client) GetInstallationRepo(installationID int64, repo string) (*RepoIn
 	}()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil
+		return nil, false, nil
 	}
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fault.New(
+		return nil, false, fault.New(
 			fmt.Sprintf("GET %s returned unexpected status", apiURL),
 			fault.Internal(fmt.Sprintf("status %d: %s", resp.StatusCode, string(body))),
 		)
 	}
 
-	var gh ghRepoResponse
-	if err := json.NewDecoder(resp.Body).Decode(&gh); err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to decode response"))
+	content, err := io.ReadAll(io.LimitReader(resp.Body, maxFileContentBytes+1))
+	if err != nil {
+		return nil, false, fault.Wrap(err, fault.Internal("failed to read response body"))
 	}
-
-	info := RepoInfo(gh)
-	return &info, nil
+	if len(content) > maxFileContentBytes {
+		return nil, false, fault.New(fmt.Sprintf("GET %s returned more than %d bytes", apiURL, maxFileContentBytes))
+	}
+	return content, true, nil
 }
 
 // scopedTokenRequest is the body for POST /app/installations/{id}/access_tokens
@@ -342,17 +390,17 @@ type scopedTokenRequest struct {
 // permissions, e.g. {"contents":"read"}. permissions must be a subset of what
 // the App was granted at install.
 //
-// If repo (an "owner/repo" full name) is non-empty the token is restricted to
-// that single repository; if empty the token spans all of the installation's
-// repositories. Callers scope to a single repo so an exfiltrated token grants
-// only read access to the one repo BuildKit clones. The empty-repo (all-repos)
-// form exists for callers that need cross-repo reads, but the build path does
-// not use it: a single-repo read token cannot clone private cross-repo deps or
-// submodules, an accepted tradeoff for keeping the build credential minimal.
+// If repos ("owner/repo" full names) is non-empty the token is restricted to
+// exactly those repositories; if empty the token spans all of the
+// installation's repositories. The build path always passes an explicit list
+// (the cloned repo plus its declared submodules) so an exfiltrated token reads
+// nothing else. Every listed repo must be accessible to the installation, or
+// GitHub rejects the whole request.
 //
 // Results are cached (like [Client.GetInstallationToken]) keyed by the full
-// scope (installation, repo, permission set) so distinct scopes never collide.
-func (c *Client) GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error) {
+// scope (installation, repo set, permission set) so distinct scopes never
+// collide.
+func (c *Client) GetScopedInstallationToken(installationID int64, repos []string, permissions map[string]string) (InstallationToken, error) {
 	if err := assert.NotNilAndNotZero(installationID, "installationID must be provided"); err != nil {
 		return InstallationToken{}, err
 	}
@@ -364,10 +412,23 @@ func (c *Client) GetScopedInstallationToken(installationID int64, repo string, p
 		return InstallationToken{}, err
 	}
 
+	// The installation covers a single account, so GitHub wants bare repo names.
+	// Sorted and deduplicated so the cache key is stable across calls.
+	var repositories []string
+	for _, repo := range repos {
+		repoName := repo
+		if _, name, found := strings.CutLast(repo, "/"); found {
+			repoName = name
+		}
+		repositories = append(repositories, strings.ToLower(repoName))
+	}
+	slices.Sort(repositories)
+	repositories = slices.Compact(repositories)
+
 	// %v prints map keys in sorted order, so the key is stable across calls.
-	// The permission set is part of the key: a fork's single-repo read token and
-	// a trusted all-repos read token differ in scope and must never share a slot.
-	key := fmt.Sprintf("%d:%s:%v", installationID, repo, permissions)
+	// The repo and permission sets are part of the key: tokens of different
+	// scope must never share a slot.
+	key := fmt.Sprintf("%d:%v:%v", installationID, repositories, permissions)
 
 	value, _, err := c.scopedTokenCache.SWR(
 		context.Background(),
@@ -376,17 +437,8 @@ func (c *Client) GetScopedInstallationToken(installationID int64, repo string, p
 			logger.Info(
 				"Getting scoped GitHub installation token",
 				"installation_id", installationID,
-				"repo", repo,
+				"repos", repositories,
 			)
-
-			var repositories []string
-			if repo != "" {
-				repoName := repo
-				if _, name, found := strings.CutLast(repo, "/"); found {
-					repoName = name
-				}
-				repositories = []string{repoName}
-			}
 
 			jwtToken, err := c.generateJWT()
 			if err != nil {

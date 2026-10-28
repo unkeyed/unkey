@@ -52,7 +52,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`rbac.*.delete_permission`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the resource exists. See [Root key permissions](/platform/root-keys/permissions).
+`rbac.*.delete_permission`. Without the permission you get a 404, so the response doesn't reveal whether the resource exists. If your key can read the permission, you get a 403 that names the missing permission instead. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

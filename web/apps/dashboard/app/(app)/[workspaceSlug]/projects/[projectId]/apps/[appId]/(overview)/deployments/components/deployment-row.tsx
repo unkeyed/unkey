@@ -1,13 +1,15 @@
 "use client";
 
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import {
   EnvironmentBadge,
-  type EnvironmentBadgeRollout,
+  badgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
+import { latestExit } from "@/lib/collections/deploy/last-exit";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
@@ -55,10 +57,10 @@ export function DeploymentRow({
   const isGit = deployment.source === "git";
   const image = deployment.requestedImage ?? deployment.resolvedImage;
   const title = isGit ? deployment.gitCommitMessage : null;
-  const showLastExit =
-    deployment.lastExit !== null &&
-    deployment.status !== "ready" &&
-    deployment.status !== "superseded";
+  const lastExit =
+    deployment.status === "ready" || deployment.status === "superseded"
+      ? null
+      : latestExit(deployment.instances.map((i) => i.lastExit));
 
   return (
     <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
@@ -94,9 +96,9 @@ export function DeploymentRow({
               ? imageRefDisplay(image)
               : shortenId(deployment.id))}
         </span>
-        {showLastExit && deployment.lastExit && (
+        {lastExit && (
           <span className="relative z-20 shrink-0">
-            <LastExitBadge lastExit={deployment.lastExit} />
+            <LastExitText summary={summarizeExit(lastExit)} />
           </span>
         )}
       </span>
@@ -145,22 +147,4 @@ export function DeploymentRow({
       </span>
     </ResourceListItem>
   );
-}
-
-function badgeRollout({
-  isCurrent,
-  isRolledBack,
-  isRolledBackFrom,
-}: {
-  isCurrent: boolean;
-  isRolledBack: boolean;
-  isRolledBackFrom: boolean;
-}): EnvironmentBadgeRollout {
-  if (isRolledBackFrom) {
-    return "rolledBackFrom";
-  }
-  if (!isCurrent) {
-    return "none";
-  }
-  return isRolledBack ? "liveAfterRollback" : "live";
 }

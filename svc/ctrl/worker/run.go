@@ -13,8 +13,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/challenge"
-	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
 	restateServer "github.com/restatedev/sdk-go/server"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -27,19 +25,20 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/email"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -55,6 +54,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
 
 	"github.com/unkeyed/unkey/internal/services/flags"
@@ -131,12 +131,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("worker")
 
 	// Create vault client for remote vault service
@@ -426,6 +421,24 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 	})))
 
+	restateSrv.Bind(keyleak.New(keyleak.Config{
+		Members:         workos.New(cfg.WorkOSAPIKey),
+		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
+		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
+	}).Definition(
+		restate.WithJournalRetention(time.Hour),
+		restate.WithIdempotencyRetention(24*time.Hour),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(time.Second),
+			restate.WithMaxRetryInterval(time.Minute),
+			restate.WithRetryIntervalFactor(2),
+			restate.WithMaxRetryAttempts(360),
+			restate.KillOnMaxAttempts(),
+		),
+	).
+		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
+		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
+
 	projectSvc, err := workerproject.New(workerproject.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,
@@ -445,9 +458,10 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewAppServiceServer(appSvc))
 
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
-		DB:        database,
-		Admin:     restateAdminClient,
-		Auditlogs: auditlogSvc,
+		DB:           database,
+		Admin:        restateAdminClient,
+		Auditlogs:    auditlogSvc,
+		StandbyDelay: 0,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create environment worker service: %w", err)
@@ -482,11 +496,12 @@ func Run(ctx context.Context, cfg Config) error {
 		clk = clock.New()
 	}
 	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
-		Fresh:    5 * time.Minute,
-		Stale:    10 * time.Minute,
-		MaxSize:  10000,
-		Resource: "domains",
-		Clock:    clk,
+		Fresh:     5 * time.Minute,
+		Stale:     10 * time.Minute,
+		MaxSize:   10000,
+		Resource:  "domains",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)
@@ -536,6 +551,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DB:           database,
 		Vault:        vaultClient,
 		EmailDomain:  cfg.Acme.EmailDomain,
+		DirectoryURL: cfg.Acme.DirectoryURL,
 		DNSProvider:  dnsProvider,
 		HTTPProvider: httpProvider,
 		Heartbeat:    certHeartbeat,
@@ -592,8 +608,11 @@ func Run(ctx context.Context, cfg Config) error {
 		// Derived from StripeSecretKey; only tests inject these directly.
 		BillingPusher:  nil,
 		BillingCloser:  nil,
+		AlertAdmins:    nil,
+		AlertEmail:     nil,
 		WorkOSAPIKey:   cfg.WorkOSAPIKey,
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
+		EmailFrom:      cfg.Email.From,
 		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
 			BuildLimitSync:     cronHeartbeat(cfg.Heartbeat.BuildLimitSyncURL),
@@ -753,6 +772,8 @@ func Run(ctx context.Context, cfg Config) error {
 		// ~1440 dead invocations/day.
 		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
+		ConfigureHandler("EnforceFreeTier", cronQuotaCheckRetry).
+		ConfigureHandler("ThrottleFreeTierWorkspace", cronQuotaCheckRetry).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
@@ -867,7 +888,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
-		prom, promErr := prometheus.NewWithRegistry(reg)
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}

@@ -10,7 +10,6 @@ import (
 
 	"connectrpc.com/connect"
 	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -22,7 +21,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -41,12 +39,7 @@ func Run(ctx context.Context, cfg Config) error {
 		cfg.InstanceID = uid.New(uid.InstancePrefix)
 	}
 	leaseID := uid.New("")
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("logdrain")
 
 	var shutdown func(context.Context) error
@@ -88,7 +81,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		mux := http.NewServeMux()
 		//nolint:exhaustruct
-		mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		mux.Handle("GET /metrics", promhttp.HandlerFor(promclient.DefaultGatherer, promhttp.HandlerOpts{}))
 		r.RegisterHealth(mux, "/health")
 
 		port := cfg.Observability.Metrics.PrometheusPort

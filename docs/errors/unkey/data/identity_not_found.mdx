@@ -32,8 +32,8 @@ The identity you referenced doesn't exist in your workspace. You get HTTP 404.
 
 - You attached a key to an `externalId` before creating the identity.
 - The ID or `externalId` has a typo or a case difference. `externalId` is matched exactly.
-- On `keys.createKey`, `keys.updateKey`, or `keys.migrateKeys`, the identity is in a different project from the keyspace.
-- Your root key doesn't have permission. `identities.updateIdentity` and `identities.deleteIdentity` return this 404 instead of a 403.
+- On `keys.createKey`, `keys.updateKey`, or `keys.migrateKeys`, the identity is in a different <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> from the keyspace.
+- Your root key can't read the identity. `identities.updateIdentity` and `identities.deleteIdentity` return this 404 instead of a 403. A key that can read the identity but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 
 ## How to fix
 

@@ -1,0 +1,11 @@
+type: array
+minItems: 1
+maxItems: 25
+items:
+  type: string
+  minLength: 1
+  maxLength: 1024
+description: |
+  The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+  A row matches `isNot` only when it equals none of the values.
+  Exact matches take up to 25 values, so one call can look up a page of requests by ID.

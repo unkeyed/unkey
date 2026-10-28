@@ -50,7 +50,7 @@ export const ociImageReferenceSchema = z
     if (!validation.ok) {
       ctx.addIssue({
         code: "custom",
-        message: ref ? validation.error : "Enter an image, like ghcr.io/acme/api:1.0",
+        message: ref ? validation.error : "Enter an image, like ghcr.io/unkeyed/deploy-demo:latest",
       });
     }
   });
@@ -134,6 +134,7 @@ export const apps = createCollection<App, string, QueryCollectionUtils<App, stri
         app: original.id,
         name: changes.name,
         oci: changes.imageReference ? { image: changes.imageReference } : undefined,
+        git: changes.defaultBranch ? { defaultBranch: changes.defaultBranch } : undefined,
       }));
       const mutation = Promise.all(requests.map((request) => client.apps.updateApp(request)));
       toast.promise(mutation, {

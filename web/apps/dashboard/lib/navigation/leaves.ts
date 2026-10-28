@@ -1,6 +1,8 @@
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
+  IconBracketsCurlyOutline18,
+  IconChartActivityOutline18,
   IconCubeOutline18,
   IconEarthOutline18,
   IconFingerprintOutline18,
@@ -20,7 +22,11 @@ import { routes } from "./routes";
 import type { ResourceScope } from "./routes/shared";
 import type { ResolvedNavLink } from "./types";
 
-export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
+export function buildWorkspaceSections(
+  slug: string,
+  segments: string[],
+  canSeeRootKeys: boolean,
+): ResolvedNavLink[] {
   const top = segments[0];
   return [
     {
@@ -65,6 +71,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       icon: IconFingerprintOutline18,
       isActive: top === "identities",
     },
+    ...buildWorkspaceConfigLinks(slug, top, canSeeRootKeys),
     {
       key: "audit",
       label: "Audit log",
@@ -78,6 +85,34 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       href: routes.settings.general({ workspaceSlug: slug }),
       icon: IconGearOutline18,
       isActive: top === "settings",
+    },
+  ];
+}
+
+// Shared by both workspace builders so the two flag states list the same entries.
+export function buildWorkspaceConfigLinks(
+  slug: string,
+  top: string | undefined,
+  canSeeRootKeys: boolean,
+): ResolvedNavLink[] {
+  const envVars: ResolvedNavLink = {
+    key: "env-vars",
+    label: "Environment Variables",
+    href: routes.envVars.list({ workspaceSlug: slug }),
+    icon: IconBracketsCurlyOutline18,
+    isActive: top === "env-vars",
+  };
+  if (!canSeeRootKeys) {
+    return [envVars];
+  }
+  return [
+    envVars,
+    {
+      key: "root-keys",
+      label: "Root Keys",
+      href: routes.rootKeys.list({ workspaceSlug: slug }),
+      icon: IconKeyOutline18,
+      isActive: top === "root-keys",
     },
   ];
 }
@@ -126,9 +161,17 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
+  { metrics }: { metrics: boolean },
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
+  const metricsLink: ResolvedNavLink = {
+    key: "metrics",
+    label: "Metrics",
+    href: routes.projects.apps.metrics(scope),
+    icon: IconChartActivityOutline18,
+    isActive: page === "metrics",
+  };
   return [
     {
       key: "overview",
@@ -144,6 +187,7 @@ export function buildAppLinks(
       icon: IconSquareBulletListOutline18,
       isActive: page === "deployments",
     },
+    ...(metrics ? [metricsLink] : []),
     {
       key: "env-vars",
       label: "Environment variables",

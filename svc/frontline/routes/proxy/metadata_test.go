@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/paseto"
 	"github.com/unkeyed/unkey/pkg/timing"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
@@ -46,6 +47,66 @@ func TestRequestHops_VerifiesAndRemovesMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, metadata.Hops, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
+}
+
+func TestRequestHops_RestoresOnlyVerifiedIngressRequestID(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		trustedID bool
+	}{
+		{"valid", true},
+		{"missing", false},
+		{"malformed", false},
+		{"wrong key", false},
+		{"duplicate", false},
+		{"expired", false},
+		{"missing expiry", false},
+		{"invalid client IP", false},
+		{"no hops", false},
+		{"empty ingress ID", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			codec := newMetadataCodec(t, metadataSigningKey)
+			metadata := validMetadata()
+			ingressID := uid.New(uid.RequestPrefix)
+			metadata.Hops[0].RequestID = ingressID
+			metadata.Hops = append(metadata.Hops, meta.Hop{RequestID: uid.New(uid.RequestPrefix)})
+			signer := codec
+			switch test.name {
+			case "wrong key":
+				signer = newMetadataCodec(t, alternateMetadataSigningKey)
+			case "expired":
+				metadata.ExpiresAt = metadataRequestTime()
+			case "missing expiry":
+				metadata.ExpiresAt = time.Time{}
+			case "invalid client IP":
+				metadata.ClientIP = "invalid"
+			case "no hops":
+				metadata.Hops = nil
+			case "empty ingress ID":
+				metadata.Hops[0].RequestID = ""
+			}
+			req := requestWithMetadata(t, signer, metadata)
+			switch test.name {
+			case "missing":
+				req.Header.Del(proxy.HeaderFrontlineMeta)
+			case "malformed":
+				req.Header.Set(proxy.HeaderFrontlineMeta, "not-signed")
+			case "duplicate":
+				req.Header.Add(proxy.HeaderFrontlineMeta, req.Header.Get(proxy.HeaderFrontlineMeta))
+			}
+			req.Header.Set(proxy.HeaderRequestID, uid.New(uid.RequestPrefix))
+			sess := newMetadataSession(t, req)
+			want := sess.RequestID()
+			if test.trustedID {
+				want = ingressID
+			}
+			_, err := applyPeerMetadata(sess, codec, metadataRequestTime())
+			require.NoError(t, err)
+			require.Equal(t, want, sess.RequestID())
+			require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
+		})
+	}
 }
 
 func TestRequestHops_IgnoresMalformedMetadata(t *testing.T) {
@@ -300,10 +361,11 @@ func TestGateway_DebugTelemetryResponse(t *testing.T) {
 			require.Empty(t, headers.Values(proxy.HeaderFrontlineMeta))
 			values := response.Header.Values(timing.HeaderName)
 			if test.want {
+				require.Len(t, values, 1)
+				entries, err := timing.ParseEntries(values[0])
+				require.NoError(t, err)
 				operations := map[string]bool{}
-				for _, value := range values {
-					entry, err := timing.ParseEntry(value)
-					require.NoError(t, err)
+				for _, entry := range entries {
 					operations[entry.Name] = true
 				}
 				require.Equal(t, map[string]bool{"frontline_routing": true, "frontline": true, "total": true}, operations)
@@ -346,10 +408,11 @@ func validMetadata() *meta.Metadata {
 		},
 		Hops: []meta.Hop{
 			{
-				Region:        "aws::us-east-1",
-				RequestID:     "req_123",
-				FrontlineID:   "frontline_123",
-				TimeUnixMilli: 1_777_000_000_123,
+				Region:         "aws::us-east-1",
+				RegionPlatform: "us-east-1.aws",
+				RequestID:      "req_123",
+				FrontlineID:    "frontline_123",
+				TimeUnixMilli:  1_777_000_000_123,
 			},
 		},
 	}

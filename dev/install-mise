@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MISE_VERSION="2026.6.14"
-MISE_SHA_MACOS_ARM64="6d8d389bd729f5c44094a5d8e9df5c410acf4304e2540eb79a4854bdd22d0a91"
-MISE_SHA_MACOS_X64="da8f8872ba962d6893f0bab68b5a894caa296f1d17c2850ca407699441b44b26"
-MISE_SHA_LINUX_ARM64="6d71ba01f20bb7cc7bfffac5214e9e788a08fa517c075eb955a5b31dca667ca7"
-MISE_SHA_LINUX_X64="c5bb4546ba2d5154e9c8236e2774bd8289b64c409330ed41cb6d6b8ebc31fb56"
+MISE_VERSION="2026.10.17"
+MISE_SHA_MACOS_ARM64="d7c50c1683524a764260986ccc9c41c0de5e1fcd491714b5640b657b76781af6"
+MISE_SHA_MACOS_X64="e42418100e2f781f9be00b9feaa60378e77551741faececc2bf360992c5410c8"
+MISE_SHA_LINUX_ARM64="cac510e51793ad45e65fe92305bdbe4309c9c60b5907badbc7eba111738ab08f"
+MISE_SHA_LINUX_X64="17565e268c5542d8ce944321e17af81e0b741b65af4aa7e8e010ee77376a4aa3"
 
 version="${MISE_VERSION#v}"
 install_path="${MISE_INSTALL_PATH:-$HOME/.local/bin/mise}"
@@ -54,10 +54,10 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 archive="mise-v${version}-${platform}.tar.gz"
-url="https://github.com/jdx/mise/releases/download/v${version}/${archive}"
+url="https://mise.jdx.dev/v${version}/${archive}"
 
 echo "Downloading $url"
-curl -fsSL "$url" -o "$tmp/$archive"
+curl -fsSL --retry 4 --retry-max-time 120 --connect-timeout 10 --max-time 60 "$url" -o "$tmp/$archive"
 printf '%s  %s\n' "$checksum" "$tmp/$archive" | "${checksum_cmd[@]}"
 
 tar -xzf "$tmp/$archive" -C "$tmp"

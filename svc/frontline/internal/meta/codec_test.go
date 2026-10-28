@@ -23,10 +23,11 @@ func TestCodec_RoundTrip(t *testing.T) {
 		Claims: paseto.Claims{ExpiresAt: time.Unix(2_000_000_000, 0).UTC()},
 		Hops: []Hop{
 			{
-				Region:        "aws::us-east-1",
-				RequestID:     "req_123",
-				FrontlineID:   "frontline_123",
-				TimeUnixMilli: 1_777_000_000_123,
+				Region:         "aws::us-east-1",
+				RegionPlatform: "us-east-1.aws",
+				RequestID:      "req_123",
+				FrontlineID:    "frontline_123",
+				TimeUnixMilli:  1_777_000_000_123,
 			},
 		},
 	}
@@ -37,6 +38,21 @@ func TestCodec_RoundTrip(t *testing.T) {
 
 	opened, err := codec.Unmarshal(token)
 	require.NoError(t, err)
+	require.Equal(t, metadata, opened)
+}
+
+func TestCodec_UnmarshalLegacyRegion(t *testing.T) {
+	t.Parallel()
+
+	codec := newTestCodec(t)
+	metadata := validMetadata()
+	metadata.Hops[0].RegionPlatform = ""
+	token, err := codec.Marshal(metadata)
+	require.NoError(t, err)
+
+	opened, err := codec.Unmarshal(token)
+	require.NoError(t, err)
+	metadata.Hops[0].RegionPlatform = "us-east-1.aws"
 	require.Equal(t, metadata, opened)
 }
 
@@ -196,7 +212,7 @@ func TestCodec_MarshalReflectsMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	metadata := validMetadata()
-	metadata.Hops = append(metadata.Hops, Hop{Region: "aws::eu-west-1"})
+	metadata.Hops = append(metadata.Hops, Hop{Region: "aws::eu-west-1", RegionPlatform: "eu-west-1.aws"})
 	second, err := codec.Marshal(metadata)
 	require.NoError(t, err)
 	require.NotEqual(t, first, second)
@@ -254,10 +270,11 @@ func validMetadata() *Metadata {
 		Claims: paseto.Claims{ExpiresAt: time.Unix(2_000_000_000, 0).UTC()},
 		Hops: []Hop{
 			{
-				Region:        "aws::us-east-1",
-				RequestID:     "req_123",
-				FrontlineID:   "frontline_123",
-				TimeUnixMilli: 1_777_000_000_123,
+				Region:         "aws::us-east-1",
+				RegionPlatform: "us-east-1.aws",
+				RequestID:      "req_123",
+				FrontlineID:    "frontline_123",
+				TimeUnixMilli:  1_777_000_000_123,
 			},
 		},
 	}

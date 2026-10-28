@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
@@ -36,7 +34,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -115,16 +112,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("frontline")
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.NewWithRegistry(reg)
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
@@ -347,7 +339,6 @@ func Run(ctx context.Context, cfg Config) error {
 			ReadTimeout:        -1,
 			WriteTimeout:       -1,
 			IdleTimeout:        0,
-			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  true,
@@ -387,7 +378,6 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.HttpPort > 0 {
 		httpSrv, httpErr := zen.New(zen.Config{
 			TLS:                nil,
-			Flags:              nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
 			StreamRequestBody:  false,
@@ -495,22 +485,24 @@ func buildEngine(
 	r.Defer(usageLimiter.Close)
 
 	keyCache, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
-		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
-		MaxSize:  100_000,
-		Resource: "frontline_key_cache",
-		Clock:    clk,
+		Fresh:     10 * time.Second,
+		Stale:     10 * time.Minute,
+		MaxSize:   100_000,
+		Resource:  "frontline_key_cache",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
 	r.Defer(func() error { keyCache.Close(); return nil })
 	rootKeyCache, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
-		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
-		MaxSize:  100_000,
-		Resource: "frontline_root_key_cache",
-		Clock:    clk,
+		Fresh:     10 * time.Second,
+		Stale:     10 * time.Minute,
+		MaxSize:   100_000,
+		Resource:  "frontline_root_key_cache",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create root key cache: %w", err)

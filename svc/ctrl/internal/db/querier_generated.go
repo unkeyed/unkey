@@ -233,6 +233,12 @@ type Querier interface {
 	//  LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
 	//  WHERE b.pk IS NULL
 	CountOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error)
+	// Covered by unique_workspace_domain_idx, which leads on workspace_id.
+	//
+	//  SELECT COUNT(*)
+	//  FROM portal_domains
+	//  WHERE workspace_id = ?
+	CountPortalDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	// CountProjectsById counts projects with an id. Only tests use this query.
 	//
 	//  SELECT COUNT(*)
@@ -255,6 +261,13 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
 	//  WHERE a.id = ?
 	DeleteAppById(ctx context.Context, id string) error
+	//DeleteAppConnectionById
+	//
+	//  DELETE b, t
+	//  FROM app_connections b
+	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
+	//  WHERE b.id = ?
+	DeleteAppConnectionById(ctx context.Context, id string) (int64, error)
 	//DeleteAppEnvVarsByEnvironmentId
 	//
 	//  DELETE FROM app_environment_variables WHERE environment_id = ?
@@ -283,6 +296,10 @@ type Querier interface {
 	//
 	//  DELETE FROM cilium_network_policies WHERE environment_id = ?
 	DeleteCiliumNetworkPoliciesByEnvironmentId(ctx context.Context, environmentID string) error
+	//DeleteConnectionAppTargetByConnectionId
+	//
+	//  DELETE FROM connection_app_targets WHERE connection_id = ?
+	DeleteConnectionAppTargetByConnectionId(ctx context.Context, connectionID string) error
 	//DeleteCustomDomainByID
 	//
 	//  DELETE d, c, cert
@@ -291,6 +308,14 @@ type Querier interface {
 	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
 	//  WHERE d.id = ?
 	DeleteCustomDomainByID(ctx context.Context, id string) error
+	//DeleteCustomDomainsByAppId
+	//
+	//  DELETE d, c, cert
+	//  FROM custom_domains d
+	//  LEFT JOIN acme_challenges c ON c.domain_id = d.id
+	//  LEFT JOIN certificates cert ON cert.hostname = d.domain AND cert.workspace_id = d.workspace_id
+	//  WHERE d.app_id = ?
+	DeleteCustomDomainsByAppId(ctx context.Context, appID string) error
 	//DeleteCustomDomainsByEnvironmentId
 	//
 	//  DELETE d, c, cert
@@ -387,6 +412,10 @@ type Querier interface {
 	//  WHERE fully_qualified_domain_name = ?
 	//    AND project_id = ?
 	DeleteFrontlineRouteByFQDNAndProject(ctx context.Context, arg DeleteFrontlineRouteByFQDNAndProjectParams) error
+	//DeleteFrontlineRoutesByAppId
+	//
+	//  DELETE FROM frontline_routes WHERE app_id = ?
+	DeleteFrontlineRoutesByAppId(ctx context.Context, appID string) error
 	//DeleteFrontlineRoutesByEnvironmentId
 	//
 	//  DELETE FROM frontline_routes WHERE environment_id = ?
@@ -427,6 +456,10 @@ type Querier interface {
 	//  JOIN deployments d ON d.id = oas.deployment_id
 	//  WHERE d.environment_id = ?
 	DeleteOpenApiSpecsByEnvironmentId(ctx context.Context, environmentID string) error
+	// Unscoped by workspace: callers resolve ownership before deleting.
+	//
+	//  DELETE FROM portal_domains WHERE id = ?
+	DeletePortalDomainByID(ctx context.Context, id string) error
 	//DeletePortalsByAppID
 	//
 	//  DELETE p, s, o
@@ -469,6 +502,15 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets bt ON bt.connection_id = b.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
+	//DeploymentProjectOwnsImage
+	//
+	//  SELECT EXISTS (
+	//      SELECT 1
+	//      FROM deployments
+	//      WHERE project_id = ?
+	//        AND image_resolved = ?
+	//  ) AS owns_image
+	DeploymentProjectOwnsImage(ctx context.Context, arg DeploymentProjectOwnsImageParams) (bool, error)
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -622,18 +664,26 @@ type Querier interface {
 	//      AND r.name = ?
 	//  LIMIT 1
 	FindCluster(ctx context.Context, arg FindClusterParams) (FindClusterRow, error)
-	//FindCustomDomainByDomain
+	// Uniqueness is (workspace_id, domain), so a hostname can have one row per
+	// workspace. The owner is the verified row, and among verified rows the one
+	// verified last: a takeover marks the new owner verified before it marks the
+	// previous owner failed
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
 	//  FROM custom_domains
 	//  WHERE domain = ?
+	//  ORDER BY (verification_status = 'verified') DESC, updated_at DESC, pk DESC
+	//  LIMIT 1
 	FindCustomDomainByDomain(ctx context.Context, domain string) (CustomDomain, error)
 	//FindCustomDomainByDomainOrWildcard
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
 	//  WHERE domain IN (?, ?)
 	//  ORDER BY
-	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
+	//      CASE WHEN domain = ? THEN 0 ELSE 1 END,
+	//      (verification_status = 'verified') DESC,
+	//      updated_at DESC,
+	//      pk DESC
 	//  LIMIT 1
 	FindCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
@@ -740,14 +790,6 @@ type Querier interface {
 	//    AND b.plan IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
 	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error)
-	// FindDeploymentAppAndStatus returns the two columns the create insert checks
-	// when it tolerates a row that is already there. Reading the full row for that
-	// would carry the encrypted environment variables and sentinel config with it.
-	//
-	//  SELECT app_id, status
-	//  FROM deployments
-	//  WHERE id = ?
-	FindDeploymentAppAndStatus(ctx context.Context, id string) (FindDeploymentAppAndStatusRow, error)
 	//FindDeploymentById
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
@@ -777,6 +819,12 @@ type Querier interface {
 	//  FROM deployments
 	//  WHERE id = ?
 	FindDeploymentForBuild(ctx context.Context, id string) (FindDeploymentForBuildRow, error)
+	//FindDeploymentForCreate
+	//
+	//  SELECT app_id, status, capabilities, encrypted_environment_variables
+	//  FROM deployments
+	//  WHERE id = ?
+	FindDeploymentForCreate(ctx context.Context, id string) (FindDeploymentForCreateRow, error)
 	//FindDeploymentForDeploy
 	//
 	//  SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status, d.created_at,
@@ -1004,6 +1052,23 @@ type Querier interface {
 	//  ORDER BY created_at DESC
 	//  LIMIT 1
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
+	//FindLeakedKeysByHashes
+	//
+	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  FROM unkey_root_keys k
+	//  JOIN workspaces w ON w.id = k.workspace_id
+	//  WHERE k.hash IN (/*SLICE:hashes*/?)
+	//    AND k.deleted_at IS NULL
+	//    AND w.deleted_at_m IS NULL
+	//  UNION ALL
+	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  FROM `keys` k
+	//  JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
+	//  WHERE k.hash IN (/*SLICE:hashes*/?)
+	//    AND k.deleted_at_m IS NULL
+	//    AND w.deleted_at_m IS NULL
+	//    AND NOT EXISTS (SELECT 1 FROM unkey_root_keys r WHERE r.hash = k.hash)
+	FindLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeysByHashesParams) ([]FindLeakedKeysByHashesRow, error)
 	//FindLimitsByWorkspaceID
 	//
 	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
@@ -1027,6 +1092,33 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionByNameAndWorkspaceID(ctx context.Context, arg FindPermissionByNameAndWorkspaceIDParams) (Permission, error)
+	// Loads the full row by id, unscoped, for the verification workflow, which is
+	// keyed by portal domain id rather than by tenant.
+	//
+	//  SELECT portal_domains.pk, portal_domains.id, portal_domains.workspace_id, portal_domains.portal_id, portal_domains.domain, portal_domains.verification_status, portal_domains.verification_token, portal_domains.ownership_verified, portal_domains.cname_verified, portal_domains.target_cname, portal_domains.last_checked_at, portal_domains.check_attempts, portal_domains.verification_error, portal_domains.domain_connect_provider, portal_domains.domain_connect_url, portal_domains.invocation_id, portal_domains.created_at, portal_domains.updated_at
+	//  FROM portal_domains
+	//  WHERE id = ?
+	FindPortalDomainById(ctx context.Context, id string) (PortalDomain, error)
+	// Resolves a tenant's existing row for a hostname, letting the add path detect a
+	// repeat request before it hits unique_workspace_domain_idx.
+	//
+	//  SELECT
+	//      id,
+	//      portal_id,
+	//      domain,
+	//      verification_status,
+	//      invocation_id
+	//  FROM portal_domains
+	//  WHERE workspace_id = ? AND domain = ?
+	FindPortalDomainByWorkspaceAndDomain(ctx context.Context, arg FindPortalDomainByWorkspaceAndDomainParams) (FindPortalDomainByWorkspaceAndDomainRow, error)
+	// Locks the row so a delete decides route ownership on the status it commits
+	// against, not one a concurrent revoke or verification already changed.
+	//
+	//  SELECT verification_status
+	//  FROM portal_domains
+	//  WHERE id = ?
+	//  FOR UPDATE
+	FindPortalDomainStatusByIdForUpdate(ctx context.Context, id string) (PortalDomainsVerificationStatus, error)
 	//FindProjectById
 	//
 	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at, projects.deleted_at
@@ -1125,10 +1217,12 @@ type Querier interface {
 	//     w.id,
 	//     w.org_id,
 	//     w.name,
+	//     w.slug,
 	//     b.stripe_customer_id,
 	//     b.tier,
 	//     w.enabled,
-	//     l.api_billable_operations_count_max_per_month AS requests_per_month
+	//     l.api_billable_operations_count_max_per_month AS requests_per_month,
+	//     l.api_requests_count_max_per_minute AS requests_per_minute
 	//  FROM `workspaces` w
 	//  LEFT JOIN `limits` l ON l.workspace_id = w.id
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
@@ -1797,6 +1891,15 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertPermission(ctx context.Context, arg InsertPermissionParams) error
+	// Creates a portal domain awaiting verification. A duplicate (workspace_id, domain)
+	// or target_cname surfaces as a unique-key error for the caller to map.
+	//
+	//  INSERT INTO portal_domains (
+	//      id, workspace_id, portal_id, domain,
+	//      verification_status, verification_token, target_cname,
+	//      domain_connect_provider, domain_connect_url, invocation_id, created_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertPortalDomain(ctx context.Context, arg InsertPortalDomainParams) error
 	//InsertProject
 	//
 	//  INSERT INTO projects (
@@ -1935,14 +2038,13 @@ type Querier interface {
 	//      t.target_environment_id, t.target_deployment_id
 	//  FROM app_connections b
 	//  LEFT JOIN connection_app_targets t ON t.connection_id = b.id
-	//  INNER JOIN apps a ON a.id = b.app_id
 	//  WHERE b.workspace_id = ?
 	//      AND b.project_id = ?
 	//      AND b.app_id = ?
 	//      AND b.environment_id = ?
 	//      AND b.resource_type = 'app'
 	//      AND b.resource_id <> b.app_id
-	//      AND b.name <> a.slug COLLATE utf8mb4_0900_as_cs
+	//      AND b.name <> 'self'
 	//  ORDER BY b.pk
 	ListAppConnectionsByApp(ctx context.Context, arg ListAppConnectionsByAppParams) ([]ListAppConnectionsByAppRow, error)
 	//ListAppIdsByProject
@@ -2013,6 +2115,22 @@ type Querier interface {
 	//  WHERE b.stripe_customer_id IS NOT NULL
 	//    AND b.stripe_customer_id <> ''
 	ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error)
+	// ListDeploymentConnectionsByDeploymentId returns the connections a deployment
+	// saved with their app targets. Only tests use it.
+	//
+	//  SELECT
+	//      b.connection_id,
+	//      b.name,
+	//      b.resource_id,
+	//      t.selection_mode,
+	//      t.target_environment_id,
+	//      t.target_deployment_id
+	//  FROM deployment_connections b
+	//  LEFT JOIN deployment_connection_app_targets t
+	//      ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
+	//  WHERE b.deployment_id = ?
+	//  ORDER BY b.name
+	ListDeploymentConnectionsByDeploymentId(ctx context.Context, deploymentID string) ([]ListDeploymentConnectionsByDeploymentIdRow, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
 	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
@@ -2117,6 +2235,13 @@ type Querier interface {
 	//  ORDER BY dt.pk
 	//  LIMIT ?
 	ListOrphanedDeploymentTopologiesByRegion(ctx context.Context, arg ListOrphanedDeploymentTopologiesByRegionParams) ([]ListOrphanedDeploymentTopologiesByRegionRow, error)
+	// Returns every domain attached to a portal, verified or not. Unscoped by
+	// workspace because portal ids are globally unique and ctrl callers already hold one.
+	//
+	//  SELECT portal_domains.pk, portal_domains.id, portal_domains.workspace_id, portal_domains.portal_id, portal_domains.domain, portal_domains.verification_status, portal_domains.verification_token, portal_domains.ownership_verified, portal_domains.cname_verified, portal_domains.target_cname, portal_domains.last_checked_at, portal_domains.check_attempts, portal_domains.verification_error, portal_domains.domain_connect_provider, portal_domains.domain_connect_url, portal_domains.invocation_id, portal_domains.created_at, portal_domains.updated_at
+	//  FROM portal_domains
+	//  WHERE portal_id = ?
+	ListPortalDomainsByPortal(ctx context.Context, portalID string) ([]PortalDomain, error)
 	//ListPreviewEnvironments
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
@@ -2279,6 +2404,19 @@ type Querier interface {
 	//  SELECT id FROM custom_domains WHERE id = ?
 	//  LOCK IN SHARE MODE
 	LockCustomDomain(ctx context.Context, id string) (string, error)
+	// LockDeploymentConnectionTargets locks the given pinned target deployments
+	// that are ready and running in the workspace and project.
+	// Callers must check each connection's target app against app_id.
+	//
+	//  SELECT id, app_id
+	//  FROM deployments
+	//  WHERE id IN (/*SLICE:ids*/?)
+	//      AND workspace_id = ?
+	//      AND project_id = ?
+	//      AND status = 'ready'
+	//      AND desired_state = 'running'
+	//  FOR UPDATE
+	LockDeploymentConnectionTargets(ctx context.Context, arg LockDeploymentConnectionTargetsParams) ([]LockDeploymentConnectionTargetsRow, error)
 	// Must be the first statement of its transaction: the quota sum that follows
 	// relies on the read view opening after this lock is held
 	//
@@ -2350,17 +2488,18 @@ type Querier interface {
 	ReassignFrontlineRoute(ctx context.Context, arg ReassignFrontlineRouteParams) error
 	// Records that kubelet has put a container into CrashLoopBackOff by setting
 	// container_status.waiting.reason. The lastTerminationState carries the
-	// most recent exit info and is left untouched — the dashboard renders both
+	// most recent exit info and is left untouched. The dashboard renders both
 	// the underlying exit and the "currently throttling" indicator together.
 	//
 	// Called once per (pod_uid, container_name, restart_count) when krane sees
 	// the waiting container reach the BackOff state. The next terminated event
-	// (or a successful start) will remove $.waiting via RecordInstanceExit.
+	// (RecordInstanceExit) or the next start (RecordInstanceRunning) removes
+	// $.waiting.
 	//
 	// Out-of-order events are dropped via the restartCount guard: a delayed
 	// crashloop RPC from an earlier container life cannot flip the waiting
-	// reason back after RecordInstanceExit has already advanced restartCount
-	// and removed $.waiting.
+	// reason back after RecordInstanceExit or RecordInstanceRunning moved
+	// restartCount forward.
 	//
 	//  UPDATE instances
 	//  SET container_status = JSON_SET(
@@ -2405,6 +2544,22 @@ type Querier interface {
 	//  		)
 	//  	)
 	RecordInstanceExit(ctx context.Context, arg RecordInstanceExitParams) error
+	// Records that a container is running again after a restart.
+	//
+	// The guard is strict. A delayed running event of the life that then crashed
+	// has the same restart_count as the row and must not remove that crash loop.
+	// After restartCount moves forward, RecordInstanceCrashLoopBackOff rejects
+	// delayed crash loop events of earlier lives.
+	//
+	//  UPDATE instances
+	//  SET container_status = JSON_SET(
+	//  	JSON_REMOVE(container_status, '$.waiting'),
+	//  	'$.restartCount', CAST(? AS UNSIGNED)
+	//  )
+	//  WHERE k8s_name = ?
+	//  	AND region_id = ?
+	//  	AND CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
+	RecordInstanceRunning(ctx context.Context, arg RecordInstanceRunningParams) error
 	// RefillKeysByIDs sets remaining_requests to refill_amount for the given keys.
 	// This is a bulk operation to minimize database round trips.
 	//
@@ -2426,6 +2581,18 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
+	// Restarts verification from scratch, clearing the previous error and check
+	// history and recording the new workflow invocation.
+	//
+	//  UPDATE portal_domains
+	//  SET verification_status = ?,
+	//      check_attempts = ?,
+	//      verification_error = NULL,
+	//      last_checked_at = NULL,
+	//      invocation_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	ResetPortalDomainVerification(ctx context.Context, arg ResetPortalDomainVerificationParams) error
 	// RevertDeploymentAuthorization puts a deployment back to awaiting_approval so
 	// the approve button reappears. Call it when an approval was accepted but the
 	// deployment never actually started.
@@ -2556,6 +2723,17 @@ type Querier interface {
 	//    AND dt.`deployment_id` != ?
 	//    AND dt.`desired_status` = 'running'
 	SumAllocatedResourcesByWorkspaceID(ctx context.Context, arg SumAllocatedResourcesByWorkspaceIDParams) (SumAllocatedResourcesByWorkspaceIDRow, error)
+	//TightenFreeTierApiThrottle
+	//
+	//  UPDATE `limits` l
+	//  SET l.api_requests_count_max_per_minute = ?
+	//  WHERE l.workspace_id = ?
+	//    AND (l.api_requests_count_max_per_minute IS NULL OR l.api_requests_count_max_per_minute > ?)
+	//    AND EXISTS (
+	//      SELECT 1 FROM `workspace_billing` b
+	//      WHERE b.workspace_id = l.workspace_id AND b.tier = 'Free'
+	//    )
+	TightenFreeTierApiThrottle(ctx context.Context, arg TightenFreeTierApiThrottleParams) error
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges
@@ -2584,6 +2762,12 @@ type Querier interface {
 	//
 	//  UPDATE acme_users SET registration_uri = ? WHERE id = ?
 	UpdateAcmeUserRegistrationURI(ctx context.Context, arg UpdateAcmeUserRegistrationURIParams) error
+	//UpdateAppConnectionName
+	//
+	//  UPDATE app_connections
+	//  SET name = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateAppConnectionName(ctx context.Context, arg UpdateAppConnectionNameParams) error
 	//UpdateAppDeployments
 	//
 	//  UPDATE apps
@@ -2593,14 +2777,6 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, arg UpdateAppDeploymentsParams) error
-	//UpdateAppSourceOciImageReference
-	//
-	//  UPDATE app_source_oci
-	//  SET image_reference = ?,
-	//      updated_at = ?
-	//  WHERE app_id = ?
-	//    AND workspace_id = ?
-	UpdateAppSourceOciImageReference(ctx context.Context, arg UpdateAppSourceOciImageReferenceParams) error
 	//UpdateClickhouseWorkspaceSettingsLimits
 	//
 	//  UPDATE `clickhouse_workspace_settings`
@@ -2614,6 +2790,14 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE workspace_id = ?
 	UpdateClickhouseWorkspaceSettingsLimits(ctx context.Context, arg UpdateClickhouseWorkspaceSettingsLimitsParams) error
+	//UpdateConnectionAppTarget
+	//
+	//  UPDATE connection_app_targets
+	//  SET selection_mode = ?,
+	//      target_environment_id = ?,
+	//      target_deployment_id = ?
+	//  WHERE connection_id = ?
+	UpdateConnectionAppTarget(ctx context.Context, arg UpdateConnectionAppTargetParams) error
 	//UpdateCustomDomainCheckAttempt
 	//
 	//  UPDATE custom_domains
@@ -2740,6 +2924,46 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateKeysLastUsed(ctx context.Context, arg UpdateKeysLastUsedParams) error
+	// Records one DNS check so callers can bound retries and show when the domain
+	// was last checked.
+	//
+	//  UPDATE portal_domains
+	//  SET check_attempts = ?,
+	//      last_checked_at = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainCheckAttempt(ctx context.Context, arg UpdatePortalDomainCheckAttemptParams) error
+	// Marks verification as given up and keeps the reason for the tenant to read.
+	//
+	//  UPDATE portal_domains
+	//  SET verification_status = 'failed',
+	//      verification_error = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainFailed(ctx context.Context, arg UpdatePortalDomainFailedParams) error
+	// Records the verification workflow invocation driving this domain; NULL clears it.
+	//
+	//  UPDATE portal_domains
+	//  SET invocation_id = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainInvocationID(ctx context.Context, arg UpdatePortalDomainInvocationIDParams) error
+	// Stores the TXT (ownership) and CNAME (routing) results of the latest check.
+	//
+	//  UPDATE portal_domains
+	//  SET ownership_verified = ?,
+	//      cname_verified = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainOwnership(ctx context.Context, arg UpdatePortalDomainOwnershipParams) error
+	// Moves a domain between verification states without touching the error or
+	// attempt counters.
+	//
+	//  UPDATE portal_domains
+	//  SET verification_status = ?,
+	//      updated_at = ?
+	//  WHERE id = ?
+	UpdatePortalDomainVerificationStatus(ctx context.Context, arg UpdatePortalDomainVerificationStatusParams) error
 	//UpdateProjectDepotID
 	//
 	//  UPDATE projects
@@ -2755,6 +2979,12 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateUnkeyRootKeysLastUsed(ctx context.Context, arg UpdateUnkeyRootKeysLastUsedParams) error
+	//UpdateWorkspaceBillingTier
+	//
+	//  UPDATE `workspace_billing`
+	//  SET tier = ?, updated_at_m = ?
+	//  WHERE workspace_id = ?
+	UpdateWorkspaceBillingTier(ctx context.Context, arg UpdateWorkspaceBillingTierParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`

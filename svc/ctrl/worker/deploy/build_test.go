@@ -260,7 +260,66 @@ func TestResolveCloneToken(t *testing.T) {
 		require.False(t, tokenless)
 		require.NotEmpty(t, token.Token)
 		require.Empty(t, gh.probed)
-		require.Equal(t, []string{base}, gh.scopedTo)
+		require.Equal(t, [][]string{{base}}, gh.scopedTo)
+	})
+
+	gitmodules := `[submodule "lib"]
+	path = lib
+	url = ../lib.git
+[submodule "shared"]
+	path = packages/shared
+	URL = "https://github.com/acme/Shared"
+[submodule "public"]
+	path = public
+	url = https://github.com/acme/public-lib.git
+[submodule "other-owner"]
+	path = other
+	url = https://github.com/other/private.git
+[submodule "not-granted"]
+	path = secret
+	url = https://github.com/acme/secret.git
+[submodule "ssh"]
+	path = ssh
+	url = git@github.com:acme/ssh-lib.git
+`
+	installationRepos := map[string]githubclient.RepoInfo{
+		"acme/lib":        {FullName: "acme/lib", Private: true},
+		"acme/Shared":     {FullName: "acme/shared", Private: true},
+		"acme/public-lib": {FullName: "acme/public-lib", Private: false},
+		"acme/ssh-lib":    {FullName: "acme/ssh-lib", Private: true},
+		"other/private":   {FullName: "other/private", Private: true},
+	}
+
+	t.Run("trusted build scope includes private submodules the installation can read", func(t *testing.T) {
+		gh := &stubGitHub{gitmodules: gitmodules, installationRepos: installationRepos}
+		w := &Workflow{github: gh}
+
+		_, tokenless, err := w.resolveCloneToken(gitBuildParams{InstallationID: 1, Repository: base, CommitSHA: "5db3dd0d3"}, false)
+		require.NoError(t, err)
+		require.False(t, tokenless)
+		require.Equal(t, []string{base + "@5db3dd0d3:.gitmodules"}, gh.gitmodulesAt)
+		require.Equal(t, [][]string{{base, "acme/lib", "acme/shared"}}, gh.scopedTo)
+	})
+
+	t.Run("failure to read .gitmodules is a retryable error and mints no token", func(t *testing.T) {
+		gh := &stubGitHub{gitmodulesErr: fmt.Errorf("github unavailable")}
+		w := &Workflow{github: gh}
+
+		_, _, err := w.resolveCloneToken(gitBuildParams{InstallationID: 1, Repository: base, CommitSHA: "5db3dd0d3"}, false)
+		require.Error(t, err)
+		require.False(t, restate.IsTerminalError(err))
+		require.Empty(t, gh.scopedTo)
+	})
+
+	t.Run("fork build scope never includes submodules", func(t *testing.T) {
+		gh := &stubGitHub{gitmodules: gitmodules, installationRepos: installationRepos}
+		w := &Workflow{github: gh}
+
+		_, tokenless, err := w.resolveCloneToken(forkPR, true)
+		require.NoError(t, err)
+		require.False(t, tokenless)
+		require.Empty(t, gh.gitmodulesAt)
+		require.Equal(t, [][]string{{base}}, gh.scopedTo)
 	})
 
 	t.Run("unauthenticated dev mode is tokenless", func(t *testing.T) {
@@ -291,7 +350,7 @@ func TestResolveCloneToken(t *testing.T) {
 		_, tokenless, err := w.resolveCloneToken(forkPR, true)
 		require.NoError(t, err)
 		require.False(t, tokenless)
-		require.Equal(t, []string{base}, gh.scopedTo)
+		require.Equal(t, [][]string{{base}}, gh.scopedTo)
 	})
 
 	t.Run("fork PR probe failure falls back to a base-scoped token", func(t *testing.T) {
@@ -301,7 +360,7 @@ func TestResolveCloneToken(t *testing.T) {
 		_, tokenless, err := w.resolveCloneToken(forkPR, true)
 		require.NoError(t, err)
 		require.False(t, tokenless)
-		require.Equal(t, []string{base}, gh.scopedTo)
+		require.Equal(t, [][]string{{base}}, gh.scopedTo)
 	})
 
 	t.Run("public fork ref is tokenless and probes the fork", func(t *testing.T) {
@@ -321,7 +380,7 @@ func TestResolveCloneToken(t *testing.T) {
 		_, tokenless, err := w.resolveCloneToken(sameOwnerForkRef, true)
 		require.NoError(t, err)
 		require.False(t, tokenless)
-		require.Equal(t, []string{"acme/app-fork"}, gh.scopedTo)
+		require.Equal(t, [][]string{{"acme/app-fork"}}, gh.scopedTo)
 	})
 
 	t.Run("casing-drifted own repo is same-owner, not a different installation", func(t *testing.T) {
@@ -340,7 +399,7 @@ func TestResolveCloneToken(t *testing.T) {
 		_, tokenless, err := w.resolveCloneToken(casingDrift, true)
 		require.NoError(t, err)
 		require.False(t, tokenless)
-		require.Equal(t, []string{"Acme/app-fork"}, gh.scopedTo)
+		require.Equal(t, [][]string{{"Acme/app-fork"}}, gh.scopedTo)
 	})
 
 	t.Run("private different-owner fork ref fails fast with a terminal error", func(t *testing.T) {
@@ -373,7 +432,33 @@ type stubGitHub struct {
 	public   map[string]bool
 	probeErr error
 	probed   []string
-	scopedTo []string
+	scopedTo [][]string
+
+	// gitmodules is the .gitmodules content; empty means the file is absent.
+	gitmodules    string
+	gitmodulesErr error
+	gitmodulesAt  []string
+	// installationRepos are the repos the installation can read.
+	installationRepos map[string]githubclient.RepoInfo
+}
+
+func (s *stubGitHub) GetFileContents(_ int64, repo, ref, path string) ([]byte, bool, error) {
+	s.gitmodulesAt = append(s.gitmodulesAt, repo+"@"+ref+":"+path)
+	if s.gitmodulesErr != nil {
+		return nil, false, s.gitmodulesErr
+	}
+	if s.gitmodules == "" {
+		return nil, false, nil
+	}
+	return []byte(s.gitmodules), true, nil
+}
+
+func (s *stubGitHub) GetInstallationRepo(_ int64, repo string) (*githubclient.RepoInfo, error) {
+	info, ok := s.installationRepos[repo]
+	if !ok {
+		return nil, nil
+	}
+	return &info, nil
 }
 
 func (s *stubGitHub) IsRepoPublic(repo string) (bool, error) {
@@ -384,7 +469,7 @@ func (s *stubGitHub) IsRepoPublic(repo string) (bool, error) {
 	return s.public[repo], nil
 }
 
-func (s *stubGitHub) GetScopedInstallationToken(_ int64, repo string, _ map[string]string) (githubclient.InstallationToken, error) {
-	s.scopedTo = append(s.scopedTo, repo)
+func (s *stubGitHub) GetScopedInstallationToken(_ int64, repos []string, _ map[string]string) (githubclient.InstallationToken, error) {
+	s.scopedTo = append(s.scopedTo, repos)
 	return githubclient.InstallationToken{Token: "scoped"}, nil
 }

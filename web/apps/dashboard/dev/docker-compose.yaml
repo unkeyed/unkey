@@ -172,6 +172,8 @@ services:
       dockerfile: dev/Dockerfile
       target: api
     command: ["--config", "/etc/unkey/api.toml"]
+    environment:
+      WORKOS_CLIENT_ID: ${WORKOS_CLIENT_ID:-}
     ports:
       - 7070:7070
     depends_on:

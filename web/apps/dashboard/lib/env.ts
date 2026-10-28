@@ -20,6 +20,7 @@ export const env = () =>
       UNKEY_API_ID: z.string(),
       UNKEY_API_URL: z.url().optional().default("https://api.unkey.com"),
       UNKEY_JWT_SECRET: z.string().optional(),
+      UNKEY_JWT_AUDIENCE: z.string().min(1).default("api.unkey.com"),
 
       UPSTASH_REDIS_REST_URL: z.string().optional(),
       UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -36,10 +37,8 @@ export const env = () =>
       VAULT_URL: z.url(),
       VAULT_TOKEN: z.string(),
 
-      CTRL_URL: z.url().optional(),
+      CTRL_URL: z.url().default("https://control.unkey.cloud"),
       CTRL_API_KEY: z.string().optional(),
-
-      GITHUB_KEYS_URI: z.string().optional(),
 
       // This key is used for ratelimiting our trpc procedures
       // It requires the following permission:
@@ -111,7 +110,10 @@ const stripeSchema = z.object({
   // The product ids, comma separated, from lowest to highest, pro first, and then enterprise plans
   STRIPE_PRODUCT_IDS_PRO: z.string().transform((s) => s.split(",")),
   STRIPE_PRODUCT_IDS_ENTERPRISE: z.string().transform((s) => s.split(",")),
-  STRIPE_WEBHOOK_SECRET: z.string(),
+  STRIPE_WEBHOOK_SECRET: z
+    .string()
+    .trim()
+    .regex(/^whsec_\S+$/),
   // Unkey Deploy plan-fee price lookup_keys, one per plan. subscribeDeploy /
   // changeDeployPlan resolve these to the current active price and attach (or
   // swap) the plan-fee for the chosen tier. lookup_keys (not price ids) so a

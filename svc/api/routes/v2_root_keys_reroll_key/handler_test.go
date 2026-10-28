@@ -106,27 +106,79 @@ func TestRerollRootKeyOverlapCannotExtendOriginal(t *testing.T) {
 	require.Equal(t, expires.UnixMilli(), rerolled.Expires.Int64)
 }
 
-// TestRerollRootKeyPreservesSourceExpiration guarantees the replacement
-// inherits the source key's expiration even when the caller expires earlier.
+// TestRerollRootKeyRejectsLongerLivedSource guarantees an expiring caller cannot
+// obtain a longer-lived credential, even when revoking the original immediately.
+func TestRerollRootKeyRejectsLongerLivedSource(t *testing.T) {
+	for _, expiration := range []string{"unlimited", "later"} {
+		for _, overlap := range []string{"keep", "revoke"} {
+			t.Run(expiration+"/"+overlap, func(t *testing.T) {
+				h := testutil.NewHarness(t)
+				route := newRoute(h)
+				workspace := h.Resources().UserWorkspace
+				callerExpires := h.Clock.Now().Add(time.Hour).Truncate(time.Millisecond)
+				var sourceExpires *time.Time
+				if expiration == "later" {
+					sourceExpires = new(callerExpires.Add(time.Millisecond))
+				}
+				permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
+				source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+					WorkspaceID: workspace.ID,
+					Expires:     sourceExpires,
+					Permissions: []string{permission},
+				})
+				caller := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+					WorkspaceID: workspace.ID,
+					Expires:     &callerExpires,
+					Permissions: []string{
+						"unkey:v1:" + workspace.ID + ":rootKeys/" + source.KeyID + "#write",
+						"unkey:v1:" + workspace.ID + ":rootKeys/" + source.KeyID + "#delete",
+						permission,
+					},
+				})
+				before := liveRootKeyIDs(t, h, workspace.ID)
+				originalBefore, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), source.KeyID)
+				require.NoError(t, err)
+				grace := nullable.NewNullNullable[int64]()
+				if overlap == "revoke" {
+					grace = nullable.NewNullableWithValue[int64](0)
+				}
+				res := call(h, route, caller.Key, handler.Request{KeyId: source.KeyID, Expiration: grace})
+				require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
+				require.Equal(t, before, liveRootKeyIDs(t, h, workspace.ID))
+				originalAfter, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), source.KeyID)
+				require.NoError(t, err)
+				require.Equal(t, originalBefore, originalAfter)
+			})
+		}
+	}
+}
+
+// TestRerollRootKeyPreservesSourceExpiration guarantees an expiring caller can
+// rotate keys that expire at or before its own expiration without extending them.
 func TestRerollRootKeyPreservesSourceExpiration(t *testing.T) {
-	h := testutil.NewHarness(t)
-	route := newRoute(h)
-	workspace := h.Resources().UserWorkspace
-	sourceExpires := h.Clock.Now().Add(2 * time.Hour).Truncate(time.Millisecond)
-	callerExpires := h.Clock.Now().Add(time.Hour).Truncate(time.Millisecond)
-	source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, Expires: &sourceExpires})
-	caller := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
-		WorkspaceID: workspace.ID,
-		Expires:     &callerExpires,
-		Permissions: []string{"unkey:v1:" + workspace.ID + ":rootKeys/" + source.KeyID + "#write"},
-	})
-
-	res := call(h, route, caller.Key, handler.Request{KeyId: source.KeyID, Expiration: nullable.NewNullNullable[int64]()})
-	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-
-	rerolled, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
-	require.NoError(t, err)
-	require.Equal(t, sourceExpires.UnixMilli(), rerolled.Expires.Int64)
+	for _, remaining := range []time.Duration{0, time.Millisecond} {
+		t.Run(remaining.String(), func(t *testing.T) {
+			h := testutil.NewHarness(t)
+			route := newRoute(h)
+			workspace := h.Resources().UserWorkspace
+			callerExpires := h.Clock.Now().Add(time.Hour).Truncate(time.Millisecond)
+			sourceExpires := callerExpires.Add(-remaining)
+			source := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, Expires: &sourceExpires})
+			caller := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+				WorkspaceID: workspace.ID,
+				Expires:     &callerExpires,
+				Permissions: []string{"unkey:v1:" + workspace.ID + ":rootKeys/" + source.KeyID + "#write"},
+			})
+			res := call(h, route, caller.Key, handler.Request{KeyId: source.KeyID, Expiration: nullable.NewNullNullable[int64]()})
+			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+			rerolled, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+			require.NoError(t, err)
+			require.True(t, rerolled.Expires.Valid)
+			require.Equal(t, sourceExpires.UnixMilli(), rerolled.Expires.Int64)
+			_, err = h.Keys.GetRootKey(t.Context(), rootKeySession(t, res.Body.Data.Key))
+			require.NoError(t, err)
+		})
+	}
 }
 
 // TestRerollRootKeyIgnoresLegacyKeys guarantees rootKeys.rerollKey manages only

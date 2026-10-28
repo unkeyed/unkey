@@ -44,6 +44,8 @@ type userTooManyRequests struct {
 	QueryQuotaExceeded Code
 	// WorkspaceRateLimited indicates the workspace has exceeded its API rate limit for the current window.
 	WorkspaceRateLimited Code
+	// IPRateLimited indicates a client IP has exceeded the rate limit of an unauthenticated endpoint.
+	IPRateLimited Code
 }
 
 // UserErrors defines all user-related errors in the Unkey system.
@@ -83,5 +85,6 @@ var User = UserErrors{
 	TooManyRequests: userTooManyRequests{
 		QueryQuotaExceeded:   Code{SystemUser, CategoryUserTooManyRequests, "query_quota_exceeded"},
 		WorkspaceRateLimited: Code{SystemUser, CategoryUserTooManyRequests, "workspace_rate_limited"},
+		IPRateLimited:        Code{SystemUser, CategoryUserTooManyRequests, "ip_rate_limited"},
 	},
 }

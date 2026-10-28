@@ -89,14 +89,12 @@ export const FormLabel = ({
   }
 
   return (
-    <label
-      id={`${htmlFor}-label`}
-      htmlFor={htmlFor}
-      className="text-gray-11 text-sm flex items-center"
-    >
-      {label}
-      {requirement === "required" && <RequiredTag hasError={hasError} />}
-      {requirement === "optional" && <OptionalTag />}
+    <div className="flex items-center text-gray-11 text-sm">
+      <label id={`${htmlFor}-label`} htmlFor={htmlFor} className="flex items-center">
+        {label}
+        {requirement === "required" && <RequiredTag hasError={hasError} />}
+        {requirement === "optional" && <OptionalTag />}
+      </label>
       {tooltipContent && (
         <InfoTooltip content={tooltipContent} asChild>
           <span className="ml-1.5 inline-flex items-center text-gray-9 hover:text-gray-11">
@@ -105,6 +103,6 @@ export const FormLabel = ({
           </span>
         </InfoTooltip>
       )}
-    </label>
+    </div>
   );
 };

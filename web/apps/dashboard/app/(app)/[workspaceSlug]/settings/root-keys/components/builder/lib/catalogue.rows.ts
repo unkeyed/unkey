@@ -150,6 +150,17 @@ export function rootKeyRows(): PermissionRow[] {
   return [permissionRow({ id: "root_key", label: "Root keys", path: "rootKeys/*" })];
 }
 
+export function flagsRows(): PermissionRow[] {
+  return [
+    permissionRow({
+      id: "flags",
+      label: "Flags",
+      path: "flags",
+      actions: { delete: [] },
+    }),
+  ];
+}
+
 export function githubRows(): PermissionRow[] {
   return [
     permissionRow({
@@ -169,6 +180,10 @@ export function limitsRows(): PermissionRow[] {
       actions: { write: [], delete: [] },
     }),
   ];
+}
+
+export function requestLogRows(): PermissionRow[] {
+  return [logRow("api_request_log", "API request logs", "logs/apiRequests")];
 }
 
 export function usageRows(): PermissionRow[] {

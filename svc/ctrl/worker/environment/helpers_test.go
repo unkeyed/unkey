@@ -113,9 +113,10 @@ func newFixture(t *testing.T) *fixture {
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 	)
 	svc, err = environment.New(environment.Config{
-		DB:        database,
-		Admin:     restateadmin.New(restateadmin.Config{BaseURL: f.restate.AdminURL, APIKey: ""}),
-		Auditlogs: auditlogSvc,
+		DB:           database,
+		Admin:        restateadmin.New(restateadmin.Config{BaseURL: f.restate.AdminURL, APIKey: ""}),
+		Auditlogs:    auditlogSvc,
+		StandbyDelay: time.Second,
 	})
 	require.NoError(t, err)
 

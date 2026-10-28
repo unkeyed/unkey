@@ -34,5 +34,7 @@ CREATE INDEX `app_id_id_domain_idx` ON `custom_domains` (`app_id`,`id`,`domain`)
 
 CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
 
+CREATE INDEX `domain_idx` ON `custom_domains` (`domain`);
+
 CREATE INDEX `environment_id_id_domain_idx` ON `custom_domains` (`environment_id`,`id`,`domain`);
 

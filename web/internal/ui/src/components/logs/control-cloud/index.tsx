@@ -8,6 +8,8 @@ import { KeyboardButton } from "../../buttons/keyboard-button";
 import { ControlPill } from "./control-pill";
 import { defaultFormatValue } from "./utils";
 
+export { ControlPill };
+
 type ControlCloudProps<TFilter extends FilterValue> = {
   filters: TFilter[];
   removeFilter: (id: string) => void;

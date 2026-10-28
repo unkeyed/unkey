@@ -123,7 +123,10 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Model domain states explicitly. Parse untyped input at boundaries.
 - Prefer existing packages, helpers, and patterns before adding new ones.
 - Avoid new dependencies unless the local implementation would be worse.
-- Keep variable scope small. Use clear names with units or bounds where useful.
+- Keep variable scope small.
+- Name from most to least significant, with qualifiers last: `freqMax`, not
+  `maxFreq`. Follow this even when nearby code does not. See
+  [Naming](contributing/quality/code-quality.md#naming).
 - Handle every error. If a state is impossible, assert it rather than ignoring it.
 - Add tests for Go behavior and pure TypeScript functions. Do not add React
   component, hook, or render tests unless asked.

@@ -54,7 +54,7 @@
           },
           {
             "href": "/api-management",
-            "label": "API management"
+            "label": "API Management"
           },
           {
             "href": "https://unkey.com/pricing",
@@ -192,6 +192,7 @@
                   "platform/cli/overview",
                   "platform/cli/install",
                   "platform/cli/authentication",
+                  "platform/cli/login",
                   "platform/cli/output-and-flags",
                   "platform/cli/auth/login"
                 ]
@@ -247,6 +248,7 @@
                       {
                         "group": "Authentication",
                         "pages": [
+                          "errors/unkey/authentication/credential_rejected",
                           "errors/unkey/authentication/key_not_found",
                           "errors/unkey/authentication/malformed",
                           "errors/unkey/authentication/missing",
@@ -331,6 +333,7 @@
                       {
                         "group": "Too many requests",
                         "pages": [
+                          "errors/user/too_many_requests/ip_rate_limited",
                           "errors/user/too_many_requests/query_quota_exceeded",
                           "errors/user/too_many_requests/workspace_rate_limited"
                         ]
@@ -489,7 +492,7 @@
                 ]
               },
               {
-                "group": "API management",
+                "group": "API Management",
                 "pages": [
                   {
                     "group": "APIs",
@@ -849,8 +852,8 @@
       {
         "description": "API keys, rate limiting, identities, permissions, and analytics",
         "icon": "key",
-        "name": "API management",
-        "product": "API management",
+        "name": "API Management",
+        "product": "API Management",
         "tabs": [
           {
             "groups": [
@@ -1332,6 +1335,10 @@
     {
       "destination": "/api-management/cli/analytics/get-verifications",
       "source": "/cli/analytics/get-verifications"
+    },
+    {
+      "destination": "/platform/cli/login",
+      "source": "/cli/login"
     },
     {
       "destination": "/platform/cli/auth/login",

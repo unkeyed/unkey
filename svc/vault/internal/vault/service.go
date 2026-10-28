@@ -57,11 +57,12 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	cache, err := cache.New(cache.Config[string, *vaultv1.DataEncryptionKey]{
-		Fresh:    time.Hour,
-		Stale:    24 * time.Hour,
-		MaxSize:  10000,
-		Resource: "data_encryption_key",
-		Clock:    clock.New(),
+		Fresh:     time.Hour,
+		Stale:     24 * time.Hour,
+		MaxSize:   10000,
+		Resource:  "data_encryption_key",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cache: %w", err)
