@@ -48,6 +48,9 @@ func (e *Executor) Execute(
 	appID string,
 	cfg *frontlinev1.KeyAuth,
 ) (*principal.Principal, error) {
+	if err := rejectRepeatedKey(req, cfg.GetLocations()); err != nil {
+		return nil, err
+	}
 	rawKey := extractKey(req, cfg.GetLocations())
 	if rawKey == "" {
 		return nil, fault.New("missing API key",

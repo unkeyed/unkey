@@ -6,7 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 func TestExtractKey_DefaultBearer(t *testing.T) {
@@ -172,4 +175,47 @@ func TestExtractKey_FirstLocationWins(t *testing.T) {
 
 	key := extractKey(req, locations)
 	assert.Equal(t, "header_key", key)
+}
+
+func TestRejectRepeatedKey(t *testing.T) {
+	t.Parallel()
+
+	//nolint:exhaustruct
+	bearer := &frontlinev1.KeyLocation{Location: &frontlinev1.KeyLocation_Bearer{Bearer: &frontlinev1.BearerTokenLocation{}}}
+	//nolint:exhaustruct
+	header := &frontlinev1.KeyLocation{Location: &frontlinev1.KeyLocation_Header{Header: &frontlinev1.HeaderKeyLocation{Name: "X-API-Key"}}}
+	//nolint:exhaustruct
+	query := &frontlinev1.KeyLocation{Location: &frontlinev1.KeyLocation_QueryParam{QueryParam: &frontlinev1.QueryParamKeyLocation{Name: "api_key"}}}
+
+	tests := []struct {
+		name      string
+		header    http.Header
+		query     string
+		locations []*frontlinev1.KeyLocation
+		rejected  bool
+	}{
+		{"single default bearer", http.Header{"Authorization": {"Bearer a"}}, "", nil, false},
+		{"repeated default bearer", http.Header{"Authorization": {"Bearer a", "Bearer b"}}, "", nil, true},
+		{"repeated bearer location", http.Header{"Authorization": {"Bearer a", "Bearer b"}}, "", []*frontlinev1.KeyLocation{bearer}, true},
+		{"single header", http.Header{"X-Api-Key": {"a"}}, "", []*frontlinev1.KeyLocation{header}, false},
+		{"repeated header", http.Header{"X-Api-Key": {"a", "b"}}, "", []*frontlinev1.KeyLocation{header}, true},
+		{"single query param", http.Header{}, "api_key=a&other=1&other=2", []*frontlinev1.KeyLocation{query}, false},
+		{"repeated query param", http.Header{}, "api_key=a&api_key=b", []*frontlinev1.KeyLocation{query}, true},
+		{"repeated in a later location", http.Header{"Authorization": {"Bearer a"}}, "api_key=a&api_key=b", []*frontlinev1.KeyLocation{bearer, query}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := &http.Request{Header: tt.header, URL: &url.URL{RawQuery: tt.query}}
+			err := rejectRepeatedKey(req, tt.locations)
+			if !tt.rejected {
+				require.NoError(t, err)
+				return
+			}
+			urn, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.Frontline.Auth.InvalidKey.URN(), urn)
+		})
+	}
 }

@@ -71,6 +71,9 @@ func NewAPI(cfg APIConfig) (*APIExecutor, error) {
 }
 
 func (e *APIExecutor) Execute(ctx context.Context, sess *zen.Session, req *http.Request, _ string, cfg *frontlinev1.KeyAuth) (*principal.Principal, error) {
+	if err := rejectRepeatedKey(req, cfg.GetLocations()); err != nil {
+		return nil, err
+	}
 	rawKey := extractKey(req, cfg.GetLocations())
 	if rawKey == "" {
 		return nil, fault.New("missing API key",
