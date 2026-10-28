@@ -53,10 +53,10 @@ type Config struct {
 	// clock.NewMonotonic) — wall-clock backward jumps from NTP corrections
 	// would produce negative intervals in the memory pair-integration.
 	Clock clock.Clock
-	// Network is the eBPF byte-counter reader. May be nil when the network
-	// collector is disabled via Collectors — run.go skips network.NewReader
-	// in that case so the BPF program never loads. attachAndReadNetwork
-	// fail-opens to zero counters when nil.
+	// Network measures pod network bytes. It is used only when
+	// Collectors.Network is set; otherwise, or when nil, New selects
+	// network.NewNoop and every checkpoint is unmeasured
+	// (network_attached=false). The caller still owns closing it.
 	Network network.Reader
 	// Collectors is the resolved enabled-set (see CollectorSetFrom). Disabled
 	// kinds skip their data source on each tick and write zero into the
@@ -93,11 +93,16 @@ func New(cfg Config) *Collector {
 		clk = clock.NewMonotonic()
 	}
 
+	net := cfg.Network
+	if net == nil || !cfg.Collectors.Network {
+		net = network.NewNoop()
+	}
+
 	return &Collector{
 		ch:          cfg.CH,
 		podLister:   cfg.PodLister,
 		cgroup:      &cgroupReader{root: root, driver: cfg.CgroupDriver},
-		network:     cfg.Network,
+		network:     net,
 		collectors:  cfg.Collectors,
 		kubeletRoot: cfg.KubeletRoot,
 		nodeName:    cfg.NodeName,
@@ -148,6 +153,8 @@ func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 
 	<-ctx.Done()
 
+	// repeat.Every does not wait for a running tick. Taking the lock waits for
+	// it, and later ticks see the cancelled context and skip collection.
 	c.mu.Lock()
 	c.mu.Unlock()
 	watcherWG.Wait()
@@ -171,7 +178,7 @@ func (c *Collector) collectWithMetrics(ctx context.Context, interval time.Durati
 
 	elapsed := time.Since(start)
 	metrics.CollectionDuration.Observe(elapsed.Seconds())
-	if interval > 0 && elapsed > interval {
+	if elapsed > interval {
 		metrics.CollectionTicksOverrun.Inc()
 		logger.Warn("collection overran its interval; sample gaps are widening",
 			"elapsed", elapsed.String(), "interval", interval.String())
@@ -248,18 +255,9 @@ func (c *Collector) emitLifecycleCheckpoint(pod *corev1.Pod, kind string) {
 		reading = r
 	}
 
+	// currentIncarnation found the primary container status, so the restart
+	// count is known.
 	info := buildPodInfo(pod)
-
-	// Same rule as the periodic loop: if Status.ContainerStatuses hasn't
-	// populated the primary container yet, we don't know the real
-	// restart_count, so we can't emit a correctly-keyed checkpoint. Skip
-	// and accept the undercharge. The next start / stop event or the
-	// next periodic tick will catch it.
-	if !info.restartCountKnown {
-		metrics.LifecycleDrops.WithLabelValues(kind, "restart_count_unknown").Inc()
-		return
-	}
-
 	containerUID := checkpoint.ContainerUID(string(pod.UID), info.restartCount)
 	now := c.clk.Now().UnixMilli()
 
@@ -288,12 +286,13 @@ func (c *Collector) emitLifecycleCheckpoint(pod *corev1.Pod, kind string) {
 
 	var net network.Counters
 	var netAttached bool
-	if kind == checkpoint.EventStop {
-		if c.collectors.Network && c.network != nil && !info.hostNetwork {
-			net, netAttached = c.readNetwork(info.uid)
-		}
-	} else {
+	switch {
+	case kind == checkpoint.EventStart:
 		net, netAttached = c.attachAndReadNetwork(info)
+	case !info.hostNetwork:
+		// A stopping pod may have left Running and lost its sandbox, so read
+		// the existing attachment without the attach preconditions.
+		net, netAttached = c.readNetwork(info.uid)
 	}
 	if !c.currentIncarnation(pod) {
 		metrics.LifecycleDrops.WithLabelValues(kind, "incarnation_unknown").Inc()

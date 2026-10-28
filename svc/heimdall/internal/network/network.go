@@ -62,7 +62,7 @@ type Counters struct {
 }
 
 // zeroCounters is the all-zero Counters value returned by every fail-open
-// path (read failed, attach failed, host-network pod, stub on macOS).
+// path (read failed, attach failed, host-network pod, no-op reader).
 // Declared once here so callers don't need an exhaustruct-shaped literal
 // at every fail site.
 var zeroCounters = Counters{
@@ -74,8 +74,8 @@ var zeroCounters = Counters{
 
 // Reader is the per-process handle the collector talks to. The Linux
 // implementation owns the loaded eBPF program plus the per-pod attach
-// links; the non-Linux implementation is a no-op so the same code path
-// compiles on macOS and in tests.
+// links. NewNoop measures nothing and serves disabled collection and
+// non-Linux builds.
 //
 // All methods are safe for concurrent use.
 type Reader interface {
@@ -116,8 +116,8 @@ type Reader interface {
 	// per-veth counter map. The caller (collector) exposes this as a
 	// Prometheus gauge so operators can alert before LRU eviction kicks
 	// in (LRU silently drops traffic from the oldest entry when the map
-	// is full). Returns an error if enumeration is incomplete, and 0 on
-	// the non-Linux stub. Concurrent kernel writes can change the count.
+	// is full). Returns an error if enumeration is incomplete. Concurrent
+	// kernel writes can change the count.
 	MapEntries() (int, error)
 
 	// Reconcile evicts stale entries whose pod UID is no longer in the
@@ -130,7 +130,3 @@ type Reader interface {
 	// Close releases all attach links and frees the BPF map. Idempotent.
 	Close() error
 }
-
-// NewReader is defined in the platform-specific files: network_linux.go
-// for the real eBPF implementation, network_stub.go for the no-op stub
-// on non-Linux. The build tag picks one at compile time.
