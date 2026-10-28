@@ -2,13 +2,17 @@ package deployment
 
 import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // availableActions returns the lifecycle operations that would succeed on a
-// deployment in this state. It encodes the same preconditions the
-// promote/rollback/stop/start handlers enforce, so a caller can pick a legal
-// action instead of discovering the rules through 412s.
+// deployment in this state for the caller described by in. It encodes the same
+// preconditions and the same permissions the promote/rollback/stop/start
+// handlers enforce, so a caller can pick a legal action instead of discovering
+// the rules through 412s or a 404.
 //
 // promote and rollback are gated separately because the handlers differ: both
 // need the app to already have a live deployment, but rollback rejects the
@@ -27,7 +31,12 @@ func availableActions(in Input) []openapi.DeploymentAction {
 	ready := d.Status == mysqltype.DeploymentsStatusReady
 	running := d.DesiredState == mysqltype.DeploymentsDesiredStateRunning
 
+	environment := urn.New().Workspace(in.WorkspaceID).Project(d.ProjectID).App(d.AppID).Environment(d.EnvironmentID)
+
 	if in.State.EnvironmentKind.IsProduction() {
+		if rbac.Check(rbac.U(environment, permissions.Write), in.Permissions) != nil {
+			return actions
+		}
 		currentDeploymentID := in.State.AppCurrentDeploymentID.String
 		hasLiveDeployment := currentDeploymentID != ""
 		isCurrentDeployment := currentDeploymentID == d.ID
@@ -46,6 +55,9 @@ func availableActions(in Input) []openapi.DeploymentAction {
 		return actions
 	}
 
+	if rbac.Check(rbac.U(environment.Deployment(d.ID), permissions.Write), in.Permissions) != nil {
+		return actions
+	}
 	if ready && running {
 		actions = append(actions, openapi.DeploymentActionStop)
 	}
