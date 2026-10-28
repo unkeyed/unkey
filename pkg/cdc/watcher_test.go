@@ -68,7 +68,15 @@ func TestWatcher_CloseDoesNotCloseOtherWatchers(t *testing.T) {
 	vtgateservice.RegisterVitessServer(server, &scriptedServer{})
 	finished := make(chan error, 1)
 	go func() { finished <- server.Serve(listener) }()
-	t.Cleanup(func() { server.Stop(); require.NoError(t, <-finished) })
+	t.Cleanup(func() {
+		server.Stop()
+		// A test can finish before the goroutine above reaches Serve, and Serve
+		// returns ErrServerStopped when Stop already fired. Both are a clean
+		// shutdown; only another error means the server died.
+		if err := <-finished; !errors.Is(err, grpc.ErrServerStopped) {
+			require.NoError(t, err)
+		}
+	})
 	cfg := Config{
 		Address: listener.Addr().String(), Keyspace: "unkey", Insecure: true,
 		Rules: []Rule{{Table: "records", Query: "select id from records"}},
@@ -371,7 +379,15 @@ func testWatcher(t *testing.T, implementation vtgateservice.VitessServer, rules 
 	vtgateservice.RegisterVitessServer(server, implementation)
 	finished := make(chan error, 1)
 	go func() { finished <- server.Serve(listener) }()
-	t.Cleanup(func() { server.Stop(); require.NoError(t, <-finished) })
+	t.Cleanup(func() {
+		server.Stop()
+		// A test can finish before the goroutine above reaches Serve, and Serve
+		// returns ErrServerStopped when Stop already fired. Both are a clean
+		// shutdown; only another error means the server died.
+		if err := <-finished; !errors.Is(err, grpc.ErrServerStopped) {
+			require.NoError(t, err)
+		}
+	})
 	watcher, err := New(Config{Address: listener.Addr().String(), Keyspace: "unkey", Insecure: true, Rules: rules})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, watcher.Close()) })
