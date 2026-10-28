@@ -66,11 +66,6 @@ data:
     app_id = ${UNKEY_GITHUB_APP_ID}
     private_key_pem = """${UNKEY_GITHUB_PRIVATE_KEY_PEM}"""
 
-    [cli_auth]
-    workos_api_key = "${WORKOS_API_KEY}"
-    dashboard_base_url = "http://localhost:3000"
-    signing_secrets = ["local-dev-cli-signing-secret-32bytes"]
-
     [observability.tracing]
     sample_rate = 1.0
 
