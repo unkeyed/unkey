@@ -11,11 +11,13 @@ import (
 	"strings"
 )
 
-// Clean strips ";" parameters from every segment, then collapses duplicate
-// slashes, resolves "." and ".." segments, and drops any trailing slash. Case
-// is preserved. Parameters are stripped first because Tomcat resolves
-// "/public/..;/admin" to "/admin".
+// Clean returns the path as app frameworks route it, without a trailing slash.
+// Case is preserved. ";" parameters are stripped before ".." is resolved
+// because Tomcat resolves "/public/..;/admin" to "/admin".
 func Clean(p string) string {
+	if strings.HasPrefix(p, "/") && !strings.Contains(p, ";") {
+		return path.Clean(p)
+	}
 	segments := strings.Split(p, "/")
 	for i, segment := range segments {
 		segments[i], _, _ = strings.Cut(segment, ";")
@@ -32,6 +34,9 @@ func Clean(p string) string {
 func Candidates(decoded, escaped string) []string {
 	cleaned := Clean(decoded)
 	candidates := withTrailingSlash(make([]string, 0, 4), cleaned)
+	if escaped == decoded {
+		return candidates
+	}
 	if escapedCleaned := Clean(escaped); escapedCleaned != cleaned {
 		candidates = withTrailingSlash(candidates, escapedCleaned)
 	}
