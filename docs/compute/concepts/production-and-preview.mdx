@@ -44,7 +44,7 @@ You can promote a deployment when it's `ready` and not stopped, and the app alre
 
 ### Rollback
 
-**Rollback** in the dashboard, or `deployments.rollbackDeployment` in the API, moves traffic back to the deployment you pick. The domains move in one step and the app is marked as rolled back.
+**Rollback** in the dashboard, or `deployments.rollbackDeployment` in the API, moves traffic back to the deployment you pick. The domains move in one step and the app is marked as rolled back. The deployment you rolled back from stops after 30 minutes unless you make it live again.
 
 While an app is rolled back, new production deployments still build and reach `ready`, but they don't go live. So a push can't undo your rollback. To end the rolled-back state, promote the deployment you rolled back to (confirm rollback) or promote a newer one.
 
@@ -66,7 +66,7 @@ We stop deployments for you in these cases. A stopped preview deployment can be 
 
 | Trigger | What stops | When |
 | --- | --- | --- |
-| New live production deployment, or a promote | The previous live deployment | 30 minutes later |
+| New live production deployment, promote, or rollback | The previous live deployment | 30 minutes later |
 | New preview deployment on a branch | The deployment that was on that branch domain | 1 minute later |
 | Preview deployment gets no requests | That deployment | After 1 hour idle |
 | You stop it | A `ready` preview deployment | Right away |

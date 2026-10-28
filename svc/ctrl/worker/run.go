@@ -458,9 +458,10 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewAppServiceServer(appSvc))
 
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
-		DB:        database,
-		Admin:     restateAdminClient,
-		Auditlogs: auditlogSvc,
+		DB:           database,
+		Admin:        restateAdminClient,
+		Auditlogs:    auditlogSvc,
+		StandbyDelay: 0,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create environment worker service: %w", err)
