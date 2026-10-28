@@ -13,7 +13,7 @@ var OperationsTotal = vec.NewCounter(prometheus.CounterOpts{
 	Name:      "operations_total",
 	Help:      "Completed Vault encryption RPCs by operation and outcome; bulk calls count once per RPC.",
 },
-	vec.Values("operation", "encrypt", "encrypt_bulk", "decrypt", "decrypt_bulk", "reencrypt"),
+	vec.Values("operation", "encrypt", "encrypt_bulk", "decrypt", "decrypt_bulk", "reencrypt_bulk"),
 	vec.Values("outcome", "success", "error"),
 )
 

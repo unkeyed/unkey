@@ -50,7 +50,7 @@ func (stubVault) EncryptBulk(context.Context, *vaultv1.EncryptBulkRequest) (*vau
 func (stubVault) DecryptBulk(context.Context, *vaultv1.DecryptBulkRequest) (*vaultv1.DecryptBulkResponse, error) {
 	return nil, errors.New("not implemented")
 }
-func (stubVault) ReEncrypt(context.Context, *vaultv1.ReEncryptRequest) (*vaultv1.ReEncryptResponse, error) {
+func (stubVault) ReEncryptBulk(context.Context, *vaultv1.ReEncryptBulkRequest) (*vaultv1.ReEncryptBulkResponse, error) {
 	return nil, errors.New("not implemented")
 }
 
