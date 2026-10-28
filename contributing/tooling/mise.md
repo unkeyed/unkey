@@ -54,7 +54,7 @@ of floating versions like `latest`.
 [tools]
 node = "24.19.0"
 "github:pnpm/pnpm" = "11.5.0"
-"github:depot/cli" = "2.101.67"
+"http:depot" = "2.101.67"
 ```
 
 After changing tools, update `.mise/mise.lock`. Disable locked mode only for
@@ -68,7 +68,7 @@ Use the backend-qualified name when needed, for example:
 
 ```bash
 MISE_LOCKED=0 mise lock github:pnpm/pnpm
-MISE_LOCKED=0 mise lock github:depot/cli
+MISE_LOCKED=0 mise lock http:depot
 ```
 
 Keep lock entries for Linux and macOS on both x64 and ARM64:
