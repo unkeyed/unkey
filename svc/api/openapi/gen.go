@@ -47,6 +47,27 @@ func (e BuildLogOutput) Valid() bool {
 	}
 }
 
+// Defines values for ConnectionTargetType.
+const (
+	ConnectionTargetTypeAutomatic   ConnectionTargetType = "automatic"
+	ConnectionTargetTypeDeployment  ConnectionTargetType = "deployment"
+	ConnectionTargetTypeEnvironment ConnectionTargetType = "environment"
+)
+
+// Valid indicates whether the value is a known member of the ConnectionTargetType enum.
+func (e ConnectionTargetType) Valid() bool {
+	switch e {
+	case ConnectionTargetTypeAutomatic:
+		return true
+	case ConnectionTargetTypeDeployment:
+		return true
+	case ConnectionTargetTypeEnvironment:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeploymentAction.
 const (
 	DeploymentActionPromote  DeploymentAction = "promote"
@@ -848,6 +869,33 @@ type App struct {
 // Example: oci
 type AppSourceType string
 
+// AppConnection defines model for AppConnection.
+type AppConnection struct {
+	// AppId Caller app ID.
+	AppId string `json:"appId"`
+
+	// EnvironmentId Caller environment ID.
+	EnvironmentId string `json:"environmentId"`
+
+	// Id Connection ID.
+	Id string `json:"id"`
+
+	// Name Name used for the connection's injected HOST variable.
+	Name          string `json:"name"`
+	TargetAppId   string `json:"targetAppId"`
+	TargetAppName string `json:"targetAppName"`
+	TargetAppSlug string `json:"targetAppSlug"`
+
+	// TargetDeploymentId Present only for a pinned deployment target.
+	TargetDeploymentId *string `json:"targetDeploymentId,omitempty"`
+
+	// TargetEnvironmentId Present only for an environment target.
+	TargetEnvironmentId *string `json:"targetEnvironmentId,omitempty"`
+
+	// TargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
+	TargetType ConnectionTargetType `json:"targetType"`
+}
+
 // AppGit defines model for AppGit.
 type AppGit struct {
 	// DefaultBranch The branch this app's deployments track.
@@ -1027,6 +1075,9 @@ type ConflictErrorResponse struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// ConnectionTargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
+type ConnectionTargetType string
 
 // Deployment defines model for Deployment.
 type Deployment struct {
@@ -3841,6 +3892,45 @@ type V2CliStartDeviceLoginResponseData struct {
 
 	// VerificationUriComplete Dashboard page with the code filled in.
 	VerificationUriComplete string `json:"verificationUriComplete"`
+}
+
+// V2ConnectionsListConnectionsRequestBody defines model for V2ConnectionsListConnectionsRequestBody.
+type V2ConnectionsListConnectionsRequestBody struct {
+	// App Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	App ResourceIdentifier `json:"app"`
+
+	// Cursor Cursor from the previous page.
+	Cursor *string `json:"cursor,omitempty"`
+
+	// Environment Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Environment ResourceIdentifier `json:"environment"`
+	Limit       *int               `json:"limit,omitempty"`
+
+	// Project Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Project ResourceIdentifier `json:"project"`
+}
+
+// V2ConnectionsListConnectionsResponseBody defines model for V2ConnectionsListConnectionsResponseBody.
+type V2ConnectionsListConnectionsResponseBody struct {
+	Data []AppConnection `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
 }
 
 // V2DeployCreateDeploymentRequestBody Create a deployment from a pre-built Docker image
@@ -8477,6 +8567,9 @@ type CliRevokeSessionJSONRequestBody = V2CliRevokeSessionRequestBody
 
 // CliStartDeviceLoginJSONRequestBody defines body for CliStartDeviceLogin for application/json ContentType.
 type CliStartDeviceLoginJSONRequestBody = V2CliStartDeviceLoginRequestBody
+
+// ConnectionsListConnectionsJSONRequestBody defines body for ConnectionsListConnections for application/json ContentType.
+type ConnectionsListConnectionsJSONRequestBody = V2ConnectionsListConnectionsRequestBody
 
 // DeployCreateDeploymentJSONRequestBody defines body for DeployCreateDeployment for application/json ContentType.
 //

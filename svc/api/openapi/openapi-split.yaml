@@ -352,6 +352,9 @@ paths:
   /v2/apps.deleteApp:
     $ref: "./spec/paths/v2/apps/deleteApp/index.yaml"
 
+  /v2/connections.listConnections:
+    $ref: "./spec/paths/v2/connections/listConnections/index.yaml"
+
   # Environment Endpoints
   /v2/environments.getEnvironment:
     $ref: "./spec/paths/v2/environments/getEnvironment/index.yaml"
