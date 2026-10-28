@@ -5,7 +5,45 @@ import (
 	"strings"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 )
+
+// rejectRepeatedKey fails a request that sends any key location more than
+// once. The gateway verifies only the first value, but the app receives all of
+// them and may read a different one.
+func rejectRepeatedKey(req *http.Request, locations []*frontlinev1.KeyLocation) error {
+	if len(locations) == 0 {
+		return repeatedKeyError(len(req.Header.Values("Authorization")))
+	}
+	for _, loc := range locations {
+		var count int
+		switch l := loc.GetLocation().(type) {
+		case *frontlinev1.KeyLocation_Bearer:
+			count = len(req.Header.Values("Authorization"))
+		case *frontlinev1.KeyLocation_Header:
+			count = len(req.Header.Values(l.Header.GetName()))
+		case *frontlinev1.KeyLocation_QueryParam:
+			count = len(req.URL.Query()[l.QueryParam.GetName()])
+		}
+		if err := repeatedKeyError(count); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// repeatedKeyError returns the rejection for a key location sent count times.
+func repeatedKeyError(count int) error {
+	if count <= 1 {
+		return nil
+	}
+	return fault.New("repeated API key",
+		fault.Code(codes.Frontline.Auth.InvalidKey.URN()),
+		fault.Internal("API key location sent more than once"),
+		fault.Public("Authentication failed. Send the API key only once."),
+	)
+}
 
 // extractKey tries each location in order and returns the first non-empty key.
 // If no locations are configured, it defaults to extracting a Bearer token from
