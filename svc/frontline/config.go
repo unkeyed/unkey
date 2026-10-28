@@ -109,19 +109,14 @@ type Config struct {
 	// context is cancelled and a 504 is returned.
 	RequestTimeout time.Duration `toml:"request_timeout" config:"default=15m"`
 
-	// OpenapiBodyBytesMax caps the request body an OpenAPI validation policy
-	// reads. The validator holds the body in memory several times over, so an
-	// uncapped body lets one caller spend a pod's memory before any
-	// authentication policy runs. A negative value disables the limit;
-	// omitting the key applies the default.
+	// OpenapiBodyBytesMax is the max body size the OpenAPI policy reads.
+	// Bigger bodies get 413. Negative means no limit.
 	OpenapiBodyBytesMax int64 `toml:"openapi_body_bytes_max" config:"default=10485760"`
 
-	// OpenapiBodyBytesBudget caps the body bytes all in-flight OpenAPI
-	// validations on one pod hold at once. OpenapiBodyBytesMax bounds one
-	// request; this bounds their sum, so many concurrent bodies under the
-	// limit cannot exhaust the pod's memory. A request that does not fit gets
-	// 503. Must be at least OpenapiBodyBytesMax. A negative value disables
-	// the budget.
+	// OpenapiBodyBytesBudget is how many body bytes one pod holds for OpenAPI
+	// checks at the same time. When it's full, new requests get 503 instead of
+	// the pod running out of memory. Must be >= OpenapiBodyBytesMax. Negative
+	// means no limit.
 	OpenapiBodyBytesBudget int64 `toml:"openapi_body_bytes_budget" config:"default=536870912"`
 
 	Observability config.Observability `toml:"observability"`
