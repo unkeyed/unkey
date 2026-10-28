@@ -16,3 +16,7 @@ func (noop) MemberEmails(_ context.Context, _ string) ([]string, error) { return
 func (noop) ActiveRoles(context.Context, string, string) ([]string, bool, error) {
 	return nil, false, nil
 }
+
+func (noop) DeleteUser(context.Context, string) (bool, error) { return false, nil }
+
+func (noop) DeleteOrganization(context.Context, string) (bool, error) { return false, nil }
