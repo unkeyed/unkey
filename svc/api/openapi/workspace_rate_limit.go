@@ -1,10 +1,8 @@
 package openapi
 
 import (
-	"strings"
-
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"gopkg.in/yaml.v3"
 )
 
 // WorkspaceRateLimitExemptions contains operation-level exemptions. Its zero
@@ -16,41 +14,24 @@ type WorkspaceRateLimitExemptions struct {
 // WorkspaceRateLimitExemptionsFromSpec reads x-unkey-workspace-rate-limit-exempt
 // from a bundled spec. Only an explicit boolean true exempts an operation.
 func WorkspaceRateLimitExemptionsFromSpec(spec []byte) (WorkspaceRateLimitExemptions, error) {
-	var doc struct {
-		Paths map[string]map[string]yaml.Node `yaml:"paths"`
-	}
-	if err := yaml.Unmarshal(spec, &doc); err != nil {
+	doc, err := openapi3.NewLoader().LoadFromData(spec)
+	if err != nil {
 		return WorkspaceRateLimitExemptions{}, fault.Wrap(err, fault.Internal("failed to parse workspace rate limit exemptions"))
 	}
 
 	exemptions := WorkspaceRateLimitExemptions{operations: make(map[string]struct{})}
-	for path, item := range doc.Paths {
-		for method, node := range item {
-			switch method {
-			case "get", "put", "post", "delete", "options", "head", "patch", "trace":
-			default:
+	for path, item := range doc.Paths.Map() {
+		for method, operation := range item.Operations() {
+			value, present := operation.Extensions["x-unkey-workspace-rate-limit-exempt"]
+			if !present {
 				continue
 			}
-
-			var operation struct {
-				Exempt yaml.Node `yaml:"x-unkey-workspace-rate-limit-exempt"`
-			}
-			if err := node.Decode(&operation); err != nil {
-				return WorkspaceRateLimitExemptions{}, fault.Wrap(err, fault.Internal("failed to parse operation "+method+" "+path))
-			}
-			if operation.Exempt.Kind == 0 {
-				continue
-			}
-			if operation.Exempt.Tag != "!!bool" {
+			exempt, ok := value.(bool)
+			if !ok {
 				return WorkspaceRateLimitExemptions{}, fault.New("x-unkey-workspace-rate-limit-exempt must be a boolean: " + method + " " + path)
 			}
-
-			var exempt bool
-			if err := operation.Exempt.Decode(&exempt); err != nil {
-				return WorkspaceRateLimitExemptions{}, fault.Wrap(err, fault.Internal("failed to decode workspace rate limit exemption"))
-			}
 			if exempt {
-				exemptions.operations[strings.ToUpper(method)+" "+path] = struct{}{}
+				exemptions.operations[method+" "+path] = struct{}{}
 			}
 		}
 	}
