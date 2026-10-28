@@ -25,3 +25,4 @@ CREATE INDEX `cli_sessions_workspace_user_created_idx` ON `cli_sessions` (`works
 CREATE INDEX `cli_sessions_refresh_family_idx` ON `cli_sessions` (`refresh_family`);
 
 CREATE INDEX `cli_sessions_expires_at_idx` ON `cli_sessions` (`expires_at`);
+

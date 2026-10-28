@@ -36,6 +36,8 @@ message MatchExpr {
 // pattern.
 message StringMatch {
   // When true, matching is case-insensitive. Applied to all match modes.
+  // Path matching always ignores case, so this has no effect inside a
+  // [PathMatch].
   bool ignore_case = 1;
 
   oneof match {
@@ -55,6 +57,13 @@ message StringMatch {
 // without the query string — use [QueryParamMatch] to match query parameters
 // separately. Leading slashes are preserved, so patterns should include them
 // (e.g., prefix "/api/v1" not "api/v1").
+//
+// Matching ignores case and tests the canonical path, not the raw one: ";"
+// segment parameters are stripped, "//", "." and ".." are resolved, and a
+// trailing slash is optional. Both the decoded and the escaped path are tested,
+// because the upstream receives the escaped form. App frameworks route these
+// variants to the same handler, so matching the raw path would let them bypass
+// the policy. The upstream still receives the original path.
 message PathMatch {
   StringMatch path = 1;
 }
@@ -62,7 +71,8 @@ message PathMatch {
 // MethodMatch tests the HTTP method of the incoming request. Comparison is
 // always case-insensitive per the HTTP specification, regardless of the
 // StringMatch ignore_case setting. The methods list is an OR — the request
-// matches if its method equals any entry.
+// matches if its method equals any entry. GET also matches HEAD, because most
+// frameworks answer HEAD with the GET handler.
 message MethodMatch {
   // HTTP methods to match against, e.g. ["GET", "POST"]. The match succeeds
   // if the request method equals any of these values (case-insensitive).
