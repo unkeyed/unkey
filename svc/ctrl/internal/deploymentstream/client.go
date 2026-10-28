@@ -28,9 +28,9 @@ func New(cfg cdc.Config) (*Client, error) {
 	return &Client{config: cfg}, nil
 }
 
-// Watch reports changes to running deployments in one region.
-// An empty token first copies the matching rows. When a row stops matching,
-// its old value still provides the deployment ID.
+// Watch reports regional placement and intent notifications.
+// Deployment intent writes also advance topology timestamps in the same transaction.
+// An empty token copies the region's placements, including stopped deployments.
 // Invalid regions, invalid IDs, and callback errors stop the watch.
 // The CDC watcher closes when the watch ends. Tokens follow [cdc.Watcher.Watch].
 func (c *Client) Watch(ctx context.Context, region string, token []byte, apply func(Event) error) (err error) {
@@ -40,7 +40,7 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, apply f
 	cfg := c.config
 	cfg.Rules = []cdc.Rule{{
 		Table: "deployment_topology",
-		Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
+		Query: fmt.Sprintf("select deployment_id, updated_at from deployment_topology where region_id = '%s'", region),
 	}}
 	watcher, err := cdc.New(cfg)
 	if err != nil {
@@ -56,10 +56,10 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, apply f
 			if row == nil {
 				row = rowChange.Before
 			}
-			if row == nil || len(row.Lengths) != 1 || row.Lengths[0] <= 0 || row.Lengths[0] != int64(len(row.Values)) {
+			if row == nil || len(row.Lengths) != 2 || row.Lengths[0] <= 0 || row.Lengths[0] > int64(len(row.Values)) {
 				return errors.New("invalid deployment ID in VStream row")
 			}
-			if err := apply(Event{DeploymentID: string(row.Values), ResumeToken: nil}); err != nil {
+			if err := apply(Event{DeploymentID: string(row.Values[:row.Lengths[0]]), ResumeToken: nil}); err != nil {
 				return err
 			}
 		}

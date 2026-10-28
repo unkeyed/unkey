@@ -98,7 +98,7 @@ var producerFieldAssertions = map[string]func(t *testing.T, a *ctrlv1.ApplyDeplo
 // and asserts each ApplyDeployment proto field was carried over from the DB.
 func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
-		DesiredStatus:                 db.DeploymentTopologyDesiredStatusRunning,
+		DesiredState:                  dbtype.DeploymentsDesiredStateRunning,
 		AutoscalingReplicasMin:        2,
 		AutoscalingReplicasMax:        5,
 		AutoscalingThresholdCpu:       sql.NullInt16{Valid: true, Int16: 80},

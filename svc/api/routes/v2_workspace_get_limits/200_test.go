@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -82,10 +83,27 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	}))
 
 	running := createDeployment(t, h, setup, 500, 512, 1024)
-	insertTopology(t, h, workspaceID, running.ID, 2, db.DeploymentTopologyDesiredStatusRunning)
-	insertTopology(t, h, workspaceID, running.ID, 1, db.DeploymentTopologyDesiredStatusRunning)
+	insertTopology(t, h, workspaceID, running.ID, 2)
+	insertTopology(t, h, workspaceID, running.ID, 1)
 	stopped := createDeployment(t, h, setup, 1000, 2048, 4096)
-	insertTopology(t, h, workspaceID, stopped.ID, 3, db.DeploymentTopologyDesiredStatusStopped)
+	insertTopology(t, h, workspaceID, stopped.ID, 3)
+	require.NoError(t, db.Query.UpdateDeploymentDesiredState(ctx, h.DB.RW(), db.UpdateDeploymentDesiredStateParams{
+		ID:           stopped.ID,
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
+	}))
+
+	failed := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   workspaceID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		Status:        mysqltype.DeploymentsStatusFailed,
+		CpuMillicores: 1500,
+		MemoryMib:     1024,
+		StorageMib:    2048,
+	})
+	insertTopology(t, h, workspaceID, failed.ID, 4)
 
 	h.CreateCustomDomain(seed.CreateCustomDomainRequest{
 		ID:            uid.New(uid.DomainPrefix),
@@ -106,7 +124,7 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	// Usage of another workspace must not count toward this one
 	other := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
 	otherDeployment := createDeployment(t, h, other, 2000, 4096, 4096)
-	insertTopology(t, h, other.Workspace.ID, otherDeployment.ID, 5, db.DeploymentTopologyDesiredStatusRunning)
+	insertTopology(t, h, other.Workspace.ID, otherDeployment.ID, 5)
 	h.CreateCustomDomain(seed.CreateCustomDomainRequest{
 		ID:            uid.New(uid.DomainPrefix),
 		WorkspaceID:   other.Workspace.ID,
@@ -182,7 +200,7 @@ func createDeployment(t *testing.T, h *testutil.Harness, setup testutil.Deployme
 	})
 }
 
-func insertTopology(t *testing.T, h *testutil.Harness, workspaceID, deploymentID string, replicasMax uint32, status db.DeploymentTopologyDesiredStatus) {
+func insertTopology(t *testing.T, h *testutil.Harness, workspaceID, deploymentID string, replicasMax uint32) {
 	t.Helper()
 	err := db.Query.InsertDeploymentTopology(t.Context(), h.DB.RW(), db.InsertDeploymentTopologyParams{
 		WorkspaceID:            workspaceID,
@@ -190,7 +208,7 @@ func insertTopology(t *testing.T, h *testutil.Harness, workspaceID, deploymentID
 		RegionID:               uid.New(uid.RegionPrefix),
 		AutoscalingReplicasMin: 1,
 		AutoscalingReplicasMax: replicasMax,
-		DesiredStatus:          status,
+		DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
 		CreatedAt:              time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)

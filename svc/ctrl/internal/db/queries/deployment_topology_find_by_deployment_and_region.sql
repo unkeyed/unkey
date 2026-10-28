@@ -2,7 +2,8 @@
 -- FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
 -- joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 SELECT
-    dt.desired_status,
+    d.desired_state,
+    d.status,
     dt.autoscaling_replicas_min,
     dt.autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu,

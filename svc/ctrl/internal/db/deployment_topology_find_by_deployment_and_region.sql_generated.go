@@ -14,7 +14,8 @@ import (
 
 const findDeploymentTopologyByDeploymentAndRegion = `-- name: FindDeploymentTopologyByDeploymentAndRegion :one
 SELECT
-    dt.desired_status,
+    d.desired_state,
+    d.status,
     dt.autoscaling_replicas_min,
     dt.autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu,
@@ -58,41 +59,43 @@ type FindDeploymentTopologyByDeploymentAndRegionParams struct {
 }
 
 type FindDeploymentTopologyByDeploymentAndRegionRow struct {
-	DesiredStatus                 DeploymentTopologyDesiredStatus `db:"desired_status"`
-	AutoscalingReplicasMin        uint32                          `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax        uint32                          `db:"autoscaling_replicas_max"`
-	AutoscalingThresholdCpu       sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
-	AutoscalingThresholdMemory    sql.NullInt16                   `db:"autoscaling_threshold_memory"`
-	ID                            string                          `db:"id"`
-	K8sName                       string                          `db:"k8s_name"`
-	WorkspaceID                   string                          `db:"workspace_id"`
-	ProjectID                     string                          `db:"project_id"`
-	EnvironmentID                 string                          `db:"environment_id"`
-	AppID                         string                          `db:"app_id"`
-	ImageResolved                 sql.NullString                  `db:"image_resolved"`
-	BuildID                       sql.NullString                  `db:"build_id"`
-	GitCommitSha                  sql.NullString                  `db:"git_commit_sha"`
-	GitBranch                     sql.NullString                  `db:"git_branch"`
-	GitCommitMessage              sql.NullString                  `db:"git_commit_message"`
-	CpuMillicores                 int32                           `db:"cpu_millicores"`
-	MemoryMib                     int32                           `db:"memory_mib"`
-	StorageMib                    uint32                          `db:"storage_mib"`
-	EncryptedEnvironmentVariables []byte                          `db:"encrypted_environment_variables"`
-	Command                       mysqltype.StringSlice           `db:"command"`
-	Port                          int32                           `db:"port"`
-	ShutdownSignal                DeploymentsShutdownSignal       `db:"shutdown_signal"`
-	Healthcheck                   mysqltype.NullHealthcheck       `db:"healthcheck"`
-	K8sNamespace                  string                          `db:"k8s_namespace"`
-	EnvironmentSlug               string                          `db:"environment_slug"`
-	RegionName                    string                          `db:"region_name"`
-	GitRepo                       sql.NullString                  `db:"git_repo"`
+	DesiredState                  mysqltype.DeploymentsDesiredState `db:"desired_state"`
+	Status                        mysqltype.DeploymentsStatus       `db:"status"`
+	AutoscalingReplicasMin        uint32                            `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax        uint32                            `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu       sql.NullInt16                     `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory    sql.NullInt16                     `db:"autoscaling_threshold_memory"`
+	ID                            string                            `db:"id"`
+	K8sName                       string                            `db:"k8s_name"`
+	WorkspaceID                   string                            `db:"workspace_id"`
+	ProjectID                     string                            `db:"project_id"`
+	EnvironmentID                 string                            `db:"environment_id"`
+	AppID                         string                            `db:"app_id"`
+	ImageResolved                 sql.NullString                    `db:"image_resolved"`
+	BuildID                       sql.NullString                    `db:"build_id"`
+	GitCommitSha                  sql.NullString                    `db:"git_commit_sha"`
+	GitBranch                     sql.NullString                    `db:"git_branch"`
+	GitCommitMessage              sql.NullString                    `db:"git_commit_message"`
+	CpuMillicores                 int32                             `db:"cpu_millicores"`
+	MemoryMib                     int32                             `db:"memory_mib"`
+	StorageMib                    uint32                            `db:"storage_mib"`
+	EncryptedEnvironmentVariables []byte                            `db:"encrypted_environment_variables"`
+	Command                       mysqltype.StringSlice             `db:"command"`
+	Port                          int32                             `db:"port"`
+	ShutdownSignal                DeploymentsShutdownSignal         `db:"shutdown_signal"`
+	Healthcheck                   mysqltype.NullHealthcheck         `db:"healthcheck"`
+	K8sNamespace                  string                            `db:"k8s_namespace"`
+	EnvironmentSlug               string                            `db:"environment_slug"`
+	RegionName                    string                            `db:"region_name"`
+	GitRepo                       sql.NullString                    `db:"git_repo"`
 }
 
 // FindDeploymentTopologyByDeploymentAndRegion returns a single deployment topology with all
 // joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 //
 //	SELECT
-//	    dt.desired_status,
+//	    d.desired_state,
+//	    d.status,
 //	    dt.autoscaling_replicas_min,
 //	    dt.autoscaling_replicas_max,
 //	    dt.autoscaling_threshold_cpu,
@@ -132,7 +135,8 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 	row := q.db.QueryRowContext(ctx, findDeploymentTopologyByDeploymentAndRegion, arg.DeploymentID, arg.RegionID)
 	var i FindDeploymentTopologyByDeploymentAndRegionRow
 	err := row.Scan(
-		&i.DesiredStatus,
+		&i.DesiredState,
+		&i.Status,
 		&i.AutoscalingReplicasMin,
 		&i.AutoscalingReplicasMax,
 		&i.AutoscalingThresholdCpu,

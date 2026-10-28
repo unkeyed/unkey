@@ -34,7 +34,8 @@ LEFT JOIN (
   FROM `deployment_topology` dt
   JOIN `deployments` d ON d.`id` = dt.`deployment_id`
   WHERE dt.`workspace_id` = sqlc.arg('workspace_id')
-    AND dt.`desired_status` = 'running'
+    AND d.`desired_state` = 'running'
+    AND d.`status` NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
   GROUP BY dt.`workspace_id`
 ) a ON a.`workspace_id` = l.`workspace_id`
 WHERE l.`workspace_id` = sqlc.arg('workspace_id');
