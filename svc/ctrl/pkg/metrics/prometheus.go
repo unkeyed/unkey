@@ -113,6 +113,28 @@ var (
 		vec.Values("result", "success", "error"),
 	)
 
+	// PrivateNetworkSnapshotsTotal counts StreamPrivateNetworkState calls by
+	// outcome. Each private-networking Krane leader calls it every 5 seconds,
+	// so a missing success rate with Krane snapshot errors points at Ctrl, and
+	// the result names the failing step.
+	//
+	// Labels:
+	//   - "result": "success", "unauthenticated" (bearer token mismatch),
+	//     "unknown_cluster" (the cluster key is invalid or has no cluster
+	//     row), "database_error" (looking up the cluster failed),
+	//     "unavailable" (the platform's catalog is not built yet or its CDC
+	//     stream has been silent for 15 seconds), or "send_error" (Krane went
+	//     away or timed out while the snapshot streamed)
+	PrivateNetworkSnapshotsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_snapshots_total",
+			Help:      "StreamPrivateNetworkState calls by outcome.",
+		},
+		[]string{"result"},
+	)
+
 	// PrivateNetworkCatalogRefreshesTotal counts catalog refreshes. A
 	// "bootstrap" refresh reads every running deployment after a CDC copy; an
 	// "update" refresh reads only the callers that changed rows may affect.
