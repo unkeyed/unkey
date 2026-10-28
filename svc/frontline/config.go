@@ -109,6 +109,14 @@ type Config struct {
 	// context is cancelled and a 504 is returned.
 	RequestTimeout time.Duration `toml:"request_timeout" config:"default=15m"`
 
+	// MaxRequestBodySize caps the request body frontline buffers. The
+	// plain-HTTP listener buffers every body. An OpenAPI validation policy
+	// holds the body in memory several times over, so an uncapped body lets
+	// one caller spend a pod's memory before any authentication policy runs.
+	// The HTTPS proxy path streams and is unaffected. A negative value
+	// disables the limit; omitting the key applies the default.
+	MaxRequestBodySize int64 `toml:"max_request_body_size" config:"default=10485760"`
+
 	Observability config.Observability `toml:"observability"`
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].

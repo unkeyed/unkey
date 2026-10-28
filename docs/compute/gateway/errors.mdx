@@ -90,7 +90,7 @@ A few `err:user:*` codes can also come from the gateway. Their pages describe ho
 | [`err:user:bad_request:client_closed_request`](/errors/user/bad_request/client_closed_request) | 499 | The client disconnected before the response finished. |
 | [`err:user:bad_request:request_timeout`](/errors/user/bad_request/request_timeout) | 504 | The request took longer than the gateway's 15 minute limit. (The linked page's `408` and shorter limit apply to the Unkey API, not to Compute.) |
 | [`err:user:bad_request:request_body_unreadable`](/errors/user/bad_request/request_body_unreadable) | 400 | The gateway couldn't read the request body. |
-| [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large) | 413 | You shouldn't see this in front of a Compute app. The gateway doesn't limit request body size. |
+| [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large) | 413 | The request body is over 10 MiB and it matches an [OpenAPI validation policy](/compute/gateway/openapi-validation), or it arrived over plain HTTP. Requests without an OpenAPI validation policy stream to your app and aren't limited. |
 
 Requests that fail before reaching your app don't appear in your request log.
 

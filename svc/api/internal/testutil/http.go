@@ -155,6 +155,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		StreamRequestBody:  false,
 		TrustedProxyCIDRs:  []string{"192.0.2.0/24"},
 		ReadTimeout:        0,
+		ReadHeaderTimeout:  0,
 		WriteTimeout:       0,
 		IdleTimeout:        0,
 	})

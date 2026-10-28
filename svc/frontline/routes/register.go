@@ -63,5 +63,13 @@ func RegisterHTTPServer(srv *zen.Server, svc *Services) {
 		},
 	)
 
-	srv.RegisterRoute(nil, &redirect.Handler{})
+	// The listener caps the body, so an oversized request fails in Init.
+	// Without a middleware that renders the error, zen panics on that failure.
+	srv.RegisterRoute(
+		[]zen.Middleware{
+			zen.WithPanicRecovery(),
+			middleware.WithObservability(svc.ErrorPageRenderer),
+		},
+		&redirect.Handler{},
+	)
 }

@@ -37,6 +37,8 @@ type Config struct {
 	KeyAuth     KeyAuthenticator
 	RateLimiter rl.Service
 	Clock       clock.Clock
+
+	MaxRequestBodySize int64
 }
 
 // Evaluator evaluates policies against incoming requests.
@@ -81,7 +83,7 @@ func New(cfg Config) (*Engine, error) {
 	); err != nil {
 		return nil, err
 	}
-	openapi, err := openapiExec.New(cfg.Clock)
+	openapi, err := openapiExec.New(cfg.Clock, cfg.MaxRequestBodySize)
 	if err != nil {
 		return nil, fmt.Errorf("create openapi executor: %w", err)
 	}

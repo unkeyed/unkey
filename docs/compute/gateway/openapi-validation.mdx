@@ -45,6 +45,8 @@ Each deployment checks requests against the spec it was deployed with. A spec ch
 
 A request that fails the check gets `400` [`openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed). The message describes the first problem and, when there is one, the field that caused it. No later policies run, and the request isn't logged.
 
+A request body larger than 10 MiB gets `413` [`request_body_too_large`](/errors/user/bad_request/request_body_too_large) before the check runs. The gateway reads the whole body to check it, so the limit protects the gateway's memory. Only requests that match this policy are limited.
+
 An `Authorization` header with the wrong scheme isn't reported here, because the [API key authentication policy](/compute/gateway/api-key-auth) gives a clearer error. A missing `Authorization` header that the spec requires still fails.
 
 ## Troubleshooting
