@@ -60,15 +60,14 @@ func FuzzReEncryptRoundtrip(f *testing.F) {
 		reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 		require.NoError(t, err, "re-encryption should succeed for valid ciphertext")
 		result := reencRes.Msg.GetItems()[id]
-		require.Empty(t, result.GetError())
-		require.NotNil(t, result.GetSuccess())
-		require.NotEmpty(t, result.GetSuccess().GetEncrypted())
-		require.NotEmpty(t, result.GetSuccess().GetKeyId())
+		require.NotNil(t, result)
+		require.NotEmpty(t, result.GetEncrypted())
+		require.NotEmpty(t, result.GetKeyId())
 
 		// Verify the re-encrypted data decrypts to the original
 		decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   keyring,
-			Encrypted: result.GetSuccess().GetEncrypted(),
+			Encrypted: result.GetEncrypted(),
 		})
 		decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
@@ -126,9 +125,8 @@ func FuzzReEncryptProducesDifferentCiphertext(f *testing.F) {
 		reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 		require.NoError(t, err)
 		result := reencRes.Msg.GetItems()[id]
-		require.Empty(t, result.GetError())
-		require.NotNil(t, result.GetSuccess())
-		reencryptedCiphertext := result.GetSuccess().GetEncrypted()
+		require.NotNil(t, result)
+		reencryptedCiphertext := result.GetEncrypted()
 
 		// Ciphertexts should be different (different nonces)
 		require.NotEqual(t, originalCiphertext, reencryptedCiphertext,
@@ -155,8 +153,7 @@ func FuzzReEncryptProducesDifferentCiphertext(f *testing.F) {
 // FuzzReEncryptWithMalformedInput verifies that ReEncryptBulk handles invalid
 // ciphertext gracefully.
 //
-// Each item must pass decryption before re-encryption. Malformed input produces
-// an item error without failing the RPC.
+// Malformed input fails the RPC without returning a response.
 func FuzzReEncryptWithMalformedInput(f *testing.F) {
 	fuzz.Seed(f)
 
@@ -182,10 +179,9 @@ func FuzzReEncryptWithMalformedInput(f *testing.F) {
 		req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
 		res, err := service.ReEncryptBulk(ctx, req)
-		require.NoError(t, err)
-		result := res.Msg.GetItems()[id]
-		require.NotEmpty(t, result.GetError(), "malformed input must return an item error")
-		require.Nil(t, result.GetSuccess())
+		require.Error(t, err, "malformed input must fail the RPC")
+		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+		require.Nil(t, res)
 	})
 }
 
@@ -238,10 +234,9 @@ func FuzzReEncryptMultipleTimes(f *testing.F) {
 			reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 			require.NoError(t, err, "re-encryption iteration %d should succeed", i+1)
 			result := reencRes.Msg.GetItems()[id]
-			require.Empty(t, result.GetError(), "re-encryption iteration %d should succeed", i+1)
-			require.NotNil(t, result.GetSuccess())
+			require.NotNil(t, result)
 
-			currentCiphertext = result.GetSuccess().GetEncrypted()
+			currentCiphertext = result.GetEncrypted()
 		}
 
 		// Final decryption should still return original data
@@ -307,9 +302,8 @@ func FuzzReEncryptWrongKeyring(f *testing.F) {
 		reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
 		reencRes, err := service.ReEncryptBulk(ctx, reencReq)
-		require.NoError(t, err)
-		result := reencRes.Msg.GetItems()[id]
-		require.NotEmpty(t, result.GetError(), "re-encrypting with wrong keyring must fail")
-		require.Nil(t, result.GetSuccess())
+		require.Error(t, err, "re-encrypting with wrong keyring must fail")
+		require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+		require.Nil(t, reencRes)
 	})
 }

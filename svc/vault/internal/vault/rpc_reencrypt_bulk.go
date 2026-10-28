@@ -22,7 +22,7 @@ func (s *Service) ReEncryptBulk(ctx context.Context, req *connect.Request[vaultv
 	defer span.End()
 	span.SetAttributes(attribute.Int("count", len(req.Msg.GetItems())))
 
-	items := make(map[string]*vaultv1.ReEncryptBulkResponseItem, len(req.Msg.GetItems()))
+	items := make(map[string]*vaultv1.EncryptResponse, len(req.Msg.GetItems()))
 	for id, item := range req.Msg.GetItems() {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -30,24 +30,16 @@ func (s *Service) ReEncryptBulk(ctx context.Context, req *connect.Request[vaultv
 		decrypted, err := s.decrypt(ctx, item)
 		if err != nil {
 			span.RecordError(err)
-			items[id] = &vaultv1.ReEncryptBulkResponseItem{
-				Result: &vaultv1.ReEncryptBulkResponseItem_Error{Error: "failed to decrypt item"},
-			}
-			continue
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to decrypt item"))
 		}
 		encrypted, err := s.encrypt(ctx, &vaultv1.EncryptRequest{
 			Keyring: item.GetKeyring(), Data: decrypted.GetPlaintext(),
 		})
 		if err != nil {
 			span.RecordError(err)
-			items[id] = &vaultv1.ReEncryptBulkResponseItem{
-				Result: &vaultv1.ReEncryptBulkResponseItem_Error{Error: "failed to encrypt item"},
-			}
-			continue
+			return nil, connect.NewError(connect.CodeInternal, errors.New("failed to encrypt item"))
 		}
-		items[id] = &vaultv1.ReEncryptBulkResponseItem{
-			Result: &vaultv1.ReEncryptBulkResponseItem_Success{Success: encrypted},
-		}
+		items[id] = encrypted
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err

@@ -19,10 +19,10 @@ func (b *batch) scanFailed() {
 	b.result.Failed++
 }
 
-// process advances past failed rows so one corrupt value cannot block the scan.
-// The handler reports these failures after scanning all tables and withholds
-// the heartbeat. Cancellation before an attempt returns false without advancing
-// the cursor, leaving that row for a later invocation.
+// process advances past row failures. Scanners that re-encrypt a whole page call
+// it only after the bulk RPC succeeds, so a failed page keeps its cursor.
+// The handler reports failures after scanning all tables and withholds the
+// heartbeat. Cancellation before an attempt leaves that row for a later sweep.
 func (b *batch) process(ctx context.Context, pk uint64, reencrypt func() (int64, error)) bool {
 	if ctx.Err() != nil {
 		b.result.Failed++

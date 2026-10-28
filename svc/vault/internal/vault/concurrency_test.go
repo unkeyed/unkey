@@ -282,13 +282,12 @@ func TestConcurrency_SequentialReEncrypt(t *testing.T) {
 		res, err := service.ReEncryptBulk(ctx, req)
 		require.NoError(t, err, "re-encryption %d failed", i)
 		result := res.Msg.GetItems()[id]
-		require.Empty(t, result.GetError(), "re-encryption %d failed", i)
-		require.NotNil(t, result.GetSuccess())
+		require.NotNil(t, result)
 
 		// Verify the re-encrypted data
 		decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   keyring,
-			Encrypted: result.GetSuccess().GetEncrypted(),
+			Encrypted: result.GetEncrypted(),
 		})
 		decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
@@ -297,7 +296,7 @@ func TestConcurrency_SequentialReEncrypt(t *testing.T) {
 		require.Equal(t, data, decRes.Msg.GetPlaintext())
 
 		// Use the new encrypted value for next iteration
-		encrypted = result.GetSuccess().GetEncrypted()
+		encrypted = result.GetEncrypted()
 	}
 }
 

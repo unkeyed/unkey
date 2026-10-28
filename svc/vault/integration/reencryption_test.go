@@ -87,10 +87,9 @@ func TestReEncryptBulk(t *testing.T) {
 				reEnc, reEncryptErr := v.ReEncryptBulk(ctx, reReq)
 				require.NoError(t, reEncryptErr)
 				result := reEnc.Msg.GetItems()[id]
-				require.Empty(t, result.GetError())
-				require.NotNil(t, result.GetSuccess())
-				require.Equal(t, dekID, result.GetSuccess().GetKeyId())
-				encrypted = result.GetSuccess().GetEncrypted()
+				require.NotNil(t, result)
+				require.Equal(t, dekID, result.GetKeyId())
+				encrypted = result.GetEncrypted()
 			}
 			decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 				Keyring:   keyring,

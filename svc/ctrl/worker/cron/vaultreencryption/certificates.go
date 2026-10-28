@@ -34,7 +34,7 @@ func (h *Handler) certificates(ctx context.Context, batch *batch) {
 	}
 	for _, row := range rows {
 		if !batch.process(ctx, row.Pk, func() (int64, error) {
-			item := res.GetItems()[strconv.FormatUint(row.Pk, 10)].GetSuccess()
+			item := res.GetItems()[strconv.FormatUint(row.Pk, 10)]
 			if item == nil {
 				return 0, fmt.Errorf("Vault did not re-encrypt the item")
 			}

@@ -77,7 +77,7 @@ func (h *Handler) reencryptValues(ctx context.Context, keyring string, values []
 			return false, err
 		}
 		for i, value := range chunk {
-			item := res.GetItems()[strconv.Itoa(i)].GetSuccess()
+			item := res.GetItems()[strconv.Itoa(i)]
 			if item == nil {
 				return false, fmt.Errorf("Vault did not re-encrypt the item")
 			}

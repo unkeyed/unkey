@@ -386,7 +386,7 @@ func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
 	require.Equal(t, "recent ciphertext", decrypted.GetPlaintext())
 }
 
-func TestReEncryptionContinuesPastFailedAndCurrentRows(t *testing.T) {
+func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
 	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
@@ -399,13 +399,15 @@ func TestReEncryptionContinuesPastFailedAndCurrentRows(t *testing.T) {
 	keyring := uid.New(uid.WorkspacePrefix)
 	current, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "current"})
 	require.NoError(t, err)
-	for i := range 100 {
+	keys := make([]string, 100)
+	for i := range keys {
+		keys[i] = uid.New(uid.KeyPrefix)
 		ciphertext := current.GetEncrypted()
 		if i == 0 {
 			ciphertext = "invalid-base64"
 		}
 		require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
-			WorkspaceID: keyring, KeyID: uid.New(uid.KeyPrefix), Encrypted: ciphertext,
+			WorkspaceID: keyring, KeyID: keys[i], Encrypted: ciphertext,
 			EncryptionKeyID: current.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
 		}))
 	}
@@ -413,7 +415,7 @@ func TestReEncryptionContinuesPastFailedAndCurrentRows(t *testing.T) {
 		WorkspaceID: keyringOld, KeyID: keyID, Encrypted: old.GetEncrypted(),
 		EncryptionKeyID: old.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
 	}))
-	keyIDNew, err := testVault.CreateDEK(t.Context(), keyringOld)
+	_, err = testVault.CreateDEK(t.Context(), keyringOld)
 	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
 	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: database, Vault: client, Heartbeat: healthcheck.NewNoop()})
@@ -422,14 +424,16 @@ func TestReEncryptionContinuesPastFailedAndCurrentRows(t *testing.T) {
 		restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),
 	))
 	cronClient := hydrav1.NewCronServiceIngressClient(runtime.IngressClient, "vault-re-encryption")
-	_, err = cronClient.RunVaultReEncryption().Request(t.Context(), &hydrav1.RunVaultReEncryptionRequest{})
-	require.Error(t, err, "corrupt ciphertext must make the batch failure visible")
-	stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
-	require.NoError(t, err)
-	require.Equal(t, keyIDNew, stored.EncryptionKeyID, "one invocation must continue beyond the first page")
-	decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyringOld, Encrypted: stored.Encrypted})
-	require.NoError(t, err)
-	require.Equal(t, "beyond the first batch", decrypted.GetPlaintext())
+	for range 2 {
+		_, err = cronClient.RunVaultReEncryption().Request(t.Context(), &hydrav1.RunVaultReEncryptionRequest{})
+		require.Error(t, err, "each invocation must retry the failed page")
+		storedCurrent, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keys[1])
+		require.NoError(t, err)
+		require.Equal(t, current.GetEncrypted(), storedCurrent.Encrypted, "a failed batch must not write partial results")
+		stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
+		require.NoError(t, err)
+		require.Equal(t, old.GetEncrypted(), stored.Encrypted, "a failed page must not advance the cursor")
+	}
 }
 
 // Renewal can commit while Vault processes the old private key. The sweep must

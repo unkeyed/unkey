@@ -98,19 +98,18 @@ func Test_ColdStart(t *testing.T) {
 	bobReencryptionRes, err := v.ReEncryptBulk(ctx, bobReencryptReq)
 	require.NoError(t, err)
 	result := bobReencryptionRes.Msg.GetItems()[id]
-	require.Empty(t, result.GetError())
-	require.NotNil(t, result.GetSuccess())
+	require.NotNil(t, result)
 
 	// Bob decrypts his secret
 	bobDecryptReq := connect.NewRequest(&vaultv1.DecryptRequest{
 		Keyring:   bobKeyRing,
-		Encrypted: result.GetSuccess().GetEncrypted(),
+		Encrypted: result.GetEncrypted(),
 	})
 	bobDecryptReq.Header().Set("Authorization", "Bearer test-bearer-token")
 	bobDecryptionRes, err := v.Decrypt(ctx, bobDecryptReq)
 	require.NoError(t, err)
 	require.Equal(t, bobData, bobDecryptionRes.Msg.GetPlaintext())
 	// expect the key to be different
-	require.NotEqual(t, bobEncryptionRes.Msg.GetKeyId(), result.GetSuccess().GetKeyId())
+	require.NotEqual(t, bobEncryptionRes.Msg.GetKeyId(), result.GetKeyId())
 
 }
