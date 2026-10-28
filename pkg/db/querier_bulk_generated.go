@@ -8,6 +8,7 @@ import "context"
 type BulkQuerier interface {
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	UpsertAppBuildSettings(ctx context.Context, db DBTX, args []UpsertAppBuildSettingsParams) error
+	InsertAppConnections(ctx context.Context, db DBTX, args []InsertAppConnectionParams) error
 	InsertAppEnvironmentVariables(ctx context.Context, db DBTX, args []InsertAppEnvironmentVariableParams) error
 	InsertApps(ctx context.Context, db DBTX, args []InsertAppParams) error
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, args []UpsertAppRegionalSettingsParams) error
@@ -18,7 +19,10 @@ type BulkQuerier interface {
 	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
+	InsertConnectionAppTargets(ctx context.Context, db DBTX, args []InsertConnectionAppTargetParams) error
 	InsertCustomDomains(ctx context.Context, db DBTX, args []InsertCustomDomainParams) error
+	InsertDeploymentConnectionAppTargets(ctx context.Context, db DBTX, args []InsertDeploymentConnectionAppTargetParams) error
+	InsertDeploymentConnections(ctx context.Context, db DBTX, args []InsertDeploymentConnectionParams) error
 	InsertDeployments(ctx context.Context, db DBTX, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error

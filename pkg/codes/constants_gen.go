@@ -126,6 +126,11 @@ const (
 	// NotFound indicates the requested environment does not exist.
 	UnkeyDataErrorsEnvironmentNotFound URN = "err:unkey:data:environment_not_found"
 
+	// Connection
+
+	UnkeyDataErrorsConnectionConflict URN = "err:unkey:data:connection_conflict"
+	UnkeyDataErrorsConnectionNotFound URN = "err:unkey:data:connection_not_found"
+
 	// Domain
 
 	// Duplicate indicates the domain is already attached to this workspace.

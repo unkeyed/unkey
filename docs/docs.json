@@ -274,6 +274,8 @@
                           "errors/unkey/data/app_already_exists",
                           "errors/unkey/data/app_not_found",
                           "errors/unkey/data/audit_log_not_found",
+                          "errors/unkey/data/connection_conflict",
+                          "errors/unkey/data/connection_not_found",
                           "errors/unkey/data/deployment_not_found",
                           "errors/unkey/data/domain_already_exists",
                           "errors/unkey/data/domain_not_found",
