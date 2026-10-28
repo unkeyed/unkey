@@ -1,122 +1,122 @@
 package ui
 
 import (
-	"context"
 	"fmt"
+	"io"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
+
+	"golang.org/x/term"
 )
-
-// Colors and Symbols
-const (
-	ColorReset  = "\033[0m"
-	ColorRed    = "\033[31m"
-	ColorGreen  = "\033[32m"
-	ColorYellow = "\033[33m"
-
-	SymbolTick   = "✔"
-	SymbolCross  = "✘"
-	SymbolBullet = "●"
-	SymbolArrow  = "=>"
-)
-
-var spinnerChars = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 type UI struct {
-	mu            sync.Mutex
-	spinnerCancel context.CancelFunc
+	mu          sync.Mutex
+	writer      io.Writer
+	terminal    bool
+	color       bool
+	spinnerStop chan struct{}
+	spinnerDone chan struct{}
 }
 
 func NewUI() *UI {
+	return newUI(os.Stderr, term.IsTerminal(int(os.Stderr.Fd())))
+}
+
+func newUI(writer io.Writer, terminal bool) *UI {
+	terminal = terminal && os.Getenv("TERM") != "dumb"
 	return &UI{
-		mu:            sync.Mutex{},
-		spinnerCancel: nil,
+		mu:          sync.Mutex{},
+		writer:      writer,
+		terminal:    terminal,
+		color:       terminal && os.Getenv("NO_COLOR") == "",
+		spinnerStop: nil,
+		spinnerDone: nil,
 	}
 }
 
-func (ui *UI) print(color, symbol, indent, message string) {
+func (ui *UI) StartSpinner(message string) {
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
-	fmt.Printf("%s%s%s%s %s\n", indent, color, symbol, ColorReset, message)
-}
+	ui.stopSpinner()
+	message = Text(message)
 
-func (ui *UI) Print(message string)             { ui.print(ColorYellow, SymbolBullet, "", message) }
-func (ui *UI) PrintSuccess(message string)      { ui.print(ColorGreen, SymbolTick, "", message) }
-func (ui *UI) PrintError(message string)        { ui.print(ColorRed, SymbolCross, "", message) }
-func (ui *UI) PrintErrorDetails(message string) { ui.print(ColorRed, SymbolArrow, "  ", message) }
-func (ui *UI) PrintStepSuccess(message string)  { ui.print(ColorGreen, SymbolTick, "  ", message) }
-func (ui *UI) PrintStepError(message string)    { ui.print(ColorRed, SymbolCross, "  ", message) }
-
-// StartSpinner starts a spinner with the given message and indentation
-func (ui *UI) StartSpinner(message string) {
-	ui.startSpinner(message, "")
-}
-
-func (ui *UI) StartStepSpinner(message string) {
-	ui.startSpinner(message, "  ")
-}
-
-func (ui *UI) startSpinner(message, indent string) {
-	ui.mu.Lock()
-	// Stop any existing spinner first
-	if ui.spinnerCancel != nil {
-		ui.spinnerCancel()
-		fmt.Print("\r\033[K")
+	if !ui.terminal {
+		fmt.Fprintln(ui.writer, message)
+		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	ui.spinnerCancel = cancel
-	ui.mu.Unlock()
-
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	ui.spinnerStop = stop
+	ui.spinnerDone = done
+	fmt.Fprintf(ui.writer, "\r⠋ %s", message)
 	go func() {
-		frame := 0
+		defer close(done)
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
-
+		frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		frame := 1
 		for {
 			select {
-			case <-ctx.Done():
+			case <-stop:
 				return
 			case <-ticker.C:
-				fmt.Printf("\r%s%s %s", indent, spinnerChars[frame%len(spinnerChars)], message)
+				fmt.Fprintf(ui.writer, "\r%s %s", frames[frame%len(frames)], message)
 				frame++
 			}
 		}
 	}()
 }
 
-// StopSpinner stops the current spinner and shows final message
-func (ui *UI) StopSpinner(finalMessage string, success bool) {
-	ui.stopSpinner(finalMessage, success, "")
-}
-
-func (ui *UI) CompleteCurrentStep(message string, success bool) {
-	ui.stopSpinner(message, success, "  ")
-}
-
-func (ui *UI) stopSpinner(message string, success bool, indent string) {
+func (ui *UI) StopSpinner(message string) {
 	ui.mu.Lock()
-	if ui.spinnerCancel != nil {
-		ui.spinnerCancel()
-		ui.spinnerCancel = nil
+	defer ui.mu.Unlock()
+	ui.stopSpinner()
+	message = Text(message)
+
+	if !ui.terminal {
+		fmt.Fprintln(ui.writer, message)
+		return
 	}
-	ui.mu.Unlock()
 
-	// Clear spinner line
-	fmt.Print("\r\033[K")
-
-	// Show final message
-	if success {
-		ui.print(ColorGreen, SymbolTick, indent, message)
+	if ui.color {
+		fmt.Fprintf(ui.writer, "\033[32m✔\033[0m %s\n", message)
 	} else {
-		ui.print(ColorRed, SymbolCross, indent, message)
+		fmt.Fprintf(ui.writer, "✔ %s\n", message)
 	}
 }
 
-// CompleteStepAndStartNext completes current step and starts next one
-func (ui *UI) CompleteStepAndStartNext(completedMessage, nextMessage string) {
-	ui.CompleteCurrentStep(completedMessage, true)
-	if nextMessage != "" {
-		ui.StartStepSpinner(nextMessage)
+func (ui *UI) Close() {
+	ui.mu.Lock()
+	defer ui.mu.Unlock()
+	ui.stopSpinner()
+}
+
+func (ui *UI) stopSpinner() {
+	if ui.spinnerStop == nil {
+		return
 	}
+	close(ui.spinnerStop)
+	<-ui.spinnerDone
+	ui.spinnerStop = nil
+	ui.spinnerDone = nil
+	fmt.Fprint(ui.writer, "\r\033[K")
+}
+
+// Text escapes control and format characters in externally supplied terminal text.
+func Text(value string) string {
+	var output strings.Builder
+	for _, r := range value {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
+			escaped := strconv.QuoteRune(r)
+			output.WriteString(escaped[1 : len(escaped)-1])
+		} else {
+			output.WriteRune(r)
+		}
+	}
+	return output.String()
 }

@@ -82,8 +82,7 @@ func (c *Command) showUsageLine() {
 		fmt.Printf(" [command]")
 	}
 
-	// Add arguments indicator if this command has an action but no subcommands
-	if c.Action != nil && len(c.Commands) == 0 {
+	if c.AcceptsArgs {
 		fmt.Printf(" [arguments...]")
 	}
 

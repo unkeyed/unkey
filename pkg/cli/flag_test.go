@@ -93,6 +93,14 @@ func TestStringFlag_ValidationOnEnvVar(t *testing.T) {
 
 func TestEnvironmentValidationErrorDoesNotExposeValue(t *testing.T) {
 	t.Setenv("UNKEY_ROOT_KEY", "root-key-secret")
+	output, err := os.CreateTemp(t.TempDir(), "stdout")
+	require.NoError(t, err)
+	stdout := os.Stdout
+	os.Stdout = output
+	t.Cleanup(func() {
+		os.Stdout = stdout
+		require.NoError(t, output.Close())
+	})
 
 	message := captureExitMessage(t, func() {
 		String("root-key", "Root key.", EnvVar("UNKEY_ROOT_KEY"), Validate(func(string) error {
@@ -102,6 +110,9 @@ func TestEnvironmentValidationErrorDoesNotExposeValue(t *testing.T) {
 
 	require.Contains(t, message, "UNKEY_ROOT_KEY")
 	require.NotContains(t, message, "root-key-secret")
+	data, err := os.ReadFile(output.Name())
+	require.NoError(t, err)
+	require.Empty(t, data)
 }
 
 // BoolFlag Tests
@@ -997,10 +1008,10 @@ func captureExitMessage(t *testing.T, action func()) (message string) {
 	read, write, err := os.Pipe()
 	require.NoError(t, err)
 
-	stdout := os.Stdout
-	os.Stdout = write
+	stderr := os.Stderr
+	os.Stderr = write
 	defer func() {
-		os.Stdout = stdout
+		os.Stderr = stderr
 		require.NoError(t, write.Close())
 
 		output, err := io.ReadAll(read)
