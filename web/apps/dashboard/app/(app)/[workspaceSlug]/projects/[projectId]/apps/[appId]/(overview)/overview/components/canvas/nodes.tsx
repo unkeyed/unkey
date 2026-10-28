@@ -66,39 +66,17 @@ export function NodeHeader({
   right?: ReactNode;
 }) {
   return (
-    <span className="flex min-w-0 items-center gap-1.5 px-3 py-2">
-      <span className="shrink-0 text-gray-11 [&_svg]:size-3.5">{icon}</span>
+    <span className="flex min-w-0 items-center gap-1.5 px-4 py-2.5">
+      <span className="shrink-0 text-gray-11 [&_svg]:size-3">{icon}</span>
       <span className="min-w-0 truncate text-xs font-medium text-gray-12">{name}</span>
       {right != null && <span className="ml-auto flex shrink-0 items-center gap-1">{right}</span>}
     </span>
   );
 }
 
-const STATUS_TEXT: Record<NodeTone, string> = {
-  default: "text-gray-11",
-  error: "text-error-11",
-};
-
-export function StatusBadge({
-  indicator,
-  tone = "default",
-  children,
-}: {
-  indicator: ReactNode;
-  tone?: NodeTone;
-  children: ReactNode;
-}) {
-  return (
-    <span className={cn("inline-flex items-center gap-1 text-2xs", STATUS_TEXT[tone])}>
-      {indicator}
-      {children}
-    </span>
-  );
-}
-
 export function Rows({ children }: { children: ReactNode }) {
   return (
-    <span className="flex flex-col gap-1 border-t border-grayA-4 px-3 py-2 text-2xs">
+    <span className="flex flex-col gap-2 border-t border-grayA-4 px-4 py-3 text-xs text-gray-12">
       {children}
     </span>
   );
@@ -111,6 +89,7 @@ export function RowItem({
   fullValue,
   hint,
   copy,
+  mono = false,
 }: {
   icon: ReactNode;
   label: string;
@@ -118,6 +97,7 @@ export function RowItem({
   fullValue?: string;
   hint?: ReactNode;
   copy?: string;
+  mono?: boolean;
 }) {
   const shown = copy ? (
     <CopyValue value={copy}>{value}</CopyValue>
@@ -128,7 +108,7 @@ export function RowItem({
     <IconRow icon={icon}>
       <span className="shrink-0 font-medium text-gray-11">{label}</span>
       <span className="ml-auto flex min-w-0 items-center gap-1.5">
-        <span className="flex min-w-0 font-mono text-gray-12">
+        <span className={cn("flex min-w-0", mono ? "font-mono" : "tabular-nums")}>
           {fullValue ? (
             <InfoTooltip asChild content={fullValue} position={{ side: "top" }}>
               <span className="relative z-10 flex min-w-0">{shown}</span>
@@ -174,39 +154,18 @@ function CopyValue({ value, children }: { value: string; children: ReactNode }) 
   );
 }
 
-export function LinkRow({
-  href,
-  icon,
-  className,
-  children,
-}: {
-  href: Route;
-  icon: ReactNode;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "relative z-10 flex items-center gap-2 self-start rounded-sm text-gray-10 transition-colors hover:text-gray-12 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7",
-        className,
-      )}
-    >
-      <span className="flex size-3 shrink-0 items-center justify-center">{icon}</span>
-      {children}
-    </Link>
-  );
-}
-
 export function MoreRow({ count, href }: { count: number; href: Route }) {
   if (count <= 0) {
     return null;
   }
   return (
-    <LinkRow href={href} icon={<IconDotsOutline18 className="size-3" />}>
+    <Link
+      href={href}
+      className="relative z-10 flex items-center gap-2 self-start rounded-sm text-gray-10 transition-colors hover:text-gray-12 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+    >
+      <IconDotsOutline18 className="size-3 shrink-0" />
       {count} more
-    </LinkRow>
+    </Link>
   );
 }
 
@@ -252,7 +211,7 @@ export function Group({
 
 function GroupLabel({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <span className="flex items-center gap-1.5 px-1 text-2xs text-gray-11 [&_svg]:size-3.5">
+    <span className="flex items-center gap-1.5 px-1 text-xs text-gray-11 [&_svg]:size-3">
       {icon}
       {label}
     </span>
@@ -266,20 +225,31 @@ export function GhostNode({
   href,
 }: {
   icon: ReactNode;
-  name: string;
-  description: string;
-  href: Route;
+  name: ReactNode;
+  description: ReactNode;
+  href?: Route;
 }) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-start gap-2 rounded-lg border border-dashed border-grayA-6 bg-raised px-3 py-2.5 transition-colors hover:border-grayA-8 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
-    >
-      <span className="mt-px text-gray-10 group-hover:text-gray-12 [&_svg]:size-3.5">{icon}</span>
+  const className = cn(
+    href && "group",
+    "flex items-start gap-2 rounded-lg border border-dashed border-grayA-6 bg-raised px-3.75 py-2.5",
+    href &&
+      "transition-colors hover:border-grayA-8 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7",
+  );
+  const content = (
+    <>
+      <span className="mt-px text-gray-10 group-hover:text-gray-12 [&_svg]:size-3">{icon}</span>
       <span className="flex min-w-0 flex-col">
         <span className="text-xs font-medium text-gray-12">{name}</span>
-        <span className="text-2xs text-gray-10">{description}</span>
+        <span className="text-xs text-gray-10">{description}</span>
       </span>
+    </>
+  );
+  if (!href) {
+    return <div className={className}>{content}</div>;
+  }
+  return (
+    <Link href={href} className={className}>
+      {content}
       <IconPlusOutline12 className="mt-0.5 ml-auto size-3 shrink-0 text-gray-10 group-hover:text-gray-12" />
     </Link>
   );
@@ -292,7 +262,7 @@ export function HFlow({ empty }: { empty: boolean }) {
       <span className="invisible">
         <GroupLabel icon={<IconDotsOutline18 />} label="&nbsp;" />
       </span>
-      <span className="flex h-8 items-center">
+      <span className="flex h-9 items-center">
         <svg className="h-2 w-8" viewBox="0 0 40 8">
           <path
             d="M0,4 H40"
