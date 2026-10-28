@@ -102,9 +102,9 @@ func (e *Executor) Execute(
 	)
 }
 
-// A known-length body under the limit stays a stream, so duplex and streaming
-// requests are not stalled. An unknown length must be buffered to bound what
-// the validator's own read can consume.
+// A known-length body under the limit is left as a stream for the validator.
+// An unknown length must be buffered to bound what the validator's own read can
+// consume.
 //
 // The validator restores the body it read onto the request, so the reserved
 // bytes stay held until the request ends, not until validation returns.

@@ -86,8 +86,7 @@ type frontlineFirewall struct {
 type frontlineOpenApi struct {
 	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
 	InvalidRequest Code
-	// ValidationBusy represents a 503 error - the pod holds as many request
-	// bodies for validation as its budget allows
+	// ValidationBusy represents a 503 error - the pod's openapi body byte budget is full
 	ValidationBusy Code
 }
 
