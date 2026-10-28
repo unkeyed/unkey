@@ -46,7 +46,7 @@ A custom domain lets you serve an <Tooltip tip="A production or preview environm
     In the dashboard, open the app, go to **Domains**, and click **Add domain**. Enter the domain and pick the **Environment** it should serve. Or use the CLI:
 
     ```bash
-    unkey api domains create-domain --project=payments --app=api --environment=production --domain=api.acme.com
+    unkey domains create --project=payments --app=api --environment=production --domain=api.acme.com
     ```
 
     <Visibility for="agents">
@@ -80,7 +80,7 @@ A custom domain lets you serve an <Tooltip tip="A production or preview environm
 After 24 hours without the right records, the status becomes `failed` and `verificationError` says why. Fix the records, then retry with **Retry verification** on the domain's row, or with the CLI. Retrying starts a new 24 hour window:
 
 ```bash
-unkey api domains verify-domain --domain=api.acme.com
+unkey domains verify --domain=api.acme.com
 ```
 
 Things to check:

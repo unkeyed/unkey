@@ -10,7 +10,7 @@ sources:
   - svc/api/routes/v2_keys_create_key/handler.go
   - internal/services/keys/get.go
   - pkg/rbac/permissions.go
-  - web/apps/dashboard/lib/trpc/routers/key/createRootKey.ts
+  - svc/api/routes/v2_root_keys_create_key/handler.go
 ---
 
 To issue and verify API keys for a public API, use API Management. A keyspace holds the keys, `keys.createKey` issues one, and your server calls `keys.verifyKey` on each request. You don't build the hash lookup yourself.

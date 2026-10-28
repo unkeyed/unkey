@@ -7,8 +7,9 @@ sources:
   - svc/api/routes/v2_root_keys_update_key/handler.go
   - svc/api/routes/v2_root_keys_delete_key/handler.go
   - web/apps/dashboard/app/(app)/[workspaceSlug]/root-keys/page.tsx
-  - web/apps/dashboard/lib/trpc/routers/key/reroll/index.ts
-  - web/apps/dashboard/lib/trpc/routers/settings/root-keys/delete.ts
+  - svc/api/routes/v2_root_keys_reroll_key/handler.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/table/rotate-root-key.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/table/delete-root-key.tsx
   - web/apps/dashboard/components/api-keys-table/components/actions/components/rotate-key/rotate-key.constants.ts
   - web/internal/keys/src/util.ts
   - internal/services/caches/caches.go
@@ -62,7 +63,7 @@ From the key's row menu, choose **Edit root key** to change its name or permissi
 Rotating gives you a new root key with the same name and permissions, and stops the old one after a grace period.
 
 1. Choose **Rotate root key** from the row menu.
-2. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, or 24 hours.
+2. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, or 24 hours. To keep the old key's current expiry, select **Do not expire original key**.
 3. Check the confirmation, click **Rotate root key**, then confirm the rotation.
 4. Copy the new key. It's shown once, like a new key.
 5. Update your services before the grace period ends.

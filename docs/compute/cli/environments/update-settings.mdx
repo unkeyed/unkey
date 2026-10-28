@@ -1,6 +1,6 @@
 ---
-title: unkey api environments update-settings
-sidebarTitle: "update-settings"
+title: unkey environments settings update
+sidebarTitle: "settings update"
 description: "Change how an environment builds and runs its next deployment."
 sources:
   - cmd/api/environments/update_settings.go
@@ -9,6 +9,8 @@ sources:
   - docs/scripts/manifest.json
   - cmd/api/util/flags.go
 ---
+
+import CLIOutput from "/snippets/cli-output.mdx";
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
@@ -23,7 +25,7 @@ A value outside the limits below returns 400. `--v-cpus`, `--memory-mib`, and `-
 ## Usage
 
 ```bash
-unkey api environments update-settings --project=<project> --app=<app> --environment=<environment> [setting flags]
+unkey environments settings update --project=<project> --app=<app> --environment=<environment> [setting flags]
 ```
 
 ## Flags
@@ -102,14 +104,14 @@ unkey api environments update-settings --project=<project> --app=<app> --environ
 
 ### Shared flags
 
-Every `unkey api` command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+Every resource command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
 
 <ParamField body="--body" type="string">
   A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
 </ParamField>
 
 <ParamField body="--root-key" type="string">
-  Root key for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file written by `unkey auth login`. See [CLI authentication](/platform/cli/authentication).
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
 </ParamField>
 
 <ParamField body="--api-url" type="string" default="https://api.unkey.com">
@@ -117,11 +119,19 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 </ParamField>
 
 <ParamField body="--config" type="string" default="~/.unkey/config.toml">
-  Path of the TOML file that `unkey auth login` writes. Falls back to `UNKEY_CONFIG`.
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
 </ParamField>
 
-<ParamField body="--output" type="string">
-  Output format. Falls back to `UNKEY_OUTPUT`. Set `json` to print the full response envelope (`meta` and `data`) for piping; any other value prints the request ID followed by `data`.
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
 </ParamField>
 
 ## Required permissions
@@ -138,19 +148,19 @@ Without a matching permission the API answers 403 and the CLI prints `Permission
 Set a health check and scale a region:
 
 ```bash
-unkey api environments update-settings --project=payments --app=payments-api --environment=production --healthcheck='{"method":"GET","path":"/health"}' --regions='[{"name":"us-east-1","replicas":{"min":1,"max":2}}]'
+unkey environments settings update --project=payments --app=payments-api --environment=production --healthcheck='{"method":"GET","path":"/health"}' --regions='[{"name":"us-east-1","replicas":{"min":1,"max":2}}]'
 ```
 
 Change the container size:
 
 ```bash
-unkey api environments update-settings --project=payments --app=payments-api --environment=production --v-cpus=1 --memory-mib=1024
+unkey environments settings update --project=payments --app=payments-api --environment=production --v-cpus=1 --memory-mib=1024
 ```
 
 Clear the Dockerfile path with a raw body:
 
 ```bash
-unkey api environments update-settings --body='{"project":"payments","app":"payments-api","environment":"production","dockerfile":null}'
+unkey environments settings update --body='{"project":"payments","app":"payments-api","environment":"production","dockerfile":null}'
 ```
 
 ## API endpoint

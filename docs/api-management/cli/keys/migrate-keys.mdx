@@ -1,6 +1,6 @@
 ---
-title: unkey api keys migrate-keys
-sidebarTitle: "migrate-keys"
+title: unkey keys migrate
+sidebarTitle: "migrate"
 description: "Import existing key hashes into a keyspace under a migration ID."
 sources:
   - cmd/api/keys/migrate_keys.go
@@ -8,9 +8,11 @@ sources:
   - docs/scripts/manifest.json
 ---
 
+import CLIOutput from "/snippets/cli-output.mdx";
+
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Move keys from a homegrown system into a keyspace with `unkey api keys migrate-keys`. You send hashes, not plaintext keys. Users keep the keys they already have, and your backend then calls `keys.verifyKey` instead of your own lookup. The steps, the SHA-256 base64 format, and what you stop maintaining are on [Migrating keys](/api-management/keys/migrating-keys).
+Move keys from a homegrown system into a keyspace with `unkey keys migrate`. You send hashes, not plaintext keys. Users keep the keys they already have, and your backend then calls `keys.verifyKey` instead of your own lookup. The steps, the SHA-256 base64 format, and what you stop maintaining are on [Migrating keys](/api-management/keys/migrating-keys).
 
 <RootKeyPrereq />
 
@@ -19,7 +21,7 @@ The command imports the hashes under a migration ID from support, so the keys wo
 ## Usage
 
 ```bash
-unkey api keys migrate-keys --api-id=<api id> --keys=<keys> --migration-id=<migration id> [flags]
+unkey keys migrate --api-id=<api id> --keys=<keys> --migration-id=<migration id> [flags]
 ```
 
 ## Flags
@@ -29,7 +31,7 @@ unkey api keys migrate-keys --api-id=<api id> --keys=<keys> --migration-id=<migr
 </ParamField>
 
 <ParamField body="--keys" type="string" required>
-  JSON array of key objects. Only `hash` is required. Each object also takes `name`, `externalId`, `meta`, `roles`, `permissions`, `expires`, `enabled`, `credits`, and `ratelimits`, with the same meaning as on `create-key`.
+  JSON array of key objects. Only `hash` is required. Each object also takes `name`, `externalId`, `meta`, `roles`, `permissions`, `expires`, `enabled`, `credits`, and `ratelimits`, with the same meaning as on `unkey keys create`.
 </ParamField>
 
 <ParamField body="--migration-id" type="string" required>
@@ -38,10 +40,10 @@ unkey api keys migrate-keys --api-id=<api id> --keys=<keys> --migration-id=<migr
 
 ### Shared flags
 
-Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+Every resource command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
 
 <ParamField body="--root-key" type="string">
-  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
 </ParamField>
 
 <ParamField body="--api-url" type="string" default="https://api.unkey.com">
@@ -49,11 +51,19 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 </ParamField>
 
 <ParamField body="--config" type="string" default="~/.unkey/config.toml">
-  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
 </ParamField>
 
-<ParamField body="--output" type="string">
-  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
 </ParamField>
 
 <ParamField body="--body" type="string">
@@ -67,12 +77,12 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 ## Examples
 
 ```bash Import two hashes
-unkey api keys migrate-keys --migration-id=mig_1234abcd --api-id=api_1234abcd \
+unkey keys migrate --migration-id=mig_1234abcd --api-id=api_1234abcd \
   --keys='[{"hash":"9f86d08...","externalId":"user_1"},{"hash":"e3b0c44..."}]'
 ```
 
 Or send the whole request as JSON:
 
 ```bash Raw body
-unkey api keys migrate-keys --body='{"migrationId":"mig_1234abcd","apiId":"api_1234abcd","keys":[{"hash":"9f86d08...","externalId":"user_1"}]}'
+unkey keys migrate --body='{"migrationId":"mig_1234abcd","apiId":"api_1234abcd","keys":[{"hash":"9f86d08...","externalId":"user_1"}]}'
 ```
