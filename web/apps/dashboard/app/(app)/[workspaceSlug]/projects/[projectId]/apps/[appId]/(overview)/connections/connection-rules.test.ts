@@ -6,6 +6,7 @@ import {
   type Environment,
   describeTarget,
   ruleOf,
+  targetLabel,
 } from "./connection-rules";
 
 const caller = newId("app");
@@ -165,5 +166,43 @@ describe("ruleOf", () => {
       targetType: "deployment",
       targetDeploymentId: deploymentId,
     });
+  });
+});
+
+describe("targetLabel", () => {
+  it("names the target each rule resolves to", () => {
+    expect(
+      targetLabel({ connection: connection({}), callerEnvironment: callerProd, environments }),
+    ).toBe("Production");
+    expect(
+      targetLabel({ connection: connection({}), callerEnvironment: callerPreview, environments }),
+    ).toBe("Preview, same branch");
+    expect(
+      targetLabel({
+        connection: connection({ targetType: "environment", targetEnvironmentId: dbCanary }),
+        callerEnvironment: callerProd,
+        environments,
+      }),
+    ).toBe("canary");
+    expect(
+      targetLabel({
+        connection: connection({ targetType: "deployment", targetDeploymentId: dbPinned }),
+        callerEnvironment: callerProd,
+        environments,
+      }),
+    ).toBe(dbPinned);
+  });
+
+  it("calls out a deleted target environment", () => {
+    expect(
+      targetLabel({
+        connection: connection({
+          targetType: "environment",
+          targetEnvironmentId: newId("environment"),
+        }),
+        callerEnvironment: callerProd,
+        environments,
+      }),
+    ).toBe("Deleted environment");
   });
 });
