@@ -1,30 +1,27 @@
 // Package db contains the queries of the ratelimit_state table, which holds the
 // shared state of the global rate limits.
 //
-// Each row is the consumed time of one pod in one time bucket of one limit,
-// and the GCRA reset_at of those requests alone. Bucket edges are shared by
-// all pods. The state of a limit is
+// Each row is the scaled sum of one pod in one period of one limit:
 //
-//	bucket_reset_at = MAX(bucket_start_ns + SUM(consumed_ns), MAX(reset_at_ns))
-//	                  over the rows of one bucket
-//	reset_at        = MAX over buckets b of
-//	                  (bucket_reset_at of b + SUM(consumed_ns of newer buckets))
+//	scaled_sum = SUM(cost × e^((t − period_start_ns) / duration))
 //
-// Both values only grow, so [Querier.UpsertRow] keeps the greater value and a
-// retried or reordered write cannot undo a newer one. MySQL refuses writes
-// to a row once its compact_after_ns has passed by the MySQL clock. Cleanup
-// then merges closed rows into the base row, which has bucket_start_ns 0 and
-// an empty pod_id.
+// over the requests at time t that the pod allowed in the period. Period
+// edges are shared by all pods. The level of a limit at now is
 //
-// Every query is bounded. Callers pass the bound as an argument and must check
-// whether a result reached it.
+//	level = SUM(scaled_sum × e^((period_start_ns − now) / duration))
+//
+// The sum only grows, so [Querier.UpsertRow] keeps the greater value and a
+// retried or reordered write cannot undo a newer one. Cleanup deletes rows
+// whose delete_after_ns has passed by the MySQL clock.
+//
+// Every query is bounded. Callers pass the bound as an argument.
 //
 // Callers own the connections. Writes and cleanup go to the primary, and
 // reads for decisions go to a replica:
 //
-//	buckets, err := db.Query.ListBuckets(ctx, replica, db.ListBucketsParams{
+//	periods, err := db.Query.ListPeriods(ctx, replica, db.ListPeriodsParams{
 //		PodID:       podID,
 //		Fingerprint: fingerprint,
-//		Limit:       bucketsMax,
+//		Limit:       periodsMax,
 //	})
 package db

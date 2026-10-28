@@ -1,7 +1,6 @@
 package ratelimit
 
 import (
-	"bytes"
 	"cmp"
 	"context"
 	"slices"
@@ -41,7 +40,7 @@ func (s *memoryStore) WriteRows(_ context.Context, rows []StoredRow) error {
 	if s.failWrites {
 		return fault.New("write failed")
 	}
-	s.rows.upsert(rows, s.clock.Now().UnixNano())
+	s.rows.upsert(rows)
 	return nil
 }
 
@@ -52,95 +51,74 @@ func (s *memoryStore) ReadRows(_ context.Context, fingerprint [32]byte, podID st
 	if s.failReads {
 		return nil, fault.New("read failed")
 	}
-	return s.rows.buckets(fingerprint, podID, limit), nil
+	return s.rows.periods(fingerprint, podID, limit), nil
 }
 
-func (s *memoryStore) ReadClosedRows(_ context.Context, fingerprint [32]byte, beforeNs int64, limit int) ([]StoredRow, error) {
+func (s *memoryStore) DeleteFadedRows(_ context.Context, beforeNs int64, limit int) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.failReads {
-		return nil, fault.New("read failed")
-	}
-	return s.rows.closedRows(fingerprint, beforeNs, limit), nil
+	return int64(len(s.rows.deleteFaded(beforeNs, limit))), nil
 }
 
-func (s *memoryStore) ListDueRows(_ context.Context, beforeNs int64, after DueRow, limit int) ([]DueRow, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.rows.dueRows(beforeNs, after, limit), nil
-}
-
-func (s *memoryStore) ApplyCleanup(_ context.Context, deleted []StoredRow, inserted []StoredRow) (bool, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.rows.applyCleanup(deleted, inserted), nil
-}
-
-// upsert is `UpsertRow` at the store time `nowNs`, with its refusal of
-// closed rows.
-func (table rowTable) upsert(rows []StoredRow, nowNs int64) {
+// upsert is `UpsertRow`: it keeps the larger sum and delete time.
+func (table rowTable) upsert(rows []StoredRow) {
 	for _, r := range rows {
-		if r.CompactAfterNs < nowNs {
-			r.ConsumedNs = 0
-		}
-		byKey, ok := table[r.Fingerprint]
-		if !ok {
-			byKey = make(map[rowKey]StoredRow)
-			table[r.Fingerprint] = byKey
-		}
-		key := rowKey{bucketStartNs: r.BucketStartNs, podID: r.PodID}
-		stored, ok := byKey[key]
+		key := rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID}
+		stored, ok := table[r.Fingerprint][key]
 		if ok {
-			if r.ConsumedNs > 0 {
-				stored.ResetAtNs = max(stored.ResetAtNs, r.ResetAtNs)
-			}
-			stored.ConsumedNs = max(stored.ConsumedNs, r.ConsumedNs)
-			r = stored
+			r.ScaledSum = max(r.ScaledSum, stored.ScaledSum)
+			r.DeleteAfterNs = max(r.DeleteAfterNs, stored.DeleteAfterNs)
 		}
-		byKey[key] = r
+		table.set(r)
 	}
 }
 
-// newestFirst returns the rows of a fingerprint newest bucket first.
+// set stores a row as it is, as replication does.
+func (table rowTable) set(r StoredRow) {
+	if table[r.Fingerprint] == nil {
+		table[r.Fingerprint] = make(map[rowKey]StoredRow)
+	}
+	table[r.Fingerprint][rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID}] = r
+}
+
+// newestFirst returns the rows of a fingerprint newest period first.
 func (table rowTable) newestFirst(fingerprint [32]byte) []StoredRow {
 	rows := make([]StoredRow, 0, len(table[fingerprint]))
 	for _, r := range table[fingerprint] {
 		rows = append(rows, r)
 	}
 	slices.SortFunc(rows, func(left, right StoredRow) int {
-		return cmp.Or(cmp.Compare(right.BucketStartNs, left.BucketStartNs), cmp.Compare(left.PodID, right.PodID))
+		return cmp.Or(cmp.Compare(right.PeriodStartNs, left.PeriodStartNs), cmp.Compare(left.PodID, right.PodID))
 	})
 	return rows
 }
 
-// buckets is `ListBuckets` as `ReadRows` returns it: per bucket, newest
+// periods is `ListPeriods` as `ReadRows` returns it: per period, newest
 // first, the row of `podID` and one row that sums the other pods' rows.
-// Refused rows, with zero consumed time, do not count towards `limit`.
-func (table rowTable) buckets(fingerprint [32]byte, podID string, limit int) []StoredRow {
+func (table rowTable) periods(fingerprint [32]byte, podID string, limit int) []StoredRow {
 	var rows []StoredRow
-	newestFirst := slices.DeleteFunc(table.newestFirst(fingerprint), func(r StoredRow) bool { return r.ConsumedNs == 0 })
-	for start, bucketCount := 0, 0; start < len(newestFirst) && bucketCount < limit; bucketCount++ {
+	newestFirst := table.newestFirst(fingerprint)
+	for start, periodCount := 0, 0; start < len(newestFirst) && periodCount < limit; periodCount++ {
 		end := start
 		var own, peers StoredRow
-		var compactAfterNs int64
-		for end < len(newestFirst) && newestFirst[end].BucketStartNs == newestFirst[start].BucketStartNs {
+		var deleteAfterNs int64
+		for end < len(newestFirst) && newestFirst[end].PeriodStartNs == newestFirst[start].PeriodStartNs {
 			r := newestFirst[end]
 			end++
-			compactAfterNs = max(compactAfterNs, r.CompactAfterNs)
+			deleteAfterNs = max(deleteAfterNs, r.DeleteAfterNs)
 			if r.PodID == podID {
 				own = r
 				continue
 			}
-			peers.Fingerprint, peers.BucketStartNs = r.Fingerprint, r.BucketStartNs
-			peers.ConsumedNs += r.ConsumedNs
-			peers.ResetAtNs = max(peers.ResetAtNs, r.ResetAtNs)
+			peers.Fingerprint, peers.PeriodStartNs = r.Fingerprint, r.PeriodStartNs
+			peers.ScaledSum += r.ScaledSum
 		}
-		if own.ConsumedNs > 0 {
-			own.CompactAfterNs = compactAfterNs
+		if own.ScaledSum > 0 {
+			own.DeleteAfterNs = deleteAfterNs
 			rows = append(rows, own)
 		}
-		if peers.ConsumedNs > 0 {
-			peers.CompactAfterNs = compactAfterNs
+		if peers.ScaledSum > 0 {
+			peers.DeleteAfterNs = deleteAfterNs
 			rows = append(rows, peers)
 		}
 		start = end
@@ -148,76 +126,31 @@ func (table rowTable) buckets(fingerprint [32]byte, podID string, limit int) []S
 	return rows
 }
 
-// closedRows is `ListClosedRows`.
-func (table rowTable) closedRows(fingerprint [32]byte, beforeNs int64, limit int) []StoredRow {
-	var rows []StoredRow
-	for _, r := range table[fingerprint] {
-		if r.BucketStartNs == 0 || r.CompactAfterNs < beforeNs {
-			rows = append(rows, r)
-		}
-	}
-	slices.SortFunc(rows, func(left, right StoredRow) int {
-		return cmp.Or(cmp.Compare(left.BucketStartNs, right.BucketStartNs), cmp.Compare(left.PodID, right.PodID))
-	})
-	return rows[:min(limit, len(rows))]
-}
-
-// dueRows is `ListRowsToCompact`.
-func (table rowTable) dueRows(beforeNs int64, after DueRow, limit int) []DueRow {
-	var due []DueRow
-	for fingerprint, rows := range table {
+// deleteFaded is `DeleteFadedRows`. It returns the deleted rows, in key
+// order so that runs repeat.
+func (table rowTable) deleteFaded(beforeNs int64, limit int) []StoredRow {
+	var faded []StoredRow
+	for _, rows := range table {
 		for _, r := range rows {
-			isAfter := r.CompactAfterNs > after.CompactAfterNs ||
-				(r.CompactAfterNs == after.CompactAfterNs && bytes.Compare(fingerprint[:], after.Fingerprint[:]) > 0)
-			if r.CompactAfterNs < beforeNs && isAfter {
-				due = append(due, DueRow{Fingerprint: fingerprint, CompactAfterNs: r.CompactAfterNs})
+			if r.DeleteAfterNs < beforeNs {
+				faded = append(faded, r)
 			}
 		}
 	}
-	slices.SortFunc(due, func(left, right DueRow) int {
-		return cmp.Or(cmp.Compare(left.CompactAfterNs, right.CompactAfterNs), bytes.Compare(left.Fingerprint[:], right.Fingerprint[:]))
+	slices.SortFunc(faded, func(left, right StoredRow) int {
+		return cmp.Or(cmp.Compare(string(left.Fingerprint[:]), string(right.Fingerprint[:])), cmp.Compare(left.PeriodStartNs, right.PeriodStartNs), cmp.Compare(left.PodID, right.PodID))
 	})
-	return due[:min(limit, len(due))]
-}
-
-// applyCleanup is `ApplyCleanup`. An insert of an existing row fails like
-// the duplicate key in MySQL, and rolls back.
-func (table rowTable) applyCleanup(deleted []StoredRow, inserted []StoredRow) bool {
-	remaining := make(map[[32]byte]map[rowKey]bool)
-	for _, r := range deleted {
-		key := rowKey{bucketStartNs: r.BucketStartNs, podID: r.PodID}
-		stored, ok := table[r.Fingerprint][key]
-		if !ok || stored.ConsumedNs != r.ConsumedNs || stored.ResetAtNs != r.ResetAtNs || remaining[r.Fingerprint][key] {
-			return false
-		}
-		if remaining[r.Fingerprint] == nil {
-			remaining[r.Fingerprint] = make(map[rowKey]bool)
-		}
-		remaining[r.Fingerprint][key] = true
-	}
-	for _, r := range inserted {
-		key := rowKey{bucketStartNs: r.BucketStartNs, podID: r.PodID}
-		if _, exists := table[r.Fingerprint][key]; exists && !remaining[r.Fingerprint][key] {
-			return false
-		}
-	}
-	for _, r := range deleted {
-		delete(table[r.Fingerprint], rowKey{bucketStartNs: r.BucketStartNs, podID: r.PodID})
+	faded = faded[:min(limit, len(faded))]
+	for _, r := range faded {
+		delete(table[r.Fingerprint], rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID})
 		if len(table[r.Fingerprint]) == 0 {
 			delete(table, r.Fingerprint)
 		}
 	}
-	for _, r := range inserted {
-		if table[r.Fingerprint] == nil {
-			table[r.Fingerprint] = make(map[rowKey]StoredRow)
-		}
-		table[r.Fingerprint][rowKey{bucketStartNs: r.BucketStartNs, podID: r.PodID}] = r
-	}
-	return true
+	return faded
 }
 
-// seed stores rows as they are, as if pods wrote them while their buckets
-// were open.
+// seed stores rows as they are.
 func (s *memoryStore) seed(rows []StoredRow) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

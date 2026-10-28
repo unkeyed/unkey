@@ -2,7 +2,6 @@ package ratelimit
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -13,16 +12,20 @@ import (
 // `at`.
 func writePeer(t *testing.T, store *memoryStore, request Request, podID string, at time.Time, units int64) {
 	t.Helper()
-	widthNs := request.Rate.bucketWidthNs()
-	startNs := bucketStartNs(at.UnixNano(), widthNs)
-	consumedNs := request.Rate.unitsToNs(units)
+	periodNs := periodLengthNs(request.Rate.Duration)
+	startNs := periodStartNs(at.UnixNano(), periodNs)
+	sum := float64(units) * growthSince(at.UnixNano(), startNs, request.Rate.Duration)
+	for _, stored := range store.storedRows(request.Fingerprint) {
+		if stored.PeriodStartNs == startNs && stored.PodID == podID {
+			sum += stored.ScaledSum
+		}
+	}
 	store.seed([]StoredRow{{
-		Fingerprint:    request.Fingerprint,
-		BucketStartNs:  startNs,
-		PodID:          podID,
-		ConsumedNs:     consumedNs,
-		ResetAtNs:      at.UnixNano() + consumedNs,
-		CompactAfterNs: compactAfterNs(startNs, widthNs),
+		Fingerprint:   request.Fingerprint,
+		PeriodStartNs: startNs,
+		PodID:         podID,
+		ScaledSum:     sum,
+		DeleteAfterNs: deleteAfterNs(startNs, periodNs, request.Rate.Duration, sum),
 	}})
 }
 
@@ -35,10 +38,31 @@ func TestLimiterCountsPeerRows(t *testing.T) {
 
 	result, err := l.Allow(ctx, request)
 	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: true, Remaining: 0, ResetAt: testClock.Now().Add(10 * time.Second)}, result)
+	require.Equal(t, Result{Allowed: true, Remaining: 0, ResetAt: testClock.Now().Add(afterNs(request.Rate.Duration, 10, 9))}, result)
 	result, err = l.Allow(ctx, request)
 	require.NoError(t, err)
 	require.False(t, result.Allowed)
+}
+
+// TestLimiterReadsPeersOfEveryPeriod guarantees that a read sums the rows of
+// all periods, each decayed from its own start.
+func TestLimiterReadsPeersOfEveryPeriod(t *testing.T) {
+	ctx := context.Background()
+	l, testClock := newTestLimiter(t)
+	store := memoryStoreOf(t, l)
+	rate := Rate{Limit: 100, Duration: time.Second}
+	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 0}
+	periodNs := periodLengthNs(rate.Duration)
+	now := time.Unix(0, periodStartNs(testClock.Now().UnixNano(), periodNs)+time.Second.Nanoseconds())
+	testClock.Set(now)
+	writePeer(t, store, request, "a", now.Add(-2*time.Second), 50)
+	writePeer(t, store, request, "b", now.Add(-time.Second), 50)
+	writePeer(t, store, request, "b", now, 30)
+
+	result, err := l.Allow(ctx, request)
+	require.NoError(t, err)
+	level := 50*0.1353352832366127 + 50*0.36787944117144233 + 30
+	require.Equal(t, int64(100-level), result.Remaining)
 }
 
 // TestLimiterFailsOpenWhenTheReadFails guarantees that a failed read decides
@@ -50,20 +74,18 @@ func TestLimiterFailsOpenWhenTheReadFails(t *testing.T) {
 	store := memoryStoreOf(t, l)
 	var background []func()
 	l.runInBackground = func(f func()) { background = append(background, f) }
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 4}
+	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: time.Hour}, Units: 4}
 	writePeer(t, store, request, "peer", testClock.Now(), 10)
 	store.setFailReads(true)
 
 	result, err := l.Allow(ctx, request)
 	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: true, Remaining: 6, ResetAt: testClock.Now().Add(4 * time.Second)}, result)
+	require.Equal(t, Result{Allowed: true, Remaining: 6, ResetAt: testClock.Now()}, result)
 	require.Equal(t, 1, store.readCallCount())
-	require.NoError(t, l.flush(ctx))
 
 	testClock.Tick(rowsStaleFor - time.Nanosecond)
 	_, err = l.Allow(ctx, request)
 	require.NoError(t, err)
-	require.NoError(t, l.flush(ctx))
 	require.Len(t, background, 1)
 	background[0]()
 	require.Equal(t, 2, store.readCallCount())
@@ -76,33 +98,6 @@ func TestLimiterFailsOpenWhenTheReadFails(t *testing.T) {
 	require.Equal(t, 3, store.readCallCount())
 }
 
-// TestLimiterIgnoresAReadThatReachesTheBucketLimit guarantees that a read
-// whose oldest buckets may be missing decides on what the pod already has.
-// A bucket that holds only a refused write does not count towards the bound.
-func TestLimiterIgnoresAReadThatReachesTheBucketLimit(t *testing.T) {
-	ctx := context.Background()
-	l, testClock := newTestLimiter(t)
-	store := memoryStoreOf(t, l)
-	l.runInBackground = func(func()) {}
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 100_000, Duration: time.Hour}, Units: 1}
-	widthNs := request.Rate.bucketWidthNs()
-	for i := range maxBucketsPerRead {
-		writePeer(t, store, request, "peer", testClock.Now().Add(-time.Duration(int64(i)*widthNs)), 100)
-	}
-	refusedStartNs := bucketStartNs(testClock.Now().UnixNano(), widthNs) + widthNs
-	store.seed([]StoredRow{{
-		Fingerprint:    request.Fingerprint,
-		BucketStartNs:  refusedStartNs,
-		PodID:          "refused",
-		ResetAtNs:      refusedStartNs,
-		CompactAfterNs: compactAfterNs(refusedStartNs, widthNs),
-	}})
-
-	result, err := l.Allow(ctx, request)
-	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: true, Remaining: 99_999, ResetAt: testClock.Now().Add(36 * time.Millisecond)}, result)
-}
-
 // TestLimiterSkipsReadsWhileTooManyRun guarantees that a pod starts no read
 // while `readsInFlightMax` reads run, so new identifiers cannot take the
 // whole replica pool, and that it reads again once a slot is free.
@@ -110,7 +105,7 @@ func TestLimiterSkipsReadsWhileTooManyRun(t *testing.T) {
 	ctx := context.Background()
 	l, testClock := newTestLimiter(t)
 	store := memoryStoreOf(t, l)
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 1}
+	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: time.Hour}, Units: 1}
 	writePeer(t, store, request, "peer", testClock.Now(), 10)
 	for range readsInFlightMax {
 		l.readSlots <- struct{}{}
@@ -125,7 +120,6 @@ func TestLimiterSkipsReadsWhileTooManyRun(t *testing.T) {
 		<-l.readSlots
 	}
 	testClock.Tick(rowsStaleFor)
-	writePeer(t, store, request, "peer", testClock.Now(), 10)
 	result, err = l.Allow(ctx, request)
 	require.NoError(t, err)
 	require.False(t, result.Allowed)
@@ -140,7 +134,7 @@ func TestLimiterServesStaleRowsWhileItRefreshes(t *testing.T) {
 	store := memoryStoreOf(t, l)
 	var background []func()
 	l.runInBackground = func(f func()) { background = append(background, f) }
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 1}
+	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: time.Hour}, Units: 1}
 
 	_, err := l.Allow(ctx, request)
 	require.NoError(t, err)
@@ -184,7 +178,6 @@ func TestLimiterWaitsForARunningReadWhenRowsExpire(t *testing.T) {
 	_, err = l.Allow(ctx, request)
 	require.NoError(t, err)
 	require.Len(t, background, 1)
-	require.NoError(t, l.flush(ctx))
 
 	testClock.Tick(rowsStaleFor)
 	done := make(chan Result)
@@ -200,26 +193,28 @@ func TestLimiterWaitsForARunningReadWhenRowsExpire(t *testing.T) {
 	require.Equal(t, 2, store.readCallCount())
 }
 
-func TestLimiterAllowManyReadsPeerRowsOfEveryLimit(t *testing.T) {
+// TestLimiterKeepsItsOwnUnitsThatTheReplicaLacks guarantees that a read
+// from a lagging replica never makes a pod forget units it admitted.
+func TestLimiterKeepsItsOwnUnitsThatTheReplicaLacks(t *testing.T) {
 	ctx := context.Background()
 	l, testClock := newTestLimiter(t)
 	store := memoryStoreOf(t, l)
-	rate := Rate{Limit: 10, Duration: 10 * time.Second}
-	first := Request{Fingerprint: fingerprint("first"), Rate: rate, Units: 1}
-	second := Request{Fingerprint: fingerprint("second"), Rate: rate, Units: 1}
-	writePeer(t, store, first, "peer-first", testClock.Now(), 10)
-	writePeer(t, store, second, "peer-second", testClock.Now(), 10)
-
-	results, err := l.AllowMany(ctx, []Request{first, second})
+	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: time.Hour}, Units: 10}
+	_, err := l.Allow(ctx, request)
 	require.NoError(t, err)
-	require.False(t, results[0].Allowed)
-	require.False(t, results[1].Allowed)
-	require.Equal(t, 2, store.readCallCount())
+	require.NoError(t, l.flush(ctx))
+	store.mu.Lock()
+	clear(store.rows)
+	store.mu.Unlock()
+
+	testClock.Tick(rowsStaleFor)
+	result, err := l.Allow(ctx, Request{Fingerprint: request.Fingerprint, Rate: request.Rate, Units: 1})
+	require.NoError(t, err)
+	require.False(t, result.Allowed)
 }
 
 // TestLimiterNeverWritesPeerRows guarantees that a pod writes only its own
-// rows. Writing a peer's row back could bring it back after cleanup merged
-// it, and count its units twice.
+// rows. Writing a peer's summed row back would count its units twice.
 func TestLimiterNeverWritesPeerRows(t *testing.T) {
 	ctx := context.Background()
 	l, testClock := newTestLimiter(t)
@@ -237,44 +232,11 @@ func TestLimiterNeverWritesPeerRows(t *testing.T) {
 	require.Equal(t, l.podID, store.writeCalls[writes][0].PodID)
 }
 
-// TestLimiterCompactsAFingerprintWithManyClosedBuckets guarantees that a busy
-// limit does not wait for a cleanup pass to reach it: a read that finds
-// enough closed buckets merges them, and `reset_at` does not change.
-func TestLimiterCompactsAFingerprintWithManyClosedBuckets(t *testing.T) {
-	ctx := context.Background()
-	l, testClock := newTestLimiter(t)
-	store := memoryStoreOf(t, l)
-	var background []func()
-	l.runInBackground = func(f func()) { background = append(background, f) }
-	request := Request{Fingerprint: fingerprint("busy"), Rate: Rate{Limit: 100, Duration: time.Hour}, Units: 0}
-	const closedBuckets = minClosedBucketsPerCompaction + maxCompactionJitter
-	widthNs := request.Rate.bucketWidthNs()
-	newestAt := testClock.Now().Add(-10 * time.Minute)
-	for i := range closedBuckets {
-		writePeer(t, store, request, fmt.Sprintf("peer%d", i%3), newestAt.Add(-time.Duration(int64(i)*widthNs)), 1)
-	}
-	// Each unit is 36 s. The oldest request's candidate counts all of them.
-	oldestAt := newestAt.Add(-time.Duration(int64(closedBuckets-1) * widthNs))
-	wantResetAtNs := oldestAt.Add(closedBuckets * 36 * time.Second).UnixNano()
-
-	result, err := l.Allow(ctx, request)
-	require.NoError(t, err)
-	require.Equal(t, time.Unix(0, wantResetAtNs), result.ResetAt)
-	require.Len(t, background, 1)
-	background[0]()
-
-	require.Equal(t, []StoredRow{{
-		Fingerprint:    request.Fingerprint,
-		BucketStartNs:  0,
-		PodID:          "",
-		ConsumedNs:     (closedBuckets * 36 * time.Second).Nanoseconds(),
-		ResetAtNs:      wantResetAtNs,
-		CompactAfterNs: wantResetAtNs + compactAfterNs(0, request.Rate.bucketWidthNs()),
-	}}, store.storedRows(request.Fingerprint))
-
-	testClock.Tick(rowsStaleFor)
-	result, err = l.Allow(ctx, request)
-	require.NoError(t, err)
-	require.Equal(t, time.Unix(0, wantResetAtNs), result.ResetAt)
-	require.Len(t, background, 1, "one base row starts no compaction")
+func TestEntryReplaceRowsRejectsRowsOfOtherPods(t *testing.T) {
+	e := newEntry(time.Second)
+	err := e.replaceRows([]StoredRow{{PeriodStartNs: 0, PodID: "other", ScaledSum: 1}}, "own", time.Second.Nanoseconds())
+	require.Error(t, err)
+	err = e.replaceRows([]StoredRow{{PeriodStartNs: 0, PodID: "", ScaledSum: 1}, {PeriodStartNs: 0, PodID: "", ScaledSum: 2}}, "own", time.Second.Nanoseconds())
+	require.Error(t, err)
+	require.Empty(t, e.rows, "a rejected read changes nothing")
 }

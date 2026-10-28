@@ -17,82 +17,167 @@ import (
 func newTestLimiter(t *testing.T) (*limiter, *clock.TestClock) {
 	t.Helper()
 	testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
-	l, err := newLimiter(Config{Clock: testClock, Store: newMemoryStore(testClock), Random: rand.New(rand.NewPCG(1, 2))})
+	return newTestLimiterOn(t, testClock, newMemoryStore(testClock), 1), testClock
+}
+
+// newTestLimiterOn returns a limiter on a shared clock and store, as one of
+// several pods.
+func newTestLimiterOn(t *testing.T, testClock *clock.TestClock, store Store, seed uint64) *limiter {
+	t.Helper()
+	l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(seed, 2))})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, l.Close()) })
-	return l, testClock
+	return l
 }
 
 func fingerprint(name string) [32]byte {
 	return sha256.Sum256([]byte(name))
 }
 
-func TestLimiterAllowsTheLimitThenDeniesUntilUnitsAreFree(t *testing.T) {
-	ctx := context.Background()
-	l, testClock := newTestLimiter(t)
-	start := testClock.Now()
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 1}
-
-	for i := range 10 {
-		result, err := l.Allow(ctx, request)
-		require.NoError(t, err)
-		require.Equal(t, Result{Allowed: true, Remaining: int64(9 - i), ResetAt: start.Add(time.Duration(i+1) * time.Second)}, result)
-	}
-	result, err := l.Allow(ctx, request)
-	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: false, Remaining: 0, ResetAt: start.Add(10 * time.Second)}, result)
-
-	check := request
-	check.Units = 0
-	result, err = l.Allow(ctx, check)
-	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: true, Remaining: 0, ResetAt: start.Add(10 * time.Second)}, result)
-
-	testClock.Tick(time.Second)
-	result, err = l.Allow(ctx, request)
-	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: true, Remaining: 0, ResetAt: start.Add(11 * time.Second)}, result)
+// afterNs returns `Duration × ln(from / to)`, the time a level takes to fall
+// from `from` to `to`.
+func afterNs(duration time.Duration, from, to float64) time.Duration {
+	return time.Duration(math.Ceil(float64(duration.Nanoseconds()) * math.Log(from/to)))
 }
 
-// TestLimiterAdmitsTheLimitWhenDurationIsNotAMultipleOfLimit guarantees that
-// rounding each unit up to whole nanoseconds costs no unit: `Limit` single
-// units fit, the next one does not, and `Remaining` counts down by one.
-func TestLimiterAdmitsTheLimitWhenDurationIsNotAMultipleOfLimit(t *testing.T) {
-	cases := []struct {
-		name string
-		rate Rate
-		gap  time.Duration
-	}{
-		{"3 per second at one instant", Rate{Limit: 3, Duration: time.Second}, 0},
-		{"3 per second 1µs apart", Rate{Limit: 3, Duration: time.Second}, time.Microsecond},
-		{"7 per minute 1µs apart", Rate{Limit: 7, Duration: time.Minute}, time.Microsecond},
-		{"4 per minute 1µs apart", Rate{Limit: 4, Duration: time.Minute}, time.Microsecond},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctx := context.Background()
-			l, testClock := newTestLimiter(t)
-			request := Request{Fingerprint: fingerprint("a"), Rate: tc.rate, Units: 1}
-			for i := range tc.rate.Limit {
-				result, err := l.Allow(ctx, request)
-				require.NoError(t, err)
-				require.True(t, result.Allowed, "unit %d", i+1)
-				require.Equal(t, tc.rate.Limit-i-1, result.Remaining, "unit %d", i+1)
-				testClock.Tick(tc.gap)
-			}
+// TestLimiterBurstFromIdleIsTheLimit guarantees that an idle limit admits
+// `Limit` units at one instant, one by one or in one request, and not one
+// more.
+func TestLimiterBurstFromIdleIsTheLimit(t *testing.T) {
+	ctx := context.Background()
+	rate := Rate{Limit: 100, Duration: time.Minute}
+
+	t.Run("one unit at a time", func(t *testing.T) {
+		l, testClock := newTestLimiter(t)
+		request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 1}
+		for i := range rate.Limit {
 			result, err := l.Allow(ctx, request)
 			require.NoError(t, err)
-			require.False(t, result.Allowed)
-			require.Zero(t, result.Remaining)
-		})
+			require.True(t, result.Allowed, "unit %d", i+1)
+			require.Equal(t, rate.Limit-i-1, result.Remaining)
+		}
+		result, err := l.Allow(ctx, request)
+		require.NoError(t, err)
+		require.False(t, result.Allowed)
+		require.Zero(t, result.Remaining)
+		require.Equal(t, testClock.Now().Add(afterNs(rate.Duration, 100, 99)), result.ResetAt)
+	})
+
+	t.Run("the whole limit in one request", func(t *testing.T) {
+		l, _ := newTestLimiter(t)
+		tooMany := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: rate.Limit + 1}
+		result, err := l.Allow(ctx, tooMany)
+		require.NoError(t, err)
+		require.False(t, result.Allowed)
+		require.Equal(t, rate.Limit, result.Remaining)
+
+		all := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: rate.Limit}
+		result, err = l.Allow(ctx, all)
+		require.NoError(t, err)
+		require.True(t, result.Allowed)
+		require.Zero(t, result.Remaining)
+	})
+}
+
+// TestLimiterHoldsASteadyStreamToTheRate sends ten times the rate for a
+// while and counts what it admits once the level has settled. A unit fits
+// each time the level falls from `Limit` to `Limit − 1`, every
+// `Duration × ln(Limit / (Limit − 1))`, which is `Limit / Duration` less
+// about half a unit per `Duration`.
+func TestLimiterHoldsASteadyStreamToTheRate(t *testing.T) {
+	ctx := context.Background()
+	l, testClock := newTestLimiter(t)
+	rate := Rate{Limit: 1_000, Duration: 10 * time.Second}
+	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 1}
+	const step = time.Millisecond
+	const warmUp = 5 * 10 * time.Second
+	const measured = 100 * time.Second
+
+	allowed := 0
+	for elapsed := time.Duration(0); elapsed < warmUp+measured; elapsed += step {
+		result, err := l.Allow(ctx, request)
+		require.NoError(t, err)
+		if result.Allowed && elapsed >= warmUp {
+			allowed++
+		}
+		testClock.Tick(step)
 	}
+	want := measured.Seconds() * float64(rate.Limit) / rate.Duration.Seconds()
+	require.InEpsilon(t, want, float64(allowed), 0.001, "admitted %d, the rate allows %.0f", allowed, want)
+}
+
+// TestLimiterRecoversRemainingFullyAfterDurationTimesLnLimit guarantees that
+// a full limit reports `remaining = Limit` again once its level is below one
+// unit, `Duration × ln(Limit)` later, and not before.
+func TestLimiterRecoversRemainingFullyAfterDurationTimesLnLimit(t *testing.T) {
+	ctx := context.Background()
+	l, testClock := newTestLimiter(t)
+	rate := Rate{Limit: 100, Duration: time.Minute}
+	start := testClock.Now()
+	result, err := l.Allow(ctx, Request{Fingerprint: fingerprint("a"), Rate: rate, Units: rate.Limit})
+	require.NoError(t, err)
+	require.True(t, result.Allowed)
+
+	check := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 0}
+	recovered := start.Add(afterNs(rate.Duration, float64(rate.Limit), 1))
+	testClock.Set(recovered.Add(-time.Millisecond))
+	result, err = l.Allow(ctx, check)
+	require.NoError(t, err)
+	require.Equal(t, rate.Limit-2, result.Remaining, "the level is just above one unit")
+
+	testClock.Set(recovered.Add(time.Millisecond))
+	result, err = l.Allow(ctx, check)
+	require.NoError(t, err)
+	require.Equal(t, Result{Allowed: true, Remaining: rate.Limit, ResetAt: testClock.Now()}, result)
+}
+
+// TestLimiterPaysBackAMultiPodOverAdmission replays the example of the
+// package documentation: two pods each admit 75 of 100 per minute before
+// they see each other. Once both rows are visible, the level of 150 must
+// fall to 99 before the next unit fits, `60 s × ln(150 / 99) ≈ 24.9 s`.
+func TestLimiterPaysBackAMultiPodOverAdmission(t *testing.T) {
+	ctx := context.Background()
+	testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
+	store := newMemoryStore(testClock)
+	podA := newTestLimiterOn(t, testClock, store, 1)
+	podB := newTestLimiterOn(t, testClock, store, 2)
+	rate := Rate{Limit: 100, Duration: time.Minute}
+	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 75}
+	start := testClock.Now()
+
+	for _, pod := range []*limiter{podA, podB} {
+		result, err := pod.Allow(ctx, request)
+		require.NoError(t, err)
+		require.True(t, result.Allowed, "neither pod has seen the other")
+	}
+	require.NoError(t, podA.flush(ctx))
+	require.NoError(t, podB.flush(ctx))
+
+	nextUnitAt := start.Add(afterNs(rate.Duration, 150, 99))
+	require.InDelta(t, 24.93*float64(time.Second), float64(nextUnitAt.Sub(start)), float64(10*time.Millisecond))
+	one := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 1}
+	for _, at := range []time.Duration{rowsStaleFor, 10 * time.Second, 20 * time.Second, nextUnitAt.Sub(start) - time.Millisecond} {
+		testClock.Set(start.Add(at))
+		for _, pod := range []*limiter{podA, podB} {
+			result, err := pod.Allow(ctx, one)
+			require.NoError(t, err)
+			require.False(t, result.Allowed, "at %s", at)
+			require.Zero(t, result.Remaining)
+			require.InDelta(t, nextUnitAt.UnixNano(), result.ResetAt.UnixNano(), float64(time.Microsecond))
+		}
+	}
+
+	testClock.Set(nextUnitAt)
+	result, err := podA.Allow(ctx, one)
+	require.NoError(t, err)
+	require.True(t, result.Allowed)
 }
 
 func TestLimiterAllowManySpendsNothingIfOneRequestIsDenied(t *testing.T) {
 	ctx := context.Background()
 	l, testClock := newTestLimiter(t)
-	start := testClock.Now()
-	open := Request{Fingerprint: fingerprint("open"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 5}
+	rate := Rate{Limit: 10, Duration: 10 * time.Second}
+	open := Request{Fingerprint: fingerprint("open"), Rate: rate, Units: 5}
 	full := Request{Fingerprint: fingerprint("full"), Rate: Rate{Limit: 1, Duration: 10 * time.Second}, Units: 1}
 	_, err := l.Allow(ctx, full)
 	require.NoError(t, err)
@@ -100,8 +185,8 @@ func TestLimiterAllowManySpendsNothingIfOneRequestIsDenied(t *testing.T) {
 	results, err := l.AllowMany(ctx, []Request{open, full})
 	require.NoError(t, err)
 	require.Equal(t, []Result{
-		{Allowed: true, Remaining: 10, ResetAt: start},
-		{Allowed: false, Remaining: 0, ResetAt: start.Add(10 * time.Second)},
+		{Allowed: true, Remaining: 10, ResetAt: testClock.Now()},
+		{Allowed: false, Remaining: 0, ResetAt: testClock.Now().Add(time.Nanosecond)},
 	}, results)
 
 	open.Units = 10
@@ -121,7 +206,7 @@ func TestLimiterAllowManyLocksASharedShardOnce(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, []Result{
-		{Allowed: true, Remaining: 8, ResetAt: testClock.Now().Add(2 * time.Second)},
+		{Allowed: true, Remaining: 8, ResetAt: testClock.Now()},
 		{Allowed: true, Remaining: 10, ResetAt: testClock.Now()},
 	}, results)
 }
@@ -137,12 +222,16 @@ func TestLimiterRejectsInvalidRequests(t *testing.T) {
 	negativeUnits.Units = -1
 	invalidRate := valid
 	invalidRate.Rate.Limit = 0
+	tooLong := valid
+	tooLong.Fingerprint = fingerprint("b")
+	tooLong.Rate.Duration = maxDuration + time.Millisecond
 	otherDuration := valid
 	otherDuration.Rate.Duration = time.Minute
 	for name, requests := range map[string][]Request{
 		"duplicate fingerprints":             {valid, valid},
 		"negative units":                     {negativeUnits},
 		"invalid rate":                       {invalidRate},
+		"a duration over 30 days":            {tooLong},
 		"a fingerprint without the duration": {otherDuration},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -150,9 +239,6 @@ func TestLimiterRejectsInvalidRequests(t *testing.T) {
 			require.Error(t, err)
 		})
 	}
-
-	_, err = l.Allow(ctx, Request{Fingerprint: fingerprint("b"), Rate: Rate{Limit: 1, Duration: math.MaxInt64}, Units: 1})
-	require.Error(t, err, "reset_at overflows int64")
 
 	require.NoError(t, l.Close())
 	_, err = l.Allow(ctx, valid)

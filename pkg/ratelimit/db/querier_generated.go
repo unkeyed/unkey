@@ -9,121 +9,57 @@ import (
 )
 
 type Querier interface {
-	// DeleteRow deletes one row, but only if it still has the values the caller
-	// read. Another cleanup that changed it in the meantime keeps the row, so
-	// cleanup never deletes a value it did not check.
+	// DeleteFadedRows deletes at most LIMIT rows of any fingerprint whose level
+	// has faded, by the MySQL clock that the caller read. It uses the
+	// delete_after_ns index, so a pass stays bounded however large the table is.
 	//
 	//  DELETE FROM ratelimit_state
-	//  WHERE fingerprint = ?
-	//      AND bucket_start_ns = ?
-	//      AND pod_id = ?
-	//      AND consumed_ns = ?
-	//      AND reset_at_ns = ?
-	//  LIMIT 1
-	DeleteRow(ctx context.Context, db DBTX, arg DeleteRowParams) (int64, error)
-	// InsertBaseRow inserts the row that cleanup merges closed buckets into. Its
-	// bucket_start_ns is 0 and its pod_id is empty. Cleanup deletes the previous
-	// base row in the same transaction.
-	//
-	//  INSERT INTO ratelimit_state (
-	//      fingerprint,
-	//      bucket_start_ns,
-	//      pod_id,
-	//      consumed_ns,
-	//      reset_at_ns,
-	//      compact_after_ns
-	//  ) VALUES (
-	//      ?,
-	//      0,
-	//      '',
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertBaseRow(ctx context.Context, db DBTX, arg InsertBaseRowParams) error
-	// ListBuckets returns one row per bucket of a fingerprint, newest first:
-	// the totals of the pod `pod_id` and the totals of all other pods. A
-	// decision needs only these, so a read grows with buckets, not with pods.
-	// The base row counts as a peer in bucket 0. Rows with zero consumed_ns
-	// are refused writes and count for nothing, so the query skips them before
-	// grouping: a bucket of refused writes only must not count towards the
-	// LIMIT. Grouping in key order lets the LIMIT stop the scan. If the result reaches the LIMIT, older buckets or the
-	// base row may be missing, and the caller must not use the result for a
-	// decision: a missing row can open the limit too early.
+	//  WHERE delete_after_ns < ?
+	//  LIMIT ?
+	DeleteFadedRows(ctx context.Context, db DBTX, arg DeleteFadedRowsParams) (int64, error)
+	// ListPeriods returns one row per period of a fingerprint, newest first:
+	// the scaled sum of the pod `pod_id` and the summed scaled sums of all other
+	// pods. A decision needs only these, so a read grows with periods, not with
+	// pods. Grouping in key order lets the LIMIT stop the scan. If the result
+	// reaches the LIMIT, the oldest periods are missing; they have faded.
 	//
 	//  SELECT
-	//      bucket_start_ns,
-	//      CAST(SUM(IF(pod_id = ?, consumed_ns, 0)) AS SIGNED) AS own_consumed_ns,
-	//      CAST(MAX(IF(pod_id = ?, reset_at_ns, 0)) AS SIGNED) AS own_reset_at_ns,
-	//      CAST(SUM(IF(pod_id <> ?, consumed_ns, 0)) AS SIGNED) AS peer_consumed_ns,
-	//      CAST(MAX(IF(pod_id <> ?, reset_at_ns, 0)) AS SIGNED) AS peer_reset_at_ns,
-	//      CAST(MAX(compact_after_ns) AS SIGNED) AS compact_after_ns
+	//      period_start_ns,
+	//      CAST(SUM(IF(pod_id = ?, scaled_sum, 0)) AS DOUBLE) AS own_scaled_sum,
+	//      CAST(SUM(IF(pod_id <> ?, scaled_sum, 0)) AS DOUBLE) AS peer_scaled_sum,
+	//      CAST(MAX(delete_after_ns) AS SIGNED) AS delete_after_ns
 	//  FROM ratelimit_state
 	//  WHERE fingerprint = ?
-	//      AND consumed_ns > 0
-	//  GROUP BY bucket_start_ns
-	//  ORDER BY bucket_start_ns DESC
+	//  GROUP BY period_start_ns
+	//  ORDER BY period_start_ns DESC
 	//  LIMIT ?
-	ListBuckets(ctx context.Context, db DBTX, arg ListBucketsParams) ([]ListBucketsRow, error)
-	// ListClosedRows returns the base row of a fingerprint and its rows whose
-	// compact_after_ns is before before_ns, oldest bucket first. If the result
-	// reaches the LIMIT, the rows of its newest bucket may be incomplete.
-	//
-	//  SELECT bucket_start_ns, pod_id, consumed_ns, reset_at_ns, compact_after_ns
-	//  FROM ratelimit_state
-	//  WHERE fingerprint = ?
-	//      AND (bucket_start_ns = 0 OR compact_after_ns < ?)
-	//  ORDER BY bucket_start_ns, pod_id
-	//  LIMIT ?
-	ListClosedRows(ctx context.Context, db DBTX, arg ListClosedRowsParams) ([]ListClosedRowsRow, error)
-	// ListRowsToCompact pages through rows whose compact_after_ns is before
-	// before_ns, in the order of the compact_after_ns index. A page resumes after
-	// the last row of the previous page. For the first page, pass an
-	// after_compact_after_ns of -1; the after_fingerprint then does not matter. A
-	// page can hold several rows of one fingerprint, so callers remove duplicates
-	// and then handle the whole fingerprint with ListClosedRows.
-	//
-	//  SELECT fingerprint, compact_after_ns
-	//  FROM ratelimit_state
-	//  WHERE compact_after_ns < ?
-	//      AND compact_after_ns >= ?
-	//      AND (compact_after_ns > ? OR fingerprint > ?)
-	//  ORDER BY compact_after_ns, fingerprint
-	//  LIMIT ?
-	ListRowsToCompact(ctx context.Context, db DBTX, arg ListRowsToCompactParams) ([]ListRowsToCompactRow, error)
+	ListPeriods(ctx context.Context, db DBTX, arg ListPeriodsParams) ([]ListPeriodsRow, error)
 	// Now returns the clock of the MySQL server in Unix nanoseconds, with
-	// microsecond precision. Cleanup decides with it which buckets are closed.
+	// microsecond precision. Cleanup deletes faded rows by it.
 	//
 	//  SELECT CAST(UNIX_TIMESTAMP(NOW(6)) * 1000000000 AS SIGNED) AS now_ns
 	Now(ctx context.Context, db DBTX) (int64, error)
-	// UpsertRow writes a pod's running totals for one bucket. Both totals only
-	// grow, so GREATEST keeps a retried or reordered write from undoing a newer
-	// one.
-	//
-	// MySQL refuses the write once compact_after_ns has passed by its own clock,
-	// because cleanup may already have merged the bucket: the consumed_ns value
-	// becomes 0, so an update keeps the row as it is, and an insert stores a row
-	// that readers skip and cleanup deletes. write_until_ns must equal
-	// compact_after_ns.
+	// UpsertRow writes a pod's scaled sum for one period. The sum and its
+	// delete_after_ns only grow, so GREATEST keeps a retried or reordered write
+	// from undoing a newer one. A write that lands after cleanup deleted the row
+	// inserts the pod's whole sum again, which is what the row held.
 	//
 	//  INSERT INTO ratelimit_state (
 	//      fingerprint,
-	//      bucket_start_ns,
+	//      period_start_ns,
 	//      pod_id,
-	//      consumed_ns,
-	//      reset_at_ns,
-	//      compact_after_ns
+	//      scaled_sum,
+	//      delete_after_ns
 	//  ) VALUES (
 	//      ?,
 	//      ?,
 	//      ?,
-	//      IF(? < CAST(UNIX_TIMESTAMP(NOW(6)) * 1000000000 AS SIGNED), 0, ?),
 	//      ?,
 	//      ?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
-	//      reset_at_ns = IF(VALUES(consumed_ns) = 0, reset_at_ns, GREATEST(reset_at_ns, VALUES(reset_at_ns))),
-	//      consumed_ns = GREATEST(consumed_ns, VALUES(consumed_ns))
+	//      scaled_sum = GREATEST(scaled_sum, VALUES(scaled_sum)),
+	//      delete_after_ns = GREATEST(delete_after_ns, VALUES(delete_after_ns))
 	UpsertRow(ctx context.Context, db DBTX, arg UpsertRowParams) error
 }
 

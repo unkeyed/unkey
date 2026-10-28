@@ -6,7 +6,6 @@ import "context"
 
 // BulkQuerier contains bulk insert methods.
 type BulkQuerier interface {
-	InsertBaseRows(ctx context.Context, db DBTX, args []InsertBaseRowParams) error
 	UpsertRow(ctx context.Context, db DBTX, args []UpsertRowParams) error
 }
 

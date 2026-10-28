@@ -1,84 +1,111 @@
 package ratelimit
 
 import (
-	"math/bits"
+	"math"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 )
 
-// Rate allows `Limit` units per `Duration`. The burst is the full `Limit`.
-// Its methods only read the value, so they are safe to call concurrently.
+// Rate allows `Limit` units per `Duration`. The burst is the full `Limit`,
+// and `Duration` is the time constant of the decay: a level falls by the
+// factor e every `Duration`. Its methods only read the value, so they are
+// safe to call concurrently.
 type Rate struct {
 	Limit    int64
 	Duration time.Duration
 }
 
-// minDuration is the shortest `Duration`, the same as the API's. A shorter
-// limit would need buckets narrower than one second, see `bucketWidthNs`.
-const minDuration = time.Second
+const (
+	// minDuration and maxDuration are the bounds of the API.
+	minDuration = time.Second
+	maxDuration = 30 * 24 * time.Hour
 
-// Validate returns an error unless `Limit` is positive and `Duration` is at
-// least `minDuration`.
+	// periodDurations is the length of a reference period in durations,
+	// see `periodLengthNs`.
+	periodDurations = 10
+)
+
+// Validate returns an error unless `Limit` is positive and `Duration` is
+// between `minDuration` and `maxDuration`.
 func (r Rate) Validate() error {
 	return assert.All(
 		assert.Greater(r.Limit, 0, "rate limit must be positive"),
 		assert.GreaterOrEqual(r.Duration, minDuration, "rate duration must be at least one second"),
+		assert.LessOrEqual(r.Duration, maxDuration, "rate duration must be at most 30 days"),
 	)
 }
 
-// bucketWidthNs returns the width of the buckets of the shared time grid:
-// `max(1s, Duration / 1000)`. Every pod keeps about `(width + maxWriteDelay
-// + maxClockSkew) / width` open rows per busy limit, so a width below one
-// second multiplies the rows without making decisions more exact: pods see
-// each other's units one to five seconds late anyway. Rows of two widths
-// share no edges, so every pod and version must compute the same width for a
-// duration. Do not change this function without storing the width in the
-// rows.
-func (r Rate) bucketWidthNs() int64 {
-	return max(time.Second.Nanoseconds(), r.Duration.Nanoseconds()/1000)
+// periodLengthNs returns the length of the reference periods of a limit with
+// `duration`: `periodDurations × duration`. Periods start at multiples of
+// their length, so all pods share them. A request at `t` in the period that
+// starts at `t0` adds `cost × e^((t − t0) / duration)` to its row, at most
+// `cost × e^10 ≈ cost × 22,026`, so float64 keeps its 53 bits of precision
+// far from overflow. The length is also how long a pod keeps writing one row,
+// so a shorter period lets the rows of old pods fade sooner after a deploy.
+// Every pod and version must compute the same length for a duration.
+func periodLengthNs(duration time.Duration) int64 {
+	return periodDurations * duration.Nanoseconds()
 }
 
-// unitsToNs returns `⌈units × Duration / Limit⌉`, rounded up so that `Limit`
-// requests never fit into less than `Duration`. The caller guarantees
-// `0 ≤ units ≤ Limit`. See the package documentation for the 128-bit math.
-func (r Rate) unitsToNs(units int64) int64 {
-	productHigh, productLow := bits.Mul64(uint64(units), uint64(r.Duration.Nanoseconds()))
-	quotient, remainder := bits.Div64(productHigh, productLow, uint64(r.Limit))
-	if remainder > 0 {
-		quotient++
-	}
-	return int64(quotient)
+// periodStartNs returns the start of the period that holds `nowNs`. It is
+// safe to call concurrently.
+func periodStartNs(nowNs, periodNs int64) int64 {
+	return nowNs - nowNs%periodNs
 }
 
-// roundingSlackNs returns how far beyond `Duration` the `reset_at` of an
-// allowed request may be ahead of now. `unitsToNs` charges each request less
-// than 1 ns too much, so `Limit` requests at one instant are charged up to
-// `Limit - 1` ns more than `Duration`. The slack stays below the cost of one
-// unit, so `Limit + 1` units at one instant never fit.
-func (r Rate) roundingSlackNs() int64 {
-	return min(r.Limit, r.unitsToNs(1)) - 1
+// growthSince returns `e^((nowNs − periodStartNs) / duration)`, the factor
+// that turns a level at `nowNs` into a scaled sum of the period that starts
+// at `periodStartNs`, and back by dividing. It is safe to call concurrently.
+func growthSince(nowNs, periodStartNs int64, duration time.Duration) float64 {
+	return math.Exp(float64(nowNs-periodStartNs) / float64(duration.Nanoseconds()))
 }
 
-// remaining returns the most units that one request may take at `nowNs`.
-// It is zero while `resetAtNs` is `Duration + roundingSlackNs` or more ahead,
-// after an over-admission.
-func (r Rate) remaining(nowNs, resetAtNs int64) int64 {
-	aheadNs := max(resetAtNs-nowNs, 0)
-	slackNs := r.roundingSlackNs()
-	if aheadNs <= slackNs {
-		return r.Limit
-	}
-	if aheadNs-slackNs >= r.Duration.Nanoseconds() { //faultline:equivalent at equality `unitsWithin(0)` is also 0
+// slackUnits is how far float rounding may move a level. Levels are sums of
+// products of exponentials, each rounded to about 1e-16 of its value, so
+// 1e-9 of the limit covers millions of terms. It stays below half a unit, so
+// `Limit + 1` units never fit.
+func (r Rate) slackUnits() float64 {
+	return min(0.5, 1e-9*float64(r.Limit))
+}
+
+// effectiveLevel returns the level that decisions use: zero below one unit,
+// the level otherwise. Without the cut, a level only reaches zero in the
+// limit, and `remaining` would never return to `Limit`.
+func effectiveLevel(level float64) float64 {
+	if level < 1 {
 		return 0
 	}
-	return r.unitsWithin(r.Duration.Nanoseconds() - (aheadNs - slackNs))
+	return level
 }
 
-// unitsWithin returns `⌊freeNs × Limit / Duration⌋`, the most units whose
-// time fits into `freeNs`. The caller guarantees `0 ≤ freeNs ≤ Duration`.
-func (r Rate) unitsWithin(freeNs int64) int64 {
-	productHigh, productLow := bits.Mul64(uint64(freeNs), uint64(r.Limit))
-	quotient, _ := bits.Div64(productHigh, productLow, uint64(r.Duration.Nanoseconds()))
-	return int64(quotient)
+// fits reports whether `units` fit on top of `level`.
+func (r Rate) fits(level float64, units int64) bool {
+	return effectiveLevel(level)+float64(units) <= float64(r.Limit)+r.slackUnits()
+}
+
+// remaining returns how many more units fit once `spent` units are added to
+// `level`: `⌊Limit − effective level − spent⌋`, between 0 and `Limit`.
+func (r Rate) remaining(level float64, spent int64) int64 {
+	free := math.Floor(float64(r.Limit) - effectiveLevel(level) - float64(spent) + r.slackUnits())
+	return int64(min(max(free, 0), float64(r.Limit)))
+}
+
+// nextUnitAfterNs returns how long after now one unit fits on top of a
+// `level` that decays from now on. A level `L` falls to `x` after
+// `Duration × ln(L / x)`. One unit fits once the level is at most
+// `Limit − 1`, and for a limit of 1 once it is below 1, where the effective
+// level drops to zero.
+func (r Rate) nextUnitAfterNs(level float64) int64 {
+	if r.fits(level, 1) {
+		return 0
+	}
+	target := float64(r.Limit - 1)
+	extraNs := 0.0
+	if r.Limit == 1 {
+		target = 1
+		extraNs = 1
+	}
+	waitNs := math.Ceil(float64(r.Duration.Nanoseconds())*math.Log(level/target)) + extraNs
+	return int64(min(max(waitNs, 0), float64(math.MaxInt64/2)))
 }

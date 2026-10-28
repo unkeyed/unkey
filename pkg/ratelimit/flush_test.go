@@ -31,21 +31,24 @@ func TestFlushWritesOnlyRowsWithNewUnits(t *testing.T) {
 	ctx := context.Background()
 	l, testClock := newTestLimiter(t)
 	store := memoryStoreOf(t, l)
-	start := testClock.Now()
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 3}
+	rate := Rate{Limit: 10, Duration: 10 * time.Second}
+	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 3}
 	_, err := l.Allow(ctx, request)
 	require.NoError(t, err)
-	_, err = l.Allow(ctx, Request{Fingerprint: fingerprint("b"), Rate: request.Rate, Units: 0})
+	_, err = l.Allow(ctx, Request{Fingerprint: fingerprint("b"), Rate: rate, Units: 0})
 	require.NoError(t, err)
 
+	nowNs := testClock.Now().UnixNano()
+	periodNs := periodLengthNs(rate.Duration)
+	startNs := periodStartNs(nowNs, periodNs)
+	sum := 3 * growthSince(nowNs, startNs, rate.Duration)
 	require.NoError(t, l.flush(ctx))
 	require.Equal(t, []StoredRow{{
-		Fingerprint:    request.Fingerprint,
-		BucketStartNs:  start.UnixNano(),
-		PodID:          l.podID,
-		ConsumedNs:     (3 * time.Second).Nanoseconds(),
-		ResetAtNs:      start.Add(3 * time.Second).UnixNano(),
-		CompactAfterNs: start.Add(time.Second + maxWriteDelay + maxClockSkew).UnixNano(),
+		Fingerprint:   request.Fingerprint,
+		PeriodStartNs: startNs,
+		PodID:         l.podID,
+		ScaledSum:     sum,
+		DeleteAfterNs: deleteAfterNs(startNs, periodNs, rate.Duration, sum),
 	}}, store.storedRows(request.Fingerprint))
 	require.Empty(t, store.storedRows(fingerprint("b")))
 
@@ -58,156 +61,84 @@ func TestFlushWritesOnlyRowsWithNewUnits(t *testing.T) {
 	require.NoError(t, l.flush(ctx))
 	rows := store.storedRows(request.Fingerprint)
 	require.Len(t, rows, 1)
-	require.Equal(t, (5 * time.Second).Nanoseconds(), rows[0].ConsumedNs)
-	require.Equal(t, start.Add(5*time.Second).UnixNano(), rows[0].ResetAtNs)
-	require.Len(t, store.writeCalls[1], 1)
+	require.InEpsilon(t, 5*growthSince(nowNs, startNs, rate.Duration), rows[0].ScaledSum, 1e-15)
 }
 
-func TestFlushRetriesAFailedWriteWithTheLatestValue(t *testing.T) {
-	ctx := context.Background()
-	l, _ := newTestLimiter(t)
-	store := memoryStoreOf(t, l)
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 1}
-
-	store.setFailWrites(true)
-	_, err := l.Allow(ctx, request)
-	require.NoError(t, err)
-	require.Error(t, l.flush(ctx))
-
-	store.setFailWrites(false)
-	require.NoError(t, l.flush(ctx))
-	require.Equal(t, time.Second.Nanoseconds(), store.storedRows(request.Fingerprint)[0].ConsumedNs)
-
-	store.setFailWrites(true)
-	_, err = l.Allow(ctx, request)
-	require.NoError(t, err)
-	require.Error(t, l.flush(ctx))
-	_, err = l.Allow(ctx, request)
-	require.NoError(t, err)
-
-	store.setFailWrites(false)
-	require.NoError(t, l.flush(ctx))
-	require.Equal(t, (3 * time.Second).Nanoseconds(), store.storedRows(request.Fingerprint)[0].ConsumedNs)
-}
-
-// TestFlushStopsWritingABucketAfterTheLastWrite guarantees that a pod never
-// writes a bucket after `maxWriteDelay` past its end. MySQL may refuse the
-// write from then on, by a clock up to `maxClockSkew` ahead. Units that are
-// already free by then are dropped.
-func TestFlushStopsWritingABucketAfterTheLastWrite(t *testing.T) {
-	ctx := context.Background()
-	l, testClock := newTestLimiter(t)
-	store := memoryStoreOf(t, l)
-	start := testClock.Now()
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 10, Duration: 10 * time.Second}, Units: 1}
-	_, err := l.Allow(ctx, request)
-	require.NoError(t, err)
-
-	store.setFailWrites(true)
-	testClock.Set(start.Add(time.Second + maxWriteDelay))
-	require.Error(t, l.flush(ctx))
-	require.Equal(t, 1, store.writeCallCount())
-
-	testClock.Set(start.Add(time.Second + maxWriteDelay + time.Nanosecond))
-	require.NoError(t, l.flush(ctx))
-	require.Equal(t, 1, store.writeCallCount())
-	require.False(t, hasEntry(l, request.Fingerprint))
-}
-
-// TestLimiterKeepsLimitingWhileWritesFail guarantees that a pod whose writes
-// all fail admits exactly what it admits when they succeed. Its units then
-// exist only in its memory, so forgetting them would open the limit.
-func TestLimiterKeepsLimitingWhileWritesFail(t *testing.T) {
-	for _, rate := range []Rate{{Limit: 5, Duration: time.Hour}, {Limit: 10, Duration: time.Minute}} {
-		t.Run(fmt.Sprintf("%d per %s", rate.Limit, rate.Duration), func(t *testing.T) {
-			allowedCount := func(failWrites bool) int {
-				ctx := context.Background()
-				l, testClock := newTestLimiter(t)
-				var background []func()
-				l.runInBackground = func(f func()) { background = append(background, f) }
-				memoryStoreOf(t, l).setFailWrites(failWrites)
-				request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 1}
-				allowed := 0
-				for range 2 * rate.Duration / time.Second {
-					result, err := l.Allow(ctx, request)
-					require.NoError(t, err)
-					if result.Allowed {
-						allowed++
-					}
-					for _, f := range background {
-						f()
-					}
-					background = nil
-					testClock.Tick(time.Second)
-					err = l.flush(ctx)
-					if !failWrites {
-						require.NoError(t, err)
-					}
-				}
-				memoryStoreOf(t, l).setFailWrites(false)
-				return allowed
-			}
-			working := allowedCount(false)
-			require.Greater(t, working, int(rate.Limit))
-			require.Equal(t, working, allowedCount(true))
-		})
-	}
-}
-
-// TestFlushRemovesAnUnusedEntryBeforeItsResetAt guarantees that a limit with
-// a long duration does not keep its entry in memory until `reset_at`, and
-// that the next request reads the units back and decides the same.
-func TestFlushRemovesAnUnusedEntryBeforeItsResetAt(t *testing.T) {
-	ctx := context.Background()
-	l, testClock := newTestLimiter(t)
-	request := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 1, Duration: 30 * 24 * time.Hour}, Units: 1}
-	_, err := l.Allow(ctx, request)
-	require.NoError(t, err)
-	widthNs := request.Rate.bucketWidthNs()
-	lastWriteAt := time.Unix(0, lastWriteAtNs(bucketStartNs(testClock.Now().UnixNano(), widthNs), widthNs))
-
-	testClock.Set(lastWriteAt)
-	require.NoError(t, l.flush(ctx))
-	require.True(t, hasEntry(l, request.Fingerprint), "the pod still writes its row")
-	testClock.Set(lastWriteAt.Add(time.Nanosecond))
-	require.NoError(t, l.flush(ctx))
-	require.False(t, hasEntry(l, request.Fingerprint))
-
-	result, err := l.Allow(ctx, request)
-	require.NoError(t, err)
-	require.False(t, result.Allowed)
-}
-
-// TestFlushKeepsAnEntryWhileItsRowsAreWritable guarantees that an idle entry
-// stays while the pod may still write its row. A new entry would read the row
-// from a replica, which may lag, and lose units to GREATEST.
-func TestFlushKeepsAnEntryWhileItsRowsAreWritable(t *testing.T) {
+// TestFlushRetriesAFailedWriteWithTheLatestSum guarantees that a lost write
+// costs nothing: the next flush sends the latest sum, which holds its units.
+func TestFlushRetriesAFailedWriteWithTheLatestSum(t *testing.T) {
 	ctx := context.Background()
 	l, testClock := newTestLimiter(t)
 	store := memoryStoreOf(t, l)
 	rate := Rate{Limit: 10, Duration: 10 * time.Second}
-	idle := Request{Fingerprint: fingerprint("idle"), Rate: rate, Units: 1}
-	busy := Request{Fingerprint: fingerprint("busy"), Rate: rate, Units: 10}
-	_, err := l.AllowMany(ctx, []Request{idle, busy})
-	require.NoError(t, err)
+	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 1}
+	nowNs := testClock.Now().UnixNano()
+	unitSum := growthSince(nowNs, periodStartNs(nowNs, periodLengthNs(rate.Duration)), rate.Duration)
 
 	store.setFailWrites(true)
-	testClock.Tick(2 * time.Second)
+	_, err := l.Allow(ctx, request)
+	require.NoError(t, err)
 	require.Error(t, l.flush(ctx))
-	require.True(t, hasEntry(l, idle.Fingerprint))
+	_, err = l.Allow(ctx, request)
+	require.NoError(t, err)
 
 	store.setFailWrites(false)
 	require.NoError(t, l.flush(ctx))
-	require.True(t, hasEntry(l, idle.Fingerprint), "the row is idle and written, but still writable")
+	require.InEpsilon(t, 2*unitSum, store.storedRows(request.Fingerprint)[0].ScaledSum, 1e-15)
+}
 
-	testClock.Tick(time.Second + time.Nanosecond)
-	require.NoError(t, l.flush(ctx))
-	require.False(t, hasEntry(l, idle.Fingerprint))
-	require.True(t, hasEntry(l, busy.Fingerprint))
-
-	result, err := l.Allow(ctx, idle)
+// TestFlushKeepsAnEntryWhileItHasARowInTheCurrentPeriod guarantees that an
+// idle entry stays until its period ends. A new entry would read its row
+// from a replica that may lag and lose units to GREATEST. Afterwards the next
+// request reads the units back and decides the same.
+func TestFlushKeepsAnEntryWhileItHasARowInTheCurrentPeriod(t *testing.T) {
+	ctx := context.Background()
+	l, testClock := newTestLimiter(t)
+	rate := Rate{Limit: 10, Duration: time.Second}
+	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 10}
+	periodNs := periodLengthNs(rate.Duration)
+	testClock.Set(time.Unix(0, periodStartNs(testClock.Now().UnixNano(), periodNs)+periodNs-2*time.Second.Nanoseconds()))
+	_, err := l.Allow(ctx, request)
 	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: true, Remaining: 9, ResetAt: testClock.Now().Add(time.Second)}, result)
+
+	testClock.Tick(time.Second)
+	require.NoError(t, l.flush(ctx))
+	require.True(t, hasEntry(l, request.Fingerprint), "the pod has a row in the current period")
+
+	testClock.Tick(time.Second)
+	require.NoError(t, l.flush(ctx))
+	require.True(t, hasEntry(l, request.Fingerprint), "the level of 1.35 units is not idle")
+
+	testClock.Tick(time.Second)
+	require.NoError(t, l.flush(ctx))
+	require.False(t, hasEntry(l, request.Fingerprint))
+
+	result, err := l.Allow(ctx, Request{Fingerprint: request.Fingerprint, Rate: rate, Units: 0})
+	require.NoError(t, err)
+	require.Equal(t, rate.Limit, result.Remaining)
+}
+
+// TestFlushRemovesAnUnusedEntry guarantees that a limit with a long duration
+// leaves memory once its period ends and nobody asks for it, even though its
+// level is far from zero, and that the next request reads the units back.
+func TestFlushRemovesAnUnusedEntry(t *testing.T) {
+	ctx := context.Background()
+	l, testClock := newTestLimiter(t)
+	rate := Rate{Limit: 2, Duration: time.Hour}
+	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 2}
+	periodNs := periodLengthNs(rate.Duration)
+	testClock.Set(time.Unix(0, periodStartNs(testClock.Now().UnixNano(), periodNs)+periodNs-time.Second.Nanoseconds()))
+	_, err := l.Allow(ctx, request)
+	require.NoError(t, err)
+	require.NoError(t, l.flush(ctx))
+
+	testClock.Tick(rowsStaleFor)
+	require.NoError(t, l.flush(ctx))
+	require.False(t, hasEntry(l, request.Fingerprint))
+
+	result, err := l.Allow(ctx, Request{Fingerprint: request.Fingerprint, Rate: rate, Units: 1})
+	require.NoError(t, err)
+	require.False(t, result.Allowed)
 }
 
 func TestFlushSplitsWritesIntoCallsOfMaxRowsPerWrite(t *testing.T) {
@@ -226,18 +157,14 @@ func TestFlushSplitsWritesIntoCallsOfMaxRowsPerWrite(t *testing.T) {
 	require.Len(t, store.writeCalls[1], 1)
 }
 
-// TestFlushWritesRowsByBucketNotByRequest is the regression test for the
-// session design, which wrote a new row on almost every allowed request of a
-// limit under its limit. Now a pod writes at most one row per bucket per
-// flush: `⌈flushInterval / width⌉ + 1` rows per limit per second, the same for
-// 10 and for 1,000 requests per second.
-func TestFlushWritesRowsByBucketNotByRequest(t *testing.T) {
+// TestFlushWritesOneRowPerLimitNotPerRequest guarantees that a pod writes one
+// row per active limit per flush, two when a period ends between flushes, the
+// same for 10 and for 1,000 requests per second.
+func TestFlushWritesOneRowPerLimitNotPerRequest(t *testing.T) {
 	ctx := context.Background()
-	const seconds = 20
-	for _, duration := range []time.Duration{time.Second, 10 * time.Second, time.Minute, time.Hour} {
+	const seconds = 30
+	for _, duration := range []time.Duration{time.Second, time.Minute} {
 		rate := Rate{Limit: 1_000_000_000, Duration: duration}
-		widthNs := rate.bucketWidthNs()
-		perFlushMax := int((flushInterval.Nanoseconds()+widthNs-1)/widthNs) + 1
 		rowsWritten := map[int]int{}
 		for _, requestsPerSecond := range []int{10, 1_000} {
 			t.Run(fmt.Sprintf("%s at %d per second", duration, requestsPerSecond), func(t *testing.T) {
@@ -254,7 +181,7 @@ func TestFlushWritesRowsByBucketNotByRequest(t *testing.T) {
 					writes := store.writeCallCount()
 					require.NoError(t, l.flush(ctx))
 					require.Equal(t, writes+1, store.writeCallCount())
-					require.LessOrEqual(t, len(store.writeCalls[writes]), perFlushMax)
+					require.LessOrEqual(t, len(store.writeCalls[writes]), 2)
 					rowsWritten[requestsPerSecond] += len(store.writeCalls[writes])
 				}
 			})
@@ -286,33 +213,26 @@ func TestLimiterFlushesEverySecondAndOnClose(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestManyPodsKeepRowsAndReadsBounded is the regression test for the row
-// growth that a review found: with 100 ms buckets, every busy pod kept about
-// 71 open rows per limit, and at 28 pods reads passed their bound and failed
-// open. 50 pods now send a request every 100 ms to one 1 s limit for
-// a minute, and flush, read and compact every second. A read must stay a
-// few buckets long, and the table must hold at most the open and not yet
-// compacted buckets of every pod.
+// TestManyPodsKeepRowsAndReadsBounded runs 50 pods that send a request every
+// 100 ms to one 1 s limit for five minutes, and flush, read and clean up
+// every second. A read must stay a few periods long, and the table must hold
+// at most a few periods of every pod.
 func TestManyPodsKeepRowsAndReadsBounded(t *testing.T) {
 	ctx := context.Background()
 	const pods = 50
 	testClock := clock.NewTestClock(time.Unix(1_700_000_000, 0))
 	store := newMemoryStore(testClock)
-	var background []func()
 	limiters := make([]*limiter, pods)
 	for i := range limiters {
-		l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(uint64(i), 1))})
-		require.NoError(t, err)
-		l.runInBackground = func(f func()) { background = append(background, f) }
-		limiters[i] = l
+		limiters[i] = newTestLimiterOn(t, testClock, store, uint64(i))
 	}
 	request := Request{Fingerprint: fingerprint("hot"), Rate: Rate{Limit: 1_000_000, Duration: time.Second}, Units: 1}
-	// 1 s buckets stay open for 1 s + 2 s + 5 s, so at most 9 are open, and
-	// at most 20 closed ones wait for a compaction.
-	const bucketsMax = 29
+	// A 10 s period with a sum of about 10 × e^10 fades about 21 s after it
+	// starts, plus `maxClockSkew`, so at most 4 periods have rows.
+	const periodsMax = 4
 
-	var rowsMax, bucketsReadMax int
-	for second := range 60 {
+	var rowsMax, periodsReadMax int
+	for second := range 300 {
 		for range 10 {
 			for _, l := range limiters {
 				result, err := l.Allow(ctx, request)
@@ -324,24 +244,17 @@ func TestManyPodsKeepRowsAndReadsBounded(t *testing.T) {
 		for _, l := range limiters {
 			require.NoError(t, l.flush(ctx))
 		}
-		for len(background) > 0 {
-			work := background[0]
-			background = background[1:]
-			work()
-		}
-		if second < 20 {
-			continue
-		}
+		require.NoError(t, limiters[second%pods].cleanUp(ctx))
 		rowsMax = max(rowsMax, len(store.storedRows(request.Fingerprint)))
-		rows, err := store.ReadRows(ctx, request.Fingerprint, limiters[0].podID, maxBucketsPerRead)
+		rows, err := store.ReadRows(ctx, request.Fingerprint, limiters[0].podID, maxPeriodsPerRead)
 		require.NoError(t, err)
-		buckets := map[int64]bool{}
+		periods := map[int64]bool{}
 		for _, r := range rows {
-			buckets[r.BucketStartNs] = true
+			periods[r.PeriodStartNs] = true
 		}
-		bucketsReadMax = max(bucketsReadMax, len(buckets))
+		periodsReadMax = max(periodsReadMax, len(periods))
 	}
-	t.Logf("at most %d stored rows and %d buckets per read", rowsMax, bucketsReadMax)
-	require.LessOrEqual(t, bucketsReadMax, bucketsMax)
-	require.LessOrEqual(t, rowsMax, pods*bucketsMax)
+	t.Logf("at most %d stored rows and %d periods per read", rowsMax, periodsReadMax)
+	require.LessOrEqual(t, periodsReadMax, periodsMax)
+	require.LessOrEqual(t, rowsMax, pods*periodsMax)
 }

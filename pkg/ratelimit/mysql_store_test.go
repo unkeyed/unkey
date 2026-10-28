@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"crypto/sha256"
+	"math"
 	"testing"
 	"time"
 
@@ -13,9 +14,9 @@ import (
 )
 
 // TestMySQLStoreRoundTrip guarantees the write rules of `UpsertRow`: a stale
-// write never moves a row back, and MySQL refuses writes to a closed bucket
-// by its own clock. It also guarantees that `ListBuckets` returns the own row
-// and one summed peer row per bucket, newest first, within its bucket limit.
+// write never moves a row back, and a float64 sum survives MySQL bit for
+// bit. It also guarantees that `ListPeriods` returns the own row and one
+// summed peer row per period, newest first, within its period limit.
 func TestMySQLStoreRoundTrip(t *testing.T) {
 	ctx := t.Context()
 	store := newMySQLTestStore(t)
@@ -25,35 +26,26 @@ func TestMySQLStoreRoundTrip(t *testing.T) {
 
 	fingerprint := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
 	podID := uid.New("", 16)
-	open := StoredRow{Fingerprint: fingerprint, BucketStartNs: 200, PodID: podID, ConsumedNs: 7, ResetAtNs: 210, CompactAfterNs: nowNs + time.Hour.Nanoseconds()}
-	closed := StoredRow{Fingerprint: fingerprint, BucketStartNs: 100, PodID: podID, ConsumedNs: 5, ResetAtNs: 105, CompactAfterNs: nowNs - time.Hour.Nanoseconds()}
-	require.NoError(t, store.WriteRows(ctx, []StoredRow{open, closed}))
-	stale := open
-	stale.ConsumedNs, stale.ResetAtNs = 3, 203
-	grown := closed
-	grown.ConsumedNs, grown.ResetAtNs = 9, 109
-	require.NoError(t, store.WriteRows(ctx, []StoredRow{stale, grown}))
+	deleteAfterNs := nowNs + time.Hour.Nanoseconds()
+	newer := StoredRow{Fingerprint: fingerprint, PeriodStartNs: 200, PodID: podID, ScaledSum: math.Pi * math.Exp(9.75), DeleteAfterNs: deleteAfterNs}
+	older := StoredRow{Fingerprint: fingerprint, PeriodStartNs: 100, PodID: podID, ScaledSum: 1.0 / 3, DeleteAfterNs: deleteAfterNs}
+	require.NoError(t, store.WriteRows(ctx, []StoredRow{newer, older}))
+	stale := newer
+	stale.ScaledSum, stale.DeleteAfterNs = 1, nowNs
+	require.NoError(t, store.WriteRows(ctx, []StoredRow{stale}))
 
 	rows, err := store.ReadRows(ctx, fingerprint, podID, 10)
 	require.NoError(t, err)
-	require.Equal(t, []StoredRow{open}, rows, "a refused insert stores zero consumed time, which reads leave out")
+	require.Equal(t, []StoredRow{newer, older}, rows)
 
-	peerA := StoredRow{Fingerprint: fingerprint, BucketStartNs: 200, PodID: uid.New("", 16), ConsumedNs: 2, ResetAtNs: 230, CompactAfterNs: open.CompactAfterNs}
-	peerB := StoredRow{Fingerprint: fingerprint, BucketStartNs: 200, PodID: uid.New("", 16), ConsumedNs: 3, ResetAtNs: 220, CompactAfterNs: open.CompactAfterNs}
-	older := StoredRow{Fingerprint: fingerprint, BucketStartNs: 150, PodID: peerA.PodID, ConsumedNs: 4, ResetAtNs: 154, CompactAfterNs: open.CompactAfterNs}
-	require.NoError(t, store.WriteRows(ctx, []StoredRow{peerA, peerB, older}))
-	peers := StoredRow{Fingerprint: fingerprint, BucketStartNs: 200, PodID: "", ConsumedNs: 5, ResetAtNs: 230, CompactAfterNs: open.CompactAfterNs}
-	olderPeers := older
-	olderPeers.PodID = ""
-	rows, err = store.ReadRows(ctx, fingerprint, podID, 10)
-	require.NoError(t, err)
-	require.Equal(t, []StoredRow{open, peers, olderPeers}, rows)
-
-	refused := StoredRow{Fingerprint: fingerprint, BucketStartNs: 300, PodID: podID, ConsumedNs: 1, ResetAtNs: 301, CompactAfterNs: closed.CompactAfterNs}
-	require.NoError(t, store.WriteRows(ctx, []StoredRow{refused}))
+	peerA := StoredRow{Fingerprint: fingerprint, PeriodStartNs: 200, PodID: uid.New("", 16), ScaledSum: 2.5, DeleteAfterNs: deleteAfterNs + 1}
+	peerB := StoredRow{Fingerprint: fingerprint, PeriodStartNs: 200, PodID: uid.New("", 16), ScaledSum: 0.25, DeleteAfterNs: deleteAfterNs}
+	require.NoError(t, store.WriteRows(ctx, []StoredRow{peerA, peerB}))
+	peers := StoredRow{Fingerprint: fingerprint, PeriodStartNs: 200, PodID: "", ScaledSum: 2.75, DeleteAfterNs: deleteAfterNs + 1}
+	newer.DeleteAfterNs = deleteAfterNs + 1
 	rows, err = store.ReadRows(ctx, fingerprint, podID, 1)
 	require.NoError(t, err)
-	require.Equal(t, []StoredRow{open, peers}, rows, "the limit counts buckets with consumed time, not rows")
+	require.Equal(t, []StoredRow{newer, peers}, rows, "the limit counts periods, not rows")
 }
 
 // TestMySQLStoreWritesAFullChunk guarantees that MySQL accepts a write of
@@ -68,8 +60,7 @@ func TestMySQLStoreWritesAFullChunk(t *testing.T) {
 	podID := uid.New("", 16)
 	rows := make([]StoredRow, maxRowsPerWrite)
 	for i := range rows {
-		startNs := int64(i+1) * 100
-		rows[i] = StoredRow{Fingerprint: fingerprint, BucketStartNs: startNs, PodID: podID, ConsumedNs: 1, ResetAtNs: startNs + 1, CompactAfterNs: nowNs + time.Hour.Nanoseconds()}
+		rows[i] = StoredRow{Fingerprint: fingerprint, PeriodStartNs: int64(i+1) * 100, PodID: podID, ScaledSum: 1, DeleteAfterNs: nowNs + time.Hour.Nanoseconds()}
 	}
 	require.NoError(t, store.WriteRows(ctx, rows))
 
@@ -78,74 +69,35 @@ func TestMySQLStoreWritesAFullChunk(t *testing.T) {
 	require.Len(t, read, maxRowsPerWrite)
 }
 
-// TestMySQLStoreCleanup guarantees the promises that cleanup relies on: due
-// rows page in `ListRowsToCompact` order, closed rows come oldest first with
-// the base row, and a cleanup whose rows changed after it read them changes
-// nothing.
-func TestMySQLStoreCleanup(t *testing.T) {
+// TestMySQLStoreDeletesFadedRows guarantees that `DeleteFadedRows` deletes
+// only rows past their delete time, at most its limit per call.
+func TestMySQLStoreDeletesFadedRows(t *testing.T) {
 	ctx := t.Context()
 	store := newMySQLTestStore(t)
+	// The database outlives test runs, so delete times are far in the past,
+	// and each run deletes everything before its own cut.
+	cutNs := int64(1_000_000) + time.Now().UnixNano()%1_000_000*10
+	_, err := store.DeleteFadedRows(ctx, cutNs+10, 1_000_000)
+	require.NoError(t, err)
 
-	// The database outlives test runs, so each run lists its own range.
-	dueNs := time.Now().Add(time.Hour).UnixNano()
-	beforeDue := DueRow{Fingerprint: lastFingerprint, CompactAfterNs: dueNs - 1}
-	// `first` sorts before `second`, and `first[0] > first[1]`, so a cursor
-	// that lost its first byte would sort before `first` and list it again.
-	first := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
-	first[0], first[1] = 1, 0
-	second := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
-	second[0] = 2
-	// CompactAfterNs is an hour ahead, so MySQL accepts the writes.
-	a := StoredRow{Fingerprint: second, BucketStartNs: 100, PodID: "a", ConsumedNs: 10, ResetAtNs: 110, CompactAfterNs: dueNs}
-	b := StoredRow{Fingerprint: second, BucketStartNs: 100, PodID: "b", ConsumedNs: 5, ResetAtNs: 104, CompactAfterNs: dueNs}
-	c := StoredRow{Fingerprint: first, BucketStartNs: 100, PodID: "a", ConsumedNs: 1, ResetAtNs: 101, CompactAfterNs: dueNs}
-	require.NoError(t, store.WriteRows(ctx, []StoredRow{a, b, c}))
+	fingerprint := sha256.Sum256([]byte(uid.New(uid.TestPrefix)))
+	podID := uid.New("", 16)
+	var rows []StoredRow
+	for i := range int64(5) {
+		rows = append(rows, StoredRow{Fingerprint: fingerprint, PeriodStartNs: i + 1, PodID: podID, ScaledSum: 1, DeleteAfterNs: cutNs - 1})
+	}
+	kept := StoredRow{Fingerprint: fingerprint, PeriodStartNs: 100, PodID: podID, ScaledSum: 1, DeleteAfterNs: cutNs}
+	require.NoError(t, store.WriteRows(ctx, append(rows, kept)))
 
-	page, err := store.ListDueRows(ctx, dueNs+1, beforeDue, 1)
+	deleted, err := store.DeleteFadedRows(ctx, cutNs, 3)
 	require.NoError(t, err)
-	require.Equal(t, []DueRow{{Fingerprint: first, CompactAfterNs: dueNs}}, page)
-	page, err = store.ListDueRows(ctx, dueNs+1, page[0], 3)
+	require.Equal(t, int64(3), deleted)
+	deleted, err = store.DeleteFadedRows(ctx, cutNs, 3)
 	require.NoError(t, err)
-	require.Equal(t, []DueRow{{Fingerprint: second, CompactAfterNs: dueNs}, {Fingerprint: second, CompactAfterNs: dueNs}}, page)
-	page, err = store.ListDueRows(ctx, dueNs+1, page[1], 3)
+	require.Equal(t, int64(2), deleted)
+	read, err := store.ReadRows(ctx, fingerprint, podID, 10)
 	require.NoError(t, err)
-	require.Empty(t, page, "the next page starts after the last fingerprint")
-	page, err = store.ListDueRows(ctx, dueNs, beforeDue, 2)
-	require.NoError(t, err)
-	require.Empty(t, page)
-
-	closed, err := store.ReadClosedRows(ctx, second, dueNs, 10)
-	require.NoError(t, err)
-	require.Empty(t, closed)
-	closed, err = store.ReadClosedRows(ctx, second, dueNs+1, 10)
-	require.NoError(t, err)
-	require.Equal(t, []StoredRow{a, b}, closed)
-
-	base := StoredRow{Fingerprint: second, BucketStartNs: 0, PodID: "", ConsumedNs: 15, ResetAtNs: 115, CompactAfterNs: dueNs + 1}
-	stale := b
-	stale.ConsumedNs = 4
-	applied, err := store.ApplyCleanup(ctx, []StoredRow{a, stale}, []StoredRow{base})
-	require.NoError(t, err)
-	require.False(t, applied)
-	closed, err = store.ReadClosedRows(ctx, second, dueNs+1, 10)
-	require.NoError(t, err)
-	require.Equal(t, []StoredRow{a, b}, closed, "a failed delete must roll back the earlier delete")
-
-	applied, err = store.ApplyCleanup(ctx, []StoredRow{a, b}, []StoredRow{base})
-	require.NoError(t, err)
-	require.True(t, applied)
-	closed, err = store.ReadClosedRows(ctx, second, 0, 10)
-	require.NoError(t, err)
-	require.Equal(t, []StoredRow{base}, closed, "the base row is always read")
-
-	next := base
-	next.ConsumedNs, next.ResetAtNs = 20, 120
-	applied, err = store.ApplyCleanup(ctx, []StoredRow{base}, []StoredRow{next})
-	require.NoError(t, err)
-	require.True(t, applied)
-	closed, err = store.ReadClosedRows(ctx, second, dueNs+1, 10)
-	require.NoError(t, err)
-	require.Equal(t, []StoredRow{next}, closed)
+	require.Equal(t, []StoredRow{kept}, read)
 }
 
 // TestMySQLStoreReturnsDatabaseErrors guarantees that a failed query reaches
@@ -157,23 +109,19 @@ func TestMySQLStoreReturnsDatabaseErrors(t *testing.T) {
 	store := NewMySQLStore(database.RW(), database.RO())
 	require.NoError(t, database.Close())
 
-	r := StoredRow{Fingerprint: sha256.Sum256([]byte(uid.New(uid.TestPrefix))), BucketStartNs: 100, PodID: uid.New("", 16), ConsumedNs: 1, ResetAtNs: 101, CompactAfterNs: 1}
+	r := StoredRow{Fingerprint: sha256.Sum256([]byte(uid.New(uid.TestPrefix))), PeriodStartNs: 100, PodID: uid.New("", 16), ScaledSum: 1, DeleteAfterNs: 1}
 	_, err = store.NowNs(ctx)
 	require.Error(t, err)
 	require.Error(t, store.WriteRows(ctx, []StoredRow{r}))
 	_, err = store.ReadRows(ctx, r.Fingerprint, r.PodID, 10)
 	require.Error(t, err)
-	_, err = store.ReadClosedRows(ctx, r.Fingerprint, 2, 10)
-	require.Error(t, err)
-	_, err = store.ListDueRows(ctx, 2, firstDueRow, 10)
-	require.Error(t, err)
-	_, err = store.ApplyCleanup(ctx, []StoredRow{r}, nil)
+	_, err = store.DeleteFadedRows(ctx, 2, 10)
 	require.Error(t, err)
 }
 
 // newMySQLTestStore returns a store on the test container through `pkg/db`,
 // as the API builds it.
-func newMySQLTestStore(t *testing.T) Store {
+func newMySQLTestStore(t testing.TB) Store {
 	t.Helper()
 	database, err := shareddb.New(shareddb.Config{PrimaryDSN: containers.MySQL(t).DSN, ReadOnlyDSN: "", Tags: sqlcomment.Static{}})
 	require.NoError(t, err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"testing"
 	"time"
@@ -19,9 +20,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
 )
 
-// The regional limiter uses fixed windows, so an exact reset time and a unit
-// that comes back after `Duration / Limit` show that the global limiter
-// decided.
+// The regional limiter uses fixed windows, so a reset time that follows the
+// decay of the level, and a unit that comes back once the level falls, show
+// that the global limiter decided.
 func TestGlobalNamespace(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -77,23 +78,22 @@ func TestGlobalNamespace(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.False(t, res.Body.Data.Success)
 		require.Equal(t, int64(0), res.Body.Data.Remaining)
-		require.Equal(t, start.Add(time.Minute).UnixMilli(), res.Body.Data.Reset)
+		// The level of 2 must fall to 1 before the next unit fits.
+		nextUnitAt := start.Add(time.Duration(math.Ceil(float64(time.Minute.Nanoseconds()) * math.Ln2)))
+		require.Equal(t, nextUnitAt.UnixMilli(), res.Body.Data.Reset)
 
-		// Units that MySQL has not acknowledged by the end of their bucket's
-		// writes count as lost, so the flush must land before the clock
-		// jumps.
 		h.Clock.Tick(time.Second)
 		fingerprint := namespace.GlobalFingerprint(h.Resources().UserWorkspace.ID, namespaceID, req.Identifier, time.Minute)
 		require.Eventually(t, func() bool {
-			buckets, err := ratelimitdb.Query.ListBuckets(ctx, h.DB.RO(), ratelimitdb.ListBucketsParams{PodID: "", Fingerprint: fingerprint[:], Limit: 10})
-			return err == nil && len(buckets) == 1 && buckets[0].PeerConsumedNs == time.Minute.Nanoseconds()
+			periods, err := ratelimitdb.Query.ListPeriods(ctx, h.DB.RO(), ratelimitdb.ListPeriodsParams{PodID: "", Fingerprint: fingerprint[:], Limit: 10})
+			return err == nil && len(periods) == 1 && periods[0].PeerScaledSum > 0
 		}, 5*time.Second, 10*time.Millisecond)
 
-		h.Clock.Tick(29 * time.Second)
+		h.Clock.Set(nextUnitAt)
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.True(t, res.Body.Data.Success)
-		require.Equal(t, int64(0), res.Body.Data.Remaining)
+		require.Equal(t, int64(1), res.Body.Data.Remaining, "a level below one unit counts as zero")
 	})
 
 	t.Run("applies the override limit and duration", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestGlobalNamespace(t *testing.T) {
 		require.Equal(t, overrideID, res.Body.Data.OverrideId)
 		require.Equal(t, int64(4), res.Body.Data.Limit)
 		require.Equal(t, int64(3), res.Body.Data.Remaining)
-		require.Equal(t, h.Clock.Now().Add(30*time.Second).UnixMilli(), res.Body.Data.Reset)
+		require.Equal(t, h.Clock.Now().UnixMilli(), res.Body.Data.Reset, "the next unit fits at once")
 	})
 
 	t.Run("shadow mode responds with the regional limiter and counts the global decision", func(t *testing.T) {

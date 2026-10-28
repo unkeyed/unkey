@@ -18,7 +18,7 @@ type DBTX interface {
 // passes the connection to every call.
 type Queries struct{}
 
-// BulkQueries holds the generated multi-row inserts.
+// BulkQueries holds the generated multi-row upserts.
 type BulkQueries struct{}
 
 // Query runs the generated queries of the ratelimit_state table.

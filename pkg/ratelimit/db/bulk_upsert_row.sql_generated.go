@@ -9,9 +9,9 @@ import (
 )
 
 // bulkUpsertRow is the base query for bulk insert
-const bulkUpsertRow = `INSERT INTO ratelimit_state ( fingerprint, bucket_start_ns, pod_id, consumed_ns, reset_at_ns, compact_after_ns ) VALUES %s ON DUPLICATE KEY UPDATE
-    reset_at_ns = IF(VALUES(consumed_ns) = 0, reset_at_ns, GREATEST(reset_at_ns, VALUES(reset_at_ns))),
-    consumed_ns = GREATEST(consumed_ns, VALUES(consumed_ns))`
+const bulkUpsertRow = `INSERT INTO ratelimit_state ( fingerprint, period_start_ns, pod_id, scaled_sum, delete_after_ns ) VALUES %s ON DUPLICATE KEY UPDATE
+    scaled_sum = GREATEST(scaled_sum, VALUES(scaled_sum)),
+    delete_after_ns = GREATEST(delete_after_ns, VALUES(delete_after_ns))`
 
 // UpsertRow performs bulk insert in a single query
 func (q *BulkQueries) UpsertRow(ctx context.Context, db DBTX, args []UpsertRowParams) error {
@@ -23,7 +23,7 @@ func (q *BulkQueries) UpsertRow(ctx context.Context, db DBTX, args []UpsertRowPa
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, IF(? < CAST(UNIX_TIMESTAMP(NOW(6)) * 1000000000 AS SIGNED), 0, ?), ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertRow, strings.Join(valueClauses, ", "))
@@ -32,12 +32,10 @@ func (q *BulkQueries) UpsertRow(ctx context.Context, db DBTX, args []UpsertRowPa
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.Fingerprint)
-		allArgs = append(allArgs, arg.BucketStartNs)
+		allArgs = append(allArgs, arg.PeriodStartNs)
 		allArgs = append(allArgs, arg.PodID)
-		allArgs = append(allArgs, arg.WriteUntilNs)
-		allArgs = append(allArgs, arg.ConsumedNs)
-		allArgs = append(allArgs, arg.ResetAtNs)
-		allArgs = append(allArgs, arg.CompactAfterNs)
+		allArgs = append(allArgs, arg.ScaledSum)
+		allArgs = append(allArgs, arg.DeleteAfterNs)
 	}
 
 	// Execute the bulk insert

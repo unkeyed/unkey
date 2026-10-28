@@ -1,19 +1,18 @@
-import { bigint, binary, index, mysqlTable, primaryKey } from "drizzle-orm/mysql-core";
+import { bigint, binary, double, index, mysqlTable, primaryKey } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 
 /**
- * Global rate limit state. Each limit splits time into buckets on a grid that
- * all pods share, and each pod writes one row per bucket it used. The state of
- * a limit is computed from all rows of its fingerprint:
+ * Global rate limit state. The level of a limit decays exponentially with
+ * the limit's duration as time constant. Time is split into periods of
+ * 10 × duration on a grid that all pods share, and each pod keeps one row per
+ * period it used. The level of a limit at `now` is
  *
- *   bucket_reset_at = MAX(bucket_start_ns + SUM(consumed_ns), MAX(reset_at_ns))
- *                     over the rows of one bucket
- *   reset_at        = MAX over buckets b of
- *                     (bucket_reset_at of b + SUM(consumed_ns of newer buckets))
+ *   level = SUM(scaled_sum × e^((period_start_ns − now) / duration))
+ *           over all rows of its fingerprint
  *
- * MySQL refuses writes to a bucket once its compact_after_ns has passed. Then
- * cleanup merges all closed buckets into one base row, or deletes them when the
- * limit is idle.
+ * scaled_sum only grows, so writes keep the greater value, and the level is
+ * the same however the writes of the pods are ordered. Cleanup deletes rows
+ * once their delete_after_ns has passed.
  */
 export const ratelimitState = mysqlTable(
   "ratelimit_state",
@@ -26,37 +25,31 @@ export const ratelimitState = mysqlTable(
      */
     fingerprint: binary("fingerprint", { length: 32 }).notNull(),
     /**
-     * Unix nanoseconds when the bucket starts. Buckets are max(1s,
-     * duration / 1000) wide. 0 marks the base row that holds
-     * all merged buckets.
+     * Unix nanoseconds when the period starts, a multiple of 10 × duration.
      */
-    bucketStartNs: bigint("bucket_start_ns", { mode: "bigint" }).notNull(),
+    periodStartNs: bigint("period_start_ns", { mode: "bigint" }).notNull(),
     /**
      * A random id of the API process that wrote the row. A new process gets a
-     * new id. Empty for the base row.
+     * new id.
      */
     podId: caseSensitiveVarchar("pod_id", { length: 48 }).notNull(),
     /**
-     * Time used by the requests this pod allowed in this bucket, in
-     * nanoseconds. A request adds cost × duration / limit.
+     * SUM(cost × e^((t − period_start_ns) / duration)) over the requests at
+     * time t that this pod allowed in this period. At most cost × e^10 per
+     * request, so a double keeps full precision.
      */
-    consumedNs: bigint("consumed_ns", { mode: "bigint" }).notNull(),
+    scaledSum: double("scaled_sum").notNull(),
     /**
-     * Unix nanoseconds when this row's requests would be free if they were the
-     * only ones of the limit.
+     * Unix nanoseconds after which the row's level is below 0.01 units for
+     * every pod, so cleanup may delete it.
      */
-    resetAtNs: bigint("reset_at_ns", { mode: "bigint" }).notNull(),
-    /**
-     * Unix nanoseconds after which MySQL refuses writes to the row and cleanup
-     * may merge or delete it.
-     */
-    compactAfterNs: bigint("compact_after_ns", { mode: "bigint" }).notNull(),
+    deleteAfterNs: bigint("delete_after_ns", { mode: "bigint" }).notNull(),
   },
   (table) => [
     primaryKey({
-      name: "ratelimit_state_fingerprint_bucket_start_ns_pod_id_pk",
-      columns: [table.fingerprint, table.bucketStartNs, table.podId],
+      name: "ratelimit_state_fingerprint_period_start_ns_pod_id_pk",
+      columns: [table.fingerprint, table.periodStartNs, table.podId],
     }),
-    index("ratelimit_state_compact_after_ns_idx").on(table.compactAfterNs),
+    index("ratelimit_state_delete_after_ns_idx").on(table.deleteAfterNs),
   ],
 );

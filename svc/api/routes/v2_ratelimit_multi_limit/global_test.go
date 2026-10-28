@@ -78,7 +78,7 @@ func TestGlobalNamespaces(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.False(t, res.Body.Data.Passed)
 		require.False(t, res.Body.Data.Limits[0].Passed)
-		require.Equal(t, start.Add(time.Minute).UnixMilli(), res.Body.Data.Limits[0].Reset)
+		require.Equal(t, start.UnixMilli(), res.Body.Data.Limits[0].Reset, "a limit of 1 fits again once the level dips below 1")
 		require.True(t, res.Body.Data.Limits[1].Passed)
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -87,7 +87,7 @@ func TestGlobalNamespaces(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.True(t, res.Body.Data.Passed)
 		require.Equal(t, int64(1), res.Body.Data.Limits[0].Remaining, "the denied call must not have spent a unit")
-		require.Equal(t, start.Add(30*time.Second).UnixMilli(), res.Body.Data.Limits[0].Reset)
+		require.Equal(t, start.UnixMilli(), res.Body.Data.Limits[0].Reset, "a level of 1 leaves room for one more unit")
 	})
 
 	t.Run("a call with a regional namespace stays regional", func(t *testing.T) {

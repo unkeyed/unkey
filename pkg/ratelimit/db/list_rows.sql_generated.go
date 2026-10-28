@@ -9,64 +9,50 @@ import (
 	"context"
 )
 
-const listBuckets = `-- name: ListBuckets :many
+const listPeriods = `-- name: ListPeriods :many
 SELECT
-    bucket_start_ns,
-    CAST(SUM(IF(pod_id = ?, consumed_ns, 0)) AS SIGNED) AS own_consumed_ns,
-    CAST(MAX(IF(pod_id = ?, reset_at_ns, 0)) AS SIGNED) AS own_reset_at_ns,
-    CAST(SUM(IF(pod_id <> ?, consumed_ns, 0)) AS SIGNED) AS peer_consumed_ns,
-    CAST(MAX(IF(pod_id <> ?, reset_at_ns, 0)) AS SIGNED) AS peer_reset_at_ns,
-    CAST(MAX(compact_after_ns) AS SIGNED) AS compact_after_ns
+    period_start_ns,
+    CAST(SUM(IF(pod_id = ?, scaled_sum, 0)) AS DOUBLE) AS own_scaled_sum,
+    CAST(SUM(IF(pod_id <> ?, scaled_sum, 0)) AS DOUBLE) AS peer_scaled_sum,
+    CAST(MAX(delete_after_ns) AS SIGNED) AS delete_after_ns
 FROM ratelimit_state
 WHERE fingerprint = ?
-    AND consumed_ns > 0
-GROUP BY bucket_start_ns
-ORDER BY bucket_start_ns DESC
+GROUP BY period_start_ns
+ORDER BY period_start_ns DESC
 LIMIT ?
 `
 
-type ListBucketsParams struct {
+type ListPeriodsParams struct {
 	PodID       string `db:"pod_id"`
 	Fingerprint []byte `db:"fingerprint"`
 	Limit       int32  `db:"limit"`
 }
 
-type ListBucketsRow struct {
-	BucketStartNs  int64 `db:"bucket_start_ns"`
-	OwnConsumedNs  int64 `db:"own_consumed_ns"`
-	OwnResetAtNs   int64 `db:"own_reset_at_ns"`
-	PeerConsumedNs int64 `db:"peer_consumed_ns"`
-	PeerResetAtNs  int64 `db:"peer_reset_at_ns"`
-	CompactAfterNs int64 `db:"compact_after_ns"`
+type ListPeriodsRow struct {
+	PeriodStartNs int64   `db:"period_start_ns"`
+	OwnScaledSum  float64 `db:"own_scaled_sum"`
+	PeerScaledSum float64 `db:"peer_scaled_sum"`
+	DeleteAfterNs int64   `db:"delete_after_ns"`
 }
 
-// ListBuckets returns one row per bucket of a fingerprint, newest first:
-// the totals of the pod `pod_id` and the totals of all other pods. A
-// decision needs only these, so a read grows with buckets, not with pods.
-// The base row counts as a peer in bucket 0. Rows with zero consumed_ns
-// are refused writes and count for nothing, so the query skips them before
-// grouping: a bucket of refused writes only must not count towards the
-// LIMIT. Grouping in key order lets the LIMIT stop the scan. If the result reaches the LIMIT, older buckets or the
-// base row may be missing, and the caller must not use the result for a
-// decision: a missing row can open the limit too early.
+// ListPeriods returns one row per period of a fingerprint, newest first:
+// the scaled sum of the pod `pod_id` and the summed scaled sums of all other
+// pods. A decision needs only these, so a read grows with periods, not with
+// pods. Grouping in key order lets the LIMIT stop the scan. If the result
+// reaches the LIMIT, the oldest periods are missing; they have faded.
 //
 //	SELECT
-//	    bucket_start_ns,
-//	    CAST(SUM(IF(pod_id = ?, consumed_ns, 0)) AS SIGNED) AS own_consumed_ns,
-//	    CAST(MAX(IF(pod_id = ?, reset_at_ns, 0)) AS SIGNED) AS own_reset_at_ns,
-//	    CAST(SUM(IF(pod_id <> ?, consumed_ns, 0)) AS SIGNED) AS peer_consumed_ns,
-//	    CAST(MAX(IF(pod_id <> ?, reset_at_ns, 0)) AS SIGNED) AS peer_reset_at_ns,
-//	    CAST(MAX(compact_after_ns) AS SIGNED) AS compact_after_ns
+//	    period_start_ns,
+//	    CAST(SUM(IF(pod_id = ?, scaled_sum, 0)) AS DOUBLE) AS own_scaled_sum,
+//	    CAST(SUM(IF(pod_id <> ?, scaled_sum, 0)) AS DOUBLE) AS peer_scaled_sum,
+//	    CAST(MAX(delete_after_ns) AS SIGNED) AS delete_after_ns
 //	FROM ratelimit_state
 //	WHERE fingerprint = ?
-//	    AND consumed_ns > 0
-//	GROUP BY bucket_start_ns
-//	ORDER BY bucket_start_ns DESC
+//	GROUP BY period_start_ns
+//	ORDER BY period_start_ns DESC
 //	LIMIT ?
-func (q *Queries) ListBuckets(ctx context.Context, db DBTX, arg ListBucketsParams) ([]ListBucketsRow, error) {
-	rows, err := db.QueryContext(ctx, listBuckets,
-		arg.PodID,
-		arg.PodID,
+func (q *Queries) ListPeriods(ctx context.Context, db DBTX, arg ListPeriodsParams) ([]ListPeriodsRow, error) {
+	rows, err := db.QueryContext(ctx, listPeriods,
 		arg.PodID,
 		arg.PodID,
 		arg.Fingerprint,
@@ -76,78 +62,14 @@ func (q *Queries) ListBuckets(ctx context.Context, db DBTX, arg ListBucketsParam
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListBucketsRow
+	var items []ListPeriodsRow
 	for rows.Next() {
-		var i ListBucketsRow
+		var i ListPeriodsRow
 		if err := rows.Scan(
-			&i.BucketStartNs,
-			&i.OwnConsumedNs,
-			&i.OwnResetAtNs,
-			&i.PeerConsumedNs,
-			&i.PeerResetAtNs,
-			&i.CompactAfterNs,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listClosedRows = `-- name: ListClosedRows :many
-SELECT bucket_start_ns, pod_id, consumed_ns, reset_at_ns, compact_after_ns
-FROM ratelimit_state
-WHERE fingerprint = ?
-    AND (bucket_start_ns = 0 OR compact_after_ns < ?)
-ORDER BY bucket_start_ns, pod_id
-LIMIT ?
-`
-
-type ListClosedRowsParams struct {
-	Fingerprint []byte `db:"fingerprint"`
-	BeforeNs    int64  `db:"before_ns"`
-	Limit       int32  `db:"limit"`
-}
-
-type ListClosedRowsRow struct {
-	BucketStartNs  int64  `db:"bucket_start_ns"`
-	PodID          string `db:"pod_id"`
-	ConsumedNs     int64  `db:"consumed_ns"`
-	ResetAtNs      int64  `db:"reset_at_ns"`
-	CompactAfterNs int64  `db:"compact_after_ns"`
-}
-
-// ListClosedRows returns the base row of a fingerprint and its rows whose
-// compact_after_ns is before before_ns, oldest bucket first. If the result
-// reaches the LIMIT, the rows of its newest bucket may be incomplete.
-//
-//	SELECT bucket_start_ns, pod_id, consumed_ns, reset_at_ns, compact_after_ns
-//	FROM ratelimit_state
-//	WHERE fingerprint = ?
-//	    AND (bucket_start_ns = 0 OR compact_after_ns < ?)
-//	ORDER BY bucket_start_ns, pod_id
-//	LIMIT ?
-func (q *Queries) ListClosedRows(ctx context.Context, db DBTX, arg ListClosedRowsParams) ([]ListClosedRowsRow, error) {
-	rows, err := db.QueryContext(ctx, listClosedRows, arg.Fingerprint, arg.BeforeNs, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListClosedRowsRow
-	for rows.Next() {
-		var i ListClosedRowsRow
-		if err := rows.Scan(
-			&i.BucketStartNs,
-			&i.PodID,
-			&i.ConsumedNs,
-			&i.ResetAtNs,
-			&i.CompactAfterNs,
+			&i.PeriodStartNs,
+			&i.OwnScaledSum,
+			&i.PeerScaledSum,
+			&i.DeleteAfterNs,
 		); err != nil {
 			return nil, err
 		}

@@ -8,9 +8,9 @@ import (
 
 var (
 	// readsTotal counts reads of peer rows by result: ok, error, saturated,
-	// row_limit, or invalid_rows. saturated means that `readsInFlightMax`
-	// reads were running, so the read did not start. Every result except ok means that a pod decides
-	// without the rows of its peers.
+	// or invalid_rows. saturated means that `readsInFlightMax` reads were
+	// running, so the read did not start. Every result except ok means that
+	// a pod decides without the latest rows of its peers.
 	readsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -18,38 +18,23 @@ var (
 			Name:      "reads_total",
 			Help:      "Reads of rate limit rows by result.",
 		},
-		vec.Values("result", "ok", "error", "saturated", "row_limit", "invalid_rows"),
+		vec.Values("result", "ok", "error", "saturated", "invalid_rows"),
 	)
 
-	// bucketsPerRead shows how close reads get to `maxBucketsPerRead`.
-	bucketsPerRead = promauto.NewHistogram(
+	// periodsPerRead shows how close reads get to `maxPeriodsPerRead`.
+	periodsPerRead = promauto.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "gcra",
-			Name:      "buckets_per_read",
-			Help:      "Buckets returned by one read of rate limit rows.",
-			Buckets:   []float64{1, 2, 4, 8, 12, 16, 25, 50, 100, 250, 500, 1000},
+			Name:      "periods_per_read",
+			Help:      "Periods returned by one read of rate limit rows.",
+			Buckets:   []float64{1, 2, 3, 4, 5, 6, 8, 12, 25, 50, 100},
 		},
-	)
-
-	// cleanupsTotal counts cleanups of one fingerprint by result: applied,
-	// unchanged, conflict, error, invalid_rows, or row_limit. A conflict
-	// means that another pod changed the rows first. row_limit means that one
-	// bucket has more rows than a cleanup read returns, so it cannot merge.
-	cleanupsTotal = vec.NewCounter(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "gcra",
-			Name:      "cleanups_total",
-			Help:      "Cleanups of one rate limit's rows by result.",
-		},
-		vec.Values("result", "applied", "unchanged", "conflict", "error", "invalid_rows", "row_limit"),
 	)
 
 	// cleanupPassesTotal counts cleanup passes by result: complete, bound, or
-	// error. bound means the pass stopped at one of its bounds with due rows
-	// left, so cleanup falls behind; the next pass starts within about a
-	// second.
+	// error. bound means the pass stopped at its bound with faded rows left,
+	// so cleanup falls behind; the next pass starts within about a second.
 	cleanupPassesTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -60,23 +45,20 @@ var (
 		vec.Values("result", "complete", "bound", "error"),
 	)
 
-	// rowsPerCleanupRead shows how close cleanup reads get to
-	// `maxRowsPerCleanupRead`. A full read leaves its newest bucket for the
-	// next cleanup.
-	rowsPerCleanupRead = promauto.NewHistogram(
-		prometheus.HistogramOpts{
+	// rowsDeletedTotal counts the faded rows that cleanup deleted.
+	rowsDeletedTotal = promauto.NewCounter(
+		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "gcra",
-			Name:      "rows_per_cleanup_read",
-			Help:      "Rows returned by one cleanup read of rate limit rows.",
-			Buckets:   []float64{1, 5, 10, 50, 100, 500, 1000, 2500, 4000, 4500, 5000},
+			Name:      "rows_deleted_total",
+			Help:      "Faded rate limit rows deleted by cleanup.",
 		},
 	)
 
 	// clockSkewExceededTotal counts cleanup passes that found the pod clock
-	// `maxClockSkew` or more away from the MySQL clock. Then MySQL may
-	// refuse writes that the pod still sends, or cleanup may merge rows that
-	// the pod still counts.
+	// `maxClockSkew` or more away from the MySQL clock. Then cleanup may
+	// delete a row while its level is still above `negligibleUnits` for the
+	// pods.
 	clockSkewExceededTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",

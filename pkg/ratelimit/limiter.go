@@ -33,7 +33,8 @@ type Limiter interface {
 	//
 	// The decision is atomic on this pod. Other pods' spending reaches it a
 	// few seconds late, so pods together can over-admit by what has not
-	// reached each other yet. The over-admission is paid back afterwards.
+	// reached each other yet. The over-admission is paid back afterwards,
+	// because the level decays from the true sum.
 	AllowMany(context.Context, []Request) ([]Result, error)
 
 	// Close stops the background work and writes every row that MySQL has
@@ -68,11 +69,11 @@ type Request struct {
 	//
 	// Include every scope that separates two limits, for example the
 	// workspace, the namespace or key, and the identifier. A missing scope
-	// makes two limits share one bucket.
+	// makes two limits share one level.
 	//
 	// Include `Rate.Duration` but not `Rate.Limit`. Two durations on the same
-	// identifier are two limits, and the duration sets the bucket width. A
-	// changed limit must keep what was already consumed.
+	// identifier are two limits, and the duration sets the decay and the
+	// periods. A changed limit must keep what was already consumed.
 	//
 	// Use an unambiguous encoding, for example a length prefix on each field,
 	// so that ("ab", "c") and ("a", "bc") give different fingerprints.
@@ -93,8 +94,8 @@ type Result struct {
 	// Remaining is how many more units fit right now.
 	Remaining int64
 
-	// ResetAt is when every unit is free again. It is never before the time
-	// of the request.
+	// ResetAt is when the next unit fits. It is never before the time of the
+	// request.
 	ResetAt time.Time
 }
 
@@ -104,20 +105,16 @@ const (
 	podIDLength = 16
 
 	// maxClockSkew is the largest difference between a pod clock and the
-	// MySQL clock that the limiter allows for. Cleanup counts passes beyond
-	// it in `clockSkewExceededTotal`.
+	// MySQL clock that the limiter allows for. Cleanup deletes a row this
+	// much after it faded, see `deleteAfterNs`, and counts passes beyond it
+	// in `clockSkewExceededTotal`.
 	maxClockSkew = 5 * time.Second
-
-	// maxWriteDelay is how long after a bucket ends a pod still writes its
-	// row: up to one flush interval plus the time a write takes to land.
-	// MySQL refuses writes from `maxClockSkew` later; see `compactAfterNs`.
-	maxWriteDelay = 2 * time.Second
 
 	flushInterval = time.Second
 	flushTimeout  = 5 * time.Second
 
 	// MySQL allows at most 65,535 placeholders in a prepared statement, and
-	// `UpsertRow` has 7 per row.
+	// `UpsertRow` has 5 per row.
 	maxRowsPerWrite = 5_000
 
 	// Peer rows younger than rowsFreshFor are used as they are. Older rows
@@ -132,38 +129,24 @@ const (
 	readWaitTimeout  = 100 * time.Millisecond
 	readsInFlightMax = 16
 
-	// maxBucketsPerRead bounds a read, which returns at most two rows per
-	// bucket, see `Store.ReadRows`. A busy limit has
-	// `(width + maxWriteDelay + maxClockSkew) / width` open buckets, at most
-	// 8 with buckets of at least one second, however many pods write them,
-	// plus closed buckets until a compaction merges them.
-	maxBucketsPerRead = 1_000
+	// maxPeriodsPerRead bounds a read, which returns at most two rows per
+	// period, see `Store.ReadRows`. A row lives for its period and then
+	// until it fades, about `Duration × (14 + ln Limit)` after the period
+	// starts, so a limit has 2 to 5 periods with rows. A read that reaches
+	// the bound misses only the oldest periods, which weigh less than
+	// e^-1000 of a unit.
+	maxPeriodsPerRead = 100
 
-	// A read that finds at least `minClosedBucketsPerCompaction` plus the
-	// pod's `compactionJitter` closed buckets starts a compaction of the
-	// fingerprint. The jitter keeps pods from compacting the same limit at
-	// once; the first one leaves the others nothing to merge.
-	minClosedBucketsPerCompaction = 10
-	maxCompactionJitter           = 10
-
-	// Each pod cleans up every `cleanupInterval`, give or take 20%, and
-	// starts at a random due row, so pods mostly clean different rows. While
-	// passes stop at a bound, the next one starts after
-	// `cleanupBacklogInterval`. A fingerprint takes about two round trips,
-	// so a pass of `maxFingerprintsPerCleanupPass` fits `cleanupTimeout`.
-	cleanupInterval               = time.Minute
-	cleanupBacklogInterval        = time.Second
-	cleanupTimeout                = 30 * time.Second
-	dueRowsPerPage                = 1_000
-	maxDueRowsListedPerPass       = 1_000_000
-	maxFingerprintsPerCleanupPass = 10_000
-	maxRowsPerCleanupRead         = 5_000
-	maxDeletesPerCleanupPass      = 100_000
+	// Each pod cleans up every `cleanupInterval`, give or take 20%. A pass
+	// deletes faded rows in batches of `rowsPerDelete`, at most
+	// `maxDeletesPerCleanupPass` batches. While passes stop at that bound,
+	// the next one starts after `cleanupBacklogInterval`.
+	cleanupInterval          = time.Minute
+	cleanupBacklogInterval   = time.Second
+	cleanupTimeout           = 30 * time.Second
+	rowsPerDelete            = 10_000
+	maxDeletesPerCleanupPass = 10
 )
-
-// A fingerprint whose closed rows fill a cleanup read must fit the delete
-// bound of a pass, or no pass ever cleans it.
-const _ = uint(maxDeletesPerCleanupPass - maxRowsPerCleanupRead)
 
 const podIDAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -178,10 +161,6 @@ type limiter struct {
 	// podID names this pod's rows. It is random and never reused.
 	podID string
 
-	// compactionJitter is in [0, maxCompactionJitter), see
-	// `minClosedBucketsPerCompaction`. It never changes.
-	compactionJitter int
-
 	shards [shardCount]shard
 	closed atomic.Bool
 
@@ -189,8 +168,8 @@ type limiter struct {
 	// a row marks it as committed.
 	flushMu sync.Mutex
 
-	// runInBackground runs background reads and compactions. It is
-	// `go f()`; the simulation replaces it to choose when they run.
+	// runInBackground runs background reads. It is `go f()`; the simulation
+	// replaces it to choose when they run.
 	runInBackground func(f func())
 
 	// readSlots holds one value per running read, see `readsInFlightMax`.
@@ -246,15 +225,14 @@ func newLimiter(config Config) (*limiter, error) {
 		random = mathrand.New(mathrand.NewPCG(binary.LittleEndian.Uint64(seed[:8]), binary.LittleEndian.Uint64(seed[8:])))
 	}
 	l := &limiter{
-		clock:            config.Clock,
-		store:            config.Store,
-		randomMu:         sync.Mutex{},
-		random:           random,
-		podID:            "",
-		compactionJitter: random.IntN(maxCompactionJitter),
-		shards:           [shardCount]shard{},
-		closed:           atomic.Bool{},
-		flushMu:          sync.Mutex{},
+		clock:    config.Clock,
+		store:    config.Store,
+		randomMu: sync.Mutex{},
+		random:   random,
+		podID:    "",
+		shards:   [shardCount]shard{},
+		closed:   atomic.Bool{},
+		flushMu:  sync.Mutex{},
 		runInBackground: func(f func()) {
 			go f()
 		},
@@ -330,14 +308,18 @@ func (l *limiter) AllowMany(ctx context.Context, requests []Request) ([]Result, 
 
 	results := make([]Result, len(requests))
 	for i, request := range requests {
-		e := entries[i]
+		d := decisions[i]
+		level := d.levelBefore
+		spent := int64(0)
 		if allAllowed {
-			e.apply(decisions[i], l.podID)
+			entries[i].apply(d, l.podID)
+			level = d.levelAfter
+			spent = request.Units
 		}
 		results[i] = Result{
-			Allowed:   decisions[i].allowed,
-			Remaining: request.Rate.remaining(nowNs, e.resetTimes.resetAtNs),
-			ResetAt:   time.Unix(0, max(e.resetTimes.resetAtNs, nowNs)),
+			Allowed:   d.allowed,
+			Remaining: request.Rate.remaining(d.levelBefore, spent),
+			ResetAt:   time.Unix(0, nowNs+request.Rate.nextUnitAfterNs(level)),
 		}
 	}
 	return results, nil
@@ -378,11 +360,10 @@ func (l *limiter) flushUntilStopped(ctx context.Context, ticker clock.Ticker) {
 }
 
 // flush writes every uncommitted row to the store and removes entries that
-// are fully committed and idle or unused. A failed write leaves its rows uncommitted,
-// so the next flush retries them with their latest values, and units of a
-// row past its last write move to the current row, see `carryLostUnits`. A row gets at
-// most one write per flush, so with flushes every `flushInterval` a pod
-// writes at most `⌈flushInterval / width⌉ + 1` rows per limit per flush,
+// `entry.evictable` allows. A failed or lost write leaves its rows
+// uncommitted, so the next flush sends their latest sums, which include the
+// lost units. A row gets at most one write per flush, so a pod writes one
+// row per active limit per flush, two when a period ends between flushes,
 // however many requests it allowed.
 //
 // It is safe to call concurrently: `flushMu` runs one flush at a time, and it
@@ -393,35 +374,21 @@ func (l *limiter) flush(ctx context.Context) error {
 	nowNs := l.clock.Now().UnixNano()
 
 	var writes []StoredRow
-	var errs []error
 	for i := range l.shards {
 		s := &l.shards[i]
 		s.mu.Lock()
 		for fingerprint, e := range s.entries {
-			err := e.carryLostUnits(nowNs)
-			if err != nil {
-				errs = append(errs, err)
-			}
-			uncommitted := e.uncommittedRows(nowNs)
-			// An idle entry decides like a new one. An entry without a
-			// successful read for `rowsStaleFor` holds no more than a new
-			// one reads before its first decision. So removing either
-			// changes no decision. A running read or compaction uses the
-			// entry when it finishes, so the entry stays until then.
-			idle := e.resetTimes.resetAtNs < nowNs
-			unused := e.rowsReadOK && nowNs-e.rowsReadAtNs >= rowsStaleFor.Nanoseconds()
-			if (idle || unused) && !e.hasWritableOwnRows(nowNs) && e.readDone == nil && !e.compacting {
+			if e.evictable(nowNs) {
 				delete(s.entries, fingerprint)
 				continue
 			}
-			for key, r := range uncommitted {
+			for key, r := range e.uncommittedRows() {
 				writes = append(writes, StoredRow{
-					Fingerprint:    fingerprint,
-					BucketStartNs:  key.bucketStartNs,
-					PodID:          l.podID,
-					ConsumedNs:     r.consumedNs,
-					ResetAtNs:      r.resetAtNs,
-					CompactAfterNs: compactAfterNs(key.bucketStartNs, e.bucketWidthNs),
+					Fingerprint:   fingerprint,
+					PeriodStartNs: key.periodStartNs,
+					PodID:         l.podID,
+					ScaledSum:     r.scaledSum,
+					DeleteAfterNs: deleteAfterNs(key.periodStartNs, e.periodNs, e.duration, r.scaledSum),
 				})
 			}
 		}
@@ -429,39 +396,26 @@ func (l *limiter) flush(ctx context.Context) error {
 	}
 	// Map order is random; sorting keeps simulation runs repeatable.
 	slices.SortFunc(writes, func(left, right StoredRow) int {
-		return cmp.Or(bytes.Compare(left.Fingerprint[:], right.Fingerprint[:]), cmp.Compare(left.BucketStartNs, right.BucketStartNs))
+		return cmp.Or(bytes.Compare(left.Fingerprint[:], right.Fingerprint[:]), cmp.Compare(left.PeriodStartNs, right.PeriodStartNs))
 	})
 
+	var errs []error
 	for chunk := range slices.Chunk(writes, maxRowsPerWrite) {
 		err := l.store.WriteRows(ctx, chunk)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		// MySQL also acknowledges a write that it refused. A write
-		// acknowledged by `lastWriteAtNs`, which is `maxClockSkew` before
-		// `CompactAfterNs`, ran before MySQL refuses the row,
-		// because the pod clock is less than `maxClockSkew` behind. A later
-		// acknowledgment proves nothing, so those units count as lost.
-		ackNs := l.clock.Now().UnixNano()
 		for _, written := range chunk {
-			if ackNs > written.CompactAfterNs-maxClockSkew.Nanoseconds() {
-				continue
-			}
 			s := &l.shards[shardIndex(written.Fingerprint)]
 			s.mu.Lock()
 			// Only flush removes entries, and it never removes one with
-			// uncommitted rows, so the entry still exists. A read may have
-			// forgotten the row if it passed its last write while this
-			// write ran; then nothing is left to mark.
+			// uncommitted rows, so the entry still exists.
 			e := s.entries[written.Fingerprint]
-			key := rowKey{bucketStartNs: written.BucketStartNs, podID: l.podID}
-			committed, ok := e.rows[key]
-			if ok {
-				committed.committedNs = max(committed.committedNs, written.ConsumedNs)
-				committed.committedResetAtNs = max(committed.committedResetAtNs, written.ResetAtNs)
-				e.rows[key] = committed
-			}
+			key := rowKey{periodStartNs: written.PeriodStartNs, podID: l.podID}
+			committed := e.rows[key]
+			committed.committedSum = max(committed.committedSum, written.ScaledSum)
+			e.rows[key] = committed
 			s.mu.Unlock()
 		}
 	}
@@ -541,35 +495,27 @@ func (l *limiter) readWithinSlots(ctx context.Context, fingerprint [32]byte, tim
 	defer func() { <-l.readSlots }()
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	return l.store.ReadRows(ctx, fingerprint, l.podID, maxBucketsPerRead)
+	return l.store.ReadRows(ctx, fingerprint, l.podID, maxPeriodsPerRead)
 }
 
 // readRows reads the rows of one fingerprint within `timeout` and merges them
-// into its entry. If the rows hold enough closed buckets, see
-// `minClosedBucketsPerCompaction`, it starts a compaction of the fingerprint
-// in the background. The caller must set `readDone` on the entry first, so
-// only one readRows runs per fingerprint.
-// It reads without a lock and then takes the shard lock to merge, so the
-// caller must not hold a shard lock.
+// into its entry. The caller must set `readDone` on the entry first, so only
+// one readRows runs per fingerprint. It reads without a lock and then takes
+// the shard lock to merge, so the caller must not hold a shard lock.
 func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte, timeout time.Duration) {
 	startedAtNs := l.clock.Now().UnixNano()
 	stored, err := l.readWithinSlots(ctx, fingerprint, timeout)
-	buckets := make(map[int64]int64, len(stored))
+	periods := make(map[int64]struct{}, len(stored))
 	for _, r := range stored {
-		buckets[r.BucketStartNs] = r.CompactAfterNs
+		periods[r.PeriodStartNs] = struct{}{}
 	}
-	bucketsPerRead.Observe(float64(len(buckets)))
+	periodsPerRead.Observe(float64(len(periods)))
 	result := "ok"
 	switch {
 	case errors.Is(err, errReadsSaturated):
 		result = "saturated"
 	case err != nil:
 		result = "error"
-	case len(buckets) >= maxBucketsPerRead:
-		// The base row or older buckets may be missing, and a missing row
-		// can open the limit too early, so the page is ignored.
-		result = "row_limit"
-		err = fault.New("the read reached the bucket limit")
 	}
 
 	s := &l.shards[shardIndex(fingerprint)]
@@ -577,9 +523,8 @@ func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte, timeout ti
 	defer s.mu.Unlock()
 	// Flush keeps an entry while `readDone` is set, so it still exists.
 	e := s.entries[fingerprint]
-	nowNs := l.clock.Now().UnixNano()
 	if err == nil {
-		err = e.replaceRows(stored, l.podID, nowNs)
+		err = e.replaceRows(stored, l.podID, l.clock.Now().UnixNano())
 		if err != nil {
 			result = "invalid_rows"
 		}
@@ -591,42 +536,6 @@ func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte, timeout ti
 	close(e.readDone)
 	e.readDone = nil
 	readsTotal.WithLabelValues(result).Inc()
-
-	// A closed bucket is past its `compactAfterNs` even by the MySQL clock.
-	closedBuckets := 0
-	for startNs, compactAfterNs := range buckets {
-		if startNs > 0 && compactAfterNs+maxClockSkew.Nanoseconds() < nowNs {
-			closedBuckets++
-		}
-	}
-	if result != "error" && closedBuckets >= minClosedBucketsPerCompaction+l.compactionJitter && !e.compacting {
-		e.compacting = true
-		l.runInBackground(func() { l.compact(context.Background(), fingerprint) })
-	}
-}
-
-// compact merges the closed rows of one fingerprint now, without waiting for
-// a cleanup pass. The caller must set `compacting` on the entry first, so only
-// one compact runs per fingerprint on this pod. It takes the shard lock
-// itself, so the caller must not hold a shard lock.
-func (l *limiter) compact(ctx context.Context, fingerprint [32]byte) {
-	ctx, cancel := context.WithTimeout(ctx, cleanupTimeout)
-	defer cancel()
-	nowNs, err := l.store.NowNs(ctx)
-	if err == nil {
-		pass := cleanupPass{handled: nil, deleted: 0, listed: 0, boundErr: nil}
-		_, err = l.cleanUpFingerprint(ctx, &pass, fingerprint, nowNs)
-		err = errors.Join(err, pass.boundErr)
-	}
-	if err != nil {
-		logger.Warn("unable to compact rate limit rows", "error", err.Error())
-	}
-
-	s := &l.shards[shardIndex(fingerprint)]
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	// Flush keeps an entry while `compacting` is set, so it still exists.
-	s.entries[fingerprint].compacting = false
 }
 
 // validate checks the requests and that the limiter is open. It is safe to

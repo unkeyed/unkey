@@ -5,10 +5,9 @@
 package db
 
 type RatelimitState struct {
-	Fingerprint    []byte `db:"fingerprint"`
-	BucketStartNs  int64  `db:"bucket_start_ns"`
-	PodID          string `db:"pod_id"`
-	ConsumedNs     int64  `db:"consumed_ns"`
-	ResetAtNs      int64  `db:"reset_at_ns"`
-	CompactAfterNs int64  `db:"compact_after_ns"`
+	Fingerprint   []byte  `db:"fingerprint"`
+	PeriodStartNs int64   `db:"period_start_ns"`
+	PodID         string  `db:"pod_id"`
+	ScaledSum     float64 `db:"scaled_sum"`
+	DeleteAfterNs int64   `db:"delete_after_ns"`
 }

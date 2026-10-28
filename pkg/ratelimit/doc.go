@@ -1,48 +1,48 @@
-// Package ratelimit is a global rate limiter: GCRA (Generic Cell Rate
-// Algorithm) over the rows of the `ratelimit_state` table.
+// Package ratelimit is a global rate limiter: an exponentially decaying
+// counter over the rows of the `ratelimit_state` table.
 //
-// GCRA stores one time, `reset_at`. A request is allowed if
-// `max(reset_at, now) + consumed time` stays at most one `Duration` ahead of
-// now, and that becomes the new `reset_at`. With 10 per 10 seconds:
+// A limit of `Limit` units per `Duration` keeps a level. Each admitted
+// request with cost c at time t adds c, and the level then decays with
+// `Duration` as time constant:
 //
-//	now       request   reset_at before   check               result   reset_at after
-//	12:00:00  1 unit    (past)            0s + 1s ≤ 10s       allow    12:00:01
-//	12:00:00  9 units   12:00:01          1s + 9s ≤ 10s       allow    12:00:10
-//	12:00:00  1 unit    12:00:10          10s + 1s > 10s      deny     12:00:10
-//	12:00:01  1 unit    12:00:10          9s + 1s ≤ 10s       allow    12:00:11
-//	12:00:30  1 unit    12:00:11 (past)   0s + 1s ≤ 10s       allow    12:00:31
+//	level(now) = Σ c × e^(−(now − t) / Duration)
 //
-// Each limit splits time into buckets of width `max(1s, Duration / 1000)`, on
-// edges that all pods share. Each pod writes one row per bucket that it used:
-// the consumed time and the GCRA `reset_at` of its own requests in that
-// bucket. Writes keep the larger values, so retries and reordered writes are
-// harmless, and a pod writes at most one row per bucket per flush, however
-// many requests it allows. A read returns per bucket this pod's row and one
-// row that sums its peers', so it grows with buckets, not with pods.
-// `computeResetTimes` computes `reset_at` from those rows. If two pods
-// over-admit before they see each other, the excess is paid back: pods A and
-// B each admit 10 at 12:00:00, and once both rows are visible, the next unit
-// fits at 12:00:20.
+// A request fits if `effective level + cost ≤ Limit`, where the effective
+// level is zero below one unit. Without that cut the level never reaches zero,
+// and `remaining` would never return to `Limit`. Denied requests and requests
+// for zero units change nothing. With 10 per 10 seconds:
 //
-// Once every write is visible, every pod computes the same `reset_at` from
-// the same rows. It is never later than the `reset_at` of plain GCRA over the
-// same requests, and earlier by less than one bucket width. It is exact when
-// one pod wrote each bucket. When several pods write one bucket, the rows do
-// not keep the order of their requests within the bucket, and that order can
-// change `reset_at` by up to a bucket width. See `bucketTotals.resetAtNs`.
+//	now       request   level before   check            result   level after
+//	12:00:00  10 units  0              0 + 10 ≤ 10      allow    10
+//	12:00:00  1 unit    10             10 + 1 > 10      deny     10
+//	12:00:01  1 unit    9.05           9.05 + 1 > 10    deny     9.05
+//	12:00:02  1 unit    8.19           8.19 + 1 ≤ 10    allow    9.19
+//	12:00:30  1 unit    0.56 (→ 0)     0 + 1 ≤ 10       allow    1.56
 //
-// MySQL refuses writes to a bucket from `width + maxWriteDelay +
-// maxClockSkew` after its start, by the MySQL clock. Then no write can change
-// it, and cleanup merges all closed buckets into one base row without
-// changing `reset_at`, or deletes them once the limit is idle; see
-// `planCleanup`. A pod that cannot get a write acknowledged in time moves its
-// units into its current bucket, see `entry.carryLostUnits`. A pod that
-// crashes loses the units it has not written.
+// From idle the burst is `Limit`, a steady stream is held to `Limit /
+// Duration`, and `remaining` is back at `Limit` after `Duration × ln(Limit)`.
 //
-// Do not replace the 128-bit math in [Rate] with plain integer math.
-// `units × Duration` overflows 64 bits for rates the API accepts:
+// Pods share the level exactly, in any order. Time is split into periods of
+// `10 × Duration` on edges that all pods share, see `periodLengthNs`. Each
+// pod writes one row per period that it used, with the scaled sum
 //
-//	rate                 Limit × Duration (ns)   uint64 max
-//	10,000 per 30 days   2.6e19                  1.8e19
-//	400M per minute      2.4e19                  1.8e19
+//	S = Σ c × e^((t − period start) / Duration)
+//
+// over its admitted requests in the period, and `level(now) = Σ S ×
+// e^(−(now − period start) / Duration)` over all rows. Addition does not
+// care about order, and S only grows, so writes keep the larger value:
+// retries and reordered writes are harmless, a lost write is carried by the
+// next flush with the latest sum, and a pod writes at most one row per
+// limit per flush, however many requests it allows. Once every write is
+// visible, every pod computes the level of one machine that saw all admitted
+// requests, up to float rounding. If two pods over-admit before they see
+// each other, the excess decays like any other units: pods A and B each admit
+// 75 of 100 per minute at 12:00:00, and once both rows are visible, the next
+// unit fits at 12:00:25.
+//
+// A row's level falls below 0.01 units at a time that follows from its sum,
+// its `delete_after_ns`, and cleanup then deletes it with one bounded delete.
+// Pods may write any period at any time: a write that lands after its row was
+// deleted inserts the pod's whole sum again, so nothing needs a write
+// deadline or a merge.
 package ratelimit
