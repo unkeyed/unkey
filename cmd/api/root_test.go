@@ -13,7 +13,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-func TestEveryAPILeafHasOneBodyFlag(t *testing.T) {
+func TestRequestBodyFlags(t *testing.T) {
 	var visit func(*cli.Command)
 	visit = func(command *cli.Command) {
 		if len(command.Commands) > 0 {
@@ -28,7 +28,11 @@ func TestEveryAPILeafHasOneBodyFlag(t *testing.T) {
 				count++
 			}
 		}
-		require.Equal(t, 1, count, command.Name)
+		if command.Name == "get-flags" || command.Name == "get-limits" {
+			require.Zero(t, count, command.Name)
+		} else {
+			require.Equal(t, 1, count, command.Name)
+		}
 	}
 	visit(Cmd())
 }

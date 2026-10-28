@@ -67,7 +67,17 @@ func listDeploymentsCmd() *cli.Command {
 				}
 				return util.Output(cmd, res.V2DeploymentsListDeploymentsResponseBody)
 			}
-			req := components.V2DeploymentsListDeploymentsRequestBody{Project: nil, App: nil, Environment: nil, Status: nil, Limit: nil, Cursor: nil}
+			req := components.V2DeploymentsListDeploymentsRequestBody{
+				Project:     nil,
+				App:         nil,
+				Environment: nil,
+				Status:      nil,
+				Branch:      nil,
+				StartTime:   nil,
+				EndTime:     nil,
+				Limit:       nil,
+				Cursor:      nil,
+			}
 			if v := cmd.String("project"); v != "" {
 				req.Project = &v
 			}

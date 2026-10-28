@@ -16,6 +16,13 @@ import (
 )
 
 func main() {
+	resources := api.ResourceCommands()
+	for _, command := range resources {
+		if command.Name == "workspace" {
+			command.Commands = append(command.Commands, workspace.Cmd.Commands...)
+		}
+	}
+
 	app := &cli.Command{
 		Flags:       []cli.Flag{},
 		Aliases:     []string{},
@@ -25,10 +32,9 @@ func main() {
 		Description: "Sign in with 'unkey login', then manage projects, apps, keys, and deployments.\nUse --json for scripts and --help for command options.",
 		Examples:    []string{"unkey login", "unkey projects list", "unkey keys list --api-id=api_123 --json"},
 		Version:     buildinfo.Version,
-		Commands: append(append(api.ResourceCommands(),
+		Commands: append(append(resources,
 			api.Cmd(),
 			auth.Cmd,
-			workspace.Cmd,
 			version.Cmd,
 			deploy.Cmd,
 			healthcheck.Cmd,
