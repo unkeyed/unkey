@@ -67,6 +67,11 @@ type Config struct {
 	// If 0, defaults to 10 seconds.
 	ReadTimeout time.Duration
 
+	// ReadHeaderTimeout is the maximum duration for reading request headers.
+	// If 0, defaults to 10 seconds. Set it even when ReadTimeout is disabled,
+	// so a client cannot hold a connection open by sending headers slowly.
+	ReadHeaderTimeout time.Duration
+
 	// WriteTimeout is the maximum duration before timing out writes of the response.
 	// If 0, defaults to 20 seconds.
 	// For proxy services, this should be longer than any downstream timeout.
@@ -133,9 +138,10 @@ func New(config Config) (*Server, error) {
 		// Services that use middleware-level timeouts (WithTimeout) and
 		// need long-lived connections (proxies, streaming) should pass
 		// negative values to disable server-level timeouts.
-		ReadTimeout:  fallback(config.ReadTimeout, 10*time.Second),
-		WriteTimeout: fallback(config.WriteTimeout, 20*time.Second),
-		IdleTimeout:  config.IdleTimeout,
+		ReadTimeout:       fallback(config.ReadTimeout, 10*time.Second),
+		ReadHeaderTimeout: fallback(config.ReadHeaderTimeout, 10*time.Second),
+		WriteTimeout:      fallback(config.WriteTimeout, 20*time.Second),
+		IdleTimeout:       config.IdleTimeout,
 	}
 
 	s := &Server{

@@ -39,10 +39,13 @@ paths:
           description: ok
 `)
 
+const testBodyBytesMax = 2 << 20
+
 func newTestExecutor(t *testing.T) *Executor {
 	t.Helper()
-	e, err := New(clock.New())
+	e, err := New(clock.New(), testBodyBytesMax)
 	require.NoError(t, err)
+	t.Cleanup(e.Close)
 	return e
 }
 
@@ -99,6 +102,153 @@ func TestExecute_InvalidRequest(t *testing.T) {
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)
 	require.Equal(t, codes.Frontline.OpenApi.InvalidRequest.URN(), urn)
+}
+
+func TestExecute_BodyExceedsLimit(t *testing.T) {
+	t.Parallel()
+
+	body := []byte(`{"name":"` + string(bytes.Repeat([]byte("K"), testBodyBytesMax)) + `"}`)
+
+	tests := []struct {
+		name          string
+		contentLength int64
+	}{
+		{name: "declared length", contentLength: int64(len(body))},
+		{name: "unknown length", contentLength: -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			req.ContentLength = tt.contentLength
+
+			_, err := newTestExecutor(t).Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+				SpecYaml: minimalSpec,
+			})
+			require.Error(t, err)
+
+			urn, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.User.BadRequest.RequestBodyTooLarge.URN(), urn)
+		})
+	}
+}
+
+func TestExecute_BodyExceedsLimitDoesNotReadBody(t *testing.T) {
+	t.Parallel()
+
+	e := newTestExecutor(t)
+	reader := &countingReader{data: bytes.Repeat([]byte("K"), int(testBodyBytesMax)*4)}
+	reader.remaining = len(reader.data)
+	req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
+	req.Header.Set("Content-Type", "application/json")
+	req.ContentLength = int64(reader.remaining)
+
+	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+		SpecYaml: minimalSpec,
+	})
+	require.Error(t, err)
+	require.Zero(t, reader.reads)
+}
+
+func TestExecute_BodyAtLimitPasses(t *testing.T) {
+	t.Parallel()
+
+	e := newTestExecutor(t)
+	pad := testBodyBytesMax - len(jsonBody(t, map[string]string{"name": ""}))
+	body := jsonBody(t, map[string]string{"name": string(bytes.Repeat([]byte("K"), pad))})
+	require.Len(t, body, testBodyBytesMax)
+	req := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.ContentLength = -1
+
+	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+		SpecYaml: minimalSpec,
+	})
+	require.NoError(t, err)
+
+	forwarded, err := io.ReadAll(req.Body)
+	require.NoError(t, err)
+	require.Equal(t, body, forwarded)
+	require.NotNil(t, req.GetBody)
+
+	replayed, err := req.GetBody()
+	require.NoError(t, err)
+	replayedBody, err := io.ReadAll(replayed)
+	require.NoError(t, err)
+	require.Equal(t, body, replayedBody)
+}
+
+func TestExecute_LimitDisabled(t *testing.T) {
+	t.Parallel()
+
+	e, err := New(clock.New(), 0)
+	require.NoError(t, err)
+	t.Cleanup(e.Close)
+
+	body := []byte(`{"name":"` + string(bytes.Repeat([]byte("K"), testBodyBytesMax)) + `"}`)
+	req := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.ContentLength = -1
+
+	_, err = e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+		SpecYaml: minimalSpec,
+	})
+	require.NoError(t, err)
+}
+
+func TestCapBody_KnownLengthBodyStaysStream(t *testing.T) {
+	t.Parallel()
+
+	e := newTestExecutor(t)
+	body := jsonBody(t, map[string]string{"name": "alice"})
+	reader := &countingReader{remaining: len(body), data: body}
+	req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
+	req.ContentLength = int64(len(body))
+
+	require.NoError(t, e.capBody(req))
+	require.Zero(t, reader.reads)
+	require.Nil(t, req.GetBody)
+}
+
+func TestCapBody_ChunkedBodyIsBuffered(t *testing.T) {
+	t.Parallel()
+
+	e := newTestExecutor(t)
+	body := jsonBody(t, map[string]string{"name": "alice"})
+	reader := &countingReader{remaining: len(body), data: body}
+	req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
+	req.ContentLength = -1
+
+	require.NoError(t, e.capBody(req))
+	require.Positive(t, reader.reads)
+	require.NotNil(t, req.GetBody)
+	require.EqualValues(t, len(body), req.ContentLength)
+
+	forwarded, err := io.ReadAll(req.Body)
+	require.NoError(t, err)
+	require.Equal(t, body, forwarded)
+}
+
+type countingReader struct {
+	data      []byte
+	remaining int
+	reads     int
+}
+
+func (r *countingReader) Read(p []byte) (int, error) {
+	r.reads++
+	if r.remaining == 0 {
+		return 0, io.EOF
+	}
+	n := min(len(p), r.remaining)
+	start := len(r.data) - r.remaining
+	copy(p, r.data[start:start+n])
+	r.remaining -= n
+	return n, nil
 }
 
 func TestExecute_InvalidSpec(t *testing.T) {

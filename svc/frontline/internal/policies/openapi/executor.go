@@ -1,7 +1,10 @@
 package openapi
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -21,10 +24,13 @@ type compiledSpec struct {
 }
 
 type Executor struct {
-	cache cache.Cache[string, *compiledSpec]
+	cache        cache.Cache[string, *compiledSpec]
+	bodyBytesMax int64
 }
 
-func New(clk clock.Clock) (*Executor, error) {
+// New creates an Executor. bodyBytesMax bounds the request body the validator
+// will read; zero or less disables the bound.
+func New(clk clock.Clock, bodyBytesMax int64) (*Executor, error) {
 	c, err := cache.New(cache.Config[string, *compiledSpec]{
 		Fresh:     time.Hour,
 		Stale:     24 * time.Hour,
@@ -36,7 +42,7 @@ func New(clk clock.Clock) (*Executor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Executor{cache: c}, nil
+	return &Executor{cache: c, bodyBytesMax: bodyBytesMax}, nil
 }
 
 // Close releases the spec cache's background workers.
@@ -53,6 +59,10 @@ func (e *Executor) Execute(
 	spec := cfg.GetSpecYaml()
 	if len(spec) == 0 {
 		return nil, nil
+	}
+
+	if err := e.capBody(req); err != nil {
+		return nil, err
 	}
 
 	compiled, err := e.getOrCompile(ctx, spec)
@@ -78,6 +88,56 @@ func (e *Executor) Execute(
 		fault.Code(codes.Frontline.OpenApi.InvalidRequest.URN()),
 		fault.Internal(publicMsg),
 		fault.Public(publicMsg),
+	)
+}
+
+// A known-length body under the limit stays a stream, so duplex and streaming
+// requests are not stalled. An unknown length must be buffered to bound what
+// the validator's own read can consume.
+func (e *Executor) capBody(req *http.Request) error {
+	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody {
+		return nil
+	}
+	if req.ContentLength > e.bodyBytesMax {
+		return bodyTooLarge(e.bodyBytesMax)
+	}
+	if req.ContentLength >= 0 {
+		return nil
+	}
+
+	body, err := io.ReadAll(io.LimitReader(req.Body, e.bodyBytesMax+1))
+	closeErr := req.Body.Close()
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
+			fault.Internal("unable to read request body for validation"),
+			fault.Public("The request body could not be read."),
+		)
+	}
+	if closeErr != nil {
+		return fault.Wrap(closeErr,
+			fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
+			fault.Internal("failed to close request body"),
+			fault.Public("The request body could not be read."),
+		)
+	}
+	if int64(len(body)) > e.bodyBytesMax {
+		return bodyTooLarge(e.bodyBytesMax)
+	}
+
+	req.Body = io.NopCloser(bytes.NewReader(body))
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(body)), nil
+	}
+	req.ContentLength = int64(len(body))
+	return nil
+}
+
+func bodyTooLarge(bytesMax int64) error {
+	return fault.New("request body too large",
+		fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
+		fault.Internal(fmt.Sprintf("request body exceeds %d bytes", bytesMax)),
+		fault.Public(fmt.Sprintf("The request body exceeds the maximum allowed size of %d bytes.", bytesMax)),
 	)
 }
 

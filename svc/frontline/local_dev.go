@@ -78,9 +78,10 @@ func ServeLocalDev(ctx context.Context, listener net.Listener, cfg LocalDevConfi
 	limiter := ratelimit.NewLocal(clk)
 	defer func() { err = errors.Join(err, limiter.Close()) }()
 	engine, err := policies.New(policies.Config{
-		KeyAuth:     authenticator,
-		RateLimiter: limiter,
-		Clock:       clk,
+		KeyAuth:            authenticator,
+		RateLimiter:        limiter,
+		Clock:              clk,
+		MaxRequestBodySize: 10 << 20,
 	})
 	if err != nil {
 		return err
@@ -116,6 +117,7 @@ func ServeLocalDev(ctx context.Context, listener net.Listener, cfg LocalDevConfi
 		StreamRequestBody:  true,
 		TrustedProxyCIDRs:  nil,
 		ReadTimeout:        -1,
+		ReadHeaderTimeout:  0,
 		WriteTimeout:       -1,
 		IdleTimeout:        0,
 	})
