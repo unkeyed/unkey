@@ -112,10 +112,11 @@ func (w *Workflow) plan(ctx restate.WorkflowContext, req *hydrav1.GdprErasureReq
 
 	case *hydrav1.GdprErasureRequest_Workspace:
 		workspaceID := target.Workspace.GetWorkspaceId()
-		if workspaceID == "" {
-			return nil, nil, restate.TerminalErrorf("workspace.workspace_id is required")
+		workspaceSlug := target.Workspace.GetWorkspaceSlug()
+		if workspaceID == "" || workspaceSlug == "" {
+			return nil, nil, restate.TerminalErrorf("workspace.workspace_id and workspace.workspace_slug are required")
 		}
-		s, err := w.guardWorkspace(ctx, workspaceID)
+		s, err := w.guardWorkspace(ctx, workspaceID, workspaceSlug)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -153,7 +154,8 @@ func (w *Workflow) plan(ctx restate.WorkflowContext, req *hydrav1.GdprErasureReq
 // workspaceRecord is what the workspace guard reads before any step runs. It
 // is journaled, so its fields are exported.
 type workspaceRecord struct {
-	DeleteProtection bool   `json:"delete_protection"`
+	Found            bool   `json:"found"`
+	Slug             string `json:"slug"`
 	OrgID            string `json:"org_id"`
 	StripeCustomerID string `json:"stripe_customer_id"`
 
@@ -166,15 +168,15 @@ type workspaceRecord struct {
 // reads the external ids the later steps delete. A missing workspaces row is
 // not an error: an earlier run may have deleted it, and every step still
 // converges.
-func (w *Workflow) guardWorkspace(ctx restate.WorkflowContext, workspaceID string) (*subject, error) {
+func (w *Workflow) guardWorkspace(ctx restate.WorkflowContext, workspaceID, workspaceSlug string) (*subject, error) {
 	record, err := restate.Run(ctx, func(rc restate.RunContext) (workspaceRecord, error) {
 		return w.readWorkspace(rc, workspaceID)
 	}, restate.WithName("read workspace"))
 	if err != nil {
 		return nil, fmt.Errorf("read workspace: %w", err)
 	}
-	if record.DeleteProtection {
-		return nil, restate.TerminalErrorf("workspace %s has delete protection; disable it before erasing", workspaceID)
+	if record.Found && record.Slug != workspaceSlug {
+		return nil, restate.TerminalErrorf("workspace %s has slug %q, not %q; refusing to erase it", workspaceID, record.Slug, workspaceSlug)
 	}
 	if record.StripeCustomerID != "" && record.StripeCustomerShares > 0 {
 		return nil, restate.TerminalErrorf("stripe customer %s also bills %d other workspaces; resolve that before erasing workspace %s",
@@ -201,7 +203,8 @@ func (w *Workflow) readWorkspace(ctx context.Context, workspaceID string) (works
 		return record, err
 	}
 	if err == nil {
-		record.DeleteProtection = workspace.DeleteProtection.Valid && workspace.DeleteProtection.Bool
+		record.Found = true
+		record.Slug = workspace.Slug
 		record.OrgID = workspace.OrgID
 	}
 

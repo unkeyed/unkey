@@ -21,6 +21,7 @@ import (
 // covers, plus the ids its child tables are counted by.
 type seededWorkspace struct {
 	id               string
+	slug             string
 	orgID            string
 	stripeCustomerID string
 	projectID        string
@@ -36,8 +37,8 @@ type seededWorkspace struct {
 func TestWorkspaceErasureRemovesEverythingAndSparesNeighbours(t *testing.T) {
 	h := harness.New(t)
 	internal := seedInternalWorkspace(t, h)
-	subject := seedWorkspace(t, h, internal, false)
-	neighbour := seedWorkspace(t, h, internal, false)
+	subject := seedWorkspace(t, h, internal)
+	neighbour := seedWorkspace(t, h, internal)
 
 	subjectBefore := countWorkspaceRows(t, h, subject)
 	require.Positive(t, subjectBefore.Workspaces)
@@ -52,7 +53,7 @@ func TestWorkspaceErasureRemovesEverythingAndSparesNeighbours(t *testing.T) {
 	neighbourBefore := countWorkspaceRows(t, h, neighbour)
 	neighbourClickHouseBefore := clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", neighbour.id)
 
-	res, err := erase(t, h, workspaceRequest(subject.id))
+	res, err := erase(t, h, workspaceRequest(subject.id, subject.slug))
 	require.NoError(t, err)
 	require.Equal(t, subject.stripeCustomerID, res.GetStripeCustomerId())
 
@@ -64,25 +65,27 @@ func TestWorkspaceErasureRemovesEverythingAndSparesNeighbours(t *testing.T) {
 	require.Equal(t, neighbourBefore, countWorkspaceRows(t, h, neighbour))
 	require.Equal(t, neighbourClickHouseBefore, clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", neighbour.id))
 
-	again, err := erase(t, h, workspaceRequest(subject.id))
+	again, err := erase(t, h, workspaceRequest(subject.id, subject.slug))
 	require.NoError(t, err)
 	requireNothingLeft(t, again)
 	require.Empty(t, again.GetStripeCustomerId())
 }
 
-// TestWorkspaceErasureRefusesProtectedWorkspace guarantees that a workspace
-// with delete protection is never erased: the request fails terminally before
-// any step runs.
-func TestWorkspaceErasureRefusesProtectedWorkspace(t *testing.T) {
+// TestWorkspaceErasureRefusesMismatchedSlug guarantees that a request whose
+// slug does not match the workspace is never erased: the request fails
+// terminally before any step runs.
+func TestWorkspaceErasureRefusesMismatchedSlug(t *testing.T) {
 	h := harness.New(t)
 	internal := seedInternalWorkspace(t, h)
-	subject := seedWorkspace(t, h, internal, true)
+	subject := seedWorkspace(t, h, internal)
 	before := countWorkspaceRows(t, h, subject)
 	clickhouseBefore := clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", subject.id)
+	wrongSlug := uid.New(uid.TestPrefix)
 
-	_, err := erase(t, h, workspaceRequest(subject.id))
+	_, err := erase(t, h, workspaceRequest(subject.id, wrongSlug))
 	require.Error(t, err)
-	require.ErrorContains(t, err, "delete protection")
+	require.ErrorContains(t, err, subject.slug)
+	require.ErrorContains(t, err, wrongSlug)
 
 	require.Equal(t, before, countWorkspaceRows(t, h, subject))
 	require.Equal(t, clickhouseBefore, clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", subject.id))
@@ -96,11 +99,11 @@ func TestWorkspaceErasureRefusesProtectedWorkspace(t *testing.T) {
 func TestWorkspaceErasureFailsClosedWithoutStripeKey(t *testing.T) {
 	h := harness.New(t, harness.WithoutStripe())
 	internal := seedInternalWorkspace(t, h)
-	subject := seedWorkspace(t, h, internal, false)
+	subject := seedWorkspace(t, h, internal)
 	before := countWorkspaceRows(t, h, subject)
 	clickhouseBefore := clickhouseCounts(t, h, "workspace_id", "workspace_id = ?", subject.id)
 
-	_, err := erase(t, h, workspaceRequest(subject.id))
+	_, err := erase(t, h, workspaceRequest(subject.id, subject.slug))
 	require.Error(t, err)
 	require.ErrorContains(t, err, "no stripe key")
 
@@ -109,9 +112,9 @@ func TestWorkspaceErasureFailsClosedWithoutStripeKey(t *testing.T) {
 	require.Empty(t, h.Erased.WorkOSOrgIDs())
 }
 
-func workspaceRequest(workspaceID string) *hydrav1.GdprErasureRequest {
+func workspaceRequest(workspaceID, workspaceSlug string) *hydrav1.GdprErasureRequest {
 	return &hydrav1.GdprErasureRequest{Subject: &hydrav1.GdprErasureRequest_Workspace{
-		Workspace: &hydrav1.GdprErasureWorkspace{WorkspaceId: workspaceID},
+		Workspace: &hydrav1.GdprErasureWorkspace{WorkspaceId: workspaceID, WorkspaceSlug: workspaceSlug},
 	}}
 }
 
@@ -129,16 +132,12 @@ func seedInternalWorkspace(t *testing.T, h *harness.Harness) internalWorkspace {
 	return internalWorkspace{id: ws.ID, keySpaceID: api.KeyAuthID.String}
 }
 
-func seedWorkspace(t *testing.T, h *harness.Harness, internal internalWorkspace, deleteProtection bool) seededWorkspace {
+func seedWorkspace(t *testing.T, h *harness.Harness, internal internalWorkspace) seededWorkspace {
 	t.Helper()
 	ctx := h.Ctx
 	now := time.Now()
 
 	ws := h.Seed.CreateWorkspace(ctx)
-	require.NoError(t, h.DB.UpdateWorkspaceDeleteProtection(ctx, db.UpdateWorkspaceDeleteProtectionParams{
-		DeleteProtection: sql.NullBool{Bool: deleteProtection, Valid: true},
-		ID:               ws.ID,
-	}))
 	stripeCustomerID := uid.New(uid.TestPrefix)
 	require.NoError(t, h.DB.SetWorkspaceStripeCustomerId(ctx, db.SetWorkspaceStripeCustomerIdParams{
 		StripeCustomerID: sql.NullString{String: stripeCustomerID, Valid: true},
@@ -254,6 +253,7 @@ func seedWorkspace(t *testing.T, h *harness.Harness, internal internalWorkspace,
 
 	return seededWorkspace{
 		id:               ws.ID,
+		slug:             ws.Slug,
 		orgID:            ws.OrgID,
 		stripeCustomerID: stripeCustomerID,
 		projectID:        project.ID,

@@ -38,6 +38,9 @@ message GdprErasureUser {
 // GdprErasureWorkspace is a whole workspace and everything it owns.
 message GdprErasureWorkspace {
   string workspace_id = 1;
+
+  // WorkspaceSlug must equal the workspace's slug, guarding against erasing the wrong workspace.
+  string workspace_slug = 2;
 }
 
 // GdprErasureEndUser is a customer's end user: every identity in the workspace

@@ -167,8 +167,10 @@ func (x *GdprErasureUser) GetWorkosUserId() string {
 
 // GdprErasureWorkspace is a whole workspace and everything it owns.
 type GdprErasureWorkspace struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	// WorkspaceSlug must equal the workspace's slug, guarding against erasing the wrong workspace.
+	WorkspaceSlug string `protobuf:"bytes,2,opt,name=workspace_slug,json=workspaceSlug,proto3" json:"workspace_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -206,6 +208,13 @@ func (*GdprErasureWorkspace) Descriptor() ([]byte, []int) {
 func (x *GdprErasureWorkspace) GetWorkspaceId() string {
 	if x != nil {
 		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *GdprErasureWorkspace) GetWorkspaceSlug() string {
+	if x != nil {
+		return x.WorkspaceSlug
 	}
 	return ""
 }
@@ -382,9 +391,10 @@ const file_hydra_v1_gdpr_erasure_proto_rawDesc = "" +
 	"\bend_user\x18\x03 \x01(\v2\x1c.hydra.v1.GdprErasureEndUserH\x00R\aendUserB\t\n" +
 	"\asubject\"7\n" +
 	"\x0fGdprErasureUser\x12$\n" +
-	"\x0eworkos_user_id\x18\x01 \x01(\tR\fworkosUserId\"9\n" +
+	"\x0eworkos_user_id\x18\x01 \x01(\tR\fworkosUserId\"`\n" +
 	"\x14GdprErasureWorkspace\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\"X\n" +
+	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12%\n" +
+	"\x0eworkspace_slug\x18\x02 \x01(\tR\rworkspaceSlug\"X\n" +
 	"\x12GdprErasureEndUser\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1f\n" +
 	"\vexternal_id\x18\x02 \x01(\tR\n" +

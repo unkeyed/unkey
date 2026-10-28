@@ -3115,12 +3115,6 @@ type Querier interface {
 	//  SET tier = ?, updated_at_m = ?
 	//  WHERE workspace_id = ?
 	UpdateWorkspaceBillingTier(ctx context.Context, arg UpdateWorkspaceBillingTierParams) error
-	// Sets a workspace's delete protection. Used only by tests: the dashboard
-	// creates every workspace protected, and a GDPR workspace erasure refuses a
-	// protected one.
-	//
-	//  UPDATE `workspaces` SET delete_protection = ? WHERE id = ?
-	UpdateWorkspaceDeleteProtection(ctx context.Context, arg UpdateWorkspaceDeleteProtectionParams) error
 	//UpdateWorkspaceEnabled
 	//
 	//  UPDATE `workspaces`
