@@ -1,4 +1,4 @@
-import { IconCheckOutline12, IconPenWriting3Outline18 } from "@unkey/icons";
+import { IconCheckOutline12 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "cn";
 import type { ReactNode } from "react";
@@ -33,11 +33,11 @@ export function StepCard({
           <Button
             type="button"
             variant="outline"
-            size="icon"
-            aria-label={`Change ${label.toLowerCase()}`}
+            size="sm"
+            aria-label={`Edit ${label.toLowerCase()}`}
             onClick={onOpen}
           >
-            <IconPenWriting3Outline18 className="size-3.5" />
+            Edit
           </Button>
         ) : null}
       </div>

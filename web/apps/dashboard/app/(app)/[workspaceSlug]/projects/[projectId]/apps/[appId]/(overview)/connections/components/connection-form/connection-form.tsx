@@ -4,6 +4,7 @@ import {
   SlidePanel,
   SlidePanelCloseButton,
   SlidePanelContent,
+  SlidePanelFooter,
   SlidePanelHeader,
   SlidePanelTitle,
 } from "@unkey/ui";
@@ -16,14 +17,14 @@ export function ConnectionForm({
   isOpen,
   onClose,
   form,
-  onSubmit,
+  footer,
   children,
 }: {
   title: string;
   isOpen: boolean;
   onClose: () => void;
   form: UseFormReturn<ConnectionFormValues>;
-  onSubmit: (values: ConnectionFormValues) => Promise<void>;
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   const { isDirty } = useFormState({ control: form.control });
@@ -37,13 +38,18 @@ export function ConnectionForm({
       <SlidePanelContent>
         <FormProvider {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={(event) => event.preventDefault()}
             className="flex h-full flex-col gap-3 overflow-y-auto px-6 pt-1 pb-8"
           >
             {children}
           </form>
         </FormProvider>
       </SlidePanelContent>
+      {footer ? (
+        <SlidePanelFooter className="flex items-center justify-between gap-3">
+          {footer}
+        </SlidePanelFooter>
+      ) : null}
     </SlidePanel>
   );
 }

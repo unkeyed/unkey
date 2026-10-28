@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { collection } from "@/lib/collections";
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
 import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
@@ -10,8 +11,10 @@ import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
-import { useRef } from "react";
+import { type ReactNode, useRef } from "react";
 import { isRedeployableDeploymentStatus } from "../../deployments/components/table/components/actions/deployment-action-eligibility";
+import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
+import { type RedeploySource, useRedeployDeployment } from "../../hooks/use-redeploy-deployment";
 import { connectionHostVariable } from "../connection-rules";
 import { type ConnectionFormValues, type ConnectionOp, planRemove, planSave } from "../model/form";
 import type { ConnectionEnvs, MergedConnection } from "../model/merge";
@@ -36,9 +39,16 @@ const TOASTS: Record<Action, { loading: string; success: string; error: string }
   },
 };
 
+export type AfterSave = "prompt" | "redeploy";
+
 export type ConnectionActions = {
-  save: (before: MergedConnection | null, values: ConnectionFormValues) => Promise<boolean>;
+  save: (
+    before: MergedConnection | null,
+    values: ConnectionFormValues,
+    after: AfterSave,
+  ) => Promise<boolean>;
   remove: (connection: MergedConnection) => Promise<boolean>;
+  planGate: ReactNode;
 };
 
 export function useConnectionActions({
@@ -53,6 +63,29 @@ export function useConnectionActions({
   const queryClient = useQueryClient();
   const running = useRef(false);
   const previewRedeploySource = usePreviewRedeploySource(projectId, appId, envs.preview?.id);
+  const { currentDeployment } = useAppCurrentDeployment();
+  const redeploy = useRedeployDeployment();
+  const { gated, openPaywall, planGate } = useDeployActionGate();
+
+  const redeploySourceFor = (touched: ReadonlySet<EnvironmentKind>): RedeploySource | undefined => {
+    if (touched.has("production")) {
+      return currentDeployment;
+    }
+    return touched.has("preview") ? previewRedeploySource : undefined;
+  };
+
+  const redeployNow = (touched: ReadonlySet<EnvironmentKind>) => {
+    const source = redeploySourceFor(touched);
+    if (!source) {
+      showRedeployBanner(touched);
+      return;
+    }
+    if (gated) {
+      openPaywall();
+      return;
+    }
+    redeploy.mutate(source);
+  };
 
   const showRedeployBanner = (touched: ReadonlySet<EnvironmentKind>) => {
     if (touched.has("production")) {
@@ -92,11 +125,13 @@ export function useConnectionActions({
     targetAppId,
     ops,
     description,
+    after = "prompt",
   }: {
     action: Action;
     targetAppId: string;
     ops: ConnectionOp[];
     description?: string;
+    after?: AfterSave;
   }) => {
     if (ops.length === 0) {
       return true;
@@ -108,12 +143,14 @@ export function useConnectionActions({
     const labels = TOASTS[action];
     const toastId = toast.loading(labels.loading);
     const touched = new Set<EnvironmentKind>();
+    let saved = false;
     try {
       for (const op of ops) {
         await apply(op, targetAppId);
         touched.add(op.env);
       }
       toast.success(labels.success, { id: toastId, description });
+      saved = true;
       return true;
     } catch (error) {
       toast.error(labels.error, {
@@ -122,7 +159,11 @@ export function useConnectionActions({
       });
       return false;
     } finally {
-      showRedeployBanner(touched);
+      if (saved && after === "redeploy") {
+        redeployNow(touched);
+      } else {
+        showRedeployBanner(touched);
+      }
       await queryClient.invalidateQueries({
         queryKey: queryKeys.connections.app(projectId, appId),
       });
@@ -131,13 +172,15 @@ export function useConnectionActions({
   };
 
   return {
-    save: (before, values) => {
+    planGate,
+    save: (before, values, after) => {
       const ops = planSave(before, values, envs);
       const renamed = ops.some((op) => op.type === "update" && op.name !== undefined);
       return run({
         action: before ? "update" : "add",
         targetAppId: values.targetAppId,
         ops,
+        after,
         description: renamed
           ? `Update your code to use ${connectionHostVariable(values.name.trim())}.`
           : undefined,

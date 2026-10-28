@@ -1,68 +1,29 @@
 "use client";
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { useGuardedNavigate } from "@/components/leave-guard";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   dismissSettingsBanner,
   useSettingsBannerTarget,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/pending-redeploy";
-import { useApp, useCurrentDeployment, useDeployActions } from "@/lib/deploy-data";
-import { routes } from "@/lib/navigation/routes";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { useMutation } from "@tanstack/react-query";
 import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
-import { Button, toast } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { cn } from "cn";
 import { useEffect } from "react";
+import { useAppCurrentDeployment } from "../(overview)/hooks/use-app-current-deployment";
+import { useRedeployDeployment } from "../(overview)/hooks/use-redeploy-deployment";
 import { GlowIcon } from "../components/glow-icon";
 
 export function PendingRedeployBanner() {
-  const { refetchDeployments, refetchApps } = useDeployActions();
-  const { data: app } = useApp();
-  const navigate = useGuardedNavigate();
-  const workspace = useWorkspaceNavigation();
+  const { app, currentDeployment } = useAppCurrentDeployment();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
-  const currentDeployment = useCurrentDeployment({ enabled: visible }).data ?? undefined;
   const target = useSettingsBannerTarget();
   const deployment = target ? target.deployment : currentDeployment;
 
   const show = visible && !!deployment && deployment.appId === app?.id;
 
-  const redeploy = useMutation({
-    mutationFn: async (deployment: {
-      id: string;
-      projectId: string;
-      appId: string;
-      environmentId: string;
-    }) => {
-      const res = await getUnkeyClient().deployments.createDeploymentV3({
-        project: deployment.projectId,
-        app: deployment.appId,
-        environment: deployment.environmentId,
-        deployment: { deploymentId: deployment.id },
-      });
-      return { deploymentId: res.data.deploymentId };
-    },
-    onSuccess: async (data, source) => {
-      refetchDeployments();
-      await refetchApps();
-      navigate(
-        routes.projects.apps.deployment({
-          workspaceSlug: workspace.slug,
-          projectId: source.projectId,
-          appId: source.appId,
-          deploymentId: data.deploymentId,
-        }),
-      );
-      dismissSettingsBanner();
-    },
-    onError: (error) => {
-      toast.error("Redeploy failed", { description: getErrorMessage(error) });
-    },
-  });
+  const redeploy = useRedeployDeployment();
 
   useEffect(
     function getDismissedAutomatically() {
