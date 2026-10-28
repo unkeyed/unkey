@@ -30,8 +30,8 @@ func TestPromoteDeploymentNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }
 
-// A key without promote_deployment must not learn whether the deployment
-// exists: the handler masks the authorization failure as a 404.
+// A key that can neither write nor read the deployment must not learn whether
+// it exists: the handler masks the authorization failure as a 404.
 func TestPromoteDeploymentInsufficientPermissionsMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))
@@ -85,7 +85,7 @@ func TestPromoteDeploymentReadVisibility(t *testing.T) {
 				missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: uid.New(uid.DeploymentPrefix)})
 				require.Equal(t, missing.Body.Error, res.Body.Error)
 			} else {
-				require.Contains(t, res.Body.Error.Detail, "promote_deployment")
+				require.Contains(t, res.Body.Error.Detail, "#write")
 			}
 		})
 	}

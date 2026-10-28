@@ -29,15 +29,15 @@ func TestStartDeploymentNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }
 
-// A key without start_deployment must not learn whether the deployment exists:
-// the handler masks the authorization failure as a 404.
+// A key that can neither write nor read the deployment must not learn whether
+// it exists: the handler masks the authorization failure as a 404.
 func TestStartDeploymentInsufficientPermissionsMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup()
-	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, rbac.U(urn.New().Workspace(setup.Workspace.ID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Read).Value)
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, rbac.U(urn.New().Workspace(setup.Workspace.ID).Project("*").App("*").Environment("*"), permissions.Read).Value)
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -72,7 +72,7 @@ func TestStartDeploymentReaderIsForbidden(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "start_deployment")
+	require.Contains(t, res.Body.Error.Detail, "#write")
 	require.Contains(t, res.Body.Error.Detail, "Log in again")
 }
 
