@@ -2,14 +2,12 @@
 
 import { useCallback, useState } from "react";
 
-export type PolicyPanel = { type: "add" } | { type: "edit"; key: string } | { type: "guide" };
+type PanelState<P> = { panel: P; session: number; isOpen: boolean };
 
-type PanelState = { panel: PolicyPanel; session: number; isOpen: boolean };
+export function useSlidePanels<P>() {
+  const [state, setState] = useState<PanelState<P> | null>(null);
 
-export function usePolicyPanels() {
-  const [state, setState] = useState<PanelState | null>(null);
-
-  const open = useCallback((panel: PolicyPanel) => {
+  const open = useCallback((panel: P) => {
     setState((prev) => ({ panel, session: (prev?.session ?? 0) + 1, isOpen: false }));
     // Base UI only animates an open transition, and `session` remounts the panel.
     requestAnimationFrame(() => setState((prev) => prev && { ...prev, isOpen: true }));
