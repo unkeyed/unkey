@@ -26,7 +26,8 @@ type policyUpdate struct {
 
 func updatePolicyCmd() *cli.Command {
 	return &cli.Command{
-		Name: "update-policy", Usage: "Update a single policy in place without resending the environment's full policy list",
+		Name:  "update-policy",
+		Usage: "Update a single policy in place without resending the environment's full policy list",
 		Description: `Update a single policy in place without resending the environment's full policy list. The policy keeps its id and position, and all other policies are untouched.
 
 Pass the policy fields to update as one JSON object. Omitted fields keep their stored values. Setting match to null or an empty array removes all match expressions. At least one update field is required, and at most one rule field may be set.
@@ -36,8 +37,23 @@ Required Permissions
 - environment.<environment_id>.update_policy (for a specific environment)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/gateway/update-policy` + util.Disclaimer,
-		Examples: []string{`unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"enabled":false}'`, `unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"match":null}'`, `unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"firewall":{"action":"ACTION_DENY"}}'`},
-		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("policy-id", "ID of the policy to update.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("policy", "Policy fields to update as a JSON object.", cli.Required(), cli.MutuallyExclusive("body"))},
+		Examples: []string{
+			`unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"enabled":false}'`,
+			`unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"match":null}'`,
+			`unkey api gateway update-policy --project=payments --app=payments-api --environment=production --policy-id=pol_123 --policy='{"firewall":{"action":"ACTION_DENY"}}'`,
+		},
+		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("policy-id", "ID of the policy to update.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("policy", "Policy fields to update as a JSON object.", cli.Required(), cli.MutuallyExclusive("body")),
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {

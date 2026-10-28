@@ -3,6 +3,7 @@ package environments
 import (
 	"context"
 	"fmt"
+
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -10,9 +11,23 @@ import (
 
 func removeEnvironmentVariablesCmd() *cli.Command {
 	return &cli.Command{
-		Name: "remove-environment-variables", Usage: "Remove variables from an environment", Description: "Remove the named environment variables from an environment in one request. Variables not named by the command remain unchanged.\n\nFor full documentation, see https://www.unkey.com/docs/api-reference/v2/environments/remove-environment-variables" + util.Disclaimer,
-		Examples: []string{"unkey api environments remove-environment-variables --project=payments --app=payments-api --environment=production --variables=OLD_TOKEN,LEGACY_URL"},
-		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.StringSlice("variables", "Comma-separated variable names to remove.", cli.Required(), cli.MutuallyExclusive("body"))},
+		Name:        "remove-environment-variables",
+		Usage:       "Remove variables from an environment",
+		Description: "Remove the named environment variables from an environment in one request. Variables not named by the command remain unchanged.\n\nFor full documentation, see https://www.unkey.com/docs/api-reference/v2/environments/remove-environment-variables" + util.Disclaimer,
+		Examples: []string{
+			"unkey api environments remove-environment-variables --project=payments --app=payments-api --environment=production --variables=OLD_TOKEN,LEGACY_URL",
+		},
+		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.StringSlice("variables", "Comma-separated variable names to remove.", cli.Required(), cli.MutuallyExclusive("body")),
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
