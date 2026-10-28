@@ -11,6 +11,7 @@ post:
 
     **Permissions:** Requires `ratelimit.*.read_override` or `ratelimit.<namespace_id>.read_override`
   operationId: ratelimit.listOverrides
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listOverrides
   security:
     - bearer: []

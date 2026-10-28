@@ -24,6 +24,7 @@ post:
     Use a root key with the `environment.*.read_domain` permission.
     A successful request returns an empty list if no matching domains are readable by your key.
   operationId: domains.listDomains
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listDomains
   x-unkey-idempotency: idempotent
   security:
