@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -114,7 +115,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					logArgs := []any{
 						"event", "frontline.request_error",
 						"responseSource", "frontline",
-						"error", err.Error(),
+						"error", err,
 						"requestId", s.RequestID(),
 						"code", string(urn),
 						"faultDomain", domain,
@@ -123,10 +124,24 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 						"path", s.Request().URL.Path,
 						"host", s.Request().Host,
 					}
+					if tracking, ok := proxy.RequestTrackingFromContext(ctx); ok {
+						logArgs = append(logArgs,
+							"workspaceId", tracking.WorkspaceID,
+							"projectId", tracking.ProjectID,
+							"appId", tracking.AppID,
+							"environmentId", tracking.EnvironmentID,
+							"deploymentId", tracking.DeploymentID,
+							"upstreamInstanceId", tracking.InstanceID,
+							"upstreamAddress", tracking.Address,
+						)
+					}
+					if spanContext := span.SpanContext(); spanContext.IsValid() {
+						logArgs = append(logArgs, "traceId", spanContext.TraceID().String(), "spanId", spanContext.SpanID().String())
+					}
 					if pageInfo.Status >= http.StatusInternalServerError {
-						logger.Error("frontline error", logArgs...)
+						slog.ErrorContext(ctx, "frontline error", logArgs...)
 					} else {
-						logger.Info("frontline request error", logArgs...)
+						slog.InfoContext(ctx, "frontline request error", logArgs...)
 					}
 				}
 
@@ -202,6 +217,7 @@ func shouldLogRequestError(clientContext context.Context, urn codes.URN) bool {
 		codes.Frontline.Auth.UsageExceeded.URN(),
 		codes.Frontline.Firewall.Denied.URN(),
 		codes.Frontline.OpenApi.InvalidRequest.URN(),
+		codes.Frontline.Routing.ConfigNotFound.URN(),
 		codes.Frontline.Routing.SpendLimitReached.URN(),
 		codes.Frontline.Routing.DeploymentOffline.URN(),
 		codes.Frontline.Internal.InvalidConfiguration.URN(),

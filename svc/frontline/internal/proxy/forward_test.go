@@ -19,11 +19,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 func TestForwardLogsTransportFaultsButNotClientCancellation(t *testing.T) {
 	var output bytes.Buffer
 	logger.AddHandler(slog.NewJSONHandler(&output, nil))
+	provider := sdktrace.NewTracerProvider()
+	t.Cleanup(func() { require.NoError(t, provider.Shutdown(context.Background())) })
 	for _, destination := range []string{"instance", "frontline"} {
 		for _, tc := range []struct {
 			name     string
@@ -60,6 +63,14 @@ func TestForwardLogsTransportFaultsButNotClientCancellation(t *testing.T) {
 				}
 				ctx = context.WithValue(ctx, http.ServerContextKey, &http.Server{})
 				ctx = WithRequestStartTime(ctx, clk.Now())
+				tracking := &RequestTracking{
+					WorkspaceID: uid.New(uid.WorkspacePrefix), ProjectID: uid.New(uid.ProjectPrefix),
+					AppID: uid.New(uid.AppPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix),
+					DeploymentID: uid.New(uid.DeploymentPrefix), InstanceID: uid.New(uid.InstancePrefix),
+				}
+				ctx = WithRequestTracking(ctx, tracking)
+				ctx, span := provider.Tracer("test").Start(ctx, "forward")
+				t.Cleanup(func() { span.End() })
 				req := httptest.NewRequestWithContext(ctx, http.MethodGet, "http://example.test/orders", nil)
 				sess := &zen.Session{}
 				require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
@@ -80,11 +91,19 @@ func TestForwardLogsTransportFaultsButNotClientCancellation(t *testing.T) {
 					return
 				}
 				var record struct {
-					Event     string `json:"event"`
-					RequestID string `json:"requestId"`
-					Target    string `json:"target"`
-					Message   string `json:"msg"`
-					Error     string `json:"error"`
+					Event              string `json:"event"`
+					RequestID          string `json:"requestId"`
+					Target             string `json:"target"`
+					Message            string `json:"msg"`
+					Error              string `json:"error"`
+					WorkspaceID        string `json:"workspaceId"`
+					ProjectID          string `json:"projectId"`
+					AppID              string `json:"appId"`
+					EnvironmentID      string `json:"environmentId"`
+					DeploymentID       string `json:"deploymentId"`
+					UpstreamInstanceID string `json:"upstreamInstanceId"`
+					TraceID            string `json:"traceId"`
+					SpanID             string `json:"spanId"`
 				}
 				require.NoError(t, json.Unmarshal(data, &record))
 				if tc.stream {
@@ -95,6 +114,18 @@ func TestForwardLogsTransportFaultsButNotClientCancellation(t *testing.T) {
 				require.Equal(t, sess.RequestID(), record.RequestID)
 				require.NotEmpty(t, record.Target)
 				require.Contains(t, record.Error+record.Message, tc.err.Error())
+				require.Equal(t, tracking.WorkspaceID, record.WorkspaceID)
+				require.Equal(t, tracking.ProjectID, record.ProjectID)
+				require.Equal(t, tracking.AppID, record.AppID)
+				require.Equal(t, tracking.EnvironmentID, record.EnvironmentID)
+				require.Equal(t, tracking.DeploymentID, record.DeploymentID)
+				if destination == "frontline" {
+					require.Empty(t, record.UpstreamInstanceID)
+				} else {
+					require.Equal(t, tracking.InstanceID, record.UpstreamInstanceID)
+				}
+				require.Equal(t, span.SpanContext().TraceID().String(), record.TraceID)
+				require.Equal(t, span.SpanContext().SpanID().String(), record.SpanID)
 			})
 		}
 	}

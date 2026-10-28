@@ -73,7 +73,7 @@ func TestOperationalLoggingKeepsFaultsAndCustomerTelemetry(t *testing.T) {
 		{name: "client_disconnect", code: codes.User.BadRequest.ClientClosedRequest.URN(), status: 499, canceled: true},
 		{name: "unexpected_cancellation", code: codes.User.BadRequest.ClientClosedRequest.URN(), status: 499, operational: true},
 		{name: "no_instances", code: codes.Frontline.Routing.NoRunningInstances.URN(), status: 503, operational: true},
-		{name: "unknown_host", code: codes.Frontline.Routing.ConfigNotFound.URN(), status: 404, operational: true, unresolved: true},
+		{name: "unknown_host", code: codes.Frontline.Routing.ConfigNotFound.URN(), status: 404, unresolved: true},
 		{name: "database", code: codes.Frontline.Internal.ConfigLoadFailed.URN(), status: 500, operational: true, unresolved: true},
 		{name: "proxy_fault", code: codes.Frontline.Proxy.BadGateway.URN(), status: 502, operational: true},
 		{name: "platform_override", code: codes.Frontline.Auth.InvalidKey.URN(), category: codes.CategoryPlatform, status: 401, operational: true},
@@ -148,6 +148,8 @@ func TestOperationalLoggingKeepsFaultsAndCustomerTelemetry(t *testing.T) {
 			requestID := response.Header().Get(proxy.HeaderRequestID)
 			require.NotEmpty(t, requestID)
 			records := logs.Since(snapshot)
+			ended := spans.Ended()
+			require.NotEmpty(t, ended)
 			if tc.operational {
 				require.Len(t, records, 1)
 				attrs := loggertest.FlatAttrs(records[0])
@@ -156,6 +158,17 @@ func TestOperationalLoggingKeepsFaultsAndCustomerTelemetry(t *testing.T) {
 				require.Equal(t, requestID, attrs["requestId"])
 				require.NotEmpty(t, attrs["error"])
 				require.Equal(t, string(code), attrs["code"])
+				require.Equal(t, decision.WorkspaceID, attrs["workspaceId"])
+				require.Equal(t, decision.ProjectID, attrs["projectId"])
+				require.Equal(t, decision.AppID, attrs["appId"])
+				require.Equal(t, decision.EnvironmentID, attrs["environmentId"])
+				require.Equal(t, decision.DeploymentID, attrs["deploymentId"])
+				require.Equal(t, ended[len(ended)-1].SpanContext().TraceID().String(), attrs["traceId"])
+				require.Equal(t, ended[len(ended)-1].SpanContext().SpanID().String(), attrs["spanId"])
+				if tc.code != "" {
+					require.NotEmpty(t, attrs["error.steps"])
+					require.NotEmpty(t, attrs["error.location"])
+				}
 			} else {
 				require.Empty(t, records)
 			}
@@ -170,8 +183,6 @@ func TestOperationalLoggingKeepsFaultsAndCustomerTelemetry(t *testing.T) {
 				require.Empty(t, rows[0].QueryString)
 			}
 			require.Equal(t, before+1, requestCount(t, counter))
-			ended := spans.Ended()
-			require.NotEmpty(t, ended)
 			require.Contains(t, ended[len(ended)-1].Attributes(), attribute.String("request_id", requestID))
 			require.Contains(t, ended[len(ended)-1].Attributes(), attribute.Int("status_code", tc.status))
 		})
