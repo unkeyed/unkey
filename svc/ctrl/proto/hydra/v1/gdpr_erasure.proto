@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package hydra.v1;
+
+import "dev/restate/sdk/go.proto";
+
+option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
+
+// GdprErasureWorkflow erases one GDPR subject's personal data from every store
+// Unkey controls. Operators start it over Restate ingress.
+//
+// The workflow key is the GDPR request reference, so one request runs once and
+// its result stays attached to that reference. Every step converges: running a
+// second request for the same subject finds nothing left and reports zero rows.
+// Deletes are forward-only, so an exhausted retry pauses the run for an
+// operator to resume instead of killing it halfway.
+service GdprErasureWorkflow {
+  option (dev.restate.sdk.go.service_type) = WORKFLOW;
+
+  rpc Run(GdprErasureRequest) returns (GdprErasureResponse) {
+    option (dev.restate.sdk.go.handler_type) = WORKFLOW_RUN;
+  }
+}
+
+message GdprErasureRequest {
+  oneof subject {
+    GdprErasureUser user = 1;
+    GdprErasureWorkspace workspace = 2;
+    GdprErasureEndUser end_user = 3;
+  }
+}
+
+// GdprErasureUser is a dashboard user, identified by their WorkOS user id.
+message GdprErasureUser {
+  string workos_user_id = 1;
+}
+
+// GdprErasureWorkspace is a whole workspace and everything it owns.
+message GdprErasureWorkspace {
+  string workspace_id = 1;
+}
+
+// GdprErasureEndUser is a customer's end user: every identity in the workspace
+// with this external id, including soft-deleted ones.
+message GdprErasureEndUser {
+  string workspace_id = 1;
+  string external_id = 2;
+}
+
+message GdprErasureResponse {
+  // Steps lists every step in the order it ran.
+  repeated GdprErasureStepResult steps = 1;
+
+  // StripeCustomerID is the Stripe customer a workspace erasure deleted. Empty
+  // for other subjects and for workspaces without a Stripe customer.
+  string stripe_customer_id = 2;
+}
+
+message GdprErasureStepResult {
+  string name = 1;
+  int64 rows_affected = 2;
+}
