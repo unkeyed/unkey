@@ -952,13 +952,17 @@ func TestCreateFollowsAppSource(t *testing.T) {
 	})
 }
 
-// TestCreateRefusesTheBuildRepository covers every path that names an image in
-// the build repository shared by all projects.
+// TestCreateRefusesTheBuildRepository covers every path that names an image on
+// the build registry's host, whose repositories krane pulls with Unkey's
+// credentials.
 func TestCreateRefusesTheBuildRepository(t *testing.T) {
 	for name, image := range map[string]string{
-		"digest":                fixtureBuildRepository + "@sha256:" + strings.Repeat("a", 64),
-		"uppercase host":        strings.ToUpper("registry.unkey.test") + "/builds:v1",
-		"deleted project's tag": fixtureBuildRepository + ":" + uid.New(uid.ProjectPrefix) + "-" + uid.New(uid.DeploymentPrefix),
+		"digest":                         fixtureBuildRepository + "@sha256:" + strings.Repeat("a", 64),
+		"uppercase host":                 strings.ToUpper("registry.unkey.test") + "/builds:v1",
+		"deleted project's tag":          fixtureBuildRepository + ":" + uid.New(uid.ProjectPrefix) + "-" + uid.New(uid.DeploymentPrefix),
+		"another repository's tag":       "registry.unkey.test/other:v1",
+		"another repository's digest":    "registry.unkey.test/other@sha256:" + strings.Repeat("c", 64),
+		"another repository on port 443": "Registry.Unkey.test:443/other:v1",
 	} {
 		t.Run("request image by "+name, func(t *testing.T) {
 			ctx := context.Background()
@@ -1094,6 +1098,19 @@ func TestCreateRefusesTheBuildRepository(t *testing.T) {
 		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
 		require.True(t, ok)
 		require.Equal(t, digest, image.OciImage.GetImage())
+	})
+
+	t.Run("host that only starts with the build registry's host", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: "registry.unkey.test.example.com/other:v1"},
+		}
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, resp.GetOutcome())
 	})
 }
 
