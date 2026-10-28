@@ -19,7 +19,7 @@ import {
 } from "@unkey/ui";
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { MethodBadge } from "./method-badge";
-import { HTTP_METHODS, INTERVAL_SECONDS, type RuntimeValues } from "./model";
+import { HEALTHCHECK_FIELDS, HTTP_METHODS, type RuntimeValues } from "./model";
 
 export function HealthcheckFields({ form }: { form: UseFormReturn<RuntimeValues> }) {
   const { control, register } = form;
@@ -82,45 +82,51 @@ export function HealthcheckFields({ form }: { form: UseFormReturn<RuntimeValues>
                   autoComplete="off"
                   spellCheck={false}
                   className="px-3 font-mono"
-                  {...register("healthcheck.path", { deps: "healthcheck.intervalSeconds" })}
+                  {...register("healthcheck.path", {
+                    deps: HEALTHCHECK_FIELDS.map(({ name }) => `healthcheck.${name}` as const),
+                  })}
                 />
               </InputGroup>
             )}
           </FormField>
         </SettingsRowContent>
       </SettingsRow>
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Health check interval</SettingsRowTitle>
-        </SettingsRowHeader>
-        <SettingsRowContent>
-          <FormField error={errors?.intervalSeconds?.message}>
-            {(field) => (
-              <InputGroup variant={field.variant} className="w-28">
-                <InputGroupInput
-                  data-1p-ignore
-                  id={field.id}
-                  type="number"
-                  inputMode="numeric"
-                  min={INTERVAL_SECONDS.min}
-                  max={INTERVAL_SECONDS.max}
-                  step={1}
-                  aria-label="Health check interval in seconds"
-                  aria-invalid={field.invalid}
-                  aria-describedby={field.describedBy}
-                  disabled={pathEmpty}
-                  className="pl-3 font-mono tabular-nums"
-                  onWheelCapture={(e) => e.currentTarget.blur()}
-                  {...register("healthcheck.intervalSeconds", { valueAsNumber: true })}
-                />
-                <InputGroupAddon align="inline-end">
-                  <InputGroupText className="font-mono">s</InputGroupText>
-                </InputGroupAddon>
-              </InputGroup>
-            )}
-          </FormField>
-        </SettingsRowContent>
-      </SettingsRow>
+      {HEALTHCHECK_FIELDS.map(({ name, label, min, max, unit }) => (
+        <SettingsRow key={name}>
+          <SettingsRowHeader>
+            <SettingsRowTitle>{label}</SettingsRowTitle>
+          </SettingsRowHeader>
+          <SettingsRowContent>
+            <FormField error={errors?.[name]?.message}>
+              {(field) => (
+                <InputGroup variant={field.variant} className="w-28">
+                  <InputGroupInput
+                    data-1p-ignore
+                    id={field.id}
+                    type="number"
+                    inputMode="numeric"
+                    min={min}
+                    max={max}
+                    step={1}
+                    aria-label={unit === "s" ? `${label} in seconds` : label}
+                    aria-invalid={field.invalid}
+                    aria-describedby={field.describedBy}
+                    disabled={pathEmpty}
+                    className="pl-3 font-mono tabular-nums"
+                    onWheelCapture={(e) => e.currentTarget.blur()}
+                    {...register(`healthcheck.${name}`, { valueAsNumber: true })}
+                  />
+                  {unit ? (
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupText className="font-mono">{unit}</InputGroupText>
+                    </InputGroupAddon>
+                  ) : null}
+                </InputGroup>
+              )}
+            </FormField>
+          </SettingsRowContent>
+        </SettingsRow>
+      ))}
     </>
   );
 }
