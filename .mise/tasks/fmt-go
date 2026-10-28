@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Format Go packages (default: ./...)"
-set -euo pipefail
-
-go fmt "${@:-./...}"
