@@ -205,3 +205,32 @@ func TestDeleteRules(t *testing.T) {
 	// remove a rule that changed since it was listed
 	require.JSONEq(t, `[{"pattern":"builds/ws_KEBAP","expected_version":4},{"pattern":"builds/ws_gone","expected_version":1}]`, string(gotBody))
 }
+
+func TestCancelInvocation(t *testing.T) {
+	for _, tc := range []struct {
+		status  int
+		wantErr bool
+	}{
+		{status: http.StatusAccepted},
+		{status: http.StatusNotFound},
+		{status: http.StatusConflict},
+		{status: http.StatusInternalServerError, wantErr: true},
+	} {
+		t.Run(http.StatusText(tc.status), func(t *testing.T) {
+			invocationID := uid.New("inv")
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, http.MethodPatch, r.Method)
+				require.Equal(t, "/invocations/"+invocationID+"/cancel", r.URL.Path)
+				w.WriteHeader(tc.status)
+			}))
+			t.Cleanup(server.Close)
+
+			err := New(Config{BaseURL: server.URL}).CancelInvocation(context.Background(), invocationID)
+			if tc.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}

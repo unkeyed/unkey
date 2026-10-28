@@ -73,14 +73,15 @@ func (c *Client) registerDeployment(ctx context.Context, uri string, force bool)
 }
 
 // CancelInvocation cancels a running invocation.
-// Returns nil if the invocation was successfully canceled or if it was not found
-// (already completed or never existed).
+// Returns nil if the invocation was successfully canceled, already completed,
+// or not found.
 func (c *Client) CancelInvocation(ctx context.Context, invocationID string) error {
 	// 202 Accepted = cancellation initiated
-	// 404 Not Found = invocation already completed or never existed
+	// 404 Not Found = invocation never existed or its retention expired
+	// 409 Conflict = invocation already completed
 	_, err := c.send(ctx, "cancel", http.MethodPatch, "/invocations/"+invocationID+"/cancel", nil,
 		func(status int) bool {
-			return status == http.StatusAccepted || status == http.StatusNotFound
+			return status == http.StatusAccepted || status == http.StatusNotFound || status == http.StatusConflict
 		})
 	return err
 }
