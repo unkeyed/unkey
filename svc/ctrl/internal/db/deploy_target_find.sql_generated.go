@@ -16,6 +16,7 @@ const findDeployTarget = `-- name: FindDeployTarget :one
 SELECT
     p.workspace_id AS workspace_id,
     w.slug AS workspace_slug,
+    w.k8s_namespace AS k8s_namespace,
     p.id AS project_id,
     a.id AS app_id,
     a.source_type AS source_type,
@@ -73,6 +74,7 @@ type FindDeployTargetParams struct {
 type FindDeployTargetRow struct {
 	WorkspaceID              string                             `db:"workspace_id"`
 	WorkspaceSlug            string                             `db:"workspace_slug"`
+	K8sNamespace             string                             `db:"k8s_namespace"`
 	ProjectID                string                             `db:"project_id"`
 	AppID                    string                             `db:"app_id"`
 	SourceType               AppsSourceType                     `db:"source_type"`
@@ -107,6 +109,7 @@ type FindDeployTargetRow struct {
 //	SELECT
 //	    p.workspace_id AS workspace_id,
 //	    w.slug AS workspace_slug,
+//	    w.k8s_namespace AS k8s_namespace,
 //	    p.id AS project_id,
 //	    a.id AS app_id,
 //	    a.source_type AS source_type,
@@ -159,6 +162,7 @@ func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetPara
 	err := row.Scan(
 		&i.WorkspaceID,
 		&i.WorkspaceSlug,
+		&i.K8sNamespace,
 		&i.ProjectID,
 		&i.AppID,
 		&i.SourceType,
