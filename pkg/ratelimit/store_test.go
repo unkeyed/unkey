@@ -29,8 +29,8 @@ func newMemoryStore(clk clock.Clock) *memoryStore {
 	return &memoryStore{clock: clk, rows: make(rowTable)}
 }
 
-func (s *memoryStore) NowNs(_ context.Context) (int64, error) {
-	return s.clock.Now().UnixNano(), nil
+func (s *memoryStore) NowMs(_ context.Context) (int64, error) {
+	return s.clock.Now().UnixMilli(), nil
 }
 
 func (s *memoryStore) WriteRows(_ context.Context, rows []StoredRow) error {
@@ -54,20 +54,20 @@ func (s *memoryStore) ReadRows(_ context.Context, fingerprint [32]byte, podID st
 	return s.rows.periods(fingerprint, podID, limit), nil
 }
 
-func (s *memoryStore) DeleteFadedRows(_ context.Context, beforeNs int64, limit int) (int64, error) {
+func (s *memoryStore) DeleteFadedRows(_ context.Context, beforeMs int64, limit int) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return int64(len(s.rows.deleteFaded(beforeNs, limit))), nil
+	return int64(len(s.rows.deleteFaded(beforeMs, limit))), nil
 }
 
 // upsert is `UpsertRow`: it keeps the larger sum and delete time.
 func (table rowTable) upsert(rows []StoredRow) {
 	for _, r := range rows {
-		key := rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID}
+		key := rowKey{periodStartMs: r.PeriodStartMs, podID: r.PodID}
 		stored, ok := table[r.Fingerprint][key]
 		if ok {
 			r.ScaledSum = max(r.ScaledSum, stored.ScaledSum)
-			r.DeleteAfterNs = max(r.DeleteAfterNs, stored.DeleteAfterNs)
+			r.DeleteAfterMs = max(r.DeleteAfterMs, stored.DeleteAfterMs)
 		}
 		table.set(r)
 	}
@@ -78,7 +78,7 @@ func (table rowTable) set(r StoredRow) {
 	if table[r.Fingerprint] == nil {
 		table[r.Fingerprint] = make(map[rowKey]StoredRow)
 	}
-	table[r.Fingerprint][rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID}] = r
+	table[r.Fingerprint][rowKey{periodStartMs: r.PeriodStartMs, podID: r.PodID}] = r
 }
 
 // newestFirst returns the rows of a fingerprint newest period first.
@@ -88,7 +88,7 @@ func (table rowTable) newestFirst(fingerprint [32]byte) []StoredRow {
 		rows = append(rows, r)
 	}
 	slices.SortFunc(rows, func(left, right StoredRow) int {
-		return cmp.Or(cmp.Compare(right.PeriodStartNs, left.PeriodStartNs), cmp.Compare(left.PodID, right.PodID))
+		return cmp.Or(cmp.Compare(right.PeriodStartMs, left.PeriodStartMs), cmp.Compare(left.PodID, right.PodID))
 	})
 	return rows
 }
@@ -101,24 +101,24 @@ func (table rowTable) periods(fingerprint [32]byte, podID string, limit int) []S
 	for start, periodCount := 0, 0; start < len(newestFirst) && periodCount < limit; periodCount++ {
 		end := start
 		var own, peers StoredRow
-		var deleteAfterNs int64
-		for end < len(newestFirst) && newestFirst[end].PeriodStartNs == newestFirst[start].PeriodStartNs {
+		var deleteAfterMs int64
+		for end < len(newestFirst) && newestFirst[end].PeriodStartMs == newestFirst[start].PeriodStartMs {
 			r := newestFirst[end]
 			end++
-			deleteAfterNs = max(deleteAfterNs, r.DeleteAfterNs)
+			deleteAfterMs = max(deleteAfterMs, r.DeleteAfterMs)
 			if r.PodID == podID {
 				own = r
 				continue
 			}
-			peers.Fingerprint, peers.PeriodStartNs = r.Fingerprint, r.PeriodStartNs
+			peers.Fingerprint, peers.PeriodStartMs = r.Fingerprint, r.PeriodStartMs
 			peers.ScaledSum += r.ScaledSum
 		}
 		if own.ScaledSum > 0 {
-			own.DeleteAfterNs = deleteAfterNs
+			own.DeleteAfterMs = deleteAfterMs
 			rows = append(rows, own)
 		}
 		if peers.ScaledSum > 0 {
-			peers.DeleteAfterNs = deleteAfterNs
+			peers.DeleteAfterMs = deleteAfterMs
 			rows = append(rows, peers)
 		}
 		start = end
@@ -128,21 +128,21 @@ func (table rowTable) periods(fingerprint [32]byte, podID string, limit int) []S
 
 // deleteFaded is `DeleteFadedRows`. It returns the deleted rows, in key
 // order so that runs repeat.
-func (table rowTable) deleteFaded(beforeNs int64, limit int) []StoredRow {
+func (table rowTable) deleteFaded(beforeMs int64, limit int) []StoredRow {
 	var faded []StoredRow
 	for _, rows := range table {
 		for _, r := range rows {
-			if r.DeleteAfterNs < beforeNs {
+			if r.DeleteAfterMs < beforeMs {
 				faded = append(faded, r)
 			}
 		}
 	}
 	slices.SortFunc(faded, func(left, right StoredRow) int {
-		return cmp.Or(cmp.Compare(string(left.Fingerprint[:]), string(right.Fingerprint[:])), cmp.Compare(left.PeriodStartNs, right.PeriodStartNs), cmp.Compare(left.PodID, right.PodID))
+		return cmp.Or(cmp.Compare(string(left.Fingerprint[:]), string(right.Fingerprint[:])), cmp.Compare(left.PeriodStartMs, right.PeriodStartMs), cmp.Compare(left.PodID, right.PodID))
 	})
 	faded = faded[:min(limit, len(faded))]
 	for _, r := range faded {
-		delete(table[r.Fingerprint], rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID})
+		delete(table[r.Fingerprint], rowKey{periodStartMs: r.PeriodStartMs, podID: r.PodID})
 		if len(table[r.Fingerprint]) == 0 {
 			delete(table, r.Fingerprint)
 		}

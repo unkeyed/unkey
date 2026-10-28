@@ -12,10 +12,10 @@ import (
 const upsertRow = `-- name: UpsertRow :exec
 INSERT INTO ratelimit_state (
     fingerprint,
-    period_start_ns,
+    period_start_ms,
     pod_id,
     scaled_sum,
-    delete_after_ns
+    delete_after_ms
 ) VALUES (
     ?,
     ?,
@@ -25,28 +25,28 @@ INSERT INTO ratelimit_state (
 )
 ON DUPLICATE KEY UPDATE
     scaled_sum = GREATEST(scaled_sum, VALUES(scaled_sum)),
-    delete_after_ns = GREATEST(delete_after_ns, VALUES(delete_after_ns))
+    delete_after_ms = GREATEST(delete_after_ms, VALUES(delete_after_ms))
 `
 
 type UpsertRowParams struct {
 	Fingerprint   []byte  `db:"fingerprint"`
-	PeriodStartNs int64   `db:"period_start_ns"`
+	PeriodStartMs int64   `db:"period_start_ms"`
 	PodID         string  `db:"pod_id"`
 	ScaledSum     float64 `db:"scaled_sum"`
-	DeleteAfterNs int64   `db:"delete_after_ns"`
+	DeleteAfterMs int64   `db:"delete_after_ms"`
 }
 
 // UpsertRow writes a pod's scaled sum for one period. The sum and its
-// delete_after_ns only grow, so GREATEST keeps a retried or reordered write
+// delete_after_ms only grow, so GREATEST keeps a retried or reordered write
 // from undoing a newer one. A write that lands after cleanup deleted the row
 // inserts the pod's whole sum again, which is what the row held.
 //
 //	INSERT INTO ratelimit_state (
 //	    fingerprint,
-//	    period_start_ns,
+//	    period_start_ms,
 //	    pod_id,
 //	    scaled_sum,
-//	    delete_after_ns
+//	    delete_after_ms
 //	) VALUES (
 //	    ?,
 //	    ?,
@@ -56,14 +56,14 @@ type UpsertRowParams struct {
 //	)
 //	ON DUPLICATE KEY UPDATE
 //	    scaled_sum = GREATEST(scaled_sum, VALUES(scaled_sum)),
-//	    delete_after_ns = GREATEST(delete_after_ns, VALUES(delete_after_ns))
+//	    delete_after_ms = GREATEST(delete_after_ms, VALUES(delete_after_ms))
 func (q *Queries) UpsertRow(ctx context.Context, db DBTX, arg UpsertRowParams) error {
 	_, err := db.ExecContext(ctx, upsertRow,
 		arg.Fingerprint,
-		arg.PeriodStartNs,
+		arg.PeriodStartMs,
 		arg.PodID,
 		arg.ScaledSum,
-		arg.DeleteAfterNs,
+		arg.DeleteAfterMs,
 	)
 	return err
 }

@@ -56,30 +56,30 @@ func (l *limiter) cleanUp(ctx context.Context) error {
 	return err
 }
 
-// deleteFadedRows deletes rows whose `DeleteAfterNs` has passed by the store
+// deleteFadedRows deletes rows whose `DeleteAfterMs` has passed by the store
 // clock, in batches of `rowsPerDelete`, until a batch is not full or the pass
 // has run `maxDeletesPerCleanupPass` batches. Then it returns
 // `errCleanupBacklog`.
 //
 // Pods do not coordinate. Deletes of the same rows by two pods are
 // harmless, and so is a write that races a delete: either the write raised
-// `DeleteAfterNs` first and the row stays, or it lands after and inserts the
+// `DeleteAfterMs` first and the row stays, or it lands after and inserts the
 // pod's whole sum again. The row then holds what it would have held without
 // the delete.
 //
 // It is safe to call concurrently: it uses only the store and `randomMu`.
 // The caller must not hold a shard lock, because it waits on the store.
 func (l *limiter) deleteFadedRows(ctx context.Context) error {
-	nowNs, err := l.store.NowNs(ctx)
+	nowMs, err := l.store.NowMs(ctx)
 	if err != nil {
 		return err
 	}
-	if time.Duration(nowNs-l.clock.Now().UnixNano()).Abs() >= maxClockSkew {
+	if (time.Duration(nowMs-l.clock.Now().UnixMilli()) * time.Millisecond).Abs() >= maxClockSkew {
 		clockSkewExceededTotal.Inc()
 		logger.Warn("the pod clock differs from the MySQL clock by more than the rate limiter allows", "max_clock_skew", maxClockSkew.String())
 	}
 	for range maxDeletesPerCleanupPass {
-		deleted, err := l.store.DeleteFadedRows(ctx, nowNs, rowsPerDelete)
+		deleted, err := l.store.DeleteFadedRows(ctx, nowMs, rowsPerDelete)
 		if err != nil {
 			return err
 		}

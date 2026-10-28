@@ -106,7 +106,7 @@ const (
 
 	// maxClockSkew is the largest difference between a pod clock and the
 	// MySQL clock that the limiter allows for. Cleanup deletes a row this
-	// much after it faded, see `deleteAfterNs`, and counts passes beyond it
+	// much after it faded, see `deleteAfterMs`, and counts passes beyond it
 	// in `clockSkewExceededTotal`.
 	maxClockSkew = 5 * time.Second
 
@@ -268,7 +268,7 @@ func (l *limiter) AllowMany(ctx context.Context, requests []Request) ([]Result, 
 		return nil, err
 	}
 	l.refreshRows(ctx, requests)
-	nowNs := l.clock.Now().UnixNano()
+	nowMs := l.clock.Now().UnixMilli()
 
 	// Locking in ascending shard order keeps two calls from deadlocking.
 	shardIndexes := make([]int, 0, len(requests))
@@ -298,7 +298,7 @@ func (l *limiter) AllowMany(ctx context.Context, requests []Request) ([]Result, 
 	allAllowed := true
 	for i, request := range requests {
 		e := l.entryOf(request.Fingerprint, request.Rate)
-		decisions[i], err = e.check(nowNs, request.Rate, request.Units)
+		decisions[i], err = e.check(nowMs, request.Rate, request.Units)
 		if err != nil {
 			return nil, err
 		}
@@ -319,7 +319,7 @@ func (l *limiter) AllowMany(ctx context.Context, requests []Request) ([]Result, 
 		results[i] = Result{
 			Allowed:   d.allowed,
 			Remaining: request.Rate.remaining(d.levelBefore, spent),
-			ResetAt:   time.Unix(0, nowNs+request.Rate.nextUnitAfterNs(level)),
+			ResetAt:   time.UnixMilli(nowMs + request.Rate.nextUnitAfterMs(level)),
 		}
 	}
 	return results, nil
@@ -371,24 +371,24 @@ func (l *limiter) flushUntilStopped(ctx context.Context, ticker clock.Ticker) {
 func (l *limiter) flush(ctx context.Context) error {
 	l.flushMu.Lock()
 	defer l.flushMu.Unlock()
-	nowNs := l.clock.Now().UnixNano()
+	nowMs := l.clock.Now().UnixMilli()
 
 	var writes []StoredRow
 	for i := range l.shards {
 		s := &l.shards[i]
 		s.mu.Lock()
 		for fingerprint, e := range s.entries {
-			if e.evictable(nowNs) {
+			if e.evictable(nowMs) {
 				delete(s.entries, fingerprint)
 				continue
 			}
 			for key, r := range e.uncommittedRows() {
 				writes = append(writes, StoredRow{
 					Fingerprint:   fingerprint,
-					PeriodStartNs: key.periodStartNs,
+					PeriodStartMs: key.periodStartMs,
 					PodID:         l.podID,
 					ScaledSum:     r.scaledSum,
-					DeleteAfterNs: deleteAfterNs(key.periodStartNs, e.periodNs, e.duration, r.scaledSum),
+					DeleteAfterMs: deleteAfterMs(key.periodStartMs, e.periodMs, e.duration, r.scaledSum),
 				})
 			}
 		}
@@ -396,7 +396,7 @@ func (l *limiter) flush(ctx context.Context) error {
 	}
 	// Map order is random; sorting keeps simulation runs repeatable.
 	slices.SortFunc(writes, func(left, right StoredRow) int {
-		return cmp.Or(bytes.Compare(left.Fingerprint[:], right.Fingerprint[:]), cmp.Compare(left.PeriodStartNs, right.PeriodStartNs))
+		return cmp.Or(bytes.Compare(left.Fingerprint[:], right.Fingerprint[:]), cmp.Compare(left.PeriodStartMs, right.PeriodStartMs))
 	})
 
 	var errs []error
@@ -412,7 +412,7 @@ func (l *limiter) flush(ctx context.Context) error {
 			// Only flush removes entries, and it never removes one with
 			// uncommitted rows, so the entry still exists.
 			e := s.entries[written.Fingerprint]
-			key := rowKey{periodStartNs: written.PeriodStartNs, podID: l.podID}
+			key := rowKey{periodStartMs: written.PeriodStartMs, podID: l.podID}
 			committed := e.rows[key]
 			committed.committedSum = max(committed.committedSum, written.ScaledSum)
 			e.rows[key] = committed
@@ -431,17 +431,17 @@ func (l *limiter) flush(ctx context.Context) error {
 // not hold them while it reads or waits, so the caller must not hold a shard
 // lock.
 func (l *limiter) refreshRows(ctx context.Context, requests []Request) {
-	nowNs := l.clock.Now().UnixNano()
+	nowMs := l.clock.Now().UnixMilli()
 	var readNow [][32]byte
 	var waitFor []chan struct{}
 	for _, request := range requests {
 		s := &l.shards[shardIndex(request.Fingerprint)]
 		s.mu.Lock()
 		e := l.entryOf(request.Fingerprint, request.Rate)
-		ageNs := nowNs - e.rowsReadAtNs
-		mustWait := ageNs >= rowsStaleFor.Nanoseconds()
+		ageMs := nowMs - e.rowsReadAtMs
+		mustWait := ageMs >= rowsStaleFor.Milliseconds()
 		switch {
-		case ageNs < rowsFreshFor.Nanoseconds():
+		case ageMs < rowsFreshFor.Milliseconds():
 		case e.readDone != nil:
 			if mustWait {
 				waitFor = append(waitFor, e.readDone)
@@ -503,11 +503,11 @@ func (l *limiter) readWithinSlots(ctx context.Context, fingerprint [32]byte, tim
 // one readRows runs per fingerprint. It reads without a lock and then takes
 // the shard lock to merge, so the caller must not hold a shard lock.
 func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte, timeout time.Duration) {
-	startedAtNs := l.clock.Now().UnixNano()
+	startedAtMs := l.clock.Now().UnixMilli()
 	stored, err := l.readWithinSlots(ctx, fingerprint, timeout)
 	periods := make(map[int64]struct{}, len(stored))
 	for _, r := range stored {
-		periods[r.PeriodStartNs] = struct{}{}
+		periods[r.PeriodStartMs] = struct{}{}
 	}
 	periodsPerRead.Observe(float64(len(periods)))
 	result := "ok"
@@ -524,14 +524,14 @@ func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte, timeout ti
 	// Flush keeps an entry while `readDone` is set, so it still exists.
 	e := s.entries[fingerprint]
 	if err == nil {
-		err = e.replaceRows(stored, l.podID, l.clock.Now().UnixNano())
+		err = e.replaceRows(stored, l.podID, l.clock.Now().UnixMilli())
 		if err != nil {
 			result = "invalid_rows"
 		}
 	}
 	// A failed read counts as a read, so a down database gets at most one
 	// waiting read per limit every `rowsStaleFor`.
-	e.rowsReadAtNs = startedAtNs
+	e.rowsReadAtMs = startedAtMs
 	e.rowsReadOK = err == nil
 	close(e.readDone)
 	e.readDone = nil

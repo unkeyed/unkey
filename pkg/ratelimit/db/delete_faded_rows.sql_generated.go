@@ -11,24 +11,24 @@ import (
 
 const deleteFadedRows = `-- name: DeleteFadedRows :execrows
 DELETE FROM ratelimit_state
-WHERE delete_after_ns < ?
+WHERE delete_after_ms < ?
 LIMIT ?
 `
 
 type DeleteFadedRowsParams struct {
-	BeforeNs int64 `db:"before_ns"`
+	BeforeMs int64 `db:"before_ms"`
 	Limit    int32 `db:"limit"`
 }
 
 // DeleteFadedRows deletes at most LIMIT rows of any fingerprint whose level
 // has faded, by the MySQL clock that the caller read. It uses the
-// delete_after_ns index, so a pass stays bounded however large the table is.
+// delete_after_ms index, so a pass stays bounded however large the table is.
 //
 //	DELETE FROM ratelimit_state
-//	WHERE delete_after_ns < ?
+//	WHERE delete_after_ms < ?
 //	LIMIT ?
 func (q *Queries) DeleteFadedRows(ctx context.Context, db DBTX, arg DeleteFadedRowsParams) (int64, error) {
-	result, err := db.ExecContext(ctx, deleteFadedRows, arg.BeforeNs, arg.Limit)
+	result, err := db.ExecContext(ctx, deleteFadedRows, arg.BeforeMs, arg.Limit)
 	if err != nil {
 		return 0, err
 	}

@@ -6,8 +6,8 @@ package db
 
 type RatelimitState struct {
 	Fingerprint   []byte  `db:"fingerprint"`
-	PeriodStartNs int64   `db:"period_start_ns"`
+	PeriodStartMs int64   `db:"period_start_ms"`
 	PodID         string  `db:"pod_id"`
 	ScaledSum     float64 `db:"scaled_sum"`
-	DeleteAfterNs int64   `db:"delete_after_ns"`
+	DeleteAfterMs int64   `db:"delete_after_ms"`
 }

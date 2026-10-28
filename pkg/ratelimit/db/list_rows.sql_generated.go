@@ -11,14 +11,14 @@ import (
 
 const listPeriods = `-- name: ListPeriods :many
 SELECT
-    period_start_ns,
+    period_start_ms,
     CAST(SUM(IF(pod_id = ?, scaled_sum, 0)) AS DOUBLE) AS own_scaled_sum,
     CAST(SUM(IF(pod_id <> ?, scaled_sum, 0)) AS DOUBLE) AS peer_scaled_sum,
-    CAST(MAX(delete_after_ns) AS SIGNED) AS delete_after_ns
+    CAST(MAX(delete_after_ms) AS SIGNED) AS delete_after_ms
 FROM ratelimit_state
 WHERE fingerprint = ?
-GROUP BY period_start_ns
-ORDER BY period_start_ns DESC
+GROUP BY period_start_ms
+ORDER BY period_start_ms DESC
 LIMIT ?
 `
 
@@ -29,10 +29,10 @@ type ListPeriodsParams struct {
 }
 
 type ListPeriodsRow struct {
-	PeriodStartNs int64   `db:"period_start_ns"`
+	PeriodStartMs int64   `db:"period_start_ms"`
 	OwnScaledSum  float64 `db:"own_scaled_sum"`
 	PeerScaledSum float64 `db:"peer_scaled_sum"`
-	DeleteAfterNs int64   `db:"delete_after_ns"`
+	DeleteAfterMs int64   `db:"delete_after_ms"`
 }
 
 // ListPeriods returns one row per period of a fingerprint, newest first:
@@ -42,14 +42,14 @@ type ListPeriodsRow struct {
 // reaches the LIMIT, the oldest periods are missing; they have faded.
 //
 //	SELECT
-//	    period_start_ns,
+//	    period_start_ms,
 //	    CAST(SUM(IF(pod_id = ?, scaled_sum, 0)) AS DOUBLE) AS own_scaled_sum,
 //	    CAST(SUM(IF(pod_id <> ?, scaled_sum, 0)) AS DOUBLE) AS peer_scaled_sum,
-//	    CAST(MAX(delete_after_ns) AS SIGNED) AS delete_after_ns
+//	    CAST(MAX(delete_after_ms) AS SIGNED) AS delete_after_ms
 //	FROM ratelimit_state
 //	WHERE fingerprint = ?
-//	GROUP BY period_start_ns
-//	ORDER BY period_start_ns DESC
+//	GROUP BY period_start_ms
+//	ORDER BY period_start_ms DESC
 //	LIMIT ?
 func (q *Queries) ListPeriods(ctx context.Context, db DBTX, arg ListPeriodsParams) ([]ListPeriodsRow, error) {
 	rows, err := db.QueryContext(ctx, listPeriods,
@@ -66,10 +66,10 @@ func (q *Queries) ListPeriods(ctx context.Context, db DBTX, arg ListPeriodsParam
 	for rows.Next() {
 		var i ListPeriodsRow
 		if err := rows.Scan(
-			&i.PeriodStartNs,
+			&i.PeriodStartMs,
 			&i.OwnScaledSum,
 			&i.PeerScaledSum,
-			&i.DeleteAfterNs,
+			&i.DeleteAfterMs,
 		); err != nil {
 			return nil, err
 		}

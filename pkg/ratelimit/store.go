@@ -12,12 +12,12 @@ import (
 // them at the same time. The limiter never holds a shard lock while it calls
 // them.
 type Store interface {
-	// NowNs returns the clock of the store in Unix nanoseconds. Cleanup
+	// NowMs returns the clock of the store in Unix milliseconds. Cleanup
 	// deletes by it and checks the pod clock against it.
-	NowNs(ctx context.Context) (int64, error)
+	NowMs(ctx context.Context) (int64, error)
 
 	// WriteRows writes rows and keeps the larger `ScaledSum` and
-	// `DeleteAfterNs` of each, so a retried or reordered write never moves a
+	// `DeleteAfterMs` of each, so a retried or reordered write never moves a
 	// row back. The limiter sends at most `maxRowsPerWrite` rows per call.
 	WriteRows(ctx context.Context, rows []StoredRow) error
 
@@ -28,19 +28,19 @@ type Store interface {
 	// read grows with periods, not with pods.
 	ReadRows(ctx context.Context, fingerprint [32]byte, podID string, limit int) ([]StoredRow, error)
 
-	// DeleteFadedRows deletes at most `limit` rows whose `DeleteAfterNs` is
-	// before `beforeNs`, of any fingerprint, and returns how many it
+	// DeleteFadedRows deletes at most `limit` rows whose `DeleteAfterMs` is
+	// before `beforeMs`, of any fingerprint, and returns how many it
 	// deleted.
-	DeleteFadedRows(ctx context.Context, beforeNs int64, limit int) (int64, error)
+	DeleteFadedRows(ctx context.Context, beforeMs int64, limit int) (int64, error)
 }
 
 // StoredRow is one row of the `ratelimit_state` table.
 type StoredRow struct {
 	Fingerprint   [32]byte
-	PeriodStartNs int64
+	PeriodStartMs int64
 	PodID         string
 	ScaledSum     float64
-	DeleteAfterNs int64
+	DeleteAfterMs int64
 }
 
 type mysqlStore struct {
@@ -55,12 +55,12 @@ func NewMySQLStore(primary db.DBTX, replica db.DBTX) Store {
 	return &mysqlStore{primary: primary, replica: replica}
 }
 
-func (s *mysqlStore) NowNs(ctx context.Context) (int64, error) {
-	nowNs, err := db.Query.Now(ctx, s.primary)
+func (s *mysqlStore) NowMs(ctx context.Context) (int64, error) {
+	nowMs, err := db.Query.Now(ctx, s.primary)
 	if err != nil {
 		return 0, fault.Wrap(err, fault.Internal("unable to read the MySQL clock"))
 	}
-	return nowNs, nil
+	return nowMs, nil
 }
 
 func (s *mysqlStore) WriteRows(ctx context.Context, rows []StoredRow) error {
@@ -68,10 +68,10 @@ func (s *mysqlStore) WriteRows(ctx context.Context, rows []StoredRow) error {
 	for i, r := range rows {
 		params[i] = db.UpsertRowParams{
 			Fingerprint:   r.Fingerprint[:],
-			PeriodStartNs: r.PeriodStartNs,
+			PeriodStartMs: r.PeriodStartMs,
 			PodID:         r.PodID,
 			ScaledSum:     r.ScaledSum,
-			DeleteAfterNs: r.DeleteAfterNs,
+			DeleteAfterMs: r.DeleteAfterMs,
 		}
 	}
 	err := db.BulkQuery.UpsertRow(ctx, s.primary, params)
@@ -95,28 +95,28 @@ func (s *mysqlStore) ReadRows(ctx context.Context, fingerprint [32]byte, podID s
 		if p.OwnScaledSum > 0 {
 			stored = append(stored, StoredRow{
 				Fingerprint:   fingerprint,
-				PeriodStartNs: p.PeriodStartNs,
+				PeriodStartMs: p.PeriodStartMs,
 				PodID:         podID,
 				ScaledSum:     p.OwnScaledSum,
-				DeleteAfterNs: p.DeleteAfterNs,
+				DeleteAfterMs: p.DeleteAfterMs,
 			})
 		}
 		if p.PeerScaledSum > 0 {
 			stored = append(stored, StoredRow{
 				Fingerprint:   fingerprint,
-				PeriodStartNs: p.PeriodStartNs,
+				PeriodStartMs: p.PeriodStartMs,
 				PodID:         "",
 				ScaledSum:     p.PeerScaledSum,
-				DeleteAfterNs: p.DeleteAfterNs,
+				DeleteAfterMs: p.DeleteAfterMs,
 			})
 		}
 	}
 	return stored, nil
 }
 
-func (s *mysqlStore) DeleteFadedRows(ctx context.Context, beforeNs int64, limit int) (int64, error) {
+func (s *mysqlStore) DeleteFadedRows(ctx context.Context, beforeMs int64, limit int) (int64, error) {
 	deleted, err := db.Query.DeleteFadedRows(ctx, s.primary, db.DeleteFadedRowsParams{
-		BeforeNs: beforeNs,
+		BeforeMs: beforeMs,
 		Limit:    int32(limit),
 	})
 	if err != nil {

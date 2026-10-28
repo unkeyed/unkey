@@ -3,16 +3,16 @@
 //
 // Each row is the scaled sum of one pod in one period of one limit:
 //
-//	scaled_sum = SUM(cost × e^((t − period_start_ns) / duration))
+//	scaled_sum = SUM(cost × e^((t − period_start_ms) / duration))
 //
 // over the requests at time t that the pod allowed in the period. Period
 // edges are shared by all pods. The level of a limit at now is
 //
-//	level = SUM(scaled_sum × e^((period_start_ns − now) / duration))
+//	level = SUM(scaled_sum × e^((period_start_ms − now) / duration))
 //
 // The sum only grows, so [Querier.UpsertRow] keeps the greater value and a
 // retried or reordered write cannot undo a newer one. Cleanup deletes rows
-// whose delete_after_ns has passed by the MySQL clock.
+// whose delete_after_ms has passed by the MySQL clock.
 //
 // Every query is bounded. Callers pass the bound as an argument.
 //

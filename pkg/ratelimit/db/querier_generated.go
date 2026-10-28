@@ -11,10 +11,10 @@ import (
 type Querier interface {
 	// DeleteFadedRows deletes at most LIMIT rows of any fingerprint whose level
 	// has faded, by the MySQL clock that the caller read. It uses the
-	// delete_after_ns index, so a pass stays bounded however large the table is.
+	// delete_after_ms index, so a pass stays bounded however large the table is.
 	//
 	//  DELETE FROM ratelimit_state
-	//  WHERE delete_after_ns < ?
+	//  WHERE delete_after_ms < ?
 	//  LIMIT ?
 	DeleteFadedRows(ctx context.Context, db DBTX, arg DeleteFadedRowsParams) (int64, error)
 	// ListPeriods returns one row per period of a fingerprint, newest first:
@@ -24,32 +24,32 @@ type Querier interface {
 	// reaches the LIMIT, the oldest periods are missing; they have faded.
 	//
 	//  SELECT
-	//      period_start_ns,
+	//      period_start_ms,
 	//      CAST(SUM(IF(pod_id = ?, scaled_sum, 0)) AS DOUBLE) AS own_scaled_sum,
 	//      CAST(SUM(IF(pod_id <> ?, scaled_sum, 0)) AS DOUBLE) AS peer_scaled_sum,
-	//      CAST(MAX(delete_after_ns) AS SIGNED) AS delete_after_ns
+	//      CAST(MAX(delete_after_ms) AS SIGNED) AS delete_after_ms
 	//  FROM ratelimit_state
 	//  WHERE fingerprint = ?
-	//  GROUP BY period_start_ns
-	//  ORDER BY period_start_ns DESC
+	//  GROUP BY period_start_ms
+	//  ORDER BY period_start_ms DESC
 	//  LIMIT ?
 	ListPeriods(ctx context.Context, db DBTX, arg ListPeriodsParams) ([]ListPeriodsRow, error)
-	// Now returns the clock of the MySQL server in Unix nanoseconds, with
-	// microsecond precision. Cleanup deletes faded rows by it.
+	// Now returns the clock of the MySQL server in Unix milliseconds. Cleanup
+	// deletes faded rows by it.
 	//
-	//  SELECT CAST(UNIX_TIMESTAMP(NOW(6)) * 1000000000 AS SIGNED) AS now_ns
+	//  SELECT CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) AS now_ms
 	Now(ctx context.Context, db DBTX) (int64, error)
 	// UpsertRow writes a pod's scaled sum for one period. The sum and its
-	// delete_after_ns only grow, so GREATEST keeps a retried or reordered write
+	// delete_after_ms only grow, so GREATEST keeps a retried or reordered write
 	// from undoing a newer one. A write that lands after cleanup deleted the row
 	// inserts the pod's whole sum again, which is what the row held.
 	//
 	//  INSERT INTO ratelimit_state (
 	//      fingerprint,
-	//      period_start_ns,
+	//      period_start_ms,
 	//      pod_id,
 	//      scaled_sum,
-	//      delete_after_ns
+	//      delete_after_ms
 	//  ) VALUES (
 	//      ?,
 	//      ?,
@@ -59,7 +59,7 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE
 	//      scaled_sum = GREATEST(scaled_sum, VALUES(scaled_sum)),
-	//      delete_after_ns = GREATEST(delete_after_ns, VALUES(delete_after_ns))
+	//      delete_after_ms = GREATEST(delete_after_ms, VALUES(delete_after_ms))
 	UpsertRow(ctx context.Context, db DBTX, arg UpsertRowParams) error
 }
 

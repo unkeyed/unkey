@@ -213,25 +213,25 @@ func newSimState(t *testing.T, rng *rand.Rand) *simState {
 func (st *simState) request(pod *simPod, limit simLimit, units int64) error {
 	ctx := context.Background()
 	request := Request{Fingerprint: limit.fingerprint, Rate: limit.rate, Units: units}
-	nowNs := pod.clock.Now().UnixNano()
+	nowMs := pod.clock.Now().UnixMilli()
 	// Refreshed and checked here so the check sees what the decision sees;
 	// Allow then finds the rows fresh and changes nothing before deciding.
 	pod.limiter.refreshRows(ctx, []Request{request})
 	e := pod.limiter.entryOf(limit.fingerprint, limit.rate)
-	before, err := e.check(nowNs, limit.rate, 0)
+	before, err := e.check(nowMs, limit.rate, 0)
 	if err != nil {
 		return err
 	}
 	local := before.levelBefore
-	reference := referenceLevel(st.admitted[limit.fingerprint], nowNs, limit.rate.Duration)
-	own := st.ownLevel(pod, limit, nowNs)
+	reference := referenceLevel(st.admitted[limit.fingerprint], nowMs, limit.rate.Duration)
+	own := st.ownLevel(pod, limit, nowMs)
 
 	result, err := pod.limiter.Allow(ctx, request)
 	if err != nil {
 		return err
 	}
 	fits := units <= limit.rate.Limit && limit.rate.fits(local, units)
-	describe := fmt.Sprintf("units %d, rate %+v, local %g, reference %g, own %g, now %d", units, limit.rate, local, reference, own, nowNs)
+	describe := fmt.Sprintf("units %d, rate %+v, local %g, reference %g, own %g, now %d", units, limit.rate, local, reference, own, nowMs)
 	switch {
 	case local > reference+simTolerance(reference):
 		return fault.New("the pod charges more than one machine would: " + describe)
@@ -241,7 +241,7 @@ func (st *simState) request(pod *simPod, limit simLimit, units int64) error {
 		return fault.New("the pod did not follow the rule on what it knows: " + describe)
 	}
 	if result.Allowed && units > 0 {
-		st.admitted[limit.fingerprint] = append(st.admitted[limit.fingerprint], timedRequest{atNs: nowNs, units: units, podID: pod.limiter.podID})
+		st.admitted[limit.fingerprint] = append(st.admitted[limit.fingerprint], timedRequest{atMs: nowMs, units: units, podID: pod.limiter.podID})
 		st.admittedCount++
 	}
 	return nil
@@ -249,15 +249,15 @@ func (st *simState) request(pod *simPod, limit simLimit, units int64) error {
 
 // ownLevel is the reference level of the requests that `pod` admitted in
 // its current period, the row that it still writes.
-func (st *simState) ownLevel(pod *simPod, limit simLimit, nowNs int64) float64 {
-	periodNs := periodLengthNs(limit.rate.Duration)
+func (st *simState) ownLevel(pod *simPod, limit simLimit, nowMs int64) float64 {
+	periodMs := periodLengthMs(limit.rate.Duration)
 	var own []timedRequest
 	for _, r := range st.admitted[limit.fingerprint] {
-		if r.podID == pod.limiter.podID && periodStartNs(r.atNs, periodNs) == periodStartNs(nowNs, periodNs) {
+		if r.podID == pod.limiter.podID && periodStartMs(r.atMs, periodMs) == periodStartMs(nowMs, periodMs) {
 			own = append(own, r)
 		}
 	}
-	return referenceLevel(own, nowNs, limit.rate.Duration)
+	return referenceLevel(own, nowMs, limit.rate.Duration)
 }
 
 // settleAndCheck makes every write visible, lets every pod read again, and
@@ -277,14 +277,14 @@ func (st *simState) settleAndCheck() error {
 
 	for _, pod := range st.pods {
 		for _, limit := range st.limits {
-			nowNs := pod.clock.Now().UnixNano()
+			nowMs := pod.clock.Now().UnixMilli()
 			duration := limit.rate.Duration
-			reference := referenceLevel(st.admitted[limit.fingerprint], nowNs, duration)
+			reference := referenceLevel(st.admitted[limit.fingerprint], nowMs, duration)
 			stored := 0.0
 			for key, r := range st.store.primary[limit.fingerprint] {
-				stored += row{scaledSum: r.ScaledSum}.levelAt(key, nowNs, duration)
+				stored += row{scaledSum: r.ScaledSum}.levelAt(key, nowMs, duration)
 			}
-			deleted, deletedRows := st.store.deletedLevel(limit.fingerprint, nowNs, duration)
+			deleted, deletedRows := st.store.deletedLevel(limit.fingerprint, nowMs, duration)
 			describe := fmt.Sprintf("rate %+v, reference %g, stored %g, deleted %g in %d rows", limit.rate, reference, stored, deleted, deletedRows)
 			if math.Abs(stored+deleted-reference) > simTolerance(reference) {
 				return fault.New("the stored rows differ from one machine: " + describe)
@@ -295,7 +295,7 @@ func (st *simState) settleAndCheck() error {
 
 			ctx := context.Background()
 			pod.limiter.refreshRows(ctx, []Request{{Fingerprint: limit.fingerprint, Rate: limit.rate, Units: 0}})
-			d, err := pod.limiter.entryOf(limit.fingerprint, limit.rate).check(nowNs, limit.rate, 0)
+			d, err := pod.limiter.entryOf(limit.fingerprint, limit.rate).check(nowMs, limit.rate, 0)
 			if err != nil {
 				return err
 			}
@@ -463,7 +463,7 @@ type simStore struct {
 
 type inFlightWrite struct {
 	rows           []StoredRow
-	deliverAfterNs int64
+	deliverAfterMs int64
 }
 
 func newSimStore(rng *rand.Rand, clk *clock.TestClock) *simStore {
@@ -483,11 +483,11 @@ func newSimStore(rng *rand.Rand, clk *clock.TestClock) *simStore {
 	}
 }
 
-func (s *simStore) NowNs(_ context.Context) (int64, error) {
+func (s *simStore) NowMs(_ context.Context) (int64, error) {
 	if !s.reliable && s.rng.IntN(100) < s.readFailPercent {
 		return 0, fault.New("read failed")
 	}
-	return s.clock.Now().UnixNano(), nil
+	return s.clock.Now().UnixMilli(), nil
 }
 
 func (s *simStore) WriteRows(_ context.Context, rows []StoredRow) error {
@@ -503,7 +503,7 @@ func (s *simStore) WriteRows(_ context.Context, rows []StoredRow) error {
 	// never.
 	if roll < s.writeFailPercent+s.answerLostPercent || s.rng.IntN(100) < s.slowWritePercent {
 		if s.rng.IntN(100) >= s.neverLandsPercent {
-			s.inFlight = append(s.inFlight, inFlightWrite{rows: slices.Clone(rows), deliverAfterNs: s.clock.Now().UnixNano() + s.rng.Int64N(time.Minute.Nanoseconds())})
+			s.inFlight = append(s.inFlight, inFlightWrite{rows: slices.Clone(rows), deliverAfterMs: s.clock.Now().UnixMilli() + s.rng.Int64N(time.Minute.Milliseconds())})
 		}
 		return fault.New("write sent, but the answer was lost")
 	}
@@ -518,13 +518,13 @@ func (s *simStore) ReadRows(_ context.Context, fingerprint [32]byte, podID strin
 	return s.replica.periods(fingerprint, podID, limit), nil
 }
 
-func (s *simStore) DeleteFadedRows(_ context.Context, beforeNs int64, limit int) (int64, error) {
+func (s *simStore) DeleteFadedRows(_ context.Context, beforeMs int64, limit int) (int64, error) {
 	if !s.reliable && s.rng.IntN(100) < s.writeFailPercent {
 		return 0, fault.New("delete failed")
 	}
-	deleted := s.primary.deleteFaded(beforeNs, limit)
+	deleted := s.primary.deleteFaded(beforeMs, limit)
 	for _, r := range deleted {
-		known := s.deleted[r.Fingerprint][rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID}]
+		known := s.deleted[r.Fingerprint][rowKey{periodStartMs: r.PeriodStartMs, podID: r.PodID}]
 		r.ScaledSum = max(r.ScaledSum, known.ScaledSum)
 		s.deleted.set(r)
 	}
@@ -532,14 +532,14 @@ func (s *simStore) DeleteFadedRows(_ context.Context, beforeNs int64, limit int)
 }
 
 // deletedLevel returns the level that cleanup removed from a fingerprint and
-// still is missing at `nowNs`: per deleted row, what its largest deleted sum
+// still is missing at `nowMs`: per deleted row, what its largest deleted sum
 // holds beyond the row that a late write put back. It also returns the
 // number of deleted rows.
-func (s *simStore) deletedLevel(fingerprint [32]byte, nowNs int64, duration time.Duration) (float64, int) {
+func (s *simStore) deletedLevel(fingerprint [32]byte, nowMs int64, duration time.Duration) (float64, int) {
 	level := 0.0
 	for key, r := range s.deleted[fingerprint] {
 		missing := max(0, r.ScaledSum-s.primary[fingerprint][key].ScaledSum)
-		level += row{scaledSum: missing}.levelAt(key, nowNs, duration)
+		level += row{scaledSum: missing}.levelAt(key, nowMs, duration)
 	}
 	return level, len(s.deleted[fingerprint])
 }
@@ -548,7 +548,7 @@ func (s *simStore) deletedLevel(fingerprint [32]byte, nowNs int64, duration time
 func (s *simStore) deliverOne() {
 	var ready []int
 	for index, write := range s.inFlight {
-		if write.deliverAfterNs <= s.clock.Now().UnixNano() {
+		if write.deliverAfterMs <= s.clock.Now().UnixMilli() {
 			ready = append(ready, index)
 		}
 	}
@@ -574,9 +574,9 @@ func (s *simStore) deliverAll() {
 func (s *simStore) replicateSome() {
 	for _, fingerprint := range sortedFingerprints(s.replica) {
 		for _, r := range s.replica.newestFirst(fingerprint) {
-			_, kept := s.primary[fingerprint][rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID}]
+			_, kept := s.primary[fingerprint][rowKey{periodStartMs: r.PeriodStartMs, podID: r.PodID}]
 			if !kept && s.rng.IntN(100) < s.replicateRowsPercent {
-				delete(s.replica[fingerprint], rowKey{periodStartNs: r.PeriodStartNs, podID: r.PodID})
+				delete(s.replica[fingerprint], rowKey{periodStartMs: r.PeriodStartMs, podID: r.PodID})
 			}
 		}
 	}

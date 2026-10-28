@@ -23,7 +23,7 @@
 // Duration`, and `remaining` is back at `Limit` after `Duration × ln(Limit)`.
 //
 // Pods share the level exactly, in any order. Time is split into periods of
-// `10 × Duration` on edges that all pods share, see `periodLengthNs`. Each
+// `10 × Duration` on edges that all pods share, see `periodLengthMs`. Each
 // pod writes one row per period that it used, with the scaled sum
 //
 //	S = Σ c × e^((t − period start) / Duration)
@@ -41,7 +41,7 @@
 // unit fits at 12:00:25.
 //
 // A row's level falls below 0.01 units at a time that follows from its sum,
-// its `delete_after_ns`, and cleanup then deletes it with one bounded delete.
+// its `delete_after_ms`, and cleanup then deletes it with one bounded delete.
 // Pods may write any period at any time: a write that lands after its row was
 // deleted inserts the pod's whole sum again, so nothing needs a write
 // deadline or a merge.

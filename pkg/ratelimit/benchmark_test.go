@@ -18,7 +18,7 @@ import (
 // benchmark measures the limiter alone.
 type discardStore struct{}
 
-func (discardStore) NowNs(context.Context) (int64, error)                       { return 0, nil }
+func (discardStore) NowMs(context.Context) (int64, error)                       { return 0, nil }
 func (discardStore) WriteRows(context.Context, []StoredRow) error               { return nil }
 func (discardStore) DeleteFadedRows(context.Context, int64, int) (int64, error) { return 0, nil }
 func (discardStore) ReadRows(context.Context, [32]byte, string, int) ([]StoredRow, error) {
@@ -38,19 +38,19 @@ func warmLimiter(b *testing.B, store Store, keys, peerRows int) (*limiter, []Req
 	l, err := newLimiter(Config{Clock: testClock, Store: store, Random: rand.New(rand.NewPCG(1, 2))})
 	require.NoError(b, err)
 	b.Cleanup(func() { require.NoError(b, l.Close()) })
-	nowNs := testClock.Now().UnixNano()
-	periodNs := periodLengthNs(benchRate.Duration)
+	nowMs := testClock.Now().UnixMilli()
+	periodMs := periodLengthMs(benchRate.Duration)
 	prefix := uid.New(uid.TestPrefix)
 	requests := make([]Request, keys)
 	for i := range requests {
 		requests[i] = Request{Fingerprint: sha256.Sum256(fmt.Appendf(nil, "%s-%d", prefix, i)), Rate: benchRate, Units: 1}
 		e := l.entryOf(requests[i].Fingerprint, benchRate)
 		for p := range peerRows {
-			e.rows[rowKey{periodStartNs: periodStartNs(nowNs, periodNs) - int64(p)*periodNs, podID: ""}] = row{scaledSum: 1, own: false, committedSum: 0}
+			e.rows[rowKey{periodStartMs: periodStartMs(nowMs, periodMs) - int64(p)*periodMs, podID: ""}] = row{scaledSum: 1, own: false, committedSum: 0}
 		}
-		e.levelSum, err = computeLevelSum(e.rows, periodStartNs(nowNs, periodNs), benchRate.Duration)
+		e.levelSum, err = computeLevelSum(e.rows, periodStartMs(nowMs, periodMs), benchRate.Duration)
 		require.NoError(b, err)
-		e.rowsReadAtNs = nowNs
+		e.rowsReadAtMs = nowMs
 		e.rowsReadOK = true
 	}
 	return l, requests
@@ -130,17 +130,17 @@ func BenchmarkFlush(b *testing.B) {
 // BenchmarkComputeLevelSum measures the merge of a read: the level of N
 // rows against the current period.
 func BenchmarkComputeLevelSum(b *testing.B) {
-	nowNs := time.Unix(1_700_000_000, 0).UnixNano()
-	periodNs := periodLengthNs(benchRate.Duration)
+	nowMs := time.Unix(1_700_000_000, 0).UnixMilli()
+	periodMs := periodLengthMs(benchRate.Duration)
 	for _, n := range []int{2, 20, 200} {
 		b.Run(fmt.Sprintf("%d rows", n), func(b *testing.B) {
 			rows := make(map[rowKey]row, n)
 			for i := range n {
-				rows[rowKey{periodStartNs: periodStartNs(nowNs, periodNs) - int64(i/2)*periodNs, podID: fmt.Sprint(i % 2)}] = row{scaledSum: float64(i + 1), own: i%2 == 0, committedSum: 0}
+				rows[rowKey{periodStartMs: periodStartMs(nowMs, periodMs) - int64(i/2)*periodMs, podID: fmt.Sprint(i % 2)}] = row{scaledSum: float64(i + 1), own: i%2 == 0, committedSum: 0}
 			}
 			b.ReportAllocs()
 			for b.Loop() {
-				_, err := computeLevelSum(rows, periodStartNs(nowNs, periodNs), benchRate.Duration)
+				_, err := computeLevelSum(rows, periodStartMs(nowMs, periodMs), benchRate.Duration)
 				if err != nil {
 					b.Fatal(err)
 				}
@@ -156,13 +156,13 @@ func BenchmarkDeleteFadedRows(b *testing.B) {
 	store := newMySQLTestStore(b)
 	// Rows of test runs that faded long ago share the table, so each
 	// iteration first removes every row before the cut.
-	const cutNs = int64(20_000_000_000_000)
+	const cutMs = int64(20_000_000_000_000)
 	podID := uid.New("", 16)
 	b.ReportAllocs()
 	for b.Loop() {
 		b.StopTimer()
 		for {
-			deleted, err := store.DeleteFadedRows(ctx, cutNs, rowsPerDelete)
+			deleted, err := store.DeleteFadedRows(ctx, cutMs, rowsPerDelete)
 			require.NoError(b, err)
 			if deleted < rowsPerDelete {
 				break
@@ -171,13 +171,13 @@ func BenchmarkDeleteFadedRows(b *testing.B) {
 		prefix := uid.New(uid.TestPrefix)
 		rows := make([]StoredRow, rowsPerDelete)
 		for i := range rows {
-			rows[i] = StoredRow{Fingerprint: sha256.Sum256(fmt.Appendf(nil, "%s-%d", prefix, i)), PeriodStartNs: 1, PodID: podID, ScaledSum: 1, DeleteAfterNs: cutNs - 1}
+			rows[i] = StoredRow{Fingerprint: sha256.Sum256(fmt.Appendf(nil, "%s-%d", prefix, i)), PeriodStartMs: 1, PodID: podID, ScaledSum: 1, DeleteAfterMs: cutMs - 1}
 		}
 		for start := 0; start < len(rows); start += maxRowsPerWrite {
 			require.NoError(b, store.WriteRows(ctx, rows[start:min(start+maxRowsPerWrite, len(rows))]))
 		}
 		b.StartTimer()
-		deleted, err := store.DeleteFadedRows(ctx, cutNs, rowsPerDelete)
+		deleted, err := store.DeleteFadedRows(ctx, cutMs, rowsPerDelete)
 		if err != nil {
 			b.Fatal(err)
 		}

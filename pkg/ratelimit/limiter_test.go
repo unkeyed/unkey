@@ -34,10 +34,10 @@ func fingerprint(name string) [32]byte {
 	return sha256.Sum256([]byte(name))
 }
 
-// afterNs returns `Duration × ln(from / to)`, the time a level takes to fall
-// from `from` to `to`.
-func afterNs(duration time.Duration, from, to float64) time.Duration {
-	return time.Duration(math.Ceil(float64(duration.Nanoseconds()) * math.Log(from/to)))
+// afterMs returns `Duration × ln(from / to)` rounded up to whole
+// milliseconds, the time a level takes to fall from `from` to `to`.
+func afterMs(duration time.Duration, from, to float64) time.Duration {
+	return time.Duration(math.Ceil(float64(duration.Milliseconds())*math.Log(from/to))) * time.Millisecond
 }
 
 // TestLimiterBurstFromIdleIsTheLimit guarantees that an idle limit admits
@@ -60,7 +60,7 @@ func TestLimiterBurstFromIdleIsTheLimit(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, result.Allowed)
 		require.Zero(t, result.Remaining)
-		require.Equal(t, testClock.Now().Add(afterNs(rate.Duration, 100, 99)), result.ResetAt)
+		require.Equal(t, testClock.Now().Add(afterMs(rate.Duration, 100, 99)), result.ResetAt)
 	})
 
 	t.Run("the whole limit in one request", func(t *testing.T) {
@@ -119,7 +119,7 @@ func TestLimiterRecoversRemainingFullyAfterDurationTimesLnLimit(t *testing.T) {
 	require.True(t, result.Allowed)
 
 	check := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 0}
-	recovered := start.Add(afterNs(rate.Duration, float64(rate.Limit), 1))
+	recovered := start.Add(afterMs(rate.Duration, float64(rate.Limit), 1))
 	testClock.Set(recovered.Add(-time.Millisecond))
 	result, err = l.Allow(ctx, check)
 	require.NoError(t, err)
@@ -153,7 +153,7 @@ func TestLimiterPaysBackAMultiPodOverAdmission(t *testing.T) {
 	require.NoError(t, podA.flush(ctx))
 	require.NoError(t, podB.flush(ctx))
 
-	nextUnitAt := start.Add(afterNs(rate.Duration, 150, 99))
+	nextUnitAt := start.Add(afterMs(rate.Duration, 150, 99))
 	require.InDelta(t, 24.93*float64(time.Second), float64(nextUnitAt.Sub(start)), float64(10*time.Millisecond))
 	one := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 1}
 	for _, at := range []time.Duration{rowsStaleFor, 10 * time.Second, 20 * time.Second, nextUnitAt.Sub(start) - time.Millisecond} {
@@ -163,7 +163,7 @@ func TestLimiterPaysBackAMultiPodOverAdmission(t *testing.T) {
 			require.NoError(t, err)
 			require.False(t, result.Allowed, "at %s", at)
 			require.Zero(t, result.Remaining)
-			require.InDelta(t, nextUnitAt.UnixNano(), result.ResetAt.UnixNano(), float64(time.Microsecond))
+			require.Equal(t, nextUnitAt, result.ResetAt)
 		}
 	}
 
@@ -186,7 +186,7 @@ func TestLimiterAllowManySpendsNothingIfOneRequestIsDenied(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []Result{
 		{Allowed: true, Remaining: 10, ResetAt: testClock.Now()},
-		{Allowed: false, Remaining: 0, ResetAt: testClock.Now().Add(time.Nanosecond)},
+		{Allowed: false, Remaining: 0, ResetAt: testClock.Now().Add(time.Millisecond)},
 	}, results)
 
 	open.Units = 10

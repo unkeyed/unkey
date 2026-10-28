@@ -38,17 +38,17 @@ func TestFlushWritesOnlyRowsWithNewUnits(t *testing.T) {
 	_, err = l.Allow(ctx, Request{Fingerprint: fingerprint("b"), Rate: rate, Units: 0})
 	require.NoError(t, err)
 
-	nowNs := testClock.Now().UnixNano()
-	periodNs := periodLengthNs(rate.Duration)
-	startNs := periodStartNs(nowNs, periodNs)
-	sum := 3 * growthSince(nowNs, startNs, rate.Duration)
+	nowMs := testClock.Now().UnixMilli()
+	periodMs := periodLengthMs(rate.Duration)
+	startMs := periodStartMs(nowMs, periodMs)
+	sum := 3 * growthSince(nowMs, startMs, rate.Duration)
 	require.NoError(t, l.flush(ctx))
 	require.Equal(t, []StoredRow{{
 		Fingerprint:   request.Fingerprint,
-		PeriodStartNs: startNs,
+		PeriodStartMs: startMs,
 		PodID:         l.podID,
 		ScaledSum:     sum,
-		DeleteAfterNs: deleteAfterNs(startNs, periodNs, rate.Duration, sum),
+		DeleteAfterMs: deleteAfterMs(startMs, periodMs, rate.Duration, sum),
 	}}, store.storedRows(request.Fingerprint))
 	require.Empty(t, store.storedRows(fingerprint("b")))
 
@@ -61,7 +61,7 @@ func TestFlushWritesOnlyRowsWithNewUnits(t *testing.T) {
 	require.NoError(t, l.flush(ctx))
 	rows := store.storedRows(request.Fingerprint)
 	require.Len(t, rows, 1)
-	require.InEpsilon(t, 5*growthSince(nowNs, startNs, rate.Duration), rows[0].ScaledSum, 1e-15)
+	require.InEpsilon(t, 5*growthSince(nowMs, startMs, rate.Duration), rows[0].ScaledSum, 1e-15)
 }
 
 // TestFlushRetriesAFailedWriteWithTheLatestSum guarantees that a lost write
@@ -72,8 +72,8 @@ func TestFlushRetriesAFailedWriteWithTheLatestSum(t *testing.T) {
 	store := memoryStoreOf(t, l)
 	rate := Rate{Limit: 10, Duration: 10 * time.Second}
 	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 1}
-	nowNs := testClock.Now().UnixNano()
-	unitSum := growthSince(nowNs, periodStartNs(nowNs, periodLengthNs(rate.Duration)), rate.Duration)
+	nowMs := testClock.Now().UnixMilli()
+	unitSum := growthSince(nowMs, periodStartMs(nowMs, periodLengthMs(rate.Duration)), rate.Duration)
 
 	store.setFailWrites(true)
 	_, err := l.Allow(ctx, request)
@@ -96,8 +96,8 @@ func TestFlushKeepsAnEntryWhileItHasARowInTheCurrentPeriod(t *testing.T) {
 	l, testClock := newTestLimiter(t)
 	rate := Rate{Limit: 10, Duration: time.Second}
 	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 10}
-	periodNs := periodLengthNs(rate.Duration)
-	testClock.Set(time.Unix(0, periodStartNs(testClock.Now().UnixNano(), periodNs)+periodNs-2*time.Second.Nanoseconds()))
+	periodMs := periodLengthMs(rate.Duration)
+	testClock.Set(time.UnixMilli(periodStartMs(testClock.Now().UnixMilli(), periodMs) + periodMs - 2*time.Second.Milliseconds()))
 	_, err := l.Allow(ctx, request)
 	require.NoError(t, err)
 
@@ -126,8 +126,8 @@ func TestFlushRemovesAnUnusedEntry(t *testing.T) {
 	l, testClock := newTestLimiter(t)
 	rate := Rate{Limit: 2, Duration: time.Hour}
 	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 2}
-	periodNs := periodLengthNs(rate.Duration)
-	testClock.Set(time.Unix(0, periodStartNs(testClock.Now().UnixNano(), periodNs)+periodNs-time.Second.Nanoseconds()))
+	periodMs := periodLengthMs(rate.Duration)
+	testClock.Set(time.UnixMilli(periodStartMs(testClock.Now().UnixMilli(), periodMs) + periodMs - time.Second.Milliseconds()))
 	_, err := l.Allow(ctx, request)
 	require.NoError(t, err)
 	require.NoError(t, l.flush(ctx))
@@ -250,7 +250,7 @@ func TestManyPodsKeepRowsAndReadsBounded(t *testing.T) {
 		require.NoError(t, err)
 		periods := map[int64]bool{}
 		for _, r := range rows {
-			periods[r.PeriodStartNs] = true
+			periods[r.PeriodStartMs] = true
 		}
 		periodsReadMax = max(periodsReadMax, len(periods))
 	}

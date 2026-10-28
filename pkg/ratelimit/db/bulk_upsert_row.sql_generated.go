@@ -9,9 +9,9 @@ import (
 )
 
 // bulkUpsertRow is the base query for bulk insert
-const bulkUpsertRow = `INSERT INTO ratelimit_state ( fingerprint, period_start_ns, pod_id, scaled_sum, delete_after_ns ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertRow = `INSERT INTO ratelimit_state ( fingerprint, period_start_ms, pod_id, scaled_sum, delete_after_ms ) VALUES %s ON DUPLICATE KEY UPDATE
     scaled_sum = GREATEST(scaled_sum, VALUES(scaled_sum)),
-    delete_after_ns = GREATEST(delete_after_ns, VALUES(delete_after_ns))`
+    delete_after_ms = GREATEST(delete_after_ms, VALUES(delete_after_ms))`
 
 // UpsertRow performs bulk insert in a single query
 func (q *BulkQueries) UpsertRow(ctx context.Context, db DBTX, args []UpsertRowParams) error {
@@ -32,10 +32,10 @@ func (q *BulkQueries) UpsertRow(ctx context.Context, db DBTX, args []UpsertRowPa
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.Fingerprint)
-		allArgs = append(allArgs, arg.PeriodStartNs)
+		allArgs = append(allArgs, arg.PeriodStartMs)
 		allArgs = append(allArgs, arg.PodID)
 		allArgs = append(allArgs, arg.ScaledSum)
-		allArgs = append(allArgs, arg.DeleteAfterNs)
+		allArgs = append(allArgs, arg.DeleteAfterMs)
 	}
 
 	// Execute the bulk insert

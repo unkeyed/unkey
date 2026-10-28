@@ -10,16 +10,16 @@ import (
 )
 
 const now = `-- name: Now :one
-SELECT CAST(UNIX_TIMESTAMP(NOW(6)) * 1000000000 AS SIGNED) AS now_ns
+SELECT CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) AS now_ms
 `
 
-// Now returns the clock of the MySQL server in Unix nanoseconds, with
-// microsecond precision. Cleanup deletes faded rows by it.
+// Now returns the clock of the MySQL server in Unix milliseconds. Cleanup
+// deletes faded rows by it.
 //
-//	SELECT CAST(UNIX_TIMESTAMP(NOW(6)) * 1000000000 AS SIGNED) AS now_ns
+//	SELECT CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED) AS now_ms
 func (q *Queries) Now(ctx context.Context, db DBTX) (int64, error) {
 	row := db.QueryRowContext(ctx, now)
-	var now_ns int64
-	err := row.Scan(&now_ns)
-	return now_ns, err
+	var now_ms int64
+	err := row.Scan(&now_ms)
+	return now_ms, err
 }

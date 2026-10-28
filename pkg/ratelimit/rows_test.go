@@ -12,20 +12,20 @@ import (
 // `at`.
 func writePeer(t *testing.T, store *memoryStore, request Request, podID string, at time.Time, units int64) {
 	t.Helper()
-	periodNs := periodLengthNs(request.Rate.Duration)
-	startNs := periodStartNs(at.UnixNano(), periodNs)
-	sum := float64(units) * growthSince(at.UnixNano(), startNs, request.Rate.Duration)
+	periodMs := periodLengthMs(request.Rate.Duration)
+	startMs := periodStartMs(at.UnixMilli(), periodMs)
+	sum := float64(units) * growthSince(at.UnixMilli(), startMs, request.Rate.Duration)
 	for _, stored := range store.storedRows(request.Fingerprint) {
-		if stored.PeriodStartNs == startNs && stored.PodID == podID {
+		if stored.PeriodStartMs == startMs && stored.PodID == podID {
 			sum += stored.ScaledSum
 		}
 	}
 	store.seed([]StoredRow{{
 		Fingerprint:   request.Fingerprint,
-		PeriodStartNs: startNs,
+		PeriodStartMs: startMs,
 		PodID:         podID,
 		ScaledSum:     sum,
-		DeleteAfterNs: deleteAfterNs(startNs, periodNs, request.Rate.Duration, sum),
+		DeleteAfterMs: deleteAfterMs(startMs, periodMs, request.Rate.Duration, sum),
 	}})
 }
 
@@ -38,7 +38,7 @@ func TestLimiterCountsPeerRows(t *testing.T) {
 
 	result, err := l.Allow(ctx, request)
 	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: true, Remaining: 0, ResetAt: testClock.Now().Add(afterNs(request.Rate.Duration, 10, 9))}, result)
+	require.Equal(t, Result{Allowed: true, Remaining: 0, ResetAt: testClock.Now().Add(afterMs(request.Rate.Duration, 10, 9))}, result)
 	result, err = l.Allow(ctx, request)
 	require.NoError(t, err)
 	require.False(t, result.Allowed)
@@ -52,8 +52,8 @@ func TestLimiterReadsPeersOfEveryPeriod(t *testing.T) {
 	store := memoryStoreOf(t, l)
 	rate := Rate{Limit: 100, Duration: time.Second}
 	request := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 0}
-	periodNs := periodLengthNs(rate.Duration)
-	now := time.Unix(0, periodStartNs(testClock.Now().UnixNano(), periodNs)+time.Second.Nanoseconds())
+	periodMs := periodLengthMs(rate.Duration)
+	now := time.UnixMilli(periodStartMs(testClock.Now().UnixMilli(), periodMs) + time.Second.Milliseconds())
 	testClock.Set(now)
 	writePeer(t, store, request, "a", now.Add(-2*time.Second), 50)
 	writePeer(t, store, request, "b", now.Add(-time.Second), 50)
@@ -83,7 +83,7 @@ func TestLimiterFailsOpenWhenTheReadFails(t *testing.T) {
 	require.Equal(t, Result{Allowed: true, Remaining: 6, ResetAt: testClock.Now()}, result)
 	require.Equal(t, 1, store.readCallCount())
 
-	testClock.Tick(rowsStaleFor - time.Nanosecond)
+	testClock.Tick(rowsStaleFor - time.Millisecond)
 	_, err = l.Allow(ctx, request)
 	require.NoError(t, err)
 	require.Len(t, background, 1)
@@ -141,12 +141,12 @@ func TestLimiterServesStaleRowsWhileItRefreshes(t *testing.T) {
 	require.Equal(t, 1, store.readCallCount())
 	writePeer(t, store, request, "peer", testClock.Now(), 9)
 
-	testClock.Tick(rowsFreshFor - time.Nanosecond)
+	testClock.Tick(rowsFreshFor - time.Millisecond)
 	_, err = l.Allow(ctx, request)
 	require.NoError(t, err)
 	require.Empty(t, background)
 
-	testClock.Tick(time.Nanosecond)
+	testClock.Tick(time.Millisecond)
 	_, err = l.Allow(ctx, request)
 	require.NoError(t, err)
 	_, err = l.Allow(ctx, request)
@@ -234,9 +234,9 @@ func TestLimiterNeverWritesPeerRows(t *testing.T) {
 
 func TestEntryReplaceRowsRejectsRowsOfOtherPods(t *testing.T) {
 	e := newEntry(time.Second)
-	err := e.replaceRows([]StoredRow{{PeriodStartNs: 0, PodID: "other", ScaledSum: 1}}, "own", time.Second.Nanoseconds())
+	err := e.replaceRows([]StoredRow{{PeriodStartMs: 0, PodID: "other", ScaledSum: 1}}, "own", time.Second.Milliseconds())
 	require.Error(t, err)
-	err = e.replaceRows([]StoredRow{{PeriodStartNs: 0, PodID: "", ScaledSum: 1}, {PeriodStartNs: 0, PodID: "", ScaledSum: 2}}, "own", time.Second.Nanoseconds())
+	err = e.replaceRows([]StoredRow{{PeriodStartMs: 0, PodID: "", ScaledSum: 1}, {PeriodStartMs: 0, PodID: "", ScaledSum: 2}}, "own", time.Second.Milliseconds())
 	require.Error(t, err)
 	require.Empty(t, e.rows, "a rejected read changes nothing")
 }
