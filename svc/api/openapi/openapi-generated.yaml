@@ -16921,23 +16921,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
                     description: The query exceeds a query limit
-                "429":
-                    content:
-                        application/json:
-                            examples:
-                                workspaceRateLimited:
-                                    summary: Workspace rate limit exceeded
-                                    value:
-                                        error:
-                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
-                                            status: 429
-                                            title: Too Many Requests
-                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
-                                        meta:
-                                            requestId: req_1234abcd
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: The workspace rate limit is exceeded
                 "500":
                     content:
                         application/json:
@@ -17077,23 +17060,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
                     description: The query exceeds a query limit
-                "429":
-                    content:
-                        application/json:
-                            examples:
-                                workspaceRateLimited:
-                                    summary: Workspace rate limit exceeded
-                                    value:
-                                        error:
-                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
-                                            status: 429
-                                            title: Too Many Requests
-                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
-                                        meta:
-                                            requestId: req_1234abcd
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: The workspace rate limit is exceeded
                 "500":
                     content:
                         application/json:

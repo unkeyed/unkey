@@ -124,23 +124,6 @@ post:
                   detail: The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again.
                   status: 422
                   type: https://unkey.com/docs/errors/user/unprocessable_entity/query_memory_limit_exceeded
-    "429":
-      description: The workspace rate limit is exceeded
-      content:
-        application/json:
-          schema:
-            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
-          examples:
-            workspaceRateLimited:
-              summary: Workspace rate limit exceeded
-              value:
-                meta:
-                  requestId: req_1234abcd
-                error:
-                  title: Too Many Requests
-                  detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
-                  status: 429
-                  type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
     "500":
       description: Internal server error
       content:
