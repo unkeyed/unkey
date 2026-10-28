@@ -74,6 +74,12 @@ func TestHasEncodedSeparator(t *testing.T) {
 		{"lowercase encoded slash", "/files/a%2fb", true},
 		{"encoded backslash", "/files/a%5Cb", true},
 		{"lowercase encoded backslash", "/files/a%5cb", true},
+		{"double encoded slash", "/admin%252fevil", true},
+		{"double encoded backslash", "/admin%255Cevil", true},
+		{"triple encoded slash", "/admin%25252Fevil", true},
+		{"encoded percent", "/files/100%25", false},
+		{"encoded percent before other escape", "/files/a%2520b", false},
+		{"trailing percent", "/files/a%", false},
 	}
 
 	for _, tt := range tests {
