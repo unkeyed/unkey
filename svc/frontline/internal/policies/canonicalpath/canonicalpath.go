@@ -26,26 +26,29 @@ func Clean(p string) string {
 }
 
 // Candidates returns the paths a policy path expression is tested against: the
-// cleaned decoded path and, when it differs, the cleaned escaped path, each
-// with and without a trailing slash. The escaped form matters because the
-// upstream receives it, and frameworks such as Express do not treat "%2F" as a
-// separator. The raw path is never a candidate, so an earlier policy cannot
-// claim a request through a variant the app routes elsewhere.
-func Candidates(decoded, escaped string) []string {
+// cleaned decoded path with and without a trailing slash. The raw path is never
+// a candidate, so an earlier policy cannot claim a request through a variant
+// the app routes elsewhere.
+func Candidates(decoded string) []string {
 	cleaned := Clean(decoded)
-	candidates := withTrailingSlash(make([]string, 0, 4), cleaned)
-	if escaped == decoded {
-		return candidates
+	if cleaned == "/" {
+		return []string{cleaned}
 	}
-	if escapedCleaned := Clean(escaped); escapedCleaned != cleaned {
-		candidates = withTrailingSlash(candidates, escapedCleaned)
-	}
-	return candidates
+	return []string{cleaned, cleaned + "/"}
 }
 
-func withTrailingSlash(candidates []string, p string) []string {
-	if p == "/" {
-		return append(candidates, p)
+// HasEncodedSeparator reports whether an escaped path contains an encoded
+// slash or backslash. Frameworks disagree on whether these split segments, so
+// the gateway cannot know which handler the app will pick and rejects them.
+func HasEncodedSeparator(escaped string) bool {
+	for i := 0; i+2 < len(escaped); i++ {
+		if escaped[i] != '%' {
+			continue
+		}
+		switch strings.ToLower(escaped[i+1 : i+3]) {
+		case "2f", "5c":
+			return true
+		}
 	}
-	return append(candidates, p, p+"/")
+	return false
 }

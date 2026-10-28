@@ -359,6 +359,13 @@ const (
 	// ValidationBusy represents a 503 error - the pod's openapi body byte budget is full
 	UnkeyFrontlineErrorsOpenApiValidationBusy URN = "err:frontline:capacity:openapi_validation_busy"
 
+	// Request
+
+	// EncodedPathSeparator represents a 400 error - the path contains an encoded
+	// slash or backslash, which upstream frameworks disagree on, so policies
+	// cannot match it reliably.
+	UnkeyFrontlineErrorsRequestEncodedPathSeparator URN = "err:frontline:client:encoded_path_separator"
+
 	// ----------------
 	// UnkeyPortalErrors
 	// ----------------

@@ -1,0 +1,52 @@
+---
+title: "encoded_path_separator"
+sidebarTitle: "encoded_path_separator"
+description: "The request path contains an encoded slash or backslash, so the gateway rejected it."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/internal/policies/canonicalpath/canonicalpath.go
+---
+
+<Danger>`err:frontline:client:encoded_path_separator`</Danger>
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey and uses gateway policies. The request path contained `%2F` (an encoded `/`) or `%5C` (an encoded `\`), so the gateway rejected it before it reached the <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>. You get `400 Bad Request`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:encoded_path_separator",
+    "message": "The request path contains an encoded slash or backslash, which this API does not accept."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Remove the encoded slash or backslash from the path. If a value such as an ID contains `/`, send it in a query parameter, a header, or the request body instead of the path.
+
+## If you own this API
+
+Some frameworks treat `%2F` as a path separator and others don't, so the same request can reach different handlers depending on your app. The gateway can't tell which handler your app will pick, so it can't match your policies to the request reliably. It rejects these paths instead of risking a policy being skipped. The check runs only for apps with gateway policies.
+
+### How to fix
+
+1. Move values that can contain `/` or `\` out of the path, into a query parameter, header, or body.
+2. Update your clients to send the new request shape.
+
+<ProductLink product="compute" href="/compute/gateway/policies" title="Gateway policies">
+  Gateway policies are a Compute feature. The Compute docs explain how the gateway matches paths.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:client:firewall_denied`](/errors/frontline/client/firewall_denied): a firewall policy matched the request and denied it.
+- [`err:frontline:client:openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed): the request didn't match the OpenAPI spec.

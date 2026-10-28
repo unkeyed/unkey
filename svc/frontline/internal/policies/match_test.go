@@ -131,7 +131,7 @@ func TestMatchesRequest_PathVariants(t *testing.T) {
 		{"exact ignores case", "/ADMIN", exact("/admin"), true},
 		{"exact ignores trailing slash", "/admin/", exact("/admin"), true},
 		{"exact ignores segment parameter", "/admin;x", exact("/admin"), true},
-		{"exact ignores encoded duplicate slash", "/%2Fadmin", exact("/admin"), true},
+		{"exact ignores duplicate slash", "//admin", exact("/admin"), true},
 		{"exact resolves encoded parent segment", "/public/%2e%2e/admin", exact("/admin"), true},
 		{"exact with trailing slash matches path without one", "/admin", exact("/admin/"), true},
 		{"exact does not match longer path", "/admin2", exact("/admin"), false},
@@ -141,8 +141,8 @@ func TestMatchesRequest_PathVariants(t *testing.T) {
 		{"prefix does not match sibling", "/administrator", prefix("/admin/"), false},
 		{"prefix ignores case", "/Admin/x", prefix("/admin"), true},
 		{"regex ignores case and trailing slash", "/ADMIN/", regex("^/admin$"), true},
-		{"regex sees escaped slash", "/files/a%2Fb", regex(`^/files/[^/]+$`), true},
 		{"raw path is not matched", "/public/..;/admin", prefix("/public/"), false},
+		{"escaped dots are not matched", "/public/%2e%2e/admin", prefix("/public/"), false},
 	}
 
 	for _, tt := range tests {
