@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Test local Kubernetes kubeconfig isolation without a cluster"
-set -euo pipefail
-
-bash ./dev/local-cluster.test.sh
