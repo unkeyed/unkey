@@ -81,20 +81,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// FindDeploymentById is not workspace-scoped, so a match in another workspace
 	// is masked as not found to avoid leaking a deployment's existence
 	if db.IsNotFound(err) || dep.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New(
-			"deployment not found",
-			fault.Code(codes.Data.Deployment.NotFound.URN()),
-			fault.Internal("deployment not found or belongs to another workspace"),
-			fault.Public("The requested deployment does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.Deployment.NotFound.URN())
 	}
 
-	err = principal.Authorize(rbac.U(
+	permissionQuery := rbac.U(
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID).BuildLogs(),
 		permissions.Read,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Deployment.NotFound.URN(), "The requested deployment does not exist.")
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Deployment.NotFound.URN(), "Resource does not exist.")
 	}
 
 	page, err := h.ClickHouse.GetBuildLogs(ctx, clickhouse.GetBuildLogsRequest{

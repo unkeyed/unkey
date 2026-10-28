@@ -13,7 +13,7 @@ sources:
 
 <Danger>`err:unkey:authorization:insufficient_permissions`</Danger>
 
-Your root key is valid, but it doesn't have a permission this endpoint needs. You get HTTP 403. On most endpoints, `detail` shows the permission that was missing.
+Your root key is valid, but it doesn't have a permission this endpoint needs. You get HTTP 403. On most endpoints, `detail` shows the permission that was missing, with resource IDs replaced by their prefix in braces, such as `{api}` or `{ks}`. Substitute the ID from your own request.
 
 ```json Example response
 {
@@ -36,7 +36,7 @@ Your root key is valid, but it doesn't have a permission this endpoint needs. Yo
 - The request asks for a broader scope than the key's permission, such as listing deployments without environment filters.
 - Someone saved the key in **Edit root key** and left the permission unchecked. Saving replaces the whole set.
 
-A missing permission doesn't always return 403. Most endpoints that read or change a resource you named return a 404 for it instead, so a 404 doesn't prove the resource is gone. Check the root key's permissions before you decide the ID is wrong.
+A missing permission doesn't always return 403. When your root key can't read the resource you named, the endpoint returns a 404 for it instead, so a 404 doesn't prove the resource is gone. When the key can read the resource but lacks the action, you get this 403 and `detail` names the missing permission. Check the root key's permissions before you decide the ID is wrong.
 
 ## How to fix
 

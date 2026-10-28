@@ -47,7 +47,8 @@ import { Result } from "../types/fp.js";
  * - `portal.*.delete_portal` (to delete any portal in the workspace)
  * - `portal.<portal_id>.delete_portal` (to delete a specific portal)
  *
- * Without the permission this returns **404**, not 403.
+ * A root key that cannot read the portal gets **404**. One that can read it
+ * but lacks the permission gets **403**.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
@@ -60,6 +61,7 @@ export function portalDeletePortal(
     components.V2PortalDeletePortalResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -90,6 +92,7 @@ async function $do(
       components.V2PortalDeletePortalResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
+      | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
@@ -188,6 +191,7 @@ async function $do(
     components.V2PortalDeletePortalResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -203,6 +207,7 @@ async function $do(
     M.json(200, components.V2PortalDeletePortalResponseBody$inboundSchema),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
+    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",

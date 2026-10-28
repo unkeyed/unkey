@@ -13,7 +13,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_get_identity"
 )
 
-func TestForbidden(t *testing.T) {
+// TestUnreadableIdentityIsNotFound protects internal and external identity IDs from enumeration.
+func TestUnreadableIdentityIsNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB: h.DB,
@@ -42,40 +43,22 @@ func TestForbidden(t *testing.T) {
 		ExternalID:  uid.New(uid.TestPrefix),
 	}).ID
 
-	t.Run("no permission to read any identity", func(t *testing.T) {
-		// The rootKey has no permissions, so it should fail
-		req := handler.Request{
-			Identity: externalID,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
-		require.Contains(t, res.Body.Error.Detail, fmt.Sprintf("identities/%s#read", identityID))
-		require.NotContains(t, res.Body.Error.Detail, "have:")
-		require.NotContains(t, res.Body.Error.Detail, "{")
-		require.NotContains(t, res.Body.Error.Detail, "}")
-	})
-
-	t.Run("permission by external ID but not by ID", func(t *testing.T) {
-		// Create a key with specific identity permission
-		specificPermKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity."+otherIdentityID+".read_identity")
-		specificHeaders := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", specificPermKey)},
-		}
-
-		// Try to use identity when only having permission for specific identity IDs
-		req := handler.Request{
-			Identity: externalID,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, specificHeaders, req)
-		require.Equal(t, http.StatusForbidden, res.Status)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
-		require.NotContains(t, res.Body.Error.Detail, "have:")
-		require.NotContains(t, res.Body.Error.Detail, otherIdentityID)
-		require.NotContains(t, res.Body.Error.Detail, "{")
-		require.NotContains(t, res.Body.Error.Detail, "}")
-	})
+	for _, credential := range []struct {
+		name string
+		key  string
+	}{
+		{name: "no read permission", key: rootKey},
+		{name: "another identity", key: h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/*/identities/%s#read", workspaceID, otherIdentityID))},
+	} {
+		t.Run(credential.name, func(t *testing.T) {
+			headers.Set("Authorization", "Bearer "+credential.key)
+			missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Identity: uid.New(uid.IdentityPrefix)})
+			require.Equal(t, http.StatusNotFound, missing.Status)
+			for _, identity := range []string{externalID, identityID} {
+				res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Identity: identity})
+				require.Equal(t, missing.Status, res.Status)
+				require.Equal(t, missing.Body.Error, res.Body.Error)
+			}
+		})
+	}
 }

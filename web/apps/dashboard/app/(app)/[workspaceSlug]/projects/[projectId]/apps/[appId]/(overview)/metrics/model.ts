@@ -5,6 +5,7 @@ import type { Loadable } from "@/lib/loadable/loadable";
 import type {
   DeployMarker,
   Grid,
+  InstanceEvent,
   InstanceRow,
   InstanceSeries,
   MetricId,
@@ -14,11 +15,11 @@ import { type ChartState, METRIC_VIEWS, cardState } from "@/lib/metrics/views";
 import { match } from "@unkey/match";
 import { type DeployEffect, type EffectSamples, deployEffects } from "./deploy-effects";
 import {
+  type FilterSelection,
   INSTANCE_METRICS,
   type InstanceChart,
   type InstanceMetric,
   type InstancesTabView,
-  type RegionFilter,
   instanceChart,
   instancesTabView,
 } from "./instances-model";
@@ -45,7 +46,7 @@ export function resolveEnvironment(
   return isLoading ? { kind: "loading" } : { kind: "none" };
 }
 
-export const METRICS_TABS = ["traffic", "resources", "instances"] as const;
+export const METRICS_TABS = ["instances", "traffic", "resources"] as const;
 export type MetricsTab = (typeof METRICS_TABS)[number];
 
 type TabLayout =
@@ -73,13 +74,11 @@ export function needsInstanceSeries(tab: MetricsTab, expanded: MetricId | null):
 
 export type MetricCardModel = { metric: MetricId; state: ChartState };
 
-export type LegendReadout = { atMs: number; values: Record<string, number | null> };
-
 export function legendReadout(
   chart: ReadonlyArray<AreaChartPoint>,
   keys: ReadonlyArray<string>,
   hoveredMs: number | null,
-): LegendReadout | null {
+): Record<string, number | null> | null {
   const hovered =
     hoveredMs === null ? undefined : chart.find((p) => p.originalTimestamp === hoveredMs);
   const reported = chart.some((p) => keys.some((key) => p[key] !== undefined));
@@ -87,10 +86,7 @@ export function legendReadout(
   if (!point) {
     return null;
   }
-  return {
-    atMs: point.originalTimestamp,
-    values: Object.fromEntries(keys.map((key) => [key, point[key] ?? null])),
-  };
+  return Object.fromEntries(keys.map((key) => [key, point[key] ?? null]));
 }
 
 export type PanelStats = { latest: number; average: number; peak: number; low: number };
@@ -130,7 +126,6 @@ export type MetricsPageModel =
       environment: MetricsEnvironment;
       tab: MetricsTab;
       view: TabView;
-      regionFilter: RegionFilter | null;
       markers: ChartMarker[];
       deploys: ReadonlyMap<string, DeployView>;
       panel: PanelModel | null;
@@ -157,8 +152,8 @@ type MetricsPageInput = {
   byInstance: Loadable<InstanceSeries>;
   deploys: Loadable<DeployMarker[]>;
   instances: Loadable<InstanceRow[]>;
-  region: string | null;
-  selected: string | null;
+  events: Loadable<InstanceEvent[]>;
+  filter: FilterSelection;
 };
 
 export function metricsPageModel(input: MetricsPageInput): MetricsPageModel {
@@ -190,10 +185,11 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
       : {
           kind: "instances",
           instances: instancesTabView({
+            grid: input.grid,
             instances: input.instances,
             usage: input.byInstance,
-            region: input.region,
-            selected: input.selected,
+            events: input.events,
+            filter: input.filter,
           }),
         };
 
@@ -202,23 +198,16 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
     environment,
     tab: input.tab,
     view,
-    regionFilter: regionFilterOf(view),
     markers: markers.map((d) => ({
       id: d.deploymentId,
       atMs: d.readyAtMs,
       span: d.serving && { endMs: d.serving.untilMs },
+      shape: "dot",
+      label: null,
     })),
     deploys: new Map(deploys.map((d) => [d.marker.deploymentId, d])),
     panel: input.expanded ? panelOf(input.expanded, input, deploys) : null,
   };
-}
-
-function regionFilterOf(view: TabView): RegionFilter | null {
-  if (view.kind !== "instances" || view.instances.status !== "ready") {
-    return null;
-  }
-  const { regions, region } = view.instances;
-  return { regions, region };
 }
 
 function panelOf(

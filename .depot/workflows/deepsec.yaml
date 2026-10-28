@@ -3,14 +3,78 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review
+        required: true
+        type: number
 concurrency:
-  group: deepsec-${{ github.event.pull_request.number }}
+  group: deepsec-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: true
 permissions:
   contents: read
 jobs:
+  gate:
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+      pr_number: ${{ steps.gate.outputs.pr_number }}
+      base_sha: ${{ steps.gate.outputs.base_sha }}
+      head_sha: ${{ steps.gate.outputs.head_sha }}
+    steps:
+      - name: Decide whether to review
+        id: gate
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          RUNS_AUTOMATIC_MAX: 2
+        with:
+          script: |
+            const issue_number = Number(process.env.PR_NUMBER);
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo, pull_number: issue_number,
+            });
+            core.setOutput('pr_number', pr.number);
+            core.setOutput('base_sha', pr.base.sha);
+            core.setOutput('head_sha', pr.head.sha);
+            if (pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.notice('Skipping a pull request from a fork.');
+              return;
+            }
+            if (pr.state !== 'open') {
+              core.notice('Skipping a closed pull request.');
+              return;
+            }
+            if (context.eventName === 'pull_request') {
+              if (pr.draft) {
+                core.notice('Skipping a draft pull request. DeepSec runs once it is ready for review.');
+                return;
+              }
+              const marker = '<!-- unkey-deepsec -->';
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                ...context.repo, issue_number, per_page: 100,
+              });
+              const previous = comments.find(comment =>
+                comment.user?.login === 'depot-code-access[bot]' && comment.body?.startsWith(marker)
+              );
+              const runsAutomatic = previous
+                ? Number(previous.body.match(/<!-- unkey-deepsec-automatic-runs: (\d+) -->/)?.[1] ?? 1)
+                : 0;
+              const runsAutomaticMax = Number(process.env.RUNS_AUTOMATIC_MAX);
+              if (runsAutomatic >= runsAutomaticMax) {
+                core.notice(`DeepSec already reviewed this pull request ${runsAutomatic} times automatically. Run the DeepSec workflow manually to review again.`);
+                return;
+              }
+            }
+            core.setOutput('run', 'true');
   analyze:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 30
     continue-on-error: true
@@ -23,7 +87,7 @@ jobs:
         run: echo "url=$DEPOT_JOB_URL" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ needs.gate.outputs.base_sha }}
           persist-credentials: false
       - name: Require trusted scanner configuration
         run: |
@@ -33,7 +97,7 @@ jobs:
           fi
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ needs.gate.outputs.head_sha }}
           path: review-source
           fetch-depth: 0
           persist-credentials: false
@@ -42,8 +106,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Prepare scanner
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ needs.gate.outputs.base_sha }}
+          HEAD_SHA: ${{ needs.gate.outputs.head_sha }}
           FILES_MAX: 40
           PRIORITY_PATTERN: ^(svc/(api|frontline|vault|ctrl)/|internal/services/(keys|portal|ratelimit|usagelimiter)/|pkg/(auth|db|encryption|jwt|paseto|prefixedapikey|rbac|redaction|ssrf|tls|webhook|zen)/|web/apps/dashboard/(lib/(trpc|auth)/|app/(api|auth|proxy)/|proxy[.]ts$|.*/actions[.]ts$)|web/apps/portal/src/(lib|routes)/)
         run: |
@@ -187,7 +251,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
   comment:
-    needs: analyze
+    needs: [gate, analyze]
     if: always() && !cancelled() && needs.analyze.result != 'skipped'
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
@@ -204,14 +268,16 @@ jobs:
         id: publish
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
-          REVIEW_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ needs.gate.outputs.pr_number }}
+          REVIEW_SHA: ${{ needs.gate.outputs.head_sha }}
           SCAN_RESULT: ${{ needs.analyze.outputs.scan_result }}
           SCAN_JOB_URL: ${{ needs.analyze.outputs.job_url }}
+          RUNS_AUTOMATIC_MAX: 2
         with:
           script: |
             const fs = require('node:fs');
             const marker = '<!-- unkey-deepsec -->';
-            const issue_number = context.issue.number;
+            const issue_number = Number(process.env.PR_NUMBER);
             const { data: pr } = await github.rest.pulls.get({
               ...context.repo, pull_number: issue_number,
             });
@@ -229,13 +295,21 @@ jobs:
             } else {
               summary = 'The scan did not complete. Check the CI run for missing credentials, timeouts, or scanner errors. This is not a clean review.';
             }
-            const body = `${marker}\n## DeepSec security review\n\nAdvisory review of ${process.env.REVIEW_SHA}.\n\n${summary.slice(0, 50000)}\n\n[View logs and report artifacts on Depot](${jobUrl})`;
             const comments = await github.paginate(github.rest.issues.listComments, {
               ...context.repo, issue_number, per_page: 100,
             });
             const previous = comments.find(comment =>
               comment.user?.login === 'depot-code-access[bot]' && comment.body?.startsWith(marker)
             );
+            const runsAutomaticPrevious = previous
+              ? Number(previous.body.match(/<!-- unkey-deepsec-automatic-runs: (\d+) -->/)?.[1] ?? 1)
+              : 0;
+            const runsAutomatic = runsAutomaticPrevious + (context.eventName === 'pull_request' ? 1 : 0);
+            const counter = `<!-- unkey-deepsec-automatic-runs: ${runsAutomatic} -->`;
+            const limit = runsAutomatic >= Number(process.env.RUNS_AUTOMATIC_MAX)
+              ? '\n\nDeepSec reviews a pull request automatically at most twice. Run the DeepSec workflow manually to review later changes.'
+              : '';
+            const body = `${marker}\n${counter}\n## DeepSec security review\n\nAdvisory review of ${process.env.REVIEW_SHA}.\n\n${summary.slice(0, 50000)}\n\n[View logs and report artifacts on Depot](${jobUrl})${limit}`;
             if (previous) {
               await github.rest.issues.updateComment({
                 ...context.repo, comment_id: previous.id, body,

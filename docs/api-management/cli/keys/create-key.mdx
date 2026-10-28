@@ -100,7 +100,7 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 
 ## Required permissions
 
-`api.*.create_key` or `api.<apiId>.create_key`. `--recoverable` also needs `api.*.encrypt_key` or `api.<apiId>.encrypt_key`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the API exists. See [Root key permissions](/platform/root-keys/permissions).
+`api.*.create_key` or `api.<apiId>.create_key`. `--recoverable` also needs `api.*.encrypt_key` or `api.<apiId>.encrypt_key`. Without the permission you get a 404, so the response doesn't reveal whether the API exists. If your key can read the API's keyspace, you get a 403 that names the missing permission instead. See [Root key permissions](/platform/root-keys/permissions).
 
 ## Examples
 

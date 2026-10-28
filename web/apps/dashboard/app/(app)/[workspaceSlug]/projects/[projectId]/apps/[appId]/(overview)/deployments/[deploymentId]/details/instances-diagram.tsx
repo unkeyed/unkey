@@ -15,7 +15,15 @@ import { routes } from "@/lib/navigation/routes";
 import { regionInfo } from "@/lib/regions";
 import { IconLayers3Outline18, IconServerOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import {
+  Badge,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateIcon,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@unkey/ui";
 import { cn } from "cn";
 import Link from "next/link";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -122,26 +130,30 @@ export function InstancesDiagram({ stage }: { stage: StepResolution["status"] })
     [instances, desiredRegions, targetRegions, desiredState, desiredInstanceCount, stage],
   );
 
+  return match(view)
+    .with({ kind: "none" }, () => null)
+    .with({ kind: "empty" }, ({ message }) => (
+      <EmptyState frame="none">
+        <EmptyStateIcon>
+          <IconServerOutline18 />
+        </EmptyStateIcon>
+        <EmptyStateDescription>{message}</EmptyStateDescription>
+      </EmptyState>
+    ))
+    .with({ kind: "diagram" }, ({ regions }) => <RegionsDiagram regions={regions} />)
+    .exhaustive();
+}
+
+function RegionsDiagram({ regions }: { regions: RegionGroup[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const regionCount = view.kind === "diagram" ? view.regions.length : 0;
+  const n = regions.length;
   useLayoutEffect(() => {
     const panel = scrollRef.current;
-    if (panel && regionCount > 0) {
+    if (panel && n > 0) {
       panel.scrollLeft = (panel.scrollWidth - panel.clientWidth) / 2;
     }
-  }, [regionCount]);
+  }, [n]);
 
-  if (view.kind === "empty") {
-    return (
-      <div className="px-8 py-8">
-        <p className="mx-auto max-w-80 rounded-lg bg-raised px-3 py-6 text-center text-xs text-gray-10 shadow-sm ring-1 ring-grayA-5">
-          {view.message}
-        </p>
-      </div>
-    );
-  }
-
-  const n = view.regions.length;
   const density = densityOf(n);
   const layout = densityLayout[density];
   const rowWidth = (w: number) => n * w + (n - 1) * layout.gap;
@@ -151,14 +163,14 @@ export function InstancesDiagram({ stage }: { stage: StepResolution["status"] })
         className="mx-auto flex flex-col motion-safe:animate-upgrade-rise"
         style={{ minWidth: rowWidth(layout.minW), maxWidth: rowWidth(layout.maxW) }}
       >
-        <FanIn className="mx-auto h-33 w-full max-w-120" />
+        <FanIn className="mx-auto aspect-[4/1] w-full max-w-120" />
         <EdgeNode />
         <FanOut targets={n} className={cn("h-13", layout.fanOut)} />
         <div
           className={cn("grid items-start", layout.gapClass)}
           style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}
         >
-          {view.regions.map((region) => (
+          {regions.map((region) => (
             <RegionCard key={region.key} region={region} density={density} />
           ))}
         </div>

@@ -102,7 +102,7 @@ Minikube waits for the API server and kubelet before starting Tilt. Tilt install
 Cilium through Helm, then checks the Cilium agent, policy CRDs, node readiness,
 and CoreDNS before applying network policies. Node readiness cannot gate Helm
 installation because the node needs Cilium to become ready. Hubble readiness
-does not block application startup. Orbs use bridge networking and wait for
+does not block application startup. Reduced orbs use bridge networking and wait for
 node readiness during Minikube startup instead.
 
 Minikube 1.39.0 requires `--force` when CNI installation is disabled with the
@@ -126,7 +126,8 @@ version lookup during startup. Tilt manages actual Helm releases for Cilium
 `dev/k8s/cilium/values.yaml` and `dev/k8s/topolvm/values.yaml`. Helm adopts the
 previously applied local resources without deleting volumes. TopoLVM's chart
 also owns the `topolvm-ssd` StorageClass. Orbs keep the matching
-CiliumNetworkPolicy CRD without policy enforcement or a Cilium release.
+CiliumNetworkPolicy CRD without policy enforcement or a Cilium release when
+using the reduced profile. Metal orbs run the full Cilium release.
 
 Inspect the installed releases with:
 
@@ -146,13 +147,58 @@ without weakening lockfile or provenance checks. pnpm 11.28.5 publishes no
 Intel macOS standalone binary; this pin supports Apple Silicon Macs, not Intel
 Macs. Don't regenerate a lock entry pointing to `source-maps.tgz`.
 
-Local deployments use in-cluster BuildKit Jobs by default and don't require Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to `dev/.env.depot` and set both values to your Depot token before starting the environment.
+Local deployments use in-cluster BuildKit Jobs by default and don't require
+Depot credentials. To test the Depot backend, copy `dev/.env.depot.example` to
+`dev/.env.depot` and set `UNKEY_REGISTRY_PASSWORD` to an organization API token
+from **Depot Organization Settings > API Tokens**. Project and pull tokens
+don't have the permissions needed for this setup.
+
+Tilt creates or reuses a personal Depot registry project in the token's
+organization. Its name is `unkey-local-registry-<hash>`, where the hash comes
+from `git config user.email`. Configure your Git email before starting Tilt.
+No registry project ID is needed in your configuration. The worker and Krane
+use the same token to build, push, and pull images. Customer builds still run
+in separate Depot projects created by the worker.
+
+Changing the organization token selects a registry in that organization; it
+doesn't migrate existing images or stored customer build-project IDs. After
+switching organizations, clear the affected local `projects.depot_project_id`
+values and create new deployments instead of retrying old workflows.
 
 You get:
 
 - Tilt UI at `http://localhost:10350`
 - Various services port-forwarded
 - Dashboard at `http://localhost:3000`
+
+## Full-stack metal orbs
+
+`mise run dev-orb` selects `dev/cluster.orb.metal.yaml` on worker images that
+provide `/opt/orb-worker/docker-start.sh`. Other orbs keep the reduced
+`dev/cluster.orb.yaml` profile. To select the metal profile explicitly:
+
+```bash
+mise run dev-orb-metal
+```
+
+The metal profile requires Linux with eBPF JIT, device mapper, loop devices,
+privileged Docker containers, and the worker image's gVisor binaries. It runs
+Cilium, Heimdall, and TopoLVM, with gVisor enabled in Krane. Tilt's `--orb-metal`
+flag applies IPv4 listeners, the host build architecture, and Heimdall's
+unconfined AppArmor profile only to this development environment. Tilt permits
+two concurrent updates. The existing `--orb` flag still selects the reduced
+stack and cannot be combined with `--orb-metal`.
+
+The repository owns the startup and resume scripts in `dev/orb/` and the Helm
+helper in `tools/helm-resource/`. The helper installs actual Helm releases and
+returns their live objects to Tilt without changing the user's kubeconfig.
+No project pre-setup patch is required. Remove the old patch hook when adopting
+this checkout; old worker images still contain it.
+
+Depot snapshots retain the checkout and host caches, but not the Docker disk,
+cluster databases, or TopoLVM data. Resume clears the disposable `unkey` profile
+on that disk before the Amp `dev` service rebuilds it. Reserve that profile for
+this project. This does not change normal local cluster reuse or cleanup.
 
 ## Local HTTPS with Frontline (optional)
 
@@ -267,6 +313,14 @@ template to get a token with the new claims.
 passes it to the Docker API. For Kubernetes, also set `WORKOS_CLIENT_ID` in
 `dev/.env.workos`; Tilt loads it into the `workos-credentials` secret. Restart
 the local API after changing its config or environment.
+
+`unkey login` checks the member's current WorkOS role when it issues and
+refreshes a CLI session. Copy `dev/.env.workos.example` to `dev/.env.workos`
+and set `WORKOS_API_KEY` to the same value as the dashboard. The local API
+config already has a CLI signing secret and sends the browser to
+`http://localhost:3000/cli/device`. Sign in, check the code, narrow the
+permissions if you want, and click Allow. Use `AUTH_PROVIDER=workos` so the
+signed-in user id is the WorkOS user stored on the workspace.
 
 Stripe billing:
 

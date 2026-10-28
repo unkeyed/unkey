@@ -75,6 +75,8 @@ func testRequestTrailers() http.Header {
 		HeaderFrontlineMeta:  []string{"spoofed"},
 		HeaderRegion:         []string{"spoofed"},
 		"X-Unkey-Custom":     []string{"spoofed"},
+		"X_unkey_principal":  []string{"spoofed"},
+		"X-Unkey_principal":  []string{"spoofed"},
 		"X-Customer-Trailer": []string{"preserved"},
 	}
 }
@@ -85,6 +87,8 @@ func requireUnkeyTrailersRemoved(t *testing.T, req *http.Request) {
 	require.Empty(t, req.Trailer.Values(HeaderFrontlineMeta))
 	require.Empty(t, req.Trailer.Values(HeaderRegion))
 	require.Empty(t, req.Trailer.Values("X-Unkey-Custom"))
+	require.Empty(t, req.Trailer.Values("X_Unkey_Principal"))
+	require.Empty(t, req.Trailer.Values("X-Unkey_Principal"))
 	require.Equal(t, []string{"preserved"}, req.Trailer.Values("X-Customer-Trailer"))
 }
 

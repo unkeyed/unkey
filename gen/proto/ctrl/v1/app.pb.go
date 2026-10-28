@@ -268,118 +268,6 @@ func (x *OciSource) GetImageReference() string {
 	return ""
 }
 
-type UpdateOciImageSourceRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	WorkspaceId    string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
-	AppId          string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	ImageReference string                 `protobuf:"bytes,3,opt,name=image_reference,json=imageReference,proto3" json:"image_reference,omitempty"`
-	Actor          *ActorInfo             `protobuf:"bytes,4,opt,name=actor,proto3" json:"actor,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *UpdateOciImageSourceRequest) Reset() {
-	*x = UpdateOciImageSourceRequest{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateOciImageSourceRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateOciImageSourceRequest) ProtoMessage() {}
-
-func (x *UpdateOciImageSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateOciImageSourceRequest.ProtoReflect.Descriptor instead.
-func (*UpdateOciImageSourceRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *UpdateOciImageSourceRequest) GetWorkspaceId() string {
-	if x != nil {
-		return x.WorkspaceId
-	}
-	return ""
-}
-
-func (x *UpdateOciImageSourceRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *UpdateOciImageSourceRequest) GetImageReference() string {
-	if x != nil {
-		return x.ImageReference
-	}
-	return ""
-}
-
-func (x *UpdateOciImageSourceRequest) GetActor() *ActorInfo {
-	if x != nil {
-		return x.Actor
-	}
-	return nil
-}
-
-type UpdateOciImageSourceResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ImageReference string                 `protobuf:"bytes,1,opt,name=image_reference,json=imageReference,proto3" json:"image_reference,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *UpdateOciImageSourceResponse) Reset() {
-	*x = UpdateOciImageSourceResponse{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateOciImageSourceResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateOciImageSourceResponse) ProtoMessage() {}
-
-func (x *UpdateOciImageSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateOciImageSourceResponse.ProtoReflect.Descriptor instead.
-func (*UpdateOciImageSourceResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *UpdateOciImageSourceResponse) GetImageReference() string {
-	if x != nil {
-		return x.ImageReference
-	}
-	return ""
-}
-
 type DeleteAppRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
@@ -390,7 +278,7 @@ type DeleteAppRequest struct {
 
 func (x *DeleteAppRequest) Reset() {
 	*x = DeleteAppRequest{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[6]
+	mi := &file_ctrl_v1_app_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +290,7 @@ func (x *DeleteAppRequest) String() string {
 func (*DeleteAppRequest) ProtoMessage() {}
 
 func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[6]
+	mi := &file_ctrl_v1_app_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +303,7 @@ func (x *DeleteAppRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAppRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAppRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{6}
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DeleteAppRequest) GetAppId() string {
@@ -440,7 +328,7 @@ type DeleteAppResponse struct {
 
 func (x *DeleteAppResponse) Reset() {
 	*x = DeleteAppResponse{}
-	mi := &file_ctrl_v1_app_proto_msgTypes[7]
+	mi := &file_ctrl_v1_app_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -452,7 +340,7 @@ func (x *DeleteAppResponse) String() string {
 func (*DeleteAppResponse) ProtoMessage() {}
 
 func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_app_proto_msgTypes[7]
+	mi := &file_ctrl_v1_app_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -465,7 +353,7 @@ func (x *DeleteAppResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAppResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAppResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{7}
+	return file_ctrl_v1_app_proto_rawDescGZIP(), []int{5}
 }
 
 var File_ctrl_v1_app_proto protoreflect.FileDescriptor
@@ -487,22 +375,14 @@ const file_ctrl_v1_app_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\v\n" +
 	"\tGitSource\"4\n" +
 	"\tOciSource\x12'\n" +
-	"\x0fimage_reference\x18\x01 \x01(\tR\x0eimageReference\"\xaa\x01\n" +
-	"\x1bUpdateOciImageSourceRequest\x12!\n" +
-	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x15\n" +
-	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12'\n" +
-	"\x0fimage_reference\x18\x03 \x01(\tR\x0eimageReference\x12(\n" +
-	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"G\n" +
-	"\x1cUpdateOciImageSourceResponse\x12'\n" +
 	"\x0fimage_reference\x18\x01 \x01(\tR\x0eimageReference\"S\n" +
 	"\x10DeleteAppRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12(\n" +
 	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x13\n" +
-	"\x11DeleteAppResponse2\xff\x01\n" +
+	"\x11DeleteAppResponse2\x98\x01\n" +
 	"\n" +
 	"AppService\x12D\n" +
-	"\tCreateApp\x12\x19.ctrl.v1.CreateAppRequest\x1a\x1a.ctrl.v1.CreateAppResponse\"\x00\x12e\n" +
-	"\x14UpdateOciImageSource\x12$.ctrl.v1.UpdateOciImageSourceRequest\x1a%.ctrl.v1.UpdateOciImageSourceResponse\"\x00\x12D\n" +
+	"\tCreateApp\x12\x19.ctrl.v1.CreateAppRequest\x1a\x1a.ctrl.v1.CreateAppResponse\"\x00\x12D\n" +
 	"\tDeleteApp\x12\x19.ctrl.v1.DeleteAppRequest\x1a\x1a.ctrl.v1.DeleteAppResponse\"\x00B\x87\x01\n" +
 	"\vcom.ctrl.v1B\bAppProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
@@ -518,35 +398,30 @@ func file_ctrl_v1_app_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_app_proto_rawDescData
 }
 
-var file_ctrl_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ctrl_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ctrl_v1_app_proto_goTypes = []any{
-	(*CreateAppRequest)(nil),             // 0: ctrl.v1.CreateAppRequest
-	(*CreateAppResponse)(nil),            // 1: ctrl.v1.CreateAppResponse
-	(*GitSource)(nil),                    // 2: ctrl.v1.GitSource
-	(*OciSource)(nil),                    // 3: ctrl.v1.OciSource
-	(*UpdateOciImageSourceRequest)(nil),  // 4: ctrl.v1.UpdateOciImageSourceRequest
-	(*UpdateOciImageSourceResponse)(nil), // 5: ctrl.v1.UpdateOciImageSourceResponse
-	(*DeleteAppRequest)(nil),             // 6: ctrl.v1.DeleteAppRequest
-	(*DeleteAppResponse)(nil),            // 7: ctrl.v1.DeleteAppResponse
-	(*ActorInfo)(nil),                    // 8: ctrl.v1.ActorInfo
+	(*CreateAppRequest)(nil),  // 0: ctrl.v1.CreateAppRequest
+	(*CreateAppResponse)(nil), // 1: ctrl.v1.CreateAppResponse
+	(*GitSource)(nil),         // 2: ctrl.v1.GitSource
+	(*OciSource)(nil),         // 3: ctrl.v1.OciSource
+	(*DeleteAppRequest)(nil),  // 4: ctrl.v1.DeleteAppRequest
+	(*DeleteAppResponse)(nil), // 5: ctrl.v1.DeleteAppResponse
+	(*ActorInfo)(nil),         // 6: ctrl.v1.ActorInfo
 }
 var file_ctrl_v1_app_proto_depIdxs = []int32{
-	8, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
+	6, // 0: ctrl.v1.CreateAppRequest.actor:type_name -> ctrl.v1.ActorInfo
 	2, // 1: ctrl.v1.CreateAppRequest.git:type_name -> ctrl.v1.GitSource
 	3, // 2: ctrl.v1.CreateAppRequest.oci:type_name -> ctrl.v1.OciSource
-	8, // 3: ctrl.v1.UpdateOciImageSourceRequest.actor:type_name -> ctrl.v1.ActorInfo
-	8, // 4: ctrl.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 5: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
-	4, // 6: ctrl.v1.AppService.UpdateOciImageSource:input_type -> ctrl.v1.UpdateOciImageSourceRequest
-	6, // 7: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
-	1, // 8: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
-	5, // 9: ctrl.v1.AppService.UpdateOciImageSource:output_type -> ctrl.v1.UpdateOciImageSourceResponse
-	7, // 10: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	6, // 3: ctrl.v1.DeleteAppRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 4: ctrl.v1.AppService.CreateApp:input_type -> ctrl.v1.CreateAppRequest
+	4, // 5: ctrl.v1.AppService.DeleteApp:input_type -> ctrl.v1.DeleteAppRequest
+	1, // 6: ctrl.v1.AppService.CreateApp:output_type -> ctrl.v1.CreateAppResponse
+	5, // 7: ctrl.v1.AppService.DeleteApp:output_type -> ctrl.v1.DeleteAppResponse
+	6, // [6:8] is the sub-list for method output_type
+	4, // [4:6] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_app_proto_init() }
@@ -565,7 +440,7 @@ func file_ctrl_v1_app_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_app_proto_rawDesc), len(file_ctrl_v1_app_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

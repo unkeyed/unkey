@@ -2,9 +2,8 @@
 
 import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
 import type { ChartMarkers } from "@/components/charts/chart-markers";
-import { formatBucketInterval } from "@/components/charts/format-interval";
 import { NoDataPlaceholder } from "@/components/charts/no-data-placeholder";
-import { DAY_MS, type Grid } from "@/lib/metrics/app-metrics";
+import { type Grid, spansDays } from "@/lib/metrics/app-metrics";
 import {
   type ChartState,
   type MetricUnit,
@@ -18,7 +17,7 @@ import type { ChartScale } from "./allocation";
 import { useHoveredBucket, useSetHoveredBucket } from "./chart-hover";
 import { legendReadout } from "./model";
 
-const LEGEND_HEIGHT = 22;
+const LEGEND_HEIGHT = 33;
 
 type SeriesChartProps = {
   title: string;
@@ -30,6 +29,7 @@ type SeriesChartProps = {
   syncId: string;
   legend?: ReactNode;
   focusKey?: string | null;
+  connectNulls?: boolean;
   unavailableCopy?: string;
 };
 
@@ -43,20 +43,21 @@ export function SeriesChart({
   syncId,
   legend,
   focusKey,
+  connectNulls,
   unavailableCopy = `${title} metrics are unavailable right now`,
 }: SeriesChartProps) {
   const frame = { legend, series, unit: scale.unit };
   return match(state)
     .with({ status: "empty" }, () => <NoDataPlaceholder height={height + LEGEND_HEIGHT} />)
     .with({ status: "failed" }, () => (
-      <ChartFrame {...frame} data={null}>
+      <ChartFrame {...frame} chart={null}>
         <div className="flex items-center justify-center text-xs text-gray-10" style={{ height }}>
           {unavailableCopy}
         </div>
       </ChartFrame>
     ))
     .with({ status: "loading" }, () => (
-      <ChartFrame {...frame} data={null}>
+      <ChartFrame {...frame} chart={null}>
         <AreaTimeseriesChart
           data={[]}
           isLoading
@@ -68,7 +69,7 @@ export function SeriesChart({
       </ChartFrame>
     ))
     .with({ status: "ready" }, (ready) => (
-      <ChartFrame {...frame} data={ready}>
+      <ChartFrame {...frame} chart={ready.chart}>
         <GridChart
           chart={ready.chart}
           grid={ready.grid}
@@ -78,31 +79,32 @@ export function SeriesChart({
           height={height}
           syncId={syncId}
           focusKey={focusKey}
+          connectNulls={connectNulls}
         />
       </ChartFrame>
     ))
     .exhaustive();
 }
 
-type LegendData = { chart: AreaChartPoint[]; grid: Grid } | null;
-
 function ChartFrame({
   legend,
-  data,
+  chart,
   series,
   unit,
   children,
 }: {
   legend: ReactNode;
-  data: LegendData;
+  chart: AreaChartPoint[] | null;
   series: Record<string, SeriesView>;
   unit: MetricUnit;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      {legend ?? <LegendLine data={data} series={series} unit={unit} />}
+    <div className="flex flex-col gap-3">
       {children}
+      <div className="-mx-4 -mb-3 flex flex-wrap border-t border-grayA-4 text-xs">
+        {legend ?? <SeriesLegendCells chart={chart} series={series} unit={unit} />}
+      </div>
     </div>
   );
 }
@@ -116,6 +118,7 @@ type GridChartProps = {
   height: number;
   syncId: string;
   focusKey?: string | null;
+  connectNulls?: boolean;
 };
 
 function GridChart({
@@ -127,6 +130,7 @@ function GridChart({
   height,
   syncId,
   focusKey,
+  connectNulls,
 }: GridChartProps) {
   const setHovered = useSetHoveredBucket();
   const format = UNITS[scale.unit];
@@ -142,9 +146,10 @@ function GridChart({
       syncId={syncId}
       markers={markers}
       focusKey={focusKey}
+      connectNulls={connectNulls}
       onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}
       axis={{
-        x: { domain: [grid.startMs, grid.endMs] },
+        x: { domain: [grid.startMs, grid.endMs - grid.bucketMs] },
         y: {
           floor: format.yFloor,
           max: scale.yMax ?? undefined,
@@ -156,45 +161,46 @@ function GridChart({
   );
 }
 
-function spansDays(grid: Grid): boolean {
-  return grid.endMs - grid.startMs >= DAY_MS;
-}
-
-function LegendLine({
-  data,
+function SeriesLegendCells({
+  chart,
   series,
   unit,
 }: {
-  data: LegendData;
+  chart: AreaChartPoint[] | null;
   series: Record<string, SeriesView>;
   unit: MetricUnit;
 }) {
   const hoveredMs = useHoveredBucket();
   const keys = Object.keys(series);
-  const readout = data && legendReadout(data.chart, keys, hoveredMs);
-  return (
-    <div className="flex min-h-4 flex-wrap items-center gap-x-3.5 gap-y-1 text-xs">
-      {keys.map((key) => {
-        const value = readout?.values[key] ?? null;
-        return (
-          <span key={key} className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full" style={{ backgroundColor: series[key].color }} />
-            <span className="text-gray-10">{series[key].label}</span>
-            <span className="font-medium tabular-nums text-gray-12">
-              {value === null ? "—" : formatValue(unit, value)}
-            </span>
-          </span>
-        );
-      })}
-      {data && readout && (
-        <span className="ml-auto text-2xs tabular-nums text-gray-9">
-          {formatBucketInterval(
-            readout.atMs,
-            readout.atMs + data.grid.bucketMs,
-            spansDays(data.grid),
-          )}
+  const readout = chart && legendReadout(chart, keys, hoveredMs);
+  return keys.map((key) => {
+    const value = readout?.[key] ?? null;
+    return (
+      <LegendCell key={key} color={series[key].color} label={series[key].label}>
+        <span className="font-medium tabular-nums text-gray-12">
+          {value === null ? "—" : formatValue(unit, value)}
         </span>
-      )}
+      </LegendCell>
+    );
+  });
+}
+
+export function LegendCell({
+  color,
+  label,
+  children,
+}: {
+  color: string;
+  label: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-36 flex-1 items-center justify-between gap-3 border-l border-grayA-4 px-4 py-2 first:border-l-0">
+      <span className="flex items-center gap-2 text-gray-11">
+        <span className="size-2.5 shrink-0 rounded-xs" style={{ backgroundColor: color }} />
+        {label}
+      </span>
+      {children}
     </div>
   );
 }

@@ -100,7 +100,7 @@ post:
                   status: 401
                   type: https://unkey.com/docs/errors/unkey/authentication/missing
     "403":
-      description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+      description: Forbidden - The root key or the workspace is disabled, or the key can read the role but lacks the required permission. A key that cannot read the role gets 404 instead.
       content:
         application/json:
           schema:
@@ -118,7 +118,7 @@ post:
                   type: https://unkey.com/docs/errors/unkey/authorization/key_disabled
     "404":
       description: |
-        Not Found - The role does not exist in your workspace, or your root key lacks write access to it.
+        Not Found - The role does not exist in your workspace, or your root key cannot read it.
         Both cases return the same response, so a root key cannot learn which roles exist.
       content:
         application/json:

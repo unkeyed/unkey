@@ -57,11 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Search:      req.Permission,
 		})
 		if db.IsNotFound(err) {
-			return openapi.Permission{}, fault.New("permission not found",
-				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Internal("permission not found"),
-				fault.Public("The requested permission does not exist."),
-			)
+			return openapi.Permission{}, apierrors.NotFound(codes.Data.Permission.NotFound.URN())
 		}
 		if err != nil {
 			return openapi.Permission{}, fault.Wrap(err,
@@ -71,15 +67,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.U(
+		permissionQuery := rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
 			permissions.Write,
-		))
+		)
+		err = principal.Authorize(permissionQuery)
 		if err != nil {
 			return openapi.Permission{}, apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
+				principal.Permissions,
+				permissionQuery,
 				codes.Data.Permission.NotFound.URN(),
-				"The requested permission does not exist.",
+				"Resource does not exist.",
 			)
 		}
 

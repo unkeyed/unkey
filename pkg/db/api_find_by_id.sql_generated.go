@@ -35,3 +35,30 @@ func (q *Queries) FindApiByID(ctx context.Context, db DBTX, id string) (Api, err
 	)
 	return i, err
 }
+
+const findApiByIDForUpdate = `-- name: FindApiByIDForUpdate :one
+SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
+`
+
+// FindApiByIDForUpdate locks the API so mutation checks remain valid until commit.
+//
+//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
+func (q *Queries) FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) (Api, error) {
+	row := db.QueryRowContext(ctx, findApiByIDForUpdate, id)
+	var i Api
+	err := row.Scan(
+		&i.Pk,
+		&i.ID,
+		&i.Name,
+		&i.WorkspaceID,
+		&i.ProjectID,
+		&i.IpWhitelist,
+		&i.AuthType,
+		&i.KeyAuthID,
+		&i.CreatedAtM,
+		&i.UpdatedAtM,
+		&i.DeletedAtM,
+		&i.DeleteProtection,
+	)
+	return i, err
+}

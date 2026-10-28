@@ -2,21 +2,35 @@
 
 import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { formatTimestamp } from "@unkey/ui";
+import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useId, useState } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  XAxis,
+  type XAxisTickContentProps,
+  YAxis,
+  type YAxisTickContentProps,
+} from "recharts";
 import { type AreaFill, FILL_STYLES, Gradients } from "./area-fill";
+import { AxisEdgeLabel } from "./axis-edge-label";
+import { type AxisEdge, axisEdges } from "./axis-edges";
 import { resolveXAxisDomain } from "./chart-domain";
 import {
   ChartMarkerOverlay,
   type ChartMarkers,
   MarkerLayer,
   activeMarkerSpan,
+  placeMarkers,
+  stackGapPct,
+  stackHeightPx,
 } from "./chart-markers";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
 import { formatBucketInterval } from "./format-interval";
+import { tooltipRows } from "./tooltip-rows";
 
 export type AreaChartPoint = { originalTimestamp: number } & {
   [k: string]: number | undefined;
@@ -54,8 +68,9 @@ function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChart
   return isAreaChartPoint(candidate) ? candidate : null;
 }
 
-const Y_GUTTER_PX = 36;
-const DIMMED_OPACITY = 0.18;
+const Y_LABEL_GAP_PX = 8;
+const Y_TICK_FONT_PX = 10;
+const MUTED_STROKE = "var(--color-gray-6)";
 
 export type ValueParts = { value: string; unit?: string; hint?: string };
 
@@ -64,7 +79,6 @@ export type AreaTimeseriesAxisOptions = {
   x?: {
     domain?: [number, number];
     contractOnSparseData?: boolean;
-    utc?: boolean;
   };
   y?: {
     floor?: number;
@@ -102,6 +116,7 @@ type Props = {
   syncId?: string;
   markers?: ChartMarkers;
   focusKey?: string | null;
+  connectNulls?: boolean;
 };
 
 function yTop(dataMax: number, floor: number, max: number | undefined, zeroLine: boolean) {
@@ -129,6 +144,7 @@ export function AreaTimeseriesChart({
   syncId,
   markers,
   focusKey = null,
+  connectNulls = false,
 }: Props) {
   const handleActive = onActiveChange
     ? (state: unknown) => onActiveChange(activePointFromState(state, data))
@@ -136,6 +152,7 @@ export function AreaTimeseriesChart({
   const chartId = useId().replace(/:/g, "");
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const scrub = useSyncedScrub(syncId);
+  const { width: widthPx, measureRef } = useMeasuredWidth<HTMLDivElement>();
   useEffect(() => {
     const timer = setTimeout(() => setShouldAnimate(false), 600);
     return () => clearTimeout(timer);
@@ -173,6 +190,10 @@ export function AreaTimeseriesChart({
   const tickCount = Math.max(2, axis?.y?.tickCount ?? 4);
   const yTicks = Array.from({ length: tickCount }, (_, i) => (i * top) / (tickCount - 1));
   const yDomain: [number, number] = [0, top];
+  const showAxes = axis !== null && axis?.visible !== false;
+  const yGutterPx = showAxes
+    ? Math.ceil(Math.max(...yTicks.map((t) => measureLabelPx(formatYTick(t))))) + Y_LABEL_GAP_PX
+    : 0;
 
   let firstNonZeroTs: number | undefined;
   let lastNonZeroTs: number | undefined;
@@ -182,43 +203,50 @@ export function AreaTimeseriesChart({
       lastNonZeroTs = p.originalTimestamp;
     }
   }
-  const { effectiveDomain, spanMs } = resolveXAxisDomain({
+  const { effectiveDomain } = resolveXAxisDomain({
     xAxisDomain: axis?.x?.domain,
     contractOnSparseData: axis?.x?.contractOnSparseData,
     firstNonZeroTs,
     lastNonZeroTs,
   });
-  const xTickFormatter = (v: number) => formatXAxisTick(v, spanMs, axis?.x?.utc);
-  const showAxes = axis !== null && axis?.visible !== false;
 
-  const xTicks = effectiveDomain
-    ? [0, 1, 2, 3].map((i) =>
-        Math.round(effectiveDomain[0] + (i * (effectiveDomain[1] - effectiveDomain[0])) / 3),
-      )
-    : undefined;
-
-  const margin = {
-    top: showAxes || markers ? 16 : 4,
-    right: showAxes ? 8 : 0,
-    bottom: 0,
-    left: 0,
-  };
-  const markerDomain: [number, number] = effectiveDomain ?? [
+  const xDomain: [number, number] = effectiveDomain ?? [
     data[0].originalTimestamp,
     data[data.length - 1].originalTimestamp,
   ];
-  const markerSpan = markers
-    ? activeMarkerSpan(markers.items, markers.activeId, markerDomain)
-    : null;
+  const edges = axisEdges({
+    startMs: xDomain[0],
+    endMs: xDomain[1],
+    bucketMs: data.length > 1 ? data[1].originalTimestamp - data[0].originalTimestamp : 60_000,
+    nowMs: Date.now(),
+  });
+
+  const placed = markers
+    ? placeMarkers(markers.items, xDomain, stackGapPct((widthPx ?? 0) - yGutterPx))
+    : [];
+  const margin = {
+    top: (showAxes || markers ? 16 : 4) + stackHeightPx(placed),
+    right: 0,
+    bottom: 0,
+    left: 0,
+  };
+  const markerSpan = markers ? activeMarkerSpan(markers.items, markers.activeId, xDomain) : null;
+  const insetLeft = margin.left + yGutterPx;
 
   const style = FILL_STYLES[fill];
-  const emphasis = (key: string) => (focusKey === null || key === focusKey ? 1 : DIMMED_OPACITY);
+  const focused = focusKey !== null && configKeys.includes(focusKey) ? focusKey : null;
+  const muted = (key: string) => focused !== null && key !== focused;
+  const drawOrder = focused === null ? configKeys : [...configKeys.filter(muted), focused];
   const { showDetail } = scrub;
 
   const chart = (
     <ChartContainer
       config={config}
-      className={cn("!flex-col aspect-auto w-full", style.containerClass, chartContainerClassname)}
+      className={cn(
+        "!flex-col aspect-auto w-full [&_.recharts-surface]:overflow-visible",
+        style.containerClass,
+        chartContainerClassname,
+      )}
       style={{ height, width: "100%" }}
       {...scrub.containerProps}
     >
@@ -235,27 +263,51 @@ export function AreaTimeseriesChart({
           dataKey="originalTimestamp"
           type="number"
           domain={effectiveDomain ?? ["dataMin", "dataMax"]}
-          allowDataOverflow={Boolean(effectiveDomain)}
+          allowDataOverflow={
+            effectiveDomain !== undefined &&
+            data.some(
+              (p) =>
+                p.originalTimestamp < effectiveDomain[0] ||
+                p.originalTimestamp > effectiveDomain[1],
+            )
+          }
           scale="time"
-          tickFormatter={xTickFormatter}
-          tick={showAxes ? { fill: "var(--color-gray-10)", fontSize: 10 } : false}
+          tick={
+            showAxes
+              ? (props: XAxisTickContentProps) => <EdgeTick {...props} edges={edges} />
+              : false
+          }
           tickLine={false}
           axisLine={false}
-          ticks={xTicks}
-          minTickGap={48}
+          ticks={xDomain}
+          interval={0}
           hide={!showAxes}
         />
         <YAxis
-          width={showAxes ? Y_GUTTER_PX : 0}
+          width={yGutterPx}
           tickLine={false}
           axisLine={false}
-          tickFormatter={formatYTick}
-          tick={showAxes ? { fill: "var(--color-gray-10)", fontSize: 10 } : false}
+          tick={
+            showAxes
+              ? ({ y, payload }: YAxisTickContentProps) => (
+                  <text
+                    x={0}
+                    y={y}
+                    dy="0.355em"
+                    textAnchor="start"
+                    fill="var(--color-gray-10)"
+                    fontSize={Y_TICK_FONT_PX}
+                  >
+                    {formatYTick(Number(payload.value))}
+                  </text>
+                )
+              : false
+          }
           ticks={yTicks}
           domain={yDomain}
           hide={!showAxes}
         />
-        {markers && <MarkerLayer markers={markers} span={markerSpan} />}
+        {markers && <MarkerLayer markers={markers} span={markerSpan} placed={placed} />}
         <ChartTooltip
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
@@ -268,25 +320,22 @@ export function AreaTimeseriesChart({
             if (!isAreaChartPoint(point)) {
               return null;
             }
-            const labelText = formatCompactInterval(
-              point.originalTimestamp,
-              data,
-              showDateInTooltip,
-            );
-            const rows = configKeys
-              .map((key) => ({ key, value: point[key] }))
-              .sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
+            const startTs = point.originalTimestamp;
+            const startIndex = data.findIndex((p) => p.originalTimestamp === startTs);
+            const nextTs = startIndex >= 0 ? data[startIndex + 1]?.originalTimestamp : undefined;
+            const { rows, hiddenCount } = tooltipRows(point, configKeys);
             return (
               <div
                 role="tooltip"
                 className="grid w-max max-w-[300px] animate-in items-start gap-1.5 rounded-xl bg-raised/80 px-3 py-2.5 text-xs shadow-floating backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
               >
-                <div className="font-medium text-2xs text-gray-11">{labelText}</div>
+                <div className="font-medium text-2xs text-gray-11">
+                  {formatBucketInterval(startTs, nextTs, showDateInTooltip)}
+                </div>
                 <div className="grid gap-1">
                   {rows.map(({ key, value }) => {
                     const itemConfig = config[key];
-                    const parts =
-                      value === undefined ? { value: "No data" } : formatTooltipValue(value);
+                    const parts = formatTooltipValue(value);
                     return (
                       <div key={key} className="flex items-center gap-2">
                         <div
@@ -304,21 +353,23 @@ export function AreaTimeseriesChart({
                       </div>
                     );
                   })}
+                  {rows.length === 0 && <span className="text-gray-9">No data</span>}
+                  {hiddenCount > 0 && <span className="text-gray-9">+{hiddenCount} more</span>}
                 </div>
               </div>
             );
           }}
         />
-        {configKeys.map((key) => (
+        {drawOrder.map((key) => (
           <Area
             key={key}
             dataKey={key}
             type="monotone"
-            stroke={config[key].color}
-            strokeWidth={key === focusKey ? 2 : 1.5}
-            strokeOpacity={emphasis(key)}
+            connectNulls={connectNulls}
+            stroke={muted(key) ? MUTED_STROKE : config[key].color}
+            strokeWidth={key === focused ? 2 : 1.5}
             fill={style.gradient ? `url(#${chartId}-${key})` : config[key].color}
-            fillOpacity={style.fillOpacity * emphasis(key)}
+            fillOpacity={muted(key) ? 0 : style.fillOpacity}
             isAnimationActive={shouldAnimate}
             animationDuration={500}
             animationEasing="ease-out"
@@ -336,12 +387,12 @@ export function AreaTimeseriesChart({
     return chart;
   }
   return (
-    <div className="relative w-full">
+    <div ref={measureRef} className={cn("relative w-full", widthPx === undefined && "invisible")}>
       {chart}
       <ChartMarkerOverlay
         markers={markers}
-        domain={markerDomain}
-        insetLeft={margin.left + (showAxes ? Y_GUTTER_PX : 0)}
+        placed={placed}
+        insetLeft={insetLeft}
         insetRight={margin.right}
         bandHeight={margin.top}
       />
@@ -349,23 +400,38 @@ export function AreaTimeseriesChart({
   );
 }
 
-const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
-function formatXAxisTick(v: number, spanMs: number, utc?: boolean): string {
-  if (!Number.isFinite(v) || v <= 0) {
-    return "";
-  }
-  return formatTimestamp(v, spanMs >= TWO_DAYS_MS ? "MMM d" : "h:mm a", utc ? "UTC" : undefined);
+function EdgeTick({
+  x,
+  y,
+  index,
+  edges,
+}: Pick<XAxisTickContentProps, "x" | "y" | "index"> & { edges: [AxisEdge, AxisEdge] }) {
+  const isStart = index === 0;
+  return (
+    <text
+      x={x}
+      y={y}
+      dy={10}
+      textAnchor={isStart ? "start" : "end"}
+      fill="var(--color-gray-10)"
+      fontSize={10}
+    >
+      <AxisEdgeLabel edge={isStart ? edges[0] : edges[1]} />
+    </text>
+  );
 }
 
-function formatCompactInterval(
-  startTs: number | undefined,
-  data: AreaChartPoint[],
-  withDate?: boolean,
-): string {
-  if (typeof startTs !== "number" || !Number.isFinite(startTs)) {
-    return "";
+let labelCanvas: CanvasRenderingContext2D | null | undefined;
+
+function measureLabelPx(text: string): number {
+  if (typeof document === "undefined") {
+    return text.length * Y_TICK_FONT_PX * 0.62;
   }
-  const idx = data.findIndex((p) => p.originalTimestamp === startTs);
-  const nextTs = idx >= 0 ? data[idx + 1]?.originalTimestamp : undefined;
-  return formatBucketInterval(startTs, typeof nextTs === "number" ? nextTs : undefined, withDate);
+  if (labelCanvas === undefined) {
+    labelCanvas = document.createElement("canvas").getContext("2d");
+    if (labelCanvas) {
+      labelCanvas.font = `${Y_TICK_FONT_PX}px ${getComputedStyle(document.body).fontFamily}`;
+    }
+  }
+  return labelCanvas ? labelCanvas.measureText(text).width : text.length * Y_TICK_FONT_PX * 0.62;
 }

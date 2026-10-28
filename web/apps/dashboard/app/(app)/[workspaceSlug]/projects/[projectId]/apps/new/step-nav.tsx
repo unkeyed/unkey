@@ -13,7 +13,7 @@ import {
   IconSplitOutline18,
 } from "@unkey/icons";
 import { Button, Drawer, Tooltip, TooltipContent, TooltipTrigger, cn } from "@unkey/ui";
-import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, m, useReducedMotion } from "framer-motion";
 import { type ComponentType, type ReactNode, useId, useState } from "react";
 import { useNewAppFlow } from "./flow";
 import { StepAside } from "./flow-layout";
@@ -102,20 +102,20 @@ const ROW_EXIT = { duration: 0.3, ease: [0.645, 0.045, 0.355, 1] } as const;
 function StepItem({ children, className }: { children: ReactNode; className: string }) {
   const reduceMotion = useReducedMotion();
   return (
-    <motion.li
+    <m.li
       exit={{ opacity: 0, height: 0, paddingBottom: 0 }}
       transition={reduceMotion ? { duration: 0 } : ROW_EXIT}
       className={cn("overflow-hidden", className)}
     >
       {children}
-    </motion.li>
+    </m.li>
   );
 }
 
 function StepHighlight() {
   const reduceMotion = useReducedMotion();
   return (
-    <motion.span
+    <m.span
       layoutId="step-highlight"
       transition={reduceMotion ? { duration: 0 } : HIGHLIGHT_MOVE}
       className="absolute inset-0 -z-10 rounded-md bg-raised shadow-xs ring-1 ring-grayA-4"
@@ -128,7 +128,7 @@ function StepDetail({ detail }: { detail: string | null }) {
   return (
     <AnimatePresence initial={false}>
       {detail ? (
-        <motion.span
+        <m.span
           key="detail"
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,7 +137,7 @@ function StepDetail({ detail }: { detail: string | null }) {
           className="truncate text-xs text-gray-11"
         >
           {detail}
-        </motion.span>
+        </m.span>
       ) : null}
     </AnimatePresence>
   );
@@ -157,7 +157,7 @@ function StepListRow({ step, onSelect }: { step: StepView; onSelect: () => void 
     >
       {step.status === "current" ? <StepHighlight /> : null}
       <StepTile step={step} />
-      <motion.span
+      <m.span
         layout="position"
         transition={reduceMotion ? { duration: 0 } : DETAIL_ENTER}
         className="flex min-w-0 flex-col"
@@ -166,7 +166,7 @@ function StepListRow({ step, onSelect }: { step: StepView; onSelect: () => void 
           {step.title}
         </span>
         <StepDetail detail={step.detail} />
-      </motion.span>
+      </m.span>
       {editable ? (
         <Button
           variant="ghost"

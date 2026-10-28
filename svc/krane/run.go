@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -25,7 +23,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -90,13 +87,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
-	metrics.Init()
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("krane")
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
@@ -327,7 +318,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 
-		prom, err := prometheus.NewWithRegistry(reg)
+		prom, err := prometheus.New()
 		if err != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", err)
 		}

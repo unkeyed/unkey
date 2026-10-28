@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -95,27 +95,36 @@ func NewResolver(workspaceLookup WorkspaceLookup, issuer string, audience string
 // keys from the configured JWKS endpoint.
 //
 // The key set is fetched lazily on first use and refetched when a token's
-// signing key may be missing from the cached set, so signing-key rotations are
-// picked up without a restart. A temporarily unreachable JWKS endpoint does
-// not prevent construction; affected requests fail until the endpoint recovers.
-func NewResolverWithJWKSURL(workspaceLookup WorkspaceLookup, issuer string, audience string, jwksURL string) (*Resolver, error) {
+// signing key may be missing from the cached set or the set expires.
+// Use [NewJWKSCache] to bound its lifetime to five minutes. Expired sets are
+// never used if a refresh fails.
+// A temporarily unreachable JWKS endpoint does not prevent construction;
+// requests without an unexpired set fail until the endpoint recovers.
+// The caller owns keys and must keep it open for the resolver's lifetime.
+// The cache and resolver must use the same clock.
+func NewResolverWithJWKSURL(workspaceLookup WorkspaceLookup, issuer string, audience string, jwksURL string, keys cache.Cache[JWKSCacheKey, *JWKS], clk clock.Clock) (*Resolver, error) {
 	if err := assert.All(
 		assert.NotNil(workspaceLookup, "workspace lookup is required"),
 		assert.NotEmpty(strings.TrimSpace(issuer), "JWT issuer is required"),
 		assert.NotEmpty(strings.TrimSpace(jwksURL), "JWKS URL must not be empty"),
+		assert.NotNil(keys, "JWKS cache is required"),
+		assert.NotNil(clk, "clock is required"),
 	); err != nil {
 		return nil, err
 	}
 
 	return &Resolver{
 		verifier: &jwksVerifier{
-			jwksURL:     jwksURL,
-			issuer:      issuer,
-			audience:    audience,
-			clock:       clock.New(),
-			current:     atomic.Pointer[keySet]{},
+			key: JWKSCacheKey{
+				URL:      jwksURL,
+				Issuer:   issuer,
+				Audience: audience,
+			},
+			keys:        keys,
+			clock:       clk,
 			fetchMu:     sync.Mutex{},
 			lastAttempt: time.Time{},
+			fetched:     false,
 		},
 		workspaceLookup: workspaceLookup,
 	}, nil

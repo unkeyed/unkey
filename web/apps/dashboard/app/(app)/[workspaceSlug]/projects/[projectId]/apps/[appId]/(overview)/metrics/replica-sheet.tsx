@@ -10,11 +10,11 @@ import { regionInfo } from "@/lib/regions";
 import type { LastExit } from "@/lib/types/deploy";
 import { match } from "@unkey/match";
 import {
+  Card,
   EmptyState,
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateTitle,
-  Skeleton,
   SlidePanel,
   SlidePanelCloseButton,
   SlidePanelContent,
@@ -24,6 +24,7 @@ import {
 } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { LastExitBadge } from "../../components/last-exit-badge";
+import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { DeployIdentity } from "./deploy-identity";
 import {
@@ -103,7 +104,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-1.5">
+    <Card className="flex flex-col gap-1.5 px-4 pt-3 pb-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-medium text-gray-12">
           {heading}
@@ -111,7 +112,7 @@ function Section({
         </h3>
       </div>
       {children}
-    </section>
+    </Card>
   );
 }
 
@@ -149,10 +150,15 @@ function ReplicaUsageBody({ usage, markers }: { usage: ReplicaUsage; markers: Ch
   return match(usage)
     .with({ status: "loading" }, () =>
       REPLICA_METRICS.map((metric) => (
-        <Skeleton
+        <UsageSection
           key={metric}
-          className="w-full shrink-0 rounded-md"
-          style={{ height: CHART_HEIGHT + 40 }}
+          section={{
+            metric,
+            chart: { status: "loading" },
+            scale: absoluteScale(METRIC_VIEWS[metric].unit),
+            allocation: null,
+          }}
+          markers={markers}
         />
       )),
     )

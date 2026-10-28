@@ -51,44 +51,44 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	role, err := db.Query.FindRoleByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindRoleByIdOrNameWithPermsParams{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		Search:      req.Role,
-	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New("role not found",
-				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Internal("role not found"), fault.Public("The requested role does not exist."),
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		role, err := db.Query.LockRoleByIdOrName(ctx, tx, db.LockRoleByIdOrNameParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			Search:      req.Role,
+		})
+		if err != nil {
+			if db.IsNotFound(err) {
+				return apierrors.NotFound(codes.Data.Role.NotFound.URN())
+			}
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve role information."),
 			)
 		}
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"), fault.Public("Failed to retrieve role information."),
-		)
-	}
 
-	deleteRole := rbac.U(
-		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
-		permissions.Delete,
-	)
-	err = principal.Authorize(rbac.Or(
-		deleteRole,
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.DeleteRole,
-		}),
-	))
-	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
-			err,
-			codes.Data.Role.NotFound.URN(),
-			"The requested role does not exist.",
+		deleteRole := rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
+			permissions.Delete,
 		)
-	}
+		permissionQuery := rbac.Or(
+			deleteRole,
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Rbac,
+				ResourceID:   "*",
+				Action:       rbac.DeleteRole,
+			}),
+		)
+		err = principal.Authorize(permissionQuery)
+		if err != nil {
+			return apierrors.MaskInsufficientPermissionsAsNotFound(
+				err,
+				principal.Permissions,
+				permissionQuery,
+				codes.Data.Role.NotFound.URN(),
+				"Resource does not exist.",
+			)
+		}
 
-	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.DeleteRoleByID(ctx, tx, role.ID)
 		if err != nil {
 			return fault.Wrap(err,

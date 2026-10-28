@@ -58,12 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Domain.NotFound.URN()),
-				fault.Internal("domain not found"),
-				fault.Public("The requested domain does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Domain.NotFound.URN())
 		}
 		return fault.Wrap(
 			err,
@@ -73,7 +68,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
 			ResourceID:   "*",
@@ -88,11 +83,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
 			permissions.Delete,
 		),
-	)); err != nil {
+	)
+	if err = principal.Authorize(permissionQuery); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Domain.NotFound.URN(),
-			"The requested domain does not exist.",
+			"Resource does not exist.",
 		)
 	}
 
@@ -109,12 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeNotFound {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Domain.NotFound.URN()),
-				fault.Internal("domain not found"),
-				fault.Public("The requested domain does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Domain.NotFound.URN())
 		}
 		return customdomain.MapCtrlError(err, "delete custom domain")
 	}

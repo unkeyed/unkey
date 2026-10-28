@@ -9,14 +9,12 @@ import (
 	"time"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/svc/heimdall/internal/collector"
 	"github.com/unkeyed/unkey/svc/heimdall/internal/metrics"
@@ -49,17 +47,6 @@ func Run(ctx context.Context, cfg Config) error {
 		"cgroup_driver", cgroupDriver.String(),
 	)
 
-	// Own registry instead of the global default. The lazy metric wrappers in
-	// internal/metrics register on first use into whatever SetRegistry points
-	// at; pinning it here keeps heimdall's metrics out of any registry shared
-	// with code that happens to import this binary. The default registry gave
-	// us Go runtime and process metrics for free, so re-add those collectors
-	// explicitly to preserve the scrape output.
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	lazy.SetRegistry(reg)
 	buildinfometrics.Register("heimdall")
 
 	ch, err := clickhouse.New(clickhouse.Config{URL: cfg.ClickHouseURL})
@@ -191,7 +178,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// the node runs. The chart defaults to 9402.
 	//
 	// Paths:
-	//   GET /metrics        Prometheus scrape endpoint (serves reg)
+	//   GET /metrics        Prometheus scrape endpoint (serves the default registry)
 	//   GET /health/live    kubelet liveness probe
 	//   GET /health/ready   kubelet readiness probe (informer cache synced)
 	//   GET /health/startup kubelet startup probe
@@ -207,7 +194,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// "collector is live and initialized" condition.
 		mux := http.NewServeMux()
 		//nolint:exhaustruct
-		mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		mux.Handle("GET /metrics", promhttp.HandlerFor(promclient.DefaultGatherer, promhttp.HandlerOpts{}))
 		r.RegisterHealth(mux, "/health")
 
 		addr := fmt.Sprintf(":%d", cfg.Observability.Metrics.PrometheusPort)

@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_create_domain"
@@ -74,6 +75,25 @@ func TestCreateDomainPermissions(t *testing.T) {
 			require.NotContains(t, res.RawBody, env.environmentID, "masked 404 leaked the environment id: %s", res.RawBody)
 		})
 	}
+}
+
+func TestCreateDomainEnvironmentReaderIsForbidden(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	ctrlClient := &testutil.MockCustomDomainClient{}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	environment := urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID)
+	rootKey := h.CreateRootKey(env.workspaceID, environment.String()+"#read")
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
+	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, "#write")
+	require.Contains(t, res.Body.Error.Detail, "Log in again")
+	require.NotContains(t, res.RawBody, env.environmentID)
+	require.Empty(t, ctrlClient.AddCustomDomainCalls)
 }
 
 // TestCreateDomainPlanAllowanceExceeded pins that a workspace at its custom

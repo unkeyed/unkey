@@ -77,12 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.Data.Api.NotFound.URN()),
-				fault.Internal("api does not exist"),
-				fault.Public("The requested API does not exist or has been deleted."),
-			)
+			return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 		}
 
 		return fault.Wrap(
@@ -94,20 +89,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if hit == cache.Null {
-		return fault.New(
-			"api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	// Check if API belongs to the authorized workspace
 	if api.ApiWorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New(
-			"wrong workspace",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Api.NotFound.URN())
 	}
 
 	if !api.ApiKeyAuthID.Valid {
@@ -119,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.And(
+	permissionQuery := rbac.And(
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
 			permissions.Read,
@@ -128,16 +115,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		// Mask a read-authorization failure as 404 so that callers who lack read
-		// access cannot distinguish an existing API from a non-existent one and
-		// enumerate API IDs in the workspace. The authorization runs after the
-		// lookup because the URN check needs the keyspace ID.
+		// Callers who cannot read the API get the same 404 as a missing API and
+		// cannot enumerate API IDs. The authorization runs after the lookup
+		// because the URN check needs the keyspace ID.
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Api.NotFound.URN(),
-			"The requested API does not exist or has been deleted.",
+			"Resource does not exist.",
 		)
 	}
 
@@ -150,12 +139,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.U(
+		decryptQuery := rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
 			permissions.Decrypt,
-		))
+		)
+		err = principal.Authorize(decryptQuery)
 		if err != nil {
-			return err
+			return apierrors.MaskInsufficientPermissionsAsNotFound(
+				err,
+				principal.Permissions,
+				decryptQuery,
+				codes.Data.Api.NotFound.URN(),
+				"Resource does not exist.",
+			)
 		}
 
 		if !api.KeyAuthStoreEncryptedKeys {

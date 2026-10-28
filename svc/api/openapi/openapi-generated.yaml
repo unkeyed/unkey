@@ -620,6 +620,177 @@ components:
                 data:
                     "$ref": "#/components/schemas/App"
             additionalProperties: false
+        V2CliApproveDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - userCode
+                - permissions
+            properties:
+                userCode:
+                    type: string
+                    minLength: 4
+                    maxLength: 32
+                    x-unkey-redact: true
+                    description: Code shown in the terminal.
+                permissions:
+                    type: array
+                    minItems: 1
+                    maxItems: 1000
+                    x-unkey-redact: true
+                    description: Permissions to grant. Each permission must be within the caller's role.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 512
+        V2CliApproveDeviceLoginResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2CliDenyDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - userCode
+            properties:
+                userCode:
+                    type: string
+                    minLength: 4
+                    maxLength: 32
+        V2CliDenyDeviceLoginResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2CliGetDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - userCode
+            properties:
+                userCode:
+                    type: string
+                    minLength: 4
+                    maxLength: 32
+                    description: Code shown by `unkey login`.
+        V2CliGetDeviceLoginResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliGetDeviceLoginResponseData'
+        V2CliListSessionsRequestBody:
+            type: object
+            additionalProperties: false
+        V2CliListSessionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliListSessionsResponseData'
+        V2CliPollDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - loginId
+            properties:
+                loginId:
+                    type: string
+                    minLength: 8
+                    maxLength: 48
+                    x-unkey-redact: true
+                    description: loginId from cli.startDeviceLogin.
+        V2CliPollDeviceLoginResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliPollDeviceLoginResponseData'
+        V2CliRefreshTokenRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - refreshToken
+            properties:
+                refreshToken:
+                    type: string
+                    minLength: 8
+                    x-unkey-redact: true
+                    description: Refresh token from the previous login or refresh.
+        V2CliRefreshTokenResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliRefreshTokenResponseData'
+        V2CliRevokeSessionRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - sessionId
+            properties:
+                sessionId:
+                    type: string
+                    minLength: 1
+                    description: CLI session id.
+        V2CliRevokeSessionResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2CliStartDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            properties:
+                deviceName:
+                    type: string
+                    maxLength: 512
+                    description: Hostname or other label shown on the authorize page.
+        V2CliStartDeviceLoginResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliStartDeviceLoginResponseData'
         V2DeployCreateDeploymentRequestBody:
             type: object
             required:
@@ -2961,6 +3132,7 @@ components:
                     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
                 permissions:
                     type: array
+                    maxItems: 1000
                     description: |
                         Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
 
@@ -3217,6 +3389,7 @@ components:
                         Accepts either the generated role ID or the unique role name.
                 permissions:
                     type: array
+                    maxItems: 1000
                     description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
                     items:
                         type: string
@@ -5284,6 +5457,182 @@ components:
                         branch of the connected repository.
                     example: main
             additionalProperties: false
+        V2CliGetDeviceLoginResponseData:
+            type: object
+            required:
+                - userCode
+                - status
+                - createdAt
+                - expiresAt
+            properties:
+                userCode:
+                    type: string
+                deviceName:
+                    type: string
+                    description: Label sent by the CLI. The requester chooses it, so do not trust it.
+                requesterIp:
+                    type: string
+                    description: IP address that started the login. Empty when the API could not determine it.
+                requesterUserAgent:
+                    type: string
+                    description: User agent of the client that started the login.
+                workspaceId:
+                    type: string
+                    description: Workspace selected at approval. Empty until the login is approved.
+                status:
+                    type: string
+                    description: pending, approved, consumed, denied, or expired.
+                grantablePermissions:
+                    type: array
+                    description: Permissions the signed-in member's role allows. The approval page starts with all of them selected.
+                    items:
+                        type: string
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond time the login was started.
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond expiry.
+        V2CliListSessionsResponseData:
+            type: object
+            required:
+                - sessions
+            properties:
+                sessions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/V2CliListSessionsSession'
+        V2CliListSessionsSession:
+            type: object
+            required:
+                - id
+                - userId
+                - permissions
+                - createdAt
+                - lastUsedAt
+                - expiresAt
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                deviceName:
+                    type: string
+                permissions:
+                    type: array
+                    items:
+                        type: string
+                createdAt:
+                    type: integer
+                    format: int64
+                lastUsedAt:
+                    type: integer
+                    format: int64
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
+                revokedAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond time the session was revoked. Omitted when the session is still active.
+        V2CliPollDeviceLoginResponseData:
+            type: object
+            required:
+                - status
+                - interval
+            properties:
+                status:
+                    type: string
+                    enum:
+                        - permissions_required
+                        - access_denied
+                        - expired_token
+                        - complete
+                    description: |
+                        `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
+                interval:
+                    type: integer
+                    format: int64
+                    description: Seconds to wait before polling again.
+                detail:
+                    type: string
+                    description: Human-readable reason for a terminal status.
+                accessToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: Short-lived access token. Present only when status is complete.
+                refreshToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
+                workspaceId:
+                    type: string
+                    description: Workspace the session belongs to. Present only when status is complete.
+                sessionId:
+                    type: string
+                    description: CLI session id. Present only when status is complete.
+        V2CliRefreshTokenResponseData:
+            type: object
+            required:
+                - accessToken
+                - refreshToken
+                - expiresIn
+                - workspaceId
+                - sessionId
+            properties:
+                accessToken:
+                    type: string
+                    x-unkey-redact: true
+                refreshToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: The next refresh token. The previous one no longer works.
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Seconds until the access token expires. Access tokens last 15 minutes.
+                workspaceId:
+                    type: string
+                sessionId:
+                    type: string
+        V2CliStartDeviceLoginResponseData:
+            type: object
+            required:
+                - loginId
+                - userCode
+                - verificationUri
+                - verificationUriComplete
+                - expiresIn
+                - interval
+            properties:
+                loginId:
+                    type: string
+                    x-unkey-redact: true
+                    description: Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+                userCode:
+                    type: string
+                    description: Code the user confirms in the browser.
+                verificationUri:
+                    type: string
+                    description: Dashboard page where the user enters the code.
+                verificationUriComplete:
+                    type: string
+                    description: Dashboard page with the code filled in.
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Seconds until the login expires.
+                interval:
+                    type: integer
+                    format: int64
+                    description: Seconds to wait between polls.
         V2DeployGitCommit:
             type: object
             description: Optional git commit information
@@ -10700,6 +11049,369 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: updateApp
+    /v2/cli.approveDeviceLogin:
+        post:
+            description: |
+                Stores the permissions selected by the signed-in user.
+                Every permission must fit inside the caller's role. Any member can approve, not only admins.
+                The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
+            operationId: cli.approveDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliApproveDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliApproveDeviceLoginResponseBody'
+                    description: Permissions stored.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid code or permission.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot grant these permissions.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Approve CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: approveDeviceLogin
+    /v2/cli.denyDeviceLogin:
+        post:
+            description: |
+                Denies a device login so the CLI does not receive a session.
+            operationId: cli.denyDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliDenyDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliDenyDeviceLoginResponseBody'
+                    description: Login denied.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown or closed login.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Another account already approved this login.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Deny CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: denyDeviceLogin
+    /v2/cli.getDeviceLogin:
+        post:
+            description: |
+                Returns the device label, requester details, and status for a user code.
+                Requires a dashboard session.
+            operationId: cli.getDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliGetDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliGetDeviceLoginResponseBody'
+                    description: Device login found.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown or invalid code.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Get CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: getDeviceLogin
+    /v2/cli.listSessions:
+        post:
+            description: |
+                Lists CLI sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
+                Requires a dashboard session or a CLI access token. Root keys are rejected.
+            operationId: cli.listSessions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliListSessionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliListSessionsResponseBody'
+                    description: Sessions the caller can see.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller is not a dashboard or CLI user.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: List CLI sessions
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: listSessions
+    /v2/cli.pollDeviceLogin:
+        post:
+            description: |
+                Polls a device login started by cli.startDeviceLogin.
+                While the user is confirming the code or choosing permissions, the status is `permissions_required`.
+                When both steps are done, the response includes an access token and a refresh token exactly once.
+                No authentication header is required. `loginId` is the secret. Requests are rate limited per IP address.
+            operationId: cli.pollDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliPollDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliPollDeviceLoginResponseBody'
+                    description: Current login state. `complete` includes the access token and refresh token.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown login.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests from this IP address.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Poll CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: pollDeviceLogin
+    /v2/cli.refreshToken:
+        post:
+            description: |
+                Exchanges a CLI refresh token for a new access token and a new refresh token.
+                The user's current role is checked again. If they were removed, or their role no longer includes any of the session's permissions, the session is revoked.
+                Reusing an old refresh token revokes the session.
+                Access tokens last 15 minutes. A session expires after 7 days without a refresh, and 30 days after login even when it is refreshed.
+                No authentication header is required. The refresh token is the credential.
+            operationId: cli.refreshToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliRefreshTokenRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliRefreshTokenResponseBody'
+                    description: New access token and refresh token.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: The refresh token is invalid, expired, or was already used.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The user was removed or no longer has the session's permissions.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Refresh a CLI session
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: refreshToken
+    /v2/cli.revokeSession:
+        post:
+            description: |
+                Revokes a CLI session. A member can revoke their own sessions. An admin can revoke any session in the workspace.
+                Requires a dashboard session or a CLI access token. Root keys are rejected.
+            operationId: cli.revokeSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliRevokeSessionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliRevokeSessionResponseBody'
+                    description: Session revoked, or it was already revoked.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown session.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot revoke this session.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Revoke a CLI session
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: revokeSession
+    /v2/cli.startDeviceLogin:
+        post:
+            description: |
+                Starts a device login for `unkey login`.
+                The response includes the user code and the dashboard URL where the user confirms it and chooses permissions.
+                No authentication is required. Requests are rate limited per IP address.
+            operationId: cli.startDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliStartDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliStartDeviceLoginResponseBody'
+                    description: Device login started.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests from this IP address.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Start CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: startDeviceLogin
     /v2/deploy.createDeployment:
         post:
             deprecated: true
@@ -10906,6 +11618,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the required permission.
                 "404":
                     content:
                         application/json:
@@ -10924,8 +11642,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key cannot write to it. Both cases return the same response, so
-                        deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the required permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11036,6 +11755,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the required permission.
                 "404":
                     content:
                         application/json:
@@ -11054,8 +11779,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key cannot write to it. Both cases return the same response, so
-                        deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the required permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11407,6 +12133,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks permission to read its build logs.
                 "404":
                     content:
                         application/json:
@@ -11701,6 +12433,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `promote_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -11708,8 +12446,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `promote_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `promote_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11801,6 +12540,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `rollback_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -11808,8 +12553,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `rollback_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `rollback_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11897,6 +12643,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `start_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -11904,8 +12656,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `start_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `start_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11993,6 +12746,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `stop_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -12000,8 +12759,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `stop_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `stop_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -12224,9 +12984,9 @@ paths:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
                         Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
-                        many custom domains as its plan allows. A root key that simply lacks
-                        `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
-                        which environments exist.
+                        many custom domains as its plan allows, or the root key can read the environment but lacks
+                        `environment.*.create_domain`. A root key that cannot read the environment receives a 404
+                        instead, so permissions cannot be used to discover which environments exist.
                 "404":
                     content:
                         application/json:
@@ -12409,9 +13169,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `environment.*.delete_domain` receives a 404 instead, so permissions cannot be used to
-                        discover which domains exist.
+                        Forbidden - The root key or its workspace is disabled, or the root key can read the domain but
+                        lacks `environment.*.delete_domain`. A root key that cannot read the domain receives a 404
+                        instead, so permissions cannot be used to discover which domains exist.
                 "404":
                     content:
                         application/json:
@@ -12430,7 +13190,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The domain does not exist in your workspace, it was already deleted, or your
-                        root key may not delete it.
+                        root key cannot read it.
                 "429":
                     content:
                         application/json:
@@ -13168,8 +13928,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that only lacks
-                        `environment.*.verify_domain` receives a 404 instead.
+                        Forbidden - The root key or its workspace is disabled, or the root key can read the domain but
+                        lacks `environment.*.verify_domain`. A root key that cannot read the domain receives a 404
+                        instead.
                 "404":
                     content:
                         application/json:
@@ -13188,7 +13949,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The domain does not exist in your workspace, or it was deleted, or your
-                        root key is not permitted to verify it.
+                        root key cannot read it.
                 "412":
                     content:
                         application/json:
@@ -16709,6 +17470,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The role does not exist in your workspace, or your root key cannot read it.
                 "429":
                     content:
                         application/problem+json:
@@ -17177,7 +17944,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the permission but lacks the required permission. A key that cannot read the permission gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -17195,7 +17962,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The permission does not exist in your workspace, or your root key lacks write access to it.
+                        Not Found - The permission does not exist in your workspace, or your root key cannot read it.
                         Both cases return the same response, so a root key cannot learn which permissions exist.
                 "409":
                     content:
@@ -17344,7 +18111,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the role but lacks the required permission. A key that cannot read the role gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -17362,7 +18129,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The role does not exist in your workspace, or your root key lacks write access to it.
+                        Not Found - The role does not exist in your workspace, or your root key cannot read it.
                         Both cases return the same response, so a root key cannot learn which roles exist.
                 "409":
                     content:
@@ -17512,8 +18279,10 @@ paths:
                 returns 403 for the whole request rather than minting a reduced session, so a
                 missing grant is visible instead of surfacing later as a broken portal.
 
-                Missing the portal permission itself returns **404**, not 403: a caller who
-                cannot mint for a portal is not told whether it exists.
+                Missing the portal permission itself returns **404** when your root key
+                cannot read the portal or its sessions, so a caller who cannot see a portal
+                is not told whether it exists. A root key that can read the portal but lacks
+                the permission gets **403**.
 
                 Your root key must also be associated with a workspace that has an enabled portal.
             operationId: portal.createSession
@@ -17614,7 +18383,8 @@ paths:
                 - `portal.*.delete_portal` (to delete any portal in the workspace)
                 - `portal.<portal_id>.delete_portal` (to delete a specific portal)
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal gets **404**. One that can read it
+                but lacks the permission gets **403**.
             operationId: portal.deletePortal
             requestBody:
                 content:
@@ -17642,13 +18412,19 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal but lacks the permission to delete it.
                 "404":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        No such portal, or your root key may not delete it.
+                        No such portal, or your root key cannot read it.
                 "429":
                     content:
                         application/problem+json:
@@ -18137,7 +18913,8 @@ paths:
                 which dashboard roles carry. Unlike `portal.createSession`, a dashboard
                 session can call this, not just a root key.
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal's sessions gets **404**. One that can
+                read them but lacks the permission gets **403**.
             operationId: portal.revokeSession
             requestBody:
                 content:
@@ -18165,13 +18942,19 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal's sessions but lacks the permission to revoke them.
                 "404":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        No such portal, or your root key may not revoke its sessions.
+                        No such portal, or your root key cannot read its sessions.
                 "429":
                     content:
                         application/problem+json:
@@ -18213,7 +18996,8 @@ paths:
                 - `portal.*.update_portal` (to update any portal in the workspace)
                 - `portal.<portal_id>.update_portal` (to update a specific portal)
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal gets **404**. One that can read it
+                but lacks the permission gets **403**.
             operationId: portal.updatePortal
             requestBody:
                 content:
@@ -18241,6 +19025,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal but lacks the permission to update it, or it cannot use the named app or keyspace.
                 "404":
                     content:
                         application/json:
@@ -18248,7 +19038,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         No such portal, the named app or keyspace is not in your workspace, or
-                        your root key may not update it.
+                        your root key cannot read it.
                 "409":
                     content:
                         application/json:
@@ -19087,7 +19877,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the namespace but lacks the required permission. A key that cannot read the namespace gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -19105,7 +19895,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key lacks delete access to it.
+                        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key cannot read it.
                         All cases return the same response, so a root key cannot learn which namespaces exist.
                 "429":
                     content:
@@ -20051,7 +20841,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the namespace but lacks the required permission. A key that cannot read the namespace gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -20069,7 +20859,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The namespace does not exist in your workspace, was deleted, or your root key lacks write access to it.
+                        Not Found - The namespace does not exist in your workspace, was deleted, or your root key cannot read it.
                         All cases return the same response, so a root key cannot learn which namespaces exist.
                 "409":
                     content:
@@ -21162,6 +21952,8 @@ tags:
       name: github
     - description: Workspace limits and usage operations
       name: workspace
+    - description: CLI device login
+      name: cli
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

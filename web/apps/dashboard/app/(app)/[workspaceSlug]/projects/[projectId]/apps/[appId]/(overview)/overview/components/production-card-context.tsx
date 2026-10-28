@@ -13,7 +13,9 @@ export type CanvasModel = {
   defaultBranch: string | null;
   domains: ReadonlyArray<DisplayDomain>;
   domainsHref: Route;
+  addDomainHref: Route | null;
   policiesHref: Route;
+  addPolicyHref: Route;
 };
 
 export type ProductionCardContextValue = {

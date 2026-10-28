@@ -1,7 +1,12 @@
 "use client";
 
-import { IconDotsOutline18, IconPlusOutline12 } from "@unkey/icons";
-import { CopyButton, InfoTooltip } from "@unkey/ui";
+import {
+  IconCheckOutline18,
+  IconCloneOutline18,
+  IconDotsOutline18,
+  IconPlusOutline12,
+} from "@unkey/icons";
+import { InfoTooltip, useCopyToClipboard } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
 import Link from "next/link";
@@ -114,31 +119,83 @@ export function RowItem({
   hint?: ReactNode;
   copy?: string;
 }) {
-  const shown = <span className="truncate font-mono text-gray-12">{value}</span>;
+  const shown = copy ? (
+    <CopyValue value={copy}>{value}</CopyValue>
+  ) : (
+    <span className="min-w-0 truncate">{value}</span>
+  );
+  return (
+    <IconRow icon={icon}>
+      <span className="shrink-0 font-medium text-gray-11">{label}</span>
+      <span className="ml-auto flex min-w-0 items-center gap-1.5">
+        <span className="flex min-w-0 font-mono text-gray-12">
+          {fullValue ? (
+            <InfoTooltip asChild content={fullValue} position={{ side: "top" }}>
+              <span className="relative z-10 flex min-w-0">{shown}</span>
+            </InfoTooltip>
+          ) : (
+            shown
+          )}
+        </span>
+        {hint != null && <span className="shrink-0 text-gray-10">{hint}</span>}
+      </span>
+    </IconRow>
+  );
+}
+
+export function IconRow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
       <span className="shrink-0 text-gray-10 [&_svg]:size-3">{icon}</span>
-      <span className="shrink-0 font-medium text-gray-11">{label}</span>
-      <span className="ml-auto flex min-w-0 items-center gap-1.5">
-        {fullValue ? (
-          <InfoTooltip asChild content={fullValue} position={{ side: "top" }}>
-            <span className="relative z-10 min-w-0 truncate">{shown}</span>
-          </InfoTooltip>
-        ) : (
-          shown
-        )}
-        {hint != null && <span className="shrink-0 text-gray-10">{hint}</span>}
-        {copy && (
-          <CopyButton
-            value={copy}
-            variant="ghost"
-            className="relative z-10 size-4 shrink-0 p-0 [&_svg]:size-3"
-            toastMessage={copy}
-            src="app-canvas"
-          />
-        )}
-      </span>
+      {children}
     </span>
+  );
+}
+
+function CopyValue({ value, children }: { value: string; children: ReactNode }) {
+  const { copied, copy } = useCopyToClipboard(value, value);
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={`Copy ${value}`}
+      className="group/copy relative z-10 flex min-w-0 cursor-pointer items-center gap-1 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+    >
+      <span className="min-w-0 truncate">{children}</span>
+      <span
+        className={cn(
+          "shrink-0 scale-90 text-gray-10 opacity-0 transition-[opacity,transform] duration-150 ease-out group-hover/copy:scale-100 group-hover/copy:opacity-100 group-focus-visible/copy:scale-100 group-focus-visible/copy:opacity-100 motion-reduce:transition-none [&_svg]:size-3",
+          copied && "scale-100 text-gray-12 opacity-100",
+        )}
+      >
+        {copied ? <IconCheckOutline18 /> : <IconCloneOutline18 />}
+      </span>
+    </button>
+  );
+}
+
+export function LinkRow({
+  href,
+  icon,
+  className,
+  children,
+}: {
+  href: Route;
+  icon: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "relative z-10 flex items-center gap-2 self-start rounded-sm text-gray-10 transition-colors hover:text-gray-12 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7",
+        className,
+      )}
+    >
+      <span className="flex size-3 shrink-0 items-center justify-center">{icon}</span>
+      {children}
+    </Link>
   );
 }
 
@@ -147,15 +204,9 @@ export function MoreRow({ count, href }: { count: number; href: Route }) {
     return null;
   }
   return (
-    <Link
-      href={href}
-      className="relative z-10 flex items-center gap-2 self-start text-gray-10 hover:text-gray-12 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
-    >
-      <span className="shrink-0 [&_svg]:size-3">
-        <IconDotsOutline18 />
-      </span>
+    <LinkRow href={href} icon={<IconDotsOutline18 className="size-3" />}>
       {count} more
-    </Link>
+    </LinkRow>
   );
 }
 

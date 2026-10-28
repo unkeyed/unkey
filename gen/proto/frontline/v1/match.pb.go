@@ -385,11 +385,9 @@ func (x *MethodMatch) GetMethods() []string {
 // HeaderMatch tests a request header by name and optionally by value. Header
 // names are always matched case-insensitively per HTTP semantics (RFC 7230).
 //
-// When the request contains multiple values for the same header name (either
-// via repeated headers or comma-separated values), the match succeeds if any
-// single value satisfies the condition. This follows the principle of least
-// surprise for operators who may not know whether their clients send headers
-// as separate entries or comma-delimited lists.
+// Each header field value is matched as a whole. Commas are literal characters,
+// not separators. To match separate values, send repeated header fields with
+// the same name. The match succeeds if any field value satisfies the condition.
 type HeaderMatch struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The header name to match, e.g. "X-API-Version" or "Content-Type".
@@ -479,9 +477,9 @@ type HeaderMatch_Present struct {
 }
 
 type HeaderMatch_Value struct {
-	// Match against the header value(s) using a [StringMatch]. If the header
-	// has multiple values, the match succeeds if any value satisfies the
-	// StringMatch condition.
+	// Match each complete header field value using a [StringMatch]. Repeated
+	// fields match if any field value satisfies the condition. Comma-separated
+	// values within a field are not split.
 	Value *StringMatch `protobuf:"bytes,3,opt,name=value,proto3,oneof"`
 }
 

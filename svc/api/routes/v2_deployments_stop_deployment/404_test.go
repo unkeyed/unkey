@@ -48,6 +48,31 @@ func TestStopDeploymentInsufficientPermissionsMasked(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+	require.NotContains(t, res.RawBody, dep.ID)
+}
+
+func TestStopDeploymentReaderIsForbidden(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h, newUncalledRestate(t))
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{},
+	})
+	rootKey := h.CreateRootKey(setup.Workspace.ID, deploymentRead(setup))
+
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
+	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, "stop_deployment")
+	require.Contains(t, res.Body.Error.Detail, "Log in again")
 }
 
 // A deployment in another workspace must be indistinguishable from one that does

@@ -7,7 +7,8 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 // Standard histogram buckets for latency metrics in seconds
@@ -38,14 +39,15 @@ var (
 	// Example usage:
 	//   metrics.UsagelimiterDecisions.WithLabelValues("redis", "allowed").Inc()
 	//   metrics.UsagelimiterDecisions.WithLabelValues("db", "denied").Inc()
-	UsagelimiterDecisions = lazy.NewCounterVec(
+	UsagelimiterDecisions = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "usagelimiter",
 			Name:      "decisions_total",
 			Help:      "Total number of usage limiter decisions.",
 		},
-		[]string{"source", "outcome"},
+		vec.Values("source", "redis", "db"),
+		vec.Values("outcome", "allowed", "denied"),
 	)
 
 	// UsagelimiterReplayOperations counts replay operations to the database by status
@@ -54,14 +56,14 @@ var (
 	// Example usage:
 	//   metrics.UsagelimiterReplayOperations.WithLabelValues("success").Inc()
 	//   metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
-	UsagelimiterReplayOperations = lazy.NewCounterVec(
+	UsagelimiterReplayOperations = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "usagelimiter",
 			Name:      "replay_operations_total",
 			Help:      "Total number of credit replay operations to database.",
 		},
-		[]string{"status"},
+		vec.Values("status", "success", "error"),
 	)
 
 	// UsagelimiterReplayLatency measures the latency of replay operations to the database
@@ -71,7 +73,7 @@ var (
 	//   defer func(start time.Time) {
 	//       metrics.UsagelimiterReplayLatency.Observe(time.Since(start).Seconds())
 	//   }(time.Now())
-	UsagelimiterReplayLatency = lazy.NewHistogram(
+	UsagelimiterReplayLatency = promauto.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "usagelimiter",

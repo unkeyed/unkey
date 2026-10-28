@@ -2,6 +2,7 @@
 
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import type { DeploySource } from "@/lib/metrics/app-metrics";
+import { IconCodeCommitOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { cn } from "cn";
 import type { ReactNode } from "react";
@@ -18,7 +19,7 @@ export function sourceLabel(source: DeploySource | null, deploymentId: string): 
 }
 
 export function commitSubject(source: DeploySource | null): string | null {
-  return source?.kind === "git" ? (source.message?.split("\n")[0] ?? null) : null;
+  return source?.kind === "git" ? source.message?.split("\n")[0].trim() || null : null;
 }
 
 export function DeployIdentity({
@@ -35,17 +36,34 @@ export function DeployIdentity({
   children?: ReactNode;
 }) {
   const subject = commitSubject(source);
+  const git = source?.kind === "git" ? source : null;
   return (
     <div className={cn("flex flex-col", className)}>
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate font-mono text-gray-12">{sourceLabel(source, deploymentId)}</span>
+        <span className={cn("truncate text-gray-12", !subject && "font-mono")}>
+          {subject ?? sourceLabel(source, deploymentId)}
+        </span>
         {aside}
       </div>
-      {subject && <span className="truncate text-gray-11">{subject}</span>}
-      {source?.kind === "git" && source.authorHandle && (
-        <span className="flex items-center gap-1.5 text-gray-10">
-          <Avatar src={source.avatarUrl} alt={source.authorHandle} className="size-4" />
-          {source.authorHandle}
+      {git && (subject || git.authorHandle) && (
+        <span className="flex min-w-0 items-center gap-1.5 text-gray-10">
+          {subject && (
+            <>
+              <IconCodeCommitOutline18 className="size-3 shrink-0 text-gray-9" />
+              <span className="font-mono">{sourceLabel(git, deploymentId)}</span>
+            </>
+          )}
+          {subject && git.authorHandle && (
+            <span className="text-gray-8" aria-hidden="true">
+              ·
+            </span>
+          )}
+          {git.authorHandle && (
+            <>
+              <Avatar src={git.avatarUrl} alt={git.authorHandle} className="size-4" />
+              <span className="truncate">{git.authorHandle}</span>
+            </>
+          )}
         </span>
       )}
       {children}

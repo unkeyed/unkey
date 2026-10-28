@@ -77,7 +77,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 			// distinguish an existing API from a non-existent one.
 			require.Equal(t, 404, res.Status, "expected 404, received: %#v", res)
 			require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
-			require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
+			require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		})
 	}
 
