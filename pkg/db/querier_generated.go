@@ -332,6 +332,16 @@ type Querier interface {
 	//    AND revoked_at IS NULL
 	//    AND exchange_code_expires_at > ?
 	ExchangePortalSessionCode(ctx context.Context, db DBTX, arg ExchangePortalSessionCodeParams) (sql.Result, error)
+	//ExistsAppConnectionName
+	//
+	//  SELECT EXISTS (
+	//      SELECT 1 FROM app_connections
+	//      WHERE workspace_id = ?
+	//          AND app_id = ?
+	//          AND environment_id = ?
+	//          AND name = ?
+	//  )
+	ExistsAppConnectionName(ctx context.Context, db DBTX, arg ExistsAppConnectionNameParams) (bool, error)
 	//ExpireDeviceAuthorization
 	//
 	//  UPDATE device_authorizations

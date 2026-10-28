@@ -791,6 +791,52 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/V2CliStartDeviceLoginResponseData'
+        V2ConnectionsCreateConnectionRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+                - targetApp
+                - targetType
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                targetApp:
+                    type: string
+                    minLength: 1
+                    description: Target app ID in the same project.
+                name:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    description: DNS label starting with a letter. Lowercase letters, digits, and hyphens only. The name self and the prefix unkey are reserved. Defaults to a unique name derived from the target app slug.
+                targetType:
+                    "$ref": "#/components/schemas/ConnectionTargetType"
+                targetEnvironmentId:
+                    type: string
+                    minLength: 1
+                    description: Required for environment selection. Must belong to the target app. Ignored for other modes.
+                targetDeploymentId:
+                    type: string
+                    minLength: 1
+                    description: Required for deployment selection. Must be a ready, running deployment of the target app. Ignored for other modes.
+            additionalProperties: false
+        V2ConnectionsCreateConnectionResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2ConnectionsCreateConnectionResponseData"
+            additionalProperties: false
         V2ConnectionsListConnectionsRequestBody:
             type: object
             required:
@@ -5671,6 +5717,24 @@ components:
                     type: integer
                     format: int64
                     description: Seconds to wait between polls.
+        ConnectionTargetType:
+            type: string
+            enum:
+                - automatic
+                - environment
+                - deployment
+            description: Automatic environment selection, an explicit target environment, or a pinned deployment.
+        V2ConnectionsCreateConnectionResponseData:
+            type: object
+            required:
+                - id
+                - name
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+            additionalProperties: false
         AppConnection:
             type: object
             required:
@@ -5710,13 +5774,6 @@ components:
                     type: string
                     description: Present only for a pinned deployment target.
             additionalProperties: false
-        ConnectionTargetType:
-            type: string
-            enum:
-                - automatic
-                - environment
-                - deployment
-            description: Automatic environment selection, an explicit target environment, or a pinned deployment.
         V2DeployGitCommit:
             type: object
             description: Optional git commit information
@@ -11496,6 +11553,72 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: startDeviceLogin
+    /v2/connections.createConnection:
+        post:
+            description: |
+                Create a connection default for new deployments in the caller environment.
+                Existing deployments keep their saved connections. Redeploy the caller to apply this default.
+
+                Requires read and write on the caller environment, read on the target app,
+                and read on the selected target environment or deployment when explicitly selected.
+                Missing and unreadable resources return the same 404 response.
+                The target app and connection name must each be unique within the caller environment.
+            operationId: connections.createConnection
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2ConnectionsCreateConnectionRequestBody'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2ConnectionsCreateConnectionResponseBody'
+                    description: Connection created.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Write permission required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Caller or target not found.
+                "409":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ConflictErrorResponse'
+                    description: Duplicate connection or pinned deployment no longer running.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: Create an app connection
+            tags:
+                - connections
+            x-speakeasy-name-override: createConnection
     /v2/connections.listConnections:
         post:
             description: |
