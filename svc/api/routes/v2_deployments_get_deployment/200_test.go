@@ -286,7 +286,6 @@ func TestGetDeploymentRegionsAndDomains(t *testing.T) {
 			RegionID:               regionID,
 			AutoscalingReplicasMin: 1,
 			AutoscalingReplicasMax: 1,
-			DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
 			CreatedAt:              1,
 		}))
 	}

@@ -304,7 +304,6 @@ func replaceDeployments(ctx context.Context, tx db.DBTX, t target, reserved rese
 			AutoscalingReplicasMax:     1,
 			AutoscalingThresholdCpu:    sql.NullInt16{},
 			AutoscalingThresholdMemory: sql.NullInt16{},
-			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
 			CreatedAt:                  now,
 		})
 		if err != nil {

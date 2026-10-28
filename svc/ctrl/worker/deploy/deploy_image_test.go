@@ -57,6 +57,7 @@ func TestDeployRejectsPrivateRegistryDigest(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, after.ImageResolved.Valid, "a blocked image must never become deployable")
 	require.Equal(t, mysqltype.DeploymentsStatusFailed, after.Status)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateStopped, after.DesiredState)
 	_, err = invocation.Attach(ctx)
 	require.Error(t, err)
 }

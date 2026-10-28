@@ -208,7 +208,6 @@ func insertTopology(t *testing.T, h *testutil.Harness, workspaceID, deploymentID
 		RegionID:               uid.New(uid.RegionPrefix),
 		AutoscalingReplicasMin: 1,
 		AutoscalingReplicasMax: replicasMax,
-		DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
 		CreatedAt:              time.Now().UnixMilli(),
 	})
 	require.NoError(t, err)

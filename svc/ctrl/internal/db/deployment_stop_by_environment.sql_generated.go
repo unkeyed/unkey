@@ -11,8 +11,11 @@ import (
 )
 
 const stopDeploymentsByEnvironment = `-- name: StopDeploymentsByEnvironment :exec
-UPDATE deployments SET desired_state = 'stopped', updated_at = ?
-WHERE environment_id = ?
+UPDATE deployments d
+LEFT JOIN deployment_topology dt ON dt.deployment_id = d.id
+SET d.desired_state = 'stopped', d.updated_at = ?,
+    dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
+WHERE d.environment_id = ?
 `
 
 type StopDeploymentsByEnvironmentParams struct {
@@ -20,11 +23,14 @@ type StopDeploymentsByEnvironmentParams struct {
 	EnvironmentID string        `db:"environment_id"`
 }
 
-// StopDeploymentsByEnvironment
+// StopDeploymentsByEnvironment also notifies each region in the same write.
 //
-//	UPDATE deployments SET desired_state = 'stopped', updated_at = ?
-//	WHERE environment_id = ?
+//	UPDATE deployments d
+//	LEFT JOIN deployment_topology dt ON dt.deployment_id = d.id
+//	SET d.desired_state = 'stopped', d.updated_at = ?,
+//	    dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
+//	WHERE d.environment_id = ?
 func (q *Queries) StopDeploymentsByEnvironment(ctx context.Context, arg StopDeploymentsByEnvironmentParams) error {
-	_, err := q.db.ExecContext(ctx, stopDeploymentsByEnvironment, arg.UpdatedAt, arg.EnvironmentID)
+	_, err := q.db.ExecContext(ctx, stopDeploymentsByEnvironment, arg.UpdatedAt, arg.UpdatedAt, arg.EnvironmentID)
 	return err
 }
