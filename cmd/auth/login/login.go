@@ -24,8 +24,9 @@ func New() *cli.Command {
 
 func newCommand(keys credentials.RootKeyStore) *cli.Command {
 	return &cli.Command{
-		Name:  "login",
-		Usage: "Sign in and store a CLI session",
+		Name:        "login",
+		RootAliases: []string{"login"},
+		Usage:       "Sign in and store a CLI session",
 		Description: `Start a device login, allow it in the browser, and store the CLI session you authorize.
 
 The session is stored in the system keychain when that store is available, and otherwise in ~/.unkey/sessions.json. One session is kept per workspace.

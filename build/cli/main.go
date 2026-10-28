@@ -7,8 +7,6 @@ import (
 
 	"github.com/unkeyed/unkey/cmd/api"
 	"github.com/unkeyed/unkey/cmd/auth"
-	"github.com/unkeyed/unkey/cmd/auth/login"
-	"github.com/unkeyed/unkey/cmd/auth/logout"
 	"github.com/unkeyed/unkey/cmd/deploy"
 	"github.com/unkeyed/unkey/cmd/healthcheck"
 	"github.com/unkeyed/unkey/cmd/version"
@@ -28,8 +26,6 @@ func main() {
 		Version:     buildinfo.Version,
 		Commands: append([]*cli.Command{
 			api.Cmd(),
-			login.New(),
-			logout.New(),
 			auth.Cmd,
 			workspace.Cmd,
 			version.Cmd,

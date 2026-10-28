@@ -2,10 +2,146 @@ package cli
 
 import (
 	"context"
+	"io"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestRootAliasUsesTheCanonicalCommand(t *testing.T) {
+	for _, path := range [][]string{{"operations", "launch"}, {"operations", "go"}, {"quick"}} {
+		t.Run(strings.Join(path, " "), func(t *testing.T) {
+			var target string
+			var args []string
+			var enabled bool
+			command := &Command{
+				Name:        "launch",
+				Aliases:     []string{"go"},
+				RootAliases: []string{"quick"},
+				AcceptsArgs: true,
+				Flags: []Flag{
+					String("target", "Target", Required()),
+					Bool("enabled", "Enable"),
+				},
+				Action: func(_ context.Context, cmd *Command) error {
+					target = cmd.String("target")
+					enabled = cmd.Bool("enabled")
+					args = cmd.Args()
+					return nil
+				},
+			}
+			app := &Command{
+				Name: "tool",
+				Commands: []*Command{{
+					Name:     "operations",
+					Commands: []*Command{command},
+				}},
+			}
+
+			argv := append([]string{"tool"}, path...)
+			argv = append(argv, "--target=preview", "--enabled", "--", "--literal")
+			require.NoError(t, app.Run(t.Context(), argv))
+			require.Equal(t, "preview", target)
+			require.True(t, enabled)
+			require.Equal(t, []string{"--literal"}, args)
+		})
+	}
+}
+
+func TestRootAliasHelpAndRequiredFlags(t *testing.T) {
+	for _, path := range [][]string{
+		{"quick", "--help"},
+		{"help", "quick"},
+		{"help", "operations", "launch"},
+		{"operations", "go", "--help"},
+	} {
+		t.Run(strings.Join(path, " "), func(t *testing.T) {
+			command := &Command{
+				Name:        "launch",
+				Aliases:     []string{"go"},
+				RootAliases: []string{"quick", "alternate"},
+				Flags:       []Flag{String("target", "Target", Required())},
+				Action: func(context.Context, *Command) error {
+					t.Fatal("help or missing flags must not execute an action")
+					return nil
+				},
+			}
+			app := &Command{
+				Name: "tool",
+				Commands: []*Command{{
+					Name:     "operations",
+					Commands: []*Command{command},
+				}},
+			}
+
+			out := captureCommandOutput(t, func() {
+				require.NoError(t, app.Run(t.Context(), append([]string{"tool"}, path...)))
+			})
+			require.Contains(t, out, "tool operations launch [options]")
+			require.Contains(t, out, "--target")
+
+			out = captureCommandOutput(t, func() {
+				require.NoError(t, app.Run(t.Context(), []string{"tool", "--help"}))
+			})
+			require.Contains(t, out, "alternate → tool operations launch")
+			require.Contains(t, out, "quick → tool operations launch")
+			require.Less(t, strings.Index(out, "alternate →"), strings.Index(out, "quick →"))
+
+			captureCommandOutput(t, func() {
+				require.ErrorContains(t, app.Run(t.Context(), []string{"tool", "quick"}), "required flag missing: target")
+			})
+			require.ErrorContains(t, app.Run(t.Context(), []string{"tool", "operations", "quick"}), "unknown command: quick")
+			require.ErrorContains(t, app.Run(t.Context(), []string{"tool", "quick", "--unknown"}), "unknown flag: unknown")
+		})
+	}
+}
+
+func TestRootAliasRejectsCollisionsBeforeExecution(t *testing.T) {
+	for _, alias := range []string{"existing", "sibling", "duplicate", "help", "h", "", "two words", "--flag"} {
+		t.Run(alias, func(t *testing.T) {
+			ran := false
+			app := &Command{
+				Name: "tool",
+				Commands: []*Command{
+					{Name: "existing", Aliases: []string{"sibling"}},
+					{Name: "group", Commands: []*Command{
+						{Name: "one", RootAliases: []string{"duplicate"}},
+						{
+							Name:        "two",
+							RootAliases: []string{alias},
+							Action: func(context.Context, *Command) error {
+								ran = true
+								return nil
+							},
+						},
+					}},
+				},
+			}
+
+			require.Error(t, app.Run(t.Context(), []string{"tool", "group", "two"}))
+			require.False(t, ran)
+		})
+	}
+}
+
+func captureCommandOutput(t *testing.T, fn func()) string {
+	t.Helper()
+	reader, writer, err := os.Pipe()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, reader.Close()) })
+
+	original := os.Stdout
+	os.Stdout = writer
+	t.Cleanup(func() { os.Stdout = original })
+	fn()
+	os.Stdout = original
+	require.NoError(t, writer.Close())
+	output, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	return string(output)
+}
 
 func TestParser_MutuallyExclusive(t *testing.T) {
 	t.Run("conflict", func(t *testing.T) {
