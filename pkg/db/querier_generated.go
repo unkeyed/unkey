@@ -1283,7 +1283,7 @@ type Querier interface {
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
 	//FindManyRatelimitNamespaces
 	//
-	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_global_ratelimit, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
+	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.global_ratelimit_mode, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(
@@ -1534,7 +1534,7 @@ type Querier interface {
 	FindProjectBySlug(ctx context.Context, db DBTX, slug string) (Project, error)
 	//FindRatelimitNamespace
 	//
-	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.use_global_ratelimit, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
+	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.global_ratelimit_mode, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 	//         coalesce(
 	//                 (select json_arrayagg(
 	//                                 json_object(
@@ -1553,10 +1553,10 @@ type Querier interface {
 	FindRatelimitNamespace(ctx context.Context, db DBTX, arg FindRatelimitNamespaceParams) (FindRatelimitNamespaceRow, error)
 	//FindRatelimitNamespaceByName
 	//
-	//  SELECT ratelimit_namespaces.pk, ratelimit_namespaces.id, ratelimit_namespaces.workspace_id, ratelimit_namespaces.project_id, ratelimit_namespaces.name, ratelimit_namespaces.use_global_ratelimit, ratelimit_namespaces.created_at_m, ratelimit_namespaces.updated_at_m, ratelimit_namespaces.deleted_at_m FROM `ratelimit_namespaces`
+	//  SELECT ratelimit_namespaces.pk, ratelimit_namespaces.id, ratelimit_namespaces.workspace_id, ratelimit_namespaces.project_id, ratelimit_namespaces.name, ratelimit_namespaces.global_ratelimit_mode, ratelimit_namespaces.created_at_m, ratelimit_namespaces.updated_at_m, ratelimit_namespaces.deleted_at_m FROM `ratelimit_namespaces`
 	//  WHERE name = ?
 	//  AND workspace_id = ?
-	FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error)
+	FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (FindRatelimitNamespaceByNameRow, error)
 	//FindRatelimitOverrideByID
 	//
 	//  SELECT ratelimit_overrides.pk, ratelimit_overrides.id, ratelimit_overrides.workspace_id, ratelimit_overrides.namespace_id, ratelimit_overrides.identifier, ratelimit_overrides.`limit`, ratelimit_overrides.duration, ratelimit_overrides.created_at_m, ratelimit_overrides.updated_at_m, ratelimit_overrides.deleted_at_m FROM ratelimit_overrides
