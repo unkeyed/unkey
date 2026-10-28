@@ -407,6 +407,48 @@ func TestRequiredFlagMissing(t *testing.T) {
 	require.Contains(t, err.Error(), "required flag missing: required")
 }
 
+func TestRequiredBooleanFlag(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		args    []string
+		env     string
+		enabled bool
+		missing bool
+	}{
+		{name: "omitted", missing: true},
+		{name: "explicit true", args: []string{"--enabled=true"}, enabled: true},
+		{name: "explicit false", args: []string{"--enabled=false"}},
+		{name: "implicit true", args: []string{"--enabled"}, enabled: true},
+		{name: "environment false", env: "false"},
+		{name: "environment true", env: "true", enabled: true},
+		{name: "flag overrides environment", args: []string{"--enabled=false"}, env: "true"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("TEST_REQUIRED_ENABLED", test.env)
+			ran := false
+			var enabled bool
+			cmd := &Command{
+				Name:  "test",
+				Flags: []Flag{Bool("enabled", "Enable the feature", Required(), EnvVar("TEST_REQUIRED_ENABLED"))},
+				Action: func(_ context.Context, cmd *Command) error {
+					ran = true
+					enabled = cmd.Bool("enabled")
+					return nil
+				},
+			}
+			err := cmd.Run(t.Context(), append([]string{"test"}, test.args...))
+			if test.missing {
+				require.ErrorContains(t, err, "required flag missing: enabled")
+				require.False(t, ran)
+				return
+			}
+			require.NoError(t, err)
+			require.True(t, ran)
+			require.Equal(t, test.enabled, enabled)
+		})
+	}
+}
+
 // Require Function Tests
 func TestRequireString_Success(t *testing.T) {
 	flag := String("api-key", "API key")

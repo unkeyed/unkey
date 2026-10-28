@@ -76,7 +76,7 @@ require (
 	github.com/stripe/stripe-go/v86 v86.1.1
 	github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f
 	github.com/unkeyed/sdks/api/go/v2 v2.7.1
-	github.com/unkeyed/sdks/api/go/v3 v3.0.2
+	github.com/unkeyed/sdks/api/go/v3 v3.1.1
 	github.com/vishvananda/netlink v1.3.1
 	go.opentelemetry.io/contrib/bridges/otelslog v0.14.0
 	go.opentelemetry.io/contrib/bridges/prometheus v0.64.0
@@ -302,7 +302,7 @@ require (
 	github.com/speakeasy-api/openapi v1.24.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/spyzhov/ajson v0.8.0 // indirect
+	github.com/spyzhov/ajson v0.9.6 // indirect
 	github.com/sqlc-dev/sqlc v1.30.0 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/testcontainers/testcontainers-go v0.43.0 // indirect

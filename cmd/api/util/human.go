@@ -62,7 +62,7 @@ func writeDetails(output *strings.Builder, value any, indent string, metadata bo
 
 func fieldValue(key string, value any) string {
 	switch key {
-	case "createdAt", "updatedAt", "lastUsedAt", "expires":
+	case "createdAt", "updatedAt", "lastUsedAt", "expires", "time":
 		if number, ok := value.(json.Number); ok {
 			if milliseconds, err := number.Int64(); err == nil && milliseconds > 0 {
 				return time.UnixMilli(milliseconds).UTC().Format(time.RFC3339)
@@ -74,6 +74,8 @@ func fieldValue(key string, value any) string {
 
 func tableValue(key string, value any, format tableFormat) string {
 	switch key {
+	case "time", "expires":
+		return fieldValue(key, value)
 	case "createdAt", "updatedAt", "lastUsedAt":
 		if value == nil {
 			return "-"

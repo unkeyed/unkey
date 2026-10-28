@@ -11,11 +11,14 @@ import (
 	"github.com/unkeyed/unkey/cmd/api/github"
 	"github.com/unkeyed/unkey/cmd/api/identities"
 	"github.com/unkeyed/unkey/cmd/api/keys"
+	"github.com/unkeyed/unkey/cmd/api/logs"
 	"github.com/unkeyed/unkey/cmd/api/permissions"
 	"github.com/unkeyed/unkey/cmd/api/portal"
 	"github.com/unkeyed/unkey/cmd/api/projects"
 	"github.com/unkeyed/unkey/cmd/api/ratelimit"
+	"github.com/unkeyed/unkey/cmd/api/rootkeys"
 	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/workspace"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -33,7 +36,8 @@ func groups() []*cli.Command {
 	commands := []*cli.Command{
 		analytics.Cmd(), apis.Cmd(), apps.Cmd(), deployments.Cmd(), domains.Cmd(),
 		environments.Cmd(), gateway.Cmd(), github.Cmd(), identities.Cmd(), keys.Cmd(),
-		permissions.Cmd(), portal.Cmd(), projects.Cmd(), ratelimit.Cmd(),
+		logs.Cmd(), permissions.Cmd(), portal.Cmd(), projects.Cmd(), ratelimit.Cmd(),
+		rootkeys.Cmd(), workspace.Cmd(),
 	}
 	for _, group := range commands {
 		for _, command := range group.Commands {

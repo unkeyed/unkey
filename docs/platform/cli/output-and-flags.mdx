@@ -52,7 +52,7 @@ Resource commands such as `unkey projects list` and `unkey keys get` share the f
 </ParamField>
 
 <ParamField body="--body" type="string">
-  A JSON request body to send instead of building one from the command's flags. See [Send a raw body](#send-a-raw-body).
+  A JSON request body to send instead of building one from the command's flags. Commands without a request body, such as `unkey workspace flags get` and `unkey workspace limits`, don't accept this flag. See [Send a raw body](#send-a-raw-body).
 </ParamField>
 
 ## Output formats

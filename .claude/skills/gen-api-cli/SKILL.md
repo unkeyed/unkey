@@ -10,6 +10,8 @@ argument-hint: "[group-name or 'all']"
 
 Generate and maintain CLI command files in `cmd/api/` that wrap the Unkey Go SDK. Each supported API endpoint has one implementation shared by its canonical resource command and legacy `unkey api` path.
 
+The body-mode rules below apply only to endpoints with an OpenAPI request body. Bodyless operations, such as `workspace.getFlags` and `workspace.getLimits`, omit `--body` and call the SDK without a request argument. Cover their authentication, routes, empty requests, and rejection of `--body` in the shared integration suite instead of adding request-construction tests.
+
 **Modes** (determined by the argument passed after `/gen-api-cli`):
 - A group name (e.g., `keys`, `apis`): generate/update that group only
 - `all` or no argument: generate/update all groups
@@ -57,6 +59,9 @@ Group them by resource:
 - `projects` — endpoints matching `projects.*`
 - `ratelimit` — endpoints matching `ratelimit.*`
 - `analytics` — endpoints matching `analytics.*`
+- `rootkeys` — endpoints matching `rootKeys.*`, exposed as `root-keys`
+- `logs` — endpoints matching `logs.*`
+- `workspace` — endpoints matching `workspace.*`; the CLI entrypoint adds the local `list` and `switch` commands to this resource group
 
 Skip `deploy.*` (already handled by `cmd/deploy`) and `liveness` (GET health check, not useful as CLI).
 
@@ -373,7 +378,7 @@ The project uses strict linters via golangci-lint. Watch out for:
 
 ## Step 5: Generate documentation
 
-Keep existing documentation filenames, URLs, and navigation entries. The page at `docs/compute/cli/projects/list-projects.mdx`, for example, teaches `unkey projects list`. For new endpoints, follow the existing `docs/{product}/cli/{group}/{legacy-action}.mdx` convention, where `{product}` is `api-management` or `compute`, and register the page in `docs/docs.json`.
+Keep existing documentation filenames, URLs, and navigation entries. The page at `docs/compute/cli/projects/list-projects.mdx`, for example, teaches `unkey projects list`. For new endpoints, follow the existing `docs/{product}/cli/{group}/{legacy-action}.mdx` convention, where `{product}` is `api-management`, `compute`, or `platform`, and register the page in `docs/docs.json`.
 
 Use `docs/compute/cli/projects/list-projects.mdx` as the page template. Titles, sidebar labels, usage, examples, and CLI link text must use canonical resource paths from `resourcePaths`. Preserve API endpoint names and link destinations.
 
@@ -396,7 +401,7 @@ In audit mode, run only `--check`. Review the diff after migration, including ne
 ### Audit mode docs and tests check
 
 When running in `check` mode, also report:
-- **Missing docs**: CLI commands with no corresponding `.mdx` file in `docs/api-management/cli/` or `docs/compute/cli/`
+- **Missing docs**: CLI commands with no corresponding `.mdx` file in `docs/api-management/cli/`, `docs/compute/cli/`, or `docs/platform/cli/`
 - **Missing from nav**: Doc files that exist but aren't registered in `docs.json`
 - **Missing tests**: CLI command files with no corresponding `_test.go` file. Do not require per-leaf body-mode tests unless the command has structurally unusual request construction.
 - **Body flag ownership**: A leaf command that does not explicitly define exactly one `--body` flag.

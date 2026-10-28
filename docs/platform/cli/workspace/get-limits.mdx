@@ -1,0 +1,87 @@
+---
+title: unkey workspace limits
+sidebarTitle: "limits"
+description: "Read workspace limits and the current usage counted against them."
+sources:
+  - cmd/api/workspace/get_limits.go
+  - svc/api/openapi/spec/paths/v2/workspace/getLimits/index.yaml
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import CLIOutput from "/snippets/cli-output.mdx";
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Get every limit of your workspace, with the current value against each
+limit that has one.
+
+Use this before an operation that a limit can reject, for example to see how
+many custom domains or log drains remain, or how much CPU, memory, and disk
+a new deployment can still reserve.
+
+The request takes no parameters. Each limit has a `limit`, which is `null`
+when unlimited, and a `current` value when the limit has one. Billable
+operations count the current calendar month in UTC. The Compute limits are
+present only when the workspace has a Compute plan.
+
+This command takes no request-building flags and does not accept `--body`.
+
+## Usage
+
+```bash
+unkey workspace limits [flags]
+```
+
+## Flags
+
+This command accepts only the shared flags below.
+
+### Shared flags
+
+These flags control authentication, requests, and output. [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
+</ParamField>
+
+## Required permissions
+
+Your root key must have the following permission:
+
+- `unkey:v1:<workspace_id>:limits#read`
+
+See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash
+unkey workspace limits
+```
+
+## API endpoint
+
+The command calls `POST /v2/workspace.getLimits` and prints its response. See the <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/openapi/spec/paths/v2/workspace/getLimits/index.yaml" target="_blank">endpoint definition</a> for the HTTP contract. The request has no body.

@@ -137,6 +137,107 @@ func TestMissingFlagsDoNotPrintToStdout(t *testing.T) {
 	require.Empty(t, diagnostic)
 }
 
+func TestWorkspaceFlagUpdateRequiresEnabled(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		t.Error("missing --enabled must fail before a request is sent")
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	t.Cleanup(server.Close)
+	for _, path := range []string{"workspace flags update", "api workspace update-flag"} {
+		t.Run(path, func(t *testing.T) {
+			args := append(strings.Fields(path), "--slug=example_feature", "--root-key="+uid.New(uid.KeyPrefix), "--api-url="+server.URL)
+			output, diagnostic, err := runCLI(t, args...)
+			require.ErrorContains(t, err, "required flag missing: enabled")
+			require.Empty(t, output)
+			require.Empty(t, diagnostic)
+		})
+	}
+}
+
+func TestBodylessWorkspaceEndpoints(t *testing.T) {
+	for _, test := range []struct {
+		legacy   string
+		endpoint string
+		response any
+	}{
+		{"workspace get-flags", "workspace.getFlags", components.V2WorkspaceGetFlagsResponseBody{Data: map[string]components.V2WorkspaceGetFlagsFlag{"example_feature": {Enabled: false, Description: "Example feature", AllowOptIn: true}}}},
+		{"workspace get-limits", "workspace.getLimits", components.V2WorkspaceGetLimitsResponseBody{}},
+	} {
+		t.Run(test.legacy, func(t *testing.T) {
+			key := uid.New(uid.KeyPrefix)
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				if r.Method != http.MethodPost || r.URL.Path != "/v2/"+test.endpoint || r.Header.Get("Authorization") != "Bearer "+key {
+					t.Error("unexpected request method, route, or authorization")
+				}
+				body, err := io.ReadAll(r.Body)
+				if err != nil || len(body) != 0 {
+					t.Errorf("expected an empty request body, got %q: %v", body, err)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				if err := json.NewEncoder(w).Encode(test.response); err != nil {
+					t.Error(err)
+				}
+			}))
+			t.Cleanup(server.Close)
+			want, err := json.Marshal(test.response)
+			require.NoError(t, err)
+			for _, path := range []string{resourcePaths[test.legacy], "api " + test.legacy} {
+				args := append(strings.Fields(path), "--root-key="+key, "--api-url="+server.URL, "--json")
+				output, diagnostic, err := runCLI(t, args...)
+				require.NoError(t, err)
+				require.Empty(t, diagnostic)
+				require.JSONEq(t, string(want), output)
+				_, _, err = runCLI(t, append(args, "--body="+string(want))...)
+				require.ErrorContains(t, err, "body")
+			}
+			require.Equal(t, 2, calls)
+		})
+	}
+}
+
+func TestRootKeyCreationSendsBearerAndReturnsSecret(t *testing.T) {
+	key := uid.New(uid.KeyPrefix)
+	response := components.V2RootKeysCreateKeyResponseBody{
+		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+		Data: components.V2RootKeysCreateKeyResponseData{KeyID: uid.New(uid.KeyPrefix), Key: uid.New(uid.KeyPrefix)},
+	}
+	permission := "unkey:v1:" + uid.New(uid.WorkspacePrefix) + ":rootKeys/*#read"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/rootKeys.createKey" || r.Header.Get("Authorization") != "Bearer "+key {
+			t.Error("unexpected route or authorization")
+		}
+		var request components.V2RootKeysCreateKeyRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+		}
+		if len(request.Permissions) != 1 || request.Permissions[0] != permission {
+			t.Error("incorrect permissions")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	for _, path := range []string{"root-keys create", "api root-keys create-key"} {
+		args := append(strings.Fields(path), "--root-key="+key, "--api-url="+server.URL, "--permissions="+permission)
+		output, diagnostic, err := runCLI(t, args...)
+		require.NoError(t, err)
+		require.Empty(t, diagnostic)
+		require.Equal(t, 1, strings.Count(output, response.Data.Key))
+		require.Contains(t, output, response.Data.KeyID)
+		require.NotContains(t, output, response.Meta.RequestID)
+		output, diagnostic, err = runCLI(t, append(args, "--json")...)
+		require.NoError(t, err)
+		require.Empty(t, diagnostic)
+		var got components.V2RootKeysCreateKeyResponseBody
+		require.NoError(t, json.Unmarshal([]byte(output), &got))
+		require.Equal(t, response, got)
+	}
+}
+
 func runCLI(t *testing.T, args ...string) (string, string, error) {
 	t.Helper()
 	stdout := captureFile(t)

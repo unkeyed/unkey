@@ -25,7 +25,7 @@ export function migratePage(source, relativePath, resources) {
     const invocation = new RegExp(`\\bunkey api ${escapeRegExp(legacy)}(?![\\w-])`, "g");
     text = text.replace(invocation, `unkey ${canonical}`);
     text = text.replaceAll(`\`${legacy}\``, `\`${canonical}\``);
-    const link = new RegExp(`\\[(\x60?)${escapeRegExp(action)}\\1\\](\\(/(?:compute|api-management)/cli/${escapeRegExp(group)}/${escapeRegExp(action)}(?:#[^)]*)?\\))`, "g");
+    const link = new RegExp(`\\[(\x60?)${escapeRegExp(action)}\\1\\](\\(/(?:compute|api-management|platform)/cli/${escapeRegExp(group)}/${escapeRegExp(action)}(?:#[^)]*)?\\))`, "g");
     text = text.replace(link, `[$1${canonical}$1]$2`);
     if (relativePath.endsWith(`/cli/${group}/${action}.mdx`)) {
       const sidebar = canonical.startsWith(`${group} `) ? canonical.slice(group.length + 1) : canonical;
@@ -46,7 +46,7 @@ export function migratePage(source, relativePath, resources) {
   }
 
   text = text.replaceAll("Every `unkey api` command", "Every resource command");
-  if (/^(?:compute|api-management)\/cli\//.test(relativePath)) {
+  if (/^(?:compute|api-management)\/cli\/|^platform\/cli\/[^/]+\//.test(relativePath)) {
     const output = /<ParamField body="--output"[^>]*>\n[\s\S]*?<\/ParamField>/g;
     if (output.test(text)) {
       text = text.replace(output, '<ParamField body="--output" type="enum" default="human">\n  <CLIOutput />\n</ParamField>');

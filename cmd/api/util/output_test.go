@@ -131,6 +131,22 @@ func TestOutputSummariesKeepActionableFields(t *testing.T) {
 			header: "IDENTIFIER LIMIT DURATION OVERRIDE ID",
 			values: []string{"customer@example.com", "0", "1.5s", overrideID},
 		},
+		{
+			name: "root keys",
+			response: &components.V2RootKeysListKeysResponseBody{Data: []components.V2RootKeysListKeysResponseData{
+				{KeyID: keyID, Name: new("Automation"), Start: "unkey_auto", Enabled: false, Expires: new(int64(1700003600000)), LastUsedAt: 0},
+			}},
+			header: "NAME START STATUS EXPIRES LAST USED KEY ID",
+			values: []string{"Automation", "unkey_auto", "Disabled", "2023-11-14T23:13:20Z", keyID},
+		},
+		{
+			name: "rate limit namespaces",
+			response: &components.V2RatelimitListNamespacesResponseBody{Data: []components.RatelimitNamespace{
+				{ID: uid.New(uid.RatelimitNamespacePrefix), Name: "email.outbound", CreatedAt: 1700003600000},
+			}},
+			header: "NAME CREATED ID",
+			values: []string{"email.outbound", "2023-11-14T23:13:20Z"},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			output := captureOutput(t, test.response)
@@ -158,6 +174,17 @@ func TestOutputEmptyResponses(t *testing.T) {
 		{"queued stop", &components.V2DeploymentsStopDeploymentResponseBody{}, "Stop requested.\n"},
 		{"completed mutation", &components.V2KeysDeleteKeyResponseBody{}, "Key deleted.\n"},
 		{"absent data", &components.V2IdentitiesDeleteIdentityResponseBody{}, "Identity deleted.\n"},
+		{"root keys", &components.V2RootKeysListKeysResponseBody{}, "No root keys found.\n"},
+		{"build logs", &components.V2DeploymentsListBuildLogsResponseBody{}, "No build logs found.\n"},
+		{"API requests", &components.V2LogsListAPIRequestsResponseBody{}, "No API requests found.\n"},
+		{"request metrics", &components.V2LogsGetAPIRequestMetricsResponseBody{}, "No API request metrics found.\n"},
+		{"rate limit namespaces", &components.V2RatelimitListNamespacesResponseBody{}, "No rate limit namespaces found.\n"},
+		{"workspace flags", &components.V2WorkspaceGetFlagsResponseBody{}, "No workspace flags found.\n"},
+		{"root key deletion", &components.V2RootKeysDeleteKeyResponseBody{}, "Root key deleted.\n"},
+		{"root key update", &components.V2RootKeysUpdateKeyResponseBody{}, "Root key updated.\n"},
+		{"namespace deletion", &components.V2RatelimitDeleteNamespaceResponseBody{}, "Rate limit namespace deleted.\n"},
+		{"queued cancellation", &components.V2DeploymentsCancelDeploymentResponseBody{}, "Cancellation requested.\n"},
+		{"queued authorization", &components.V2DeploymentsAuthorizeDeploymentResponseBody{}, "Authorization requested.\n"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -186,6 +213,27 @@ func TestOutputJSONPreservesTheEnvelope(t *testing.T) {
 			var got components.V2KeysCreateKeyResponseBody
 			require.NoError(t, json.Unmarshal([]byte(output), &got))
 			require.Equal(t, *response, got)
+		})
+	}
+}
+
+func TestOutputLogsPreservesSelectorsAndEscapesMessages(t *testing.T) {
+	requestID := uid.New(uid.RequestPrefix)
+	for _, test := range []struct {
+		name     string
+		response any
+		values   []string
+	}{
+		{"build logs", &components.V2DeploymentsListBuildLogsResponseBody{Data: []components.BuildLogEntry{{Time: 1700000000000, StepID: "build-step", Step: "RUN make", Output: components.BuildLogOutputStderr, Message: "first\nsecond\x1b[2J"}}}, []string{"2023-11-14T22:13:20Z", "build-step", "RUN make", "stderr", `first\nsecond\x1b[2J`}},
+		{"API requests", &components.V2LogsListAPIRequestsResponseBody{Data: []components.APIRequestLog{{RequestID: requestID, Time: 1700000000000, Method: "POST", Path: "/v2/keys.verifyKey", Status: 429, LatencyMs: 17}}}, []string{"2023-11-14T22:13:20Z", "POST", "/v2/keys.verifyKey", "429", "17", requestID}},
+		{"metrics", &components.V2LogsGetAPIRequestMetricsResponseBody{Data: []components.APIRequestMetricsPoint{{Time: 1700000000000, Success: 53, ClientError: 7, ServerError: 2, Total: 63}}}, []string{"2023-11-14T22:13:20Z", "53", "7", "2", "63"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			output := captureOutput(t, test.response)
+			for _, value := range test.values {
+				require.Contains(t, output, value)
+			}
+			require.NotContains(t, output, "\x1b")
 		})
 	}
 }

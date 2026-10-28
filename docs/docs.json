@@ -193,7 +193,33 @@
                   "platform/cli/install",
                   "platform/cli/authentication",
                   "platform/cli/login",
-                  "platform/cli/output-and-flags"
+                  "platform/cli/output-and-flags",
+                  {
+                    "group": "Root keys",
+                    "pages": [
+                      "platform/cli/root-keys/create-key",
+                      "platform/cli/root-keys/delete-key",
+                      "platform/cli/root-keys/list-keys",
+                      "platform/cli/root-keys/reroll-key",
+                      "platform/cli/root-keys/update-key"
+                    ]
+                  },
+                  {
+                    "group": "API request logs",
+                    "pages": [
+                      "platform/cli/logs/list-api-requests",
+                      "platform/cli/logs/get-api-request-metrics"
+                    ]
+                  },
+                  {
+                    "group": "Workspace",
+                    "pages": [
+                      "platform/cli/workspace/get-flags",
+                      "platform/cli/workspace/get-limits",
+                      "platform/cli/workspace/get-usage",
+                      "platform/cli/workspace/update-flag"
+                    ]
+                  }
                 ]
               },
               {
@@ -726,7 +752,10 @@
                   "compute/cli/deployments/promote-deployment",
                   "compute/cli/deployments/rollback-deployment",
                   "compute/cli/deployments/start-deployment",
-                  "compute/cli/deployments/stop-deployment"
+                  "compute/cli/deployments/stop-deployment",
+                  "compute/cli/deployments/authorize-deployment",
+                  "compute/cli/deployments/cancel-deployment",
+                  "compute/cli/deployments/list-build-logs"
                 ]
               },
               {
@@ -1023,7 +1052,9 @@
                   "api-management/cli/permissions/get-role",
                   "api-management/cli/permissions/list-permissions",
                   "api-management/cli/permissions/list-roles",
-                  "api-management/cli/permissions/set-role-permissions"
+                  "api-management/cli/permissions/set-role-permissions",
+                  "api-management/cli/permissions/update-permission",
+                  "api-management/cli/permissions/update-role"
                 ]
               },
               {
@@ -1034,7 +1065,11 @@
                   "api-management/cli/ratelimit/limit",
                   "api-management/cli/ratelimit/list-overrides",
                   "api-management/cli/ratelimit/multi-limit",
-                  "api-management/cli/ratelimit/set-override"
+                  "api-management/cli/ratelimit/set-override",
+                  "api-management/cli/ratelimit/create-namespace",
+                  "api-management/cli/ratelimit/delete-namespace",
+                  "api-management/cli/ratelimit/list-namespaces",
+                  "api-management/cli/ratelimit/update-namespace"
                 ]
               },
               {

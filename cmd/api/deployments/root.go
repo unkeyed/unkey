@@ -12,8 +12,11 @@ func Cmd() *cli.Command {
 		Usage:       "Manage deployments",
 		Description: "Manage Unkey deployments." + util.Disclaimer,
 		Commands: []*cli.Command{
+			authorizeDeploymentCmd(),
+			cancelDeploymentCmd(),
 			createDeploymentCmd(),
 			getDeploymentCmd(),
+			listBuildLogsCmd(),
 			listDeploymentsCmd(),
 			promoteDeploymentCmd(),
 			rollbackDeploymentCmd(),

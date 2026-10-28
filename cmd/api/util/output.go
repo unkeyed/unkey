@@ -102,6 +102,8 @@ func listPresentation(response any) (string, []string) {
 		return "apps", []string{"name", "slug", "sourceType", "updatedAt"}
 	case *components.V2DeploymentsListDeploymentsResponseBody:
 		return "deployments", []string{"project", "app", "environment", "status", "isCurrent", "createdAt", "id"}
+	case *components.V2DeploymentsListBuildLogsResponseBody:
+		return "build logs", []string{"time", "stepId", "step", "output", "message"}
 	case *components.V2DomainsListDomainsResponseBody:
 		return "domains", []string{"domain", "status", "createdAt"}
 	case *components.V2EnvironmentsListEnvironmentsResponseBody:
@@ -117,6 +119,12 @@ func listPresentation(response any) (string, []string) {
 			}
 		}
 		return "keys", columns
+	case *components.V2RootKeysListKeysResponseBody:
+		return "root keys", []string{"name", "start", "enabled", "expires", "lastUsedAt", "keyId"}
+	case *components.V2LogsListAPIRequestsResponseBody:
+		return "API requests", []string{"time", "method", "path", "status", "latencyMs", "requestId"}
+	case *components.V2LogsGetAPIRequestMetricsResponseBody:
+		return "API request metrics", []string{"time", "success", "clientError", "serverError", "total"}
 	case *components.V2IdentitiesListIdentitiesResponseBody:
 		return "identities", []string{"externalId", "id"}
 	case *components.V2PermissionsListPermissionsResponseBody, *components.V2KeysAddPermissionsResponseBody,
@@ -130,6 +138,8 @@ func listPresentation(response any) (string, []string) {
 		return "policies", []string{"name", "enabled", "id"}
 	case *components.V2RatelimitListOverridesResponseBody:
 		return "overrides", []string{"identifier", "limit", "duration", "overrideId"}
+	case *components.V2RatelimitListNamespacesResponseBody:
+		return "rate limit namespaces", []string{"name", "createdAt", "id"}
 	default:
 		return "results", nil
 	}
@@ -147,6 +157,10 @@ func successMessage(response any) string {
 		return "Start requested."
 	case *components.V2DeploymentsStopDeploymentResponseBody:
 		return "Stop requested."
+	case *components.V2DeploymentsAuthorizeDeploymentResponseBody:
+		return "Authorization requested."
+	case *components.V2DeploymentsCancelDeploymentResponseBody:
+		return "Cancellation requested."
 	case *components.V2DomainsVerifyDomainResponseBody:
 		return "Verification requested."
 	case *components.V2ApisDeleteAPIResponseBody:
@@ -155,6 +169,10 @@ func successMessage(response any) string {
 		return "Key deleted."
 	case *components.V2KeysUpdateKeyResponseBody:
 		return "Key updated."
+	case *components.V2RootKeysDeleteKeyResponseBody:
+		return "Root key deleted."
+	case *components.V2RootKeysUpdateKeyResponseBody:
+		return "Root key updated."
 	case *components.V2IdentitiesDeleteIdentityResponseBody:
 		return "Identity deleted."
 	case *components.V2PermissionsDeletePermissionResponseBody:
@@ -175,6 +193,12 @@ func successMessage(response any) string {
 		return "Policies updated."
 	case *components.V2GatewayUpdatePolicyResponseBody:
 		return "Policy updated."
+	case *components.V2RatelimitDeleteNamespaceResponseBody:
+		return "Rate limit namespace deleted."
+	case *components.V2WorkspaceGetFlagsResponseBody:
+		return "No workspace flags found."
+	case *components.V2WorkspaceUpdateFlagResponseBody:
+		return "Workspace flag updated."
 	default:
 		return "Done."
 	}

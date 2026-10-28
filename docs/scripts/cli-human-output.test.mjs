@@ -75,6 +75,42 @@ test("moved resources remain distinguishable in the existing navigation groups",
   assert.equal(result, 'sidebarTitle: "roles create"\n');
 });
 
+test("platform references share output guidance without adding a request body", () => {
+  const source = `---
+title: unkey api workspace get-flags
+sidebarTitle: "get-flags"
+---
+
+[get-flags](/platform/cli/workspace/get-flags)
+
+<ParamField body="--output" type="string">
+  Print JSON.
+</ParamField>
+`;
+  const file = "platform/cli/workspace/get-flags.mdx";
+  const result = migratePage(source, file, resources);
+  assert.match(result, /title: unkey workspace flags get/);
+  assert.match(result, /sidebarTitle: "flags get"/);
+  assert.match(result, /\[workspace flags get\]\(\/platform\/cli\/workspace\/get-flags\)/);
+  assert.match(result, /<CLIOutput \/>/);
+  assert.match(result, /body="--json" type="boolean"/);
+  assert.match(result, /body="--debug" type="boolean"/);
+  assert.doesNotMatch(result, /body="--body"/);
+  assert.equal(migratePage(result, file, resources), result);
+});
+
+test("platform prose keeps its detailed shared flag guidance", () => {
+  const source = `<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--config" type="string">
+  A custom file is read as-is and is not copied into the keychain.
+</ParamField>
+`;
+  assert.equal(migratePage(source, "platform/cli/output-and-flags.mdx", resources), source);
+});
+
 test("unknown commands and API endpoint names are not rewritten", () => {
   const source = "unkey api projects list-projects-extra\nPOST /v2/projects.listProjects\n";
   assert.equal(migratePage(source, "compute/guide.mdx", resources), source);
