@@ -13,7 +13,6 @@ const (
 	ComponentLabel        = "app.kubernetes.io/component"
 
 	DiscoveryComponent = "private-dns"
-	SourceClusterLabel = "multicluster.kubernetes.io/source-cluster"
 	SourceSliceManager = "private-dns.unkey.com"
 
 	CiliumGlobalAnnotation       = "service.cilium.io/global"

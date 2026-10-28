@@ -8,5 +8,5 @@ import "time"
 const ReplacementOverlap = 30 * time.Minute
 
 // RetireAfterAnnotation holds a discovery Service's retirement deadline as an
-// RFC 3339 timestamp. Readers must reject the Service at or after the deadline.
+// RFC 3339 timestamp. Krane deletes an unused Service after the deadline.
 const RetireAfterAnnotation = "private-network.unkey.com/retire-after"

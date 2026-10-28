@@ -132,6 +132,22 @@ func (l Labels) ComponentCiliumNetworkPolicy() Labels {
 	return l
 }
 
+// Component sets the "app.kubernetes.io/component" label to component.
+func (l Labels) Component(component string) Labels {
+	l[LabelKeyComponent] = component
+	return l
+}
+
+// Matches reports whether other contains every label in l.
+func (l Labels) Matches(other map[string]string) bool {
+	for key, value := range l {
+		if got, ok := other[key]; !ok || got != value {
+			return false
+		}
+	}
+	return true
+}
+
 // ProjectID adds project ID label to the label set.
 //
 // This method sets the "unkey.com/project.id" label for identifying
