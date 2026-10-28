@@ -130,7 +130,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/cre
 				req.Permissions = v
 			}
 
-			if v := cmd.Int64("expires"); v != 0 {
+			if v := cmd.Int64("expires"); cmd.FlagIsSet("expires") {
 				req.Expires = &v
 			}
 

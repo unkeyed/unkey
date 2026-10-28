@@ -79,6 +79,17 @@ func TestCreateKey(t *testing.T) {
 			},
 		},
 		{
+			name: "explicit zero expiration",
+			args: "keys create-key --api-id=api_123 --expires=0",
+			want: openapi.V2KeysCreateKeyRequestBody{
+				ApiId:       "api_123",
+				Expires:     new(int64(0)),
+				ByteLength:  new(16),
+				Enabled:     new(true),
+				Recoverable: new(false),
+			},
+		},
+		{
 			name: "with expiration",
 			args: "keys create-key --api-id=api_123 --expires=1700000000000",
 			want: openapi.V2KeysCreateKeyRequestBody{
