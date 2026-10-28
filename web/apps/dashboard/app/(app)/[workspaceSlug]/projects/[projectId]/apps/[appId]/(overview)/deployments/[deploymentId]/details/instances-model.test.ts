@@ -111,7 +111,7 @@ describe("resolveInstancesView", () => {
               {
                 id: "ins_b",
                 state: "unhealthy",
-                detail: "CrashLoopBackOff · 6 restarts",
+                detail: "Crashing · 6 restarts",
                 restarts: 6,
               },
             ],
@@ -258,14 +258,15 @@ describe("resolveInstancesView", () => {
       kind: "empty",
       message: "No instances running",
     });
-    expect(resolveInstancesView(input({ stage: "error" }))).toEqual({
-      kind: "empty",
-      message: "No instances",
-    });
+    expect(resolveInstancesView(input())).toEqual({ kind: "empty", message: "No instances" });
     expect(resolveInstancesView(input({ stage: "started", desiredState: "stopped" }))).toEqual({
       kind: "empty",
       message: "No instances running",
     });
+  });
+
+  test("a failed step with no rows shows nothing", () => {
+    expect(resolveInstancesView(input({ stage: "error" }))).toEqual({ kind: "none" });
   });
 });
 
@@ -283,13 +284,13 @@ describe("instanceDetail", () => {
   });
 
   test("omits a zero restart count but keeps the exit", () => {
-    expect(failed(exit({ reason: "OOMKilled", exitCode: 137 }))).toBe("OOMKilled · exit=137");
+    expect(failed(exit({ reason: "OOMKilled", exitCode: 137 }))).toBe("Out of memory · exit=137");
   });
 
-  test("reads an exit without a reason as Error, like the badge", () => {
-    expect(failed(exit({ restartCount: 4 }))).toBe("Error · 4 restarts");
+  test("reads an exit without a reason as a neutral exit", () => {
+    expect(failed(exit({ restartCount: 4 }))).toBe("Exited · 4 restarts");
     expect(failed(exit({ restartCount: 1, reason: "Error", exitCode: 1 }))).toBe(
-      "Error · exit=1 · 1 restart",
+      "Exited with error · exit=1 · 1 restart",
     );
   });
 });

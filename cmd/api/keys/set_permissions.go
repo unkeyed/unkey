@@ -43,7 +43,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/set
 			cli.StringSlice("permissions", "Comma-separated list of permissions. Replaces all existing permissions.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

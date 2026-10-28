@@ -5,9 +5,10 @@ import {
   EnvironmentBadge,
   badgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
-import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit-badge";
+import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
 import { latestExit } from "@/lib/collections/deploy/last-exit";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
@@ -97,7 +98,7 @@ export function DeploymentRow({
         </span>
         {lastExit && (
           <span className="relative z-20 shrink-0">
-            <LastExitBadge lastExit={lastExit} />
+            <LastExitText summary={summarizeExit(lastExit)} />
           </span>
         )}
       </span>

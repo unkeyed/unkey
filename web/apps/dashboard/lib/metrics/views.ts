@@ -128,6 +128,7 @@ export type SeriesView = { label: string; color: string };
 type MetricView<M extends MetricId> = {
   title: string;
   unit: MetricUnit;
+  gaps: "bridge" | "break";
   primary: SeriesKey<M>;
   series: Record<SeriesKey<M>, SeriesView>;
 };
@@ -148,18 +149,21 @@ export const METRIC_VIEWS: { [M in MetricId]: MetricView<M> } = {
     primary: "requests",
     title: "Requests",
     unit: "requestsPerSecond",
+    gaps: "bridge",
     series: { requests: { label: "Requests/s", color: ACTIVITY } },
   },
   errors: {
     primary: "errorRate",
     title: "Error rate",
     unit: "ratio",
+    gaps: "bridge",
     series: { errorRate: { label: "5xx rate", color: "var(--color-error-9)" } },
   },
   latency: {
     primary: "p95",
     title: "Latency",
     unit: "milliseconds",
+    gaps: "bridge",
     series: {
       p50: { label: "p50", color: "var(--color-info-7)" },
       p95: { label: "p95", color: "var(--color-info-9)" },
@@ -170,24 +174,28 @@ export const METRIC_VIEWS: { [M in MetricId]: MetricView<M> } = {
     primary: "cpu",
     title: "CPU",
     unit: "millicores",
+    gaps: "break",
     series: { cpu: { label: "CPU", color: ACTIVITY } },
   },
   memory: {
     primary: "memory",
     title: "Memory",
     unit: "bytes",
+    gaps: "break",
     series: { memory: { label: "Memory", color: ACTIVITY } },
   },
   disk: {
     primary: "disk",
     title: "Disk",
     unit: "bytes",
+    gaps: "break",
     series: { disk: { label: "Disk", color: ACTIVITY } },
   },
   network: {
     primary: "ingress",
     title: "Network",
     unit: "bytesPerSecond",
+    gaps: "break",
     series: {
       ingress: { label: "In", color: ACTIVITY },
       egress: { label: "Out", color: "var(--color-feature-9)" },
@@ -197,6 +205,7 @@ export const METRIC_VIEWS: { [M in MetricId]: MetricView<M> } = {
     primary: "instances",
     title: "Instances",
     unit: "count",
+    gaps: "break",
     series: { instances: { label: "Instances", color: ACTIVITY } },
   },
 };

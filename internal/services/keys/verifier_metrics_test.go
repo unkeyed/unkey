@@ -1,22 +1,15 @@
 package keys
 
 import (
-	"os"
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
-var metricsRegistry = prometheus.NewRegistry()
-
-func TestMain(m *testing.M) {
-	lazy.SetRegistry(metricsRegistry)
-	os.Exit(m.Run())
-}
+var metricsRegistry = prometheus.DefaultGatherer
 
 const verificationsMetric = "unkey_key_verifications_total"
 

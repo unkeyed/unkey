@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -47,32 +48,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	deployment, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), req.DeploymentId)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("deployment not found",
-				fault.Code(codes.Data.Project.NotFound.URN()),
-				fault.Internal("deployment not found"),
-				fault.Public("The requested deployment does not exist or has been deleted."),
-			)
+			return apierrors.NotFound(codes.Data.Project.NotFound.URN())
 		}
 		return fault.Wrap(err, fault.Internal("failed to find deployment"))
 	}
 
 	// Verify deployment belongs to the authenticated workspace
 	if deployment.WorkspaceID != principal.AuthorizedWorkspaceID {
-		return fault.New("wrong workspace",
-			fault.Code(codes.Data.Project.NotFound.URN()),
-			fault.Internal("wrong workspace, masking as 404"),
-			fault.Public("The requested deployment does not exist or has been deleted."),
-		)
+		return apierrors.NotFound(codes.Data.Project.NotFound.URN())
 	}
 
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(deployment.ProjectID).App(deployment.AppID).Environment(deployment.EnvironmentID).Deployment(deployment.ID),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return err
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Project.NotFound.URN(), "Resource does not exist.")
 	}
 
 	// Build response directly from database model

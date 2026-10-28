@@ -314,15 +314,16 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 			}
 
 			result := db.FindRatelimitNamespace{
-				ID:                id,
-				WorkspaceID:       principal.AuthorizedWorkspaceID,
-				ProjectID:         projectID,
-				Name:              name,
-				CreatedAtM:        now,
-				UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
-				DeletedAtM:        sql.NullInt64{Valid: false, Int64: 0},
-				DirectOverrides:   make(map[string]db.FindRatelimitNamespaceLimitOverride),
-				WildcardOverrides: make([]db.FindRatelimitNamespaceLimitOverride, 0),
+				ID:                 id,
+				WorkspaceID:        principal.AuthorizedWorkspaceID,
+				ProjectID:          projectID,
+				Name:               name,
+				UseGlobalRatelimit: false,
+				CreatedAtM:         now,
+				UpdatedAtM:         sql.NullInt64{Valid: false, Int64: 0},
+				DeletedAtM:         sql.NullInt64{Valid: false, Int64: 0},
+				DirectOverrides:    make(map[string]db.FindRatelimitNamespaceLimitOverride),
+				WildcardOverrides:  make([]db.FindRatelimitNamespaceLimitOverride, 0),
 			}
 
 			auditErr := h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{

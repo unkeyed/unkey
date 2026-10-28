@@ -56,6 +56,7 @@ export function deploymentsCancelDeployment(
     components.V2DeploymentsCancelDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
@@ -87,6 +88,7 @@ async function $do(
       components.V2DeploymentsCancelDeploymentResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
+      | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
       | errors.PreconditionFailedErrorResponse
       | errors.TooManyRequestsErrorResponse
@@ -188,6 +190,7 @@ async function $do(
     components.V2DeploymentsCancelDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
@@ -207,6 +210,7 @@ async function $do(
     ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
+    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema),

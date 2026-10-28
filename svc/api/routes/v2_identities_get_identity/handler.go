@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -54,10 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("identity not found",
-				fault.Code(codes.Data.Identity.NotFound.URN()),
-				fault.Internal("identity not found"), fault.Public("This identity does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Identity.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -76,15 +74,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check permissions using either wildcard or the specific identity ID
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 
 		rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(identity.ProjectID).Identity(identity.ID),
 			permissions.Read,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return err
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Identity.NotFound.URN(), "Resource does not exist.")
 	}
 
 	metaMap, err := db.UnmarshalNullableJSONTo[map[string]any](identity.Meta)

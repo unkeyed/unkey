@@ -52,10 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("permission not found",
-				fault.Code(codes.Data.Permission.NotFound.URN()),
-				fault.Internal("permission not found"), fault.Public("The requested permission does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Permission.NotFound.URN())
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -67,14 +64,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(permission.ProjectID).RBAC().Permission(permission.ID),
 		permissions.Read,
 	)
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		readPermission,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Permission.NotFound.URN(),
-			"The requested permission does not exist.",
+			"Resource does not exist.",
 		)
 	}
 

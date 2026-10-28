@@ -19,7 +19,7 @@ Required Permissions
 - project.*.create_project (to create projects in your workspace)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects/create-project` + util.Disclaimer, Examples: []string{"unkey api projects create-project --name='Payments Service' --slug=payments-service"}, Flags: []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("name", "Human-readable name for this project.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("slug", "Stable project slug.", cli.Required(), cli.MutuallyExclusive("body"))}, Action: func(ctx context.Context, cmd *cli.Command) error {
-		client, err := util.CreateClient(cmd)
+		client, err := util.CreateClient(ctx, cmd)
 		if err != nil {
 			return err
 		}

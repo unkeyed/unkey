@@ -111,6 +111,7 @@ function GlanceCell({ metric, state }: { metric: GlanceMetric; state: GlanceCell
                 fill="flat"
                 showZeroLine
                 showDateInTooltip
+                connectNulls={view.gaps === "bridge"}
                 formatTooltipValue={UNITS[view.unit].format}
               />
             </div>

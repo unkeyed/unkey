@@ -2,6 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { appSource } from "@/components/deploy/app-source";
+import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Deployment, type DeploymentSummary, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
@@ -12,7 +13,7 @@ import { routes } from "@/lib/navigation/routes";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { match } from "@unkey/match";
 import { Card, PageBody } from "@unkey/ui";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import { type ReactNode, useState } from "react";
@@ -210,7 +211,12 @@ function useProductionOverview({
       defaultBranch: app?.defaultBranch ?? null,
       domains: all,
       domainsHref: routes.projects.apps.domains(appScope),
+      addDomainHref:
+        isCurrent && !all.some((d) => d.source === "custom")
+          ? routes.projects.apps.domains({ ...appScope, add: true })
+          : null,
       policiesHref: routes.projects.apps.policies(appScope),
+      addPolicyHref: routes.projects.apps.policies({ ...appScope, add: true }),
     },
     sourceRepo,
     diagnostic,
@@ -335,22 +341,26 @@ function ProductionCardSlot({ model }: { model: ProductionOverviewModel }) {
         {card.isRolledBack && <ProductionCardRollbackBanner />}
         <Card className="relative z-10 flex flex-col">
           <AppCanvas />
-          <AnimatePresence initial={false} mode="wait">
-            {newer && (
-              <motion.div
-                key={newer.deployment.id}
-                className="overflow-hidden"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={
-                  reduceMotion ? { duration: 0 } : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
-                }
-              >
-                <NewerDeploymentRow {...newer} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <MotionProvider>
+            <AnimatePresence initial={false} mode="wait">
+              {newer && (
+                <m.div
+                  key={newer.deployment.id}
+                  className="overflow-hidden"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.2, ease: [0.215, 0.61, 0.355, 1] }
+                  }
+                >
+                  <NewerDeploymentRow {...newer} />
+                </m.div>
+              )}
+            </AnimatePresence>
+          </MotionProvider>
         </Card>
       </div>
     ))

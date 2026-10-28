@@ -3,7 +3,10 @@ import type { LastExit } from "@/lib/types/deploy";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { type LoadSubsetOptions, createCollection } from "@tanstack/react-db";
-import type { Deployment as ApiDeployment } from "@unkey/api/models/components";
+import {
+  type Deployment as ApiDeployment,
+  DeploymentIssueType,
+} from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
@@ -86,8 +89,13 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
-  // Deployment-wide exit for the pre-app_v2 pages; delete with their legacy/ folders
-  lastExit: lastExitSchema.nullable(),
+  crashLoop: z
+    .object({
+      reason: z.string().nullable(),
+      message: z.string(),
+      exitCode: z.number().int().nullable(),
+    })
+    .nullable(),
 });
 
 export type Deployment = z.infer<typeof deploymentSchema>;
@@ -143,7 +151,6 @@ type RowDetails = Pick<
   | "desiredInstanceCount"
   | "desiredRegions"
   | "triggerReason"
-  | "lastExit"
 > & {
   // A server older than this bundle omits it, as after a rollback with a tab still open
   targetRegions?: Deployment["targetRegions"];
@@ -191,6 +198,7 @@ function toDeployment(
   projectId: string,
 ): Deployment {
   const { git, docker, runtime } = deployment;
+  const crashLoop = deployment.issues.find((issue) => issue.type === DeploymentIssueType.CrashLoop);
   return {
     id: deployment.id,
     projectId,
@@ -236,7 +244,13 @@ function toDeployment(
     createdAt: deployment.createdAt,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
-    lastExit: details.lastExit,
+    crashLoop: crashLoop
+      ? {
+          reason: crashLoop.meta?.reason ?? null,
+          message: crashLoop.message,
+          exitCode: crashLoop.meta?.exitCode ?? null,
+        }
+      : null,
   };
 }
 

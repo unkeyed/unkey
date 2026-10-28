@@ -2,7 +2,7 @@ import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import type { Loadable } from "@/lib/loadable/loadable";
 import type { LastExit } from "@/lib/types/deploy";
 import type { MetricSource, SourcePoint } from "@unkey/clickhouse/src/app-metrics/catalog";
-import type { Grid } from "@unkey/clickhouse/src/app-metrics/grid";
+import { DAY_MS, type Grid } from "@unkey/clickhouse/src/app-metrics/grid";
 import type { ResourcePoint } from "@unkey/clickhouse/src/app-metrics/resources";
 import type { TrafficPoint } from "@unkey/clickhouse/src/app-metrics/traffic";
 import { z } from "zod";
@@ -48,6 +48,10 @@ export function environmentRefOf(environment: {
 
 export function environmentKeyOf(ref: EnvironmentRef): string {
   return "id" in ref ? ref.id : ref.kind;
+}
+
+export function spansDays(grid: Pick<Grid, "startMs" | "endMs">): boolean {
+  return grid.endMs - grid.startMs >= DAY_MS;
 }
 
 export type SourceResult<S extends MetricSource> = { grid: Grid; points: SourcePoint<S>[] };
@@ -96,6 +100,27 @@ export type InstanceRow = {
   lastExit: LastExit | null;
   deployment: { id: string; source: DeploySource | null };
   replica: ReplicaTarget;
+};
+
+export type InstanceEventKind =
+  | "crashed"
+  | "oom"
+  | "crashloop"
+  | "image-pull"
+  | "config"
+  | "completed"
+  | "started";
+
+export type InstanceEvent = {
+  id: string;
+  atMs: number;
+  instance: string;
+  instanceId: string | null;
+  region: string;
+  deploymentId: string;
+  kind: InstanceEventKind;
+  reason: string;
+  exitCode: number | null;
 };
 
 const CLAMPED_RETRY_MS = 2_000;

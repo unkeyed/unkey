@@ -12,6 +12,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -147,4 +148,44 @@ func insertVerifiedDomain(t *testing.T, database db.Database, projectID, appID, 
 
 func slugFrom(id string) string {
 	return strings.ToLower(strings.ReplaceAll(id, "_", "-"))
+}
+
+// TestDeleteMissingAppDoesNotRetry proves a delete of an app that no longer
+// exists finishes. The lookup error must be terminal: restate.Run retries its
+// closure on any non-terminal error, so returning the raw sql.ErrNoRows leaves
+// the invocation retrying forever.
+func TestDeleteMissingAppDoesNotRetry(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
+	t.Cleanup(cancel)
+
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+
+	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
+	require.NoError(t, err)
+	appSvc, err := app.New(app.Config{DB: database, Auditlogs: auditlogSvc})
+	require.NoError(t, err)
+
+	// Every environment delete fails terminally, so only the app lookup runs.
+	restateCfg := containers.Restate(t,
+		hydrav1.NewAppServiceServer(appSvc),
+		hydrav1.NewEnvironmentServiceServer(hydrav1.UnimplementedEnvironmentServiceServer{}),
+	)
+	admin := restateadmin.New(restateadmin.Config{BaseURL: restateCfg.AdminURL, APIKey: ""})
+
+	sent, err := hydrav1.NewAppServiceIngressClient(restateCfg.IngressClient, uid.New(uid.AppPrefix)).
+		Delete().
+		Send(ctx, &hydrav1.DeleteAppRequest{
+			Actor:         &ctrlv1.ActorInfo{Id: uid.New("user"), Type: ctrlv1.ActorType_ACTOR_TYPE_USER},
+			CorrelationId: uid.New("corr"),
+		})
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		live, liveErr := admin.FindLiveInvocations(ctx, []string{sent.Id()})
+		require.NoError(t, liveErr)
+		return !live[sent.Id()]
+	}, 20*time.Second, 250*time.Millisecond,
+		"invocation %s is still retrying; a missing app must be terminal", sent.Id())
 }

@@ -5,6 +5,7 @@ import { type Loadable, type QueryResult, fromQuery } from "@/lib/loadable/loada
 import {
   type EnvironmentRef,
   type Grid,
+  type InstanceEvent,
   type InstanceRow,
   type InstanceSeries,
   type SourceResult,
@@ -85,6 +86,17 @@ export function useDeployMarkers(scope: AppMetricsScope | null) {
   const query = trpc.deploy.appMetrics.deploys.useQuery(inputOf(scope), {
     ...CLOCK_DRIVEN,
     enabled: scope !== null,
+  });
+  return useHeldAcrossTicks(scope, query);
+}
+
+export function useInstanceEvents(
+  scope: AppMetricsScope | null,
+  enabled: boolean,
+): Loadable<InstanceEvent[]> {
+  const query = trpc.deploy.appMetrics.instanceEvents.useQuery(inputOf(scope), {
+    ...CLOCK_DRIVEN,
+    enabled: enabled && scope !== null,
   });
   return useHeldAcrossTicks(scope, query);
 }

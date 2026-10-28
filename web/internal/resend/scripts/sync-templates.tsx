@@ -1,15 +1,13 @@
 // Renders the emails that the Go control plane sends (by Resend template
-// alias) and uploads them to Resend. The components are rendered with literal
+// alias) and publishes them to Resend. The components are rendered with literal
 // {{{VARIABLE}}} placeholders as props, so Resend substitutes the variables at
 // send time; this script is the single place that maps props to variables.
 //
 // Run manually after changing one of these emails:
 //
-//   RESEND_API_KEY=... pnpm sync-templates             # upload as draft versions
-//   RESEND_API_KEY=... pnpm sync-templates --publish   # upload and publish
+//   mise exec -- pnpm --dir=web --filter @unkey/resend sync-templates
 //
-// A draft version is invisible to sends: the Go side keeps sending the last
-// published version until --publish (or the Resend dashboard) publishes it.
+// Requires RESEND_API_KEY. Changes are published immediately, not saved as drafts.
 import { render } from "@react-email/render";
 import type React from "react";
 import { Resend } from "resend";
@@ -146,7 +144,6 @@ async function main(): Promise<void> {
   if (!apiKey) {
     throw new Error("RESEND_API_KEY is not set");
   }
-  const publish = process.argv.includes("--publish");
   const resend = new Resend(apiKey);
 
   for (const template of templates) {
@@ -179,14 +176,12 @@ async function main(): Promise<void> {
       }
     }
 
-    if (publish) {
-      const published = await resend.templates.publish(template.alias);
-      if (published.error) {
-        throw new Error(`publish ${template.alias}: ${published.error.message}`);
-      }
+    const published = await resend.templates.publish(template.alias);
+    if (published.error) {
+      throw new Error(`publish ${template.alias}: ${published.error.message}`);
     }
 
-    console.info(`${template.alias}: ${publish ? "uploaded and published" : "uploaded as draft"}`);
+    console.info(`${template.alias}: uploaded and published`);
   }
 }
 

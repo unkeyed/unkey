@@ -20,7 +20,8 @@ post:
     - `portal.*.delete_portal` (to delete any portal in the workspace)
     - `portal.<portal_id>.delete_portal` (to delete a specific portal)
 
-    Without the permission this returns **404**, not 403.
+    A root key that cannot read the portal gets **404**. One that can read it
+    but lacks the permission gets **403**.
   operationId: portal.deletePortal
   x-speakeasy-name-override: deletePortal
   security:
@@ -51,9 +52,15 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Your root key can read the portal but lacks the permission to delete it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: |
-        No such portal, or your root key may not delete it.
+        No such portal, or your root key cannot read it.
       content:
         application/json:
           schema:

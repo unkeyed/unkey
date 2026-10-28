@@ -28,10 +28,6 @@ type (
 	Response = openapi.V2PortalListSessionsResponseBody
 )
 
-// notFoundMessage is shared by an unknown portal and a denied caller, so the two
-// look the same.
-const notFoundMessage = "Portal not found."
-
 type Handler struct {
 	DB    db.Database
 	Clock clock.Clock
@@ -62,11 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("portal not found",
-				fault.Code(codes.Data.Portal.NotFound.URN()),
-				fault.Internal("no portal matched the request in this workspace"),
-				fault.Public(notFoundMessage),
-			)
+			return apierrors.NotFound(codes.Data.Portal.NotFound.URN())
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -78,12 +70,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Reading a portal's configuration is not enough to see who is signed in to
 	// it. Anyone who may mint or revoke its sessions may also list them.
 	sessions := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID).Session("*")
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		rbac.U(sessions, permissions.Read),
 		rbac.U(sessions, permissions.Write),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return apierrors.MaskInsufficientPermissionsAsNotFound(err, codes.Data.Portal.NotFound.URN(), notFoundMessage)
+		return apierrors.MaskInsufficientPermissionsAsNotFound(err, principal.Permissions, permissionQuery, codes.Data.Portal.NotFound.URN(), "Resource does not exist.")
 	}
 
 	now := h.Clock.Now().UnixMilli()

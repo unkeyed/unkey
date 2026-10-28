@@ -1,6 +1,8 @@
 package prometheus
 
 import (
+	"sync"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
@@ -17,10 +19,18 @@ type systemMetricsCollector struct {
 	memPercent *prometheus.Desc
 }
 
-// NewSystemMetricsCollector returns a Prometheus collector for host CPU and
-// memory utilization percentages. Register it on the same registry that is
-// exposed at /metrics.
-func NewSystemMetricsCollector() prometheus.Collector {
+var registerSystemMetrics sync.Once
+
+// RegisterSystemMetrics registers host CPU and memory utilization gauges in
+// the default registry. It is safe to call more than once, for example when
+// several services run in one test process.
+func RegisterSystemMetrics() {
+	registerSystemMetrics.Do(func() {
+		prometheus.MustRegister(newSystemMetricsCollector())
+	})
+}
+
+func newSystemMetricsCollector() prometheus.Collector {
 	return &systemMetricsCollector{
 		cpuPercent: prometheus.NewDesc(
 			"resources_cpu_percent",

@@ -1,21 +1,23 @@
 "use client";
 
 import type { ChartMarkers } from "@/components/charts/chart-markers";
-import type { InstanceRow } from "@/lib/metrics/app-metrics";
+import { type InstanceRow, spansDays } from "@/lib/metrics/app-metrics";
 import { IconChevronLeftOutline12, IconChevronRightOutline12 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Card } from "@unkey/ui";
 import type { Route } from "next";
 import { useState } from "react";
+import { withEpisodeMarkers } from "./event-markers";
+import { InstanceFilterBar } from "./instance-filters";
 import { InstanceTable } from "./instance-table";
-import type { InstancesTabView } from "./instances-model";
+import type { FilterKey, InstancesTabView, LogsTarget } from "./instances-model";
 import { UsageCardView } from "./usage-card";
 
 const PAGE_SIZE = 10;
 
 export type LayoutHandlers = {
   onOpen: (row: InstanceRow) => void;
-  logsHref: (row: InstanceRow) => Route;
-  onClearInstance: () => void;
+  logsHref: (target: LogsTarget) => Route;
+  onFilterChange: (key: FilterKey, values: string[]) => void;
 };
 
 type Props = LayoutHandlers & {
@@ -30,33 +32,44 @@ export function InstancesLayout({
   syncId,
   onOpen,
   logsHref,
-  onClearInstance,
+  onFilterChange,
 }: Props) {
   const [page, setPage] = useState(0);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const all = view.rows;
   const pages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
   const current = Math.min(page, pages - 1);
   const first = current * PAGE_SIZE;
   const rows = all.slice(first, first + PAGE_SIZE);
+  const chartMarkers = withEpisodeMarkers(markers, view.episodes, {
+    logsHref,
+    withDate: spansDays(view.grid),
+  });
   return (
-    <>
-      <div className="grid gap-4 md:grid-cols-2">
+    <Card className="overflow-hidden">
+      <div className="relative z-20 grid divide-y divide-grayA-4 md:grid-cols-2 md:divide-x md:divide-y-0">
         {view.usage.map((card) => (
           <UsageCardView
             key={card.metric}
             card={card}
             legend={view.legend}
-            selected={view.selected}
-            markers={markers}
+            focusKey={hoveredKey}
+            markers={chartMarkers}
             syncId={syncId}
-            onClearInstance={onClearInstance}
           />
         ))}
       </div>
+      {view.crashEventsFailed && (
+        <p className="border-t border-grayA-4 px-4 py-2 text-xs text-gray-10">
+          Crash events unavailable
+        </p>
+      )}
+      <InstanceFilterBar filters={view.filters} onChange={onFilterChange} />
       <InstanceTable
         rows={rows}
         logsHref={logsHref}
         onOpen={onOpen}
+        onHover={setHoveredKey}
         footer={
           <div className="flex items-center gap-3 border-t border-grayA-4 px-4 py-2.5 text-xs text-gray-10">
             <span>
@@ -88,6 +101,6 @@ export function InstancesLayout({
           </div>
         }
       />
-    </>
+    </Card>
   );
 }

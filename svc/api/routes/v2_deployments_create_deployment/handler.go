@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -50,25 +52,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
+	scope, err := db.Query.ResolveDeploymentScope(ctx, h.DB.RO(), db.ResolveDeploymentScopeParams{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
 	})
-	if err != nil {
-		if db.IsNotFound(err) {
-			return fault.New(
-				"environment not found",
-				fault.Code(codes.Data.Environment.NotFound.URN()),
-				fault.Internal("project, app, or environment did not resolve"),
-				fault.Public("The requested project, app, or environment does not exist."),
-			)
-		}
+	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
 	}
+	notFound := err != nil || !scope.AppID.Valid || !scope.EnvironmentID.Valid
 
-	err = principal.Authorize(rbac.Or(
+	environmentURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).
+		Project(cmp.Or(scope.ProjectID, "*")).
+		App(cmp.Or(scope.AppID.String, "*")).
+		Environment(cmp.Or(scope.EnvironmentID.String, "*"))
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
 			ResourceID:   "*",
@@ -76,17 +75,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
-			ResourceID:   environment.ID,
+			ResourceID:   scope.EnvironmentID.String,
 			Action:       rbac.CreateDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			environmentURN.Deployment("*"),
 			permissions.Write,
 		),
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return err
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			deployment.CreateVisibility(environmentURN),
+			codes.Data.Environment.NotFound.URN(),
+			"The requested project, app, or environment does not exist.",
+		)
 	}
+	if notFound {
+		return fault.New(
+			"environment not found",
+			fault.Code(codes.Data.Environment.NotFound.URN()),
+			fault.Internal("project, app, or environment did not resolve"),
+			fault.Public("The requested project, app, or environment does not exist."),
+		)
+	}
+
+	environmentID := scope.EnvironmentID.String
 
 	actorInfo, err := ctrlclient.Actor(s)
 	if err != nil {
@@ -94,9 +111,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	createReq := &hydrav1.DeployCreateRequest{
-		ProjectId:     environment.ProjectID,
-		AppId:         environment.AppID,
-		EnvironmentId: environment.ID,
+		ProjectId:     scope.ProjectID,
+		AppId:         scope.AppID.String,
+		EnvironmentId: environmentID,
 		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Trigger:       &hydrav1.Trigger{Source: deployment.TriggerFromClient(s), Actor: actorInfo, Reason: ""},
 	}
@@ -130,7 +147,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 	case req.Deployment != nil:
-		if err := deployment.RequireSourceInEnvironment(ctx, h.DB, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId); err != nil {
+		if err := deployment.RequireSourceInEnvironment(ctx, h.DB, principal.AuthorizedWorkspaceID, scope.AppID.String, environmentID, req.Deployment.DeploymentId); err != nil {
 			return err
 		}
 		createReq.Source = &hydrav1.DeployCreateRequest_ExistingDeployment{

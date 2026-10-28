@@ -2,18 +2,23 @@ import { createLiveQueryCollection, eq } from "@tanstack/react-db";
 import { describe, expect, it, vi } from "vitest";
 
 const saved: { id: string; domain: string }[] = [];
-const listDomains = vi.fn(async () => ({
-  data: saved.map(({ id, domain }) => ({
-    id,
-    domain,
-    projectId: "proj",
-    appId: "app",
-    environmentId: "env",
-    status: "pending" as const,
-    dnsRecords: [],
-    createdAt: 0,
-  })),
-}));
+const listDomains = vi.fn(async () => [
+  {
+    result: {
+      pagination: { hasMore: false },
+      data: saved.map(({ id, domain }) => ({
+        id,
+        domain,
+        projectId: "proj",
+        appId: "app",
+        environmentId: "env",
+        status: "pending" as const,
+        dnsRecords: [],
+        createdAt: 0,
+      })),
+    },
+  },
+]);
 const createDomain = vi.fn(async ({ domain }: { domain: string }) => {
   saved.push({ id: `dom_${domain}`, domain });
   return {};

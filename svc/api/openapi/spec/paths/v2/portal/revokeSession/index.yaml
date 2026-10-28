@@ -26,7 +26,8 @@ post:
     which dashboard roles carry. Unlike `portal.createSession`, a dashboard
     session can call this, not just a root key.
 
-    Without the permission this returns **404**, not 403.
+    A root key that cannot read the portal's sessions gets **404**. One that can
+    read them but lacks the permission gets **403**.
   operationId: portal.revokeSession
   x-speakeasy-name-override: revokeSession
   security:
@@ -57,9 +58,15 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Your root key can read the portal's sessions but lacks the permission to revoke them.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: |
-        No such portal, or your root key may not revoke its sessions.
+        No such portal, or your root key cannot read its sessions.
       content:
         application/json:
           schema:

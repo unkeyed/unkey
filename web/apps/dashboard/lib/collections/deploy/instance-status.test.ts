@@ -4,6 +4,7 @@ import {
   type InstancesSource,
   instanceStateOf,
   instancesText,
+  isFatalWaitingReason,
   summarizeInstances,
 } from "./instance-status";
 
@@ -145,6 +146,16 @@ describe("instancesText", () => {
     );
     expect(instancesText(null, "running")).toBe("No instances");
     expect(instancesText(null, "stopped")).toBe("No instances running");
+  });
+});
+
+describe("isFatalWaitingReason", () => {
+  test("is true only for waiting reasons that stop an instance", () => {
+    expect(isFatalWaitingReason("CrashLoopBackOff")).toBe(true);
+    expect(isFatalWaitingReason("CreateContainerConfigError")).toBe(true);
+    expect(isFatalWaitingReason("OOMKilled")).toBe(false);
+    expect(isFatalWaitingReason("ContainerCreating")).toBe(false);
+    expect(isFatalWaitingReason(null)).toBe(false);
   });
 });
 

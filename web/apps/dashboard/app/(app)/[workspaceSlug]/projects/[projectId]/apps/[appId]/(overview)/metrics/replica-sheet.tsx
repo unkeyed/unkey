@@ -2,19 +2,19 @@
 
 import type { ChartMarkers } from "@/components/charts/chart-markers";
 import { RegionFlag } from "@/components/region-flag";
+import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
 import { instanceLabel } from "@/lib/collections/deploy/instance-status";
-import { exitDetail } from "@/lib/collections/deploy/last-exit";
 import { plural } from "@/lib/fmt";
 import { METRIC_VIEWS } from "@/lib/metrics/views";
 import { regionInfo } from "@/lib/regions";
 import type { LastExit } from "@/lib/types/deploy";
 import { match } from "@unkey/match";
 import {
+  Card,
   EmptyState,
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateTitle,
-  Skeleton,
   SlidePanel,
   SlidePanelCloseButton,
   SlidePanelContent,
@@ -23,7 +23,8 @@ import {
   TimestampInfo,
 } from "@unkey/ui";
 import type { ReactNode } from "react";
-import { LastExitBadge } from "../../components/last-exit-badge";
+import { LastExitText } from "../../components/last-exit";
+import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { DeployIdentity } from "./deploy-identity";
 import {
@@ -103,7 +104,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-1.5">
+    <Card className="flex flex-col gap-1.5 px-4 pt-3 pb-3">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-medium text-gray-12">
           {heading}
@@ -111,7 +112,7 @@ function Section({
         </h3>
       </div>
       {children}
-    </section>
+    </Card>
   );
 }
 
@@ -125,14 +126,12 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 function LastExitRow({ lastExit }: { lastExit: LastExit }) {
-  const detail = exitDetail(lastExit);
   return (
     <DetailRow label="Last exit">
       <div className="flex flex-col items-start gap-1.5">
-        <LastExitBadge lastExit={lastExit} />
+        <LastExitText summary={summarizeExit(lastExit)} />
         <span className="text-xs tabular-nums text-gray-11">
           {plural(lastExit.restartCount, "restart")}
-          {detail && ` · ${detail}`}
           {lastExit.finishedAt && (
             <>
               {" · "}
@@ -149,10 +148,15 @@ function ReplicaUsageBody({ usage, markers }: { usage: ReplicaUsage; markers: Ch
   return match(usage)
     .with({ status: "loading" }, () =>
       REPLICA_METRICS.map((metric) => (
-        <Skeleton
+        <UsageSection
           key={metric}
-          className="w-full shrink-0 rounded-md"
-          style={{ height: CHART_HEIGHT + 40 }}
+          section={{
+            metric,
+            chart: { status: "loading" },
+            scale: absoluteScale(METRIC_VIEWS[metric].unit),
+            allocation: null,
+          }}
+          markers={markers}
         />
       )),
     )

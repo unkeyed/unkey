@@ -3,6 +3,7 @@ import type {
   HealthStatus,
   RegionNode,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/[deploymentId]/legacy/network/unkey-flow/components/nodes/types";
+import { lastExitOf } from "@/lib/collections/deploy/last-exit";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -43,11 +44,6 @@ export const getDeploymentTree = workspaceProcedure
           cpuMillicores: true,
           memoryMib: true,
           status: true,
-          // Kubelet-detailed status (exit info, waiting reason). Drizzle
-          // hands us the typed JSON shape; the instance panel projects
-          // out lastTerminationState / waiting so a starting/failed pod
-          // shows "OOMKilled · exit=137" inline, not just a generic "is
-          // starting up" message.
           containerStatus: true,
         },
         with: {
@@ -102,24 +98,7 @@ export const getDeploymentTree = workspaceProcedure
                 latency: "—",
                 health: mapInstanceStatusToHealth(instance.status),
                 k8sName: instance.k8sName,
-                // Forward the denormalized last-exit context so the instance
-                // details panel can render it without a follow-up query.
-                // Project the JSON's optional sub-fields into the flat
-                // shape consumers already expect; null fields stay null
-                // and the panel hides empties.
-                lastExit:
-                  instance.containerStatus.lastTerminationState !== undefined ||
-                  instance.containerStatus.waiting !== undefined
-                    ? {
-                        restartCount: instance.containerStatus.restartCount ?? 0,
-                        exitCode: instance.containerStatus.lastTerminationState?.exitCode ?? null,
-                        signal: instance.containerStatus.lastTerminationState?.signal ?? null,
-                        reason: instance.containerStatus.lastTerminationState?.reason ?? null,
-                        statusReason: instance.containerStatus.waiting?.reason ?? null,
-                        finishedAt:
-                          instance.containerStatus.lastTerminationState?.finishedAt ?? null,
-                      }
-                    : null,
+                lastExit: lastExitOf(instance.containerStatus),
               },
             })),
           };

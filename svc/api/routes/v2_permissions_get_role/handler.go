@@ -56,10 +56,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("role not found",
-				fault.Code(codes.Data.Role.NotFound.URN()),
-				fault.Internal("role not found"), fault.Public("The requested role does not exist."),
-			)
+			return apierrors.NotFound(codes.Data.Role.NotFound.URN())
 		}
 
 		return fault.Wrap(err,
@@ -72,14 +69,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
 		permissions.Read,
 	)
-	err = principal.Authorize(rbac.Or(
+	permissionQuery := rbac.Or(
 		readRole,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
+			principal.Permissions,
+			permissionQuery,
 			codes.Data.Role.NotFound.URN(),
-			"The requested role does not exist.",
+			"Resource does not exist.",
 		)
 	}
 
