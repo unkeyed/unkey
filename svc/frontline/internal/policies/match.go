@@ -94,7 +94,7 @@ func evalPathMatch(req *http.Request, pm *frontlinev1.PathMatch, rc *regexCache)
 	if pm == nil || pm.GetPath() == nil {
 		return true, nil
 	}
-	for _, candidate := range canonicalpath.Candidates(req.URL.Path, req.URL.EscapedPath()) {
+	for _, candidate := range canonicalpath.Candidates(req.URL.Path) {
 		matched, err := evalStringMatch(candidate, pm.GetPath(), true, rc)
 		if err != nil || matched {
 			return matched, err

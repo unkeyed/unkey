@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/policies/canonicalpath"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
 	openapiExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
@@ -151,6 +152,14 @@ func (e *Engine) evaluatePolicies(
 	policies []*frontlinev1.Policy,
 ) (Result, error) {
 	var result Result
+
+	if len(policies) > 0 && canonicalpath.HasEncodedSeparator(req.URL.EscapedPath()) {
+		return result, fault.New("encoded path separator",
+			fault.Code(codes.Frontline.Request.EncodedPathSeparator.URN()),
+			fault.Internal(fmt.Sprintf("path %q contains an encoded slash or backslash", req.URL.EscapedPath())),
+			fault.Public("The request path contains an encoded slash or backslash, which this API does not accept."),
+		)
+	}
 
 	for _, policy := range policies {
 		if !policy.GetEnabled() || policy.GetLogging() != nil {

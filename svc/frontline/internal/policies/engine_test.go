@@ -315,12 +315,64 @@ func TestEvaluate_KeyAuthSkipCannotBypassStricterPolicyThroughPathVariant(t *tes
 		},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/public/..;/admin", nil)
-	sess := &zen.Session{}
-	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	for _, target := range []string{"/public/..;/admin", "/public/%2e%2e/admin", "/public/x/%2e%2e/%2e%2e/admin"} {
+		t.Run(target, func(t *testing.T) {
+			t.Parallel()
 
-	_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), policies)
-	require.ErrorIs(t, err, denied)
+			req := httptest.NewRequest(http.MethodGet, target, nil)
+			sess := &zen.Session{}
+			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+			_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), policies)
+			require.ErrorIs(t, err, denied)
+		})
+	}
+}
+
+func TestEvaluate_RejectsEncodedPathSeparator(t *testing.T) {
+	t.Parallel()
+
+	policies := []*frontlinev1.Policy{{
+		Id:      uid.New(uid.PolicyPrefix),
+		Enabled: new(true),
+		Match: []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
+			Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/internal/"}},
+		}}}},
+		Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY}},
+	}}
+
+	for _, tt := range []struct {
+		target   string
+		policies []*frontlinev1.Policy
+		rejected bool
+	}{
+		{target: "/files/a%2Fb", policies: policies, rejected: true},
+		{target: "/files/a%2fb", policies: policies, rejected: true},
+		{target: "/public/x%2F..%2F..%2Finternal/x", policies: policies, rejected: true},
+		{target: "/files/a%5Cb", policies: policies, rejected: true},
+		{target: "/files/a%20b", policies: policies, rejected: false},
+		{target: "/files/a%2Fb", policies: nil, rejected: false},
+	} {
+		t.Run(tt.target, func(t *testing.T) {
+			t.Parallel()
+
+			req := httptest.NewRequest(http.MethodGet, tt.target, nil)
+			sess := &zen.Session{}
+			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+			engine := &Engine{firewall: firewallExec.New(), regexCache: newRegexCache()}
+
+			_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), tt.policies)
+			if !tt.rejected {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.Frontline.Request.EncodedPathSeparator.URN(), code)
+		})
+	}
 }
 
 func TestEvaluate_OpenAPIValidatesPathAndMethodVariants(t *testing.T) {

@@ -52,6 +52,7 @@ Codes are grouped by who needs to act.
 | [`err:frontline:client:rate_limited`](/errors/frontline/client/rate_limited) | 429 | A per-key limit or a [rate limit policy](/compute/gateway/rate-limiting) was exceeded, or the rate limit policy couldn't identify the caller. |
 | [`err:frontline:client:usage_exceeded`](/errors/frontline/client/usage_exceeded) | 429 | The key has no credits left. |
 | [`err:frontline:client:openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed) | 400 | The request didn't match the deployment's OpenAPI spec under an [OpenAPI validation policy](/compute/gateway/openapi-validation). |
+| [`err:frontline:client:encoded_path_separator`](/errors/frontline/client/encoded_path_separator) | 400 | The path contains `%2F` or `%5C`, which the gateway can't [match to policies](/compute/gateway/policies#how-paths-and-methods-match) reliably. |
 
 ### Configuration and capacity: you own the API
 

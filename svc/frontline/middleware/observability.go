@@ -353,6 +353,12 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Title:   http.StatusText(http.StatusServiceUnavailable),
 			Message: "The gateway is busy. Retry shortly.",
 		}
+	case codes.Frontline.Request.EncodedPathSeparator.URN():
+		return errorPageInfo{
+			Status:  http.StatusBadRequest,
+			Title:   http.StatusText(http.StatusBadRequest),
+			Message: "The request path contains an encoded slash or backslash, which this API does not accept.",
+		}
 
 	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,
 	// no instances in any region).
