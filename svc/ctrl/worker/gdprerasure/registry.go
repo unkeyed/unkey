@@ -168,11 +168,13 @@ var endUserSteps = []step{
 	mysqlDelete{table: "identities", by: "", where: "workspace_id = :workspace_id AND external_id = :external_id"},
 }
 
-// userSteps erases a dashboard user. Audit log rows stay, because they are the
-// customer's security record, but lose the user's name, metadata, address and
-// user agent. The outbox is rewritten first so a pending export cannot bring
-// those back into ClickHouse.
+// userSteps erases a dashboard user. The Resend contact goes first, so a key
+// that cannot delete contacts stops the erasure before any row changes. Audit
+// log rows stay, because they are the customer's security record, but lose the
+// user's name, metadata, address and user agent. The outbox is rewritten first
+// so a pending export cannot bring those back into ClickHouse.
 var userSteps = []step{
+	deleteResendContact{},
 	mysqlDelete{table: "cli_sessions", by: "", where: "user_id = :user_id"},
 	mysqlDelete{table: "device_authorizations", by: "", where: "approver_user_id = :user_id"},
 	mysqlDelete{table: "compute_signup_credit_claims", by: "", where: "workos_user_id = :user_id"},

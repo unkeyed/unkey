@@ -17,6 +17,9 @@ type Client interface {
 // record existed. Deleting a record that does not exist succeeds, so a repeated
 // erasure converges.
 type Eraser interface {
+	// UserEmail returns the user's email address, or an empty string when the
+	// user does not exist.
+	UserEmail(ctx context.Context, userID string) (string, error)
 	DeleteUser(ctx context.Context, userID string) (bool, error)
 	DeleteOrganization(ctx context.Context, orgID string) (bool, error)
 }

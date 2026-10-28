@@ -28,11 +28,12 @@ type auditActor struct {
 
 // TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs guarantees that a
 // GDPR user erasure deletes the user's sessions, device approvals and signup
-// credit claims and their WorkOS account, forgets them as the trigger of their
-// deployments while keeping the deployments, and strips their name, metadata,
-// address and user agent from audit logs, both exported and still queued,
-// while keeping the events and the actor id as the customer's security record.
-// Another user's rows stay intact, and a second request changes nothing.
+// credit claims, their Resend contact and their WorkOS account, forgets them as
+// the trigger of their deployments while keeping the deployments, and strips
+// their name, metadata, address and user agent from audit logs, both exported
+// and still queued, while keeping the events and the actor id as the
+// customer's security record. Another user's rows and contact stay intact, and
+// a second request changes nothing.
 func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 	h := harness.New(t)
 	ws := h.Seed.CreateWorkspace(h.Ctx)
@@ -42,6 +43,7 @@ func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 	deploymentIDs := make(map[string]string, 2)
 	for _, id := range []string{userID, neighbourID} {
 		deploymentIDs[id] = seedUser(t, h, ws.ID, id)
+		h.Erased.AddWorkOSUser(id, id+"@example.com")
 	}
 
 	require.Equal(t, db.CountUserRowsByTableRow{CliSessions: 1, DeviceAuthorizations: 1, ComputeSignupCreditClaims: 1}, countUserRows(t, h, userID))
@@ -60,6 +62,7 @@ func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 	require.Equal(t, []auditActor{pseudonym}, outboxActors(t, h, ws.ID, userID))
 	require.Equal(t, []auditActor{pseudonym}, auditActors(t, h, ws.ID, userID))
 	require.Equal(t, []string{userID}, h.Erased.WorkOSUserIDs())
+	require.Equal(t, []string{userID + "@example.com"}, h.Erased.ResendContactEmails())
 	deploymentAfter := deploymentBefore
 	deploymentAfter.TriggeredBy = sql.NullString{}
 	require.Equal(t, deploymentAfter, findDeployment(t, h, deploymentIDs[userID]))
@@ -72,6 +75,34 @@ func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 	again, err := erase(t, h, userRequest(userID))
 	require.NoError(t, err)
 	requireNothingLeft(t, again)
+}
+
+// TestUserErasureFailsClosedWithoutResendKey guarantees that a worker without a
+// Resend key refuses to erase a user, instead of deleting their rows and
+// WorkOS account and leaving their address in the Resend audience with nothing
+// left to look it up by.
+func TestUserErasureFailsClosedWithoutResendKey(t *testing.T) {
+	h := harness.New(t, harness.WithoutResend())
+	ws := h.Seed.CreateWorkspace(h.Ctx)
+	userID := uid.New(uid.TestPrefix)
+	deploymentID := seedUser(t, h, ws.ID, userID)
+	h.Erased.AddWorkOSUser(userID, userID+"@example.com")
+
+	before := countUserRows(t, h, userID)
+	outboxBefore := outboxActors(t, h, ws.ID, userID)
+	auditBefore := auditActors(t, h, ws.ID, userID)
+	deploymentBefore := findDeployment(t, h, deploymentID)
+
+	_, err := erase(t, h, userRequest(userID))
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no resend key")
+
+	require.Equal(t, before, countUserRows(t, h, userID))
+	require.Equal(t, outboxBefore, outboxActors(t, h, ws.ID, userID))
+	require.Equal(t, auditBefore, auditActors(t, h, ws.ID, userID))
+	require.Equal(t, deploymentBefore, findDeployment(t, h, deploymentID))
+	require.Empty(t, h.Erased.WorkOSUserIDs())
+	require.Empty(t, h.Erased.ResendContactEmails())
 }
 
 func userRequest(userID string) *hydrav1.GdprErasureRequest {

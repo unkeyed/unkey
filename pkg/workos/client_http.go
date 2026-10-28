@@ -31,7 +31,7 @@ func (c *client) get(ctx context.Context, path string, query url.Values, out any
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(res.Body, 4096))
-		return fmt.Errorf("workos GET %s: status %d: %s", path, res.StatusCode, body)
+		return &statusError{method: http.MethodGet, path: path, code: res.StatusCode, body: body}
 	}
 	return json.NewDecoder(res.Body).Decode(out)
 }
@@ -60,4 +60,16 @@ func (c *client) delete(ctx context.Context, path string) (bool, error) {
 		return false, fmt.Errorf("workos DELETE %s: status %d: %s", path, res.StatusCode, body)
 	}
 	return true, nil
+}
+
+// statusError is a non-2xx WorkOS response.
+type statusError struct {
+	method string
+	path   string
+	code   int
+	body   []byte
+}
+
+func (e *statusError) Error() string {
+	return fmt.Sprintf("workos %s %s: status %d: %s", e.method, e.path, e.code, e.body)
 }

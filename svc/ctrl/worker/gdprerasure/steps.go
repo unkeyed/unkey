@@ -79,6 +79,11 @@ type deleteWorkOSOrganization struct{}
 
 func (deleteWorkOSOrganization) name() string { return "delete workos organization" }
 
+// deleteResendContact deletes the dashboard user's Resend contact.
+type deleteResendContact struct{}
+
+func (deleteResendContact) name() string { return "delete resend contact" }
+
 // deleteWorkOSUser deletes the dashboard user's WorkOS account.
 type deleteWorkOSUser struct{}
 

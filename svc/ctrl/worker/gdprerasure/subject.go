@@ -10,6 +10,7 @@ type subject struct {
 	workspaceID      string
 	externalID       string
 	userID           string
+	email            string
 	identityIDs      []string
 	orgID            string
 	stripeCustomerID string

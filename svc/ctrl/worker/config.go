@@ -275,7 +275,9 @@ type SlackConfig struct {
 }
 
 type EmailConfig struct {
-	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
+	// ResendAPIKey authenticates the Resend API. Email sending uses it, and
+	// GDPR user erasure deletes the user's Resend contact with it, which needs
+	// a full-access key. Empty uses a noop sender and refuses user erasures.
 	ResendAPIKey string `toml:"resend_api_key"`
 	// From overrides the published template's sender. Empty keeps the template default.
 	From string `toml:"from"`

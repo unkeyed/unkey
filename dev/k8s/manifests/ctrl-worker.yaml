@@ -62,7 +62,8 @@ data:
 
     # Resend API key for the spend-cap budget alert emails. From the optional
     # resend-credentials secret (dev/.env.resend); empty uses a noop sender that
-    # only logs.
+    # only logs. GDPR user erasure also deletes the user's Resend contact with
+    # it, so it needs a full-access key, and with it empty user erasures fail.
     [email]
     resend_api_key = "${RESEND_API_KEY}"
 

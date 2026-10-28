@@ -36,6 +36,11 @@ type Config struct {
 	// configured, and then erasing a workspace that has a Stripe customer
 	// fails before anything is deleted.
 	Stripe StripeCustomers
+
+	// Resend deletes a dashboard user's Resend contact. Nil when no Resend key
+	// is configured, and then every user erasure fails before anything is
+	// deleted.
+	Resend ResendContacts
 }
 
 // Workflow implements GdprErasureWorkflow.
@@ -45,6 +50,7 @@ type Workflow struct {
 	clickhouse ClickHouse
 	workos     workos.Eraser
 	stripe     StripeCustomers
+	resend     ResendContacts
 }
 
 var _ hydrav1.GdprErasureWorkflowServer = (*Workflow)(nil)
@@ -64,6 +70,7 @@ func New(cfg Config) (*Workflow, error) {
 		clickhouse:                             cfg.ClickHouse,
 		workos:                                 cfg.WorkOS,
 		stripe:                                 cfg.Stripe,
+		resend:                                 cfg.Resend,
 	}, nil
 }
 
@@ -101,10 +108,20 @@ func (w *Workflow) plan(ctx restate.WorkflowContext, req *hydrav1.GdprErasureReq
 		if userID == "" {
 			return nil, nil, restate.TerminalErrorf("user.workos_user_id is required")
 		}
+		if w.resend == nil {
+			return nil, nil, restate.TerminalErrorf("no resend key is configured, so user %s would stay a resend contact; refusing to erase", userID)
+		}
+		email, err := restate.Run(ctx, func(rc restate.RunContext) (string, error) {
+			return w.workos.UserEmail(rc, userID)
+		}, restate.WithName("read workos user email"))
+		if err != nil {
+			return nil, nil, fmt.Errorf("read workos user email: %w", err)
+		}
 		return &subject{
 			workspaceID:      "",
 			externalID:       "",
 			userID:           userID,
+			email:            email,
 			identityIDs:      nil,
 			orgID:            "",
 			stripeCustomerID: "",
@@ -141,6 +158,7 @@ func (w *Workflow) plan(ctx restate.WorkflowContext, req *hydrav1.GdprErasureReq
 			workspaceID:      workspaceID,
 			externalID:       externalID,
 			userID:           "",
+			email:            "",
 			identityIDs:      identityIDs,
 			orgID:            "",
 			stripeCustomerID: "",
@@ -189,6 +207,7 @@ func (w *Workflow) guardWorkspace(ctx restate.WorkflowContext, workspaceID, work
 		workspaceID:      workspaceID,
 		externalID:       "",
 		userID:           "",
+		email:            "",
 		identityIDs:      nil,
 		orgID:            record.OrgID,
 		stripeCustomerID: record.StripeCustomerID,

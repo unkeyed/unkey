@@ -155,6 +155,15 @@ func (d deleteWorkOSOrganization) execute(ctx restate.Context, w *Workflow, s su
 	})
 }
 
+func (d deleteResendContact) execute(ctx restate.Context, w *Workflow, s subject) (int64, error) {
+	if s.email == "" {
+		return 0, nil
+	}
+	return deleteExternal(ctx, d.name(), func(rc restate.RunContext) (bool, error) {
+		return w.resend.DeleteContact(rc, s.email)
+	})
+}
+
 func (d deleteWorkOSUser) execute(ctx restate.Context, w *Workflow, s subject) (int64, error) {
 	return deleteExternal(ctx, d.name(), func(rc restate.RunContext) (bool, error) {
 		return w.workos.DeleteUser(rc, s.userID)

@@ -89,8 +89,8 @@ type Harness struct {
 	// pass a *clock.TestClock via WithClock and assert against it here.
 	Clock clock.Clock
 
-	// Erased records the Stripe and WorkOS deletes GdprErasureWorkflow
-	// requests.
+	// Erased records the Stripe, WorkOS and Resend deletes
+	// GdprErasureWorkflow requests.
 	Erased *ErasedRecords
 }
 
@@ -111,6 +111,7 @@ type harnessOpts struct {
 	slackQuotaCheckWebhookURL string
 
 	withoutStripe bool
+	withoutResend bool
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -358,16 +359,28 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
-	erased := &ErasedRecords{mu: sync.Mutex{}, stripeCustomerIDs: nil, workOSUserIDs: nil, workOSOrgIDs: nil}
+	erased := &ErasedRecords{
+		mu:                  sync.Mutex{},
+		stripeCustomerIDs:   nil,
+		workOSUserEmails:    nil,
+		workOSUserIDs:       nil,
+		workOSOrgIDs:        nil,
+		resendContactEmails: nil,
+	}
 	var gdprStripe gdprerasure.StripeCustomers = erased
 	if o.withoutStripe {
 		gdprStripe = nil
+	}
+	var gdprResend gdprerasure.ResendContacts = erased
+	if o.withoutResend {
+		gdprResend = nil
 	}
 	gdprErasure, err := gdprerasure.New(gdprerasure.Config{
 		DB:         database,
 		ClickHouse: chClient,
 		WorkOS:     erased,
 		Stripe:     gdprStripe,
+		Resend:     gdprResend,
 	})
 	require.NoError(t, err)
 
