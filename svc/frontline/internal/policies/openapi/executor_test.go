@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
@@ -43,7 +44,7 @@ const testBodyBytesMax = 2 << 20
 
 func newTestExecutor(t *testing.T) *Executor {
 	t.Helper()
-	e, err := New(clock.New(), testBodyBytesMax)
+	e, err := New(clock.New(), testBodyBytesMax, 4*testBodyBytesMax)
 	require.NoError(t, err)
 	t.Cleanup(e.Close)
 	return e
@@ -185,7 +186,7 @@ func TestExecute_BodyAtLimitPasses(t *testing.T) {
 func TestExecute_LimitDisabled(t *testing.T) {
 	t.Parallel()
 
-	e, err := New(clock.New(), 0)
+	e, err := New(clock.New(), 0, 0)
 	require.NoError(t, err)
 	t.Cleanup(e.Close)
 
@@ -231,6 +232,45 @@ func TestCapBody_ChunkedBodyIsBuffered(t *testing.T) {
 	forwarded, err := io.ReadAll(req.Body)
 	require.NoError(t, err)
 	require.Equal(t, body, forwarded)
+}
+
+func TestCapBody_BudgetExhausted(t *testing.T) {
+	t.Parallel()
+
+	e, err := New(clock.New(), testBodyBytesMax, testBodyBytesMax)
+	require.NoError(t, err)
+	t.Cleanup(e.Close)
+
+	holderCtx, endHolder := context.WithCancel(t.Context())
+	t.Cleanup(endHolder)
+	holder := httptest.NewRequestWithContext(holderCtx, "POST", "/users", bytes.NewReader(nil))
+	holder.Body = io.NopCloser(&countingReader{})
+	holder.ContentLength = testBodyBytesMax
+	require.NoError(t, e.capBody(holder))
+
+	body := []byte("KEBAP")
+	reader := &countingReader{data: body, remaining: len(body)}
+	req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(reader))
+	req.ContentLength = int64(len(body))
+
+	err = e.capBody(req)
+	require.Error(t, err)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.OpenApi.ValidationBusy.URN(), urn)
+	require.Zero(t, reader.reads)
+
+	endHolder()
+	require.Eventually(t, func() bool {
+		return e.capBody(req) == nil
+	}, time.Second, 5*time.Millisecond)
+}
+
+func TestNew_BudgetSmallerThanLimit(t *testing.T) {
+	t.Parallel()
+
+	_, err := New(clock.New(), testBodyBytesMax, testBodyBytesMax-1)
+	require.Error(t, err)
 }
 
 type countingReader struct {

@@ -313,6 +313,12 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Title:   http.StatusText(http.StatusBadRequest),
 			Message: "",
 		}
+	case codes.Frontline.OpenApi.ValidationBusy.URN():
+		return errorPageInfo{
+			Status:  http.StatusServiceUnavailable,
+			Title:   http.StatusText(http.StatusServiceUnavailable),
+			Message: "The gateway is validating too many request bodies right now. Retry shortly.",
+		}
 
 	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,
 	// no instances in any region).

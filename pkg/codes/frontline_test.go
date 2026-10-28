@@ -26,6 +26,7 @@ func TestFrontlineURNsEncodeAttributionDomain(t *testing.T) {
 		{codes.Frontline.Routing.DeploymentNotFound, "err:frontline:routing:deployment_not_found"},
 		// capacity
 		{codes.Frontline.Routing.NoRunningInstances, "err:frontline:capacity:no_running_instances"},
+		{codes.Frontline.OpenApi.ValidationBusy, "err:frontline:capacity:openapi_validation_busy"},
 		// platform
 		{codes.Frontline.Routing.DeploymentSelectionFailed, "err:frontline:platform:deployment_selection_failed"},
 		{codes.Frontline.Internal.InternalServerError, "err:frontline:platform:internal_server_error"},

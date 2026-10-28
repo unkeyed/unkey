@@ -299,7 +299,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
-	policyEngine, err := buildEngine(r, engineDatabase, cfg.Redis.URL, cfg.Region, keyVerifications, clk, cfg.MaxRequestBodySize)
+	policyEngine, err := buildEngine(r, engineDatabase, cfg.Redis.URL, cfg.Region, keyVerifications, clk, cfg.OpenapiBodyBytesMax, cfg.OpenapiBodyBytesBudget)
 	if err != nil {
 		return fmt.Errorf("unable to build policy engine: %w", err)
 	}
@@ -433,7 +433,8 @@ func buildEngine(
 	region string,
 	keyVerifications *batch.BatchProcessor[schema.KeyVerification],
 	clk clock.Clock,
-	maxRequestBodySize int64,
+	openapiBodyBytesMax int64,
+	openapiBodyBytesBudget int64,
 ) (policies.Evaluator, error) {
 	var ctr counter.Counter
 	if redisURL != "" {
@@ -528,10 +529,11 @@ func buildEngine(
 
 	logger.Info("policy engine initialized")
 	eng, err := policies.New(policies.Config{
-		KeyAuth:            keyauth.New(keyService, clk, keyVerifications),
-		RateLimiter:        rlSvc,
-		Clock:              clk,
-		MaxRequestBodySize: maxRequestBodySize,
+		KeyAuth:                keyauth.New(keyService, clk, keyVerifications),
+		RateLimiter:            rlSvc,
+		Clock:                  clk,
+		OpenapiBodyBytesMax:    openapiBodyBytesMax,
+		OpenapiBodyBytesBudget: openapiBodyBytesBudget,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)

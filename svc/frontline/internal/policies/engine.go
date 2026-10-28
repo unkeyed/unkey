@@ -38,7 +38,8 @@ type Config struct {
 	RateLimiter rl.Service
 	Clock       clock.Clock
 
-	MaxRequestBodySize int64
+	OpenapiBodyBytesMax    int64
+	OpenapiBodyBytesBudget int64
 }
 
 // Evaluator evaluates policies against incoming requests.
@@ -83,7 +84,7 @@ func New(cfg Config) (*Engine, error) {
 	); err != nil {
 		return nil, err
 	}
-	openapi, err := openapiExec.New(cfg.Clock, cfg.MaxRequestBodySize)
+	openapi, err := openapiExec.New(cfg.Clock, cfg.OpenapiBodyBytesMax, cfg.OpenapiBodyBytesBudget)
 	if err != nil {
 		return nil, fmt.Errorf("create openapi executor: %w", err)
 	}

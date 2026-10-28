@@ -354,6 +354,9 @@ const (
 
 	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
 	UnkeyFrontlineErrorsOpenApiInvalidRequest URN = "err:frontline:client:openapi_validation_failed"
+	// ValidationBusy represents a 503 error - the pod holds as many request
+	// bodies for validation as its budget allows
+	UnkeyFrontlineErrorsOpenApiValidationBusy URN = "err:frontline:capacity:openapi_validation_busy"
 
 	// ----------------
 	// UnkeyPortalErrors

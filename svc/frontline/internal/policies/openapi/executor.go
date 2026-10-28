@@ -16,6 +16,7 @@ import (
 	validation "github.com/unkeyed/unkey/pkg/openapi/validation"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"golang.org/x/sync/semaphore"
 )
 
 type compiledSpec struct {
@@ -26,11 +27,21 @@ type compiledSpec struct {
 type Executor struct {
 	cache        cache.Cache[string, *compiledSpec]
 	bodyBytesMax int64
+	bodyBudget   *semaphore.Weighted
 }
 
-// New creates an Executor. bodyBytesMax bounds the request body the validator
-// will read; zero or less disables the bound.
-func New(clk clock.Clock, bodyBytesMax int64) (*Executor, error) {
+// New creates an Executor. bodyBytesMax bounds one request body the validator
+// reads, and bodyBytesBudget bounds the bytes all in-flight validations hold
+// at once. Zero or less disables either bound.
+func New(clk clock.Clock, bodyBytesMax, bodyBytesBudget int64) (*Executor, error) {
+	if bodyBytesMax > 0 && bodyBytesBudget > 0 && bodyBytesBudget < bodyBytesMax {
+		return nil, fmt.Errorf("openapi body budget %d is smaller than the body limit %d", bodyBytesBudget, bodyBytesMax)
+	}
+	var bodyBudget *semaphore.Weighted
+	if bodyBytesBudget > 0 {
+		bodyBudget = semaphore.NewWeighted(bodyBytesBudget)
+	}
+
 	c, err := cache.New(cache.Config[string, *compiledSpec]{
 		Fresh:     time.Hour,
 		Stale:     24 * time.Hour,
@@ -42,7 +53,7 @@ func New(clk clock.Clock, bodyBytesMax int64) (*Executor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Executor{cache: c, bodyBytesMax: bodyBytesMax}, nil
+	return &Executor{cache: c, bodyBytesMax: bodyBytesMax, bodyBudget: bodyBudget}, nil
 }
 
 // Close releases the spec cache's background workers.
@@ -94,6 +105,9 @@ func (e *Executor) Execute(
 // A known-length body under the limit stays a stream, so duplex and streaming
 // requests are not stalled. An unknown length must be buffered to bound what
 // the validator's own read can consume.
+//
+// The validator restores the body it read onto the request, so the reserved
+// bytes stay held until the request ends, not until validation returns.
 func (e *Executor) capBody(req *http.Request) error {
 	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody {
 		return nil
@@ -101,6 +115,22 @@ func (e *Executor) capBody(req *http.Request) error {
 	if req.ContentLength > e.bodyBytesMax {
 		return bodyTooLarge(e.bodyBytesMax)
 	}
+
+	bytesReserved := req.ContentLength
+	if bytesReserved < 0 {
+		bytesReserved = e.bodyBytesMax
+	}
+	if e.bodyBudget != nil && bytesReserved > 0 {
+		if !e.bodyBudget.TryAcquire(bytesReserved) {
+			return fault.New("openapi body budget exhausted",
+				fault.Code(codes.Frontline.OpenApi.ValidationBusy.URN()),
+				fault.Internal(fmt.Sprintf("no budget left to hold %d body bytes for validation", bytesReserved)),
+				fault.Public("The gateway is validating too many request bodies right now. Retry shortly."),
+			)
+		}
+		context.AfterFunc(req.Context(), func() { e.bodyBudget.Release(bytesReserved) })
+	}
+
 	if req.ContentLength >= 0 {
 		return nil
 	}

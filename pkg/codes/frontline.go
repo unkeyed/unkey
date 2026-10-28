@@ -86,6 +86,9 @@ type frontlineFirewall struct {
 type frontlineOpenApi struct {
 	// InvalidRequest represents a 400 error - request does not conform to the OpenAPI spec
 	InvalidRequest Code
+	// ValidationBusy represents a 503 error - the pod holds as many request
+	// bodies for validation as its budget allows
+	ValidationBusy Code
 }
 
 // UnkeyFrontlineErrors defines all frontline-related errors in the Unkey system.
@@ -148,5 +151,6 @@ var Frontline = UnkeyFrontlineErrors{
 	},
 	OpenApi: frontlineOpenApi{
 		InvalidRequest: Code{SystemFrontline, CategoryClient, "openapi_validation_failed"},
+		ValidationBusy: Code{SystemFrontline, CategoryCapacity, "openapi_validation_busy"},
 	},
 }

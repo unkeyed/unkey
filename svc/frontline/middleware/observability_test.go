@@ -53,6 +53,7 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 		{codes.Frontline.Auth.UsageExceeded.URN(), http.StatusTooManyRequests},
 		{codes.Frontline.Firewall.Denied.URN(), http.StatusForbidden},
 		{codes.Frontline.OpenApi.InvalidRequest.URN(), http.StatusBadRequest},
+		{codes.Frontline.OpenApi.ValidationBusy.URN(), http.StatusServiceUnavailable},
 
 		// Deployment's own config is invalid — caller-side (422), not a 5xx
 		// frontline fault.
