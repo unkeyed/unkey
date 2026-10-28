@@ -99,12 +99,20 @@ func (e *Executor) Execute(
 	)
 }
 
-// Content-Length over the limit gets 413 without reading. Otherwise we reserve
-// Content-Length bytes of budget, or the full limit when there is no
-// Content-Length. A body with no Content-Length is read here, up to the limit,
-// because the validator would read it with no limit.
+// limitBody runs before the validator reads the body:
 //
-// Budget is released when the request ends, the proxy still needs the body.
+//  1. Content-Length > bodyBytesMax: return 413, the body is never read.
+//  2. Reserve budget: Content-Length bytes, or bodyBytesMax when there is no
+//     Content-Length (chunked, HTTP/2 without the header). Budget full: return 503.
+//  3. No Content-Length: read up to bodyBytesMax into memory here, return 413 if
+//     the body is longer. The validator reads with no limit, so it must get this
+//     buffered copy.
+//  4. Content-Length set: leave the body alone. Go's server stops at
+//     Content-Length, so the validator can't read past it.
+//
+// The budget is released when the request context ends, not when validation
+// ends, because the validator puts the body back on the request and it stays in
+// memory until the proxy forwards it.
 func (e *Executor) limitBody(req *http.Request) error {
 	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody {
 		return nil
