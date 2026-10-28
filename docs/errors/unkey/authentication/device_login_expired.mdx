@@ -1,0 +1,9 @@
+---
+title: "device_login_expired"
+description: "The CLI device login expired before token exchange completed."
+---
+
+<Danger>`err:unkey:authentication:device_login_expired`</Danger>
+
+The API returns HTTP 410 when the device login expires. Stop polling that login
+and run `unkey login` again to get a new confirmation code.

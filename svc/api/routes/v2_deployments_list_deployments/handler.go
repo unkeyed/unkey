@@ -192,7 +192,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	rows, pg := pagination.Paginate(rows, page, func(r db.ListDeploymentsRow) string { return r.ID })
 
-	data, err := deployment.ToResponses(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID, rows)
+	data, err := deployment.ToResponses(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID, principal.Permissions, rows)
 	if err != nil {
 		return fault.Wrap(
 			err,

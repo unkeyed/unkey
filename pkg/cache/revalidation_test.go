@@ -3,7 +3,6 @@ package cache
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -12,15 +11,9 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
-var testMetrics = prometheus.NewRegistry()
-
-func TestMain(m *testing.M) {
-	lazy.SetRegistry(testMetrics)
-	os.Exit(m.Run())
-}
+var testMetrics = prometheus.DefaultGatherer
 
 func TestStaleReadsDoNotWaitForRefreshQueue(t *testing.T) {
 	for _, method := range []string{"SWR", "SWRMany", "SWRWithFallback"} {
@@ -530,8 +523,8 @@ func TestOperationDurationCountsEachRead(t *testing.T) {
 			for _, label := range metric.GetLabel() {
 				labels[label.GetName()] = label.GetValue()
 			}
-			if labels["resource"] == t.Name() {
-				counts[labels["operation"]+"/"+labels["status"]] = metric.GetHistogram().GetSampleCount()
+			if n := metric.GetHistogram().GetSampleCount(); labels["resource"] == t.Name() && n > 0 {
+				counts[labels["operation"]+"/"+labels["status"]] = n
 			}
 		}
 	}

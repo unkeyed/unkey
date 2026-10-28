@@ -1,0 +1,166 @@
+"use client";
+
+import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
+import {
+  EnvironmentBadge,
+  type EnvironmentBadgeRollout,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import { LastExitHover } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
+import type { Deployment, Environment } from "@/lib/collections";
+import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { summarizeCrashLoop } from "@/lib/collections/deploy/exit-reasons";
+import { imageRefDisplay } from "@/lib/docker-image-ref";
+import { shortenId } from "@/lib/shorten-id";
+import { ResourceListItem } from "@unkey/ui";
+import type { Route } from "next";
+import Link from "next/link";
+import { useState } from "react";
+import { DeploymentApproval } from "../../[deploymentId]/(deployment-progress)/deployment-approval";
+import { DeploymentDuration } from "../deployment-duration";
+import {
+  AuthorCell,
+  BranchCell,
+  CommitSha,
+  ImageRef,
+  OriginCell,
+  RowMenu,
+  RowTime,
+} from "../deployment-row-cells";
+
+type DeploymentRowProps = {
+  deployment: Deployment;
+  environment: Environment | undefined;
+  repoFullName: string | null;
+  currentDeployment: Deployment | undefined;
+  isRolledBack: boolean;
+  isRolledBackFrom: boolean;
+  liveSince: number | null;
+  href: Route;
+};
+
+export function DeploymentRow({
+  deployment,
+  environment,
+  repoFullName,
+  currentDeployment,
+  isRolledBack,
+  isRolledBackFrom,
+  liveSince,
+  href,
+}: DeploymentRowProps) {
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const needsApproval = deployment.status === "awaiting_approval";
+  const isCurrent = currentDeployment?.id === deployment.id;
+  const rollout = badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom });
+  const statusLabel = DEPLOYMENT_STATUS_LABELS[deployment.status];
+  const isGit = deployment.source === "git";
+  const image = deployment.requestedImage ?? deployment.resolvedImage;
+  const title = isGit ? deployment.gitCommitMessage : null;
+
+  return (
+    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
+      {needsApproval ? (
+        <button
+          type="button"
+          onClick={() => setApprovalOpen(true)}
+          className="absolute inset-0 z-10 cursor-pointer"
+          aria-label={`Authorize deployment ${shortenId(deployment.id)}`}
+        />
+      ) : (
+        <Link
+          href={href}
+          className="absolute inset-0 z-10"
+          aria-label={`Deployment ${shortenId(deployment.id)} ${statusLabel}`}
+        />
+      )}
+      {needsApproval && (
+        <DeploymentApproval
+          isOpen={approvalOpen}
+          onClose={() => setApprovalOpen(false)}
+          deployment={deployment}
+        />
+      )}
+
+      <span className="flex min-w-0 flex-1 items-center gap-2">
+        <span
+          className="min-w-0 truncate text-sm text-gray-12"
+          title={title ?? (deployment.source === "oci" ? image : null) ?? undefined}
+        >
+          {title ??
+            (deployment.source === "oci" && image
+              ? imageRefDisplay(image)
+              : shortenId(deployment.id))}
+        </span>
+      </span>
+
+      <span className="flex min-w-0 shrink-0 items-center gap-2 md:w-44">
+        <DeploymentStatusDot status={deployment.status} />
+        <span className="flex min-w-0 text-sm font-medium text-gray-12">
+          {deployment.crashLoop ? (
+            <LastExitHover summary={summarizeCrashLoop(deployment.crashLoop)}>
+              {statusLabel}
+            </LastExitHover>
+          ) : (
+            <span className="truncate">{statusLabel}</span>
+          )}
+        </span>
+        <DeploymentDuration
+          status={deployment.status}
+          createdAt={deployment.createdAt}
+          buildEndedAt={deployment.buildEndedAt}
+        />
+      </span>
+      <span className="hidden w-32 shrink-0 items-center gap-2 sm:flex">
+        {environment && (
+          <EnvironmentBadge environment={environment} rollout={rollout} liveSince={liveSince} />
+        )}
+      </span>
+      <span className="hidden w-32 min-w-0 shrink-0 items-center md:flex">
+        {isGit && deployment.gitCommitSha ? (
+          <CommitSha deployment={deployment} repoFullName={repoFullName} />
+        ) : deployment.source === "oci" && image ? (
+          <ImageRef image={image} />
+        ) : null}
+      </span>
+      <span className="hidden w-40 min-w-0 shrink-0 items-center lg:flex">
+        {isGit && deployment.gitBranch ? (
+          <BranchCell branch={deployment.gitBranch} repoFullName={repoFullName} />
+        ) : (
+          <OriginCell deployment={deployment} />
+        )}
+      </span>
+      <span className="ml-auto flex shrink-0 items-center gap-3">
+        <span className="hidden w-36 shrink-0 justify-end md:flex">
+          <RowTime value={deployment.createdAt} />
+        </span>
+        <span className="hidden w-5 shrink-0 justify-center md:flex">
+          <AuthorCell deployment={deployment} />
+        </span>
+        <RowMenu
+          deployment={deployment}
+          environment={environment}
+          currentDeployment={currentDeployment}
+          isRolledBack={isRolledBack}
+        />
+      </span>
+    </ResourceListItem>
+  );
+}
+
+function badgeRollout({
+  isCurrent,
+  isRolledBack,
+  isRolledBackFrom,
+}: {
+  isCurrent: boolean;
+  isRolledBack: boolean;
+  isRolledBackFrom: boolean;
+}): EnvironmentBadgeRollout {
+  if (isRolledBackFrom) {
+    return "rolledBackFrom";
+  }
+  if (!isCurrent) {
+    return "none";
+  }
+  return isRolledBack ? "liveAfterRollback" : "live";
+}

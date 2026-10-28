@@ -7,7 +7,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
+	"github.com/unkeyed/unkey/pkg/prometheus/vec"
 )
 
 // Standard histogram buckets for latency metrics in seconds
@@ -55,7 +55,7 @@ var (
 	//       metrics.HTTPRequestLatency.WithLabelValues("GET", "/users", "200").Observe(v)
 	//   }))
 	//   defer timer.ObserveDuration()
-	HTTPRequestLatency = lazy.NewHistogramVec(
+	HTTPRequestLatency = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "http",
@@ -63,7 +63,9 @@ var (
 			Help:      "Histogram of HTTP request latencies in seconds.",
 			Buckets:   latencyBuckets,
 		},
-		[]string{"method", "path", "status"},
+		vec.Dynamic("method"),
+		vec.Dynamic("path"),
+		vec.Dynamic("status"),
 	)
 
 	// HTTPRequestTotal tracks the number of HTTP requests handled, labeled by method, path, and status.
@@ -71,29 +73,16 @@ var (
 	//
 	// Example usage:
 	//   metrics.HTTPRequestTotal.WithLabelValues("GET", "/users", "200").Inc()
-	HTTPRequestTotal = lazy.NewCounterVec(
+	HTTPRequestTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "http",
 			Name:      "requests_total",
 			Help:      "Total number of HTTP requests processed.",
 		},
-		[]string{"method", "path", "status"},
-	)
-
-	// HTTPRequestErrorTotal tracks the total number of HTTP request errors,
-	// labeled by method, path, and status. Use this counter to monitor error rates by endpoint.
-	//
-	// Example usage:
-	//   metrics.HTTPRequestErrorTotal.WithLabelValues("POST", "/api/keys", "500").Inc()
-	HTTPRequestErrorTotal = lazy.NewCounterVec(
-		prometheus.CounterOpts{
-			Namespace: "unkey",
-			Subsystem: "http",
-			Name:      "requests_errors_total",
-			Help:      "Total number of HTTP request errors.",
-		},
-		[]string{"method", "path", "status"},
+		vec.Dynamic("method"),
+		vec.Dynamic("path"),
+		vec.Dynamic("status"),
 	)
 
 	// HTTPRequestBodySize tracks the distribution of HTTP request body sizes as a histogram,
@@ -102,7 +91,7 @@ var (
 	//
 	// Example usage:
 	//   metrics.HTTPRequestBodySize.WithLabelValues("POST", "/api/upload", "200").Observe(float64(bodySize))
-	HTTPRequestBodySize = lazy.NewHistogramVec(
+	HTTPRequestBodySize = vec.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: "unkey",
 			Subsystem: "http",
@@ -110,6 +99,8 @@ var (
 			Help:      "Histogram of HTTP request body sizes in bytes.",
 			Buckets:   bodySizeBuckets,
 		},
-		[]string{"method", "path", "status"},
+		vec.Dynamic("method"),
+		vec.Dynamic("path"),
+		vec.Dynamic("status"),
 	)
 )

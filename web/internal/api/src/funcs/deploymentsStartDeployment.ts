@@ -43,9 +43,8 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- * Your root key must have one of the following permissions:
- * - `environment.*.start_deployment` (to start deployments in any environment)
- * - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
+ * Your root key must have write permission on the deployment:
+ * - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
@@ -58,6 +57,7 @@ export function deploymentsStartDeployment(
     components.V2DeploymentsStartDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
@@ -89,6 +89,7 @@ async function $do(
       components.V2DeploymentsStartDeploymentResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
+      | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
       | errors.PreconditionFailedErrorResponse
       | errors.TooManyRequestsErrorResponse
@@ -190,6 +191,7 @@ async function $do(
     components.V2DeploymentsStartDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
@@ -209,6 +211,7 @@ async function $do(
     ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
+    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {

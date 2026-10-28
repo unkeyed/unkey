@@ -43,6 +43,46 @@ func TestSuccess(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
+	t.Run("role ID takes precedence over another role name", func(t *testing.T) {
+		roleID := uid.New(uid.RolePrefix)
+		roleName := uid.New(uid.TestPrefix)
+		roleCollidingID := uid.New(uid.RolePrefix)
+		for _, role := range []db.InsertRoleParams{
+			{
+				RoleID:      roleCollidingID,
+				WorkspaceID: workspace.ID,
+				ProjectID:   projectID,
+				Name:        roleID,
+			},
+			{
+				RoleID:      roleID,
+				WorkspaceID: workspace.ID,
+				ProjectID:   projectID,
+				Name:        roleName,
+			},
+		} {
+			require.NoError(t, db.Query.InsertRole(ctx, h.DB.RW(), role))
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Role: roleID,
+		})
+		require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+
+		_, err := db.Query.FindRoleByID(ctx, h.DB.RO(), roleID)
+		require.True(t, db.IsNotFound(err), "the role matching the ID must be deleted")
+		roleColliding, err := db.Query.FindRoleByID(ctx, h.DB.RO(), roleCollidingID)
+		require.NoError(t, err, "the role matching only the name must remain")
+		require.Equal(t, roleID, roleColliding.Name)
+
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+			Role: roleID,
+		})
+		require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+		_, err = db.Query.FindRoleByID(ctx, h.DB.RO(), roleCollidingID)
+		require.True(t, db.IsNotFound(err), "name lookup must still work when no ID matches")
+	})
+
 	// Test case for deleting a role with permissions
 	t.Run("delete role with permissions", func(t *testing.T) {
 		// Create a role to delete

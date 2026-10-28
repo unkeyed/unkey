@@ -23,21 +23,42 @@ go = "1.27.3"
 "github:tilt-dev/ctlptl" = "0.9.6"
 "github:FiloSottile/mkcert" = "1.4.4"
 "github:planetscale/cli" = "0.284.0"
-"github:depot/cli" = "2.101.67"
 "github:chronark/rask" = "0.7.0"
 "github:golangci/golangci-lint" = "2.14.0"
 "github:goreleaser/goreleaser-pro" = "2.15.4"
 "github:pnpm/pnpm" = { version = "11.28.5", platforms.macos-x64.asset_pattern = "pnpm-darwin-x64.tar.gz" }
 "github:speakeasy-api/speakeasy" = "1.790.1"
+"npm:deepsec" = "2.3.10"
 # Mintlify CLI for the product docs site (docs); see mise tasks docs-*.
 "npm:mint" = "4.2.866"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
 "aqua:stripe/stripe-cli" = "1.53.1"
 
-[tools."github:kubernetes/minikube"]
+[tools."http:depot"]
+version = "2.101.67"
+
+[tools."http:depot".platforms]
+linux-arm64 = { url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_linux_arm64.tar.gz", checksum = "sha256:bbebd71152a5f534ea39c22b6e7b37760bc24f591817104bb677aa2165cc394d" }
+linux-arm64-musl = { url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_linux_arm64.tar.gz", checksum = "sha256:bbebd71152a5f534ea39c22b6e7b37760bc24f591817104bb677aa2165cc394d" }
+linux-x64 = { url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_linux_amd64.tar.gz", checksum = "sha256:d6c05939e5d5d02c934ff36d2ce8d39c0c78c9b58788aa1d9d9cc98a16690271" }
+linux-x64-musl = { url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_linux_amd64.tar.gz", checksum = "sha256:d6c05939e5d5d02c934ff36d2ce8d39c0c78c9b58788aa1d9d9cc98a16690271" }
+macos-arm64 = { url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_darwin_arm64.tar.gz", checksum = "sha256:abdac9a0ebbdb44454e5c48db3b29c3077c0f1007a5084f68c8fcb374cfc33e6" }
+macos-x64 = { url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_darwin_amd64.tar.gz", checksum = "sha256:5b45f0cf927b8ca4075adfcc8e82171f38dba4dd0b5f5f3770033dc74c7c8ec5" }
+windows-x64 = { url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_windows_amd64.zip", checksum = "sha256:1d80aa416fd00430f92da7796da9aca6349fe976851f1765e706c17515d18c6d" }
+
+[tools."http:minikube"]
 version = "1.39.0"
 rename_exe = "minikube"
+
+[tools."http:minikube".platforms]
+linux-arm64 = { url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-linux-arm64.tar.gz", checksum = "sha256:2ce53fe7bb99b595739b076d19ad45da5e199c4b06d6fa508b171a566cc49ed7" }
+linux-arm64-musl = { url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-linux-arm64.tar.gz", checksum = "sha256:2ce53fe7bb99b595739b076d19ad45da5e199c4b06d6fa508b171a566cc49ed7" }
+linux-x64 = { url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-linux-amd64.tar.gz", checksum = "sha256:e4216586c07c05441910cce39600f0424132c3ae69400ce1a7daaae17dc2e855" }
+linux-x64-musl = { url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-linux-amd64.tar.gz", checksum = "sha256:e4216586c07c05441910cce39600f0424132c3ae69400ce1a7daaae17dc2e855" }
+macos-arm64 = { url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-darwin-arm64.tar.gz", checksum = "sha256:d680e5dd163773959e1f61a57d50df90c9b672128d0bbe929caf5e8e53652e0b" }
+macos-x64 = { url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-darwin-amd64.tar.gz", checksum = "sha256:4de88af8b94effd843859e36e29ecae08fe6822f7c0b85d7e9d5eeee59b3c54f" }
+windows-x64 = { url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-windows-amd64.tar.gz", checksum = "sha256:5efa01a1609409e62263fb9ca0b5d60045e55092aabd0af10782c62325274c00" }
 
 [tools."http:kubectl"]
 version = "1.37.0"

@@ -10,10 +10,11 @@ import {
 } from "@unkey/icons";
 import { Button, Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@unkey/ui";
 import type { ReactNode } from "react";
+import { useEditorCatalogue } from "./editor-catalogue";
 import type { Policy } from "./lib/policy";
-import { TEMPLATES, type TemplateId } from "./lib/templates";
+import type { TemplateId } from "./lib/templates";
 
-const TEMPLATE_ICONS: Record<TemplateId, ReactNode> = {
+export const TEMPLATE_ICONS: Record<TemplateId, ReactNode> = {
   read: <IconEyeOutline18 />,
   write: <IconPenWriting3Outline18 />,
   verify: <IconCheckOutline18 />,
@@ -27,6 +28,7 @@ type TemplateGalleryProps = {
 };
 
 export function TemplateGallery({ onPick, onCancel }: TemplateGalleryProps) {
+  const { templates } = useEditorCatalogue();
   return (
     <div className="flex flex-col gap-2">
       {onCancel ? (
@@ -44,7 +46,7 @@ export function TemplateGallery({ onPick, onCancel }: TemplateGalleryProps) {
         </div>
       ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
-        {TEMPLATES.map((template) => (
+        {templates.map((template) => (
           <Item
             key={template.id}
             variant="outline"

@@ -84,4 +84,18 @@ describe("requestLogsRequestSchema", () => {
       valid,
     );
   });
+
+  it.each([
+    [100, true],
+    [200, true],
+    [404, true],
+    [599, true],
+    [99, false],
+    [600, false],
+    [1e21, false],
+  ] as const)("keeps status %s inside the HTTP range bound to Int32", (statusCode, valid) => {
+    expect(
+      requestLogsRequestSchema.safeParse({ ...baseRequest, statusCodes: [statusCode] }).success,
+    ).toBe(valid);
+  });
 });

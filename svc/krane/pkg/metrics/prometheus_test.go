@@ -6,14 +6,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
-func TestInitExportsSeriesBeforeFirstUse(t *testing.T) {
-	reg := prometheus.NewRegistry()
-	lazy.SetRegistry(reg)
-
-	Init()
+func TestSeriesExportedBeforeFirstUse(t *testing.T) {
+	reg := prometheus.DefaultGatherer
 
 	seriesWant := map[string]int{
 		"unkey_krane_watcher_full_syncs_total":                1,
@@ -60,7 +56,7 @@ func TestInitExportsSeriesBeforeFirstUse(t *testing.T) {
 	}
 }
 
-func gather(t *testing.T, reg *prometheus.Registry) map[string]*dto.MetricFamily {
+func gather(t *testing.T, reg prometheus.Gatherer) map[string]*dto.MetricFamily {
 	t.Helper()
 
 	families, err := reg.Gather()

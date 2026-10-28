@@ -502,6 +502,15 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets bt ON bt.connection_id = b.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
+	//DeploymentProjectOwnsImage
+	//
+	//  SELECT EXISTS (
+	//      SELECT 1
+	//      FROM deployments
+	//      WHERE project_id = ?
+	//        AND image_resolved = ?
+	//  ) AS owns_image
+	DeploymentProjectOwnsImage(ctx context.Context, arg DeploymentProjectOwnsImageParams) (bool, error)
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -655,18 +664,26 @@ type Querier interface {
 	//      AND r.name = ?
 	//  LIMIT 1
 	FindCluster(ctx context.Context, arg FindClusterParams) (FindClusterRow, error)
-	//FindCustomDomainByDomain
+	// Uniqueness is (workspace_id, domain), so a hostname can have one row per
+	// workspace. The owner is the verified row, and among verified rows the one
+	// verified last: a takeover marks the new owner verified before it marks the
+	// previous owner failed
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
 	//  FROM custom_domains
 	//  WHERE domain = ?
+	//  ORDER BY (verification_status = 'verified') DESC, updated_at DESC, pk DESC
+	//  LIMIT 1
 	FindCustomDomainByDomain(ctx context.Context, domain string) (CustomDomain, error)
 	//FindCustomDomainByDomainOrWildcard
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
 	//  WHERE domain IN (?, ?)
 	//  ORDER BY
-	//      CASE WHEN domain = ? THEN 0 ELSE 1 END
+	//      CASE WHEN domain = ? THEN 0 ELSE 1 END,
+	//      (verification_status = 'verified') DESC,
+	//      updated_at DESC,
+	//      pk DESC
 	//  LIMIT 1
 	FindCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
@@ -2760,14 +2777,6 @@ type Querier interface {
 	//    updated_at = ?
 	//  WHERE id = ?
 	UpdateAppDeployments(ctx context.Context, arg UpdateAppDeploymentsParams) error
-	//UpdateAppSourceOciImageReference
-	//
-	//  UPDATE app_source_oci
-	//  SET image_reference = ?,
-	//      updated_at = ?
-	//  WHERE app_id = ?
-	//    AND workspace_id = ?
-	UpdateAppSourceOciImageReference(ctx context.Context, arg UpdateAppSourceOciImageReferenceParams) error
 	//UpdateClickhouseWorkspaceSettingsLimits
 	//
 	//  UPDATE `clickhouse_workspace_settings`

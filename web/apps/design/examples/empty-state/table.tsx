@@ -28,7 +28,7 @@ export default function TableEmptyState() {
           </EmptyStateDescription>
         </EmptyStateHeader>
         <EmptyStateActions>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="sm">
             New deployment
           </Button>
         </EmptyStateActions>

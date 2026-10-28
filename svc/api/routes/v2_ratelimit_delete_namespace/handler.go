@@ -57,12 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Search:      req.Namespace,
 		})
 		if db.IsNotFound(err) {
-			return row, fault.New(
-				"namespace not found",
-				fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-				fault.Internal("namespace not found"),
-				fault.Public("The requested namespace does not exist."),
-			)
+			return row, apierrors.NotFound(codes.Data.RatelimitNamespace.NotFound.URN())
 		}
 		if err != nil {
 			return row, fault.Wrap(
@@ -73,15 +68,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		err = principal.Authorize(rbac.U(
+		permissionQuery := rbac.U(
 			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).RatelimitNamespace(row.ID),
 			permissions.Delete,
-		))
+		)
+		err = principal.Authorize(permissionQuery)
 		if err != nil {
 			return row, apierrors.MaskInsufficientPermissionsAsNotFound(
 				err,
+				principal.Permissions,
+				permissionQuery,
 				codes.Data.RatelimitNamespace.NotFound.URN(),
-				"The requested namespace does not exist.",
+				"Resource does not exist.",
 			)
 		}
 

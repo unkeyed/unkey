@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/cmd/deploy/internal/errors"
 	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -43,7 +44,7 @@ var DeployFlags = []cli.Flag{
 	cli.String("commit", "Git commit SHA"),
 	cli.String("env", "Environment slug to deploy to", cli.Default(DefaultEnvironment)),
 	// Authentication flag
-	cli.String("root-key", "Root key for authentication", cli.Required(), cli.EnvVar("UNKEY_ROOT_KEY")),
+	cli.String("root-key", "Root key for authentication. Falls back to UNKEY_ROOT_KEY, then unkey login.", cli.EnvVar("UNKEY_ROOT_KEY")),
 	// API configuration
 	cli.String("api-base-url", "API base URL for local testing", cli.EnvVar("UNKEY_API_BASE_URL")),
 }
@@ -84,6 +85,14 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 	}
 	dockerImage := args[0]
 
+	credential, err := util.Credential(ctx, cmd)
+	if err != nil {
+		return err
+	}
+	apiURL := credential.APIURL
+	if apiURL == "" {
+		apiURL = cmd.String("api-base-url")
+	}
 	opts := DeployOptions{
 		Project:     cmd.String("project"),
 		App:         cmd.String("app"),
@@ -92,8 +101,8 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 		Branch:      cmd.String("branch"),
 		Commit:      cmd.String("commit"),
 		Environment: cmd.String("env"),
-		RootKey:     cmd.String("root-key"),
-		APIBaseURL:  cmd.String("api-base-url"),
+		RootKey:     credential.Key,
+		APIBaseURL:  apiURL,
 	}
 
 	return executeDeploy(ctx, opts)

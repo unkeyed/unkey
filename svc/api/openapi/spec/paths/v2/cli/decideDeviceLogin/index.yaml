@@ -1,0 +1,49 @@
+post:
+  x-speakeasy-ignore: true
+  tags:
+    - cli
+  summary: Decide CLI device login
+  description: |
+    Approves or denies a device login using the signed-in dashboard user's session.
+    Approval requires permissions. Denial must not include permissions and prevents token issuance.
+    Every permission must fit inside the caller's role. Any member can approve, not only admins.
+    The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
+  operationId: cli.decideDeviceLogin
+  x-speakeasy-name-override: decideDeviceLogin
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2CliDecideDeviceLoginRequestBody.yaml
+  responses:
+    "200":
+      description: Decision recorded.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2CliDecideDeviceLoginResponseBody.yaml
+    "400":
+      description: Invalid decision, code, or permission, or the login is closed.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: The caller cannot grant these permissions or another account approved this login.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

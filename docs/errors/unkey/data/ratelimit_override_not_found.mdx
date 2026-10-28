@@ -30,7 +30,7 @@ No override in that namespace matches the identifier you sent. You get HTTP 404.
 ## Likely causes
 
 - The identifier doesn't exactly match an override, including any wildcard.
-- Your root key doesn't have permission on the namespace's overrides. `ratelimit.getOverride` and `ratelimit.deleteOverride` return this 404 instead of a 403.
+- Your root key can't read the namespace's overrides. `ratelimit.getOverride` and `ratelimit.deleteOverride` return this 404 instead of a 403. A key that can read the override but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 
 ## How to fix
 

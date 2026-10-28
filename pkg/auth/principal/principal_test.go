@@ -115,6 +115,7 @@ func TestAuthorizeAllowsEveryAuthenticationMethod(t *testing.T) {
 	}{
 		{"api key", TypeAPIKey, KeySource{}},
 		{"jwt", TypeJWT, JWTSource{}},
+		{"cli session", TypeJWT, CLISessionSource{}},
 		{"portal", TypePortalSession, PortalSessionSource{}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -225,7 +226,7 @@ func TestAuthorizationErrorHidesGrantsAndCredentials(t *testing.T) {
 			denial := AuthorizationError(p)
 			require.Same(t, err, denial)
 			require.EqualError(t, denial, "Missing permission: '"+resource.String()+"#read': insufficient permissions")
-			require.Equal(t, "Missing permission: '"+resource.String()+"#read'", fault.UserFacingMessage(denial))
+			require.Equal(t, "Missing permission: '"+resource.String()+"#read'. Log in again with that permission, or grant it.", fault.UserFacingMessage(denial))
 		})
 	}
 }

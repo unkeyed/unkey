@@ -173,11 +173,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("portal not found",
-				fault.Code(codes.Data.Portal.NotFound.URN()),
-				fault.Internal("no portal found for the given id or slug"),
-				fault.Public("Portal not found."),
-			)
+			return apierrors.NotFound(codes.Data.Portal.NotFound.URN())
 		}
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -199,7 +195,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// imply minting sessions for its end users. A stored `**#*` still satisfies
 	// the canonical arm, so requireRootKeyCredential above is what actually
 	// keeps a dashboard admin from minting.
-	if err = principal.Authorize(rbac.Or(
+	portalURN := urn.New().Workspace(workspaceID).Project(portal.ProjectID).Portal(portal.ID)
+	permissionQuery := rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
 			ResourceID:   "*",
@@ -211,22 +208,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreatePortalSession,
 		}),
 		rbac.U(
-			urn.New().Workspace(workspaceID).Project(portal.ProjectID).Portal(portal.ID).Session("*"),
+			portalURN.Session("*"),
 			permissions.Write,
 		),
-	)); err != nil {
-		// Masked as 404 so a caller short of the minting permission cannot tell an
-		// existing portal from an absent one, or learn the resolved portal id --
-		// req.Portal accepts a slug, so that id is otherwise unobtainable. The
-		// helper builds a fresh chain rather than wrapping, which matters here:
-		// UserFacingMessage concatenates every public message, so a wrap would
-		// append the rendered query naming that id. Principal.Authorize already
-		// logs the denied query and the granted set. Anything that is not an
-		// authorization denial passes through unmasked.
-		return apierrors.MaskInsufficientPermissionsAsNotFound(
+	)
+	if err = principal.Authorize(permissionQuery); err != nil {
+		// A caller who cannot read the portal must not learn that a slug resolved,
+		// or see the portal id inside a permission string. A caller who can read it
+		// already knows it exists, so the helper returns 403 and names the missing
+		// minting permission. The helper builds a fresh chain rather than wrapping:
+		// UserFacingMessage concatenates every public message. Principal.Authorize
+		// already logs the denied query and the granted set. Anything that is not
+		// an authorization denial passes through unmasked.
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
 			err,
+			principal.Permissions,
+			permissionQuery,
+			rbac.Or(
+				rbac.U(portalURN, permissions.Read),
+				rbac.U(portalURN.Session("*"), permissions.Read),
+			),
 			codes.Data.Portal.NotFound.URN(),
-			"Portal not found.",
+			"Resource does not exist.",
 		)
 	}
 
@@ -355,11 +358,7 @@ func (h *Handler) mintSession(
 		})
 		if txErr != nil {
 			if db.IsNotFound(txErr) {
-				return fault.New("portal not found",
-					fault.Code(codes.Data.Portal.NotFound.URN()),
-					fault.Internal(fmt.Sprintf("portal %s was deleted after the replica read", req.Portal.ID)),
-					fault.Public("Portal not found."),
-				)
+				return apierrors.NotFound(codes.Data.Portal.NotFound.URN())
 			}
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

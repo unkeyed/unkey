@@ -156,6 +156,17 @@ func TestFreeTierEnforcement_Integration(t *testing.T) {
 }
 
 func TestFreeTierSlackFollowUpOnlyWhenThrottled_Integration(t *testing.T) {
+	contextElements := func(messages ...slack.Payload) []slack.Text {
+		var elements []slack.Text
+		for _, message := range messages {
+			for _, block := range message.Blocks {
+				if block.Type == "context" {
+					elements = append(elements, block.Elements...)
+				}
+			}
+		}
+		return elements
+	}
 	messages := make(chan slack.Payload, 10)
 	var failNextSlack atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -189,8 +200,15 @@ func TestFreeTierSlackFollowUpOnlyWhenThrottled_Integration(t *testing.T) {
 	_, err := callRunQuotaCheck(h, period)
 	require.NoError(t, err)
 	require.Len(t, messages, 2)
-	<-messages
-	<-messages
+	initial := []slack.Payload{<-messages, <-messages}
+	for _, message := range initial {
+		require.Contains(t, message.Text, "200,000 / 150,000 requests, 33.3% over quota")
+		require.Equal(t, "Monthly request quota exceeded", message.Blocks[0].Text.Text)
+	}
+	for _, ws := range []db.Workspace{free, paid} {
+		require.Contains(t, contextElements(initial...), slack.Text{Type: "mrkdwn", Text: "Workspace ID: `" + ws.ID + "`", Verbatim: true})
+		require.Contains(t, contextElements(initial...), slack.Text{Type: "mrkdwn", Text: "Organization ID: `" + ws.OrgID + "`", Verbatim: true})
+	}
 	client := hydrav1.NewCronServiceIngressClient(h.Restate, "free-tier-"+free.ID)
 	_, err = client.EnforceFreeTier().Request(h.Ctx, &hydrav1.EnforceFreeTierRequest{WorkspaceId: free.ID, Used: 200_000})
 	require.NoError(t, err)
@@ -204,8 +222,10 @@ func TestFreeTierSlackFollowUpOnlyWhenThrottled_Integration(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, messages, 1, "only paid workspaces receive weekly reminders")
 	reminder := <-messages
-	require.Contains(t, reminder.Text, "Weekly Reminder")
+	require.Contains(t, reminder.Text, "Weekly reminder")
 	require.Contains(t, reminder.Text, paid.Name)
+	require.Equal(t, "Monthly request quota still exceeded", reminder.Blocks[0].Text.Text)
+	require.Contains(t, reminder.Text, "200,000 / 150,000 requests, 33.3% over quota")
 	require.Zero(t, sender.CountByTemplate(freeTierThrottledTemplate))
 
 	warnedAt := now.Add(-13 * 24 * time.Hour).Unix()
@@ -220,8 +240,11 @@ func TestFreeTierSlackFollowUpOnlyWhenThrottled_Integration(t *testing.T) {
 		require.Len(c, messages, 1, "Slack follows the actual throttle, not a later quota check")
 	}, 30*time.Second, 100*time.Millisecond)
 	message := <-messages
-	require.Contains(t, message.Text, "Rate Limited")
+	require.Contains(t, message.Text, "limited to at most 5 per minute")
 	require.Contains(t, message.Text, free.Name)
+	require.Equal(t, "Free-tier API requests rate limited", message.Blocks[0].Text.Text)
+	require.Contains(t, contextElements(message), slack.Text{Type: "mrkdwn", Text: "Workspace ID: `" + free.ID + "`", Verbatim: true})
+	require.Contains(t, contextElements(message), slack.Text{Type: "mrkdwn", Text: "Organization ID: `" + free.OrgID + "`", Verbatim: true})
 	limits, err := h.DB.FindLimitsByWorkspaceID(h.Ctx, free.ID)
 	require.NoError(t, err)
 	require.Equal(t, sql.NullInt32{Int32: 5, Valid: true}, limits.ApiRequestsCountMaxPerMinute)

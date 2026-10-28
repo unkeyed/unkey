@@ -35,6 +35,6 @@ func (r resolverWithRoles) Resolve(ctx context.Context, sess *zen.Session) (*pri
 		return nil, err
 	}
 
-	p.Permissions = permissionsForRoles(p.AuthorizedWorkspaceID, source.Roles)
+	p.Permissions = PermissionsForRoles(p.AuthorizedWorkspaceID, source.Roles)
 	return p, nil
 }

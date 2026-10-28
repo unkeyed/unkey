@@ -256,6 +256,7 @@ async function linkCheckoutSession(
       eventId: event.id,
       reason: "missing_client_reference_id",
       product,
+      livemode: event.livemode,
     });
     return stripeWebhookResponse(event, "checkout_link_failed", {
       product,
@@ -299,6 +300,7 @@ async function linkCheckoutSession(
         eventId: event.id,
         reason: result.reason,
         product,
+        livemode: event.livemode,
       });
     }
     return stripeWebhookResponse(event, "checkout_link_failed", {
@@ -367,9 +369,9 @@ export const POST = async (req: Request): Promise<Response> => {
 
   const e = stripeEnv();
 
-  if (!e) {
+  if (!e?.STRIPE_WEBHOOK_SECRET) {
     console.error(
-      "Stripe environment configuration is missing. Check that STRIPE_SECRET_KEY and other required Stripe environment variables are properly set.",
+      "Stripe environment configuration is missing or invalid. Check the required Stripe environment variables, including STRIPE_WEBHOOK_SECRET.",
     );
     return new Response("Server configuration error", { status: 500 });
   }
@@ -451,6 +453,7 @@ export const POST = async (req: Request): Promise<Response> => {
             subscriptionId: eventSub.id,
             eventId: event.id,
             reason: "workspace_not_found",
+            livemode: event.livemode,
           });
           return new Response("OK", { status: 200 });
         }
@@ -584,6 +587,7 @@ export const POST = async (req: Request): Promise<Response> => {
             productName: product.name,
             subscriptionId: sub.id,
             eventId: event.id,
+            livemode: event.livemode,
           });
           return new Response("OK", { status: 200 });
         }
@@ -756,6 +760,7 @@ export const POST = async (req: Request): Promise<Response> => {
               subscriptionId: sub.id,
               eventId: event.id,
               reason: "workspace_not_found",
+              livemode: event.livemode,
             });
           }
           return new Response("OK", { status: 200 });

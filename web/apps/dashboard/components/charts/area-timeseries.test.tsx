@@ -40,6 +40,8 @@ describe("AreaTimeseriesChart axis configuration", () => {
           { originalTimestamp: 2_000, errors: 0 },
         ]}
         config={{ errors: { label: "Errors", color: "red" } }}
+        fill="flat"
+        formatTooltipValue={(v) => ({ value: String(v) })}
         axis={null}
         showZeroLine
       />,
@@ -59,13 +61,35 @@ describe("AreaTimeseriesChart axis configuration", () => {
           { originalTimestamp: 2_000, requests: 10 },
         ]}
         config={{ requests: { label: "Requests", color: "blue" } }}
-        axis={{ y: { floor: 0 } }}
+        fill="flat"
+        formatTooltipValue={(v) => ({ value: String(v) })}
+        axis={{ y: { floor: 0, formatTick: (v) => String(Math.round(v)) } }}
       />,
     );
 
     const yAxis = container.querySelector('[data-testid="y-axis"]');
     expect(yAxis?.getAttribute("data-domain")).toBe("[0,11]");
-    expect(yAxis?.getAttribute("data-width")).toBe("36");
+    expect(Number(yAxis?.getAttribute("data-width"))).toBeLessThan(36);
+  });
+
+  it("widens the y gutter so long tick labels are not cut", () => {
+    const { container } = render(
+      <AreaTimeseriesChart
+        data={[
+          { originalTimestamp: 1_000, requests: 5 },
+          { originalTimestamp: 2_000, requests: 10 },
+        ]}
+        config={{ requests: { label: "Requests", color: "blue" } }}
+        fill="flat"
+        formatTooltipValue={(v) => ({ value: String(v) })}
+        axis={{ y: { floor: 0, formatTick: (v) => `${v.toFixed(1)}M/s` } }}
+      />,
+    );
+
+    const width = Number(
+      container.querySelector('[data-testid="y-axis"]')?.getAttribute("data-width"),
+    );
+    expect(width).toBeGreaterThan(36);
   });
 
   it("retains configured domains when the axes are hidden", () => {
@@ -76,6 +100,8 @@ describe("AreaTimeseriesChart axis configuration", () => {
         { originalTimestamp: 2_000, requests: 0.06 },
       ],
       config: { requests: { label: "Requests", color: "blue" } },
+      fill: "flat",
+      formatTooltipValue: (v: number) => ({ value: String(v) }),
       axis: {
         visible: false,
         x: { domain },

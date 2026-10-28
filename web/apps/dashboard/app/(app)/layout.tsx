@@ -14,7 +14,13 @@ import { redirectToSignIn } from "@/lib/auth/redirect-utils";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { EmptyState, EmptyStateDescription, EmptyStateHeader, EmptyStateTitle } from "@unkey/ui";
+import {
+  Button,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
@@ -63,12 +69,13 @@ function WorkspaceContent({
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, workspace, isLoading, error, workspaceMissing } = useWorkspace();
+  const { user, workspace, isLoading, isSwitching, error, workspaceMissing } = useWorkspace();
   // Creation wizards are focused full-screen experiences without the sidebar.
   const isCreationWizard =
     pathname === "/integrations/github/callback" ||
     /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
-    /\/settings\/logdrains\/new$/.test(pathname);
+    /\/settings\/logdrains\/new$/.test(pathname) ||
+    pathname === routes.cli.device();
   const billingUpgrades = useBillingUIUpgrades();
   const searchParams = useSearchParams();
   // These reads need the authenticated organization, not the workspace response.
@@ -101,10 +108,16 @@ export default function Layout({ children }: LayoutProps) {
   }, [user, isLoading, error, workspaceMissing, router]);
 
   // Show loading state while checking authentication and workspace
-  if (isLoading || !user || !workspace) {
+  if (isSwitching || isLoading || !user || !workspace) {
     return (
       <div className="h-dvh flex flex-col">
-        <LoadingState delayMs={300} message="Loading workspace..." />
+        <LoadingState message={isSwitching ? "Switching workspace..." : "Loading workspace..."}>
+          {isSwitching ? (
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Reload page
+            </Button>
+          ) : null}
+        </LoadingState>
       </div>
     );
   }

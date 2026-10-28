@@ -33,7 +33,7 @@ A permission you referenced doesn't exist in your workspace. You get HTTP 404, a
 
 - You attached a permission to a key or role before creating it. The whole request fails if any one slug is missing, and `detail` names the first.
 - The slug has a typo. Slugs aren't case-sensitive.
-- Your root key doesn't have permission. `permissions.getPermission` and `permissions.deletePermission` return this 404 instead of a 403.
+- Your root key can't read the permission. `permissions.getPermission` and `permissions.deletePermission` return this 404 instead of a 403. A key that can read the permission but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 
 ## How to fix
 

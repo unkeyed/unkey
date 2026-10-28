@@ -132,6 +132,8 @@ tags:
     description: GitHub App installation operations
   - name: workspace
     description: Workspace limits and usage operations
+  - name: cli
+    description: CLI device login
 
 paths:
   # Health Endpoints
@@ -143,6 +145,19 @@ paths:
     $ref: "./spec/paths/v2/logs/getApiRequestMetrics/index.yaml"
   /v2/logs.listApiRequests:
     $ref: "./spec/paths/v2/logs/listApiRequests/index.yaml"
+
+  /v2/cli.startDeviceLogin:
+    $ref: "./spec/paths/v2/cli/startDeviceLogin/index.yaml"
+  /v2/cli.getDeviceLogin:
+    $ref: "./spec/paths/v2/cli/getDeviceLogin/index.yaml"
+  /v2/cli.decideDeviceLogin:
+    $ref: "./spec/paths/v2/cli/decideDeviceLogin/index.yaml"
+  /v2/cli.exchangeToken:
+    $ref: "./spec/paths/v2/cli/exchangeToken/index.yaml"
+  /v2/cli.revokeSession:
+    $ref: "./spec/paths/v2/cli/revokeSession/index.yaml"
+  /v2/cli.listSessions:
+    $ref: "./spec/paths/v2/cli/listSessions/index.yaml"
 
   # Analytics Endpoints
   /v2/analytics.getGatewayRequests:

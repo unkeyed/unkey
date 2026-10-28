@@ -17,30 +17,64 @@ sources:
 ---
 
 import { ProductLink } from "/snippets/product-link.jsx";
-import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Issue API keys for your public API with `keys.createKey`, then verify each request with `keys.verifyKey`. Both are HTTPS calls to `api.unkey.com`, from whatever language and host you already use. If you already have keys in your own database, [Migrating keys](/api-management/keys/migrating-keys) shows how to import the hashes, so users keep the same keys and you stop storing the plaintext.
+Create a keyspace, issue a key with `keys.createKey`, and <Tooltip tip="keys.verifyKey looks up the presented key, runs its configured checks, and reports whether it is valid. Not domain verification or the Compute gateway policy.">verify</Tooltip> it with `keys.verifyKey`. Both are HTTPS calls to `api.unkey.com`, so they work from any language or host.
 
-Create a keyspace, issue a key, and <Tooltip tip="Key verification: keys.verifyKey hashes the presented key, finds it, runs the configured checks, and reports whether it is valid and why not. Not domain verification or the Compute gateway policy.">verify</Tooltip> it from your backend.
+Already storing keys yourself? [Migrating keys](/api-management/keys/migrating-keys) imports your existing hashes so users keep the same keys.
 
-<RootKeyPrereq />
+## Initial Setup
 
-The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick your language with the switcher. Only the steps that call the API change.
+Do these once in the dashboard before you write any code.
 
 <Steps titleSize="h3">
+  <Step title="Create a root key">
+    Your backend calls the Unkey API with a root key. Open **Root Keys** in the dashboard sidebar, click **New Root Key**, and name it, for example `quickstart`. You need the workspace [admin role](/platform/workspace/team) to see **Root Keys**.
+
+    <Frame>
+      <img src="/images/dashboard/api-management--get-started-quickstart--root-key-name.png" alt="New Root Key panel with quickstart entered as the name and the permission templates below" />
+    </Frame>
+
+    Under **Permissions**, select the **Verify keys** template.
+
+    <Frame>
+      <img src="/images/dashboard/api-management--get-started-quickstart--root-key-template.png" alt="New Root Key panel with the Verify keys permission template highlighted" />
+    </Frame>
+
+    Click the policy to expand it, then select **Write** on the **Keys** row so the root key can also create keys. Click **Create key**.
+
+    <Frame>
+      <img src="/images/dashboard/api-management--get-started-quickstart--root-key-permissions.png" alt="Expanded Verify keys policy with Write and Verify selected on the Keys row and the Create key button" />
+    </Frame>
+
+    Copy the secret and store it as `UNKEY_ROOT_KEY`.
+
+    <Warning>
+      Unkey shows the root key only once. If you close the dialog without copying it, [rotate the key](/platform/root-keys/overview#rotate-a-root-key) or create a new one.
+    </Warning>
+  </Step>
   <Step title="Create a keyspace">
-    A keyspace holds the keys for one product, environment, or tier. In the dashboard, open **Keyspaces (APIs)** in the sidebar, click **Create keyspace**, and give it a name. Copy the **API ID** (`api_...`) from its settings page. You pass it when you create keys.
+    A keyspace holds the keys for one product, environment, or tier. In the dashboard, open **Keyspaces (APIs)**, click **Create keyspace**, and name it.
 
     <Frame>
       <img src="/images/dashboard/api-management--get-started-quickstart--create-keyspace.png" alt="Create keyspace dialog with a name entered and the Create Keyspace button" />
     </Frame>
+
+    Copy the **API ID** (`api_...`) from its settings page. You will need this ID to create keys.
+
+    <Frame>
+      <img src="/images/dashboard/api-management--get-started-quickstart--api-id.png" alt="Keyspace settings page with the API ID field highlighted" />
+    </Frame>
   </Step>
 </Steps>
+
+## Key Actions
+
+Use the language switcher to change the code samples.
 
 <View title="curl">
   <Steps titleSize="h3">
     <Step title="Create a key">
-      Call `keys.createKey` with the API ID. The `name` is only for you. Your users never see it.
+      Call `keys.createKey` with the API ID. `name` is an internal label your users never see.
 
       ```bash
       curl -X POST https://api.unkey.com/v2/keys.createKey \
@@ -52,7 +86,7 @@ The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick yo
         }'
       ```
 
-      This is the only time you see the key. Copy `data.key` now and give it to your user.
+      `data.key` is shown only once. Copy it now and give it to your user.
 
       ```json
       {
@@ -65,7 +99,7 @@ The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick yo
       ```
     </Step>
     <Step title="Verify the key">
-      This is the call your backend makes on every incoming request. There's no `apiId` field because the key alone identifies its keyspace.
+      Run this on every incoming request. You don't pass an `apiId` because the key identifies its keyspace.
 
       ```bash
       curl -X POST https://api.unkey.com/v2/keys.verifyKey \
@@ -100,7 +134,7 @@ The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick yo
       ```
     </Step>
     <Step title="Verify the key">
-      There's no `apiId` field because the key alone identifies its keyspace.
+      Run this on every incoming request. You don't pass an `apiId` because the key identifies its keyspace.
 
       ```typescript verify-key.ts
       const { data } = await unkey.keys.verifyKey({ key: incomingKey });
@@ -153,7 +187,7 @@ The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick yo
       ```
     </Step>
     <Step title="Verify the key">
-      There's no `apiId` field because the key alone identifies its keyspace.
+      Run this on every incoming request. You don't pass an `apiId` because the key identifies its keyspace.
 
       ```go verify.go
       res, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
@@ -193,7 +227,7 @@ The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick yo
       ```
     </Step>
     <Step title="Verify the key">
-      There's no `api_id` argument because the key alone identifies its keyspace.
+      Run this on every incoming request. You don't pass an `api_id` because the key identifies its keyspace.
 
       ```python verify_key.py
       res = unkey.keys.verify_key(key=incoming_key)
@@ -206,9 +240,9 @@ The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick yo
   </Steps>
 </View>
 
-## How you read the verification response
+## Reading the verification response
 
-Verification returns HTTP 200 even when the key is rejected. `data.valid` tells you whether the key passed. When it didn't, `data.code` says why.
+Verification returns HTTP 200 even when the key is rejected. Check `data.valid`. When it's `false`, `data.code` says why.
 
 ```json
 {
@@ -223,7 +257,7 @@ Verification returns HTTP 200 even when the key is rejected. `data.valid` tells 
 }
 ```
 
-The response gets more fields as you set more on the key, such as `credits`, `ratelimits`, `meta`, and `identity`. [Verifying keys](/api-management/keys/verifying-keys) lists every field and every `code` value.
+Fields such as `credits`, `ratelimits`, `meta`, and `identity` appear once you configure them on the key. [Verifying keys](/api-management/keys/verifying-keys) lists every field and `code` value.
 
 ## Next steps
 

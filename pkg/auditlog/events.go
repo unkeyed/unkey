@@ -110,4 +110,9 @@ const (
 	DomainCreateEvent AuditLogEvent = "domain.create"
 	DomainDeleteEvent AuditLogEvent = "domain.delete"
 	DomainVerifyEvent AuditLogEvent = "domain.verify"
+
+	// CLI session events
+	CLISessionCreateEvent  AuditLogEvent = "cli.session.create"
+	CLISessionRefreshEvent AuditLogEvent = "cli.session.refresh"
+	CLISessionRevokeEvent  AuditLogEvent = "cli.session.revoke"
 )

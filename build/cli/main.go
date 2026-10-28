@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/cmd/deploy"
 	"github.com/unkeyed/unkey/cmd/healthcheck"
 	"github.com/unkeyed/unkey/cmd/version"
+	"github.com/unkeyed/unkey/cmd/workspace"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -26,6 +27,7 @@ func main() {
 		Commands: append([]*cli.Command{
 			api.Cmd(),
 			auth.Cmd,
+			workspace.Cmd,
 			version.Cmd,
 			deploy.Cmd,
 			healthcheck.Cmd,

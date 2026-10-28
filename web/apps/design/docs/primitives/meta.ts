@@ -7,6 +7,7 @@ export default defineMeta({
   pages: [
     "alert-banner",
     "badge",
+    "control-pill",
     "empty-state",
     "item",
     "pagination",
@@ -15,5 +16,6 @@ export default defineMeta({
     "settings-card",
     "skeleton",
     "slide-panel",
+    "tabs",
   ],
 });

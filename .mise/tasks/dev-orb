@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-#MISE description="Start the reduced Kubernetes development environment for Amp orbs"
+#MISE description="Start the Kubernetes development environment for this orb's worker image"
 #MISE depends=["install-web"]
 #MISE raw=true
 set -euo pipefail
+
+source ./dev/disable-aws.sh
+if [[ -x /opt/orb-worker/docker-start.sh ]]; then
+  exec bash ./dev/orb/start.sh "$@"
+fi
 
 bash ./dev/start-cluster.sh ./dev/cluster.orb.yaml
 exec tilt up \

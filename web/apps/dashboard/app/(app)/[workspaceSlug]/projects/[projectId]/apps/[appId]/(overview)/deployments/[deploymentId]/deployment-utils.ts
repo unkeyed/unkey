@@ -1,6 +1,6 @@
 import type { DeploymentStatus } from "@/lib/collections";
 import { match } from "@unkey/match";
-import type { StepsData } from "./(deployment-progress)/deployment-progress";
+import type { StepsData } from "./use-deployment-status";
 
 const DEPLOYMENT_STATUSES: ReadonlySet<string> = new Set<DeploymentStatus>([
   "pending",

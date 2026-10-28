@@ -13,8 +13,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/challenge"
-	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
 	restateServer "github.com/restatedev/sdk-go/server"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -34,14 +32,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -134,12 +131,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("worker")
 
 	// Create vault client for remote vault service
@@ -430,7 +422,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(keyleak.New(keyleak.Config{
-		Members:         workos.New(cfg.WorkOSAPIKey),
+		Members:         workos.New(cfg.WorkOSAPIKey, ""),
 		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
 		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
 	}).Definition(
@@ -466,9 +458,10 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewAppServiceServer(appSvc))
 
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
-		DB:        database,
-		Admin:     restateAdminClient,
-		Auditlogs: auditlogSvc,
+		DB:           database,
+		Admin:        restateAdminClient,
+		Auditlogs:    auditlogSvc,
+		StandbyDelay: 0,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create environment worker service: %w", err)
@@ -895,7 +888,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
-		prom, promErr := prometheus.NewWithRegistry(reg)
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}

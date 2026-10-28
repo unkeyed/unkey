@@ -20,9 +20,8 @@ post:
 
     **Required Permissions**
 
-    Your root key must have one of the following permissions:
-    - `environment.*.rollback_deployment` (to roll back deployments in any environment)
-    - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
+    Your root key must have write permission on the environment:
+    - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
   operationId: deployments.rollbackDeployment
   x-speakeasy-name-override: rollbackDeployment
   security:
@@ -66,11 +65,18 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: Forbidden - Your root key can read the deployment but lacks the `rollback_deployment` permission.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: |
         Not Found - The deployment does not exist in your workspace, or your
-        root key lacks the `rollback_deployment` permission for it. Both cases
-        return the same response, so deployment existence is never revealed.
+        root key cannot read it. Both cases return the same response, so
+        deployment existence is never revealed. A root key that can read the
+        deployment but lacks the `rollback_deployment` permission receives 403 instead.
       content:
         application/json:
           schema:

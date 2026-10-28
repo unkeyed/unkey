@@ -144,45 +144,6 @@ checksum = "sha256:3da9ad945c861ba81be42ef1b9550eb51dd9bd6e4c7e7212260e5b741c736
 url = "https://github.com/chronark/rask/releases/download/v0.7.0/rask_0.7.0_darwin_amd64.tar.gz"
 url_api = "https://api.github.com/repos/chronark/rask/releases/assets/597367776"
 
-[[tools."github:depot/cli"]]
-version = "2.101.67"
-backend = "github:depot/cli"
-
-[tools."github:depot/cli"."platforms.linux-arm64"]
-checksum = "sha256:bbebd71152a5f534ea39c22b6e7b37760bc24f591817104bb677aa2165cc394d"
-url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436345"
-
-[tools."github:depot/cli"."platforms.linux-arm64-musl"]
-checksum = "sha256:bbebd71152a5f534ea39c22b6e7b37760bc24f591817104bb677aa2165cc394d"
-url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436345"
-
-[tools."github:depot/cli"."platforms.linux-x64"]
-checksum = "sha256:d6c05939e5d5d02c934ff36d2ce8d39c0c78c9b58788aa1d9d9cc98a16690271"
-url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436342"
-
-[tools."github:depot/cli"."platforms.linux-x64-musl"]
-checksum = "sha256:d6c05939e5d5d02c934ff36d2ce8d39c0c78c9b58788aa1d9d9cc98a16690271"
-url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436342"
-
-[tools."github:depot/cli"."platforms.macos-arm64"]
-checksum = "sha256:abdac9a0ebbdb44454e5c48db3b29c3077c0f1007a5084f68c8fcb374cfc33e6"
-url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436336"
-
-[tools."github:depot/cli"."platforms.macos-x64"]
-checksum = "sha256:5b45f0cf927b8ca4075adfcc8e82171f38dba4dd0b5f5f3770033dc74c7c8ec5"
-url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436343"
-
-[tools."github:depot/cli"."platforms.windows-x64"]
-checksum = "sha256:1d80aa416fd00430f92da7796da9aca6349fe976851f1765e706c17515d18c6d"
-url = "https://github.com/depot/cli/releases/download/v2.101.67/depot_2.101.67_windows_amd64.zip"
-url_api = "https://api.github.com/repos/depot/cli/releases/assets/463436337"
-
 [[tools."github:dprint/dprint"]]
 version = "0.51.1"
 backend = "github:dprint/dprint"
@@ -337,45 +298,6 @@ checksum = "sha256:a6fc67fedaf9128a3309a1e2ebb8b986aeccf70122ee46d2cb4849e423f0c
 url = "https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-windows-amd64.exe"
 url_api = "https://api.github.com/repos/jqlang/jq/releases/assets/453012788"
 provenance = "github-attestations"
-
-[[tools."github:kubernetes/minikube"]]
-version = "1.39.0"
-backend = "github:kubernetes/minikube"
-
-[tools."github:kubernetes/minikube"."platforms.linux-arm64"]
-checksum = "sha256:2ce53fe7bb99b595739b076d19ad45da5e199c4b06d6fa508b171a566cc49ed7"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541768926"
-
-[tools."github:kubernetes/minikube"."platforms.linux-arm64-musl"]
-checksum = "sha256:2ce53fe7bb99b595739b076d19ad45da5e199c4b06d6fa508b171a566cc49ed7"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541768926"
-
-[tools."github:kubernetes/minikube"."platforms.linux-x64"]
-checksum = "sha256:e4216586c07c05441910cce39600f0424132c3ae69400ce1a7daaae17dc2e855"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541762589"
-
-[tools."github:kubernetes/minikube"."platforms.linux-x64-musl"]
-checksum = "sha256:e4216586c07c05441910cce39600f0424132c3ae69400ce1a7daaae17dc2e855"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541762589"
-
-[tools."github:kubernetes/minikube"."platforms.macos-arm64"]
-checksum = "sha256:d680e5dd163773959e1f61a57d50df90c9b672128d0bbe929caf5e8e53652e0b"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541767411"
-
-[tools."github:kubernetes/minikube"."platforms.macos-x64"]
-checksum = "sha256:4de88af8b94effd843859e36e29ecae08fe6822f7c0b85d7e9d5eeee59b3c54f"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541767223"
-
-[tools."github:kubernetes/minikube"."platforms.windows-x64"]
-checksum = "sha256:5efa01a1609409e62263fb9ca0b5d60045e55092aabd0af10782c62325274c00"
-url = "https://github.com/kubernetes/minikube/releases/download/v1.39.0/minikube-windows-amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes/minikube/releases/assets/541765689"
 
 [[tools."github:planetscale/cli"]]
 version = "0.284.0"
@@ -612,6 +534,38 @@ url = "https://dl.google.com/go/go1.27.3.darwin-amd64.tar.gz"
 checksum = "sha256:f26081f438319757f8a1b46d7d0b2c5ec7583d4038e485e0aa725cfde7885fff"
 url = "https://dl.google.com/go/go1.27.3.windows-amd64.zip"
 
+[[tools."http:depot"]]
+version = "2.101.67"
+backend = "http:depot"
+
+[tools."http:depot"."platforms.linux-arm64"]
+checksum = "sha256:bbebd71152a5f534ea39c22b6e7b37760bc24f591817104bb677aa2165cc394d"
+url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_linux_arm64.tar.gz"
+
+[tools."http:depot"."platforms.linux-arm64-musl"]
+checksum = "sha256:bbebd71152a5f534ea39c22b6e7b37760bc24f591817104bb677aa2165cc394d"
+url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_linux_arm64.tar.gz"
+
+[tools."http:depot"."platforms.linux-x64"]
+checksum = "sha256:d6c05939e5d5d02c934ff36d2ce8d39c0c78c9b58788aa1d9d9cc98a16690271"
+url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_linux_amd64.tar.gz"
+
+[tools."http:depot"."platforms.linux-x64-musl"]
+checksum = "sha256:d6c05939e5d5d02c934ff36d2ce8d39c0c78c9b58788aa1d9d9cc98a16690271"
+url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_linux_amd64.tar.gz"
+
+[tools."http:depot"."platforms.macos-arm64"]
+checksum = "sha256:abdac9a0ebbdb44454e5c48db3b29c3077c0f1007a5084f68c8fcb374cfc33e6"
+url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_darwin_arm64.tar.gz"
+
+[tools."http:depot"."platforms.macos-x64"]
+checksum = "sha256:5b45f0cf927b8ca4075adfcc8e82171f38dba4dd0b5f5f3770033dc74c7c8ec5"
+url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_darwin_amd64.tar.gz"
+
+[tools."http:depot"."platforms.windows-x64"]
+checksum = "sha256:1d80aa416fd00430f92da7796da9aca6349fe976851f1765e706c17515d18c6d"
+url = "https://dl-cdn.depot.dev/cli/v2.101.67/depot_2.101.67_windows_amd64.zip"
+
 [[tools."http:helm"]]
 version = "3.22.0"
 backend = "http:helm"
@@ -676,6 +630,41 @@ url = "https://dl.k8s.io/release/v1.37.0/bin/darwin/amd64/kubectl"
 checksum = "sha256:4721b614a67bb4932a0369e61f4a323d8c6ca00943d3a2ff14837c124da06f0e"
 url = "https://dl.k8s.io/release/v1.37.0/bin/windows/amd64/kubectl.exe"
 
+[[tools."http:minikube"]]
+version = "1.39.0"
+backend = "http:minikube"
+
+[tools."http:minikube".options]
+rename_exe = "minikube"
+
+[tools."http:minikube"."platforms.linux-arm64"]
+checksum = "sha256:2ce53fe7bb99b595739b076d19ad45da5e199c4b06d6fa508b171a566cc49ed7"
+url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-linux-arm64.tar.gz"
+
+[tools."http:minikube"."platforms.linux-arm64-musl"]
+checksum = "sha256:2ce53fe7bb99b595739b076d19ad45da5e199c4b06d6fa508b171a566cc49ed7"
+url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-linux-arm64.tar.gz"
+
+[tools."http:minikube"."platforms.linux-x64"]
+checksum = "sha256:e4216586c07c05441910cce39600f0424132c3ae69400ce1a7daaae17dc2e855"
+url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-linux-amd64.tar.gz"
+
+[tools."http:minikube"."platforms.linux-x64-musl"]
+checksum = "sha256:e4216586c07c05441910cce39600f0424132c3ae69400ce1a7daaae17dc2e855"
+url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-linux-amd64.tar.gz"
+
+[tools."http:minikube"."platforms.macos-arm64"]
+checksum = "sha256:d680e5dd163773959e1f61a57d50df90c9b672128d0bbe929caf5e8e53652e0b"
+url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-darwin-arm64.tar.gz"
+
+[tools."http:minikube"."platforms.macos-x64"]
+checksum = "sha256:4de88af8b94effd843859e36e29ecae08fe6822f7c0b85d7e9d5eeee59b3c54f"
+url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-darwin-amd64.tar.gz"
+
+[tools."http:minikube"."platforms.windows-x64"]
+checksum = "sha256:5efa01a1609409e62263fb9ca0b5d60045e55092aabd0af10782c62325274c00"
+url = "https://storage.googleapis.com/minikube/releases/v1.39.0/minikube-windows-amd64.tar.gz"
+
 [[tools."http:ngrok"]]
 version = "3.39.11"
 backend = "http:ngrok"
@@ -739,6 +728,10 @@ url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-darwin-x64.tar.gz"
 [tools.node."platforms.windows-x64"]
 checksum = "sha256:d2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5"
 url = "https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-x64.zip"
+
+[[tools."npm:deepsec"]]
+version = "2.3.10"
+backend = "npm:deepsec"
 
 [[tools."npm:mint"]]
 version = "4.2.866"

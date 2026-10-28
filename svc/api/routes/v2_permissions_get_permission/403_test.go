@@ -74,7 +74,7 @@ func TestGetPermissionMasksInsufficientPermissions(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
-		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 
 	// Test case for no permissions
@@ -102,6 +102,6 @@ func TestGetPermissionMasksInsufficientPermissions(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
-		require.Equal(t, "The requested permission does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 	})
 }

@@ -17,7 +17,7 @@ func TestPromoteDeploymentValidationErrors(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "environment.*.promote_deployment")
+	rootKey := h.CreateRootKey(workspace.ID, writeEnvironments(workspace.ID))
 
 	testCases := []struct {
 		name string
