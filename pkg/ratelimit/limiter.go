@@ -371,9 +371,11 @@ func (l *limiter) flushUntilStopped(ctx context.Context, ticker clock.Ticker) {
 func (l *limiter) flush(ctx context.Context) error {
 	l.flushMu.Lock()
 	defer l.flushMu.Unlock()
+	start := time.Now()
 	nowMs := l.clock.Now().UnixMilli()
 
 	var writes []StoredRow
+	held := 0
 	for i := range l.shards {
 		s := &l.shards[i]
 		s.mu.Lock()
@@ -392,8 +394,10 @@ func (l *limiter) flush(ctx context.Context) error {
 				})
 			}
 		}
+		held += len(s.entries)
 		s.mu.Unlock()
 	}
+	entries.Set(float64(held))
 	// Map order is random; sorting keeps simulation runs repeatable.
 	slices.SortFunc(writes, func(left, right StoredRow) int {
 		return cmp.Or(bytes.Compare(left.Fingerprint[:], right.Fingerprint[:]), cmp.Compare(left.PeriodStartMs, right.PeriodStartMs))
@@ -403,9 +407,11 @@ func (l *limiter) flush(ctx context.Context) error {
 	for chunk := range slices.Chunk(writes, maxRowsPerWrite) {
 		err := l.store.WriteRows(ctx, chunk)
 		if err != nil {
+			rowsWrittenTotal.WithLabelValues("error").Add(float64(len(chunk)))
 			errs = append(errs, err)
 			continue
 		}
+		rowsWrittenTotal.WithLabelValues("ok").Add(float64(len(chunk)))
 		for _, written := range chunk {
 			s := &l.shards[shardIndex(written.Fingerprint)]
 			s.mu.Lock()
@@ -419,7 +425,13 @@ func (l *limiter) flush(ctx context.Context) error {
 			s.mu.Unlock()
 		}
 	}
-	return errors.Join(errs...)
+	flushDurationSeconds.Observe(time.Since(start).Seconds())
+	if len(errs) > 0 {
+		flushesTotal.WithLabelValues("error").Inc()
+		return errors.Join(errs...)
+	}
+	flushesTotal.WithLabelValues("ok").Inc()
+	return nil
 }
 
 // refreshRows makes sure that the peer rows of each request are less than
@@ -504,7 +516,9 @@ func (l *limiter) readWithinSlots(ctx context.Context, fingerprint [32]byte, tim
 // the shard lock to merge, so the caller must not hold a shard lock.
 func (l *limiter) readRows(ctx context.Context, fingerprint [32]byte, timeout time.Duration) {
 	startedAtMs := l.clock.Now().UnixMilli()
+	start := time.Now()
 	stored, err := l.readWithinSlots(ctx, fingerprint, timeout)
+	readDurationSeconds.Observe(time.Since(start).Seconds())
 	periods := make(map[int64]struct{}, len(stored))
 	for _, r := range stored {
 		periods[r.PeriodStartMs] = struct{}{}
