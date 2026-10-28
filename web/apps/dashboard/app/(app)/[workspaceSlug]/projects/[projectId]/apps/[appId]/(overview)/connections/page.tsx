@@ -1,45 +1,130 @@
 "use client";
 
-import { PageBody, PageContainer, Skeleton } from "@unkey/ui";
-import { useState } from "react";
-import { useAppId, useProjectData } from "../data-provider";
-import { ConnectionCanvas, ConnectionsHeader } from "./connection-canvas";
-import { isProduction } from "./connection-rules";
+import { LoadError } from "@/components/load-error";
+import { IconCircleInfoOutline18, IconLinkOutline18, IconPlusOutline18 } from "@unkey/icons";
+import { match } from "@unkey/match";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+  PageHeader,
+  PageHeaderActions,
+  PageHeaderContent,
+  PageHeaderTitle,
+  ResourceListContent,
+} from "@unkey/ui";
+import { useSlidePanels } from "../hooks/use-slide-panels";
+import { AddConnectionPanel } from "./components/connection-form/add-connection-panel";
+import { EditConnectionPanel } from "./components/connection-form/edit-connection-panel";
+import { ConnectionsList } from "./components/list";
+import { RetainedConnections } from "./components/list/retained";
+import { ConnectionsListSkeleton } from "./components/list/skeleton";
+import { useConnectionActions } from "./hooks/use-connection-actions";
+import { useConnectionsData } from "./hooks/use-connections-data";
+import { HowConnectionsWorkPanel } from "./how-connections-work";
+
+type ConnectionPanel = { type: "add" } | { type: "edit"; targetAppId: string } | { type: "guide" };
 
 export default function ConnectionsPage() {
-  const { projectId, environments, isEnvironmentsLoading } = useProjectData();
-  const appId = useAppId();
-  const [selectedEnvironment, setSelectedEnvironment] = useState<string | null>(null);
-  const environment =
-    environments.find((env) => env.id === selectedEnvironment) ??
-    environments.find(isProduction) ??
-    environments[0];
+  const data = useConnectionsData();
+  const { envs, merged, targets, canWrite } = data;
+  const actions = useConnectionActions(data);
+  const panels = useSlidePanels<ConnectionPanel>();
+  const openAdd = () => panels.open({ type: "add" });
 
   return (
     <PageContainer>
-      {isEnvironmentsLoading || !environment ? (
-        <>
-          <ConnectionsHeader />
-          <PageBody>
-            {isEnvironmentsLoading ? (
-              <Skeleton className="h-96 w-full" />
-            ) : (
-              <p className="text-sm text-gray-9">
-                Create an environment before adding connections.
-              </p>
-            )}
-          </PageBody>
-        </>
-      ) : (
-        <ConnectionCanvas
-          key={environment.id}
-          projectId={projectId}
-          appId={appId}
-          environment={environment}
-          environments={environments}
-          onEnvironmentChange={setSelectedEnvironment}
-        />
-      )}
+      <PageHeader>
+        <PageHeaderContent>
+          <PageHeaderTitle>Connections</PageHeaderTitle>
+        </PageHeaderContent>
+        <PageHeaderActions>
+          <Button size="md" variant="outline" onClick={() => panels.open({ type: "guide" })}>
+            How connections work
+          </Button>
+          <Button size="md" variant="primary" disabled={!canWrite} onClick={openAdd}>
+            <IconPlusOutline18 />
+            Add connection
+          </Button>
+        </PageHeaderActions>
+      </PageHeader>
+      <PageBody>
+        {match(data.view)
+          .with({ type: "error" }, () => (
+            <LoadError title="Could not load connections" onRetry={data.retry} />
+          ))
+          .with({ type: "loading" }, () => <ConnectionsListSkeleton />)
+          .with({ type: "empty" }, () => (
+            <EmptyState>
+              <EmptyStateIcon>
+                <IconLinkOutline18 />
+              </EmptyStateIcon>
+              <EmptyStateHeader>
+                <EmptyStateTitle>No connections yet</EmptyStateTitle>
+                <EmptyStateDescription>
+                  Connections let this app call other apps in the project over the private network.
+                </EmptyStateDescription>
+              </EmptyStateHeader>
+              <EmptyStateActions>
+                <Button variant="primary" size="md" disabled={!canWrite} onClick={openAdd}>
+                  <IconPlusOutline18 />
+                  Add connection
+                </Button>
+              </EmptyStateActions>
+            </EmptyState>
+          ))
+          .with({ type: "list" }, () => (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 rounded-lg bg-grayA-2 px-3 py-2 text-sm text-gray-11">
+                <IconCircleInfoOutline18 className="size-3.5 shrink-0" />
+                Connections apply to new deployments. Running deployments keep their saved
+                connections.
+              </div>
+              <ResourceListContent>
+                <ConnectionsList
+                  envs={envs}
+                  merged={merged}
+                  targets={targets}
+                  onEdit={(targetAppId) => panels.open({ type: "edit", targetAppId })}
+                  onRemove={(connection) => void actions.remove(connection)}
+                />
+              </ResourceListContent>
+            </div>
+          ))
+          .exhaustive()}
+        <RetainedConnections retained={data.retained} envs={envs} />
+        {panels.panel &&
+          match(panels.panel)
+            .with({ type: "guide" }, () => (
+              <HowConnectionsWorkPanel isOpen={panels.isOpen} onClose={panels.close} />
+            ))
+            .with({ type: "add" }, () => (
+              <AddConnectionPanel
+                key={panels.session}
+                data={data}
+                isOpen={panels.isOpen}
+                onClose={panels.close}
+                onSave={(values) => actions.save(null, values)}
+              />
+            ))
+            .with({ type: "edit" }, ({ targetAppId }) => (
+              <EditConnectionPanel
+                key={panels.session}
+                data={data}
+                row={merged.find((connection) => connection.targetAppId === targetAppId)}
+                isOpen={panels.isOpen}
+                onClose={panels.close}
+                onSave={actions.save}
+              />
+            ))
+            .exhaustive()}
+      </PageBody>
     </PageContainer>
   );
 }
