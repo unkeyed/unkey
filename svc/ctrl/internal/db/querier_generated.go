@@ -502,6 +502,15 @@ type Querier interface {
 	//  LEFT JOIN connection_app_targets bt ON bt.connection_id = b.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
+	//DeploymentProjectOwnsImage
+	//
+	//  SELECT EXISTS (
+	//      SELECT 1
+	//      FROM deployments
+	//      WHERE project_id = ?
+	//        AND image_resolved = ?
+	//  ) AS owns_image
+	DeploymentProjectOwnsImage(ctx context.Context, arg DeploymentProjectOwnsImageParams) (bool, error)
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
