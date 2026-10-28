@@ -3947,6 +3947,24 @@ type V2ConnectionsCreateConnectionResponseData struct {
 	Name string `json:"name"`
 }
 
+// V2ConnectionsDeleteConnectionRequestBody defines model for V2ConnectionsDeleteConnectionRequestBody.
+type V2ConnectionsDeleteConnectionRequestBody struct {
+	ConnectionId string `json:"connectionId"`
+}
+
+// V2ConnectionsDeleteConnectionResponseBody defines model for V2ConnectionsDeleteConnectionResponseBody.
+type V2ConnectionsDeleteConnectionResponseBody struct {
+	Data V2ConnectionsDeleteConnectionResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2ConnectionsDeleteConnectionResponseData defines model for V2ConnectionsDeleteConnectionResponseData.
+type V2ConnectionsDeleteConnectionResponseData struct {
+	Id string `json:"id"`
+}
+
 // V2ConnectionsListConnectionsRequestBody defines model for V2ConnectionsListConnectionsRequestBody.
 type V2ConnectionsListConnectionsRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -8654,6 +8672,9 @@ type CliStartDeviceLoginJSONRequestBody = V2CliStartDeviceLoginRequestBody
 
 // ConnectionsCreateConnectionJSONRequestBody defines body for ConnectionsCreateConnection for application/json ContentType.
 type ConnectionsCreateConnectionJSONRequestBody = V2ConnectionsCreateConnectionRequestBody
+
+// ConnectionsDeleteConnectionJSONRequestBody defines body for ConnectionsDeleteConnection for application/json ContentType.
+type ConnectionsDeleteConnectionJSONRequestBody = V2ConnectionsDeleteConnectionRequestBody
 
 // ConnectionsListConnectionsJSONRequestBody defines body for ConnectionsListConnections for application/json ContentType.
 type ConnectionsListConnectionsJSONRequestBody = V2ConnectionsListConnectionsRequestBody

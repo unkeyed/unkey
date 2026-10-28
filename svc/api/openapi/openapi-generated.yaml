@@ -837,6 +837,26 @@ components:
                 data:
                     "$ref": "#/components/schemas/V2ConnectionsCreateConnectionResponseData"
             additionalProperties: false
+        V2ConnectionsDeleteConnectionRequestBody:
+            type: object
+            required:
+                - connectionId
+            properties:
+                connectionId:
+                    type: string
+                    minLength: 1
+            additionalProperties: false
+        V2ConnectionsDeleteConnectionResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2ConnectionsDeleteConnectionResponseData"
+            additionalProperties: false
         V2ConnectionsListConnectionsRequestBody:
             type: object
             required:
@@ -5769,6 +5789,14 @@ components:
                 id:
                     type: string
                 name:
+                    type: string
+            additionalProperties: false
+        V2ConnectionsDeleteConnectionResponseData:
+            type: object
+            required:
+                - id
+            properties:
+                id:
                     type: string
             additionalProperties: false
         AppConnection:
@@ -11666,6 +11694,63 @@ paths:
             tags:
                 - connections
             x-speakeasy-name-override: createConnection
+    /v2/connections.deleteConnection:
+        post:
+            description: |
+                Remove a connection default from the caller environment. Existing deployments
+                keep their saved connections and deployment pins until those deployments stop.
+                Requires read and write on the caller environment. Target read access is not required.
+                Missing and unreadable connections return the same 404 response.
+            operationId: connections.deleteConnection
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2ConnectionsDeleteConnectionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2ConnectionsDeleteConnectionResponseBody'
+                    description: Connection default deleted.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Write permission required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Connection not found.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: Delete an app connection
+            tags:
+                - connections
+            x-speakeasy-name-override: deleteConnection
     /v2/connections.listConnections:
         post:
             description: |
