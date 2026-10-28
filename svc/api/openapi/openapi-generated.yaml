@@ -1184,6 +1184,26 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2DeploymentsListConnectionsRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    type: string
+                    minLength: 1
+            additionalProperties: false
+        V2DeploymentsListConnectionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2DeploymentsListConnectionsResponseData"
+            additionalProperties: false
         V2DeploymentsListDeploymentsRequestBody:
             type: object
             properties:
@@ -6643,6 +6663,52 @@ components:
                 The output stream a build log entry was printed to. Many tools write progress
                 and warnings to `stderr`, so `stderr` does not mean that the step failed.
             example: stdout
+        V2DeploymentsListConnectionsResponseData:
+            type: object
+            required:
+                - connections
+                - truncated
+            properties:
+                connections:
+                    type: array
+                    maxItems: 5
+                    items:
+                        "$ref": "#/components/schemas/DeploymentConnectionSummary"
+                truncated:
+                    type: boolean
+            additionalProperties: false
+        DeploymentConnectionSummary:
+            type: object
+            required:
+                - id
+                - targetAppName
+                - targetType
+                - targetEnvironmentId
+                - targetEnvironmentSlug
+                - targetDeploymentId
+            properties:
+                id:
+                    type: string
+                targetAppName:
+                    type:
+                        - string
+                        - "null"
+                    description: Current target app name, or null if the app no longer exists.
+                targetType:
+                    "$ref": "#/components/schemas/ConnectionTargetType"
+                targetEnvironmentId:
+                    type:
+                        - string
+                        - "null"
+                targetEnvironmentSlug:
+                    type:
+                        - string
+                        - "null"
+                targetDeploymentId:
+                    type:
+                        - string
+                        - "null"
+            additionalProperties: false
         V2DomainsCreateDomainResponseData:
             type: object
             required:
@@ -12758,6 +12824,59 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+    /v2/deployments.listConnections:
+        post:
+            description: |
+                Return up to five connections saved in this deployment, ordered by saved name and ID.
+                These snapshots are separate from the caller environment's current defaults.
+                Removed target apps and environments retain their saved IDs with null labels.
+                Requires read access to the deployment. Missing and unreadable deployments
+                return the same 404 response. Stopped deployments and soft-deleted parents
+                remain readable while their deployment records exist.
+            operationId: deployments.listConnections
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsListConnectionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsListConnectionsResponseBody'
+                    description: Saved deployment connections and truncation status.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Deployment not found.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: List saved deployment connections
+            tags:
+                - deployments
+            x-speakeasy-name-override: listConnections
     /v2/deployments.listDeployments:
         post:
             description: |
