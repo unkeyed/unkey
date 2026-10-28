@@ -3,10 +3,12 @@ package handler_test
 import (
 	"context"
 	"net/http"
+	"net/netip"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -17,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_decide_device_login"
+	gethandler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_get_device_login"
 )
 
 func TestDecisionRejectsInvalidInputOverHTTP(t *testing.T) {
@@ -49,6 +52,65 @@ func TestDecisionRejectsInvalidInputOverHTTP(t *testing.T) {
 			require.Equal(t, codes.App.Validation.InvalidInput.DocsURL(), res.Body.Error.Type)
 		})
 	}
+}
+
+func TestUserCodeRoutesShareTheUserBudget(t *testing.T) {
+	h := testutil.NewHarness(t)
+	devices := clidevicetest.New(h)
+	limiter := ratelimit.NewLocal(h.Clock)
+	t.Cleanup(func() { require.NoError(t, limiter.Close()) })
+	devices.Ratelimit = limiter
+	workspace := h.Resources().UserWorkspace
+	p := &principal.Principal{
+		Version:               principal.Version,
+		Type:                  principal.TypeJWT,
+		Subject:               principal.Subject{ID: uid.New(uid.TestPrefix), Type: principal.SubjectTypeUser},
+		Source:                principal.JWTSource{Roles: []string{"admin"}},
+		AuthorizedWorkspaceID: workspace.ID,
+		Permissions:           workos.PermissionsForRoles(workspace.ID, []string{"admin"}),
+	}
+	clientIP := netip.MustParseAddr("203.0.113.70")
+	middlewares := append(h.PublicMiddleware(), func(next zen.HandleFunc) zen.HandleFunc {
+		return func(ctx context.Context, session *zen.Session) error {
+			session.SetPrincipal(p)
+			session.SetClientIP(clientIP)
+			return next(ctx, session)
+		}
+	})
+	get := &gethandler.Handler{Devices: devices}
+	decide := &handler.Handler{Devices: devices}
+	h.Register(get, middlewares...)
+	h.Register(decide, middlewares...)
+	started, err := devices.Start(t.Context(), clidevice.StartRequest{RemoteIP: clientIP.String()})
+	require.NoError(t, err)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {"Bearer " + uid.New(uid.TestPrefix)},
+	}
+
+	for range 60 {
+		res := testutil.CallRoute[gethandler.Request, gethandler.Response](h, get, headers, gethandler.Request{UserCode: started.UserCode})
+		require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+	}
+	res := testutil.CallRoute[gethandler.Request, openapi.TooManyRequestsErrorResponse](h, get, headers, gethandler.Request{UserCode: started.UserCode})
+	require.Equal(t, http.StatusTooManyRequests, res.Status, res.RawBody)
+	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.DocsURL(), res.Body.Error.Type)
+	for _, decision := range []openapi.V2CliDecideDeviceLoginRequestBodyDecision{"approve", "deny"} {
+		req := handler.Request{UserCode: started.UserCode, Decision: decision}
+		if decision == "approve" {
+			req.Permissions = new(p.Permissions)
+		}
+		res := testutil.CallRoute[handler.Request, openapi.TooManyRequestsErrorResponse](h, decide, headers, req)
+		require.Equal(t, http.StatusTooManyRequests, res.Status, res.RawBody)
+	}
+
+	clientIP = netip.MustParseAddr("203.0.113.71")
+	blocked := testutil.CallRoute[gethandler.Request, openapi.TooManyRequestsErrorResponse](h, get, headers, gethandler.Request{UserCode: started.UserCode})
+	require.Equal(t, http.StatusTooManyRequests, blocked.Status, blocked.RawBody)
+	p.Subject.ID = uid.New(uid.TestPrefix)
+	allowed := testutil.CallRoute[gethandler.Request, gethandler.Response](h, get, headers, gethandler.Request{UserCode: started.UserCode})
+	require.Equal(t, http.StatusOK, allowed.Status, allowed.RawBody)
+	require.Equal(t, "pending", allowed.Body.Data.Status)
 }
 
 func TestDecisionApprovesOrDeniesTheLogin(t *testing.T) {
