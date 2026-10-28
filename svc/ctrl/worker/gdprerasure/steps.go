@@ -1,9 +1,12 @@
 package gdprerasure
 
+import restate "github.com/restatedev/sdk-go"
+
 // step is one erasure action. A subject's steps run in registry order, and
 // every step converges: run again, it finds nothing left and affects zero rows.
 type step interface {
 	name() string
+	execute(ctx restate.Context, w *Workflow, s subject) (int64, error)
 }
 
 // mysqlDelete removes the rows of table that match where, in bounded batches.

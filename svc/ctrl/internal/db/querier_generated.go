@@ -2160,6 +2160,13 @@ type Querier interface {
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
+	// Lists every identity of an end user, soft-deleted ones included, so a GDPR
+	// erasure can find the end user's rows in tables keyed by identity id.
+	//
+	//  SELECT id FROM identities
+	//  WHERE workspace_id = ?
+	//    AND external_id = ?
+	ListIdentityIDsByExternalID(ctx context.Context, arg ListIdentityIDsByExternalIDParams) ([]string, error)
 	// ListKeysForRefill returns keys that need their remaining_requests refilled.
 	// Uses a deferred join on pk for stable cursor-based pagination that avoids
 	// OFFSET drift when rows are mutated between batches.
