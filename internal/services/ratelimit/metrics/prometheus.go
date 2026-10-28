@@ -96,7 +96,9 @@ var (
 	// Labels:
 	//   - workspace_id: the workspace the request was attributed to.
 	//   - source: "local" when the decision used only in-memory counters;
-	//     "origin" when a cold-window or strict-mode Redis fetch was required.
+	//     "origin" when a cold-window or strict-mode Redis fetch was required;
+	//     "gcra" when the global rate limiter decided. Shadow decisions are
+	//     not counted here; see RatelimitShadowDecisions.
 	//   - outcome: "passed" (request allowed) or "denied" (limit exceeded).
 	//
 	// Example usage:
@@ -107,11 +109,60 @@ var (
 			Namespace: "unkey",
 			Subsystem: "ratelimit",
 			Name:      "decisions_total",
-			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin) and outcome (passed|denied).",
+			Help:      "Total number of rate-limit decisions, labeled by workspace_id, source (local|origin|gcra) and outcome (passed|denied).",
 		},
 		vec.Dynamic("workspace_id"),
-		vec.Values("source", "local", "origin"),
+		vec.Values("source", "local", "origin", "gcra"),
 		vec.Values("outcome", "passed", "denied"),
+	)
+
+	// RatelimitDecisionDuration measures how long the limit and multiLimit
+	// handlers wait for a decision, including failed ones. Comparing the two
+	// systems shows what the global rate limiter costs.
+	//
+	// Labels:
+	//   - op: "limit" or "multi_limit", the handler that asked.
+	//   - system: "regional" or "gcra", the limiter that decided, or
+	//     "gcra_shadow" for the global limiter in shadow mode.
+	//
+	// Example usage:
+	//   metrics.RatelimitDecisionDuration.WithLabelValues("limit", "gcra").Observe(seconds)
+	RatelimitDecisionDuration = vec.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "decision_duration_seconds",
+			Help:      "Time the rate limit handlers wait for a decision, labeled by op (limit|multi_limit) and system (regional|gcra|gcra_shadow).",
+			Buckets:   latencyBuckets,
+		},
+		vec.Values("op", "limit", "multi_limit"),
+		vec.Values("system", "regional", "gcra", "gcra_shadow"),
+	)
+
+	// RatelimitShadowDecisions compares the two limiters for namespaces in
+	// shadow mode. The regional limiter decides the response, and the global
+	// limiter decides the same call in the background.
+	//
+	// Labels:
+	//   - workspace_id: the workspace of the call.
+	//   - op: "limit" or "multi_limit".
+	//   - regional: "passed" or "denied", the decision the caller got.
+	//   - gcra: "passed" or "denied" from the global limiter, "error" if it
+	//     failed, or "skipped" if too many shadow decisions were running.
+	//
+	// Example usage:
+	//   metrics.RatelimitShadowDecisions.WithLabelValues(workspaceID, "limit", "passed", "denied").Inc()
+	RatelimitShadowDecisions = vec.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "shadow_decisions_total",
+			Help:      "Calls in shadow mode by the regional decision and the global limiter's decision.",
+		},
+		vec.Dynamic("workspace_id"),
+		vec.Values("op", "limit", "multi_limit"),
+		vec.Values("regional", "passed", "denied"),
+		vec.Values("gcra", "passed", "denied", "error", "skipped"),
 	)
 
 	// RatelimitCASExhausted counts Ratelimit() calls that exhausted the CAS

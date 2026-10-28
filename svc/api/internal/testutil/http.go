@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/gcra"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -37,6 +38,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	globalratelimit "github.com/unkeyed/unkey/pkg/ratelimit"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -84,6 +86,7 @@ type Harness struct {
 	RatelimitEvents            *batch.BatchProcessor[schema.Ratelimit]
 	FrontlineRequests          *batch.BatchProcessor[schema.FrontlineRequest]
 	Ratelimit                  ratelimit.Service
+	GlobalRatelimit            *gcra.Limiter
 	Vault                      vault.VaultServiceClient
 	AnalyticsConnectionManager analytics.ConnectionManager
 	seeder                     *seed.Seeder
@@ -251,6 +254,14 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	})
 	require.NoError(t, err)
 
+	globalRatelimit, err := globalratelimit.New(globalratelimit.Config{
+		Clock:  clk,
+		Store:  globalratelimit.NewMySQLStore(database.RW(), database.RO()),
+		Random: nil,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, globalRatelimit.Close()) })
+
 	ulSvc, err := usagelimiter.NewRedisWithCounter(usagelimiter.RedisConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
 			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
@@ -328,6 +339,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		PortalAuth:                 portalAuthService,
 		UsageLimiter:               ulSvc,
 		Ratelimit:                  ratelimitService,
+		GlobalRatelimit:            gcra.New(globalRatelimit),
 		Vault:                      v,
 		ClickHouse:                 ch,
 		DirectAuditLogs:            directAuditLogs,

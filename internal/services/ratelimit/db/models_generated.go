@@ -964,6 +964,51 @@ func (ns NullDeploymentsUpstreamProtocol) Value() (driver.Value, error) {
 	return string(ns.DeploymentsUpstreamProtocol), nil
 }
 
+type DeviceAuthorizationsStatus string
+
+const (
+	DeviceAuthorizationsStatusPending  DeviceAuthorizationsStatus = "pending"
+	DeviceAuthorizationsStatusApproved DeviceAuthorizationsStatus = "approved"
+	DeviceAuthorizationsStatusConsumed DeviceAuthorizationsStatus = "consumed"
+	DeviceAuthorizationsStatusDenied   DeviceAuthorizationsStatus = "denied"
+	DeviceAuthorizationsStatusExpired  DeviceAuthorizationsStatus = "expired"
+)
+
+func (e *DeviceAuthorizationsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeviceAuthorizationsStatus(s)
+	case string:
+		*e = DeviceAuthorizationsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeviceAuthorizationsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullDeviceAuthorizationsStatus struct {
+	DeviceAuthorizationsStatus DeviceAuthorizationsStatus
+	Valid                      bool // Valid is true if DeviceAuthorizationsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeviceAuthorizationsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeviceAuthorizationsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeviceAuthorizationsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeviceAuthorizationsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeviceAuthorizationsStatus), nil
+}
+
 type EnvironmentsKind string
 
 const (
@@ -1269,6 +1314,49 @@ func (ns NullPortalDomainsVerificationStatus) Value() (driver.Value, error) {
 	return string(ns.PortalDomainsVerificationStatus), nil
 }
 
+type RatelimitNamespacesGlobalRatelimitMode string
+
+const (
+	RatelimitNamespacesGlobalRatelimitModeOff    RatelimitNamespacesGlobalRatelimitMode = "off"
+	RatelimitNamespacesGlobalRatelimitModeShadow RatelimitNamespacesGlobalRatelimitMode = "shadow"
+	RatelimitNamespacesGlobalRatelimitModeOn     RatelimitNamespacesGlobalRatelimitMode = "on"
+)
+
+func (e *RatelimitNamespacesGlobalRatelimitMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = RatelimitNamespacesGlobalRatelimitMode(s)
+	case string:
+		*e = RatelimitNamespacesGlobalRatelimitMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for RatelimitNamespacesGlobalRatelimitMode: %T", src)
+	}
+	return nil
+}
+
+type NullRatelimitNamespacesGlobalRatelimitMode struct {
+	RatelimitNamespacesGlobalRatelimitMode RatelimitNamespacesGlobalRatelimitMode
+	Valid                                  bool // Valid is true if RatelimitNamespacesGlobalRatelimitMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullRatelimitNamespacesGlobalRatelimitMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.RatelimitNamespacesGlobalRatelimitMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.RatelimitNamespacesGlobalRatelimitMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullRatelimitNamespacesGlobalRatelimitMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.RatelimitNamespacesGlobalRatelimitMode), nil
+}
+
 type UnkeyPrincipalPermissionsPrincipalType string
 
 const (
@@ -1484,6 +1572,24 @@ type CiliumNetworkPolicy struct {
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
+type CliSession struct {
+	Pk                       uint64          `db:"pk"`
+	ID                       string          `db:"id"`
+	WorkspaceID              string          `db:"workspace_id"`
+	UserID                   string          `db:"user_id"`
+	UserName                 sql.NullString  `db:"user_name"`
+	Permissions              json.RawMessage `db:"permissions"`
+	DeviceName               sql.NullString  `db:"device_name"`
+	RefreshTokenHash         string          `db:"refresh_token_hash"`
+	PreviousRefreshTokenHash sql.NullString  `db:"previous_refresh_token_hash"`
+	RefreshFamily            string          `db:"refresh_family"`
+	RotatedAt                sql.NullInt64   `db:"rotated_at"`
+	CreatedAt                int64           `db:"created_at"`
+	LastUsedAt               int64           `db:"last_used_at"`
+	ExpiresAt                int64           `db:"expires_at"`
+	RevokedAt                sql.NullInt64   `db:"revoked_at"`
+}
+
 type ClickhouseOutbox struct {
 	Pk          uint64          `db:"pk"`
 	Version     string          `db:"version"`
@@ -1651,6 +1757,25 @@ type DeploymentTopology struct {
 	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
 	CreatedAt                  int64                           `db:"created_at"`
 	UpdatedAt                  sql.NullInt64                   `db:"updated_at"`
+}
+
+type DeviceAuthorization struct {
+	Pk                 uint64                     `db:"pk"`
+	ID                 string                     `db:"id"`
+	UserCode           string                     `db:"user_code"`
+	ExpiresAt          int64                      `db:"expires_at"`
+	Status             DeviceAuthorizationsStatus `db:"status"`
+	DeviceName         sql.NullString             `db:"device_name"`
+	RequesterIp        sql.NullString             `db:"requester_ip"`
+	RequesterUserAgent sql.NullString             `db:"requester_user_agent"`
+	WorkspaceID        sql.NullString             `db:"workspace_id"`
+	ApproverUserID     sql.NullString             `db:"approver_user_id"`
+	ApproverName       sql.NullString             `db:"approver_name"`
+	ApproverRoles      json.RawMessage            `db:"approver_roles"`
+	Permissions        json.RawMessage            `db:"permissions"`
+	SessionID          sql.NullString             `db:"session_id"`
+	CreatedAt          int64                      `db:"created_at"`
+	ApprovedAt         sql.NullInt64              `db:"approved_at"`
 }
 
 type EncryptedKey struct {
@@ -1995,15 +2120,16 @@ type RatelimitGlobalCounter struct {
 }
 
 type RatelimitNamespace struct {
-	Pk                 uint64        `db:"pk"`
-	ID                 string        `db:"id"`
-	WorkspaceID        string        `db:"workspace_id"`
-	ProjectID          string        `db:"project_id"`
-	Name               string        `db:"name"`
-	UseGlobalRatelimit bool          `db:"use_global_ratelimit"`
-	CreatedAtM         int64         `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64 `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64 `db:"deleted_at_m"`
+	Pk                  uint64                                 `db:"pk"`
+	ID                  string                                 `db:"id"`
+	WorkspaceID         string                                 `db:"workspace_id"`
+	ProjectID           string                                 `db:"project_id"`
+	Name                string                                 `db:"name"`
+	UseGlobalRatelimit  bool                                   `db:"use_global_ratelimit"`
+	GlobalRatelimitMode RatelimitNamespacesGlobalRatelimitMode `db:"global_ratelimit_mode"`
+	CreatedAtM          int64                                  `db:"created_at_m"`
+	UpdatedAtM          sql.NullInt64                          `db:"updated_at_m"`
+	DeletedAtM          sql.NullInt64                          `db:"deleted_at_m"`
 }
 
 type RatelimitOverride struct {
@@ -2017,6 +2143,15 @@ type RatelimitOverride struct {
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
 	DeletedAtM  sql.NullInt64 `db:"deleted_at_m"`
+}
+
+type RatelimitState struct {
+	Fingerprint    []byte `db:"fingerprint"`
+	BucketStartNs  int64  `db:"bucket_start_ns"`
+	PodID          string `db:"pod_id"`
+	ConsumedNs     int64  `db:"consumed_ns"`
+	ResetAtNs      int64  `db:"reset_at_ns"`
+	CompactAfterNs int64  `db:"compact_after_ns"`
 }
 
 type Region struct {

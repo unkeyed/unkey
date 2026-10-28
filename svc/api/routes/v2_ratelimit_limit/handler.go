@@ -9,6 +9,8 @@ import (
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/gcra"
+	"github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit/namespace"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
@@ -41,6 +43,7 @@ type Handler struct {
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
 	Ratelimit       ratelimit.Service
+	GlobalRatelimit *gcra.Limiter
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
 	createFlight    sf.Group[db.FindRatelimitNamespace]
@@ -158,7 +161,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	t0 := time.Now()
-	result, err := h.Ratelimit.Ratelimit(ctx, limitReq)
+	var result ratelimit.RatelimitResponse
+	system := "regional"
+	mode := gcra.ModeOf(ns.GlobalRatelimitMode)
+	if mode == db.RatelimitNamespacesGlobalRatelimitModeOn {
+		system = "gcra"
+		var results []ratelimit.RatelimitResponse
+		results, err = h.GlobalRatelimit.Allow(ctx, []ratelimit.RatelimitRequest{limitReq})
+		if err == nil {
+			result = results[0]
+		}
+	} else {
+		result, err = h.Ratelimit.Ratelimit(ctx, limitReq)
+	}
+	metrics.RatelimitDecisionDuration.WithLabelValues("limit", system).Observe(time.Since(t0).Seconds())
+	if err == nil && mode == db.RatelimitNamespacesGlobalRatelimitModeShadow {
+		h.GlobalRatelimit.Shadow(ctx, "limit", []ratelimit.RatelimitRequest{limitReq}, result.Success)
+	}
+	if _, coded := fault.GetCode(err); coded {
+		return err
+	}
 	if err != nil {
 		return fault.Wrap(
 			err,
@@ -314,16 +336,16 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 			}
 
 			result := db.FindRatelimitNamespace{
-				ID:                 id,
-				WorkspaceID:        principal.AuthorizedWorkspaceID,
-				ProjectID:          projectID,
-				Name:               name,
-				UseGlobalRatelimit: false,
-				CreatedAtM:         now,
-				UpdatedAtM:         sql.NullInt64{Valid: false, Int64: 0},
-				DeletedAtM:         sql.NullInt64{Valid: false, Int64: 0},
-				DirectOverrides:    make(map[string]db.FindRatelimitNamespaceLimitOverride),
-				WildcardOverrides:  make([]db.FindRatelimitNamespaceLimitOverride, 0),
+				ID:                  id,
+				WorkspaceID:         principal.AuthorizedWorkspaceID,
+				ProjectID:           projectID,
+				Name:                name,
+				GlobalRatelimitMode: db.RatelimitNamespacesGlobalRatelimitModeOff,
+				CreatedAtM:          now,
+				UpdatedAtM:          sql.NullInt64{Valid: false, Int64: 0},
+				DeletedAtM:          sql.NullInt64{Valid: false, Int64: 0},
+				DirectOverrides:     make(map[string]db.FindRatelimitNamespaceLimitOverride),
+				WildcardOverrides:   make([]db.FindRatelimitNamespaceLimitOverride, 0),
 			}
 
 			auditErr := h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
