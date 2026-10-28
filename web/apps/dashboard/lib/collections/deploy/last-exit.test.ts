@@ -142,15 +142,15 @@ describe("exitSummary", () => {
       exitSummary(
         exit({ restartCount: 7, reason: "Error", exitCode: 1, statusReason: "CrashLoopBackOff" }),
       ),
-    ).toBe("Crashing · 7 restarts");
+    ).toBe("Exited with error · exit=1 · 7 restarts");
     expect(exitSummary(exit({ restartCount: 1, reason: "OOMKilled", exitCode: 137 }))).toBe(
       "Out of memory · exit=137 · 1 restart",
     );
   });
 
-  test("reads an exit without a reason as a neutral exit", () => {
+  test("reads a failed exit without a reason as an error and a clean one as neutral", () => {
     expect(exitSummary(exit({ reason: "", exitCode: 1, restartCount: 2 }))).toBe(
-      "Exited · exit=1 · 2 restarts",
+      "Exited with error · exit=1 · 2 restarts",
     );
     expect(exitSummary(exit({ exitCode: 0 }))).toBe("Exited");
   });

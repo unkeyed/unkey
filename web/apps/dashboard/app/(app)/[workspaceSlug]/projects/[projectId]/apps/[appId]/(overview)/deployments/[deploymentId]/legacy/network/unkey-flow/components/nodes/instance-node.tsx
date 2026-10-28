@@ -1,5 +1,6 @@
 import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
-import { isFatalWaitingReason, summarizeExit } from "@/lib/collections/deploy/exit-reasons";
+import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
+import { isFatalWaitingReason } from "@/lib/collections/deploy/instance-status";
 import { trpc } from "@/lib/trpc/client";
 import { IconLayers3Outline18 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
