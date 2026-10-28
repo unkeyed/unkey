@@ -8,6 +8,8 @@ import { deploymentsCreateDeployment } from "../funcs/deploymentsCreateDeploymen
 import { deploymentsCreateDeploymentV3 } from "../funcs/deploymentsCreateDeploymentV3.js";
 import { deploymentsGetDeployment } from "../funcs/deploymentsGetDeployment.js";
 import { deploymentsListBuildLogs } from "../funcs/deploymentsListBuildLogs.js";
+import { deploymentsListConnectionPins } from "../funcs/deploymentsListConnectionPins.js";
+import { deploymentsListConnections } from "../funcs/deploymentsListConnections.js";
 import { deploymentsListDeployments } from "../funcs/deploymentsListDeployments.js";
 import { deploymentsPromoteDeployment } from "../funcs/deploymentsPromoteDeployment.js";
 import { deploymentsRollbackDeployment } from "../funcs/deploymentsRollbackDeployment.js";
@@ -179,6 +181,51 @@ export class Deployments extends ClientSDK {
     >
   > {
     return unwrapResultIterator(deploymentsListBuildLogs(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * List connections pinning a deployment
+   *
+   * @remarks
+   * Return up to ten current defaults and active deployment snapshots that pin
+   * this deployment. Current defaults come first, ordered by name. Snapshots
+   * follow, ordered by saved name and caller creation time. A default and its
+   * snapshot are separate entries. Snapshots count only while their caller is
+   * running or in flight with private networking enabled.
+   * Requires read access to the target deployment. Missing and unreadable
+   * deployments return the same 404 response.
+   */
+  async listConnectionPins(
+    request: components.V2DeploymentsListConnectionPinsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DeploymentsListConnectionPinsResponseBody> {
+    return unwrapAsync(deploymentsListConnectionPins(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * List saved deployment connections
+   *
+   * @remarks
+   * Return up to five connections saved in this deployment, ordered by saved name and ID.
+   * These snapshots are separate from the caller environment's current defaults.
+   * Removed target apps and environments retain their saved IDs with null labels.
+   * Requires read access to the deployment. Missing and unreadable deployments
+   * return the same 404 response. Stopped deployments and soft-deleted parents
+   * remain readable while their deployment records exist.
+   */
+  async listConnections(
+    request: components.V2DeploymentsListConnectionsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2DeploymentsListConnectionsResponseBody> {
+    return unwrapAsync(deploymentsListConnections(
       this,
       request,
       options,

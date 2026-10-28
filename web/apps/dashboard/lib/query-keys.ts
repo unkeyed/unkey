@@ -12,13 +12,27 @@ const apiRequestsRoot = ["logs", "apiRequests"] as const;
 const workspaceRoot = ["workspace"] as const;
 const ratelimitNamespacesRoot = ["ratelimit", "namespaces"] as const;
 const portalSessionLists = (portalId: string) => ["portalSessions", portalId, "list"] as const;
+const connectionScope = (projectId: string, appId: string) =>
+  ["connections", projectId, appId] as const;
 
 export const queryKeys = {
   apis: {
     detail: (apiId: string) => ["apis", "detail", apiId] as const,
   },
+  connections: {
+    app: connectionScope,
+    list: (projectId: string, appId: string, environmentId: string) =>
+      [...connectionScope(projectId, appId), "list", environmentId] as const,
+    retained: (projectId: string, appId: string, environmentId: string) =>
+      [...connectionScope(projectId, appId), "retained", environmentId] as const,
+    targets: (projectId: string, appId: string, environmentId: string, targetAppId?: string) =>
+      [...connectionScope(projectId, appId), "targets", environmentId, targetAppId] as const,
+  },
   deployments: {
     buildLogs: (deploymentId: string) => ["deployments", "buildLogs", deploymentId] as const,
+    connections: (deploymentId: string) => ["deployments", "connections", deploymentId] as const,
+    connectionPins: (deploymentId: string) =>
+      ["deployments", "connectionPins", deploymentId] as const,
   },
   identities: {
     all: identitiesRoot,

@@ -217,6 +217,7 @@ function useProductionOverview({
           : null,
       policiesHref: routes.projects.apps.policies(appScope),
       addPolicyHref: routes.projects.apps.policies({ ...appScope, add: true }),
+      connectionsHref: routes.projects.apps.connections(appScope),
     },
     sourceRepo,
     diagnostic,

@@ -10,6 +10,7 @@ import { DeploymentApproval } from "../(deployment-progress)/deployment-approval
 import { DeploymentSkipped } from "../(deployment-progress)/deployment-skipped";
 import { DeploymentDomainsCard } from "../../../../components/legacy/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
+import { ConnectionPinsNotice } from "../connection-pins-notice";
 import { DeploymentSuccessBanner } from "../deployment-success-banner";
 import { useDeployment } from "../layout-provider";
 import { useDeploymentStatus } from "../use-deployment-status";
@@ -116,6 +117,7 @@ export function DeploymentOverview() {
         />
       )}
       <DeploymentInfo statusOverride={derivedStatus} />
+      <ConnectionPinsNotice />
       {view}
       <DeploymentApproval
         isOpen={awaitingApproval}
