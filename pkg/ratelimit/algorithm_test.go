@@ -94,8 +94,12 @@ func TestDecideAtTheEdges(t *testing.T) {
 	}{
 		{"zero units on a full limit", Rate{Limit: 10, Duration: time.Second}, 10, 0, true},
 		{"zero units over the limit", Rate{Limit: 10, Duration: time.Second}, 12, 0, false},
-		{"a level below one unit counts as zero", Rate{Limit: 10, Duration: time.Second}, 0.999, 10, true},
-		{"a level of one unit counts", Rate{Limit: 10, Duration: time.Second}, 1, 10, false},
+		{"a level below 1% of a small limit counts as zero", Rate{Limit: 10, Duration: time.Second}, 0.099, 10, true},
+		{"a level of 1% of a small limit counts", Rate{Limit: 10, Duration: time.Second}, 0.1, 10, false},
+		{"a level below one unit of a large limit counts as zero", Rate{Limit: 1_000, Duration: time.Second}, 0.999, 1_000, true},
+		{"a level of one unit of a large limit counts", Rate{Limit: 1_000, Duration: time.Second}, 1, 1_000, false},
+		{"a limit of 1 at a level below 0.01", Rate{Limit: 1, Duration: time.Second}, 0.0099, 1, true},
+		{"a limit of 1 at a level of 0.01", Rate{Limit: 1, Duration: time.Second}, 0.01, 1, false},
 		{"exactly the limit", Rate{Limit: 10, Duration: time.Second}, 4, 6, true},
 		{"one over the limit", Rate{Limit: 10, Duration: time.Second}, 4, 7, false},
 		{"one over a limit beyond float precision", Rate{Limit: 1 << 60, Duration: time.Second}, 0, 1<<60 + 1, false},
@@ -157,10 +161,14 @@ func TestRateReportsRemainingAndTheNextUnit(t *testing.T) {
 	require.Equal(t, afterMs(rate.Duration, 100, 99).Milliseconds(), rate.nextUnitAfterMs(100))
 	require.Equal(t, afterMs(rate.Duration, 150, 99).Milliseconds(), rate.nextUnitAfterMs(150))
 
+	small := Rate{Limit: 10, Duration: time.Minute}
+	require.Equal(t, int64(10), small.remaining(0.099, 0))
+	require.Equal(t, int64(9), small.remaining(0.1, 0), "the cut is 1% of a limit below 100")
+
 	one := Rate{Limit: 1, Duration: time.Minute}
-	require.Zero(t, one.nextUnitAfterMs(0.999))
-	require.Equal(t, int64(1), one.nextUnitAfterMs(1), "a limit of 1 waits until the level is below one unit")
-	require.Equal(t, afterMs(one.Duration, 2, 1).Milliseconds()+1, one.nextUnitAfterMs(2))
+	require.Zero(t, one.nextUnitAfterMs(0.0099))
+	require.Equal(t, int64(1), one.nextUnitAfterMs(0.01), "a limit of 1 waits until the level is below 0.01")
+	require.Equal(t, int64(math.Floor(60_000*math.Log(100)))+1, one.nextUnitAfterMs(1))
 }
 
 func TestRateValidate(t *testing.T) {

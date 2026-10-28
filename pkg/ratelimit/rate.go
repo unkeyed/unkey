@@ -72,11 +72,19 @@ func (r Rate) slackUnits() float64 {
 	return min(0.5, 1e-9*float64(r.Limit))
 }
 
-// effectiveLevel returns the level that decisions use: zero below one unit,
-// the level otherwise. Without the cut, a level only reaches zero in the
-// limit, and `remaining` would never return to `Limit`.
-func effectiveLevel(level float64) float64 {
-	if level < 1 {
+// idleBelow returns the level below which a limit counts as idle:
+// `min(1, 0.01 × Limit)`. Without the cut, a level only reaches zero in the
+// limit, and `remaining` would never return to `Limit`. A level just below
+// it still admits `Limit` units, so the cut lets the level reach at most
+// `Limit + idleBelow`, at most 1% over the limit.
+func (r Rate) idleBelow() float64 {
+	return min(1, 0.01*float64(r.Limit))
+}
+
+// effectiveLevel returns the level that decisions use: zero below
+// `idleBelow`, the level otherwise.
+func (r Rate) effectiveLevel(level float64) float64 {
+	if level < r.idleBelow() {
 		return 0
 	}
 	return level
@@ -84,31 +92,30 @@ func effectiveLevel(level float64) float64 {
 
 // fits reports whether `units` fit on top of `level`.
 func (r Rate) fits(level float64, units int64) bool {
-	return effectiveLevel(level)+float64(units) <= float64(r.Limit)+r.slackUnits()
+	return r.effectiveLevel(level)+float64(units) <= float64(r.Limit)+r.slackUnits()
 }
 
 // remaining returns how many more units fit once `spent` units are added to
 // `level`: `⌊Limit − effective level − spent⌋`, between 0 and `Limit`.
 func (r Rate) remaining(level float64, spent int64) int64 {
-	free := math.Floor(float64(r.Limit) - effectiveLevel(level) - float64(spent) + r.slackUnits())
+	free := math.Floor(float64(r.Limit) - r.effectiveLevel(level) - float64(spent) + r.slackUnits())
 	return int64(min(max(free, 0), float64(r.Limit)))
 }
 
 // nextUnitAfterMs returns how long after now one unit fits on top of a
 // `level` that decays from now on. A level `L` falls to `x` after
 // `Duration × ln(L / x)`. One unit fits once the level is at most
-// `Limit − 1`, and for a limit of 1 once it is below 1, where the effective
-// level drops to zero.
+// `Limit − 1`, and for a limit of 1 once it is below `idleBelow`, where the
+// effective level drops to zero. The wait is rounded up to whole
+// milliseconds.
 func (r Rate) nextUnitAfterMs(level float64) int64 {
 	if r.fits(level, 1) {
 		return 0
 	}
-	target := float64(r.Limit - 1)
-	extraMs := 0.0
+	durationMs := float64(r.Duration.Milliseconds())
+	waitMs := math.Ceil(durationMs * math.Log(level/float64(r.Limit-1)))
 	if r.Limit == 1 {
-		target = 1
-		extraMs = 1
+		waitMs = math.Floor(durationMs*math.Log(level/r.idleBelow())) + 1
 	}
-	waitMs := math.Ceil(float64(r.Duration.Milliseconds())*math.Log(level/target)) + extraMs
 	return int64(min(max(waitMs, 0), float64(math.MaxInt64/2)))
 }

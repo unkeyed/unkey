@@ -3,6 +3,7 @@ package ratelimit
 import (
 	"context"
 	"crypto/sha256"
+	"fmt"
 	"math"
 	"math/rand/v2"
 	"sync"
@@ -106,29 +107,93 @@ func TestLimiterHoldsASteadyStreamToTheRate(t *testing.T) {
 	require.InEpsilon(t, want, float64(allowed), 0.001, "admitted %d, the rate allows %.0f", allowed, want)
 }
 
-// TestLimiterRecoversRemainingFullyAfterDurationTimesLnLimit guarantees that
-// a full limit reports `remaining = Limit` again once its level is below one
-// unit, `Duration × ln(Limit)` later, and not before.
-func TestLimiterRecoversRemainingFullyAfterDurationTimesLnLimit(t *testing.T) {
+// TestLimiterRecoversRemainingFully guarantees that a full limit reports
+// `remaining = Limit` again once its level is below `min(1, 0.01 × Limit)`,
+// `Duration × ln(Limit)` later from 100 units up and `Duration × ln(100)`
+// later below, and not before.
+func TestLimiterRecoversRemainingFully(t *testing.T) {
 	ctx := context.Background()
-	l, testClock := newTestLimiter(t)
-	rate := Rate{Limit: 100, Duration: time.Minute}
-	start := testClock.Now()
-	result, err := l.Allow(ctx, Request{Fingerprint: fingerprint("a"), Rate: rate, Units: rate.Limit})
-	require.NoError(t, err)
-	require.True(t, result.Allowed)
+	cases := []struct {
+		rate      Rate
+		recovered time.Duration
+	}{
+		{Rate{Limit: 1, Duration: time.Minute}, afterMs(time.Minute, 100, 1)},
+		{Rate{Limit: 10, Duration: time.Minute}, afterMs(time.Minute, 100, 1)},
+		{Rate{Limit: 100, Duration: time.Minute}, afterMs(time.Minute, 100, 1)},
+		{Rate{Limit: 1_000, Duration: time.Minute}, afterMs(time.Minute, 1_000, 1)},
+	}
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("%d per %s", tc.rate.Limit, tc.rate.Duration), func(t *testing.T) {
+			l, testClock := newTestLimiter(t)
+			start := testClock.Now()
+			result, err := l.Allow(ctx, Request{Fingerprint: fingerprint("a"), Rate: tc.rate, Units: tc.rate.Limit})
+			require.NoError(t, err)
+			require.True(t, result.Allowed)
 
-	check := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 0}
-	recovered := start.Add(afterMs(rate.Duration, float64(rate.Limit), 1))
-	testClock.Set(recovered.Add(-time.Millisecond))
-	result, err = l.Allow(ctx, check)
-	require.NoError(t, err)
-	require.Equal(t, rate.Limit-2, result.Remaining, "the level is just above one unit")
+			check := Request{Fingerprint: fingerprint("a"), Rate: tc.rate, Units: 0}
+			testClock.Set(start.Add(tc.recovered - time.Millisecond))
+			result, err = l.Allow(ctx, check)
+			require.NoError(t, err)
+			require.Less(t, result.Remaining, tc.rate.Limit, "the level is just above the cut")
 
-	testClock.Set(recovered.Add(time.Millisecond))
-	result, err = l.Allow(ctx, check)
-	require.NoError(t, err)
-	require.Equal(t, Result{Allowed: true, Remaining: rate.Limit, ResetAt: testClock.Now()}, result)
+			testClock.Set(start.Add(tc.recovered))
+			result, err = l.Allow(ctx, check)
+			require.NoError(t, err)
+			require.Equal(t, Result{Allowed: true, Remaining: tc.rate.Limit, ResetAt: testClock.Now()}, result)
+		})
+	}
+}
+
+// TestLimiterOverAdmitsAtMostOnePercent is the regression test for the cut at
+// one unit, which let a limit of 1 admit 2 at once and a limit of 10 reach a
+// level of almost 11. From any level, a burst of single units over a few
+// milliseconds must leave the level at most `Limit + min(1, 0.01 × Limit)`.
+func TestLimiterOverAdmitsAtMostOnePercent(t *testing.T) {
+	ctx := context.Background()
+	for _, rate := range []Rate{{Limit: 1, Duration: time.Second}, {Limit: 10, Duration: time.Second}, {Limit: 1_000, Duration: time.Minute}} {
+		cut := min(1, 0.01*float64(rate.Limit))
+		for _, startLevel := range []float64{0, 0.009, 0.0999, 0.5, 0.9, 0.999, 1.5} {
+			t.Run(fmt.Sprintf("%d per %s from %g", rate.Limit, rate.Duration, startLevel), func(t *testing.T) {
+				l, testClock := newTestLimiter(t)
+				var admitted []timedRequest
+				if startLevel >= float64(rate.Limit) {
+					t.Skip("one request cannot reach the level")
+				}
+				if startLevel > 0 {
+					first := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: rate.Limit}
+					result, err := l.Allow(ctx, first)
+					require.NoError(t, err)
+					require.True(t, result.Allowed)
+					admitted = append(admitted, timedRequest{atMs: testClock.Now().UnixMilli(), units: first.Units, podID: l.podID})
+					testClock.Tick(afterMs(rate.Duration, float64(rate.Limit), startLevel))
+				}
+				one := Request{Fingerprint: fingerprint("a"), Rate: rate, Units: 1}
+				for range 3 {
+					for range rate.Limit + 2 {
+						result, err := l.Allow(ctx, one)
+						require.NoError(t, err)
+						if result.Allowed {
+							admitted = append(admitted, timedRequest{atMs: testClock.Now().UnixMilli(), units: 1, podID: l.podID})
+						}
+					}
+					level := referenceLevel(admitted, testClock.Now().UnixMilli(), rate.Duration)
+					require.LessOrEqual(t, level, float64(rate.Limit)+cut, "the level after the burst")
+					testClock.Tick(time.Millisecond)
+				}
+			})
+		}
+	}
+
+	t.Run("a limit of 1 admits exactly 1 at once", func(t *testing.T) {
+		l, _ := newTestLimiter(t)
+		one := Request{Fingerprint: fingerprint("a"), Rate: Rate{Limit: 1, Duration: time.Second}, Units: 1}
+		result, err := l.Allow(ctx, one)
+		require.NoError(t, err)
+		require.True(t, result.Allowed)
+		result, err = l.Allow(ctx, one)
+		require.NoError(t, err)
+		require.False(t, result.Allowed)
+	})
 }
 
 // TestLimiterPaysBackAMultiPodOverAdmission replays the example of the
@@ -186,7 +251,7 @@ func TestLimiterAllowManySpendsNothingIfOneRequestIsDenied(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []Result{
 		{Allowed: true, Remaining: 10, ResetAt: testClock.Now()},
-		{Allowed: false, Remaining: 0, ResetAt: testClock.Now().Add(time.Millisecond)},
+		{Allowed: false, Remaining: 0, ResetAt: testClock.Now().Add(afterMs(10*time.Second, 100, 1))},
 	}, results)
 
 	open.Units = 10

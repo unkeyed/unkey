@@ -48,6 +48,11 @@ func simTolerance(level float64) float64 {
 //	local ≤ reference      a pod never charges more than the machine would
 //	local ≥ own            a pod never forgets units of a row it still writes
 //	allowed = units ≤ Limit and effective(local) + units ≤ Limit
+//	allowed ⇒ local + units ≤ Limit + min(1, 0.01 × Limit)
+//
+// effective(x) is zero below `min(1, 0.01 × Limit)` and x otherwise. The
+// last check uses the raw level, so it also catches a cut that is too
+// generous in both the limiter and the rule above.
 //
 // `local` is the level that the pod decides on and `own` the level of its
 // admitted requests in its current period, all within `simTolerance`.
@@ -230,7 +235,14 @@ func (st *simState) request(pod *simPod, limit simLimit, units int64) error {
 	if err != nil {
 		return err
 	}
-	fits := units <= limit.rate.Limit && limit.rate.fits(local, units)
+	// Written out here rather than calling `Rate.fits`, so a wrong cut in
+	// the limiter does not move the reference with it.
+	cut := min(1, 0.01*float64(limit.rate.Limit))
+	effective := local
+	if local < cut {
+		effective = 0
+	}
+	fits := units <= limit.rate.Limit && effective+float64(units) <= float64(limit.rate.Limit)+limit.rate.slackUnits()
 	describe := fmt.Sprintf("units %d, rate %+v, local %g, reference %g, own %g, now %d", units, limit.rate, local, reference, own, nowMs)
 	switch {
 	case local > reference+simTolerance(reference):
@@ -239,6 +251,8 @@ func (st *simState) request(pod *simPod, limit simLimit, units int64) error {
 		return fault.New("the pod forgot its own units: " + describe)
 	case result.Allowed != fits:
 		return fault.New("the pod did not follow the rule on what it knows: " + describe)
+	case result.Allowed && local+float64(units) > float64(limit.rate.Limit)+cut+simTolerance(local):
+		return fault.New("the raw level after the request exceeds the limit by more than the cut: " + describe)
 	}
 	if result.Allowed && units > 0 {
 		st.admitted[limit.fingerprint] = append(st.admitted[limit.fingerprint], timedRequest{atMs: nowMs, units: units, podID: pod.limiter.podID})

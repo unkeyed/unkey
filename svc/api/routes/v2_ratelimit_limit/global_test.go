@@ -93,7 +93,7 @@ func TestGlobalNamespace(t *testing.T) {
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.True(t, res.Body.Data.Success)
-		require.Equal(t, int64(1), res.Body.Data.Remaining, "a level below one unit counts as zero")
+		require.Equal(t, int64(0), res.Body.Data.Remaining)
 	})
 
 	t.Run("applies the override limit and duration", func(t *testing.T) {

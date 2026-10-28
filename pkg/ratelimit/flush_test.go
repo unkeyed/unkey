@@ -109,9 +109,13 @@ func TestFlushKeepsAnEntryWhileItHasARowInTheCurrentPeriod(t *testing.T) {
 	require.NoError(t, l.flush(ctx))
 	require.True(t, hasEntry(l, request.Fingerprint), "the level of 1.35 units is not idle")
 
+	testClock.Tick(2 * time.Second)
+	require.NoError(t, l.flush(ctx))
+	require.True(t, hasEntry(l, request.Fingerprint), "the level of 0.18 units is above the idle cut of 0.01")
+
 	testClock.Tick(time.Second)
 	require.NoError(t, l.flush(ctx))
-	require.False(t, hasEntry(l, request.Fingerprint))
+	require.False(t, hasEntry(l, request.Fingerprint), "nobody asked for the limit since its last read")
 
 	result, err := l.Allow(ctx, Request{Fingerprint: request.Fingerprint, Rate: rate, Units: 0})
 	require.NoError(t, err)

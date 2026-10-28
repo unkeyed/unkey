@@ -8,19 +8,23 @@
 //	level(now) = Σ c × e^(−(now − t) / Duration)
 //
 // A request fits if `effective level + cost ≤ Limit`, where the effective
-// level is zero below one unit. Without that cut the level never reaches zero,
-// and `remaining` would never return to `Limit`. Denied requests and requests
-// for zero units change nothing. With 10 per 10 seconds:
+// level is zero below `min(1, 0.01 × Limit)`. Without that cut the level
+// never reaches zero, and `remaining` would never return to `Limit`. With the
+// cut the level can reach at most 1% over `Limit`. Denied requests and
+// requests for zero units change nothing. With 10 per 10 seconds:
 //
 //	now       request   level before   check            result   level after
 //	12:00:00  10 units  0              0 + 10 ≤ 10      allow    10
 //	12:00:00  1 unit    10             10 + 1 > 10      deny     10
 //	12:00:01  1 unit    9.05           9.05 + 1 > 10    deny     9.05
 //	12:00:02  1 unit    8.19           8.19 + 1 ≤ 10    allow    9.19
-//	12:00:30  1 unit    0.56 (→ 0)     0 + 1 ≤ 10       allow    1.56
+//	12:00:30  1 unit    0.56           0.56 + 1 ≤ 10    allow    1.56
+//	12:01:00  1 unit    0.08 (→ 0)     0 + 1 ≤ 10       allow    1.08
 //
 // From idle the burst is `Limit`, a steady stream is held to `Limit /
-// Duration`, and `remaining` is back at `Limit` after `Duration × ln(Limit)`.
+// Duration`, and `remaining` is back at `Limit` after `Duration × ln(Limit /
+// min(1, 0.01 × Limit))`: `Duration × ln(Limit)` from 100 units up, and
+// `Duration × ln(100)` below.
 //
 // Pods share the level exactly, in any order. Time is split into periods of
 // `10 × Duration` on edges that all pods share, see `periodLengthMs`. Each

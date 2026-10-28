@@ -151,7 +151,9 @@ func (e *entry) uncommittedRows() map[rowKey]row {
 
 // evictable reports whether flush may forget the entry at `nowMs`: the store
 // has every own unit, this pod has no row in the current period, and the
-// entry is idle or unused, so a new one decides on a fresh read.
+// entry is idle or unused, so a new one decides on a fresh read. The entry
+// does not know the limit, so idle means below `negligibleUnits`, the
+// smallest `Rate.idleBelow`.
 //
 // The own row of the current period must stay in memory. A new entry would
 // read it from a replica that may lag, or not at all if the read fails, and
@@ -169,7 +171,7 @@ func (e *entry) evictable(nowMs int64) bool {
 			return false
 		}
 	}
-	idle := effectiveLevel(e.levelSum.level(nowMs, e.duration)) == 0
+	idle := e.levelSum.level(nowMs, e.duration) < negligibleUnits
 	unused := e.rowsReadOK && nowMs-e.rowsReadAtMs >= rowsStaleFor.Milliseconds()
 	return idle || unused
 }

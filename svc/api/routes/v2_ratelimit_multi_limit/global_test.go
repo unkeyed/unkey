@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
 	"net/http"
 	"testing"
 	"time"
@@ -78,7 +79,8 @@ func TestGlobalNamespaces(t *testing.T) {
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.False(t, res.Body.Data.Passed)
 		require.False(t, res.Body.Data.Limits[0].Passed)
-		require.Equal(t, start.Add(time.Millisecond).UnixMilli(), res.Body.Data.Limits[0].Reset, "a limit of 1 fits again once the level dips below 1")
+		// A limit of 1 fits again once the level is below 0.01.
+		require.Equal(t, start.Add(time.Duration(math.Floor(60_000*math.Log(100))+1)*time.Millisecond).UnixMilli(), res.Body.Data.Limits[0].Reset)
 		require.True(t, res.Body.Data.Limits[1].Passed)
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
