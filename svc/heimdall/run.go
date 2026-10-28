@@ -53,6 +53,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("unable to create clickhouse client: %w", err)
 	}
+	defer func() {
+		if err := ch.Close(); err != nil {
+			logger.Warn("clickhouse close failed", "error", err.Error())
+		}
+	}()
 
 	// Drop: false, so we backpressure the checkpoint loop if ClickHouse is
 	// unreachable. Losing checkpoints would be a silent undercharge; blocking
@@ -74,6 +79,24 @@ func Run(ctx context.Context, cfg Config) error {
 		Consumers:     2,
 		OnFlushError:  nil,
 	})
+	defer checkpointBuffer.Close()
+
+	collectors := collector.CollectorSetFrom(cfg.Collectors)
+
+	netReader := network.NewNoop()
+	if collectors.Network {
+		netReader, err = network.NewReader(cfg.CRISocket)
+		if err != nil {
+			return fmt.Errorf("loading network ebpf program: %w", err)
+		}
+	} else {
+		logger.Info("network collector disabled by config, skipping eBPF program load")
+	}
+	defer func() {
+		if err := netReader.Close(); err != nil {
+			logger.Warn("network reader close failed", "error", err.Error())
+		}
+	}()
 
 	k8sCfg, err := rest.InClusterConfig()
 	if err != nil {
@@ -96,30 +119,6 @@ func Run(ctx context.Context, cfg Config) error {
 	}()
 	podInformer := factory.Core().V1().Pods().Informer()
 	podLister := factory.Core().V1().Pods().Lister()
-
-	collectors := collector.CollectorSetFrom(cfg.Collectors)
-
-	// Network byte counters via tc eBPF on the pod-side eth0 inside each
-	// pod's netns. On Linux this loads the program once and dials
-	// containerd at cfg.CRISocket for sandbox netns resolution (sandbox
-	// container's OCI spec carries the /var/run/netns/cni-<uuid> path
-	// uniformly for runc and gVisor). On non-Linux (macOS dev/test)
-	// NewReader returns a no-op stub. Failure to load or dial is fatal:
-	// we'd silently undercharge every pod for network usage.
-	//
-	// Skip the load entirely when the network collector is disabled in
-	// config — saves the BPF program memory + the worker pool. The
-	// collector's attachAndReadNetwork short-circuits on a nil reader.
-	var netReader network.Reader
-	if collectors.Network {
-		r, err := network.NewReader(cfg.CRISocket)
-		if err != nil {
-			return fmt.Errorf("loading network ebpf program: %w", err)
-		}
-		netReader = r
-	} else {
-		logger.Info("network collector disabled by config, skipping eBPF program load")
-	}
 
 	kc := collector.New(collector.Config{
 		CH:           checkpointBuffer,
@@ -230,31 +229,7 @@ func Run(ctx context.Context, cfg Config) error {
 		})
 	}
 
-	// Buffer + CH lifecycle are tied to the collector goroutine so shutdown
-	// order is: ctx cancel → kc.Run drains in-flight handlers → buffer.Close
-	// flushes the batch → ch.Close tears down the connection. Doing these in
-	// r.Defer would run them BEFORE the runner's wg.Wait, racing with any
-	// late handler writes.
 	r.Go(func(ctx context.Context) error {
-		defer func() {
-			if err := ch.Close(); err != nil {
-				logger.Warn("clickhouse close failed", "error", err.Error())
-			}
-		}()
-
-		defer checkpointBuffer.Close()
-		if netReader != nil {
-			defer func() {
-				if err := netReader.Close(); err != nil {
-					logger.Warn("network reader close failed", "error", err.Error())
-				}
-			}()
-		}
-		defer func() {
-			stopInformer()
-			factory.Shutdown()
-		}()
-
 		return kc.Run(ctx, cfg.CollectionInterval)
 	})
 

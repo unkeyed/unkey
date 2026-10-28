@@ -140,10 +140,6 @@ const attachQueueSize = 256
 // three. A failing containerd dial is fatal: without it, we can't resolve
 // the CNI netns for any pod under gVisor (no IP on eth0 to match on) and
 // a silently-broken collector would undercharge every pod.
-//
-// On non-Linux platforms this returns a no-op stubReader — see
-// network_stub.go. The build tag switches the implementation at compile
-// time so the caller sees one exported symbol regardless of platform.
 func NewReader(criSocket string) (Reader, error) {
 	if err := rlimit.RemoveMemlock(); err != nil {
 		return nil, fmt.Errorf("rlimit.RemoveMemlock: %w", err)
@@ -607,9 +603,6 @@ func (r *linuxReader) Close() error {
 		}
 
 		clear(r.pending)
-		for len(r.attachQ) > 0 {
-			<-r.attachQ
-		}
 		if r.cd != nil {
 			_ = r.cd.Close()
 		}

@@ -5,6 +5,7 @@ package collector
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -95,6 +96,58 @@ func TestLifecycleNetworkMeasurement(t *testing.T) {
 					require.Zero(t, row.NetworkEgressPublicBytes)
 				}
 			}
+		})
+	}
+}
+
+type countingNetwork struct {
+	lifecycleNetwork
+	calls int
+}
+
+func (n *countingNetwork) Attach(uid types.UID) error {
+	n.calls++
+	return n.lifecycleNetwork.Attach(uid)
+}
+
+func (n *countingNetwork) Read(uid types.UID) (network.Counters, error) {
+	n.calls++
+	return n.lifecycleNetwork.Read(uid)
+}
+
+func TestDisabledNetworkIsUnmeasured(t *testing.T) {
+	for _, supplied := range []bool{false, true} {
+		t.Run(fmt.Sprintf("supplied reader=%t", supplied), func(t *testing.T) {
+			pod := lifecyclePod()
+			index := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+			require.NoError(t, index.Add(pod))
+			bp, rows := lifecycleBuffer(t)
+			net := &countingNetwork{lifecycleNetwork: lifecycleNetwork{bytes: 4096}}
+			cfg := Config{CH: bp, PodLister: corelisters.NewPodLister(index), NodeName: "node", Collectors: CollectorSetFrom([]string{"disk"})}
+			if supplied {
+				cfg.Network = net
+			}
+			c := New(cfg)
+			readErrors := metricValue(t, "unkey_heimdall_network_read_errors_total")
+			attachFailures := metricValue(t, "unkey_heimdall_network_attach_failures_total")
+			id := pod.Status.ContainerStatuses[0].ContainerID[len("containerd://"):]
+
+			c.OnStart(t.Context(), string(pod.UID), id)
+			require.NoError(t, c.collect(t.Context()))
+			c.OnExit(t.Context(), string(pod.UID), id)
+			bp.Close()
+
+			require.Len(t, *rows, 3)
+			for _, row := range *rows {
+				var attrs schema.InstanceCheckpointAttributes
+				require.NoError(t, json.Unmarshal([]byte(row.Attributes), &attrs))
+				require.False(t, attrs.NetworkAttached, row.EventKind)
+				require.Equal(t, []string{"disk"}, attrs.Collectors)
+				require.Zero(t, row.NetworkEgressPublicBytes)
+			}
+			require.Zero(t, net.calls, "a disabled collector must not attach or read")
+			require.Equal(t, readErrors, metricValue(t, "unkey_heimdall_network_read_errors_total"))
+			require.Equal(t, attachFailures, metricValue(t, "unkey_heimdall_network_attach_failures_total"))
 		})
 	}
 }

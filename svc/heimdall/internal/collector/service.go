@@ -53,10 +53,10 @@ type Config struct {
 	// clock.NewMonotonic) — wall-clock backward jumps from NTP corrections
 	// would produce negative intervals in the memory pair-integration.
 	Clock clock.Clock
-	// Network is the eBPF byte-counter reader. May be nil when the network
-	// collector is disabled via Collectors — run.go skips network.NewReader
-	// in that case so the BPF program never loads. attachAndReadNetwork
-	// fail-opens to zero counters when nil.
+	// Network measures pod network bytes. It is used only when
+	// Collectors.Network is set; otherwise, or when nil, New selects
+	// network.NewNoop and every checkpoint is unmeasured
+	// (network_attached=false). The caller still owns closing it.
 	Network network.Reader
 	// Collectors is the resolved enabled-set (see CollectorSetFrom). Disabled
 	// kinds skip their data source on each tick and write zero into the
@@ -68,18 +68,18 @@ type Config struct {
 // checkpoints to ClickHouse on a fixed cadence. Billing math is deferred
 // to query time — collector output is raw counter values only.
 type Collector struct {
-	ch          *batch.BatchProcessor[schema.InstanceCheckpoint]
-	podLister   corelisters.PodLister
-	cgroup      *cgroupReader
-	network     network.Reader
-	collectors  CollectorSet
-	kubeletRoot string
-	nodeName    string
-	region      string
-	platform    string
-	criSocket   string
-	clk         clock.Clock
-	mu          sync.Mutex
+	ch           *batch.BatchProcessor[schema.InstanceCheckpoint]
+	podLister    corelisters.PodLister
+	cgroup       *cgroupReader
+	network      network.Reader
+	collectors   CollectorSet
+	kubeletRoot  string
+	nodeName     string
+	region       string
+	platform     string
+	criSocket    string
+	clk          clock.Clock
+	collectionMu sync.Mutex
 }
 
 func New(cfg Config) *Collector {
@@ -93,19 +93,24 @@ func New(cfg Config) *Collector {
 		clk = clock.NewMonotonic()
 	}
 
+	net := cfg.Network
+	if net == nil || !cfg.Collectors.Network {
+		net = network.NewNoop()
+	}
+
 	return &Collector{
-		ch:          cfg.CH,
-		podLister:   cfg.PodLister,
-		cgroup:      &cgroupReader{root: root, driver: cfg.CgroupDriver},
-		network:     cfg.Network,
-		collectors:  cfg.Collectors,
-		kubeletRoot: cfg.KubeletRoot,
-		nodeName:    cfg.NodeName,
-		region:      cfg.Region,
-		platform:    cfg.Platform,
-		criSocket:   cfg.CRISocket,
-		clk:         clk,
-		mu:          sync.Mutex{},
+		ch:           cfg.CH,
+		podLister:    cfg.PodLister,
+		cgroup:       &cgroupReader{root: root, driver: cfg.CgroupDriver},
+		network:      net,
+		collectors:   cfg.Collectors,
+		kubeletRoot:  cfg.KubeletRoot,
+		nodeName:     cfg.NodeName,
+		region:       cfg.Region,
+		platform:     cfg.Platform,
+		criSocket:    cfg.CRISocket,
+		clk:          clk,
+		collectionMu: sync.Mutex{},
 	}
 }
 
@@ -148,8 +153,8 @@ func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 
 	<-ctx.Done()
 
-	c.mu.Lock()
-	c.mu.Unlock()
+	c.collectionMu.Lock()
+	c.collectionMu.Unlock()
 	watcherWG.Wait()
 
 	return ctx.Err()
@@ -158,11 +163,11 @@ func (c *Collector) Run(ctx context.Context, interval time.Duration) error {
 func (c *Collector) collectWithMetrics(ctx context.Context, interval time.Duration) {
 	start := time.Now()
 
-	if !c.mu.TryLock() {
+	if !c.collectionMu.TryLock() {
 		logger.Info("skipping collection, previous tick still running")
 		return
 	}
-	defer c.mu.Unlock()
+	defer c.collectionMu.Unlock()
 	if ctx.Err() != nil {
 		return
 	}
@@ -171,7 +176,7 @@ func (c *Collector) collectWithMetrics(ctx context.Context, interval time.Durati
 
 	elapsed := time.Since(start)
 	metrics.CollectionDuration.Observe(elapsed.Seconds())
-	if interval > 0 && elapsed > interval {
+	if elapsed > interval {
 		metrics.CollectionTicksOverrun.Inc()
 		logger.Warn("collection overran its interval; sample gaps are widening",
 			"elapsed", elapsed.String(), "interval", interval.String())
@@ -215,20 +220,24 @@ func (c *Collector) emitCRICheckpoint(podUID, containerID, kind string) {
 	c.emitLifecycleCheckpoint(pod, kind)
 }
 
-func (c *Collector) currentIncarnation(pod *corev1.Pod) bool {
+func (c *Collector) currentContainerStatus(pod *corev1.Pod) *corev1.ContainerStatus {
 	current := c.findPodByUID(string(pod.UID))
 	if current == nil {
-		return false
+		return nil
 	}
 	name := primaryContainerName(pod)
 	expected := findContainerStatus(pod, name)
 	actual := findContainerStatus(current, name)
-	return expected != nil && actual != nil && expected.ContainerID != "" &&
-		expected.ContainerID == actual.ContainerID && expected.RestartCount == actual.RestartCount
+	if expected == nil || actual == nil || expected.ContainerID == "" ||
+		expected.ContainerID != actual.ContainerID || expected.RestartCount != actual.RestartCount {
+		return nil
+	}
+	return actual
 }
 
 func (c *Collector) emitLifecycleCheckpoint(pod *corev1.Pod, kind string) {
-	if !c.currentIncarnation(pod) {
+	status := c.currentContainerStatus(pod)
+	if status == nil {
 		metrics.LifecycleDrops.WithLabelValues(kind, "incarnation_unknown").Inc()
 		return
 	}
@@ -249,18 +258,7 @@ func (c *Collector) emitLifecycleCheckpoint(pod *corev1.Pod, kind string) {
 	}
 
 	info := buildPodInfo(pod)
-
-	// Same rule as the periodic loop: if Status.ContainerStatuses hasn't
-	// populated the primary container yet, we don't know the real
-	// restart_count, so we can't emit a correctly-keyed checkpoint. Skip
-	// and accept the undercharge. The next start / stop event or the
-	// next periodic tick will catch it.
-	if !info.restartCountKnown {
-		metrics.LifecycleDrops.WithLabelValues(kind, "restart_count_unknown").Inc()
-		return
-	}
-
-	containerUID := checkpoint.ContainerUID(string(pod.UID), info.restartCount)
+	containerUID := checkpoint.ContainerUID(string(pod.UID), status.RestartCount)
 	now := c.clk.Now().UnixMilli()
 
 	var diskUsed, diskAllocated int64
@@ -288,14 +286,13 @@ func (c *Collector) emitLifecycleCheckpoint(pod *corev1.Pod, kind string) {
 
 	var net network.Counters
 	var netAttached bool
-	if kind == checkpoint.EventStop {
-		if c.collectors.Network && c.network != nil && !info.hostNetwork {
-			net, netAttached = c.readNetwork(info.uid)
-		}
-	} else {
+	switch {
+	case kind == checkpoint.EventStart:
 		net, netAttached = c.attachAndReadNetwork(info)
+	case !info.hostNetwork:
+		net, netAttached = c.readNetwork(info.uid)
 	}
-	if !c.currentIncarnation(pod) {
+	if c.currentContainerStatus(pod) == nil {
 		metrics.LifecycleDrops.WithLabelValues(kind, "incarnation_unknown").Inc()
 		return
 	}
@@ -310,7 +307,7 @@ func (c *Collector) emitLifecycleCheckpoint(pod *corev1.Pod, kind string) {
 		PodUID:                     string(pod.UID),
 		InstanceID:                 info.name,
 		ContainerUID:               containerUID,
-		RestartCount:               uint32(info.restartCount),
+		RestartCount:               uint32(status.RestartCount),
 		Ts:                         now,
 		EventKind:                  kind,
 		CPUUsageUsec:               cpuUsec,

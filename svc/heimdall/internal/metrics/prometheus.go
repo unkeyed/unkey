@@ -72,7 +72,7 @@ var (
 			Help:      "Total CRI lifecycle events that did not produce a checkpoint. Each drop is a bounded undercharge.",
 		},
 		vec.Values("kind", "start", "stop"),
-		vec.Values("reason", "pod_not_found", "cgroup_read_failed", "restart_count_unknown", "incarnation_unknown"),
+		vec.Values("reason", "pod_not_found", "cgroup_read_failed", "incarnation_unknown"),
 	)
 
 	// PeriodicSkips counts pods the 5s periodic tick skipped and did NOT
@@ -122,6 +122,18 @@ var (
 			Subsystem: "heimdall",
 			Name:      "bpf_map_entries",
 			Help:      "Current number of entries in the per-pod BPF byte counter map (keyed by POD_KEY).",
+		},
+	)
+
+	// BPFMapEnumerationErrors counts collection ticks whose BPFMapEntries
+	// count could not be read completely. The gauge keeps its last complete
+	// value while this rises, so alert on this counter rather than a flat gauge.
+	BPFMapEnumerationErrors = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "heimdall",
+			Name:      "bpf_map_enumeration_errors_total",
+			Help:      "Failed enumerations of the per-pod BPF byte counter map. bpf_map_entries keeps its last complete count while these occur.",
 		},
 	)
 
@@ -230,16 +242,16 @@ var (
 		},
 	)
 
-	// NetworkReadErrors counts per-pod BPF map lookup failures. Read
-	// errors currently degrade silently to zeroCounters in the collector;
-	// a rising counter means the map or its attachments are in a bad
-	// state and pods are being billed zero network bytes.
+	// NetworkReadErrors counts per-pod counter reads that failed or found a
+	// previously observed counter lost. Pods not yet attached or observed are
+	// excluded. A rising counter means checkpoints are carrying unmeasured
+	// network bytes (network_attached=false).
 	NetworkReadErrors = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
 			Subsystem: "heimdall",
 			Name:      "network_read_errors_total",
-			Help:      "Per-pod network byte-counter lookups that failed. Each failure reports zero network bytes for that tick.",
+			Help:      "Per-pod network byte-counter reads that failed or found the counter lost. Each failure leaves that checkpoint's network bytes unmeasured.",
 		},
 	)
 
