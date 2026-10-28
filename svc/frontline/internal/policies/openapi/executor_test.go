@@ -201,7 +201,7 @@ func TestExecute_LimitDisabled(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestCapBody_KnownLengthBodyStaysStream(t *testing.T) {
+func TestLimitBody_KnownLengthBodyStaysStream(t *testing.T) {
 	t.Parallel()
 
 	e := newTestExecutor(t)
@@ -210,12 +210,12 @@ func TestCapBody_KnownLengthBodyStaysStream(t *testing.T) {
 	req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
 	req.ContentLength = int64(len(body))
 
-	require.NoError(t, e.capBody(req))
+	require.NoError(t, e.limitBody(req))
 	require.Zero(t, reader.reads)
 	require.Nil(t, req.GetBody)
 }
 
-func TestCapBody_ChunkedBodyIsBuffered(t *testing.T) {
+func TestLimitBody_ChunkedBodyIsBuffered(t *testing.T) {
 	t.Parallel()
 
 	e := newTestExecutor(t)
@@ -224,7 +224,7 @@ func TestCapBody_ChunkedBodyIsBuffered(t *testing.T) {
 	req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
 	req.ContentLength = -1
 
-	require.NoError(t, e.capBody(req))
+	require.NoError(t, e.limitBody(req))
 	require.Positive(t, reader.reads)
 	require.NotNil(t, req.GetBody)
 	require.EqualValues(t, len(body), req.ContentLength)
@@ -234,7 +234,7 @@ func TestCapBody_ChunkedBodyIsBuffered(t *testing.T) {
 	require.Equal(t, body, forwarded)
 }
 
-func TestCapBody_BudgetExhausted(t *testing.T) {
+func TestLimitBody_BudgetExhausted(t *testing.T) {
 	t.Parallel()
 
 	e, err := New(clock.New(), testBodyBytesMax, testBodyBytesMax)
@@ -246,14 +246,14 @@ func TestCapBody_BudgetExhausted(t *testing.T) {
 	holder := httptest.NewRequestWithContext(holderCtx, "POST", "/users", bytes.NewReader(nil))
 	holder.Body = io.NopCloser(&countingReader{})
 	holder.ContentLength = testBodyBytesMax
-	require.NoError(t, e.capBody(holder))
+	require.NoError(t, e.limitBody(holder))
 
 	body := []byte("KEBAP")
 	reader := &countingReader{data: body, remaining: len(body)}
 	req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(reader))
 	req.ContentLength = int64(len(body))
 
-	err = e.capBody(req)
+	err = e.limitBody(req)
 	require.Error(t, err)
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)
@@ -262,7 +262,7 @@ func TestCapBody_BudgetExhausted(t *testing.T) {
 
 	endHolder()
 	require.Eventually(t, func() bool {
-		return e.capBody(req) == nil
+		return e.limitBody(req) == nil
 	}, time.Second, 5*time.Millisecond)
 }
 

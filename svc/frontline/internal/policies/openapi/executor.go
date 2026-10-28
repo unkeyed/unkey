@@ -30,7 +30,6 @@ type Executor struct {
 	bodyBudget   *semaphore.Weighted
 }
 
-// New returns an Executor. Zero or less turns off either limit.
 func New(clk clock.Clock, bodyBytesMax, bodyBytesBudget int64) (*Executor, error) {
 	if bodyBytesMax > 0 && bodyBytesBudget > 0 && bodyBytesBudget < bodyBytesMax {
 		return nil, fmt.Errorf("openapi body budget %d is smaller than the body limit %d", bodyBytesBudget, bodyBytesMax)
@@ -70,7 +69,7 @@ func (e *Executor) Execute(
 		return nil, nil
 	}
 
-	if err := e.capBody(req); err != nil {
+	if err := e.limitBody(req); err != nil {
 		return nil, err
 	}
 
@@ -100,11 +99,13 @@ func (e *Executor) Execute(
 	)
 }
 
-// Without a Content-Length we read the body here, up to the limit, because the
-// validator would read it with no limit.
+// Content-Length over the limit gets 413 without reading. Otherwise we reserve
+// Content-Length bytes of budget, or the full limit when there is no
+// Content-Length. A body with no Content-Length is read here, up to the limit,
+// because the validator would read it with no limit.
 //
 // Budget is released when the request ends, the proxy still needs the body.
-func (e *Executor) capBody(req *http.Request) error {
+func (e *Executor) limitBody(req *http.Request) error {
 	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody {
 		return nil
 	}
