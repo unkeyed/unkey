@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -36,7 +37,33 @@ type cache[K comparable, V any] struct {
 
 	loadsMu sync.Mutex
 	loads   map[K]*inflight[V]
+
+	metricReadsHit  prometheus.Counter
+	metricReadsMiss prometheus.Counter
+	metricDurations [opCount][statusCount]prometheus.Observer
 }
+
+type timingOp int
+
+const (
+	opGet timingOp = iota
+	opSWR
+	opSWRFallback
+	opCount
+)
+
+var timingOpNames = [opCount]string{"cache_get", "cache_swr", "cache_swr_fallback"}
+
+type timingStatus int
+
+const (
+	statusFresh timingStatus = iota
+	statusStale
+	statusMiss
+	statusCount
+)
+
+var timingStatusNames = [statusCount]string{"fresh", "stale", "miss"}
 
 // inflight is an origin read for a key that other SWR callers wait for.
 // Its result fields are written before done is closed.
@@ -189,6 +216,16 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		inflightRefreshes: make(map[K]bool),
 		loadsMu:           sync.Mutex{}, //faultline:equivalent the zero sync.Mutex is ready to use
 		loads:             make(map[K]*inflight[V]),
+		metricReadsHit:    metrics.CacheReads.WithLabelValues(config.Resource, "true"),
+		metricReadsMiss:   metrics.CacheReads.WithLabelValues(config.Resource, "false"),
+		metricDurations:   [opCount][statusCount]prometheus.Observer{},
+	}
+	for op := range opCount {
+		for status := range statusCount {
+			c.metricDurations[op][status] = metrics.CacheOperationDuration.WithLabelValues(
+				config.Resource, strings.TrimPrefix(timingOpNames[op], "cache_"), timingStatusNames[status],
+			)
+		}
 	}
 
 	repeat.Every(60*time.Second, func(context.Context) { //faultline:equivalent only the gauge refresh interval changes
@@ -267,16 +304,15 @@ func (c *cache[K, V]) enqueueRevalidation(keys []K, fn func([]K)) {
 	c.inflightMu.Unlock()
 }
 
-func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, start time.Time) {
+func (c *cache[K, V]) recordTiming(ctx context.Context, op timingOp, status timingStatus, start time.Time) {
 	duration := c.clock.Now().Sub(start)
-	status = strings.ToLower(status)
-	metrics.CacheOperationDuration.WithLabelValues(c.resource, strings.TrimPrefix(name, "cache_"), status).Observe(duration.Seconds())
+	c.metricDurations[op][status].Observe(duration.Seconds())
 	timing.Record(ctx, timing.Entry{
-		Name:     name,
+		Name:     timingOpNames[op],
 		Duration: duration,
 		Attributes: map[string]string{
 			"cache":  c.resource,
-			"status": status,
+			"status": timingStatusNames[status],
 		},
 	})
 }
@@ -285,23 +321,23 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 	start := c.clock.Now()
 	e, ok := c.get(ctx, key)
 	if !ok {
-		c.recordTiming(ctx, "cache_get", "miss", start)
+		c.recordTiming(ctx, opGet, statusMiss, start)
 		return value, Miss //faultline:equivalent value is the zero named result
 	}
 
 	now := c.clock.Now()
 
 	if now.Before(e.Stale) {
-		status := "STALE"
+		status := statusStale
 		if now.Before(e.Fresh) {
-			status = "FRESH"
+			status = statusFresh
 		}
-		c.recordTiming(ctx, "cache_get", status, start)
+		c.recordTiming(ctx, opGet, status, start)
 		return e.Value, e.Hit
 	}
 
 	c.deleteExpired(key, now)
-	c.recordTiming(ctx, "cache_get", "miss", start)
+	c.recordTiming(ctx, opGet, statusMiss, start)
 
 	return value, Miss //faultline:equivalent value is the zero named result
 }
@@ -442,7 +478,11 @@ func (c *cache[K, V]) deleteExpired(key K, now time.Time) {
 func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 	v, ok := c.store.get(key)
 
-	metrics.CacheReads.WithLabelValues(c.resource, fmt.Sprintf("%t", ok)).Inc()
+	if ok {
+		c.metricReadsHit.Inc()
+	} else {
+		c.metricReadsMiss.Inc()
+	}
 
 	return v, ok
 }
@@ -627,7 +667,7 @@ func (c *cache[K, V]) SWR(
 		// Cache Hit
 		if now.Before(e.Fresh) {
 			// We have data and it's fresh, so we return it
-			c.recordTiming(ctx, "cache_swr", "fresh", start)
+			c.recordTiming(ctx, opSWR, statusFresh, start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -637,7 +677,7 @@ func (c *cache[K, V]) SWR(
 				// the api response is returned
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
 			})
-			c.recordTiming(ctx, "cache_swr", "stale", start)
+			c.recordTiming(ctx, opSWR, statusStale, start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -647,7 +687,7 @@ func (c *cache[K, V]) SWR(
 
 	// Cache Miss - measure total time including all overhead
 	v, hit, err := c.load(ctx, key, refreshFromOrigin, op)
-	c.recordTiming(ctx, "cache_swr", "miss", start)
+	c.recordTiming(ctx, opSWR, statusMiss, start)
 
 	return v, hit, err
 }
@@ -765,7 +805,7 @@ func (c *cache[K, V]) SWRWithFallback(
 		// Found in cache
 		if now.Before(e.Fresh) {
 			// Fresh - return immediately
-			c.recordTiming(ctx, "cache_swr_fallback", "fresh", start)
+			c.recordTiming(ctx, opSWRFallback, statusFresh, start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -773,7 +813,7 @@ func (c *cache[K, V]) SWRWithFallback(
 			c.enqueueRevalidation([]K{key}, func([]K) {
 				c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), refreshFromOrigin, op)
 			})
-			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)
+			c.recordTiming(ctx, opSWRFallback, statusStale, start)
 			return e.Value, e.Hit, nil
 		}
 
@@ -783,7 +823,7 @@ func (c *cache[K, V]) SWRWithFallback(
 
 	// Cache miss on all candidates - fetch from origin
 	v, canonicalKey, err := refreshFromOrigin(ctx)
-	c.recordTiming(ctx, "cache_swr_fallback", "miss", start)
+	c.recordTiming(ctx, opSWRFallback, statusMiss, start)
 
 	operation := op(err)
 
