@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findOldestEnvironmentDeletion = `-- name: FindOldestEnvironmentDeletion :one
@@ -19,6 +21,12 @@ FROM environments
 //	SELECT CAST(COALESCE(MIN(deleted_at), 0) AS SIGNED) AS started_at
 //	FROM environments
 func (q *Queries) FindOldestEnvironmentDeletion(ctx context.Context) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.findOldestEnvironmentDeletion(ctx)
+	})
+}
+
+func (q *Queries) findOldestEnvironmentDeletion(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, findOldestEnvironmentDeletion)
 	var started_at int64
 	err := row.Scan(&started_at)

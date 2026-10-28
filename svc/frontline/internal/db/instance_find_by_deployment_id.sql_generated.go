@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findInstancesByDeploymentID = `-- name: FindInstancesByDeploymentID :many
@@ -51,6 +53,12 @@ type FindInstancesByDeploymentIDRow struct {
 //	INNER JOIN regions r ON r.id = i.region_id
 //	WHERE i.deployment_id = ?
 func (q *Queries) FindInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]FindInstancesByDeploymentIDRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]FindInstancesByDeploymentIDRow, error) {
+		return q.findInstancesByDeploymentID(ctx, deploymentID)
+	})
+}
+
+func (q *Queries) findInstancesByDeploymentID(ctx context.Context, deploymentID string) ([]FindInstancesByDeploymentIDRow, error) {
 	rows, err := q.db.QueryContext(ctx, findInstancesByDeploymentID, deploymentID)
 	if err != nil {
 		return nil, err

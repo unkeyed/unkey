@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findDefaultProjectByWorkspaceID = `-- name: FindDefaultProjectByWorkspaceID :one
@@ -26,6 +28,12 @@ LIMIT 1
 //	  AND BINARY slug = 'default'
 //	LIMIT 1
 func (q *Queries) FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (string, error) {
+		return q.findDefaultProjectByWorkspaceID(ctx, workspaceID)
+	})
+}
+
+func (q *Queries) findDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error) {
 	row := q.db.QueryRowContext(ctx, findDefaultProjectByWorkspaceID, workspaceID)
 	var id string
 	err := row.Scan(&id)

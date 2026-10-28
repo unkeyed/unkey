@@ -10,6 +10,7 @@ import (
 	"database/sql"
 
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -80,6 +81,12 @@ type FindDeploymentWithEnvironmentRow struct {
 //	  AND a.deleted_at IS NULL
 //	  AND p.deleted_at IS NULL
 func (q *Queries) FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindDeploymentWithEnvironmentRow, error) {
+		return q.findDeploymentWithEnvironment(ctx, db, id)
+	})
+}
+
+func (q *Queries) findDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error) {
 	row := db.QueryRowContext(ctx, findDeploymentWithEnvironment, id)
 	var i FindDeploymentWithEnvironmentRow
 	err := row.Scan(

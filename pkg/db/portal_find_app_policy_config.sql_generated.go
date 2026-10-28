@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAppPolicyConfigByID = `-- name: FindAppPolicyConfigByID :one
@@ -33,6 +35,12 @@ type FindAppPolicyConfigByIDParams struct {
 //	WHERE a.id = ?
 //	  AND a.workspace_id = ?
 func (q *Queries) FindAppPolicyConfigByID(ctx context.Context, db DBTX, arg FindAppPolicyConfigByIDParams) ([]byte, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]byte, error) {
+		return q.findAppPolicyConfigByID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findAppPolicyConfigByID(ctx context.Context, db DBTX, arg FindAppPolicyConfigByIDParams) ([]byte, error) {
 	row := db.QueryRowContext(ctx, findAppPolicyConfigByID, arg.AppID, arg.WorkspaceID)
 	var sentinel_config []byte
 	err := row.Scan(&sentinel_config)

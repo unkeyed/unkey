@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRatelimitOverridesByNamespaceID = `-- name: ListRatelimitOverridesByNamespaceID :many
@@ -38,6 +40,12 @@ type ListRatelimitOverridesByNamespaceIDParams struct {
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]RatelimitOverride, error) {
+		return q.listRatelimitOverridesByNamespaceID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listRatelimitOverridesByNamespaceID(ctx context.Context, db DBTX, arg ListRatelimitOverridesByNamespaceIDParams) ([]RatelimitOverride, error) {
 	rows, err := db.QueryContext(ctx, listRatelimitOverridesByNamespaceID,
 		arg.WorkspaceID,
 		arg.NamespaceID,

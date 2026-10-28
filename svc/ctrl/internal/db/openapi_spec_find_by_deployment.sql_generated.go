@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findOpenApiSpecByDeploymentID = `-- name: FindOpenApiSpecByDeploymentID :one
@@ -18,6 +20,12 @@ SELECT openapi_specs.pk, openapi_specs.id, openapi_specs.workspace_id, openapi_s
 //
 //	SELECT openapi_specs.pk, openapi_specs.id, openapi_specs.workspace_id, openapi_specs.deployment_id, openapi_specs.portal_id, openapi_specs.content, openapi_specs.created_at, openapi_specs.updated_at FROM openapi_specs WHERE deployment_id = ?
 func (q *Queries) FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (OpenapiSpec, error) {
+		return q.findOpenApiSpecByDeploymentID(ctx, deploymentID)
+	})
+}
+
+func (q *Queries) findOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error) {
 	row := q.db.QueryRowContext(ctx, findOpenApiSpecByDeploymentID, deploymentID)
 	var i OpenapiSpec
 	err := row.Scan(

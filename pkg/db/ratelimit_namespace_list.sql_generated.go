@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRatelimitNamespaces = `-- name: ListRatelimitNamespaces :many
@@ -61,6 +63,12 @@ type ListRatelimitNamespacesRow struct {
 //	ORDER BY ns.pk DESC
 //	LIMIT ?
 func (q *Queries) ListRatelimitNamespaces(ctx context.Context, db DBTX, arg ListRatelimitNamespacesParams) ([]ListRatelimitNamespacesRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListRatelimitNamespacesRow, error) {
+		return q.listRatelimitNamespaces(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listRatelimitNamespaces(ctx context.Context, db DBTX, arg ListRatelimitNamespacesParams) ([]ListRatelimitNamespacesRow, error) {
 	rows, err := db.QueryContext(ctx, listRatelimitNamespaces,
 		arg.WorkspaceID,
 		arg.CursorID,

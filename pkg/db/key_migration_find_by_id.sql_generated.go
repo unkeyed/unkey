@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeyMigrationByID = `-- name: FindKeyMigrationByID :one
@@ -40,6 +42,12 @@ type FindKeyMigrationByIDRow struct {
 //	WHERE id = ?
 //	and workspace_id = ?
 func (q *Queries) FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindKeyMigrationByIDRow, error) {
+		return q.findKeyMigrationByID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error) {
 	row := db.QueryRowContext(ctx, findKeyMigrationByID, arg.ID, arg.WorkspaceID)
 	var i FindKeyMigrationByIDRow
 	err := row.Scan(&i.ID, &i.WorkspaceID, &i.Algorithm)

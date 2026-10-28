@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findDeployWorkspaceByStripeCustomerID = `-- name: FindDeployWorkspaceByStripeCustomerID :one
@@ -44,6 +46,12 @@ type FindDeployWorkspaceByStripeCustomerIDRow struct {
 //	  AND b.plan IS NOT NULL
 //	  AND w.deleted_at_m IS NULL
 func (q *Queries) FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindDeployWorkspaceByStripeCustomerIDRow, error) {
+		return q.findDeployWorkspaceByStripeCustomerID(ctx, stripeCustomerID)
+	})
+}
+
+func (q *Queries) findDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeployWorkspaceByStripeCustomerID, stripeCustomerID)
 	var i FindDeployWorkspaceByStripeCustomerIDRow
 	err := row.Scan(&i.ID, &i.StripeDeploySubscriptionID)

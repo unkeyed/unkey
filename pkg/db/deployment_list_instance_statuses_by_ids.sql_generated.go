@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listDeploymentInstanceStatusesByIds = `-- name: ListDeploymentInstanceStatusesByIds :many
@@ -35,6 +36,12 @@ type ListDeploymentInstanceStatusesByIdsRow struct {
 //	WHERE workspace_id = ?
 //	  AND deployment_id IN (/*SLICE:deployment_ids*/?)
 func (q *Queries) ListDeploymentInstanceStatusesByIds(ctx context.Context, db DBTX, arg ListDeploymentInstanceStatusesByIdsParams) ([]ListDeploymentInstanceStatusesByIdsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListDeploymentInstanceStatusesByIdsRow, error) {
+		return q.listDeploymentInstanceStatusesByIds(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listDeploymentInstanceStatusesByIds(ctx context.Context, db DBTX, arg ListDeploymentInstanceStatusesByIdsParams) ([]ListDeploymentInstanceStatusesByIdsRow, error) {
 	query := listDeploymentInstanceStatusesByIds
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

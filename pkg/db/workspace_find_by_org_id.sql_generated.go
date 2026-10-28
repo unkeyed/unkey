@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findWorkspaceByOrgID = `-- name: FindWorkspaceByOrgID :one
@@ -21,6 +23,12 @@ AND deleted_at_m IS NULL
 //	WHERE org_id = ?
 //	AND deleted_at_m IS NULL
 func (q *Queries) FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Workspace, error) {
+		return q.findWorkspaceByOrgID(ctx, db, orgID)
+	})
+}
+
+func (q *Queries) findWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error) {
 	row := db.QueryRowContext(ctx, findWorkspaceByOrgID, orgID)
 	var i Workspace
 	err := row.Scan(

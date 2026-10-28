@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAppById = `-- name: FindAppById :one
@@ -21,6 +23,12 @@ WHERE id = ?
 //	FROM apps
 //	WHERE id = ?
 func (q *Queries) FindAppById(ctx context.Context, db DBTX, id string) (App, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (App, error) {
+		return q.findAppById(ctx, db, id)
+	})
+}
+
+func (q *Queries) findAppById(ctx context.Context, db DBTX, id string) (App, error) {
 	row := db.QueryRowContext(ctx, findAppById, id)
 	var i App
 	err := row.Scan(

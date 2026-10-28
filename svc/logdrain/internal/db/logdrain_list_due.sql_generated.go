@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listDueLogdrains = `-- name: ListDueLogdrains :many
@@ -35,6 +37,12 @@ type ListDueLogdrainsRow struct {
 //	  AND next_attempt_at <= CAST(UNIX_TIMESTAMP(NOW(3)) * 1000 AS SIGNED)
 //	ORDER BY id
 func (q *Queries) ListDueLogdrains(ctx context.Context, leaseID string) ([]ListDueLogdrainsRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListDueLogdrainsRow, error) {
+		return q.listDueLogdrains(ctx, leaseID)
+	})
+}
+
+func (q *Queries) listDueLogdrains(ctx context.Context, leaseID string) ([]ListDueLogdrainsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDueLogdrains, leaseID)
 	if err != nil {
 		return nil, err

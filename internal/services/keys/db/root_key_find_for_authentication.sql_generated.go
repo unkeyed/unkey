@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLegacyRootKeyForAuthentication = `-- name: FindLegacyRootKeyForAuthentication :one
@@ -101,6 +103,12 @@ type FindLegacyRootKeyForAuthenticationRow struct {
 //	    AND k.deleted_at_m IS NULL
 //	    AND k.for_workspace_id IS NOT NULL
 func (q *Queries) FindLegacyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindLegacyRootKeyForAuthenticationRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindLegacyRootKeyForAuthenticationRow, error) {
+		return q.findLegacyRootKeyForAuthentication(ctx, db, hash)
+	})
+}
+
+func (q *Queries) findLegacyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindLegacyRootKeyForAuthenticationRow, error) {
 	row := db.QueryRowContext(ctx, findLegacyRootKeyForAuthentication, hash)
 	var i FindLegacyRootKeyForAuthenticationRow
 	err := row.Scan(
@@ -176,6 +184,12 @@ type FindUnkeyRootKeyForAuthenticationRow struct {
 //	LEFT JOIN workspaces fws ON fws.id = k.workspace_id
 //	WHERE k.hash = ?
 func (q *Queries) FindUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindUnkeyRootKeyForAuthenticationRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindUnkeyRootKeyForAuthenticationRow, error) {
+		return q.findUnkeyRootKeyForAuthentication(ctx, db, hash)
+	})
+}
+
+func (q *Queries) findUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindUnkeyRootKeyForAuthenticationRow, error) {
 	row := db.QueryRowContext(ctx, findUnkeyRootKeyForAuthentication, hash)
 	var i FindUnkeyRootKeyForAuthenticationRow
 	err := row.Scan(

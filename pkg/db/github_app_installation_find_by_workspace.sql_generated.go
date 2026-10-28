@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findGithubAppInstallationsByWorkspaceId = `-- name: FindGithubAppInstallationsByWorkspaceId :many
@@ -25,6 +27,12 @@ ORDER BY installation_id ASC
 //	WHERE workspace_id = ?
 //	ORDER BY installation_id ASC
 func (q *Queries) FindGithubAppInstallationsByWorkspaceId(ctx context.Context, db DBTX, workspaceID string) ([]int64, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]int64, error) {
+		return q.findGithubAppInstallationsByWorkspaceId(ctx, db, workspaceID)
+	})
+}
+
+func (q *Queries) findGithubAppInstallationsByWorkspaceId(ctx context.Context, db DBTX, workspaceID string) ([]int64, error) {
 	rows, err := db.QueryContext(ctx, findGithubAppInstallationsByWorkspaceId, workspaceID)
 	if err != nil {
 		return nil, err

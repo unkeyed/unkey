@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listAppConnectionsByApp = `-- name: ListAppConnectionsByApp :many
@@ -57,6 +59,12 @@ type ListAppConnectionsByAppRow struct {
 //	    AND b.name <> 'self'
 //	ORDER BY b.pk
 func (q *Queries) ListAppConnectionsByApp(ctx context.Context, arg ListAppConnectionsByAppParams) ([]ListAppConnectionsByAppRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListAppConnectionsByAppRow, error) {
+		return q.listAppConnectionsByApp(ctx, arg)
+	})
+}
+
+func (q *Queries) listAppConnectionsByApp(ctx context.Context, arg ListAppConnectionsByAppParams) ([]ListAppConnectionsByAppRow, error) {
 	rows, err := q.db.QueryContext(ctx, listAppConnectionsByApp,
 		arg.WorkspaceID,
 		arg.ProjectID,

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPortalDomainByWorkspaceAndDomain = `-- name: FindPortalDomainByWorkspaceAndDomain :one
@@ -46,6 +48,12 @@ type FindPortalDomainByWorkspaceAndDomainRow struct {
 //	FROM portal_domains
 //	WHERE workspace_id = ? AND domain = ?
 func (q *Queries) FindPortalDomainByWorkspaceAndDomain(ctx context.Context, arg FindPortalDomainByWorkspaceAndDomainParams) (FindPortalDomainByWorkspaceAndDomainRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindPortalDomainByWorkspaceAndDomainRow, error) {
+		return q.findPortalDomainByWorkspaceAndDomain(ctx, arg)
+	})
+}
+
+func (q *Queries) findPortalDomainByWorkspaceAndDomain(ctx context.Context, arg FindPortalDomainByWorkspaceAndDomainParams) (FindPortalDomainByWorkspaceAndDomainRow, error) {
 	row := q.db.QueryRowContext(ctx, findPortalDomainByWorkspaceAndDomain, arg.WorkspaceID, arg.Domain)
 	var i FindPortalDomainByWorkspaceAndDomainRow
 	err := row.Scan(

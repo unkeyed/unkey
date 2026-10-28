@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLimitsByWorkspaceID = `-- name: FindLimitsByWorkspaceID :one
@@ -24,6 +26,12 @@ WHERE workspace_id = ?
 //	FROM `limits`
 //	WHERE workspace_id = ?
 func (q *Queries) FindLimitsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Limit, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Limit, error) {
+		return q.findLimitsByWorkspaceID(ctx, db, workspaceID)
+	})
+}
+
+func (q *Queries) findLimitsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Limit, error) {
 	row := db.QueryRowContext(ctx, findLimitsByWorkspaceID, workspaceID)
 	var i Limit
 	err := row.Scan(

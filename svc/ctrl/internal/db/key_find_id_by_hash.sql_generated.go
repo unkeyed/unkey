@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeyIDByHash = `-- name: FindKeyIDByHash :one
@@ -19,6 +21,12 @@ SELECT id FROM ` + "`" + `keys` + "`" + ` WHERE hash = ? AND deleted_at_m IS NUL
 //
 //	SELECT id FROM `keys` WHERE hash = ? AND deleted_at_m IS NULL
 func (q *Queries) FindKeyIDByHash(ctx context.Context, hash string) (string, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (string, error) {
+		return q.findKeyIDByHash(ctx, hash)
+	})
+}
+
+func (q *Queries) findKeyIDByHash(ctx context.Context, hash string) (string, error) {
 	row := q.db.QueryRowContext(ctx, findKeyIDByHash, hash)
 	var id string
 	err := row.Scan(&id)

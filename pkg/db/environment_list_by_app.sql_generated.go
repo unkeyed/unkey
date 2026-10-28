@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listEnvironmentsByApp = `-- name: ListEnvironmentsByApp :many
@@ -34,6 +36,12 @@ ORDER BY id ASC
 //	  )
 //	ORDER BY id ASC
 func (q *Queries) ListEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]Environment, error) {
+		return q.listEnvironmentsByApp(ctx, db, appID)
+	})
+}
+
+func (q *Queries) listEnvironmentsByApp(ctx context.Context, db DBTX, appID string) ([]Environment, error) {
 	rows, err := db.QueryContext(ctx, listEnvironmentsByApp, appID)
 	if err != nil {
 		return nil, err

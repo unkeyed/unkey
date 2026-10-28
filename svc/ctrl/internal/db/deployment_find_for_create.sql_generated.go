@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -30,6 +31,12 @@ type FindDeploymentForCreateRow struct {
 //	FROM deployments
 //	WHERE id = ?
 func (q *Queries) FindDeploymentForCreate(ctx context.Context, id string) (FindDeploymentForCreateRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindDeploymentForCreateRow, error) {
+		return q.findDeploymentForCreate(ctx, id)
+	})
+}
+
+func (q *Queries) findDeploymentForCreate(ctx context.Context, id string) (FindDeploymentForCreateRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentForCreate, id)
 	var i FindDeploymentForCreateRow
 	err := row.Scan(

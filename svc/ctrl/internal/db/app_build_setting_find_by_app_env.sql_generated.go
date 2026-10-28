@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAppBuildSettingByAppEnv = `-- name: FindAppBuildSettingByAppEnv :one
@@ -28,6 +30,12 @@ type FindAppBuildSettingByAppEnvParams struct {
 //	WHERE app_id = ?
 //	  AND environment_id = ?
 func (q *Queries) FindAppBuildSettingByAppEnv(ctx context.Context, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (AppBuildSetting, error) {
+		return q.findAppBuildSettingByAppEnv(ctx, arg)
+	})
+}
+
+func (q *Queries) findAppBuildSettingByAppEnv(ctx context.Context, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error) {
 	row := q.db.QueryRowContext(ctx, findAppBuildSettingByAppEnv, arg.AppID, arg.EnvironmentID)
 	var i AppBuildSetting
 	err := row.Scan(

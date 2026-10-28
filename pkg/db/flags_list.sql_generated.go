@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listFlags = `-- name: ListFlags :many
@@ -39,6 +41,12 @@ type ListFlagsRow struct {
 //	    ON o.flag_slug = f.slug AND o.workspace_id = ?
 //	ORDER BY f.slug
 func (q *Queries) ListFlags(ctx context.Context, db DBTX, workspaceID string) ([]ListFlagsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListFlagsRow, error) {
+		return q.listFlags(ctx, db, workspaceID)
+	})
+}
+
+func (q *Queries) listFlags(ctx context.Context, db DBTX, workspaceID string) ([]ListFlagsRow, error) {
 	rows, err := db.QueryContext(ctx, listFlags, workspaceID)
 	if err != nil {
 		return nil, err

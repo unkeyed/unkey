@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countPortalSessionsByExternalID = `-- name: CountPortalSessionsByExternalID :one
@@ -29,6 +31,12 @@ type CountPortalSessionsByExternalIDParams struct {
 //	WHERE workspace_id = ?
 //	  AND external_id = ?
 func (q *Queries) CountPortalSessionsByExternalID(ctx context.Context, db DBTX, arg CountPortalSessionsByExternalIDParams) (int64, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (int64, error) {
+		return q.countPortalSessionsByExternalID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) countPortalSessionsByExternalID(ctx context.Context, db DBTX, arg CountPortalSessionsByExternalIDParams) (int64, error) {
 	row := db.QueryRowContext(ctx, countPortalSessionsByExternalID, arg.WorkspaceID, arg.ExternalID)
 	var count int64
 	err := row.Scan(&count)

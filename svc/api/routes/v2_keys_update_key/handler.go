@@ -69,9 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	keyRow, err := db.WithRetryContext(ctx, func() (db.FindLiveKeyByIDRow, error) {
-		return db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
-	})
+	keyRow, err := db.Query.FindLiveKeyByID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return fault.Wrap(

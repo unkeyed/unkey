@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPortalSessionByAccessTokenHash = `-- name: FindPortalSessionByAccessTokenHash :one
@@ -26,6 +28,12 @@ WHERE access_token_hash = ?
 //	SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 //	WHERE access_token_hash = ?
 func (q *Queries) FindPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (PortalSession, error) {
+		return q.findPortalSessionByAccessTokenHash(ctx, db, accessTokenHash)
+	})
+}
+
+func (q *Queries) findPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error) {
 	row := db.QueryRowContext(ctx, findPortalSessionByAccessTokenHash, accessTokenHash)
 	var i PortalSession
 	err := row.Scan(

@@ -26,6 +26,11 @@ type Replica struct {
 // Ensure Replica implements the gen.DBTX interface
 var _ DBTX = (*Replica)(nil)
 
+// SupportsReadRetry identifies this executor as a standalone connection pool.
+func (r *Replica) SupportsReadRetry() bool {
+	return true
+}
+
 // ExecContext executes a SQL statement and returns a result summary.
 // It's used for INSERT, UPDATE, DELETE statements that don't return rows.
 func (r *Replica) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {

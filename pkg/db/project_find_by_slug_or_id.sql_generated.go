@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findProjectByIdOrSlug = `-- name: FindProjectByIdOrSlug :one
@@ -71,6 +73,12 @@ type FindProjectByIdOrSlugRow struct {
 //	WHERE p.deleted_at IS NULL
 //	LIMIT 1
 func (q *Queries) FindProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindProjectByIdOrSlugRow, error) {
+		return q.findProjectByIdOrSlug(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findProjectByIdOrSlug(ctx context.Context, db DBTX, arg FindProjectByIdOrSlugParams) (FindProjectByIdOrSlugRow, error) {
 	row := db.QueryRowContext(ctx, findProjectByIdOrSlug,
 		arg.Project,
 		arg.WorkspaceID,

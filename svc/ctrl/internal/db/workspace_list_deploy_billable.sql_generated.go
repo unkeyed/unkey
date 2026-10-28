@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listDeployBillableWorkspaces = `-- name: ListDeployBillableWorkspaces :many
@@ -53,6 +55,12 @@ type ListDeployBillableWorkspacesRow struct {
 //	  AND b.stripe_customer_id IS NOT NULL
 //	  AND w.deleted_at_m IS NULL
 func (q *Queries) ListDeployBillableWorkspaces(ctx context.Context) ([]ListDeployBillableWorkspacesRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListDeployBillableWorkspacesRow, error) {
+		return q.listDeployBillableWorkspaces(ctx)
+	})
+}
+
+func (q *Queries) listDeployBillableWorkspaces(ctx context.Context) ([]ListDeployBillableWorkspacesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDeployBillableWorkspaces)
 	if err != nil {
 		return nil, err

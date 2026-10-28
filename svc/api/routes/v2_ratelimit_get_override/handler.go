@@ -132,11 +132,9 @@ func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string
 	cacheKey := cache.ScopedKey{WorkspaceID: workspaceID, Key: nameOrID}
 
 	ns, hit, err := h.NamespaceCache.SWR(ctx, cacheKey, func(ctx context.Context) (db.FindRatelimitNamespace, error) {
-		row, dbErr := db.WithRetryContext(ctx, func() (db.FindRatelimitNamespaceRow, error) {
-			return db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
-				WorkspaceID: workspaceID,
-				Namespace:   nameOrID,
-			})
+		row, dbErr := db.Query.FindRatelimitNamespace(ctx, h.DB.RO(), db.FindRatelimitNamespaceParams{
+			WorkspaceID: workspaceID,
+			Namespace:   nameOrID,
 		})
 		if dbErr != nil {
 			return db.FindRatelimitNamespace{}, dbErr //nolint:exhaustruct

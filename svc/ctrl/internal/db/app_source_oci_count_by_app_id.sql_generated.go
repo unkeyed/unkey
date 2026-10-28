@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countAppSourceOciByAppId = `-- name: CountAppSourceOciByAppId :one
@@ -21,6 +23,12 @@ WHERE app_id = ?
 //	FROM `app_source_oci`
 //	WHERE app_id = ?
 func (q *Queries) CountAppSourceOciByAppId(ctx context.Context, appID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countAppSourceOciByAppId(ctx, appID)
+	})
+}
+
+func (q *Queries) countAppSourceOciByAppId(ctx context.Context, appID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countAppSourceOciByAppId, appID)
 	var count int64
 	err := row.Scan(&count)

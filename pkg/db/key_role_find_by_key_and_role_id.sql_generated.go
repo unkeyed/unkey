@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeyRoleByKeyAndRoleID = `-- name: FindKeyRoleByKeyAndRoleID :many
@@ -28,6 +30,12 @@ type FindKeyRoleByKeyAndRoleIDParams struct {
 //	WHERE key_id = ?
 //	  AND role_id = ?
 func (q *Queries) FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]KeysRole, error) {
+		return q.findKeyRoleByKeyAndRoleID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error) {
 	rows, err := db.QueryContext(ctx, findKeyRoleByKeyAndRoleID, arg.KeyID, arg.RoleID)
 	if err != nil {
 		return nil, err

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeySpaceByID = `-- name: FindKeySpaceByID :one
@@ -17,6 +19,12 @@ SELECT key_auth.pk, key_auth.id, key_auth.workspace_id, key_auth.project_id, key
 //
 //	SELECT key_auth.pk, key_auth.id, key_auth.workspace_id, key_auth.project_id, key_auth.created_at_m, key_auth.updated_at_m, key_auth.deleted_at_m, key_auth.store_encrypted_keys, key_auth.default_prefix, key_auth.default_bytes, key_auth.size_approx, key_auth.size_last_updated_at FROM `key_auth` WHERE id = ?
 func (q *Queries) FindKeySpaceByID(ctx context.Context, db DBTX, id string) (KeyAuth, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (KeyAuth, error) {
+		return q.findKeySpaceByID(ctx, db, id)
+	})
+}
+
+func (q *Queries) findKeySpaceByID(ctx context.Context, db DBTX, id string) (KeyAuth, error) {
 	row := db.QueryRowContext(ctx, findKeySpaceByID, id)
 	var i KeyAuth
 	err := row.Scan(

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listDeploymentStepsByIds = `-- name: ListDeploymentStepsByIds :many
@@ -29,6 +31,12 @@ type ListDeploymentStepsByIdsParams struct {
 //	  AND deployment_id IN (/*SLICE:deployment_ids*/?)
 //	ORDER BY deployment_id, started_at ASC
 func (q *Queries) ListDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListDeploymentStepsByIdsParams) ([]DeploymentStep, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]DeploymentStep, error) {
+		return q.listDeploymentStepsByIds(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListDeploymentStepsByIdsParams) ([]DeploymentStep, error) {
 	query := listDeploymentStepsByIds
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

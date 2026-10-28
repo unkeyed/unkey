@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findPortalByApp = `-- name: FindPortalByApp :one
@@ -33,6 +35,12 @@ type FindPortalByAppParams struct {
 //	  AND workspace_id = ?
 //	LIMIT 1
 func (q *Queries) FindPortalByApp(ctx context.Context, db DBTX, arg FindPortalByAppParams) (Portal, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Portal, error) {
+		return q.findPortalByApp(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findPortalByApp(ctx context.Context, db DBTX, arg FindPortalByAppParams) (Portal, error) {
 	row := db.QueryRowContext(ctx, findPortalByApp, arg.AppID, arg.WorkspaceID)
 	var i Portal
 	err := row.Scan(

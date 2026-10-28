@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findManyRatelimitNamespaces = `-- name: FindManyRatelimitNamespaces :many
@@ -67,6 +69,12 @@ type FindManyRatelimitNamespacesRow struct {
 //	WHERE ns.workspace_id = ?
 //	  AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 func (q *Queries) FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FindManyRatelimitNamespacesRow, error) {
+		return q.findManyRatelimitNamespaces(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error) {
 	query := findManyRatelimitNamespaces
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

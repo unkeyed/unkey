@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAcmeUserByWorkspaceID = `-- name: FindAcmeUserByWorkspaceID :one
@@ -17,6 +19,12 @@ SELECT acme_users.pk, acme_users.id, acme_users.workspace_id, acme_users.encrypt
 //
 //	SELECT acme_users.pk, acme_users.id, acme_users.workspace_id, acme_users.encrypted_key, acme_users.registration_uri, acme_users.created_at, acme_users.updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
 func (q *Queries) FindAcmeUserByWorkspaceID(ctx context.Context, workspaceID string) (AcmeUser, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (AcmeUser, error) {
+		return q.findAcmeUserByWorkspaceID(ctx, workspaceID)
+	})
+}
+
+func (q *Queries) findAcmeUserByWorkspaceID(ctx context.Context, workspaceID string) (AcmeUser, error) {
 	row := q.db.QueryRowContext(ctx, findAcmeUserByWorkspaceID, workspaceID)
 	var i AcmeUser
 	err := row.Scan(

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findGithubRepoConnectionByProjectId = `-- name: FindGithubRepoConnectionByProjectId :one
@@ -49,6 +51,12 @@ type FindGithubRepoConnectionByProjectIdRow struct {
 //	FROM github_repo_connections
 //	WHERE project_id = ?
 func (q *Queries) FindGithubRepoConnectionByProjectId(ctx context.Context, projectID string) (FindGithubRepoConnectionByProjectIdRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindGithubRepoConnectionByProjectIdRow, error) {
+		return q.findGithubRepoConnectionByProjectId(ctx, projectID)
+	})
+}
+
+func (q *Queries) findGithubRepoConnectionByProjectId(ctx context.Context, projectID string) (FindGithubRepoConnectionByProjectIdRow, error) {
 	row := q.db.QueryRowContext(ctx, findGithubRepoConnectionByProjectId, projectID)
 	var i FindGithubRepoConnectionByProjectIdRow
 	err := row.Scan(

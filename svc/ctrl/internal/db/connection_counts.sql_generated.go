@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countAppConnectionsByWorkspaceId = `-- name: CountAppConnectionsByWorkspaceId :one
@@ -17,6 +19,12 @@ SELECT COUNT(*) FROM app_connections WHERE workspace_id = ?
 //
 //	SELECT COUNT(*) FROM app_connections WHERE workspace_id = ?
 func (q *Queries) CountAppConnectionsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countAppConnectionsByWorkspaceId(ctx, workspaceID)
+	})
+}
+
+func (q *Queries) countAppConnectionsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countAppConnectionsByWorkspaceId, workspaceID)
 	var count int64
 	err := row.Scan(&count)
@@ -31,6 +39,12 @@ SELECT COUNT(*) FROM deployment_connection_app_targets WHERE connection_id = ?
 //
 //	SELECT COUNT(*) FROM deployment_connection_app_targets WHERE connection_id = ?
 func (q *Queries) CountDeploymentConnectionAppTargetsByConnectionId(ctx context.Context, connectionID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countDeploymentConnectionAppTargetsByConnectionId(ctx, connectionID)
+	})
+}
+
+func (q *Queries) countDeploymentConnectionAppTargetsByConnectionId(ctx context.Context, connectionID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countDeploymentConnectionAppTargetsByConnectionId, connectionID)
 	var count int64
 	err := row.Scan(&count)
@@ -45,6 +59,12 @@ SELECT COUNT(*) FROM deployment_connection_app_targets WHERE deployment_id = ?
 //
 //	SELECT COUNT(*) FROM deployment_connection_app_targets WHERE deployment_id = ?
 func (q *Queries) CountDeploymentConnectionAppTargetsByDeploymentId(ctx context.Context, deploymentID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countDeploymentConnectionAppTargetsByDeploymentId(ctx, deploymentID)
+	})
+}
+
+func (q *Queries) countDeploymentConnectionAppTargetsByDeploymentId(ctx context.Context, deploymentID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countDeploymentConnectionAppTargetsByDeploymentId, deploymentID)
 	var count int64
 	err := row.Scan(&count)
@@ -59,6 +79,12 @@ SELECT COUNT(*) FROM deployment_connections WHERE deployment_id = ?
 //
 //	SELECT COUNT(*) FROM deployment_connections WHERE deployment_id = ?
 func (q *Queries) CountDeploymentConnectionsByDeploymentId(ctx context.Context, deploymentID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countDeploymentConnectionsByDeploymentId(ctx, deploymentID)
+	})
+}
+
+func (q *Queries) countDeploymentConnectionsByDeploymentId(ctx context.Context, deploymentID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countDeploymentConnectionsByDeploymentId, deploymentID)
 	var count int64
 	err := row.Scan(&count)
@@ -73,6 +99,12 @@ SELECT COUNT(*) FROM deployment_connections WHERE environment_id = ?
 //
 //	SELECT COUNT(*) FROM deployment_connections WHERE environment_id = ?
 func (q *Queries) CountDeploymentConnectionsByEnvironmentId(ctx context.Context, environmentID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countDeploymentConnectionsByEnvironmentId(ctx, environmentID)
+	})
+}
+
+func (q *Queries) countDeploymentConnectionsByEnvironmentId(ctx context.Context, environmentID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countDeploymentConnectionsByEnvironmentId, environmentID)
 	var count int64
 	err := row.Scan(&count)
@@ -87,6 +119,12 @@ SELECT COUNT(*) FROM deployment_connections WHERE workspace_id = ?
 //
 //	SELECT COUNT(*) FROM deployment_connections WHERE workspace_id = ?
 func (q *Queries) CountDeploymentConnectionsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countDeploymentConnectionsByWorkspaceId(ctx, workspaceID)
+	})
+}
+
+func (q *Queries) countDeploymentConnectionsByWorkspaceId(ctx context.Context, workspaceID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countDeploymentConnectionsByWorkspaceId, workspaceID)
 	var count int64
 	err := row.Scan(&count)
@@ -103,6 +141,12 @@ LEFT JOIN app_connections b ON b.id = t.connection_id WHERE b.id IS NULL
 //	SELECT COUNT(*) FROM connection_app_targets t
 //	LEFT JOIN app_connections b ON b.id = t.connection_id WHERE b.id IS NULL
 func (q *Queries) CountOrphanConnectionAppTargets(ctx context.Context) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countOrphanConnectionAppTargets(ctx)
+	})
+}
+
+func (q *Queries) countOrphanConnectionAppTargets(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countOrphanConnectionAppTargets)
 	var count int64
 	err := row.Scan(&count)
@@ -121,6 +165,12 @@ WHERE b.pk IS NULL
 //	LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
 //	WHERE b.pk IS NULL
 func (q *Queries) CountOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countOrphanDeploymentConnectionAppTargets(ctx)
+	})
+}
+
+func (q *Queries) countOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countOrphanDeploymentConnectionAppTargets)
 	var count int64
 	err := row.Scan(&count)

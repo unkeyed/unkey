@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listDirectPermissionsByKeyID = `-- name: ListDirectPermissionsByKeyID :many
@@ -25,6 +27,12 @@ ORDER BY p.slug
 //	WHERE kp.key_id = ?
 //	ORDER BY p.slug
 func (q *Queries) ListDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]Permission, error) {
+		return q.listDirectPermissionsByKeyID(ctx, db, keyID)
+	})
+}
+
+func (q *Queries) listDirectPermissionsByKeyID(ctx context.Context, db DBTX, keyID string) ([]Permission, error) {
 	rows, err := db.QueryContext(ctx, listDirectPermissionsByKeyID, keyID)
 	if err != nil {
 		return nil, err

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findEnvironmentByIdentifiers = `-- name: FindEnvironmentByIdentifiers :one
@@ -46,6 +48,12 @@ type FindEnvironmentByIdentifiersParams struct {
 //	  AND (environments.id = ? OR environments.slug = ?)
 //	LIMIT 1
 func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Environment, error) {
+		return q.findEnvironmentByIdentifiers(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByIdentifiers,
 		arg.WorkspaceID,
 		arg.Project,

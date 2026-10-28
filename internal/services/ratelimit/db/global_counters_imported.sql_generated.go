@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const globalCountersImported = `-- name: GlobalCountersImported :many
@@ -59,6 +61,12 @@ type GlobalCountersImportedRow struct {
 //	WHERE expires_at > ?
 //	GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
 func (q *Queries) GlobalCountersImported(ctx context.Context, arg GlobalCountersImportedParams) ([]GlobalCountersImportedRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]GlobalCountersImportedRow, error) {
+		return q.globalCountersImported(ctx, arg)
+	})
+}
+
+func (q *Queries) globalCountersImported(ctx context.Context, arg GlobalCountersImportedParams) ([]GlobalCountersImportedRow, error) {
 	rows, err := q.db.QueryContext(ctx, globalCountersImported, arg.SelfRegion, arg.SelfRegion, arg.Now)
 	if err != nil {
 		return nil, err
@@ -168,6 +176,12 @@ type GlobalCountersImportedSinceRow struct {
 //	WHERE counters.expires_at > ?
 //	GROUP BY counters.workspace_id, counters.namespace, counters.identifier, counters.duration_ms, counters.sequence
 func (q *Queries) GlobalCountersImportedSince(ctx context.Context, arg GlobalCountersImportedSinceParams) ([]GlobalCountersImportedSinceRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]GlobalCountersImportedSinceRow, error) {
+		return q.globalCountersImportedSince(ctx, arg)
+	})
+}
+
+func (q *Queries) globalCountersImportedSince(ctx context.Context, arg GlobalCountersImportedSinceParams) ([]GlobalCountersImportedSinceRow, error) {
 	rows, err := q.db.QueryContext(ctx, globalCountersImportedSince,
 		arg.SelfRegion,
 		arg.SelfRegion,

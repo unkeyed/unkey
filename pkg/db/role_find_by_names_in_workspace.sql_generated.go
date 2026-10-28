@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findRolesByNamesInWorkspace = `-- name: FindRolesByNamesInWorkspace :many
@@ -35,6 +37,12 @@ type FindRolesByNamesInWorkspaceRow struct {
 //	WHERE workspace_id = ?
 //	  AND name IN (/*SLICE:names*/?)
 func (q *Queries) FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FindRolesByNamesInWorkspaceRow, error) {
+		return q.findRolesByNamesInWorkspace(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error) {
 	query := findRolesByNamesInWorkspace
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

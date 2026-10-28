@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const maxPortalSessionPkByExternalID = `-- name: MaxPortalSessionPkByExternalID :one
@@ -32,6 +34,12 @@ type MaxPortalSessionPkByExternalIDParams struct {
 //	  AND portal_id = ?
 //	  AND external_id = ?
 func (q *Queries) MaxPortalSessionPkByExternalID(ctx context.Context, db DBTX, arg MaxPortalSessionPkByExternalIDParams) (int64, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (int64, error) {
+		return q.maxPortalSessionPkByExternalID(ctx, db, arg)
+	})
+}
+
+func (q *Queries) maxPortalSessionPkByExternalID(ctx context.Context, db DBTX, arg MaxPortalSessionPkByExternalIDParams) (int64, error) {
 	row := db.QueryRowContext(ctx, maxPortalSessionPkByExternalID, arg.WorkspaceID, arg.PortalID, arg.ExternalID)
 	var max_pk int64
 	err := row.Scan(&max_pk)

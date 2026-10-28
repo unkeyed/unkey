@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findWorkspaceByID = `-- name: FindWorkspaceByID :one
@@ -19,6 +21,12 @@ WHERE id = ?
 //	SELECT workspaces.pk, workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.beta_features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m FROM `workspaces`
 //	WHERE id = ?
 func (q *Queries) FindWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Workspace, error) {
+		return q.findWorkspaceByID(ctx, db, id)
+	})
+}
+
+func (q *Queries) findWorkspaceByID(ctx context.Context, db DBTX, id string) (Workspace, error) {
 	row := db.QueryRowContext(ctx, findWorkspaceByID, id)
 	var i Workspace
 	err := row.Scan(

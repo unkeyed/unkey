@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findCustomDomainByDomain = `-- name: FindCustomDomainByDomain :one
@@ -28,6 +30,12 @@ LIMIT 1
 //	ORDER BY (verification_status = 'verified') DESC, updated_at DESC, pk DESC
 //	LIMIT 1
 func (q *Queries) FindCustomDomainByDomain(ctx context.Context, domain string) (CustomDomain, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (CustomDomain, error) {
+		return q.findCustomDomainByDomain(ctx, domain)
+	})
+}
+
+func (q *Queries) findCustomDomainByDomain(ctx context.Context, domain string) (CustomDomain, error) {
 	row := q.db.QueryRowContext(ctx, findCustomDomainByDomain, domain)
 	var i CustomDomain
 	err := row.Scan(

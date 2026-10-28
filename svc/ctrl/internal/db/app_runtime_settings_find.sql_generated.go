@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAppRuntimeSettingsByAppAndEnv = `-- name: FindAppRuntimeSettingsByAppAndEnv :one
@@ -29,6 +31,12 @@ type FindAppRuntimeSettingsByAppAndEnvParams struct {
 //	WHERE app_id = ?
 //	  AND environment_id = ?
 func (q *Queries) FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, arg FindAppRuntimeSettingsByAppAndEnvParams) (sql.NullString, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (sql.NullString, error) {
+		return q.findAppRuntimeSettingsByAppAndEnv(ctx, arg)
+	})
+}
+
+func (q *Queries) findAppRuntimeSettingsByAppAndEnv(ctx context.Context, arg FindAppRuntimeSettingsByAppAndEnvParams) (sql.NullString, error) {
 	row := q.db.QueryRowContext(ctx, findAppRuntimeSettingsByAppAndEnv, arg.AppID, arg.EnvironmentID)
 	var openapi_spec_path sql.NullString
 	err := row.Scan(&openapi_spec_path)

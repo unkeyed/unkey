@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countLogdrainsByStatus = `-- name: CountLogdrainsByStatus :many
@@ -35,6 +37,12 @@ type CountLogdrainsByStatusRow struct {
 //	FROM logdrains d
 //	GROUP BY d.status, d.stream
 func (q *Queries) CountLogdrainsByStatus(ctx context.Context) ([]CountLogdrainsByStatusRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]CountLogdrainsByStatusRow, error) {
+		return q.countLogdrainsByStatus(ctx)
+	})
+}
+
+func (q *Queries) countLogdrainsByStatus(ctx context.Context) ([]CountLogdrainsByStatusRow, error) {
 	rows, err := q.db.QueryContext(ctx, countLogdrainsByStatus)
 	if err != nil {
 		return nil, err

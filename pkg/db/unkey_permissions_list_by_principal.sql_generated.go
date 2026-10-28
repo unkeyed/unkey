@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listUnkeyPermissionRowsByPrincipal = `-- name: ListUnkeyPermissionRowsByPrincipal :many
@@ -35,6 +37,12 @@ type ListUnkeyPermissionRowsByPrincipalRow struct {
 //	  AND principal_type = ?
 //	  AND principal_id = ?
 func (q *Queries) ListUnkeyPermissionRowsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionRowsByPrincipalParams) ([]ListUnkeyPermissionRowsByPrincipalRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListUnkeyPermissionRowsByPrincipalRow, error) {
+		return q.listUnkeyPermissionRowsByPrincipal(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listUnkeyPermissionRowsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionRowsByPrincipalParams) ([]ListUnkeyPermissionRowsByPrincipalRow, error) {
 	rows, err := db.QueryContext(ctx, listUnkeyPermissionRowsByPrincipal, arg.WorkspaceID, arg.PrincipalType, arg.PrincipalID)
 	if err != nil {
 		return nil, err
@@ -78,6 +86,12 @@ type ListUnkeyPermissionsByPrincipalParams struct {
 //	  AND principal_type = ?
 //	  AND principal_id = ?
 func (q *Queries) ListUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionsByPrincipalParams) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]string, error) {
+		return q.listUnkeyPermissionsByPrincipal(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionsByPrincipalParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, listUnkeyPermissionsByPrincipal, arg.WorkspaceID, arg.PrincipalType, arg.PrincipalID)
 	if err != nil {
 		return nil, err

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listLimitsWithBuildsConcurrentMaxAbove = `-- name: ListLimitsWithBuildsConcurrentMaxAbove :many
@@ -28,6 +30,12 @@ type ListLimitsWithBuildsConcurrentMaxAboveRow struct {
 //	WHERE builds_concurrent_max > ?
 //	ORDER BY workspace_id
 func (q *Queries) ListLimitsWithBuildsConcurrentMaxAbove(ctx context.Context, buildsConcurrentMax uint16) ([]ListLimitsWithBuildsConcurrentMaxAboveRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListLimitsWithBuildsConcurrentMaxAboveRow, error) {
+		return q.listLimitsWithBuildsConcurrentMaxAbove(ctx, buildsConcurrentMax)
+	})
+}
+
+func (q *Queries) listLimitsWithBuildsConcurrentMaxAbove(ctx context.Context, buildsConcurrentMax uint16) ([]ListLimitsWithBuildsConcurrentMaxAboveRow, error) {
 	rows, err := q.db.QueryContext(ctx, listLimitsWithBuildsConcurrentMaxAbove, buildsConcurrentMax)
 	if err != nil {
 		return nil, err

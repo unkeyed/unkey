@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const resolveCustomDomainApps = `-- name: ResolveCustomDomainApps :many
@@ -66,6 +68,12 @@ type ResolveCustomDomainAppsParams struct {
 //	  AND a.id <> ?
 //	  AND (? = '' OR p.id = ? OR p.slug = ?)
 func (q *Queries) ResolveCustomDomainApps(ctx context.Context, db DBTX, arg ResolveCustomDomainAppsParams) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]string, error) {
+		return q.resolveCustomDomainApps(ctx, db, arg)
+	})
+}
+
+func (q *Queries) resolveCustomDomainApps(ctx context.Context, db DBTX, arg ResolveCustomDomainAppsParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, resolveCustomDomainApps,
 		arg.WorkspaceID,
 		arg.App,

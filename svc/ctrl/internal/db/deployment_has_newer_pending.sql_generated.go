@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const hasNewerActiveDeployment = `-- name: HasNewerActiveDeployment :one
@@ -50,6 +52,12 @@ type HasNewerActiveDeploymentParams struct {
 //	      AND id != ?
 //	) AS has_newer
 func (q *Queries) HasNewerActiveDeployment(ctx context.Context, arg HasNewerActiveDeploymentParams) (bool, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (bool, error) {
+		return q.hasNewerActiveDeployment(ctx, arg)
+	})
+}
+
+func (q *Queries) hasNewerActiveDeployment(ctx context.Context, arg HasNewerActiveDeploymentParams) (bool, error) {
 	row := q.db.QueryRowContext(ctx, hasNewerActiveDeployment,
 		arg.AppID,
 		arg.EnvironmentID,

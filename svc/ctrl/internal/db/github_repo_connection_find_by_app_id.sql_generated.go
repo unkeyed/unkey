@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findGithubRepoConnectionByAppId = `-- name: FindGithubRepoConnectionByAppId :one
@@ -41,6 +43,12 @@ WHERE app_id = ?
 //	FROM github_repo_connections
 //	WHERE app_id = ?
 func (q *Queries) FindGithubRepoConnectionByAppId(ctx context.Context, appID string) (GithubRepoConnection, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (GithubRepoConnection, error) {
+		return q.findGithubRepoConnectionByAppId(ctx, appID)
+	})
+}
+
+func (q *Queries) findGithubRepoConnectionByAppId(ctx context.Context, appID string) (GithubRepoConnection, error) {
 	row := q.db.QueryRowContext(ctx, findGithubRepoConnectionByAppId, appID)
 	var i GithubRepoConnection
 	err := row.Scan(

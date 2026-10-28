@@ -101,9 +101,7 @@ func newTestHarness(t *testing.T) *testHarness {
 
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
-			limit, err := db.WithRetryContext(ctx, func() (sql.NullInt64, error) {
-				return db.Query.FindKeyCredits(ctx, database.RO(), keyID)
-			})
+			limit, err := db.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			if err != nil {
 				return 0, false, err
 			}

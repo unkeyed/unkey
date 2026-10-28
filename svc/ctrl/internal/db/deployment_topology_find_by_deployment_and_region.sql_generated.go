@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -129,6 +130,12 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	WHERE dt.deployment_id = ? AND dt.region_id = ?
 //	LIMIT 1
 func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Context, arg FindDeploymentTopologyByDeploymentAndRegionParams) (FindDeploymentTopologyByDeploymentAndRegionRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindDeploymentTopologyByDeploymentAndRegionRow, error) {
+		return q.findDeploymentTopologyByDeploymentAndRegion(ctx, arg)
+	})
+}
+
+func (q *Queries) findDeploymentTopologyByDeploymentAndRegion(ctx context.Context, arg FindDeploymentTopologyByDeploymentAndRegionParams) (FindDeploymentTopologyByDeploymentAndRegionRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentTopologyByDeploymentAndRegion, arg.DeploymentID, arg.RegionID)
 	var i FindDeploymentTopologyByDeploymentAndRegionRow
 	err := row.Scan(

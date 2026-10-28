@@ -10,6 +10,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listLivePortalSessionsByExternalIDs = `-- name: ListLivePortalSessionsByExternalIDs :many
@@ -58,6 +60,12 @@ type ListLivePortalSessionsByExternalIDsRow struct {
 //	  )
 //	ORDER BY external_id ASC, created_at DESC, id ASC
 func (q *Queries) ListLivePortalSessionsByExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionsByExternalIDsParams) ([]ListLivePortalSessionsByExternalIDsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListLivePortalSessionsByExternalIDsRow, error) {
+		return q.listLivePortalSessionsByExternalIDs(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listLivePortalSessionsByExternalIDs(ctx context.Context, db DBTX, arg ListLivePortalSessionsByExternalIDsParams) ([]ListLivePortalSessionsByExternalIDsRow, error) {
 	query := listLivePortalSessionsByExternalIDs
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

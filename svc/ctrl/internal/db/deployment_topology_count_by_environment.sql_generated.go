@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countDeploymentTopologiesByEnvironment = `-- name: CountDeploymentTopologiesByEnvironment :one
@@ -21,6 +23,12 @@ WHERE d.environment_id = ?
 //	JOIN deployments d ON d.id = dt.deployment_id
 //	WHERE d.environment_id = ?
 func (q *Queries) CountDeploymentTopologiesByEnvironment(ctx context.Context, environmentID string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countDeploymentTopologiesByEnvironment(ctx, environmentID)
+	})
+}
+
+func (q *Queries) countDeploymentTopologiesByEnvironment(ctx context.Context, environmentID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countDeploymentTopologiesByEnvironment, environmentID)
 	var count int64
 	err := row.Scan(&count)

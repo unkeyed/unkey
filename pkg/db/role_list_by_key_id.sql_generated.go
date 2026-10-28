@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRolesByKeyID = `-- name: ListRolesByKeyID :many
@@ -66,6 +68,12 @@ type ListRolesByKeyIDRow struct {
 //	WHERE kr.key_id = ?
 //	ORDER BY r.name
 func (q *Queries) ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListRolesByKeyIDRow, error) {
+		return q.listRolesByKeyID(ctx, db, keyID)
+	})
+}
+
+func (q *Queries) listRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error) {
 	rows, err := db.QueryContext(ctx, listRolesByKeyID, keyID)
 	if err != nil {
 		return nil, err

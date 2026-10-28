@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listKeysForRefill = `-- name: ListKeysForRefill :many
@@ -74,6 +76,12 @@ type ListKeysForRefillRow struct {
 //	    LIMIT ?
 //	) AS batch ON batch.pk = k.pk
 func (q *Queries) ListKeysForRefill(ctx context.Context, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListKeysForRefillRow, error) {
+		return q.listKeysForRefill(ctx, arg)
+	})
+}
+
+func (q *Queries) listKeysForRefill(ctx context.Context, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error) {
 	rows, err := q.db.QueryContext(ctx, listKeysForRefill,
 		arg.TodayDay,
 		arg.IsLastDayOfMonth,

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findCertificateByHostname = `-- name: FindCertificateByHostname :one
@@ -17,6 +19,12 @@ SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates
 //
 //	SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
 func (q *Queries) FindCertificateByHostname(ctx context.Context, hostname string) (Certificate, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (Certificate, error) {
+		return q.findCertificateByHostname(ctx, hostname)
+	})
+}
+
+func (q *Queries) findCertificateByHostname(ctx context.Context, hostname string) (Certificate, error) {
 	row := q.db.QueryRowContext(ctx, findCertificateByHostname, hostname)
 	var i Certificate
 	err := row.Scan(

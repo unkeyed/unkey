@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findLatestReadyDeploymentByAppAndEnv = `-- name: FindLatestReadyDeploymentByAppAndEnv :one
@@ -37,6 +39,12 @@ type FindLatestReadyDeploymentByAppAndEnvParams struct {
 //	ORDER BY created_at DESC
 //	LIMIT 1
 func (q *Queries) FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (string, error) {
+		return q.findLatestReadyDeploymentByAppAndEnv(ctx, arg)
+	})
+}
+
+func (q *Queries) findLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error) {
 	row := q.db.QueryRowContext(ctx, findLatestReadyDeploymentByAppAndEnv, arg.AppID, arg.EnvironmentID, arg.ExcludeID)
 	var id string
 	err := row.Scan(&id)

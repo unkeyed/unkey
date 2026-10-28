@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findManyRolesByNamesWithPerms = `-- name: FindManyRolesByNamesWithPerms :many
@@ -75,6 +77,12 @@ type FindManyRolesByNamesWithPermsRow struct {
 //	  AND r.project_id = ?
 //	  AND r.name IN (/*SLICE:names*/?)
 func (q *Queries) FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]FindManyRolesByNamesWithPermsRow, error) {
+		return q.findManyRolesByNamesWithPerms(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error) {
 	query := findManyRolesByNamesWithPerms
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)

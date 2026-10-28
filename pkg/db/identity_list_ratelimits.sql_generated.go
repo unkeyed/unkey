@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listIdentityRatelimits = `-- name: ListIdentityRatelimits :many
@@ -24,6 +26,12 @@ ORDER BY id ASC
 //	WHERE identity_id = ?
 //	ORDER BY id ASC
 func (q *Queries) ListIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]Ratelimit, error) {
+		return q.listIdentityRatelimits(ctx, db, identityID)
+	})
+}
+
+func (q *Queries) listIdentityRatelimits(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error) {
 	rows, err := db.QueryContext(ctx, listIdentityRatelimits, identityID)
 	if err != nil {
 		return nil, err

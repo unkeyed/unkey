@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -43,6 +44,12 @@ type ListProgressingDeploymentsByEnvironmentIdRow struct {
 //	WHERE environment_id = ?
 //	  AND status IN (/*SLICE:progressing_statuses*/?)
 func (q *Queries) ListProgressingDeploymentsByEnvironmentId(ctx context.Context, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListProgressingDeploymentsByEnvironmentIdRow, error) {
+		return q.listProgressingDeploymentsByEnvironmentId(ctx, arg)
+	})
+}
+
+func (q *Queries) listProgressingDeploymentsByEnvironmentId(ctx context.Context, arg ListProgressingDeploymentsByEnvironmentIdParams) ([]ListProgressingDeploymentsByEnvironmentIdRow, error) {
 	query := listProgressingDeploymentsByEnvironmentId
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.EnvironmentID)

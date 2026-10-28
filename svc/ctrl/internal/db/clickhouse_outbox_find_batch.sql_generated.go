@@ -9,6 +9,8 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findClickhouseOutboxBatch = `-- name: FindClickhouseOutboxBatch :many
@@ -47,6 +49,12 @@ type FindClickhouseOutboxBatchRow struct {
 //	ORDER BY pk
 //	LIMIT ?
 func (q *Queries) FindClickhouseOutboxBatch(ctx context.Context, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]FindClickhouseOutboxBatchRow, error) {
+		return q.findClickhouseOutboxBatch(ctx, arg)
+	})
+}
+
+func (q *Queries) findClickhouseOutboxBatch(ctx context.Context, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error) {
 	query := findClickhouseOutboxBatch
 	var queryParams []interface{}
 	if len(arg.Versions) > 0 {

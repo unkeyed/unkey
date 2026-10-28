@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countActiveDeploymentsByIds = `-- name: CountActiveDeploymentsByIds :one
@@ -28,6 +30,12 @@ WHERE i.deployment_id IN (/*SLICE:ids*/?)
 //	FROM instances i
 //	WHERE i.deployment_id IN (/*SLICE:ids*/?)
 func (q *Queries) CountActiveDeploymentsByIds(ctx context.Context, ids []string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countActiveDeploymentsByIds(ctx, ids)
+	})
+}
+
+func (q *Queries) countActiveDeploymentsByIds(ctx context.Context, ids []string) (int64, error) {
 	query := countActiveDeploymentsByIds
 	var queryParams []interface{}
 	if len(ids) > 0 {

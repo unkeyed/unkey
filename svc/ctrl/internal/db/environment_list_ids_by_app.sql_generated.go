@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listEnvironmentIdsByApp = `-- name: ListEnvironmentIdsByApp :many
@@ -25,6 +27,12 @@ type ListEnvironmentIdsByAppParams struct {
 //	UNION
 //	SELECT deployments.environment_id AS id FROM deployments WHERE deployments.app_id = ?
 func (q *Queries) ListEnvironmentIdsByApp(ctx context.Context, arg ListEnvironmentIdsByAppParams) ([]string, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]string, error) {
+		return q.listEnvironmentIdsByApp(ctx, arg)
+	})
+}
+
+func (q *Queries) listEnvironmentIdsByApp(ctx context.Context, arg ListEnvironmentIdsByAppParams) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, listEnvironmentIdsByApp, arg.AppID, arg.AppID)
 	if err != nil {
 		return nil, err

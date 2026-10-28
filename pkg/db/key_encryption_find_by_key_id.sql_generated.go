@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findKeyEncryptionByKeyID = `-- name: FindKeyEncryptionByKeyID :one
@@ -17,6 +19,12 @@ SELECT encrypted_keys.pk, encrypted_keys.workspace_id, encrypted_keys.key_id, en
 //
 //	SELECT encrypted_keys.pk, encrypted_keys.workspace_id, encrypted_keys.key_id, encrypted_keys.created_at, encrypted_keys.updated_at, encrypted_keys.encrypted, encrypted_keys.encryption_key_id FROM encrypted_keys WHERE key_id = ?
 func (q *Queries) FindKeyEncryptionByKeyID(ctx context.Context, db DBTX, keyID string) (EncryptedKey, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (EncryptedKey, error) {
+		return q.findKeyEncryptionByKeyID(ctx, db, keyID)
+	})
+}
+
+func (q *Queries) findKeyEncryptionByKeyID(ctx context.Context, db DBTX, keyID string) (EncryptedKey, error) {
 	row := db.QueryRowContext(ctx, findKeyEncryptionByKeyID, keyID)
 	var i EncryptedKey
 	err := row.Scan(

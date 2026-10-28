@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findCustomDomainById = `-- name: FindCustomDomainById :one
@@ -38,6 +40,12 @@ type FindCustomDomainByIdRow struct {
 //	WHERE id = ?
 //	LIMIT 1
 func (q *Queries) FindCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindCustomDomainByIdRow, error) {
+		return q.findCustomDomainById(ctx, db, id)
+	})
+}
+
+func (q *Queries) findCustomDomainById(ctx context.Context, db DBTX, id string) (FindCustomDomainByIdRow, error) {
 	row := db.QueryRowContext(ctx, findCustomDomainById, id)
 	var i FindCustomDomainByIdRow
 	err := row.Scan(

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listRoles = `-- name: ListRoles :many
@@ -81,6 +83,12 @@ type ListRolesRow struct {
 //	ORDER BY r.id
 //	LIMIT ?
 func (q *Queries) ListRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListRolesRow, error) {
+		return q.listRoles(ctx, db, arg)
+	})
+}
+
+func (q *Queries) listRoles(ctx context.Context, db DBTX, arg ListRolesParams) ([]ListRolesRow, error) {
 	rows, err := db.QueryContext(ctx, listRoles,
 		arg.WorkspaceID,
 		arg.ProjectID,

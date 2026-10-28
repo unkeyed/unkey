@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findFrontlineRoutesByEnvironmentAndSticky = `-- name: FindFrontlineRoutesByEnvironmentAndSticky :many
@@ -61,6 +63,12 @@ type FindFrontlineRoutesByEnvironmentAndStickyRow struct {
 //	  AND sticky IN (/*SLICE:sticky*/?)
 //	ORDER BY created_at ASC
 func (q *Queries) FindFrontlineRoutesByEnvironmentAndSticky(ctx context.Context, arg FindFrontlineRoutesByEnvironmentAndStickyParams) ([]FindFrontlineRoutesByEnvironmentAndStickyRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]FindFrontlineRoutesByEnvironmentAndStickyRow, error) {
+		return q.findFrontlineRoutesByEnvironmentAndSticky(ctx, arg)
+	})
+}
+
+func (q *Queries) findFrontlineRoutesByEnvironmentAndSticky(ctx context.Context, arg FindFrontlineRoutesByEnvironmentAndStickyParams) ([]FindFrontlineRoutesByEnvironmentAndStickyRow, error) {
 	query := findFrontlineRoutesByEnvironmentAndSticky
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.EnvironmentID)

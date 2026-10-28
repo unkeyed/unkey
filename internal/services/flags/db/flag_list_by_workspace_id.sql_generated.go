@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listFlagsByWorkspaceID = `-- name: ListFlagsByWorkspaceID :many
@@ -36,6 +38,12 @@ type ListFlagsByWorkspaceIDRow struct {
 //	LEFT JOIN flag_overrides o
 //	    ON o.flag_slug = f.slug AND o.workspace_id = ?
 func (q *Queries) ListFlagsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) ([]ListFlagsByWorkspaceIDRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() ([]ListFlagsByWorkspaceIDRow, error) {
+		return q.listFlagsByWorkspaceID(ctx, db, workspaceID)
+	})
+}
+
+func (q *Queries) listFlagsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) ([]ListFlagsByWorkspaceIDRow, error) {
 	rows, err := db.QueryContext(ctx, listFlagsByWorkspaceID, workspaceID)
 	if err != nil {
 		return nil, err

@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const getWorkspacesForQuotaCheckByIDs = `-- name: GetWorkspacesForQuotaCheckByIDs :many
@@ -57,6 +59,12 @@ type GetWorkspacesForQuotaCheckByIDsRow struct {
 //	LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 //	WHERE w.id IN (/*SLICE:workspace_ids*/?)
 func (q *Queries) GetWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]GetWorkspacesForQuotaCheckByIDsRow, error) {
+		return q.getWorkspacesForQuotaCheckByIDs(ctx, workspaceIds)
+	})
+}
+
+func (q *Queries) getWorkspacesForQuotaCheckByIDs(ctx context.Context, workspaceIds []string) ([]GetWorkspacesForQuotaCheckByIDsRow, error) {
 	query := getWorkspacesForQuotaCheckByIDs
 	var queryParams []interface{}
 	if len(workspaceIds) > 0 {

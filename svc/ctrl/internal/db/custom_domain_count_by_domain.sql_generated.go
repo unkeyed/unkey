@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countCustomDomainsByDomain = `-- name: CountCustomDomainsByDomain :one
@@ -22,6 +24,12 @@ WHERE domain = ?
 //	FROM `custom_domains`
 //	WHERE domain = ?
 func (q *Queries) CountCustomDomainsByDomain(ctx context.Context, domain string) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countCustomDomainsByDomain(ctx, domain)
+	})
+}
+
+func (q *Queries) countCustomDomainsByDomain(ctx context.Context, domain string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countCustomDomainsByDomain, domain)
 	var count int64
 	err := row.Scan(&count)

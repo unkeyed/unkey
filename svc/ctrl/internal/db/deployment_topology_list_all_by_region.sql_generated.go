@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -135,6 +136,12 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	ORDER BY dt.pk ASC
 //	LIMIT ?
 func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]ListAllDeploymentTopologiesByRegionRow, error) {
+		return q.listAllDeploymentTopologiesByRegion(ctx, arg)
+	})
+}
+
+func (q *Queries) listAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error) {
 	rows, err := q.db.QueryContext(ctx, listAllDeploymentTopologiesByRegion, arg.RegionID, arg.AfterPk, arg.Limit)
 	if err != nil {
 		return nil, err

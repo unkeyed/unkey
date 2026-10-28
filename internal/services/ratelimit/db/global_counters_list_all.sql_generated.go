@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const globalCountersListAll = `-- name: GlobalCountersListAll :many
@@ -51,6 +53,12 @@ type GlobalCountersListAllRow struct {
 //	    updated_at
 //	FROM ratelimit_global_counters
 func (q *Queries) GlobalCountersListAll(ctx context.Context) ([]GlobalCountersListAllRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]GlobalCountersListAllRow, error) {
+		return q.globalCountersListAll(ctx)
+	})
+}
+
+func (q *Queries) globalCountersListAll(ctx context.Context) ([]GlobalCountersListAllRow, error) {
 	rows, err := q.db.QueryContext(ctx, globalCountersListAll)
 	if err != nil {
 		return nil, err

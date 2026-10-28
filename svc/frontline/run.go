@@ -461,9 +461,7 @@ func buildEngine(
 
 	usageLimiter, err := usagelimiter.NewCounter(usagelimiter.CounterConfig{
 		FindKeyCredits: func(ctx context.Context, keyID string) (int64, bool, error) {
-			limit, err := pkgdb.WithRetryContext(ctx, func() (sql.NullInt64, error) {
-				return pkgdb.Query.FindKeyCredits(ctx, database.RO(), keyID)
-			})
+			limit, err := pkgdb.Query.FindKeyCredits(ctx, database.RO(), keyID)
 			if err != nil {
 				return 0, false, err
 			}

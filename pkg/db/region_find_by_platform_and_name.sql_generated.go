@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findRegionByPlatformAndName = `-- name: FindRegionByPlatformAndName :one
@@ -28,6 +30,12 @@ type FindRegionByPlatformAndNameParams struct {
 //	FROM regions
 //	WHERE platform = ? AND name = ? LIMIT 1
 func (q *Queries) FindRegionByPlatformAndName(ctx context.Context, db DBTX, arg FindRegionByPlatformAndNameParams) (Region, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Region, error) {
+		return q.findRegionByPlatformAndName(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findRegionByPlatformAndName(ctx context.Context, db DBTX, arg FindRegionByPlatformAndNameParams) (Region, error) {
 	row := db.QueryRowContext(ctx, findRegionByPlatformAndName, arg.Platform, arg.Name)
 	var i Region
 	err := row.Scan(

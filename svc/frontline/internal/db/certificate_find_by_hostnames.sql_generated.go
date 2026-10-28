@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"strings"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findBestCertificateByCandidates = `-- name: FindBestCertificateByCandidates :one
@@ -60,6 +62,12 @@ type FindBestCertificateByCandidatesRow struct {
 //	ORDER BY hostname = ? DESC
 //	LIMIT 1
 func (q *Queries) FindBestCertificateByCandidates(ctx context.Context, arg FindBestCertificateByCandidatesParams) (FindBestCertificateByCandidatesRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindBestCertificateByCandidatesRow, error) {
+		return q.findBestCertificateByCandidates(ctx, arg)
+	})
+}
+
+func (q *Queries) findBestCertificateByCandidates(ctx context.Context, arg FindBestCertificateByCandidatesParams) (FindBestCertificateByCandidatesRow, error) {
 	query := findBestCertificateByCandidates
 	var queryParams []interface{}
 	if len(arg.Hostnames) > 0 {

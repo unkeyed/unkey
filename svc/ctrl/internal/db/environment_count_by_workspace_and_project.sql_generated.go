@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const countEnvironmentsByWorkspaceAndProject = `-- name: CountEnvironmentsByWorkspaceAndProject :one
@@ -26,6 +28,12 @@ type CountEnvironmentsByWorkspaceAndProjectParams struct {
 //	FROM `environments`
 //	WHERE workspace_id = ? AND project_id = ?
 func (q *Queries) CountEnvironmentsByWorkspaceAndProject(ctx context.Context, arg CountEnvironmentsByWorkspaceAndProjectParams) (int64, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (int64, error) {
+		return q.countEnvironmentsByWorkspaceAndProject(ctx, arg)
+	})
+}
+
+func (q *Queries) countEnvironmentsByWorkspaceAndProject(ctx context.Context, arg CountEnvironmentsByWorkspaceAndProjectParams) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countEnvironmentsByWorkspaceAndProject, arg.WorkspaceID, arg.ProjectID)
 	var count int64
 	err := row.Scan(&count)

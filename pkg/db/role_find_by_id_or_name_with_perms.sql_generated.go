@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findRoleByIdOrNameWithPerms = `-- name: FindRoleByIdOrNameWithPerms :one
@@ -76,6 +78,12 @@ type FindRoleByIdOrNameWithPermsRow struct {
 //	    OR r.name = ?
 //	)
 func (q *Queries) FindRoleByIdOrNameWithPerms(ctx context.Context, db DBTX, arg FindRoleByIdOrNameWithPermsParams) (FindRoleByIdOrNameWithPermsRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindRoleByIdOrNameWithPermsRow, error) {
+		return q.findRoleByIdOrNameWithPerms(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findRoleByIdOrNameWithPerms(ctx context.Context, db DBTX, arg FindRoleByIdOrNameWithPermsParams) (FindRoleByIdOrNameWithPermsRow, error) {
 	row := db.QueryRowContext(ctx, findRoleByIdOrNameWithPerms, arg.WorkspaceID, arg.Search, arg.Search)
 	var i FindRoleByIdOrNameWithPermsRow
 	err := row.Scan(

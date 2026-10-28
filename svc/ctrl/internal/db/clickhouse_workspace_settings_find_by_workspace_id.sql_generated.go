@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findClickhouseWorkspaceSettingsByWorkspaceID = `-- name: FindClickhouseWorkspaceSettingsByWorkspaceID :one
@@ -56,6 +58,12 @@ type FindClickhouseWorkspaceSettingsByWorkspaceIDRow struct {
 //	JOIN `limits` l ON l.workspace_id = c.workspace_id
 //	WHERE c.workspace_id = ?
 func (q *Queries) FindClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
+		return q.findClickhouseWorkspaceSettingsByWorkspaceID(ctx, workspaceID)
+	})
+}
+
+func (q *Queries) findClickhouseWorkspaceSettingsByWorkspaceID(ctx context.Context, workspaceID string) (FindClickhouseWorkspaceSettingsByWorkspaceIDRow, error) {
 	row := q.db.QueryRowContext(ctx, findClickhouseWorkspaceSettingsByWorkspaceID, workspaceID)
 	var i FindClickhouseWorkspaceSettingsByWorkspaceIDRow
 	err := row.Scan(

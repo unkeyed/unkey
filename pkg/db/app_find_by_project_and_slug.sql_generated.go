@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAppByProjectAndSlug = `-- name: FindAppByProjectAndSlug :one
@@ -40,6 +42,12 @@ type FindAppByProjectAndSlugRow struct {
 //	WHERE apps.project_id = ?
 //	  AND apps.slug = ?
 func (q *Queries) FindAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindAppByProjectAndSlugRow, error) {
+		return q.findAppByProjectAndSlug(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findAppByProjectAndSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndSlugParams) (FindAppByProjectAndSlugRow, error) {
 	row := db.QueryRowContext(ctx, findAppByProjectAndSlug, arg.ProjectID, arg.Slug)
 	var i FindAppByProjectAndSlugRow
 	err := row.Scan(&i.ID, &i.WorkspaceID, &i.Slug)

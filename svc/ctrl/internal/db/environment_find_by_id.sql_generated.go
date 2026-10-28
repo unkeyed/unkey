@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
@@ -21,6 +23,12 @@ WHERE id = ?
 //	FROM environments
 //	WHERE id = ?
 func (q *Queries) FindEnvironmentById(ctx context.Context, id string) (Environment, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (Environment, error) {
+		return q.findEnvironmentById(ctx, id)
+	})
+}
+
+func (q *Queries) findEnvironmentById(ctx context.Context, id string) (Environment, error) {
 	row := q.db.QueryRowContext(ctx, findEnvironmentById, id)
 	var i Environment
 	err := row.Scan(

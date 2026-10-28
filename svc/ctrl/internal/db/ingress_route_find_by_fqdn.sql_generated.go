@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findFrontlineRouteByFQDN = `-- name: FindFrontlineRouteByFQDN :one
@@ -17,6 +19,12 @@ SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, fr
 //
 //	SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE fully_qualified_domain_name = ?
 func (q *Queries) FindFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FrontlineRoute, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FrontlineRoute, error) {
+		return q.findFrontlineRouteByFQDN(ctx, fullyQualifiedDomainName)
+	})
+}
+
+func (q *Queries) findFrontlineRouteByFQDN(ctx context.Context, fullyQualifiedDomainName string) (FrontlineRoute, error) {
 	row := q.db.QueryRowContext(ctx, findFrontlineRouteByFQDN, fullyQualifiedDomainName)
 	var i FrontlineRoute
 	err := row.Scan(

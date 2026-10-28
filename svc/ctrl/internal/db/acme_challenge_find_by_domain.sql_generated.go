@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAcmeChallengeByDomain = `-- name: FindAcmeChallengeByDomain :one
@@ -29,6 +31,12 @@ type FindAcmeChallengeByDomainRow struct {
 //	JOIN custom_domains cd ON ac.domain_id = cd.id
 //	WHERE cd.domain = ?
 func (q *Queries) FindAcmeChallengeByDomain(ctx context.Context, domain string) (FindAcmeChallengeByDomainRow, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FindAcmeChallengeByDomainRow, error) {
+		return q.findAcmeChallengeByDomain(ctx, domain)
+	})
+}
+
+func (q *Queries) findAcmeChallengeByDomain(ctx context.Context, domain string) (FindAcmeChallengeByDomainRow, error) {
 	row := q.db.QueryRowContext(ctx, findAcmeChallengeByDomain, domain)
 	var i FindAcmeChallengeByDomainRow
 	err := row.Scan(&i.DomainID, &i.Status)

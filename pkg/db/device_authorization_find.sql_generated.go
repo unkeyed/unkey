@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findDeviceAuthorizationByID = `-- name: FindDeviceAuthorizationByID :one
@@ -53,6 +55,12 @@ WHERE id = ?
 //	FROM device_authorizations
 //	WHERE id = ?
 func (q *Queries) FindDeviceAuthorizationByID(ctx context.Context, db DBTX, id string) (DeviceAuthorization, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (DeviceAuthorization, error) {
+		return q.findDeviceAuthorizationByID(ctx, db, id)
+	})
+}
+
+func (q *Queries) findDeviceAuthorizationByID(ctx context.Context, db DBTX, id string) (DeviceAuthorization, error) {
 	row := db.QueryRowContext(ctx, findDeviceAuthorizationByID, id)
 	var i DeviceAuthorization
 	err := row.Scan(
@@ -189,6 +197,12 @@ WHERE user_code = ?
 //	FROM device_authorizations
 //	WHERE user_code = ?
 func (q *Queries) FindDeviceAuthorizationByUserCode(ctx context.Context, db DBTX, userCode string) (DeviceAuthorization, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (DeviceAuthorization, error) {
+		return q.findDeviceAuthorizationByUserCode(ctx, db, userCode)
+	})
+}
+
+func (q *Queries) findDeviceAuthorizationByUserCode(ctx context.Context, db DBTX, userCode string) (DeviceAuthorization, error) {
 	row := db.QueryRowContext(ctx, findDeviceAuthorizationByUserCode, userCode)
 	var i DeviceAuthorization
 	err := row.Scan(

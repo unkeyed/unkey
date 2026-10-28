@@ -10,6 +10,7 @@ import (
 	"database/sql"
 
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
@@ -67,6 +68,12 @@ type FindDeploymentByIdAndWorkspaceRow struct {
 //	  AND EXISTS (SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.deleted_at IS NULL)
 //	  AND EXISTS (SELECT 1 FROM environments e WHERE e.id = d.environment_id AND e.deleted_at IS NULL)
 func (q *Queries) FindDeploymentByIdAndWorkspace(ctx context.Context, db DBTX, arg FindDeploymentByIdAndWorkspaceParams) (FindDeploymentByIdAndWorkspaceRow, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (FindDeploymentByIdAndWorkspaceRow, error) {
+		return q.findDeploymentByIdAndWorkspace(ctx, db, arg)
+	})
+}
+
+func (q *Queries) findDeploymentByIdAndWorkspace(ctx context.Context, db DBTX, arg FindDeploymentByIdAndWorkspaceParams) (FindDeploymentByIdAndWorkspaceRow, error) {
 	row := db.QueryRowContext(ctx, findDeploymentByIdAndWorkspace, arg.ID, arg.WorkspaceID)
 	var i FindDeploymentByIdAndWorkspaceRow
 	err := row.Scan(

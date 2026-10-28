@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findAcmeChallengeByToken = `-- name: FindAcmeChallengeByToken :one
@@ -23,6 +25,12 @@ type FindAcmeChallengeByTokenParams struct {
 //
 //	SELECT acme_challenges.pk, acme_challenges.domain_id, acme_challenges.workspace_id, acme_challenges.token, acme_challenges.challenge_type, acme_challenges.authorization, acme_challenges.status, acme_challenges.expires_at, acme_challenges.created_at, acme_challenges.updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 func (q *Queries) FindAcmeChallengeByToken(ctx context.Context, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (AcmeChallenge, error) {
+		return q.findAcmeChallengeByToken(ctx, arg)
+	})
+}
+
+func (q *Queries) findAcmeChallengeByToken(ctx context.Context, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error) {
 	row := q.db.QueryRowContext(ctx, findAcmeChallengeByToken, arg.WorkspaceID, arg.DomainID, arg.Token)
 	var i AcmeChallenge
 	err := row.Scan(

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findRoleByID = `-- name: FindRoleByID :one
@@ -24,6 +26,12 @@ LIMIT 1
 //	WHERE id = ?
 //	LIMIT 1
 func (q *Queries) FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error) {
+	return mysql.ReadWithRetry(ctx, db, func() (Role, error) {
+		return q.findRoleByID(ctx, db, roleID)
+	})
+}
+
+func (q *Queries) findRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error) {
 	row := db.QueryRowContext(ctx, findRoleByID, roleID)
 	var i Role
 	err := row.Scan(

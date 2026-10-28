@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const listPreviewEnvironments = `-- name: ListPreviewEnvironments :many
@@ -32,6 +34,12 @@ type ListPreviewEnvironmentsParams struct {
 //	ORDER BY pk ASC
 //	LIMIT ?
 func (q *Queries) ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() ([]Environment, error) {
+		return q.listPreviewEnvironments(ctx, arg)
+	})
+}
+
+func (q *Queries) listPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error) {
 	rows, err := q.db.QueryContext(ctx, listPreviewEnvironments, arg.PaginationCursor, arg.Limit)
 	if err != nil {
 		return nil, err

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/unkeyed/unkey/pkg/mysql"
 )
 
 const findFrontlineRouteByDeploymentIDAndSticky = `-- name: FindFrontlineRouteByDeploymentIDAndSticky :one
@@ -22,6 +24,12 @@ type FindFrontlineRouteByDeploymentIDAndStickyParams struct {
 //
 //	SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?
 func (q *Queries) FindFrontlineRouteByDeploymentIDAndSticky(ctx context.Context, arg FindFrontlineRouteByDeploymentIDAndStickyParams) (FrontlineRoute, error) {
+	return mysql.ReadWithRetry(ctx, q.db, func() (FrontlineRoute, error) {
+		return q.findFrontlineRouteByDeploymentIDAndSticky(ctx, arg)
+	})
+}
+
+func (q *Queries) findFrontlineRouteByDeploymentIDAndSticky(ctx context.Context, arg FindFrontlineRouteByDeploymentIDAndStickyParams) (FrontlineRoute, error) {
 	row := q.db.QueryRowContext(ctx, findFrontlineRouteByDeploymentIDAndSticky, arg.DeploymentID, arg.Sticky)
 	var i FrontlineRoute
 	err := row.Scan(
