@@ -37,7 +37,7 @@ To add one, open the app, go to **Policies**, click **Add policy**, and set **Ty
 
   - `remoteIp: {}`: the remote IP.
   - `header: { name }`: the value of a request header.
-  - `path: {}`: the request path.
+  - `path: {}`: the request path, normalized and lowercased the same way [policy matching](/compute/gateway/policies#how-paths-and-methods-match) normalizes it. `/API/users/` and `/api/users` share one counter.
   - `authenticatedSubject: {}`: the caller's `subject`, from an earlier API key policy.
   - `principalField: { path }`: a field in the [principal](/compute/gateway/principal), as a dotted path like `source.key.meta.org_id`, up to 512 characters. Only string values work.
 </ParamField>
