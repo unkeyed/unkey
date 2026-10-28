@@ -92,7 +92,7 @@ function AlertBanner({ className, variant, appearance = "banner", ...props }: Al
     <div
       data-slot="alert-banner"
       data-appearance={appearance}
-      role="alert"
+      role={appearance === "card" ? "status" : "alert"}
       className={cn(alertBannerVariants({ variant, appearance }), className)}
       {...props}
     />
