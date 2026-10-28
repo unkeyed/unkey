@@ -43,9 +43,13 @@ func TestCommand_HelpDoesNotExposeParsedRootKey(t *testing.T) {
 			data, err := os.ReadFile(output.Name())
 			require.NoError(t, err)
 			text := string(data)
-			require.Contains(t, text, "OPTIONS:")
-			require.Contains(t, text, "[$UNKEY_ROOT_KEY]")
-			require.Contains(t, text, `default: "https://api.unkey.com"`)
+			if help {
+				require.Contains(t, text, "OPTIONS:")
+				require.Contains(t, text, "[$UNKEY_ROOT_KEY]")
+				require.Contains(t, text, `default: "https://api.unkey.com"`)
+			} else {
+				require.Empty(t, text)
+			}
 			require.NotContains(t, text, "parsed-root-key-secret")
 			require.NotContains(t, text, "https://private.example.com")
 		})

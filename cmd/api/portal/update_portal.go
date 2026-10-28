@@ -33,8 +33,26 @@ Your root key must have one of:
 Without the permission this returns 404, not 403.
 
 For full documentation, see https://www.unkey.com/docs/api-reference/portal/update-portal` + util.Disclaimer,
-		Examples: []string{"unkey api portal update-portal --portal=acme-portal --display-name='Acme Developer Portal'", "unkey api portal update-portal --portal=acme-portal --app-id=app_1234abcd --enabled=false", "unkey api portal update-portal --portal=acme-portal --logo-url=null --primary-color=null"},
-		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("portal", "Portal ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("slug", "New portal handle.", cli.MutuallyExclusive("body")), cli.String("display-name", "New human-readable name shown to end users.", cli.MutuallyExclusive("body")), cli.String("keyspace-id", "ID of the new keyspace to serve.", cli.MutuallyExclusive("body", "app-id")), cli.String("app-id", "ID of the new app to serve.", cli.MutuallyExclusive("body", "keyspace-id")), cli.Bool("enabled", "Allow new sessions to be minted.", cli.MutuallyExclusive("body")), cli.String("logo-url", "Absolute HTTPS logo URL, or null to remove it.", cli.MutuallyExclusive("body")), cli.String("primary-color", "Six-digit hex colour, or null for default styling.", cli.MutuallyExclusive("body"))},
+		Examples: []string{
+			"unkey api portal update-portal --portal=acme-portal --display-name='Acme Developer Portal'",
+			"unkey api portal update-portal --portal=acme-portal --app-id=app_1234abcd --enabled=false",
+			"unkey api portal update-portal --portal=acme-portal --logo-url=null --primary-color=null",
+		},
+		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("portal", "Portal ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("slug", "New portal handle.", cli.MutuallyExclusive("body")),
+			cli.String("display-name", "New human-readable name shown to end users.", cli.MutuallyExclusive("body")),
+			cli.String("keyspace-id", "ID of the new keyspace to serve.", cli.MutuallyExclusive("body", "app-id")),
+			cli.String("app-id", "ID of the new app to serve.", cli.MutuallyExclusive("body", "keyspace-id")),
+			cli.Bool("enabled", "Allow new sessions to be minted.", cli.MutuallyExclusive("body")),
+			cli.String("logo-url", "Absolute HTTPS logo URL, or null to remove it.", cli.MutuallyExclusive("body")),
+			cli.String("primary-color", "Six-digit hex colour, or null for default styling.", cli.MutuallyExclusive("body")),
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {

@@ -10,8 +10,12 @@ func Cmd() *cli.Command {
 	return &cli.Command{
 		Name:        "ratelimit",
 		Usage:       "Manage rate limiting",
-		Description: "Apply rate limits and manage overrides." + util.Disclaimer,
+		Description: "Apply rate limits and manage namespaces and overrides." + util.Disclaimer,
 		Commands: []*cli.Command{
+			createNamespaceCmd(),
+			deleteNamespaceCmd(),
+			listNamespacesCmd(),
+			updateNamespaceCmd(),
 			limitCmd(),
 			multiLimitCmd(),
 			setOverrideCmd(),

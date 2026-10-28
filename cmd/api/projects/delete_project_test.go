@@ -13,7 +13,7 @@ func TestDeleteProject(t *testing.T) {
 	}{{"by slug", "projects delete-project --project=payments", openapi.V2ProjectsDeleteProjectRequestBody{Project: "payments"}}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.want, captureAcceptedRequest[openapi.V2ProjectsDeleteProjectRequestBody](t, Cmd(), tt.args))
+			require.Equal(t, tt.want, captureAcceptedRequest[openapi.V2ProjectsDeleteProjectRequestBody](t, Cmd(), tt.args+" --yes"))
 		})
 	}
 }

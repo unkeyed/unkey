@@ -93,6 +93,14 @@ func TestStringFlag_ValidationOnEnvVar(t *testing.T) {
 
 func TestEnvironmentValidationErrorDoesNotExposeValue(t *testing.T) {
 	t.Setenv("UNKEY_ROOT_KEY", "root-key-secret")
+	output, err := os.CreateTemp(t.TempDir(), "stdout")
+	require.NoError(t, err)
+	stdout := os.Stdout
+	os.Stdout = output
+	t.Cleanup(func() {
+		os.Stdout = stdout
+		require.NoError(t, output.Close())
+	})
 
 	message := captureExitMessage(t, func() {
 		String("root-key", "Root key.", EnvVar("UNKEY_ROOT_KEY"), Validate(func(string) error {
@@ -102,6 +110,9 @@ func TestEnvironmentValidationErrorDoesNotExposeValue(t *testing.T) {
 
 	require.Contains(t, message, "UNKEY_ROOT_KEY")
 	require.NotContains(t, message, "root-key-secret")
+	data, err := os.ReadFile(output.Name())
+	require.NoError(t, err)
+	require.Empty(t, data)
 }
 
 // BoolFlag Tests
@@ -394,6 +405,48 @@ func TestRequiredFlagMissing(t *testing.T) {
 	err := cmd.parse(context.Background(), args)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "required flag missing: required")
+}
+
+func TestRequiredBooleanFlag(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		args    []string
+		env     string
+		enabled bool
+		missing bool
+	}{
+		{name: "omitted", missing: true},
+		{name: "explicit true", args: []string{"--enabled=true"}, enabled: true},
+		{name: "explicit false", args: []string{"--enabled=false"}},
+		{name: "implicit true", args: []string{"--enabled"}, enabled: true},
+		{name: "environment false", env: "false"},
+		{name: "environment true", env: "true", enabled: true},
+		{name: "flag overrides environment", args: []string{"--enabled=false"}, env: "true"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("TEST_REQUIRED_ENABLED", test.env)
+			ran := false
+			var enabled bool
+			cmd := &Command{
+				Name:  "test",
+				Flags: []Flag{Bool("enabled", "Enable the feature", Required(), EnvVar("TEST_REQUIRED_ENABLED"))},
+				Action: func(_ context.Context, cmd *Command) error {
+					ran = true
+					enabled = cmd.Bool("enabled")
+					return nil
+				},
+			}
+			err := cmd.Run(t.Context(), append([]string{"test"}, test.args...))
+			if test.missing {
+				require.ErrorContains(t, err, "required flag missing: enabled")
+				require.False(t, ran)
+				return
+			}
+			require.NoError(t, err)
+			require.True(t, ran)
+			require.Equal(t, test.enabled, enabled)
+		})
+	}
 }
 
 // Require Function Tests
@@ -997,10 +1050,10 @@ func captureExitMessage(t *testing.T, action func()) (message string) {
 	read, write, err := os.Pipe()
 	require.NoError(t, err)
 
-	stdout := os.Stdout
-	os.Stdout = write
+	stderr := os.Stderr
+	os.Stderr = write
 	defer func() {
-		os.Stdout = stdout
+		os.Stderr = stderr
 		require.NoError(t, write.Close())
 
 		output, err := io.ReadAll(read)

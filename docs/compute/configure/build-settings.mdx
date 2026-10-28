@@ -23,7 +23,7 @@ Build settings control how a git-connected <Tooltip tip="A Compute app: a deploy
 
 ## Change build settings
 
-Edit them under **App settings** > **Build** in the dashboard, with `environments.updateSettings` in the API, or with `unkey api environments update-settings` in the CLI. In the API, send only the fields you want to change. To read the current values, call `environments.getEnvironment` and look under `build`.
+Edit them under **App settings** > **Build** in the dashboard, with `environments.updateSettings` in the API, or with `unkey environments settings update` in the CLI. In the API, send only the fields you want to change. To read the current values, call `environments.getEnvironment` and look under `build`.
 
 The **Build** page shows the production values, and saving there writes to every environment of the app. To give production and preview different build settings, use the API or CLI. **Auto-deploy** is the exception: each environment has its own switch, on its page under **App settings** > **Environments**.
 

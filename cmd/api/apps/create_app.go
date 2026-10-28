@@ -26,11 +26,19 @@ Required Permissions
 - project.<project_id>.create_app (to create apps in a specific project)
 
 For full documentation, see https://www.unkey.com/docs/api-reference/apps/create-app` + util.Disclaimer,
-		Examples: []string{`unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api --git='{"repository":"unkeyed/api","defaultBranch":"main"}'`, `unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api --oci='{"image":"ghcr.io/acme/payments:v1.2.3"}'`},
+		Examples: []string{
+			`unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api --git='{"repository":"unkeyed/api","defaultBranch":"main"}'`,
+			`unkey api apps create-app --project=payments --name='Payments API' --slug=payments-api --oci='{"image":"ghcr.io/acme/payments:v1.2.3"}'`,
+		},
 		Flags: []cli.Flag{
 			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
-			util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(),
-			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("name", "Human-readable name for this app.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("slug", "Stable app slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("name", "Human-readable name for this app.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("slug", "Stable app slug.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("git", "GitHub repository connection as a JSON object.", cli.MutuallyExclusive("body")),
 			cli.String("oci", "OCI image source as a JSON object.", cli.MutuallyExclusive("body")),
 		},
