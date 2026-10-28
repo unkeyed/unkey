@@ -5,6 +5,7 @@ import type { MetricSource, SourcePoint } from "@unkey/clickhouse/src/app-metric
 import { DAY_MS, type Grid } from "@unkey/clickhouse/src/app-metrics/grid";
 import type { ResourcePoint } from "@unkey/clickhouse/src/app-metrics/resources";
 import type { TrafficPoint } from "@unkey/clickhouse/src/app-metrics/traffic";
+import { z } from "zod";
 
 export {
   METRIC_CATALOG,
@@ -26,6 +27,28 @@ export {
   nextTickMs,
 } from "@unkey/clickhouse/src/app-metrics/grid";
 export type { ResourcePoint, TrafficPoint };
+
+export const environmentRefSchema = z.union([
+  z.object({ id: z.string() }),
+  z.object({ kind: z.literal("production") }),
+]);
+
+export type EnvironmentRef = z.infer<typeof environmentRefSchema>;
+
+export const PRODUCTION: EnvironmentRef = { kind: "production" };
+
+// Production is addressed by kind, so the overview glance can query before the
+// environment list loads and still share its cache with the metrics page.
+export function environmentRefOf(environment: {
+  id: string;
+  kind: "production" | "preview";
+}): EnvironmentRef {
+  return environment.kind === "production" ? PRODUCTION : { id: environment.id };
+}
+
+export function environmentKeyOf(ref: EnvironmentRef): string {
+  return "id" in ref ? ref.id : ref.kind;
+}
 
 export function spansDays(grid: Pick<Grid, "startMs" | "endMs">): boolean {
   return grid.endMs - grid.startMs >= DAY_MS;

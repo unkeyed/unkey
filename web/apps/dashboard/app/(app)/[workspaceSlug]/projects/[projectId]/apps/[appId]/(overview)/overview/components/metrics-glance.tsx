@@ -1,37 +1,36 @@
 "use client";
 
 import { AreaTimeseriesChart } from "@/components/charts/area-timeseries";
-import { NoDataPlaceholder } from "@/components/charts/no-data-placeholder";
+import { ChartEmpty } from "@/components/logs/chart/chart-states/chart-empty";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import {
-  type ChartState,
-  METRIC_VIEWS,
-  RANGE_LABELS,
-  UNITS,
-  cardState,
-  formatValue,
-} from "@/lib/metrics/views";
+import { PRODUCTION } from "@/lib/metrics/app-metrics";
+import { METRIC_VIEWS, RANGE_LABELS, UNITS, formatValue } from "@/lib/metrics/views";
 import { routes } from "@/lib/navigation/routes";
 import { match } from "@unkey/match";
-import { ResourceList, ResourceListContent, ResourceListHeader, Skeleton } from "@unkey/ui";
+import { Badge, ResourceList, ResourceListContent, ResourceListHeader, Skeleton } from "@unkey/ui";
 import Link from "next/link";
 import { useAppId, useProjectData } from "../../data-provider";
 import { useMetricSources } from "../../hooks/use-app-metrics";
 import { useBucketClock } from "../../hooks/use-bucket-clock";
-import { GLANCE, GLANCE_METRICS, type GlanceMetric, glanceValue } from "./glance";
+import {
+  GLANCE,
+  GLANCE_METRICS,
+  type GlanceCellState,
+  type GlanceMetric,
+  glanceCellState,
+} from "./glance";
 
 const GLANCE_RANGE = "24h";
 
 export function MetricsGlance() {
   const workspace = useWorkspaceNavigation();
-  const { projectId, environments } = useProjectData();
+  const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
-  const production = environments.find((e) => e.kind === "production");
   const grid = useBucketClock(GLANCE_RANGE);
-  const scope = production ? { appId, environmentId: production.id, grid } : null;
-  const sources = useMetricSources(scope);
+  const noProduction = !isEnvironmentsLoading && !environments.some((e) => e.kind === "production");
+  const sources = useMetricSources(noProduction ? null : { appId, environment: PRODUCTION, grid });
 
-  if (!production) {
+  if (noProduction) {
     return null;
   }
 
@@ -51,23 +50,14 @@ export function MetricsGlance() {
       </ResourceListHeader>
       <ResourceListContent className="grid grid-cols-1 overflow-visible divide-y divide-grayA-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0 [&>:last-child_.recharts-surface]:rounded-b-md sm:[&>:first-child_.recharts-surface]:rounded-bl-md sm:[&>:last-child_.recharts-surface]:rounded-bl-none">
         {GLANCE_METRICS.map((metric) => (
-          <GlanceCell
-            key={metric}
-            metric={metric}
-            state={cardState(sources, metric)}
-            headline={glanceValue(metric, sources)}
-          />
+          <GlanceCell key={metric} metric={metric} state={glanceCellState(metric, sources)} />
         ))}
       </ResourceListContent>
     </ResourceList>
   );
 }
 
-function GlanceCell({
-  metric,
-  state,
-  headline,
-}: { metric: GlanceMetric; state: ChartState; headline: number | null }) {
+function GlanceCell({ metric, state }: { metric: GlanceMetric; state: GlanceCellState }) {
   const view = METRIC_VIEWS[metric];
   const glance = GLANCE[metric];
   return (
@@ -90,14 +80,27 @@ function GlanceCell({
         ))
         .with({ status: "empty" }, () => (
           <>
-            <span className="text-xl font-semibold leading-7 text-gray-9">—</span>
-            <NoDataPlaceholder height={32} />
+            <span className="text-xl font-semibold tabular-nums leading-7 text-gray-12">
+              {formatValue(glance.unit, 0)}
+            </span>
+            <div className="-mx-4 -mt-6 -mb-4">
+              <ChartEmpty
+                variant="wave"
+                wave="gentle"
+                height={56}
+                message={
+                  <Badge variant="secondary" className="border-grayA-4 bg-gray-1 text-gray-10">
+                    No data
+                  </Badge>
+                }
+              />
+            </div>
           </>
         ))
-        .with({ status: "ready" }, ({ chart }) => (
+        .with({ status: "ready" }, ({ chart, headline }) => (
           <>
             <span className="text-xl font-semibold tabular-nums leading-7 text-gray-12">
-              {headline === null ? "—" : formatValue(glance.unit, headline)}
+              {formatValue(glance.unit, headline)}
             </span>
             <div className="-mx-4 -mb-4">
               <AreaTimeseriesChart

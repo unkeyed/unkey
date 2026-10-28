@@ -2,7 +2,7 @@ import { loading, ready } from "@/lib/loadable/fixtures";
 import type { Grid, ResourcePoint, Sources, TrafficPoint } from "@/lib/metrics/app-metrics";
 import { formatValue } from "@/lib/metrics/views";
 import { describe, expect, it } from "vitest";
-import { GLANCE, glanceValue } from "./glance";
+import { GLANCE, glanceCellState, glanceValue } from "./glance";
 
 const grid: Grid = { range: "1h", bucket: "1m", bucketMs: 60_000, startMs: 0, endMs: 180_000 };
 
@@ -41,5 +41,30 @@ describe("glanceValue", () => {
 
   it("has no headline until its source is ready", () => {
     expect(glanceValue("cpu", { ...sources(trafficPoints), resources: loading })).toBe(null);
+  });
+});
+
+describe("glanceCellState", () => {
+  const quiet = [traffic(0, 0, 0), traffic(60_000, 0, 0)];
+  const healthy = [
+    { ...traffic(0, 2, 0), errorRate: 0 },
+    { ...traffic(60_000, 3, 0), errorRate: 0 },
+  ];
+
+  it("is empty for requests and error rate when the app had no traffic", () => {
+    expect(glanceCellState("requests", sources(quiet)).status).toBe("empty");
+    expect(glanceCellState("errors", sources(quiet)).status).toBe("empty");
+  });
+
+  it("shows a 0% error rate when traffic had no 5xx", () => {
+    const state = glanceCellState("errors", sources(healthy));
+    expect(state.status).toBe("ready");
+    expect(state.status === "ready" && state.headline).toBe(0);
+  });
+
+  it("is empty for CPU with no samples, and ready for an idle instance", () => {
+    expect(glanceCellState("cpu", sources([], [resources(0, null)])).status).toBe("empty");
+    const idle = glanceCellState("cpu", sources([], [resources(0, 0)]));
+    expect(idle.status === "ready" && idle.headline).toBe(0);
   });
 });
