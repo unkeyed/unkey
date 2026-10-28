@@ -46,7 +46,10 @@ func validatePortalScopes(value string) error {
 }
 
 func createSessionCmd() *cli.Command {
-	return &cli.Command{Name: "create-session", Usage: "Create a short-lived session token for an end user to access the Customer Portal", Description: `Create a short-lived session token for an end user to access the Customer Portal.
+	return &cli.Command{
+		Name:  "create-session",
+		Usage: "Create a short-lived session token for an end user to access the Customer Portal",
+		Description: `Create a short-lived session token for an end user to access the Customer Portal.
 
 The returned exchange code is valid for 15 minutes and can be exchanged exactly once for a 24-hour portal access token via portal.exchangeCode. Redirect the end user to the returned URL to start the portal experience.
 
@@ -55,10 +58,21 @@ Required Permissions
 Your root key must be associated with a workspace that has an enabled portal configuration.
 
 ` + util.Disclaimer,
-		Examples: []string{"unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,keys:reroll", "unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,analytics:read --return-url=https://app.example.com/settings/api-keys"},
+		Examples: []string{
+			"unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,keys:reroll",
+			"unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,analytics:read --return-url=https://app.example.com/settings/api-keys",
+		},
 		Flags: []cli.Flag{
-			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("portal", "Portal configuration ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("external-id", "End user's identifier in your system.", cli.Required(), cli.MutuallyExclusive("body")),
-			cli.StringSlice("scopes", "Portal capabilities. Valid choices: "+strings.Join(portalScopes, ", ")+".", cli.Required(), cli.Validate(validatePortalScopes), cli.MutuallyExclusive("body")), cli.String("return-url", "Absolute URL to return the end user to after the portal.", cli.MutuallyExclusive("body"))},
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("portal", "Portal configuration ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("external-id", "End user's identifier in your system.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.StringSlice("scopes", "Portal capabilities. Valid choices: "+strings.Join(portalScopes, ", ")+".", cli.Required(), cli.Validate(validatePortalScopes), cli.MutuallyExclusive("body")),
+			cli.String("return-url", "Absolute URL to return the end user to after the portal.", cli.MutuallyExclusive("body")),
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
