@@ -43,6 +43,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/gdprerasure"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
@@ -87,6 +88,10 @@ type Harness struct {
 	// to clock.New() (real time); tests that need to drive cutoffs can
 	// pass a *clock.TestClock via WithClock and assert against it here.
 	Clock clock.Clock
+
+	// Erased records the Stripe and WorkOS deletes GdprErasureWorkflow
+	// requests.
+	Erased *ErasedRecords
 }
 
 // Option configures the test harness.
@@ -104,6 +109,8 @@ type harnessOpts struct {
 	alertAdmins               workos.Resolver
 	alertEmail                email.Sender
 	slackQuotaCheckWebhookURL string
+
+	withoutStripe bool
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -351,6 +358,19 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
+	erased := &ErasedRecords{mu: sync.Mutex{}, stripeCustomerIDs: nil, workOSUserIDs: nil, workOSOrgIDs: nil}
+	var gdprStripe gdprerasure.StripeCustomers = erased
+	if o.withoutStripe {
+		gdprStripe = nil
+	}
+	gdprErasure, err := gdprerasure.New(gdprerasure.Config{
+		DB:         database,
+		ClickHouse: chClient,
+		WorkOS:     erased,
+		Stripe:     gdprStripe,
+	})
+	require.NoError(t, err)
+
 	// Register every worker service as one deployment on this test's own
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
 	// correct service names.
@@ -368,6 +388,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewDeployWorkflowServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
+		hydrav1.NewGdprErasureWorkflowServer(gdprErasure),
 	)
 	restateAdmin := restateadmin.New(restateadmin.Config{
 		BaseURL: restateCfg.AdminURL,
@@ -395,6 +416,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Restate:        restateCfg.IngressClient,
 		RestateAdmin:   restateCfg.AdminURL,
 		Clock:          o.clock,
+		Erased:         erased,
 	}
 }
 
