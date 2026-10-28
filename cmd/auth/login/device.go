@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -37,7 +38,7 @@ func pollUntilKey(ctx context.Context, client *http.Client, apiURL string, login
 	}
 	pollCtx, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
-	fmt.Println("Waiting for you to allow this login in the browser...")
+	fmt.Fprintln(os.Stderr, "Waiting for browser approval...")
 	api := sdk.NewClient(apiURL, client)
 	request := components.CreateV2CliExchangeTokenRequestBodyV2CliExchangeTokenRequestBody1(components.V2CliExchangeTokenRequestBody1{LoginID: loginID, RefreshToken: nil})
 	res, err := api.WaitForDeviceLogin(pollCtx, request, interval, sleep)

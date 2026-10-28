@@ -97,8 +97,6 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 
 	// Validate all required flags are present
 	if err := c.validateRequiredFlags(); err != nil {
-		fmt.Printf("Error: %v\n\n", err)
-		c.showHelp()
 		return err
 	}
 

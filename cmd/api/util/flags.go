@@ -29,6 +29,6 @@ func ConfigFlag() *cli.StringFlag {
 }
 
 // OutputFlag returns a flag for controlling output format.
-func OutputFlag() *cli.StringFlag {
-	return cli.String("output", "Output format. Use 'json' for raw JSON output suitable for piping.", cli.EnvVar("UNKEY_OUTPUT"))
+func OutputFlag() *cli.EnumFlag {
+	return cli.Enum("output", "Output format. JSON includes all fields and pagination.", []string{"human", "json"}, cli.EnvVar("UNKEY_OUTPUT"), cli.Default("human"))
 }

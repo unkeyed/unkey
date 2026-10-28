@@ -94,11 +94,11 @@ func run(ctx context.Context, opts options) error {
 		return err
 	}
 
-	fmt.Printf("Your confirmation code:\n\n  %s\n\n", formatUserCode(started.UserCode))
-	fmt.Printf("Open this URL, check the code, and choose permissions:\n  %s\n\n", started.VerificationURL)
+	fmt.Fprintf(os.Stderr, "Your confirmation code:\n\n  %s\n\n", formatUserCode(started.UserCode))
+	fmt.Fprintf(os.Stderr, "Open this URL, check the code, and choose permissions:\n  %s\n\n", started.VerificationURL)
 	if !opts.noBrowser && opts.open != nil {
 		if err := opts.open(started.VerificationURL); err != nil {
-			fmt.Printf("Could not open a browser (%s). Use the URL above.\n\n", err.Error())
+			fmt.Fprintf(os.Stderr, "Could not open a browser (%s). Use the URL above.\n\n", err.Error())
 		}
 	}
 
@@ -130,7 +130,7 @@ func run(ctx context.Context, opts options) error {
 		return fmt.Errorf("could not store the CLI session, so it was revoked: %w", err)
 	}
 
-	fmt.Printf("Authentication successful. Session stored for workspace %s.\n", issued.WorkspaceID)
+	fmt.Println("Signed in.")
 	return nil
 }
 
@@ -186,10 +186,10 @@ func storeRootKey(keys credentials.RootKeyStore, key string) error {
 		keys = credentials.DefaultRootKeyStore()
 	}
 
-	location, err := credentials.StoreRootKey(keys, key)
+	_, err := credentials.StoreRootKey(keys, key)
 	if err != nil {
 		return fmt.Errorf("failed to store root key: %w", err)
 	}
-	fmt.Printf("Authentication successful. Key stored in %s.\n", location)
+	fmt.Println("Root key saved.")
 	return nil
 }

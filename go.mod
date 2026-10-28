@@ -69,6 +69,7 @@ require (
 	github.com/restatedev/sdk-go/testing v1.0.0
 	github.com/restatedev/sdk-go/x/mocks v0.26.0
 	github.com/restatedev/sdk-go/x/protoc-gen-go-restate v0.26.0
+	github.com/rivo/uniseg v0.4.7
 	github.com/shirou/gopsutil/v4 v4.26.5
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.12.1
@@ -286,7 +287,6 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/riza-io/grpc-go v0.2.0 // indirect
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect

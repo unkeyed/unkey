@@ -17,13 +17,13 @@ func New() *cli.Command {
 	return &cli.Command{
 		Name:        "logout",
 		RootAliases: []string{"logout"},
-		Usage:       "Revoke the active CLI session",
-		Description: "Revokes the active CLI session on the server and deletes it from this machine.",
+		Usage:       "Sign out of the active workspace",
+		Description: "Revokes the active browser session on the server and removes it from this machine. Root keys are not removed.",
 		Flags:       []cli.Flag{util.APIURLFlag()},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			current, err := session.Active()
 			if errors.Is(err, session.ErrNotFound) {
-				fmt.Println("No CLI session is stored.")
+				fmt.Println("No saved browser session.")
 				return nil
 			}
 			if err != nil {
@@ -37,13 +37,16 @@ func New() *cli.Command {
 			if _, err := session.Delete(current.WorkspaceID, current.SessionID); err != nil && !errors.Is(err, session.ErrNotFound) {
 				return err
 			}
-			fmt.Printf("Signed out of workspace %s.\n", current.WorkspaceID)
-			if next, err := session.Active(); err == nil {
-				fmt.Printf("Active workspace is %s.\n", next.WorkspaceID)
-			}
 			if revokeErr != nil {
 				fmt.Fprintln(os.Stderr, "The session was removed from this machine but could not be revoked on the server. It stays valid until it expires.")
-				return fmt.Errorf("revoke CLI session: %w", revokeErr)
+			} else {
+				fmt.Println("Signed out.")
+			}
+			if next, err := session.Active(); err == nil {
+				fmt.Fprintf(os.Stderr, "Switched to workspace %s.\n", next.WorkspaceID)
+			}
+			if revokeErr != nil {
+				return fmt.Errorf("could not sign out: %w", revokeErr)
 			}
 			return nil
 		},
@@ -62,12 +65,12 @@ func revoke(ctx context.Context, fallbackURL string) (session.Session, error) {
 	if err != nil {
 		var response *sdk.ResponseError
 		if errors.As(err, &response) {
-			return current, fmt.Errorf("revoke returned %d: %w", response.StatusCode, err)
+			return current, fmt.Errorf("server returned HTTP %d: %w", response.StatusCode, err)
 		}
 		return current, err
 	}
 	if res.V2CliRevokeSessionResponseBody == nil {
-		return current, fmt.Errorf("revoke returned %d", res.HTTPMeta.Response.StatusCode)
+		return current, fmt.Errorf("server returned HTTP %d", res.HTTPMeta.Response.StatusCode)
 	}
 	return current, nil
 }
