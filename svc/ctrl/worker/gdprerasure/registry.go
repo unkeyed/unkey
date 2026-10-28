@@ -176,6 +176,7 @@ var userSteps = []step{
 	mysqlDelete{table: "cli_sessions", by: "", where: "user_id = :user_id"},
 	mysqlDelete{table: "device_authorizations", by: "", where: "approver_user_id = :user_id"},
 	mysqlDelete{table: "compute_signup_credit_claims", by: "", where: "workos_user_id = :user_id"},
+	mysqlUpdate{table: "deployments", by: "trigger actor", set: "triggered_by = NULL", where: "triggered_by = :user_id"},
 	mysqlUpdate{
 		table: "clickhouse_outbox",
 		by:    "audit actor",

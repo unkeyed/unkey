@@ -10,8 +10,10 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
+	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -26,7 +28,8 @@ type auditActor struct {
 
 // TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs guarantees that a
 // GDPR user erasure deletes the user's sessions, device approvals and signup
-// credit claims and their WorkOS account, and strips their name, metadata,
+// credit claims and their WorkOS account, forgets them as the trigger of their
+// deployments while keeping the deployments, and strips their name, metadata,
 // address and user agent from audit logs, both exported and still queued,
 // while keeping the events and the actor id as the customer's security record.
 // Another user's rows stay intact, and a second request changes nothing.
@@ -36,14 +39,18 @@ func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 
 	userID := uid.New(uid.TestPrefix)
 	neighbourID := uid.New(uid.TestPrefix)
+	deploymentIDs := make(map[string]string, 2)
 	for _, id := range []string{userID, neighbourID} {
-		seedUser(t, h, ws.ID, id)
+		deploymentIDs[id] = seedUser(t, h, ws.ID, id)
 	}
 
 	require.Equal(t, db.CountUserRowsByTableRow{CliSessions: 1, DeviceAuthorizations: 1, ComputeSignupCreditClaims: 1}, countUserRows(t, h, userID))
 	neighbourBefore := countUserRows(t, h, neighbourID)
 	neighbourOutboxBefore := outboxActors(t, h, ws.ID, neighbourID)
 	neighbourAuditBefore := auditActors(t, h, ws.ID, neighbourID)
+	deploymentBefore := findDeployment(t, h, deploymentIDs[userID])
+	require.Equal(t, sql.NullString{String: userID, Valid: true}, deploymentBefore.TriggeredBy)
+	neighbourDeploymentBefore := findDeployment(t, h, deploymentIDs[neighbourID])
 
 	_, err := erase(t, h, userRequest(userID))
 	require.NoError(t, err)
@@ -53,10 +60,14 @@ func TestUserErasureRemovesSessionsAndPseudonymizesAuditLogs(t *testing.T) {
 	require.Equal(t, []auditActor{pseudonym}, outboxActors(t, h, ws.ID, userID))
 	require.Equal(t, []auditActor{pseudonym}, auditActors(t, h, ws.ID, userID))
 	require.Equal(t, []string{userID}, h.Erased.WorkOSUserIDs())
+	deploymentAfter := deploymentBefore
+	deploymentAfter.TriggeredBy = sql.NullString{}
+	require.Equal(t, deploymentAfter, findDeployment(t, h, deploymentIDs[userID]))
 
 	require.Equal(t, neighbourBefore, countUserRows(t, h, neighbourID))
 	require.Equal(t, neighbourOutboxBefore, outboxActors(t, h, ws.ID, neighbourID))
 	require.Equal(t, neighbourAuditBefore, auditActors(t, h, ws.ID, neighbourID))
+	require.Equal(t, neighbourDeploymentBefore, findDeployment(t, h, deploymentIDs[neighbourID]))
 
 	again, err := erase(t, h, userRequest(userID))
 	require.NoError(t, err)
@@ -70,9 +81,10 @@ func userRequest(userID string) *hydrav1.GdprErasureRequest {
 }
 
 // seedUser gives a dashboard user a CLI session, an approved device
-// authorization, a signup credit claim, a queued audit event and an exported
-// audit row, each naming them.
-func seedUser(t *testing.T, h *harness.Harness, workspaceID, userID string) {
+// authorization, a signup credit claim, a deployment they triggered, a queued
+// audit event and an exported audit row, each naming them. It returns the
+// deployment's id.
+func seedUser(t *testing.T, h *harness.Harness, workspaceID, userID string) string {
 	t.Helper()
 	ctx := h.Ctx
 	now := time.Now()
@@ -144,6 +156,49 @@ func seedUser(t *testing.T, h *harness.Harness, workspaceID, userID string) {
 		UserAgent:   userAgent,
 		Meta:        json.RawMessage("{}"),
 	}}))
+
+	return seedDeployment(t, h, workspaceID, userID)
+}
+
+func seedDeployment(t *testing.T, h *harness.Harness, workspaceID, triggeredBy string) string {
+	t.Helper()
+	ctx := h.Ctx
+	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspaceID,
+		Name:        "erasure",
+		Slug:        uid.New(uid.TestPrefix),
+	})
+	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "api",
+		Slug:        "api",
+	})
+	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		AppID:       app.ID,
+		Slug:        "production",
+		Kind:        dbtype.EnvironmentKindProduction,
+	})
+	return h.Seed.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		AppID:         app.ID,
+		EnvironmentID: env.ID,
+		Status:        dbtype.DeploymentsStatusReady,
+		TriggeredBy:   sql.NullString{String: triggeredBy, Valid: true},
+	}).ID
+}
+
+func findDeployment(t *testing.T, h *harness.Harness, id string) db.Deployment {
+	t.Helper()
+	deployment, err := h.DB.FindDeploymentById(h.Ctx, id)
+	require.NoError(t, err)
+	return deployment
 }
 
 func countUserRows(t *testing.T, h *harness.Harness, userID string) db.CountUserRowsByTableRow {
