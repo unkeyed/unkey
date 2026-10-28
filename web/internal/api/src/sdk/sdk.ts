@@ -6,6 +6,7 @@ import { ClientSDK } from "../lib/sdks.js";
 import { Analytics } from "./analytics.js";
 import { Apis } from "./apis.js";
 import { Apps } from "./apps.js";
+import { Cli } from "./cli.js";
 import { Deployments } from "./deployments.js";
 import { Domains } from "./domains.js";
 import { Environments } from "./environments.js";
@@ -36,6 +37,11 @@ export class Unkey extends ClientSDK {
   private _apps?: Apps;
   get apps(): Apps {
     return (this._apps ??= new Apps(this._options));
+  }
+
+  private _cli?: Cli;
+  get cli(): Cli {
+    return (this._cli ??= new Cli(this._options));
   }
 
   private _internal?: Internal;

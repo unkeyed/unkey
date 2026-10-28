@@ -1,0 +1,9 @@
+overlay: 1.0.0
+x-speakeasy-jsonpath: rfc9535
+info:
+  title: Dashboard CLI API
+  version: 1.0.0
+actions:
+  - target: $.paths.*[?(@.tags[0] == 'cli')]
+    update:
+      x-speakeasy-ignore: false
