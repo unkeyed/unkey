@@ -2,8 +2,10 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptrace"
 	"net/http/httputil"
@@ -113,6 +115,12 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		Transport:     cfg.transport,
 		BufferPool:    responseCopyBuffers,
 		FlushInterval: -1, // flush immediately for streaming
+		ErrorLog: slog.NewLogLogger(logger.GetHandler().WithAttrs([]slog.Attr{
+			slog.String("event", "frontline.proxy_stream_error"),
+			slog.String("requestId", sess.RequestID()),
+			slog.String("target", cfg.targetURL.String()),
+			slog.String("destination", string(cfg.destination)),
+		}), slog.LevelWarn),
 		Rewrite: func(proxyReq *httputil.ProxyRequest) {
 			proxyStartTime = s.clock.Now()
 			backendStart = proxyStartTime
@@ -197,11 +205,15 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
 
-				logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.destination),
-					"error", err.Error(),
-					"target", cfg.targetURL.String(),
-					"hostname", r.Host,
-				)
+				if !errors.Is(err, context.Canceled) || !errors.Is(req.Context().Err(), context.Canceled) {
+					logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.destination),
+						"event", "frontline.proxy_attempt_error",
+						"error", err.Error(),
+						"requestId", sess.RequestID(),
+						"target", cfg.targetURL.String(),
+						"hostname", r.Host,
+					)
+				}
 			}
 		},
 	}

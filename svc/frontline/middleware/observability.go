@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -85,7 +86,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 
 				code, parseErr := codes.ParseURN(urn)
 				if parseErr != nil {
-					logger.Error("failed to parse error code", "error", parseErr.Error())
+					logger.Error("failed to parse error code", "error", parseErr.Error(), "requestId", s.RequestID())
 					code = codes.Frontline.Internal.InternalServerError
 				}
 
@@ -109,22 +110,24 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					}
 				}
 
-				// Log the precise URN for every error so it can be correlated
-				// with the response (which also carries the URN). Server faults
-				// are logged at error level, everything else at info.
-				logArgs := []any{
-					"error", err.Error(),
-					"requestId", s.RequestID(),
-					"code", string(urn),
-					"faultDomain", domain,
-					"status", pageInfo.Status,
-					"path", s.Request().URL.Path,
-					"host", s.Request().Host,
-				}
-				if pageInfo.Status >= http.StatusInternalServerError {
-					logger.Error("frontline error", logArgs...)
-				} else {
-					logger.Info("frontline request error", logArgs...)
+				if domain == string(codes.CategoryPlatform) || shouldLogRequestError(s.Request().Context(), urn) {
+					logArgs := []any{
+						"event", "frontline.request_error",
+						"responseSource", "frontline",
+						"error", err.Error(),
+						"requestId", s.RequestID(),
+						"code", string(urn),
+						"faultDomain", domain,
+						"status", pageInfo.Status,
+						"method", s.Request().Method,
+						"path", s.Request().URL.Path,
+						"host", s.Request().Host,
+					}
+					if pageInfo.Status >= http.StatusInternalServerError {
+						logger.Error("frontline error", logArgs...)
+					} else {
+						logger.Info("frontline request error", logArgs...)
+					}
 				}
 
 				acceptHeader := s.Request().Header.Get("Accept")
@@ -132,9 +135,6 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					strings.Contains(acceptHeader, "application/*") ||
 					(strings.Contains(acceptHeader, "*/*") && !strings.Contains(acceptHeader, "text/html"))
 
-				// Surface the full URN and its docs link to the caller: it's
-				// the exact string support needs for correlation, and it's
-				// already logged above under the same request ID.
 				var writeErr error
 				if preferJSON {
 					writeErr = s.JSON(pageInfo.Status, ErrorResponse{
@@ -154,7 +154,7 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 						RequestID:  s.RequestID(),
 					})
 					if renderErr != nil {
-						logger.Error("failed to render error page", "error", renderErr.Error())
+						logger.Error("failed to render error page", "error", renderErr.Error(), "requestId", s.RequestID())
 						writeErr = s.JSON(pageInfo.Status, ErrorResponse{
 							Meta: ErrorMeta{RequestID: s.RequestID()},
 							Error: ErrorDetail{
@@ -167,17 +167,8 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 					}
 				}
 
-				if writeErr != nil {
-					if isClientGone(writeErr) {
-						// Client disconnected before we could flush the error
-						// page. Not actionable — don't alert on it.
-						logger.Debug("client gone before error response was written",
-							"error", writeErr.Error(),
-							"requestId", s.RequestID(),
-						)
-					} else {
-						logger.Error("failed to write error response", "error", writeErr.Error())
-					}
+				if writeErr != nil && !isClientGone(writeErr) {
+					logger.Error("failed to write error response", "error", writeErr.Error(), "requestId", s.RequestID())
 				}
 			}
 
@@ -191,6 +182,33 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 
 			return nil
 		}
+	}
+}
+
+func shouldLogRequestError(clientContext context.Context, urn codes.URN) bool {
+	//nolint:exhaustive // Unlisted codes must remain operational failures.
+	switch urn {
+	case codes.User.BadRequest.ClientClosedRequest.URN():
+		return !errors.Is(clientContext.Err(), context.Canceled)
+	case codes.User.BadRequest.RequestBodyTooLarge.URN(),
+		codes.User.BadRequest.RequestBodyUnreadable.URN(),
+		codes.Auth.Authentication.Missing.URN(),
+		codes.Auth.Authentication.Malformed.URN(),
+		codes.App.Validation.InvalidInput.URN(),
+		codes.Frontline.Auth.MissingCredentials.URN(),
+		codes.Frontline.Auth.InvalidKey.URN(),
+		codes.Frontline.Auth.InsufficientPermissions.URN(),
+		codes.Frontline.Auth.RateLimited.URN(),
+		codes.Frontline.Auth.UsageExceeded.URN(),
+		codes.Frontline.Firewall.Denied.URN(),
+		codes.Frontline.OpenApi.InvalidRequest.URN(),
+		codes.Frontline.Routing.SpendLimitReached.URN(),
+		codes.Frontline.Routing.DeploymentOffline.URN(),
+		codes.Frontline.Internal.InvalidConfiguration.URN(),
+		codes.Frontline.Internal.RatelimitNotConfigured.URN():
+		return false
+	default:
+		return true
 	}
 }
 
