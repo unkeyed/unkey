@@ -24,10 +24,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "query",
@@ -66,10 +77,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "query",
@@ -108,10 +130,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "query",
@@ -150,10 +183,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "query",
@@ -192,15 +236,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "name",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -239,15 +294,31 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -281,10 +352,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -328,6 +410,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "decrypt",
           "type": "boolean",
           "default": "false",
@@ -339,15 +426,21 @@
           "required": false
         },
         {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "limit",
           "type": "integer",
           "required": false
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "revalidate-keys-cache",
@@ -387,8 +480,18 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "git",
           "type": "string",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -403,9 +506,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -454,10 +558,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -468,6 +583,11 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -501,10 +621,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -548,6 +679,16 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "limit",
           "type": "integer",
           "default": "100",
@@ -555,9 +696,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -606,6 +748,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "delete-protection",
           "type": "boolean",
           "required": false
@@ -613,6 +760,11 @@
         {
           "name": "git",
           "type": "string",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -627,9 +779,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -678,6 +831,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "deployment",
           "type": "string",
           "required": false
@@ -693,15 +851,21 @@
           "required": false
         },
         {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "oci",
           "type": "string",
           "required": false
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -740,15 +904,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "deployment-id",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -792,8 +967,18 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -803,9 +988,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -849,15 +1035,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "deployment-id",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -891,15 +1088,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "deployment-id",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -933,15 +1141,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "deployment-id",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -975,15 +1194,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "deployment-id",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -1022,6 +1252,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "domain",
           "type": "string",
           "required": true
@@ -1032,10 +1267,16 @@
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -1074,20 +1315,36 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "domain",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -1116,15 +1373,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "domain",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -1168,8 +1436,18 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -1180,9 +1458,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -1226,15 +1505,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "domain",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -1273,15 +1563,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -1330,9 +1631,19 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
         },
         {
           "name": "limit",
@@ -1341,9 +1652,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -1387,10 +1699,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -1434,15 +1757,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -1459,6 +1793,11 @@
           "name": "variables",
           "type": "string[]",
           "required": true
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
+          "required": false
         }
       ]
     },
@@ -1491,15 +1830,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -1569,6 +1919,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "dockerfile",
           "type": "string",
           "required": false
@@ -1584,6 +1939,11 @@
           "required": false
         },
         {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "memory-mib",
           "type": "integer",
           "required": false
@@ -1595,9 +1955,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "port",
@@ -1681,15 +2042,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -1733,15 +2105,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "policies",
@@ -1790,15 +2173,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "environment",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "policy",
@@ -1847,10 +2241,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -1884,9 +2289,19 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "external-id",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
         },
         {
           "name": "meta",
@@ -1895,9 +2310,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "ratelimits",
@@ -1936,20 +2352,36 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "identity",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -1978,15 +2410,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "identity",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -2025,15 +2468,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "limit",
           "type": "integer",
           "required": false
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -2072,9 +2526,19 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "identity",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
         },
         {
           "name": "meta",
@@ -2083,9 +2547,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "ratelimits",
@@ -2124,15 +2589,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key-id",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permissions",
@@ -2171,15 +2647,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key-id",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "roles",
@@ -2233,6 +2720,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "enabled",
           "type": "boolean",
           "default": "true",
@@ -2249,6 +2741,11 @@
           "required": false
         },
         {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "meta",
           "type": "string",
           "required": false
@@ -2260,9 +2757,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permissions",
@@ -2322,15 +2820,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key-id",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permanent",
@@ -2342,6 +2851,11 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -2370,9 +2884,19 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "decrypt",
           "type": "boolean",
           "default": "false",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -2382,9 +2906,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -2423,6 +2948,16 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "keys",
           "type": "string",
           "required": true
@@ -2434,9 +2969,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -2470,15 +3006,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key-id",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permissions",
@@ -2489,6 +3036,11 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -2517,15 +3069,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key-id",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "roles",
@@ -2536,6 +3099,11 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -2564,9 +3132,19 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "expiration",
           "type": "integer",
           "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
         },
         {
           "name": "key-id",
@@ -2575,9 +3153,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -2611,15 +3190,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key-id",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permissions",
@@ -2658,15 +3248,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key-id",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "roles",
@@ -2705,6 +3306,16 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key-id",
           "type": "string",
           "required": true
@@ -2716,9 +3327,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -2762,6 +3374,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "enabled",
           "type": "boolean",
           "required": false
@@ -2774,6 +3391,11 @@
         {
           "name": "external-id",
           "type": "string",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -2793,9 +3415,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permissions",
@@ -2849,6 +3472,16 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key",
           "type": "string",
           "required": true
@@ -2860,9 +3493,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permissions",
@@ -2911,15 +3545,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "key",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -2953,8 +3598,18 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "description",
           "type": "string",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -2964,9 +3619,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -3005,8 +3661,18 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "description",
           "type": "string",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -3016,9 +3682,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permissions",
@@ -3057,10 +3724,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permission",
@@ -3071,6 +3749,11 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -3099,10 +3782,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "role",
@@ -3113,6 +3807,11 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -3141,10 +3840,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permission",
@@ -3183,10 +3893,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "role",
@@ -3230,15 +3951,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "limit",
           "type": "integer",
           "required": false
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -3282,15 +4014,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "limit",
           "type": "integer",
           "required": false
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -3329,10 +4072,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "permissions",
@@ -3386,6 +4140,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "display-name",
           "type": "string",
           "required": true
@@ -3394,6 +4153,11 @@
           "name": "enabled",
           "type": "boolean",
           "default": "true",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
           "required": false
         },
         {
@@ -3408,9 +4172,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "primary-color",
@@ -3454,15 +4219,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "external-id",
           "type": "string",
           "required": true
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "json",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "portal",
@@ -3517,10 +4293,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "portal",
@@ -3531,6 +4318,11 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -3564,15 +4356,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "keyspace-id",
           "type": "string",
           "required": false
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "portal",
@@ -3616,12 +4419,22 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "display-name",
           "type": "string",
           "required": false
         },
         {
           "name": "enabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
           "type": "boolean",
           "required": false
         },
@@ -3637,9 +4450,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "portal",
@@ -3688,15 +4502,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "name",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -3735,10 +4560,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -3749,6 +4585,11 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -3777,10 +4618,21 @@
           "required": false
         },
         {
-          "name": "output",
-          "type": "string",
-          "env": "UNKEY_OUTPUT",
+          "name": "debug",
+          "type": "boolean",
           "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "output",
+          "type": "enum",
+          "env": "UNKEY_OUTPUT",
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -3824,6 +4676,16 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "limit",
           "type": "integer",
           "default": "100",
@@ -3831,9 +4693,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -3872,7 +4735,17 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "delete-protection",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
           "type": "boolean",
           "required": false
         },
@@ -3883,9 +4756,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "project",
@@ -3929,9 +4803,19 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "identifier",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
         },
         {
           "name": "namespace",
@@ -3940,14 +4824,20 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
+          "required": false
+        },
+        {
+          "name": "yes",
+          "type": "boolean",
           "required": false
         }
       ]
@@ -3976,9 +4866,19 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "identifier",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
         },
         {
           "name": "namespace",
@@ -3987,9 +4887,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -4028,6 +4929,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "duration",
           "type": "integer",
           "required": true
@@ -4036,6 +4942,11 @@
           "name": "identifier",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
         },
         {
           "name": "limit",
@@ -4049,9 +4960,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -4090,6 +5002,16 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "limit",
           "type": "integer",
           "required": false
@@ -4101,9 +5023,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -4137,15 +5060,26 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "limits",
           "type": "string",
           "required": true
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -4179,6 +5113,11 @@
           "required": false
         },
         {
+          "name": "debug",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "duration",
           "type": "integer",
           "required": true
@@ -4187,6 +5126,11 @@
           "name": "identifier",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false
         },
         {
           "name": "limit",
@@ -4200,9 +5144,10 @@
         },
         {
           "name": "output",
-          "type": "string",
+          "type": "enum",
           "env": "UNKEY_OUTPUT",
-          "required": false
+          "required": false,
+          "default": "human"
         },
         {
           "name": "root-key",
@@ -4214,8 +5159,26 @@
     },
     {
       "path": "auth login",
-      "usage": "Authenticate with a root key",
-      "flags": []
+      "usage": "Sign in and store a CLI session",
+      "flags": [
+        {
+          "name": "api-url",
+          "type": "string",
+          "default": "https://api.unkey.com",
+          "env": "UNKEY_API_BASE_URL",
+          "required": false
+        },
+        {
+          "name": "no-browser",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "root-key",
+          "type": "string",
+          "required": false
+        }
+      ]
     },
     {
       "path": "deploy",
@@ -4267,7 +5230,7 @@
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",
-          "required": true
+          "required": false
         }
       ]
     },

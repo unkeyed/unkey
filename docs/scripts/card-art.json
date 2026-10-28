@@ -1167,7 +1167,7 @@
     "id": "api-management--index--1",
     "source": "api-management/index.mdx",
     "href": "/api-management/get-started/quickstart",
-    "title": "Issue and verify your first key",
+    "title": "Quickstart",
     "evidence": "api-management/get-started/quickstart.mdx",
     "scene": {
       "kind": "flow",
@@ -1189,7 +1189,7 @@
     "id": "api-management--index--2",
     "source": "api-management/index.mdx",
     "href": "/api-management/get-started/concepts",
-    "title": "Keyspaces, keys, identities, and root keys",
+    "title": "Concepts",
     "evidence": "api-management/get-started/concepts.mdx",
     "scene": {
       "kind": "scope",
@@ -1319,7 +1319,7 @@
     "id": "api-management--index--7",
     "source": "api-management/index.mdx",
     "href": "/api-management/ratelimiting/overview",
-    "title": "Rate limiting, identities, and authorization",
+    "title": "Rate limiting",
     "evidence": "api-management/ratelimiting/overview.mdx",
     "scene": {
       "kind": "compare",
@@ -1341,7 +1341,7 @@
     "id": "api-management--index--8",
     "source": "api-management/index.mdx",
     "href": "/api-management/analytics/overview",
-    "title": "Analytics and audit logs",
+    "title": "Analytics",
     "evidence": "api-management/analytics/overview.mdx",
     "scene": {
       "kind": "query",
@@ -1362,6 +1362,27 @@
       ],
       "note": "Turn verification and limit events into analytics"
     }
+  },
+  {
+    "id": "api-management--index--9",
+    "source": "api-management/index.mdx",
+    "href": "/api-management/authorization/overview",
+    "title": "Authorization",
+    "evidence": "api-management/authorization/overview.mdx"
+  },
+  {
+    "id": "api-management--index--10",
+    "source": "api-management/index.mdx",
+    "href": "/platform/workspace/audit-logs/overview",
+    "title": "Audit logs",
+    "evidence": "platform/workspace/audit-logs/overview.mdx"
+  },
+  {
+    "id": "api-management--index--11",
+    "source": "api-management/index.mdx",
+    "href": "/compute/gateway/api-key-auth",
+    "title": "Let the gateway verify keys",
+    "evidence": "compute/gateway/api-key-auth.mdx"
   },
   {
     "id": "api-management--keyspaces--overview--1",
@@ -7181,13 +7202,6 @@
       ],
       "note": "Choose access before sending the invitation"
     }
-  },
-  {
-    "id": "platform--workspace--settings--2",
-    "source": "platform/workspace/settings.mdx",
-    "href": "/platform/root-keys/overview",
-    "title": "Root keys",
-    "evidence": "platform/root-keys/overview.mdx"
   },
   {
     "id": "platform--workspace--settings--3",

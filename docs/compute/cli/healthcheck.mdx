@@ -7,7 +7,7 @@ sources:
   - docs/scripts/manifest.json
 ---
 
-Send one HTTP GET request to a URL and exit 0 if the server answers 200, or exit 1 otherwise. The command needs no root key and never contacts the Unkey API. Use it as a small probe for CI pipelines, load balancer checks, and monitoring scripts, for example against the hostname of a deployment.
+Send one HTTP GET request to a URL and exit 0 if the server answers 200, or exit 1 otherwise. The command needs no root key and probes the URL you pass. Use it as a small probe for CI pipelines, load balancer checks, and monitoring scripts, for example against the hostname of a deployment.
 
 ## Usage
 
@@ -15,11 +15,11 @@ Send one HTTP GET request to a URL and exit 0 if the server answers 200, or exit
 unkey healthcheck <url>
 ```
 
-The URL is required. Without it, the command exits 1 with `you must provide a url like so: 'unkey healthcheck <url>'`. The command has no flags.
+Exactly one URL is required. Missing or extra arguments exit 1 with `usage: unkey healthcheck <url>`. The command has no flags.
 
 ## Behavior
 
-Redirects are followed and there's no request timeout, so a server that never answers keeps the command waiting. A 200 response prints `✓ Healthcheck passed: <url> returned 200` and exits 0. Any other status exits 1 with `healthcheck failed with status code <code>`. A connection error exits 1 with `failed to perform healthcheck:` followed by the underlying error.
+Redirects are followed and there's no request timeout, so a server that never answers keeps the command waiting. A 200 response prints `Healthy: HTTP 200 from <url>` to stdout and exits 0. Any other status exits 1 with `healthcheck failed: HTTP <code> from <url>`. A connection error exits 1 with `healthcheck failed:` followed by the underlying error. Errors go to stderr. Use the exit status, not the success text, to gate a script.
 
 ## Examples
 

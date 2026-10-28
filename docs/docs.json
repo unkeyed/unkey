@@ -193,8 +193,7 @@
                   "platform/cli/install",
                   "platform/cli/authentication",
                   "platform/cli/login",
-                  "platform/cli/output-and-flags",
-                  "platform/cli/auth/login"
+                  "platform/cli/output-and-flags"
                 ]
               },
               {
@@ -1343,8 +1342,12 @@
       "source": "/cli/login"
     },
     {
-      "destination": "/platform/cli/auth/login",
+      "destination": "/platform/cli/login",
       "source": "/cli/auth/login"
+    },
+    {
+      "destination": "/platform/cli/login",
+      "source": "/platform/cli/auth/login"
     },
     {
       "destination": "/platform/cli/authentication",
@@ -3186,7 +3189,6 @@
   "seo": {
     "indexing": "navigable",
     "metatags": {
-      "canonical": "https://www.unkey.com/docs",
       "og:site_name": "Unkey Docs"
     }
   },
