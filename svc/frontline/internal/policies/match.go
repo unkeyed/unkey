@@ -15,6 +15,10 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/canonicalpath"
 )
 
+// regexCacheEntriesMax bounds the cache because patterns come from tenant
+// policies, which can change without limit over the life of a process.
+const regexCacheEntriesMax = 1024
+
 // regexCache caches compiled regular expressions to avoid recompilation.
 type regexCache struct {
 	mu    sync.RWMutex
@@ -47,6 +51,12 @@ func (rc *regexCache) get(pattern string) (*regexp.Regexp, error) {
 	}
 
 	rc.mu.Lock()
+	if len(rc.cache) >= regexCacheEntriesMax {
+		for evicted := range rc.cache {
+			delete(rc.cache, evicted)
+			break
+		}
+	}
 	rc.cache[pattern] = re
 	rc.mu.Unlock()
 	return re, nil
