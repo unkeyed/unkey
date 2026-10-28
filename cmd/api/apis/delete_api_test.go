@@ -25,7 +25,7 @@ func TestDeleteAPI(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := testutil.CaptureRequest[openapi.V2ApisDeleteApiRequestBody](t, Cmd(), tt.args)
+			req := testutil.CaptureRequest[openapi.V2ApisDeleteApiRequestBody](t, Cmd(), tt.args+" --yes")
 			require.Equal(t, tt.want, req)
 		})
 	}

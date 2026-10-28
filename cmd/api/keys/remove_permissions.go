@@ -39,6 +39,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rem
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("key-id", "The key ID to remove permissions from.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.StringSlice("permissions", "Comma-separated list of permission names to remove.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
@@ -48,18 +49,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rem
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Keys.RemovePermissions, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2KeysRemovePermissionsResponseBody)
-			}
-
-			req := components.V2KeysRemovePermissionsRequestBody{
+			req, err := util.RequestBody(cmd, components.V2KeysRemovePermissionsRequestBody{
 				KeyID:       cmd.String("key-id"),
 				Permissions: cmd.StringSlice("permissions"),
+			})
+			if err != nil {
+				return err
+			}
+			if err := util.Confirm(cmd, fmt.Sprintf("Remove permissions %q from key %q?", req.Permissions, req.KeyID)); err != nil {
+				return err
 			}
 
 			res, err := client.Keys.RemovePermissions(ctx, req)

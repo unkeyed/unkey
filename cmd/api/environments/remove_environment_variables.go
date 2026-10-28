@@ -23,6 +23,7 @@ func removeEnvironmentVariablesCmd() *cli.Command {
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
@@ -34,16 +35,15 @@ func removeEnvironmentVariablesCmd() *cli.Command {
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Environments.RemoveEnvironmentVariables, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2EnvironmentsRemoveEnvironmentVariablesResponseBody)
+			req, err := util.RequestBody(cmd, components.V2EnvironmentsRemoveEnvironmentVariablesRequestBody{
+				Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Variables: cmd.StringSlice("variables"),
+			})
+			if err != nil {
+				return err
 			}
-			req := components.V2EnvironmentsRemoveEnvironmentVariablesRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Variables: nil}
-			req.Variables = cmd.StringSlice("variables")
+			if err := util.Confirm(cmd, fmt.Sprintf("Remove variables %q from environment %q, app %q, project %q?", req.Variables, req.Environment, req.App, req.Project)); err != nil {
+				return err
+			}
 			res, err := client.Environments.RemoveEnvironmentVariables(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))

@@ -33,6 +33,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/del
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
@@ -42,15 +43,13 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/del
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Apps.DeleteApp, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2AppsDeleteAppResponseBody)
+			req, err := util.RequestBody(cmd, components.V2AppsDeleteAppRequestBody{Project: cmd.String("project"), App: cmd.String("app")})
+			if err != nil {
+				return err
 			}
-			req := components.V2AppsDeleteAppRequestBody{Project: cmd.String("project"), App: cmd.String("app")}
+			if err := util.Confirm(cmd, fmt.Sprintf("Delete app %q in project %q and all its environments, deployments, and domains?", req.App, req.Project)); err != nil {
+				return err
+			}
 			res, err := client.Apps.DeleteApp(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
