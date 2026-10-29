@@ -107,7 +107,7 @@ func TestProjectsListHumanAndMachineOutput(t *testing.T) {
 	output, diagnostic, err := runCLI(t, "projects", "list", "--body="+string(body), flags[0], flags[1])
 	require.NoError(t, err)
 	require.Empty(t, diagnostic)
-	require.Contains(t, output, `In --body, set cursor to "next'page"`)
+	require.Contains(t, output, `Keep the same filters in --body and set cursor to "next'page"`)
 	require.NotContains(t, output, "--cursor=")
 
 	response.Data = []components.Project{}
@@ -225,7 +225,7 @@ func TestRootKeyCreationSendsBearerAndReturnsSecret(t *testing.T) {
 		args := append(strings.Fields(path), "--root-key="+key, "--api-url="+server.URL, "--permissions="+permission)
 		output, diagnostic, err := runCLI(t, args...)
 		require.NoError(t, err)
-		require.Empty(t, diagnostic)
+		require.Equal(t, "Store this root key securely. It cannot be retrieved later.\n", diagnostic)
 		require.Equal(t, 1, strings.Count(output, response.Data.Key))
 		require.Contains(t, output, response.Data.KeyID)
 		require.NotContains(t, output, response.Meta.RequestID)
@@ -245,7 +245,7 @@ func runCLI(t *testing.T, args ...string) (string, string, error) {
 	originalOut, originalErr := os.Stdout, os.Stderr
 	os.Stdout, os.Stderr = stdout, stderr
 	t.Cleanup(func() { os.Stdout, os.Stderr = originalOut, originalErr })
-	root := &cli.Command{Name: "unkey", Commands: append(ResourceCommands(), Cmd())}
+	root := &cli.Command{Name: "unkey", Commands: append(ResourceCommands(), Cmd()), OnError: HandleError}
 	err := root.Run(context.Background(), append([]string{"unkey"}, args...))
 	os.Stdout, os.Stderr = originalOut, originalErr
 	require.NoError(t, stdout.Sync())
