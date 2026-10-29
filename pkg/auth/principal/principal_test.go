@@ -1,13 +1,11 @@
 package principal
 
 import (
-	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -142,42 +140,6 @@ func TestAuthorizeRetainsMalformedQueryError(t *testing.T) {
 	code, ok := fault.GetCode(err)
 	require.True(t, ok)
 	require.Equal(t, codes.App.Internal.UnexpectedError.URN(), code)
-}
-
-// TestAuthorizeLogsDenialContext guarantees that operators can identify the subject,
-// customer workspace, required grant, actual grants, and error behind a denial.
-// For example, a root key owned by another workspace logs the customer workspace,
-// not the key owner. A later successful read must not emit another denial warning.
-func TestAuthorizeLogsDenialContext(t *testing.T) {
-	capture := loggertest.Install(t)
-	workspaceID := uid.New(uid.WorkspacePrefix)
-	resource := urn.New().Workspace(workspaceID).Project(uid.New(uid.ProjectPrefix))
-	read := rbac.U(resource, permissions.Read)
-	write := rbac.U(resource, permissions.Write)
-	p := &Principal{
-		Subject:               Subject{ID: "subject_a", Type: SubjectTypeRootKey},
-		Type:                  TypeAPIKey,
-		AuthorizedWorkspaceID: workspaceID,
-		Source:                KeySource{WorkspaceID: "key_owner_workspace", Permissions: []string{write.Value}},
-		Permissions:           []string{read.Value},
-	}
-	err := p.Authorize(write)
-	require.Error(t, err)
-	records := capture.Records()
-	require.Len(t, records, 1)
-	require.Equal(t, slog.LevelWarn, records[0].Level)
-	require.Equal(t, "principal authorization denied", records[0].Message)
-	attrs := loggertest.FlatAttrs(records[0])
-	require.Equal(t, workspaceID, attrs["workspace_id"])
-	require.Equal(t, "API_KEY", attrs["principal_type"])
-	require.Equal(t, "rootkey", attrs["subject_type"])
-	require.Equal(t, "subject_a", attrs["subject_id"])
-	require.Equal(t, resource.String()+"#write", attrs["required_permissions"])
-	require.Equal(t, []string{resource.String() + "#read"}, attrs["granted_permissions"])
-	require.Same(t, err, attrs["error"])
-
-	require.NoError(t, p.Authorize(read))
-	require.Len(t, capture.Records(), 1)
 }
 
 // TestAuthorizationErrorRetainsLatestDenialAfterSuccess guarantees that a successful

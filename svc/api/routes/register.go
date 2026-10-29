@@ -152,14 +152,12 @@ import (
 func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withObservability := zen.WithObservability()
 	withMetrics := zen.WithMetrics(svc.ApiRequests, info, svc.Redactor)
-	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/", "/health/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withErrorHandling := middleware.WithErrorHandling()
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
 	srv.RegisterRoutingErrors([]zen.Middleware{
 		withPanicRecovery,
-		withLogging,
 		withErrorHandling,
 	})
 
@@ -187,7 +185,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		withObservability,
 		zen.WithSQLComment(),
 		withMetrics,
-		withLogging,
 		withErrorHandling,
 		withTimeout,
 		withValidation,
@@ -198,7 +195,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		withObservability,
 		zen.WithSQLComment(),
 		withMetrics,
-		withLogging,
 		withErrorHandling,
 		withTimeout,
 		withValidation,
@@ -211,7 +207,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		withPanicRecovery,
 		withObservability,
 		withMetrics,
-		withLogging,
 		withErrorHandling,
 		withTimeout,
 		withValidation,
@@ -225,7 +220,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	if svc.PprofEnabled {
 		pprofMiddlewares := []zen.Middleware{
-			withLogging,
 			withObservability,
 			withPanicRecovery,
 			withErrorHandling,
@@ -1306,7 +1300,6 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	miscMiddlewares := []zen.Middleware{
 		withObservability,
 		withMetrics,
-		withLogging,
 		withPanicRecovery,
 		withErrorHandling,
 	}

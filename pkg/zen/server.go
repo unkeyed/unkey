@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/tls"
@@ -326,7 +327,10 @@ func (s *Server) handler(middlewares []Middleware, handle HandleFunc, streamRequ
 		sess.initErr = sess.Init(w, r, s.config.MaxRequestBodySize)
 		s.setForwardedClientIP(sess)
 		if sess.initErr != nil {
-			logger.Error("failed to init session", "error", sess.initErr)
+			code, _ := fault.GetCode(sess.initErr)
+			if code != codes.User.BadRequest.RequestBodyTooLarge.URN() && code != codes.User.BadRequest.RequestBodyUnreadable.URN() {
+				logger.Error("failed to init session", "error", sess.initErr, "requestId", sess.RequestID())
+			}
 		}
 
 		err := handleFn(WithSession(r.Context(), sess), sess)
