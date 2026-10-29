@@ -248,7 +248,7 @@ func (s *Service) limitFailures(ctx context.Context, action string, remoteIP str
 		Limit:       limit,
 		Duration:    time.Minute,
 		Cost:        0,
-		Time:        time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
+		Time:        time.Time{}, //nolint:exhaustruct
 	}
 	peek, err := s.Ratelimit.Ratelimit(ctx, failures)
 	if err != nil {

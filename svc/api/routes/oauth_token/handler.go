@@ -17,10 +17,7 @@ func (h *Handler) Method() string { return http.MethodPost }
 
 func (h *Handler) Path() string { return oauth.TokenPath }
 
-// Handle is RFC 6749 sections 4.1.3 and 6 for public clients. It runs on the
-// OAuth stack, which has no OpenAPI validation, so form bodies reach it and
-// RFC error bodies leave it, and no request metrics, so codes, verifiers, and
-// refresh tokens in the form are never stored.
+// Handle is RFC 6749 sections 4.1.3 and 6 for public clients.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	form, oerr := oauth.ParseForm(s.Request())
 	if oerr != nil {

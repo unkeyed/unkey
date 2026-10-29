@@ -240,7 +240,7 @@ func WriteFailure(s *zen.Session, err error) error {
 		return WriteError(s, http.StatusBadRequest, Error{Code: InvalidGrant, Description: fault.UserFacingMessage(err)})
 	}
 	code, _ := fault.GetCode(err)
-	//nolint:exhaustive // every other code is an infrastructure failure here
+	//nolint:exhaustive
 	switch code {
 	case codes.User.TooManyRequests.IPRateLimited.URN():
 		s.AddHeader("Retry-After", "60")
