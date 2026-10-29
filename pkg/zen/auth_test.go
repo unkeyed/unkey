@@ -26,6 +26,33 @@ func TestBearer(t *testing.T) {
 			wantErr:     false,
 		},
 		{
+			name:        "lowercase bearer preserves token case",
+			headerValue: "bearer AbC123xYz",
+			wantToken:   "AbC123xYz",
+		},
+		{
+			name:        "uppercase bearer preserves token case",
+			headerValue: "BEARER AbC123xYz",
+			wantToken:   "AbC123xYz",
+		},
+		{
+			name:        "mixed case bearer with extra spaces",
+			headerValue: "  bEaReR   AbC123xYz  ",
+			wantToken:   "AbC123xYz",
+		},
+		{
+			name:        "bearer prefix without separating space",
+			headerValue: "BearerAbC123xYz",
+			wantErr:     true,
+			code:        codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
+			name:        "bearer with tab separator",
+			headerValue: "Bearer\tAbC123xYz",
+			wantErr:     true,
+			code:        codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
 			name:        "empty authorization header",
 			headerValue: "",
 			wantErr:     true,
