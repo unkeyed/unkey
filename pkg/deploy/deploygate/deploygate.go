@@ -85,9 +85,10 @@ type RollbackInput struct {
 
 // StopInput is the state CheckStopTarget needs.
 type StopInput struct {
-	Status          dbtype.DeploymentsStatus
-	DesiredState    dbtype.DeploymentsDesiredState
-	EnvironmentKind dbtype.EnvironmentKind
+	Status              dbtype.DeploymentsStatus
+	DesiredState        dbtype.DeploymentsDesiredState
+	CurrentDeploymentID string
+	DeploymentID        string
 }
 
 // StartInput is the state CheckStartTarget needs.
@@ -234,7 +235,7 @@ func (r StopFailureReason) Message() string {
 	case StopIsStopping:
 		return "The deployment is already stopping."
 	case StopIsProduction:
-		return "Production deployments cannot be stopped."
+		return "The live production deployment cannot be stopped."
 	default:
 		return ""
 	}
@@ -265,7 +266,7 @@ func stopFault(r StopFailureReason) error {
 }
 
 // CheckStopTarget validates a deployment may be stopped: it must be running
-// (ready with a running desired state) and not in production. Order matches the
+// (ready with a running desired state) and not live. Order matches the
 // order every layer reports failures in.
 func CheckStopTarget(in StopInput) error {
 	switch {
@@ -273,7 +274,7 @@ func CheckStopTarget(in StopInput) error {
 		return stopFault(StopNotRunning)
 	case in.DesiredState != dbtype.DeploymentsDesiredStateRunning:
 		return stopFault(StopIsStopping)
-	case in.EnvironmentKind.IsProduction():
+	case isCurrent(in.CurrentDeploymentID, in.DeploymentID):
 		return stopFault(StopIsProduction)
 	default:
 		return nil

@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"net/http"
 	"testing"
 
@@ -80,8 +81,7 @@ func TestStopDeploymentAlreadyStopping(t *testing.T) {
 	require.Contains(t, res.Body.Error.Type, "deployment_is_stopping")
 }
 
-// Production deployments are never stopped; reject them before Restate submission.
-func TestStopDeploymentProduction(t *testing.T) {
+func TestStopDeploymentLiveProduction(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
@@ -97,9 +97,13 @@ func TestStopDeploymentProduction(t *testing.T) {
 		EnvironmentID: setup.Environment.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
+	require.NoError(t, db.Query.UpdateAppDeployments(t.Context(), h.DB.RW(), db.UpdateAppDeploymentsParams{
+		AppID:               setup.App.ID,
+		CurrentDeploymentID: sql.NullString{String: dep.ID, Valid: true},
+	}))
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "Production deployments cannot be stopped.")
+	require.Contains(t, res.Body.Error.Detail, "The live production deployment cannot be stopped.")
 	require.Contains(t, res.Body.Error.Type, "deployment_is_production")
 }
