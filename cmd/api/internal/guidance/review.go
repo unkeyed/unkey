@@ -188,13 +188,8 @@ func (f *form) edit(ctx context.Context, schema *Schema, values map[string]any, 
 			return f.review(ctx, schema, object, childPath, false)
 		}
 	}
-	if items, ok := values[name].([]any); ok && schema.Type == "array" {
-		updated, err := f.editList(ctx, schema, items, childPath)
-		if err != nil {
-			return err
-		}
-		values[name] = updated
-		return nil
+	if _, ok := values[name].([]any); ok && schema.Type == "array" {
+		return f.editList(ctx, schema, values, name, childPath)
 	}
 	return f.field(ctx, schema, values, name, path)
 }
@@ -244,8 +239,13 @@ func (f *form) editDictionary(ctx context.Context, schema *Schema, values map[st
 	}
 }
 
-func (f *form) editList(ctx context.Context, schema *Schema, values []any, path string) ([]any, error) {
+func (f *form) editList(ctx context.Context, schema *Schema, fields map[string]any, name, path string) error {
+	values, ok := fields[name].([]any)
+	if !ok {
+		return fmt.Errorf("invalid list value for %s", path)
+	}
 	for {
+		fields[name] = values
 		options := []prompt.SelectOption{}
 		if len(values) >= schema.MinItems {
 			options = append(options, prompt.SelectOption{Key: "done", Label: "Keep this list"})
@@ -258,25 +258,25 @@ func (f *form) editList(ctx context.Context, schema *Schema, values []any, path 
 		}
 		choice, err := f.prompt.SelectOrdered(label(path), options)
 		if err != nil || choice == "done" {
-			return values, err
+			return err
 		}
 		if choice == "add" {
 			value, err := f.value(ctx, schema.Items, fmt.Sprintf("%s[%d]", path, len(values)+1), "")
 			if err != nil {
-				return nil, err
+				return err
 			}
 			values = append(values, value)
 			continue
 		}
 		index, err := strconv.Atoi(choice)
 		if err != nil || index < 0 || index >= len(values) {
-			return nil, fmt.Errorf("invalid item selection")
+			return fmt.Errorf("invalid item selection")
 		}
 		choice, err = f.prompt.SelectOrdered("Item", []prompt.SelectOption{
 			{Key: "edit", Label: "Change value"}, {Key: "remove", Label: "Remove item"}, {Key: "back", Label: "Back"},
 		})
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if choice == "remove" {
 			values = slices.Delete(values, index, index+1)
@@ -284,7 +284,7 @@ func (f *form) editList(ctx context.Context, schema *Schema, values []any, path 
 			name := fmt.Sprintf("%s[%d]", path, index+1)
 			item := map[string]any{name: values[index]}
 			if err := f.edit(ctx, schema.Items, item, name, ""); err != nil {
-				return nil, err
+				return err
 			}
 			values[index] = item[name]
 		}
