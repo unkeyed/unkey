@@ -780,7 +780,7 @@ func insertAuditEvents(t *testing.T, conn ch.Conn, workspaceID string, events []
 			EventID:     event.id,
 			Time:        event.insertedAt,
 			WorkspaceID: workspaceID,
-			Bucket:      "integration",
+			Bucket:      auditlog.BucketUnkeyMutations,
 			Source:      auditlog.EventSourcePlatform,
 			Event:       eventType,
 			Description: "integration test event",

@@ -8,7 +8,7 @@ const EMPTY_JSON = "{}";
 
 export const auditLogsRequestSchema = z.object({
   workspaceId: z.string(),
-  bucketId: z.string(),
+  buckets: z.array(z.string()).min(1),
   limit: z.int(),
   offset: z.int(),
   startTime: z.int(),
@@ -21,17 +21,16 @@ export type AuditLogsRequest = z.infer<typeof auditLogsRequestSchema>;
 
 const auditLogJsonLookupSchema = z.object({
   workspaceId: z.string(),
-  bucketId: z.string(),
+  buckets: z.array(z.string()).min(1),
   times: z.array(z.int()),
   eventIds: z.array(z.string()),
 });
 
-// workspace_id and bucket are intentionally omitted: they're always equal
-// to the query filter values and selecting `any(workspace_id) AS workspaceId`
-// would shadow the WHERE column and trigger ILLEGAL_AGGREGATION in ClickHouse.
-// Callers reconstruct those fields from their own context.
+// workspace_id is omitted because it always equals the filter value. bucket
+// is returned because a caller may read several buckets in one query.
 export const auditLogRow = z.object({
   eventId: z.string(),
+  bucket: z.string(),
   time: z.int(),
   event: z.string(),
   description: z.string(),
@@ -71,7 +70,7 @@ export function getAuditLogs(ch: Querier) {
     // can push event/actor predicates into the set/bloom skip indexes.
     const conditions = [
       "workspace_id = {workspaceId: String}",
-      "bucket = {bucketId: String}",
+      "bucket IN {buckets: Array(String)}",
       "time BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
     ];
     if (args.events.length > 0) {
@@ -89,6 +88,7 @@ export function getAuditLogs(ch: Querier) {
       query: `
         SELECT
           event_id AS eventId,
+          bucket,
           time,
           event,
           description,
@@ -123,7 +123,7 @@ export function getAuditLogs(ch: Querier) {
           ) AS targets
         FROM ${TABLE}
         WHERE workspace_id = {workspaceId: String}
-          AND bucket = {bucketId: String}
+          AND bucket IN {buckets: Array(String)}
           AND time IN {times: Array(Int64)}
           AND (time, event_id) IN (
             SELECT
@@ -148,7 +148,7 @@ async function loadAuditLogPage(
   pageQuery: (args: AuditLogsRequest) => Promise<Result<AuditLogPageRow[], QueryError>>,
   jsonQuery: (args: {
     workspaceId: string;
-    bucketId: string;
+    buckets: string[];
     times: number[];
     eventIds: string[];
   }) => Promise<Result<AuditLogJsonRow[], QueryError>>,
@@ -164,7 +164,7 @@ async function loadAuditLogPage(
 
   const json = await jsonQuery({
     workspaceId: args.workspaceId,
-    bucketId: args.bucketId,
+    buckets: args.buckets,
     times: page.val.map((row) => row.time),
     eventIds: page.val.map((row) => row.eventId),
   });
