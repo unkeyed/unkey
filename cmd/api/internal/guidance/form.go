@@ -25,6 +25,7 @@ type questions interface {
 type form struct {
 	prompt    questions
 	out       io.Writer
+	pick      func(context.Context, *form, string, map[string]any) (string, bool, error)
 	conflicts map[string][]string
 }
 
@@ -89,6 +90,16 @@ func (f *form) field(ctx context.Context, schema *Schema, values map[string]any,
 	}
 	if schema == nil {
 		return fmt.Errorf("missing input definition for %s", name)
+	}
+	if path == "" && f.pick != nil && targetField(name) {
+		value, handled, err := f.pick(ctx, f, name, values)
+		if err != nil {
+			return err
+		}
+		if handled {
+			values[name] = value
+			return nil
+		}
 	}
 	path = strings.TrimPrefix(path+"."+name, ".")
 	if schema.Description != "" {
