@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
@@ -178,7 +179,7 @@ func TestErrorMiddleware_Forbidden_PreservesPermissionDetail(t *testing.T) {
 	require.Equal(t, "Missing permission to decrypt this key.", response.Error.Detail)
 }
 
-func TestErrorMiddleware_SeparatesOperationalFailuresAndSecurityDenials(t *testing.T) {
+func TestErrorMiddleware_RecordsDenialsInHistoryWithoutOperationalLogs(t *testing.T) {
 	logs := loggertest.Install(t)
 	for _, tc := range []struct {
 		name     string
@@ -186,6 +187,7 @@ func TestErrorMiddleware_SeparatesOperationalFailuresAndSecurityDenials(t *testi
 		status   int
 		event    string
 		level    slog.Level
+		history  bool
 		canceled bool
 		category codes.Category
 	}{
@@ -193,15 +195,15 @@ func TestErrorMiddleware_SeparatesOperationalFailuresAndSecurityDenials(t *testi
 		{name: "rate_limit", code: codes.User.TooManyRequests.WorkspaceRateLimited.URN(), status: 429},
 		{name: "plan_limit", code: codes.Limits.CustomDomain.Exceeded.URN(), status: 403},
 		{name: "conflict", code: codes.Data.Identity.Duplicate.URN(), status: 409},
-		{name: "missing_credentials", code: codes.Auth.Authentication.Missing.URN(), status: 400, event: "api.security_denial", level: slog.LevelInfo},
-		{name: "invalid_credentials", code: codes.Auth.Authentication.CredentialRejected.URN(), status: 401, event: "api.security_denial", level: slog.LevelInfo},
-		{name: "forbidden", code: codes.Auth.Authorization.Forbidden.URN(), status: 403, event: "api.security_denial", level: slog.LevelInfo},
+		{name: "missing_credentials", code: codes.Auth.Authentication.Missing.URN(), status: 400, history: true},
+		{name: "invalid_credentials", code: codes.Auth.Authentication.CredentialRejected.URN(), status: 401, history: true},
+		{name: "forbidden", code: codes.Auth.Authorization.Forbidden.URN(), status: 403, history: true},
 		{name: "database", code: codes.App.Internal.UnexpectedError.URN(), status: 500, event: "api.request_error", level: slog.LevelError},
 		{name: "analytics", code: codes.Data.Analytics.ConnectionFailed.URN(), status: 503, event: "api.request_error", level: slog.LevelError},
 		{name: "timeout", code: codes.User.BadRequest.RequestTimeout.URN(), status: 408, event: "api.request_error", level: slog.LevelError},
 		{name: "client_canceled", code: codes.User.BadRequest.ClientClosedRequest.URN(), status: 499, canceled: true},
 		{name: "unexpected_cancellation", code: codes.User.BadRequest.ClientClosedRequest.URN(), status: 499, event: "api.request_error", level: slog.LevelError},
-		{name: "unknown_code", code: "err:unkey:authentication:new_code", status: 500, event: "api.request_error", level: slog.LevelError},
+		{name: "unknown_code", code: "err:unkey:authentication:new_code", status: 500, event: "api.request_error", level: slog.LevelError, history: true},
 		{name: "untagged", status: 500, event: "api.request_error", level: slog.LevelError},
 		{name: "platform_override", code: codes.App.Validation.InvalidInput.URN(), category: codes.CategoryPlatform, status: 400, event: "api.request_error", level: slog.LevelError},
 	} {
@@ -212,6 +214,7 @@ func TestErrorMiddleware_SeparatesOperationalFailuresAndSecurityDenials(t *testi
 				cancel()
 			}
 			req := httptest.NewRequestWithContext(ctx, http.MethodPost, "/v2/keys.getKey", nil)
+			req.Header.Set("Authorization", "Bearer synthetic-secret")
 			rec := httptest.NewRecorder()
 			sess := &zen.Session{}
 			require.NoError(t, sess.Init(rec, req, 0))
@@ -221,11 +224,21 @@ func TestErrorMiddleware_SeparatesOperationalFailuresAndSecurityDenials(t *testi
 				cause = context.Canceled
 			}
 			snapshot := logs.Snapshot()
-			err := middleware.WithErrorHandling()(func(context.Context, *zen.Session) error {
+			history := &apiRequestRecorder{}
+			err := zen.WithMetrics(history, zen.InstanceInfo{}, nil)(middleware.WithErrorHandling()(func(context.Context, *zen.Session) error {
 				return fault.Wrap(cause, fault.Code(tc.code), fault.Category(tc.category))
-			})(ctx, sess)
+			}))(ctx, sess)
 			require.NoError(t, err)
 			require.Equal(t, tc.status, rec.Code)
+			if tc.history {
+				require.Len(t, history.requests, 1)
+				require.EqualValues(t, tc.status, history.requests[0].ResponseStatus)
+				require.Equal(t, sess.RequestID(), history.requests[0].RequestID)
+				require.Empty(t, history.requests[0].WorkspaceID)
+				require.Contains(t, history.requests[0].RequestHeaders, "Authorization: [REDACTED]")
+			} else {
+				require.Empty(t, history.requests)
+			}
 			records := logs.Since(snapshot)
 			if tc.event == "" {
 				require.Empty(t, records)
@@ -262,35 +275,38 @@ func TestErrorMiddleware_RecordsMaskedDenialsButNotPermissionFiltering(t *testin
 		sess.SetPrincipal(p)
 		sess.SkipRequestLog()
 		snapshot := logs.Snapshot()
-		err := middleware.WithErrorHandling()(func(_ context.Context, s *zen.Session) error {
+		history := &apiRequestRecorder{}
+		err := zen.WithMetrics(history, zen.InstanceInfo{}, nil)(middleware.WithErrorHandling()(func(_ context.Context, s *zen.Session) error {
 			denied := p.Authorize(write)
 			require.Error(t, denied)
 			if rejected {
 				return apierrors.MaskInsufficientPermissionsAsNotFound(denied, p.Permissions, write, codes.Data.Project.NotFound.URN(), "Resource does not exist.")
 			}
 			return s.JSON(http.StatusOK, struct{}{})
-		})(t.Context(), sess)
+		}))(t.Context(), sess)
 		require.NoError(t, err)
-		records := logs.Since(snapshot)
+		require.Empty(t, logs.Since(snapshot))
 		if !rejected {
 			require.Equal(t, http.StatusOK, rec.Code)
-			require.Empty(t, records)
+			require.Empty(t, history.requests)
 			continue
 		}
 		require.Equal(t, http.StatusNotFound, rec.Code)
 		require.NotContains(t, rec.Body.String(), resource.String())
-		require.Len(t, records, 1)
-		attrs := loggertest.FlatAttrs(records[0])
-		require.Equal(t, "api.security_denial", attrs["event"])
-		require.Equal(t, workspaceID, attrs["workspaceId"])
-		require.Equal(t, p.Subject.ID, attrs["subjectId"])
-		require.Equal(t, "rootkey", attrs["subjectType"])
-		require.Equal(t, "API_KEY", attrs["authType"])
-		require.Equal(t, sess.RequestID(), attrs["requestId"])
-		require.Same(t, principal.AuthorizationError(p), attrs["authorizationError"])
-		require.Contains(t, fault.InternalMessage(principal.AuthorizationError(p)), resource.String()+"#write")
-		require.Equal(t, p.Permissions, attrs["grantedPermissions"])
+		require.Len(t, history.requests, 1)
+		require.EqualValues(t, http.StatusNotFound, history.requests[0].ResponseStatus)
+		require.Equal(t, workspaceID, history.requests[0].WorkspaceID)
+		require.Equal(t, sess.RequestID(), history.requests[0].RequestID)
+		require.NotContains(t, history.requests[0].ResponseBody, resource.String())
 	}
+}
+
+type apiRequestRecorder struct {
+	requests []schema.ApiRequest
+}
+
+func (r *apiRequestRecorder) Buffer(req schema.ApiRequest) {
+	r.requests = append(r.requests, req)
 }
 
 func TestErrorMiddleware_PreservesDirectServerErrorsAndWriteFailures(t *testing.T) {
