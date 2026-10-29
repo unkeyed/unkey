@@ -53,6 +53,9 @@ func TestParamsNeverResolveRepeatedValues(t *testing.T) {
 	require.False(t, params.Repeated("code", "client_id"))
 	require.True(t, params.Has("code"))
 	require.False(t, params.Has("client_id"))
+
+	resources := Params{values: url.Values{"resource": {"https://a.test", "https://b.test"}}}
+	require.False(t, resources.Repeated(), "RFC 8707 lets resource repeat")
 }
 
 // TestScopeRules guarantees that only the advertised scope is accepted.

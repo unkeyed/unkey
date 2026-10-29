@@ -99,6 +99,19 @@ func TestTokenInvalidGrantIsIndistinguishable(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.status, "failed attempts must not burn the code")
 }
 
+// TestTokenAcceptsARepeatedResource guarantees that resource, which RFC 8707
+// section 2 lets repeat, is exempt from the single-value rule.
+func TestTokenAcceptsARepeatedResource(t *testing.T) {
+	h, grants := newTokenHarness(t)
+	req := granttest.PendingOAuthRequest(t, grants)
+	code := approvedCode(t, h, grants, req)
+
+	form := codeForm(req, code)
+	form["resource"] = []string{"https://mcp.gateway.test/mcp", granttest.Issuer}
+	res := postToken(t, h, form, gatewayIP)
+	require.Equal(t, http.StatusOK, res.status)
+}
+
 // TestTokenRejectsAnExpiredCode guarantees the 60 second code lifetime at the
 // token endpoint.
 func TestTokenRejectsAnExpiredCode(t *testing.T) {

@@ -164,6 +164,9 @@ func TestAuthorizeSendsTheBrowserToConsent(t *testing.T) {
 			q.Set("resource", granttest.Issuer+"/")
 		}},
 		{name: "mcp server as resource", mutate: func(q url.Values) { q.Set("resource", "https://mcp.gateway.test/mcp") }},
+		{name: "repeated resource", mutate: func(q url.Values) {
+			q["resource"] = []string{"https://mcp.gateway.test/mcp", granttest.Issuer}
+		}},
 		{name: "redirect_uri omitted", mutate: func(q url.Values) { q.Del("redirect_uri") }},
 		{name: "state omitted", mutate: func(q url.Values) { q.Del("state") }},
 	} {

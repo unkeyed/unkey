@@ -128,11 +128,12 @@ func (p Params) Has(name string) bool {
 }
 
 // Repeated reports whether any of names appeared more than once. With no
-// names, whether any parameter did.
+// names, whether any parameter other than resource did, which RFC 8707
+// section 2 lets repeat.
 func (p Params) Repeated(names ...string) bool {
 	if len(names) == 0 {
-		for _, values := range p.values {
-			if len(values) > 1 {
+		for name, values := range p.values {
+			if name != "resource" && len(values) > 1 {
 				return true
 			}
 		}
