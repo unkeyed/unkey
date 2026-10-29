@@ -13,7 +13,6 @@ post:
     portal configuration. Both the identity and the keyspaces come from the
     session, so the request body has no `externalId` or `apiId` field.
   operationId: portal.listKeys
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listKeys
   security:
     - portalSession: []

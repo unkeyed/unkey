@@ -30,7 +30,6 @@ post:
     - `environment.*.read_domain` (to read domains in any environment)
     - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
   operationId: domains.getDomain
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getDomain
   x-unkey-idempotency: idempotent
   security:

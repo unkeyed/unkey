@@ -5,7 +5,6 @@ post:
     - bearer: []
   x-speakeasy-name-override: getGatewayRequests
   operationId: analytics.getGatewayRequests
-  x-unkey-workspace-rate-limit-exempt: true
   summary: Query gateway request data
   description: |
     A query can use only the public alias `gateway_requests_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.

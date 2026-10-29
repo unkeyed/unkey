@@ -10,7 +10,6 @@ post:
     > **Important**
     > Requires `identity.*.read_identity` permission
   operationId: identities.listIdentities
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listIdentities
   security:
     - bearer: []

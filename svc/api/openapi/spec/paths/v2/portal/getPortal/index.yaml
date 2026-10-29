@@ -18,7 +18,6 @@ post:
 
     Without the permission this returns **404**, not 403.
   operationId: portal.getPortal
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getPortal
   security:
     - bearer: []
