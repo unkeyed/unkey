@@ -137,23 +137,9 @@ export function getAuditLogs(ch: Querier) {
       schema: auditLogJsonRow,
     });
 
-    // count() over countDistinct(event_id): event_id is row-identity and the
-    // ReplacingMergeTree dedup catches retries, so the only divergence is a
-    // few unmerged rows in a short window. The result is cached for 5min
-    // upstream, which makes that drift invisible.
-    const totalQuery = ch.query({
-      query: `
-        SELECT count() AS totalCount
-        FROM ${TABLE}
-        WHERE ${filterConditions}`,
-      params: auditLogsRequestSchema,
-      schema: z.object({ totalCount: z.int() }),
-    });
-
     return {
       getLogsQuery: (): Promise<Result<AuditLogRow[], QueryError>> =>
         loadAuditLogPage(pageQuery, jsonQuery, args),
-      getTotalQuery: () => totalQuery(args),
     };
   };
 }

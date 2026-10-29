@@ -41,9 +41,11 @@ const ACTION_LABEL: Partial<Record<DeploymentStatusGroup, string>> = {
 export function NewerDeploymentRow({
   deployment,
   href,
+  actionLabel,
 }: {
   deployment: DeploymentSummary & Pick<Deployment, "buildEndedAt">;
   href: Route;
+  actionLabel?: string;
 }) {
   const buildTime = useBuildDuration(
     deployment.status,
@@ -64,17 +66,17 @@ export function NewerDeploymentRow({
         <span aria-hidden className="shrink-0 text-gray-9">
           ·
         </span>
-        <span className="min-w-0 truncate text-gray-11">{description}</span>
+        <span className="min-w-0 truncate text-xs text-gray-11">{description}</span>
       </div>
       <div className="flex shrink-0 items-center gap-2 text-xs text-gray-11">
         {buildTime ? (
-          <span className="text-sm tabular-nums text-gray-9">{buildTime}</span>
+          <span className="tabular-nums text-gray-9">{buildTime}</span>
         ) : (
-          <RowTime value={deployment.createdAt} />
+          <RowTime value={deployment.createdAt} className="text-xs" />
         )}
-        <AuthorCell deployment={deployment} withHandle />
+        <AuthorCell deployment={deployment} withHandle handleClassName="text-xs" />
         <Button variant="ghost" size="sm" render={<Link href={href} />} className="shrink-0">
-          {ACTION_LABEL[statusGroupOf(deployment.status)] ?? "View build"}
+          {actionLabel ?? ACTION_LABEL[statusGroupOf(deployment.status)] ?? "View build"}
         </Button>
       </div>
     </div>

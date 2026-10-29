@@ -1,3 +1,5 @@
+const { env } = require("./lib/env.ts");
+
 const isDev = process.env.NODE_ENV === "development";
 const isProd = process.env.NODE_ENV === "production";
 
@@ -98,13 +100,27 @@ const nextConfig = {
   ...(uploadSentrySourceMaps ? {} : { productionBrowserSourceMaps: false }),
 
   poweredByHeader: false,
-  webpack: (config) => {
-    config.cache = Object.freeze({
-      type: "memory",
-    });
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      config.cache = Object.freeze({
+        type: "memory",
+      });
+    }
     return config;
   },
-  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/error", "@unkey/id"],
+  experimental: {
+    // Vercel restores the last production .next/cache, which ships stale CSS.
+    turbopackFileSystemCacheForBuild: process.env.VERCEL_ENV !== "production",
+  },
+  transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/id"],
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/github/verify",
+        destination: new URL("/webhooks/github/key-leaks", env().CTRL_URL).toString(),
+      },
+    ];
+  },
   async redirects() {
     return [
       {

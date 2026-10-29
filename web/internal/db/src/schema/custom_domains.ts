@@ -60,6 +60,7 @@ export const customDomains = mysqlTable(
     index("project_id_id_domain_idx").on(table.projectId, table.id, table.domain),
     index("app_id_id_domain_idx").on(table.appId, table.id, table.domain),
     index("verification_status_idx").on(table.verificationStatus),
+    index("domain_idx").on(table.domain),
     uniqueIndex("unique_domain_workspace_idx").on(table.workspaceId, table.domain),
     index("environment_id_id_domain_idx").on(table.environmentId, table.id, table.domain),
   ],

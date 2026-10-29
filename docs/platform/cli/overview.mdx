@@ -5,18 +5,31 @@ description: "Run Unkey from your terminal with the unkey CLI and find the page 
 sources:
   - build/cli/main.go
   - cmd/api/root.go
+  - cmd/api/resources.go
   - cmd/api/util/flags.go
+  - cmd/api/util/confirm.go
   - cmd/api/analytics/root.go
   - cmd/auth/main.go
+  - cmd/auth/login/login.go
   - cmd/deploy/main.go
   - cmd/healthcheck/main.go
+  - cmd/version/main.go
   - pkg/cli/parser.go
   - .goreleaser.yaml
 ---
 
-The `unkey` CLI lets you do from your terminal what you'd do with the API. It covers both products. Nearly every API endpoint has a matching `unkey api <group> <command>`. The exception is the customer portal's end-user endpoints, which use a portal session instead of a root key.
+The `unkey` CLI manages Unkey resources from your terminal. Use a resource followed by an action, such as `unkey projects list`, `unkey keys create`, or `unkey deployments get`. Nearly every bearer-authenticated API endpoint has a matching command. Customer portal end-user endpoints use a portal session and aren't exposed by the CLI.
 
-There are also three top-level commands: `unkey deploy` deploys a prebuilt container image to Compute, `unkey auth login` stores a root key so you don't pass it on every call, and `unkey healthcheck` checks a URL from a script.
+Sign in once, then run a resource command:
+
+```bash
+unkey login
+unkey projects list
+```
+
+The default output is for reading in a terminal. Use `--json` for scripts and pipes. See [Output formats](/platform/cli/output-and-flags#output-formats).
+
+Delete and remove commands also require confirmation. Review the target in the terminal prompt, or pass `--yes` explicitly in scripts. See [Confirm destructive commands](/platform/cli/output-and-flags#confirm-destructive-commands).
 
 <Warning>
   The CLI is early and best effort. Commands, flags, and output can change without notice. The HTTP API is versioned and stable, so use the API for scripts that must not break.
@@ -24,13 +37,15 @@ There are also three top-level commands: `unkey deploy` deploys a prebuilt conta
 
 ## Command shape
 
-Commands look like `unkey <command> [subcommand] [flags] [arguments]`. `unkey --help`, `unkey <command> --help`, and `unkey help <command>` print usage, and `unkey --version` prints the installed version.
+Commands look like `unkey <resource> <action> [flags]`. Subresources add a level, such as `unkey environments variables list` or `unkey keys permissions add`. `unkey --help`, `unkey projects list --help`, and `unkey help projects list` print usage. `unkey version` and `unkey --version` print the installed CLI version.
 
-Every `unkey api` command shares five flags for auth, output, and a raw request body. They're on [CLI output and shared flags](/platform/cli/output-and-flags), along with flag syntax, so each command page only lists its own flags.
+Resource commands share authentication, output, debugging, and raw-body flags. See [CLI output and shared flags](/platform/cli/output-and-flags) for their behavior and syntax.
+
+The legacy `unkey api <group> <command>` paths remain available for compatibility. These pages teach the resource paths without changing their existing documentation URLs.
 
 ## Command groups
 
-`unkey api` has 14 groups, one per API service. Each command has its own page in the CLI section of the product it belongs to.
+Each resource command has its own page in the CLI section of its product.
 
 ### Compute
 
@@ -38,14 +53,14 @@ Every `unkey api` command shares five flags for auth, output, and a raw request 
 
 | Group | What it manages |
 | --- | --- |
-| [`unkey api projects`](/compute/cli/projects/create-project) | Create, read, update, and delete workspace projects |
-| [`unkey api apps`](/compute/cli/apps/create-app) | Create, read, update, and delete apps within projects |
-| [`unkey api environments`](/compute/cli/environments/list-environments) | Environment variables and settings |
-| [`unkey api deployments`](/compute/cli/deployments/create-deployment) | Create and control deployments |
-| [`unkey api domains`](/compute/cli/domains/create-domain) | Create, read, <Tooltip tip="Here: proving DNS ownership of a custom domain. Not key verification.">verify</Tooltip>, and delete custom domains |
-| [`unkey api gateway`](/compute/cli/gateway/list-policies) | List, replace, and update gateway policies |
-| [`unkey api github`](/compute/cli/github/install-app) | GitHub App installations |
-| `unkey api analytics` | [`get-gateway-requests`](/compute/cli/analytics/get-gateway-requests) and [`get-runtime-logs`](/compute/cli/analytics/get-runtime-logs) query gateway and runtime data |
+| [`unkey projects`](/compute/cli/projects/create-project) | Create, read, update, and delete workspace <Tooltip tip="Groups of apps, usually one per codebase or product.">projects</Tooltip> |
+| [`unkey apps`](/compute/cli/apps/create-app) | Create, read, update, and delete apps within projects |
+| [`unkey environments`](/compute/cli/environments/list-environments) | Environments, variables, and settings |
+| [`unkey deployments`](/compute/cli/deployments/create-deployment) | Create and control deployments |
+| [`unkey domains`](/compute/cli/domains/create-domain) | Create, read, <Tooltip tip="Here: proving DNS ownership of a custom domain. Not key verification.">verify</Tooltip>, and delete custom domains |
+| [`unkey gateway policies`](/compute/cli/gateway/list-policies) | List, replace, and update gateway policies |
+| [`unkey github`](/compute/cli/github/install-app) | GitHub App installations |
+| `unkey analytics` | [`analytics gateway-requests`](/compute/cli/analytics/get-gateway-requests) and [`analytics runtime-logs`](/compute/cli/analytics/get-runtime-logs) query gateway and runtime data |
 
 ### API Management
 
@@ -53,23 +68,32 @@ Keyspaces, keys, identities, permissions and roles, <Tooltip tip="Here: the stan
 
 | Group | What it manages |
 | --- | --- |
-| [`unkey api apis`](/api-management/cli/apis/create-api) | Keyspaces (the API namespaces keys belong to) |
-| [`unkey api keys`](/api-management/cli/keys/create-key) | Create, <Tooltip tip="Here: checking an API key on a request. Not domain verification.">verify</Tooltip>, update, and delete keys and their permissions and roles |
-| [`unkey api identities`](/api-management/cli/identities/create-identity) | Identities that group keys |
-| [`unkey api permissions`](/api-management/cli/permissions/create-permission) | Permissions and roles |
-| [`unkey api ratelimit`](/api-management/cli/ratelimit/limit) | Rate limit checks and overrides |
-| [`unkey api portal`](/api-management/cli/portal/create-session) | Customer portals and their sessions |
-| `unkey api analytics` | [`get-verifications`](/api-management/cli/analytics/get-verifications) and [`get-ratelimits`](/api-management/cli/analytics/get-ratelimits) query key and rate limit data |
+| [`unkey apis`](/api-management/cli/apis/create-api) | Keyspaces (the API namespaces keys belong to) |
+| [`unkey keys`](/api-management/cli/keys/create-key) | Create, list, <Tooltip tip="Here: checking an API key on a request. Not domain verification.">verify</Tooltip>, update, and delete keys and their permissions and roles |
+| [`unkey identities`](/api-management/cli/identities/create-identity) | Identities that group keys |
+| [`unkey permissions`](/api-management/cli/permissions/create-permission) | Permissions |
+| [`unkey roles`](/api-management/cli/permissions/create-role) | Roles and their permissions |
+| [`unkey ratelimit`](/api-management/cli/ratelimit/limit) | Rate limit checks and overrides |
+| [`unkey portals`](/api-management/cli/portal/create-session) | Customer portals and their sessions |
+| `unkey analytics` | [`analytics verifications`](/api-management/cli/analytics/get-verifications) and [`analytics ratelimits`](/api-management/cli/analytics/get-ratelimits) query key and rate limit data |
 
 `analytics` appears in both tables because two of its commands read Compute data and two read API Management data.
 
 ## Top-level commands
 
+Authentication, deployment, health checks, and the CLI version have their own command forms.
+
 | Command | Product | What it does |
 | --- | --- | --- |
-| `unkey deploy <image>` | Compute | Deploys a prebuilt container image to a project and waits until the deployment is active. Needs `--project` (or `UNKEY_PROJECT`), and a root key from `--root-key` or `UNKEY_ROOT_KEY`. It doesn't read the stored key. Reference: [unkey deploy](/compute/cli/deploy). |
-| `unkey auth login` | Platform | Prompts for a root key and stores it in `~/.unkey/config.toml`. Reference: [unkey auth login](/platform/cli/auth/login). |
+| `unkey deploy <image>` | Compute | Deploys a prebuilt container image to a project and waits until the deployment is active. Needs `--project` (or `UNKEY_PROJECT`). Uses `--root-key`, then `UNKEY_ROOT_KEY`, then `unkey login`. Reference: [unkey deploy](/compute/cli/deploy). |
+| `unkey login` | Platform | Signs you in with a device code and stores a CLI session. `--root-key=-` stores an existing root key instead. Reference: [unkey login](/platform/cli/login). |
+| `unkey logout` | Platform | Revokes the active CLI session. |
+| `unkey workspace switch` | Platform | Changes the active signed-in workspace. |
+| `unkey auth login` | Platform | Same command and flags as [unkey login](/platform/cli/login). |
 | `unkey healthcheck <url>` | Compute | Sends one HTTP GET and exits 0 on a 200 response, or 1 otherwise. Useful in CI and monitoring scripts. Reference: [unkey healthcheck](/compute/cli/healthcheck). |
+| `unkey version` | Platform | Prints the installed CLI version to stdout, the same as `unkey --version`. |
+
+`unkey version` does not manage deployments. To inspect, list, or roll back deployments, use [deployments get](/compute/cli/deployments/get-deployment), [deployments list](/compute/cli/deployments/list-deployments), or [deployments rollback](/compute/cli/deployments/rollback-deployment).
 
 ## Next steps
 
@@ -81,6 +105,6 @@ Keyspaces, keys, identities, permissions and roles, <Tooltip tip="Here: the stan
     Where the root key comes from and in which order.
   </Card>
   <Card title="Output and shared flags" icon="terminal" href="/platform/cli/output-and-flags">
-    `--output json`, `--body`, `--api-url`, `--config`.
+    Human output, `--json`, `--debug`, and request flags.
   </Card>
 </Columns>

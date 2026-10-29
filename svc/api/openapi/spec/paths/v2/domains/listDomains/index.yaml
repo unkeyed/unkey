@@ -24,6 +24,7 @@ post:
     Use a root key with the `environment.*.read_domain` permission.
     A successful request returns an empty list if no matching domains are readable by your key.
   operationId: domains.listDomains
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listDomains
   x-unkey-idempotency: idempotent
   security:
@@ -288,3 +289,11 @@ post:
                   detail: The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.
                   status: 503
                   type: service-unavailable
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

@@ -36,27 +36,29 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/del
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("key-id", "The key ID to delete.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.Bool("permanent", "Whether to permanently erase the key instead of soft-deleting.", cli.Default(false), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Keys.DeleteKey, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2KeysDeleteKeyResponseBody)
-			}
-
-			req := components.V2KeysDeleteKeyRequestBody{
+			req, err := util.RequestBody(cmd, components.V2KeysDeleteKeyRequestBody{
 				KeyID:     cmd.String("key-id"),
 				Permanent: new(cmd.Bool("permanent")),
+			})
+			if err != nil {
+				return err
+			}
+			question := fmt.Sprintf("Delete key %q and invalidate it?", req.KeyID)
+			if req.Permanent != nil && *req.Permanent {
+				question = fmt.Sprintf("Permanently erase key %q and invalidate it?", req.KeyID)
+			}
+			if err := util.Confirm(cmd, question); err != nil {
+				return err
 			}
 
 			res, err := client.Keys.DeleteKey(ctx, req)

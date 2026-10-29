@@ -1,6 +1,7 @@
+import { MotionProvider } from "@/components/motion-provider";
 import { IconXmarkOutline12 } from "@unkey/icons";
 import { cn } from "cn";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 
 interface BaseItem {
   id: string;
@@ -50,77 +51,79 @@ export function SelectedItemsList<T extends BaseItem>({
     return null;
   }
 
-  const ItemComponent = enableTransitions ? motion.div : "div";
+  const ItemComponent = enableTransitions ? m.div : "div";
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
-      <div className={cn("grid gap-2", getGridColsClass(gridCols))}>
-        <AnimatePresence mode="popLayout">
-          {items.map((item) => {
-            const canRemove = !disabled && (!isItemRemovable || isItemRemovable(item));
-            const itemProps = enableTransitions
-              ? {
-                  layout: true,
-                  initial: { opacity: 0, scale: 0.8, y: -10 },
-                  animate: { opacity: 1, scale: 1, y: 0 },
-                  exit: { opacity: 0, scale: 0.8, y: -10 },
-                  transition: {
-                    type: "spring" as const,
-                    stiffness: 500,
-                    damping: 30,
-                    mass: 0.8,
-                  },
-                }
-              : {};
+    <MotionProvider>
+      <div className={cn("flex flex-col gap-2", className)}>
+        <div className={cn("grid gap-2", getGridColsClass(gridCols))}>
+          <AnimatePresence mode="popLayout">
+            {items.map((item) => {
+              const canRemove = !disabled && (!isItemRemovable || isItemRemovable(item));
+              const itemProps = enableTransitions
+                ? {
+                    layout: true,
+                    initial: { opacity: 0, scale: 0.8, y: -10 },
+                    animate: { opacity: 1, scale: 1, y: 0 },
+                    exit: { opacity: 0, scale: 0.8, y: -10 },
+                    transition: {
+                      type: "spring" as const,
+                      stiffness: 500,
+                      damping: 30,
+                      mass: 0.8,
+                    },
+                  }
+                : {};
 
-            return (
-              <ItemComponent
-                key={item.id}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 bg-raised border rounded-md text-xs w-full",
-                  itemHeight,
-                )}
-                {...itemProps}
-              >
-                <div className="border rounded-sm flex items-center justify-center bg-gray-4 shrink-0 size-5">
-                  {renderIcon(item)}
-                </div>
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="font-medium text-gray-12 text-left truncate max-w-[60px]"
-                      title={item.name}
-                    >
-                      {renderPrimaryText(item)}
+              return (
+                <ItemComponent
+                  key={item.id}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 bg-raised border rounded-md text-xs w-full",
+                    itemHeight,
+                  )}
+                  {...itemProps}
+                >
+                  <div className="border rounded-sm flex items-center justify-center bg-gray-4 shrink-0 size-5">
+                    {renderIcon(item)}
+                  </div>
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="font-medium text-gray-12 text-left truncate max-w-[60px]"
+                        title={item.name}
+                      >
+                        {renderPrimaryText(item)}
+                      </span>
+                      <span className="truncate z-auto">{renderBadge?.(item)}</span>
+                    </div>
+                    <span className="text-gray-9 text-2xs font-mono truncate">
+                      {renderSecondaryText(item)}
                     </span>
-                    <span className="truncate z-auto">{renderBadge?.(item)}</span>
                   </div>
-                  <span className="text-gray-9 text-2xs font-mono truncate">
-                    {renderSecondaryText(item)}
-                  </span>
-                </div>
-                {canRemove ? (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveItem(item.id)}
-                    className="p-0.5 hover:bg-grayA-4 rounded-sm text-grayA-11 hover:text-gray-12 transition-colors shrink-0 ml-auto"
-                    aria-label={`Remove ${renderPrimaryText(item)}`}
-                  >
-                    <IconXmarkOutline12 />
-                  </button>
-                ) : (
-                  <div
-                    className="p-0.5 rounded-sm text-grayA-6 shrink-0 ml-auto opacity-50"
-                    title="Cannot remove - inherited from selected role"
-                  >
-                    <IconXmarkOutline12 />
-                  </div>
-                )}
-              </ItemComponent>
-            );
-          })}
-        </AnimatePresence>
+                  {canRemove ? (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveItem(item.id)}
+                      className="p-0.5 hover:bg-grayA-4 rounded-sm text-grayA-11 hover:text-gray-12 transition-colors shrink-0 ml-auto"
+                      aria-label={`Remove ${renderPrimaryText(item)}`}
+                    >
+                      <IconXmarkOutline12 />
+                    </button>
+                  ) : (
+                    <div
+                      className="p-0.5 rounded-sm text-grayA-6 shrink-0 ml-auto opacity-50"
+                      title="Cannot remove - inherited from selected role"
+                    >
+                      <IconXmarkOutline12 />
+                    </div>
+                  )}
+                </ItemComponent>
+              );
+            })}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </MotionProvider>
   );
 }

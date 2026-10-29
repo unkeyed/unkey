@@ -1,19 +1,12 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/logs/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
+import { HttpMethod } from "@unkey/api/models/components";
 
-type MethodOption = {
-  id: number;
-  method: string;
-  checked: boolean;
-};
-
-export const methodOptions: MethodOption[] = [
-  { id: 1, method: "GET", checked: false },
-  { id: 2, method: "POST", checked: false },
-  { id: 3, method: "PUT", checked: false },
-  { id: 4, method: "DELETE", checked: false },
-  { id: 5, method: "PATCH", checked: false },
-] as const;
+export const methodOptions = Object.values(HttpMethod).map((method, i) => ({
+  id: i + 1,
+  method,
+  checked: false,
+}));
 
 export const MethodsFilter = () => {
   const { filters, updateFilters } = useFilters();

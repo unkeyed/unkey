@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -17,16 +16,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 )
 
-var registry = prometheus.NewRegistry()
-
-func TestMain(m *testing.M) {
-	lazy.SetRegistry(registry)
-	os.Exit(m.Run())
-}
+var registry = prometheus.DefaultGatherer
 
 func TestS3_LogsAndCountsInvalidCredentials(t *testing.T) {
 	store := s3Server(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

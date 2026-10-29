@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -10,6 +11,9 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
 )
@@ -19,6 +23,11 @@ func newRoute(h *testutil.Harness, restate *restateingress.Client) *handler.Hand
 		DB:      h.DB,
 		Restate: restate,
 	}
+}
+
+func environmentRead(setup testutil.DeploymentTestSetup) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s#read",
+		setup.Workspace.ID, setup.Project.ID, setup.App.ID, setup.Environment.ID)
 }
 
 func authHeaders(rootKey string) http.Header {
@@ -39,4 +48,10 @@ func setCurrentDeployment(t *testing.T, h *testutil.Harness, appID, deploymentID
 		AppID:               appID,
 	})
 	require.NoError(t, err)
+}
+
+// writeEnvironments is the permission to write every environment, which this
+// handler checks.
+func writeEnvironments(workspaceID string) string {
+	return rbac.U(urn.New().Workspace(workspaceID).Project("*").App("*").Environment("*"), permissions.Write).Value
 }

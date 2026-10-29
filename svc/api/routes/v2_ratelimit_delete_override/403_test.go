@@ -63,7 +63,7 @@ func TestDeleteOverrideMasksUnauthorizedResources(t *testing.T) {
 	})
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
-	require.Equal(t, "This override does not exist.", res.Body.Error.Detail)
+	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 
 	// Create a different workspace and key for testing cross-workspace access
 	differentWorkspace := h.CreateWorkspace()

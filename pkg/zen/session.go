@@ -248,6 +248,11 @@ func (s *Session) RequestID() string {
 	return s.requestID
 }
 
+// SetRequestID restores the original request ID from authenticated peer metadata.
+func (s *Session) SetRequestID(requestID string) {
+	s.requestID = requestID
+}
+
 // ResponseWriter returns the http.ResponseWriter with status code capturing.
 // This allows direct access to the standard library response features.
 //
@@ -568,6 +573,11 @@ func (s *Session) Send(status int, body []byte) error {
 // to the ResponseWriter, bypassing Session.send().
 func (s *Session) SetResponseBody(body []byte) {
 	s.responseBody = body
+}
+
+// ResponseBody returns the captured response bytes. Callers must not modify them.
+func (s *Session) ResponseBody() []byte {
+	return s.responseBody
 }
 
 // MaxBodyCapture is the maximum number of bytes captured from streaming

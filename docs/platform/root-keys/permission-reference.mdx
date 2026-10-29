@@ -34,7 +34,7 @@ Replace placeholders such as `{project_id}` with resource IDs, not names or slug
 
 Paths and actions are case-sensitive. Keep path segments such as `rootKeys` exactly as shown. IDs contain letters, digits, and underscores. Partial ID matches such as `proj_*` aren't supported.
 
-For example, to read every app in one project:
+For example, to read every app in one <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>:
 
 ```plaintext
 unkey:v1:ws_xxx:projects/proj_xxx/apps/*#read
@@ -112,7 +112,7 @@ Variable endpoints check the collection path `/variables/*`, not a single variab
 
 Read access can reveal recoverable variable values. It doesn't reveal write-only values. There is no separate `decrypt` permission for environment variables. Don't grant variable read access to an agent that only needs deployment logs.
 
-## API management resources
+## API Management resources
 
 All paths in this table follow `unkey:v1:{workspace_id}:projects/{project_id}/`.
 

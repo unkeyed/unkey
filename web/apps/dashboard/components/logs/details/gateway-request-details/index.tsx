@@ -9,9 +9,9 @@ import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import { TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
+import { GatewayKeyVerification } from "./key-verification";
 
 type Props = {
-  distanceToTop: number;
   log: RequestLogsResponse;
   onClose: () => void;
 };
@@ -24,12 +24,16 @@ type Props = {
  * sections therefore say the data was never recorded rather than showing
  * `<EMPTY>`, which would read as a request that genuinely had no body.
  */
-export const GatewayRequestDetails = ({ distanceToTop, log, onClose }: Props) => {
+export const GatewayRequestDetails = ({ log, onClose }: Props) => {
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={onClose}>
+    <LogDetails log={log} onClose={onClose}>
       <LogDetails.Header>
         <LogHeader log={log} onClose={onClose} />
       </LogDetails.Header>
+
+      <LogDetails.Section>
+        <GatewayKeyVerification log={log} />
+      </LogDetails.Section>
 
       <LogDetails.Section>
         <LogSection

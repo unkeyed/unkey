@@ -2,17 +2,20 @@
 
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
 import { useAppEnvironmentSearchItems } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/use-app-environment-search-items";
+import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
 import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useMemo, useState } from "react";
 import { RequestAppFilter } from "./components/request-logs-app-filter";
 import { RequestDeploymentFilter } from "./components/request-logs-deployment-filter";
 import { RequestMethodsFilter } from "./components/request-logs-methods-filter";
 import { RequestPathsFilter } from "./components/request-logs-paths-filter";
 import { RequestStatusFilter } from "./components/request-logs-status-filter";
 import { RequestLogsTextFilter } from "./components/request-logs-text-filter";
+import { createRequestLogsFilterItems } from "./request-logs-filter-items";
 
 const EXACT_OPERATOR = ["is"] as const;
 
@@ -89,6 +92,12 @@ const FILTER_ITEMS: FilterItemConfig<RequestLogsFilterValue["field"]>[] = [
 
 export const RequestLogsFilters = () => {
   const { filters, updateFilters } = useRequestLogsFilters();
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const { deployments } = useRecentDeployments({ enabled: isPopoverOpen });
+  const items = useMemo(
+    () => createRequestLogsFilterItems(FILTER_ITEMS, deployments),
+    [deployments],
+  );
   const appItems = useAppEnvironmentSearchItems({
     filters,
     updateFilters,
@@ -102,9 +111,12 @@ export const RequestLogsFilters = () => {
 
   return (
     <FiltersPopover
-      items={FILTER_ITEMS}
+      items={items}
       searchItems={appItems}
       activeFilters={filters}
+      updateFilters={updateFilters}
+      open={isPopoverOpen}
+      onOpenChange={setIsPopoverOpen}
       getFilterCount={(field) =>
         filters.filter(
           (filter) =>

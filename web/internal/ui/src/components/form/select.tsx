@@ -2,8 +2,8 @@
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { IconCheckOutline12, IconChevronDownOutline18 } from "@unkey/icons";
-import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
+import { type VariantProps, cva } from "../../lib/cva";
 import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
 import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";

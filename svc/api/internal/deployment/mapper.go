@@ -20,19 +20,28 @@ type Input struct {
 	Steps      []db.DeploymentStep
 	Regions    []string
 	Domains    []string
+	Instances  []db.ListDeploymentInstanceStatusesByIdsRow
+
+	// WorkspaceID and Permissions describe the caller, and decide which
+	// lifecycle actions the response offers.
+	WorkspaceID string
+	Permissions []string
 }
 
-func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
-	responses, err := ToResponses(ctx, database, workspaceID, []db.ListDeploymentsRow{row})
+func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, permissions []string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
+	responses, err := ToResponses(ctx, database, workspaceID, permissions, []db.ListDeploymentsRow{row})
 	if err != nil {
 		return openapi.Deployment{}, err //nolint:exhaustruct // no response on error
 	}
 	return responses[0], nil
 }
 
-// ToResponses loads the state, steps, regions, and domains of rows in four
-// parallel queries, whatever the number of rows, and maps each row to its response
-func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, rows []db.ListDeploymentsRow) ([]openapi.Deployment, error) {
+// ToResponses loads the state, steps, regions, domains, and instances of rows
+// in five parallel queries, whatever the number of rows, and maps each row to
+// its response. permissions is the caller's permission list, which decides
+// which available actions are offered: an action the caller cannot call is
+// left out.
+func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, permissions []string, rows []db.ListDeploymentsRow) ([]openapi.Deployment, error) {
 	if len(rows) == 0 {
 		return []openapi.Deployment{}, nil
 	}
@@ -45,6 +54,7 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 	var steps []db.DeploymentStep
 	var regions []db.ListDeploymentRegionsByIdsRow
 	var domains []db.ListDeploymentDomainsByIdsRow
+	var instances []db.ListDeploymentInstanceStatusesByIdsRow
 	err := conc.All(ctx,
 		func(ctx context.Context) (err error) {
 			states, err = db.Query.ListDeploymentEnvAndAppState(ctx, database, db.ListDeploymentEnvAndAppStateParams{WorkspaceID: workspaceID, DeploymentIds: ids})
@@ -62,6 +72,10 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 			domains, err = db.Query.ListDeploymentDomainsByIds(ctx, database, db.ListDeploymentDomainsByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
 			return err
 		},
+		func(ctx context.Context) (err error) {
+			instances, err = db.Query.ListDeploymentInstanceStatusesByIds(ctx, database, db.ListDeploymentInstanceStatusesByIdsParams{WorkspaceID: workspaceID, DeploymentIds: ids})
+			return err
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -69,7 +83,7 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 
 	inputs := make(map[string]*Input, len(rows))
 	for _, row := range rows {
-		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil} //nolint:exhaustruct // zero state when the join misses
+		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil, Instances: nil, WorkspaceID: workspaceID, Permissions: permissions} //nolint:exhaustruct // zero state when the join misses
 	}
 	for _, s := range states {
 		inputs[s.DeploymentID].State = s
@@ -82,6 +96,9 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 	}
 	for _, d := range domains {
 		inputs[d.DeploymentID].Domains = append(inputs[d.DeploymentID].Domains, d.Domain)
+	}
+	for _, instance := range instances {
+		inputs[instance.DeploymentID].Instances = append(inputs[instance.DeploymentID].Instances, instance)
 	}
 
 	responses := make([]openapi.Deployment, len(rows))
@@ -149,6 +166,7 @@ func toResponse(in Input) openapi.Deployment {
 		Docker:  nil,
 		Error:   nil,
 		Domains: nil,
+		Issues:  issues(in.Instances),
 	}
 
 	switch d.Source {

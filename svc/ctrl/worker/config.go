@@ -46,8 +46,12 @@ type AcmeConfig struct {
 
 	// EmailDomain is the domain used for ACME account emails.
 	// Used for Let's Encrypt account registration and recovery.
-	// Example: "unkey.com" creates "admin@unkey.com" for ACME account.
+	// All certificates share one account, registered as "acme@{EmailDomain}".
 	EmailDomain string `toml:"email_domain" config:"default=unkey.com"`
+
+	// DirectoryURL is the ACME directory. Non-production environments use Let's
+	// Encrypt staging so iterating on issuance cannot exhaust production rate limits.
+	DirectoryURL string `toml:"directory_url" config:"default=https://acme-v02.api.letsencrypt.org/directory"`
 
 	// Route53 configures DNS-01 challenges through AWS Route53 API.
 	// Enables wildcard certificates for domains hosted on Route53.
@@ -266,15 +270,15 @@ type SlackConfig struct {
 	// When set, Slack notifications are sent when workspaces exceed their quota.
 	// Optional - if empty, no Slack notifications are sent.
 	QuotaCheckWebhookURL string `toml:"quota_check_webhook_url"`
+	// KeyLeakWebhookURL adds Slack alerts alongside customer email. Optional.
+	KeyLeakWebhookURL string `toml:"key_leak_webhook_url"`
 }
 
-// EmailConfig holds transactional email (Resend) configuration. Used by the
-// spend-cap check to send budget alerts. Disabled (logs instead of sending)
-// unless ResendAPIKey is set. Sender and subject come from the published
-// template, so there is no From to configure here.
 type EmailConfig struct {
 	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
 	ResendAPIKey string `toml:"resend_api_key"`
+	// From overrides the published template's sender. Empty keeps the template default.
+	From string `toml:"from"`
 }
 
 // Config holds the complete configuration for the Restate worker service.
@@ -356,12 +360,9 @@ type Config struct {
 	// Billing configures the hourly Deploy billing push to Stripe.
 	Billing BillingConfig `toml:"billing"`
 
-	// Email configures transactional email (Resend) for budget alerts.
 	Email EmailConfig `toml:"email"`
 
-	// WorkOSAPIKey authenticates the spend-cap check's lookup of org admin
-	// emails (budget-alert recipients). Empty resolves no recipients, so the
-	// check logs crossings but sends no email.
+	// WorkOSAPIKey resolves notification recipients. Empty resolves no recipients.
 	WorkOSAPIKey string `toml:"workos_api_key"`
 
 	// Clock provides time operations for testing and scheduling.

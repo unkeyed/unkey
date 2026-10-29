@@ -17,22 +17,25 @@ type Payload struct {
 
 // Block represents a Slack block element.
 type Block struct {
-	Type   string  `json:"type"`
-	Text   *Text   `json:"text,omitempty"`
-	Fields []Field `json:"fields,omitempty"`
+	Type     string  `json:"type"`
+	Text     *Text   `json:"text,omitempty"`
+	Fields   []Field `json:"fields,omitempty"`
+	Elements []Text  `json:"elements,omitempty"`
 }
 
 // Text represents a Slack text element.
 type Text struct {
-	Type  string `json:"type"`
-	Text  string `json:"text"`
-	Emoji bool   `json:"emoji,omitempty"`
+	Type     string `json:"type"`
+	Text     string `json:"text"`
+	Emoji    bool   `json:"emoji,omitempty"`
+	Verbatim bool   `json:"verbatim,omitempty"`
 }
 
 // Field represents a Slack section field.
 type Field struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
+	Type     string `json:"type"`
+	Text     string `json:"text"`
+	Verbatim bool   `json:"verbatim,omitempty"`
 }
 
 // NewHeaderBlock creates a header block with plain text.
@@ -40,28 +43,59 @@ func NewHeaderBlock(text string) Block {
 	return Block{
 		Type: "header",
 		Text: &Text{
-			Type:  "plain_text",
-			Text:  text,
-			Emoji: true,
+			Type:     "plain_text",
+			Text:     text,
+			Emoji:    true,
+			Verbatim: false,
 		},
-		Fields: nil,
+		Fields:   nil,
+		Elements: nil,
 	}
 }
 
 // NewSectionBlock creates a section block with markdown fields.
 func NewSectionBlock(fields ...Field) Block {
 	return Block{
-		Type:   "section",
-		Text:   nil,
-		Fields: fields,
+		Type:     "section",
+		Text:     nil,
+		Fields:   fields,
+		Elements: nil,
 	}
 }
 
 // NewMarkdownField creates a markdown field for use in section blocks.
 func NewMarkdownField(text string) Field {
 	return Field{
-		Type: "mrkdwn",
-		Text: text,
+		Type:     "mrkdwn",
+		Text:     text,
+		Verbatim: false,
+	}
+}
+
+func NewMarkdownBlock(text string) Block {
+	return Block{
+		Type:     "section",
+		Text:     &Text{Type: "mrkdwn", Text: text, Emoji: false, Verbatim: true},
+		Fields:   nil,
+		Elements: nil,
+	}
+}
+
+func NewContextBlock(text string) Block {
+	return Block{
+		Type:     "context",
+		Text:     nil,
+		Fields:   nil,
+		Elements: []Text{{Type: "plain_text", Text: text, Emoji: false, Verbatim: false}},
+	}
+}
+
+func NewMarkdownContextBlock(text string) Block {
+	return Block{
+		Type:     "context",
+		Text:     nil,
+		Fields:   nil,
+		Elements: []Text{{Type: "mrkdwn", Text: text, Emoji: false, Verbatim: true}},
 	}
 }
 

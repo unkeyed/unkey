@@ -1,7 +1,26 @@
 ---
 title: "flag_not_found"
-description: "NotFound indicates the requested flag definition was not found."
+description: "The workspace flag slug does not match a flag definition."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/routes/v2_workspace_update_flag/handler.go
+  - svc/api/routes/v2_workspace_get_flags/handler.go
+  - svc/api/internal/middleware/errors.go
 ---
 
 <Danger>`err:unkey:data:flag_not_found`</Danger>
 
+`workspace.updateFlag` returns HTTP 404 when the requested `slug` doesn't match
+an existing flag definition. The update doesn't create a flag. This error is
+about workspace feature flags, not command-line flags.
+
+## How to fix
+
+Check the flag slug before retrying the update:
+
+1. Call `workspace.getFlags` with a credential for the intended workspace.
+2. Use the flag's map key from the response's `data` object as the update's `slug`.
+3. Check `allowOptIn` or `allowOptOut` before changing its value. A flag that
+   exists but doesn't permit the requested change returns HTTP 403 instead.
+
+If the flag is missing, contact [support@unkey.com](mailto:support@unkey.com).

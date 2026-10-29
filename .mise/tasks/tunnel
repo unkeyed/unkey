@@ -3,10 +3,15 @@
 set -euo pipefail
 
 kubectl=$(mise which kubectl)
-sudo -v
-while sudo -n true 2>/dev/null; do sleep 50; done &
-while true; do
-  sudo "$kubectl" --context unkey port-forward -n frontline svc/frontline 443:443 80:80 2>/dev/null
-  echo "port-forward exited, reconnecting..."
-  sleep 1
-done
+forward_ports() {
+  sudo -v
+  while sudo -n true 2>/dev/null; do sleep 50; done &
+  while true; do
+    sudo "$kubectl" --kubeconfig "$KUBECONFIG" --context unkey port-forward -n frontline svc/frontline 443:443 80:80 2>/dev/null
+    echo "port-forward exited, reconnecting..."
+    sleep 1
+  done
+}
+
+source ./dev/local-cluster.sh
+with_local_cluster forward_ports

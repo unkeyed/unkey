@@ -1,0 +1,27 @@
+type: object
+description: Session credentials returned by a successful token exchange.
+required:
+  - accessToken
+  - refreshToken
+  - expiresIn
+  - workspaceId
+  - sessionId
+properties:
+  accessToken:
+    type: string
+    x-unkey-redact: true
+    description: Short-lived access token.
+  refreshToken:
+    type: string
+    x-unkey-redact: true
+    description: Rotating refresh token. Store it. It is returned only once.
+  expiresIn:
+    type: integer
+    format: int64
+    description: Seconds until the access token expires. Access tokens last 15 minutes.
+  workspaceId:
+    type: string
+    description: Workspace the session belongs to.
+  sessionId:
+    type: string
+    description: CLI session id.

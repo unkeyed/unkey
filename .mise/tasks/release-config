@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Generate dependency-scoped GoReleaser config (release-config <config.yaml>)"
+set -euo pipefail
+
+go run ./tools/releaseconfig "$@"

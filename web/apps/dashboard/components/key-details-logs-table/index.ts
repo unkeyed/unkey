@@ -15,7 +15,7 @@ export { OutcomeCell } from "./components/outcome-cell";
 export { KeyDetailsCountInfo } from "./components/key-details-count-info";
 export {
   useFetchRequestDetails,
-  buildRequestDetailsQueryParams,
+  apiRequestDetailsQuery,
   buildGatewayRequestDetailsQueryParams,
 } from "./hooks/use-fetch-request-details";
 export type { RequestDetails } from "./hooks/use-fetch-request-details";

@@ -1,24 +1,19 @@
 import { Loading } from "@unkey/ui";
+import type { ReactNode } from "react";
 
 type LoadingStateProps = {
-  delayMs?: number;
   message?: string;
+  children?: ReactNode;
 };
 
-export function LoadingState({ delayMs, message = "Loading..." }: LoadingStateProps) {
+export function LoadingState({ message = "Loading...", children }: LoadingStateProps) {
   return (
     <div className="flex-1 relative flex flex-col overflow-hidden bg-background lg:flex-row">
       <div className="flex items-center justify-center w-full flex-1">
-        <div
-          className={
-            delayMs === undefined
-              ? "flex flex-col items-center gap-4"
-              : "flex flex-col items-center gap-4 animate-in fade-in duration-200 [animation-fill-mode:backwards] motion-reduce:animate-none"
-          }
-          style={delayMs === undefined ? undefined : { animationDelay: `${delayMs}ms` }}
-        >
+        <div className="flex flex-col items-center gap-4">
           <Loading size={24} />
-          <p className="text-sm text-gray-11">{message}</p>
+          <output className="text-sm text-gray-11">{message}</output>
+          {children}
         </div>
       </div>
     </div>

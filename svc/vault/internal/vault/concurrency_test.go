@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // TestConcurrency_ParallelEncrypt verifies that parallel encryption
@@ -248,7 +249,7 @@ func TestConcurrency_ParallelMultipleKeyrings(t *testing.T) {
 // TestConcurrency_SequentialReEncrypt verifies that re-encryption
 // operations work correctly when run sequentially.
 //
-// Note: Parallel re-encryption is not tested here because ReEncrypt
+// Note: Parallel re-encryption is not tested here because ReEncryptBulk
 // calls cache.Clear() which has known concurrency limitations with
 // the otter cache library. This is a known limitation documented here.
 func TestConcurrency_SequentialReEncrypt(t *testing.T) {
@@ -270,19 +271,24 @@ func TestConcurrency_SequentialReEncrypt(t *testing.T) {
 
 	// Run re-encryptions sequentially
 	for i := 0; i < 10; i++ {
-		req := connect.NewRequest(&vaultv1.ReEncryptRequest{
-			Keyring:   keyring,
-			Encrypted: encrypted,
+		id := uid.New(uid.TestPrefix)
+		req := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+			Items: map[string]*vaultv1.DecryptRequest{
+				id: {Keyring: keyring, Encrypted: encrypted},
+			},
 		})
 		req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-		res, err := service.ReEncrypt(ctx, req)
+		res, err := service.ReEncryptBulk(ctx, req)
 		require.NoError(t, err, "re-encryption %d failed", i)
+		result := res.Msg.GetItems()[id]
+		require.Empty(t, result.GetError(), "re-encryption %d failed", i)
+		require.NotNil(t, result.GetSuccess())
 
 		// Verify the re-encrypted data
 		decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   keyring,
-			Encrypted: res.Msg.GetEncrypted(),
+			Encrypted: result.GetSuccess().GetEncrypted(),
 		})
 		decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
@@ -291,7 +297,7 @@ func TestConcurrency_SequentialReEncrypt(t *testing.T) {
 		require.Equal(t, data, decRes.Msg.GetPlaintext())
 
 		// Use the new encrypted value for next iteration
-		encrypted = res.Msg.GetEncrypted()
+		encrypted = result.GetSuccess().GetEncrypted()
 	}
 }
 

@@ -11,8 +11,8 @@
  * Blume inlines this file into .blume/src/generated/examples.css, so the path
  * is written from both depths; the one that does not resolve is ignored.
  */
-@source "../../internal/ui/src/**/*.tsx";
-@source "../../../../../internal/ui/src/**/*.tsx";
+@source "../../internal/ui/src/**/*.{ts,tsx}";
+@source "../../../../../internal/ui/src/**/*.{ts,tsx}";
 
 @theme {
   --font-sans:

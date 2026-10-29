@@ -1,11 +1,60 @@
 package cli
 
 import (
+	"context"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestCommand_HelpDoesNotExposeParsedRootKey(t *testing.T) {
+	for _, help := range []bool{true, false} {
+		name := "missing required flag"
+		if help {
+			name = "trailing help"
+		}
+		t.Run(name, func(t *testing.T) {
+			t.Setenv("UNKEY_ROOT_KEY", "")
+			output, err := os.CreateTemp(t.TempDir(), "stdout")
+			require.NoError(t, err)
+			stdout := os.Stdout
+			os.Stdout = output
+			t.Cleanup(func() {
+				os.Stdout = stdout
+				require.NoError(t, output.Close())
+			})
+			cmd := &Command{Name: "get-key", Flags: []Flag{
+				String("root-key", "Root key for authentication.", EnvVar("UNKEY_ROOT_KEY")),
+				String("key-id", "Key to retrieve.", Required()),
+				String("api-url", "API URL.", Default("https://api.unkey.com")),
+			}}
+			args := []string{"get-key", "--root-key=parsed-root-key-secret", "--api-url=https://private.example.com"}
+			if help {
+				args = append(args, "--help")
+			}
+			err = cmd.Run(context.Background(), args)
+			if help {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, "required flag missing: key-id")
+			}
+			data, err := os.ReadFile(output.Name())
+			require.NoError(t, err)
+			text := string(data)
+			if help {
+				require.Contains(t, text, "OPTIONS:")
+				require.Contains(t, text, "[$UNKEY_ROOT_KEY]")
+				require.Contains(t, text, `default: "https://api.unkey.com"`)
+			} else {
+				require.Empty(t, text)
+			}
+			require.NotContains(t, text, "parsed-root-key-secret")
+			require.NotContains(t, text, "https://private.example.com")
+		})
+	}
+}
 
 func TestWrapText_ShortText(t *testing.T) {
 	lines := wrapText("short text", 80)

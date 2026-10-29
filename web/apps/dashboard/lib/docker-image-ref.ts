@@ -86,7 +86,10 @@ export const validateImageRef = (input: string): ImageRefValidation => {
     return { ok: false, error: "An image reference cannot contain spaces." };
   }
   if (SCHEME.test(ref)) {
-    return { ok: false, error: "Drop the protocol prefix, for example ghcr.io/acme/api:v1." };
+    return {
+      ok: false,
+      error: "Drop the protocol prefix, for example ghcr.io/unkeyed/deploy-demo:latest.",
+    };
   }
   if (ref.length > MAX_REFERENCE_LENGTH) {
     return {

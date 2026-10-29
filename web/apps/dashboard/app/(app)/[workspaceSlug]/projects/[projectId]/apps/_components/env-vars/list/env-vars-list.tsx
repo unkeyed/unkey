@@ -137,13 +137,13 @@ function EnvVarRows({
   onCloseEdit: () => void;
 }) {
   const selection = useRowSelection(rows);
-  const { virtualizer, listRefCallback, scrollMargin } = useVirtualList(rows);
+  const { virtualizer, listRef, items } = useVirtualList(rows);
 
   return (
     <>
-      <ResourceListContent ref={listRefCallback}>
+      <ResourceListContent ref={listRef}>
         <ResourceListBody style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-          {virtualizer.getVirtualItems().map((virtualRow) => {
+          {items.map((virtualRow) => {
             const item = rows[virtualRow.index];
             return (
               <ResourceListItem
@@ -155,7 +155,7 @@ function EnvVarRows({
                   top: 0,
                   left: 0,
                   width: "100%",
-                  transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                  transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
                 <EnvVarRow

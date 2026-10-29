@@ -15,7 +15,8 @@ TAG="${TAG:-dev}"
 # Defaults to the Dockerfile's own directory. Dockerfiles that build a binary
 # from the root Go module (e.g. svc/kitchensink) need CONTEXT=. instead.
 CONTEXT="${CONTEXT:-$(dirname "$DOCKERFILE")/}"
-REGISTRY="$(kubectl --context unkey get configmap local-registry-hosting -n kube-public -o jsonpath='{.data.localRegistryHosting\.v1}' 2>/dev/null | grep '^host:' | awk '{print $2}')"
+source ./dev/local-cluster.sh
+REGISTRY="$(with_local_cluster kubectl --context unkey get configmap local-registry-hosting -n kube-public -o jsonpath='{.data.localRegistryHosting\.v1}' | grep '^host:' | awk '{print $2}')"
 if [ -z "$REGISTRY" ]; then
   echo "Error: Could not find local registry. Is minikube running with ctlptl?"
   exit 1

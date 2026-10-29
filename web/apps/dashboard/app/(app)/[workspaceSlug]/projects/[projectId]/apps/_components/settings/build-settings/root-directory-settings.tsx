@@ -1,40 +1,12 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
-import {
-  SettingsForm,
-  SettingsRow,
-  SettingsRowContent,
-  SettingsRowHeader,
-  SettingsRowTitle,
-} from "@unkey/ui";
+import { SettingsRow, SettingsRowContent, SettingsRowHeader, SettingsRowTitle } from "@unkey/ui";
 import { useMemo } from "react";
-import { z } from "zod";
-import { useSettingField } from "../hooks/use-setting-form";
+import type { BuildRecipeForm } from "../hooks/use-build-recipe";
 import { pathHint, pathInputVariant } from "./path-hint";
 import { pathHintMessage } from "./path-hint-message";
 import { useRepoTree } from "./use-repo-tree";
 
-const dockerContextSegment = /^[A-Za-z0-9._-]+$/;
-
-const dockerContextSchema = z
-  .string()
-  .min(1, "Enter a root directory or use '.' for the repository root.")
-  .transform((path) => path.replace(/\/+$/, ""))
-  .refine(
-    (path) =>
-      path === "." ||
-      (path === path.trim() &&
-        !path.startsWith("/") &&
-        !path.includes("\\") &&
-        path
-          .split("/")
-          .every(
-            (segment) => segment !== "." && segment !== ".." && dockerContextSegment.test(segment),
-          )),
-    "Enter a relative path like 'api' or 'services/api'. Do not start with '/' or './'.",
-  );
-
-export function RootDirectory() {
-  const { form, formProps } = useSettingField("dockerContext", dockerContextSchema);
+export function RootDirectory({ form }: { form: BuildRecipeForm }) {
   const { branch, validatePath, findCaseInsensitiveMatch, rootDirectorySuggestions } =
     useRepoTree();
 
@@ -65,28 +37,26 @@ export function RootDirectory() {
   );
 
   return (
-    <SettingsForm {...formProps}>
-      <SettingsRow>
-        <SettingsRowHeader>
-          <SettingsRowTitle>Root directory</SettingsRowTitle>
-        </SettingsRowHeader>
-        <SettingsRowContent>
-          <FormCombobox
-            aria-label="Root directory"
-            className="max-w-(--setting-w)"
-            description={pathHintMessage(hint, "Directory", setDockerContext)}
-            error={error?.message}
-            variant={pathInputVariant(Boolean(error), hint)}
-            options={options}
-            value={currentDockerContext}
-            onSelect={setDockerContext}
-            creatable
-            searchPlaceholder="Search or enter a directory..."
-            emptyMessage={<div className="mt-2">No app directories detected</div>}
-            placeholder={<span className="text-grayA-8">services/api</span>}
-          />
-        </SettingsRowContent>
-      </SettingsRow>
-    </SettingsForm>
+    <SettingsRow>
+      <SettingsRowHeader>
+        <SettingsRowTitle>Root directory</SettingsRowTitle>
+      </SettingsRowHeader>
+      <SettingsRowContent>
+        <FormCombobox
+          aria-label="Root directory"
+          className="max-w-(--setting-w)"
+          description={pathHintMessage(hint, "Directory", setDockerContext)}
+          error={error?.message}
+          variant={pathInputVariant(Boolean(error), hint)}
+          options={options}
+          value={currentDockerContext}
+          onSelect={setDockerContext}
+          creatable
+          searchPlaceholder="Search or enter a directory..."
+          emptyMessage={<div className="mt-2">No app directories detected</div>}
+          placeholder={<span className="text-grayA-8">services/api</span>}
+        />
+      </SettingsRowContent>
+    </SettingsRow>
   );
 }

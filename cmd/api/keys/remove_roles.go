@@ -39,27 +39,25 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rem
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("key-id", "The key ID to remove roles from.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.StringSlice("roles", "Comma-separated list of role names to remove.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Keys.RemoveRoles, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2KeysRemoveRolesResponseBody)
-			}
-
-			req := components.V2KeysRemoveRolesRequestBody{
+			req, err := util.RequestBody(cmd, components.V2KeysRemoveRolesRequestBody{
 				KeyID: cmd.String("key-id"),
 				Roles: cmd.StringSlice("roles"),
+			})
+			if err != nil {
+				return err
+			}
+			if err := util.Confirm(cmd, fmt.Sprintf("Remove roles %q from key %q?", req.Roles, req.KeyID)); err != nil {
+				return err
 			}
 
 			res, err := client.Keys.RemoveRoles(ctx, req)

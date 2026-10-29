@@ -78,11 +78,14 @@ func TestEngine_StreamWatermarkAndCatchup(t *testing.T) {
 			done := make(chan error, 1)
 			go func() { done <- eng.Run(ctx) }()
 			t.Cleanup(func() { cancel(); require.NoError(t, <-done) })
-			select {
-			case interval := <-tickerClock.intervals:
-				require.Equal(t, 5*time.Second, interval)
-			case <-time.After(5 * time.Second):
-				t.Fatal("discovery ticker did not start")
+			// The decrypt cache starts its own sweep ticker on the same clock.
+			for discovery := false; !discovery; {
+				select {
+				case interval := <-tickerClock.intervals:
+					discovery = interval == 5*time.Second
+				case <-time.After(5 * time.Second):
+					t.Fatal("discovery ticker did not start with a 5s interval")
+				}
 			}
 			commits := 0
 			for {

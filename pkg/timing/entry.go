@@ -169,7 +169,8 @@ func Write(session *zen.Session, entry Entry) {
 		return
 	}
 
-	session.AddHeader(HeaderName, entry.String())
+	headers := session.ResponseWriter().Header()
+	headers.Set(HeaderName, strings.Join(append(headers.Values(HeaderName), entry.String()), ","))
 }
 
 // ParseEntries parses a comma-separated string of timing entries. This is useful

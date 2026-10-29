@@ -96,7 +96,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
   );
 
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="flex flex-col md:flex-1">
       <DataTable
         data={historicalLogs}
         isLoading={isLoading}
@@ -128,7 +128,7 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
                 href="https://www.unkey.com/docs/introduction"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={buttonVariants({ size: "md", variant: "outline" })}
+                className={buttonVariants({ size: "sm", variant: "outline" })}
               >
                 <IconBookBookmarkOutline18 />
                 Documentation

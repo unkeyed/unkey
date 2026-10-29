@@ -5,6 +5,7 @@ description: "Install the unkey CLI from npm or a GitHub release and check its v
 sources:
   - .goreleaser.yaml
   - build/cli/main.go
+  - cmd/version/main.go
   - pkg/cli/parser.go
   - docs/snippets/cli-install.mdx
 ---
@@ -25,15 +26,15 @@ The CLI runs on Linux and macOS, on both x86_64 and arm64. There's no Windows bu
 unkey --version
 ```
 
-This prints the installed version. `unkey --help` lists top-level commands. See [The unkey CLI](/platform/cli/overview) for how they're organized.
+This prints the installed CLI version to stdout. `unkey version` prints the same value. Neither command calls the API or needs authentication. `unkey --help` lists top-level commands. See [The unkey CLI](/platform/cli/overview) for how they're organized.
 
 ## Next steps
 
 <Columns cols={2}>
   <Card title="CLI authentication" icon="key" href="/platform/cli/authentication">
-    Store a root key with `unkey auth login` or pass one per command.
+    Sign in with `unkey login` or pass a root key per command.
   </Card>
   <Card title="Output and shared flags" icon="terminal" href="/platform/cli/output-and-flags">
-    JSON output for scripts and the flags every `unkey api` command accepts.
+    Human output, JSON for scripts, and shared resource command flags.
   </Card>
 </Columns>

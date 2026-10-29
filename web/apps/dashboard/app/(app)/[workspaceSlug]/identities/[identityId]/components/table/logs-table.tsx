@@ -3,14 +3,14 @@ import {
   STATUS_STYLES,
   StatusBadge,
   type StatusStyle,
+  apiRequestDetailsQuery,
   categorizeSeverity,
 } from "@/components/key-details-logs-table";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
-import { trpc } from "@/lib/trpc/client";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
-import { useQueryTime } from "@/providers/query-time-provider";
+import { useQueryClient } from "@tanstack/react-query";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import {
   IconBanOutline12,
@@ -154,8 +154,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
   };
 
   const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
-  const { queryTime: timestamp } = useQueryTime();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear any pending hover-prefetch timeout on unmount
@@ -174,36 +173,22 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
         setHoveredLogId(log.request_id);
 
         // Debounce the prefetch so rapid mouse movement across rows
-        // doesn't fire N separate queryLogs API calls.
+        // does not fire one request lookup per row.
         if (hoverTimerRef.current) {
           clearTimeout(hoverTimerRef.current);
         }
         hoverTimerRef.current = setTimeout(() => {
-          utils.logs.queryLogs.prefetch(
-            {
-              limit: 1,
-              startTime: 0,
-              endTime: timestamp,
-              host: { filters: [] },
-              method: { filters: [] },
-              path: { filters: [] },
-              status: { filters: [] },
-              requestId: {
-                filters: [
-                  {
-                    operator: "is",
-                    value: log.request_id,
-                  },
-                ],
-              },
-              since: "",
-            },
-            { staleTime: Number.POSITIVE_INFINITY },
-          );
+          if (log.source === "gateway") {
+            return;
+          }
+          queryClient.prefetchQuery({
+            ...apiRequestDetailsQuery({ requestId: log.request_id, time: log.time }),
+            staleTime: Number.POSITIVE_INFINITY,
+          });
         }, 150);
       }
     },
-    [hoveredLogId, utils.logs.queryLogs, timestamp],
+    [hoveredLogId, queryClient],
   );
 
   const handleRowMouseLeave = useCallback(() => {
@@ -433,7 +418,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
   };
 
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="flex flex-col md:flex-1">
       <VirtualTable
         data={historicalLogs}
         realtimeData={realtimeLogs}
@@ -481,7 +466,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button variant="outline" size="md">
+                <Button variant="outline" size="sm">
                   <IconBookBookmarkOutline18 />
                   Documentation
                 </Button>

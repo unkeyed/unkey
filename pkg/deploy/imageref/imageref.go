@@ -42,12 +42,6 @@ func NormalizeHistorical(raw string) (string, error) {
 	return parsed.Name(), nil
 }
 
-// IsDigest reports whether a parsed reference is already immutable.
-func IsDigest(reference name.Reference) bool {
-	_, ok := reference.(name.Digest)
-	return ok
-}
-
 // Validate rejects a reference the OCI resolver cannot parse. It preserves the
 // legacy API's implicit-latest behavior while new app sources use [Parse].
 //

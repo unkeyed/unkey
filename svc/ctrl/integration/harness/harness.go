@@ -23,11 +23,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/email"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
@@ -98,6 +100,10 @@ type harnessOpts struct {
 	billingUsageReader deploybilling.UsageReader
 	billingPusher      billingmeter.Pusher
 	billingCloser      invoicecloser.Closer
+
+	alertAdmins               workos.Resolver
+	alertEmail                email.Sender
+	slackQuotaCheckWebhookURL string
 }
 
 // WithTimeout overrides the default harness context timeout.
@@ -139,6 +145,19 @@ func WithDeployBilling(
 		o.billingUsageReader = reader
 		o.billingPusher = pusher
 		o.billingCloser = closer
+	}
+}
+
+func WithAlertEmail(admins workos.Resolver, sender email.Sender) Option {
+	return func(o *harnessOpts) {
+		o.alertAdmins = admins
+		o.alertEmail = sender
+	}
+}
+
+func WithSlackQuotaCheckWebhookURL(url string) Option {
+	return func(o *harnessOpts) {
+		o.slackQuotaCheckWebhookURL = url
 	}
 }
 
@@ -233,27 +252,25 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// directly after the container is up, and no handler runs before that
 	restateRules := &lazyRestateRules{mu: sync.Mutex{}, client: nil}
 
-	// Unified cron service: every scheduled task runs as a handler on
-	// hydra.v1.CronService. Heartbeats are noop in tests; the slack
-	// webhook is empty so quota-check skips notification calls.
 	cronSvc, err := cron.New(cron.Config{
 		DB:                        database,
 		Clickhouse:                chClient,
 		Clock:                     o.clock,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
 		RestateRules:              restateRules,
-		SlackQuotaCheckWebhookURL: "",
+		SlackQuotaCheckWebhookURL: o.slackQuotaCheckWebhookURL,
 		// Deploy billing is a no-op by default (nil reader + empty Stripe key);
 		// WithDeployBilling injects fakes for tests that exercise the push/close.
 		BillingUsageReader: o.billingUsageReader,
 		BillingPusher:      o.billingPusher,
 		BillingCloser:      o.billingCloser,
 		StripeSecretKey:    "",
-		// Deploy spend-check dependencies are empty in tests: no WorkOS/Resend
-		// means the check resolves no recipients and logs instead of emailing.
-		WorkOSAPIKey:   "",
-		ResendAPIKey:   "",
-		BillingBaseURL: "",
+		AlertAdmins:        o.alertAdmins,
+		AlertEmail:         o.alertEmail,
+		WorkOSAPIKey:       "",
+		ResendAPIKey:       "",
+		EmailFrom:          "",
+		BillingBaseURL:     "",
 		Heartbeats: cron.Heartbeats{
 			BuildLimitSync:     healthcheck.NewNoop(),
 			QuotaCheck:         healthcheck.NewNoop(),

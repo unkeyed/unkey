@@ -10,6 +10,7 @@ post:
     Your root key must have the following permission:
     - `rbac.*.read_permission`
   operationId: permissions.getPermission
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: GetPermission
   security:
     - bearer: []

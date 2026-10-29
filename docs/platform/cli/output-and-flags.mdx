@@ -1,22 +1,34 @@
 ---
 title: CLI output and shared flags
 sidebarTitle: "Output and flags"
-description: "Use the flags every unkey api command shares to pipe JSON or send a raw body."
+description: "Read human-friendly output, pipe the full JSON response, and use shared resource command flags."
 sources:
+  - cmd/api/root.go
+  - cmd/api/resources.go
   - cmd/api/util/flags.go
   - cmd/api/util/output.go
+  - cmd/api/util/human.go
+  - cmd/api/util/table.go
   - cmd/api/util/body.go
+  - cmd/api/util/confirm.go
   - cmd/api/util/errors.go
   - cmd/api/util/client.go
   - cmd/api/keys/create_key.go
+  - cmd/auth/login/login.go
+  - cmd/auth/logout/logout.go
+  - cmd/deploy/main.go
+  - cmd/deploy/internal/ui/ui.go
+  - cmd/version/main.go
   - pkg/cli/parser.go
   - build/cli/main.go
 ---
 
-Every `unkey api` command accepts these five flags on top of its own. Four of them can also be set with an environment variable, which is the usual way in CI.
+import CLIOutput from "/snippets/cli-output.mdx";
+
+Resource commands such as `unkey projects list` and `unkey keys get` share the flags below. The legacy `unkey api` paths accept the same flags. These output options don't apply to `unkey login`, `unkey deploy`, or `unkey healthcheck`.
 
 <ParamField body="--root-key" type="string">
-  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file. See [CLI authentication](/platform/cli/authentication).
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
 </ParamField>
 
 <ParamField body="--api-url" type="string" default="https://api.unkey.com">
@@ -24,65 +36,128 @@ Every `unkey api` command accepts these five flags on top of its own. Four of th
 </ParamField>
 
 <ParamField body="--config" type="string" default="~/.unkey/config.toml">
-  Path of the TOML config file that `unkey api` commands read the root key from. Falls back to `UNKEY_CONFIG`. `unkey auth login` always writes `~/.unkey/config.toml`, so only point this elsewhere if you write that other file yourself.
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. A custom file is read as-is and is not copied into the keychain. `unkey login --root-key=-` writes the keychain, or `~/.unkey/config.toml` when the keychain is unavailable. It does not write a custom config path.
 </ParamField>
 
-<ParamField body="--output" type="string">
-  Output format. Falls back to `UNKEY_OUTPUT`. Set it to `json` for the full response. Any other value gives the default layout. See [Output formats](#output-formats).
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, labeled `Request ID:`. It stays separate from stdout, including when you use `--json`.
 </ParamField>
 
 <ParamField body="--body" type="string">
-  A JSON request body to send instead of building one from the command's flags. See [Send a raw body](#send-a-raw-body).
+  A JSON request body to send instead of building one from the command's flags. Commands without a request body, such as `unkey workspace flags get` and `unkey workspace limits`, don't accept this flag. See [Send a raw body](#send-a-raw-body).
 </ParamField>
 
 ## Output formats
 
-By default a successful command prints the request ID, a blank line, and then the response's `data` as indented JSON:
+The default `human` format shows name-first summary tables for lists, labeled details for individual resources, and a confirmation for actions without response data. For example, `unkey projects list` shows the name, slug, and update time in a terminal:
 
-```text
-req_1234abcd
-
-{
-  "keyId": "key_1234abcd",
-  "key": "prod_abc..."
-}
+```plaintext
+NAME      SLUG      UPDATED
+Payments  payments  2 hours ago
 ```
 
-With `--output=json`, the CLI prints the whole response, `meta` and `data`, exactly as the API returned it. Use this when you pipe into `jq` or another tool, because the default layout mixes a plain-text line with JSON:
+Summaries use names or slugs for projects, apps, environments, domains, permissions, and roles. Lists retain IDs where you need them to identify a resource for another command. Labeled details and JSON responses retain the IDs returned by the API.
+
+Terminal tables show relative timestamps such as `2 hours ago`. When stdout is redirected to a file or pipe, human-readable timestamps use RFC3339 in UTC, such as `2026-10-28T12:00:00Z`. JSON timestamps keep the API's original representation.
+
+To fit the terminal width, tables shorten only display names and descriptions with an ellipsis (`…`). Identifiers, slugs, and credentials remain complete, including names used to identify resources. If the remaining columns still don't fit, the CLI prints labeled records instead of truncating identifiers. Redirected output isn't shortened. Labeled details retain exact values without width-based shortening.
+
+An empty list prints a message instead of a table:
+
+```plaintext
+No projects found.
+```
+
+Actions without response data print a confirmation such as `Key deleted.`, `Settings updated.`, or `Variables saved.` An asynchronous action prints a message such as `Deletion requested.` instead of claiming the work has finished.
+
+Tables select fields for readability. They aren't a complete representation of the response. Use `--json` or `--output=json` to get every field, including `meta`, `data`, and `pagination` when present. JSON mode preserves the full response envelope and writes only JSON to stdout:
 
 ```bash
-unkey api keys get-key --key-id=key_1234abcd --output=json | jq '.data.enabled'
+unkey keys get --key-id=key_1234abcd --json | jq '.data.enabled'
+unkey projects list --output=json | jq '.data'
 ```
 
-Set `UNKEY_OUTPUT=json` once in a script to do the same for every command.
+Use JSON mode explicitly in scripts, even when redirecting output to a file or a pipe. Set `UNKEY_OUTPUT=json` to select it for every resource command in a shell session. Both `--output` and `UNKEY_OUTPUT` accept only `human` and `json`; unsupported values fail instead of falling back to human output. `--output=human` overrides `UNKEY_OUTPUT=json`.
+
+When more results are available, human output includes a hint to repeat the command with `--cursor`. JSON output includes the API's pagination fields instead. Keep the same filters when requesting the next page:
+
+```bash
+unkey projects list --limit=25 --search=payments
+unkey projects list --limit=25 --search=payments --cursor='<cursor>'
+```
+
+If you use `--body`, the hint tells you to set `cursor` inside the JSON body instead. Keep the other request fields and don't combine `--body` with `--cursor`:
+
+```bash
+unkey projects list --body='{"limit":25,"search":"payments","cursor":"<cursor>"}'
+```
+
+Successful human output does not show the request ID by default. Add `--debug` when you need it for troubleshooting. JSON output still includes `meta.requestId`, with or without `--debug`.
 
 ## Send a raw body
 
 Normally a command builds its request from its flags, one per request field, and checks them before sending. If you already have the request as JSON, for example from a file or another tool, pass it with `--body` instead:
 
 ```bash
-unkey api keys create-key --body='{"apiId":"api_1234abcd","name":"Payment service","enabled":true}'
+unkey keys create --body='{"apiId":"api_1234abcd","name":"Payment service","enabled":true}'
 ```
 
 Rules for `--body`:
 
 - It must be one JSON object that matches the endpoint's request.
 - Unknown fields fail before anything is sent, so a typo in a field name doesn't get silently ignored.
-- You can't combine it with the command's request flags. Required flags aren't needed either, so `keys create-key --body='...'` doesn't also need `--api-id`.
-- The five shared flags above still work.
+- You can't combine it with the command's request flags. Required flags aren't needed either, so `unkey keys create --body='...'` doesn't also need `--api-id`.
+- Authentication, API URL, configuration, and output flags still work.
+
+## Confirm destructive commands
+
+Delete commands and the commands that remove environment variables, key roles, or key permissions ask for confirmation before sending the destructive request. The same rule applies to canonical and legacy paths, with request flags or `--body`. Promotion, rollback, stop, and general update commands don't use this confirmation.
+
+The prompt appears on stderr and shows the target from your request. It doesn't infer an environment:
+
+- Environment variable removal shows the requested project, app, environment, and variable names.
+- App and project deletion warn that all their environments are affected.
+- Other targets show their requested IDs, slugs, names, or identifiers. Key deletion distinguishes permanent erasure from soft deletion.
+
+Enter `y` or `yes` at `[y/N]` to proceed. An empty answer, any other answer, or end of input cancels with a nonzero exit status. Both stdin and stderr must be terminals. If either is redirected, the command refuses to proceed and tells you to use `--yes`.
+
+In scripts, pass `--yes` to confirm explicitly. Use `--json` separately when you need a machine-readable response:
+
+```bash
+unkey keys delete --key-id=key_1234abcd --yes --json
+unkey projects delete --body='{"project":"payments"}' --yes --json
+```
+
+`--yes` skips only the local prompt. It does not bypass authentication, permissions, or delete protection. `--json` and `--body` do not imply confirmation. Redirecting only stdout also does not imply confirmation; the CLI can still prompt if stdin and stderr remain terminals.
+
+## Terminal output and scripts
+
+Resource commands write results to stdout. Confirmation prompts, debug request IDs, and errors go to stderr, so they don't become part of a JSON pipe. Human output remains the default when stdout is redirected; choose `--json` explicitly in scripts.
+
+`unkey deploy` writes progress and deployment context to stderr, then final deployment details and domains to stdout. It does not support JSON output. Deployment spinners and colors require stderr to be a terminal. `TERM=dumb` disables both, and a nonempty `NO_COLOR` disables color without disabling a terminal spinner. Redirected stderr contains plain progress messages. See [Deploy output](/compute/cli/deploy).
+
+`unkey login` writes the confirmation code, browser URL, instructions, and waiting messages to stderr. Only the final success goes to stdout. `unkey logout` also keeps diagnostics separate from its success message, including any notice that another stored workspace is now active. See [CLI authentication](/platform/cli/authentication).
 
 ## Errors and exit codes
 
-A failed command prints one message and exits with status 1. API errors are shortened:
+A failed command writes its error to stderr and exits with status 1. API errors include a labeled `Request ID:` when the response provides one, even without `--debug`. These diagnostics never become part of stdout or its JSON response. Common API errors are shortened:
 
 | Status | Message |
 | --- | --- |
 | 400 | The detail, then one line per invalid field with its location. |
-| 401 | `Authentication failed: ...` and a hint to run `unkey auth login`. |
+| 401 | `Authentication failed: ...` and a hint to run `unkey login`. |
 | 403 | `Permission denied: ...` |
 | 404 | `Not found: ...` |
 
-Other failures print the error text as is. Help and version requests (`--help`, `-h`, `help <command>`, `--version`) exit 0 without calling the API.
+Other failures print the error text as is. Help and version requests (`--help`, `-h`, `help <command>`, `--version`, `unkey version`) exit 0 without calling the API.
 
 ## Flag syntax
 

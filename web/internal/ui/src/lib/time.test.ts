@@ -33,6 +33,7 @@ describe("formatTimestamp", () => {
     expect(formatTimestamp(date, "h:mm a")).toBe("3:04 PM");
     expect(formatTimestamp(date, "HH:mm:ss.SSS")).toBe("15:04:05.123");
     expect(formatTimestamp(date, "MMM d")).toBe("Jan 5");
+    expect(formatTimestamp(date, "M/d/yy")).toBe("1/5/26");
     expect(formatTimestamp(date, "MMM yyyy")).toBe("Jan 2026");
     expect(formatTimestamp(date, "MMMM yyyy")).toBe("January 2026");
     expect(formatTimestamp(date, "MMM d, h:mm a")).toBe("Jan 5, 3:04 PM");

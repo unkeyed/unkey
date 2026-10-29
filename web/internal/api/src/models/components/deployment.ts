@@ -20,6 +20,10 @@ import {
 } from "./deploymenterror.js";
 import { DeploymentGit, DeploymentGit$inboundSchema } from "./deploymentgit.js";
 import {
+  DeploymentIssue,
+  DeploymentIssue$inboundSchema,
+} from "./deploymentissue.js";
+import {
   DeploymentRuntime,
   DeploymentRuntime$inboundSchema,
 } from "./deploymentruntime.js";
@@ -87,6 +91,13 @@ export type Deployment = {
   regions: Array<string>;
   error?: DeploymentError | undefined;
   /**
+   * Problems with the running app right now, at most one per type. An issue
+   *
+   * @remarks
+   * is removed when it is resolved. Empty when nothing is wrong.
+   */
+  issues: Array<DeploymentIssue>;
+  /**
    * Unix timestamp in milliseconds when the deployment finished, successfully
    *
    * @remarks
@@ -133,6 +144,7 @@ export const Deployment$inboundSchema: z.ZodType<
   availableActions: z.array(DeploymentAction$inboundSchema),
   regions: z.array(z.string()),
   error: DeploymentError$inboundSchema.optional(),
+  issues: z.array(DeploymentIssue$inboundSchema),
   finishedAt: z.number().int().optional(),
   domains: z.array(z.string()).optional(),
   runtime: DeploymentRuntime$inboundSchema,

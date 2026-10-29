@@ -13,13 +13,12 @@ import { LogSection } from "./components/log-section";
 import { PermissionsSection, RolesSection } from "./components/roles-permissions";
 
 type Props = {
-  distanceToTop: number;
   log: KeysOverviewLog | null;
   apiId: string;
   setSelectedLog: (data: KeysOverviewLog | null) => void;
 };
 
-export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, apiId }: Props) => {
+export const KeysOverviewLogDetails = ({ log, setSelectedLog, apiId }: Props) => {
   const workspace = useWorkspaceNavigation();
   const scope = useProjectScope();
   const errorShownRef = useRef(false);
@@ -102,14 +101,24 @@ export const KeysOverviewLogDetails = ({ distanceToTop, log, setSelectedLog, api
     ),
     <LogSection key="limits" title="Limits" details={limits} />,
     <LogSection key="identifiers" title="Identifiers" details={identifiers} />,
-    <LogSection key="identity" title="Identity" details={identity} />,
-    <LogSection key="tags" title="Tags" details={tags} />,
+    <LogSection
+      key="identity"
+      title="Identity"
+      details={identity}
+      copyValue={log.key_details.identity?.external_id || undefined}
+    />,
+    <LogSection
+      key="tags"
+      title="Tags"
+      details={tags}
+      copyValue={log.tags?.length ? log.tags.join(", ") : undefined}
+    />,
     <RolesSection key="roles" roles={log.key_details.roles || []} />,
     <PermissionsSection key="permissions" permissions={log.key_details.permissions || []} />,
   ].filter(Boolean);
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
+    <LogDetails log={log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose}>
         <LogHeader log={log} onClose={handleClose} />
       </LogDetails.Header>

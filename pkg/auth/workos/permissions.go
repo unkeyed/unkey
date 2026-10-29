@@ -24,6 +24,7 @@ var developerPermissions = []resourcePermission{
 	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "flags", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "flags", action: rbac.ActionType(rbacpermissions.Write)},
+	{resource: "logs/apiRequests", action: rbac.ActionType(rbacpermissions.Read)},
 
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Write)},
@@ -99,6 +100,7 @@ var viewerPermissions = []resourcePermission{
 	{resource: "limits", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "usage", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "flags", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "logs/apiRequests", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
@@ -132,9 +134,9 @@ var rolePolicies = map[string][]resourcePermission{
 	"viewer":       viewerPermissions,
 }
 
-// permissionsForRoles expands role slugs into API-owned permissions.
+// PermissionsForRoles expands role slugs into API-owned permissions.
 // Unknown roles are ignored and logged so they cannot add permissions by accident.
-func permissionsForRoles(workspaceID string, roles []string) []string {
+func PermissionsForRoles(workspaceID string, roles []string) []string {
 	var permissions []string
 	seen := make(map[string]struct{})
 

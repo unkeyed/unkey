@@ -127,6 +127,12 @@ spec:
                   name: github-credentials
                   key: UNKEY_GITHUB_PRIVATE_KEY_PEM
                   optional: true
+            - name: WORKOS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: workos-credentials
+                  key: WORKOS_API_KEY
+                  optional: true
           ports:
             - containerPort: 7070
           volumeMounts:

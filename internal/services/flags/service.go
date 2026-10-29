@@ -39,11 +39,12 @@ func New(config Config) (*service, error) {
 	}
 
 	flagCache, err := cache.New(cache.Config[string, map[string]Flag]{
-		Fresh:    10 * time.Second,
-		Stale:    time.Minute,
-		MaxSize:  10_000,
-		Resource: "workspace_flags",
-		Clock:    config.Clock,
+		Fresh:     10 * time.Second,
+		Stale:     time.Minute,
+		MaxSize:   10_000,
+		Resource:  "workspace_flags",
+		Clock:     config.Clock,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("create flags cache"))

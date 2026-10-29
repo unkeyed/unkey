@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	stripesdk "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
@@ -27,11 +25,12 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
+	keyleakwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/keyleak"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -102,12 +101,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("ctrl")
 
 	// Initialize database
@@ -138,11 +132,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 	topologyCache, err := cache.New(cache.Config[string, []db.FindDeploymentTopologyMinReplicasRow]{
-		Fresh:    5 * time.Minute,
-		Stale:    30 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "deployment_topology_min_replicas",
-		Clock:    clk,
+		Fresh:     5 * time.Minute,
+		Stale:     30 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "deployment_topology_min_replicas",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create topology cache: %w", err)
@@ -196,11 +191,12 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Initialize caches for ACME service (needed for certificate verification endpoint)
 	domainCache, err := cache.New(cache.Config[string, db.CustomDomain]{
-		Fresh:    5 * time.Minute,
-		Stale:    10 * time.Minute,
-		MaxSize:  10000,
-		Resource: "domains",
-		Clock:    clk,
+		Fresh:     5 * time.Minute,
+		Stale:     10 * time.Minute,
+		MaxSize:   10000,
+		Resource:  "domains",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create domain cache: %w", err)
@@ -208,11 +204,12 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(func() error { domainCache.Close(); return nil })
 
 	challengeCache, err := cache.New(cache.Config[string, db.AcmeChallenge]{
-		Fresh:    10 * time.Second,
-		Stale:    30 * time.Second,
-		MaxSize:  1000,
-		Resource: "acme_challenges",
-		Clock:    clk,
+		Fresh:     10 * time.Second,
+		Stale:     30 * time.Second,
+		MaxSize:   1000,
+		Resource:  "acme_challenges",
+		Clock:     clk,
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create challenge cache: %w", err)
@@ -295,6 +292,13 @@ func Run(ctx context.Context, cfg Config) error {
 		logger.Info("GitHub webhook handler not registered, no webhook secret configured")
 	}
 
+	keyLeakVerifier, err := githubsecrets.New("https://api.github.com/meta/public_keys/secret_scanning", clk)
+	if err != nil {
+		return fmt.Errorf("failed to create key leak verifier: %w", err)
+	}
+	r.Defer(func() error { keyLeakVerifier.Close(); return nil })
+	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient, database, keyLeakVerifier))
+
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
 		mux.Handle("POST /webhooks/stripe", stripewebhook.New(
 			restateClient,
@@ -363,7 +367,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.PrometheusPort > 0 {
-		prom, promErr := prometheus.NewWithRegistry(reg)
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", promErr)
 		}

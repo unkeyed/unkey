@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -25,14 +26,15 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
+	clisession "github.com/unkeyed/unkey/pkg/auth/clisession"
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	authworkos "github.com/unkeyed/unkey/pkg/auth/workos"
+	"github.com/unkeyed/unkey/pkg/workos"
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
@@ -44,11 +46,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -57,6 +59,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
@@ -104,12 +107,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := cfg.Clock
 
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("api")
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
@@ -123,7 +121,7 @@ func Run(ctx context.Context, cfg Config) error {
 			// The API runs against Grafana Cloud and cannot be scraped, so it
 			// pushes metrics over OTLP. All other services are pulled via
 			// /metrics and leave this nil.
-			PrometheusGatherer: reg,
+			PrometheusGatherer: promclient.DefaultGatherer,
 		})
 		if err != nil {
 			return fmt.Errorf("unable to init grafana: %w", err)
@@ -147,7 +145,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(database.Close)
 
 	if cfg.Observability.Metrics != nil {
-		prom, promErr := prometheus.NewWithRegistry(reg)
+		prom, promErr := prometheus.New()
 		if promErr != nil {
 			return fmt.Errorf("unable to start prometheus: %w", promErr)
 		}
@@ -229,9 +227,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Caches will be created after invalidation consumer is set up
 	srv, err := zen.New(zen.Config{
-		Flags: &zen.Flags{
-			TestMode: cfg.Test.Enabled,
-		},
 		TLS:                cfg.TLSConfig,
 		EnableH2C:          false,
 		StreamRequestBody:  false,
@@ -254,6 +249,11 @@ func Run(ctx context.Context, cfg Config) error {
 	validator, err := validation.New()
 	if err != nil {
 		return fmt.Errorf("unable to create validator: %w", err)
+	}
+
+	rateLimitExemptions, err := openapi.WorkspaceRateLimitExemptionsFromSpec(openapi.Spec)
+	if err != nil {
+		return fmt.Errorf("unable to load workspace rate limit exemptions: %w", err)
 	}
 
 	// Bodies are logged to ClickHouse verbatim apart from this, so an empty
@@ -394,6 +394,12 @@ func Run(ctx context.Context, cfg Config) error {
 		return workspace.ID, nil
 	})
 
+	jwksCache, err := authjwt.NewJWKSCache(clk)
+	if err != nil {
+		return fmt.Errorf("unable to create JWKS cache: %w", err)
+	}
+	r.Defer(func() error { jwksCache.Close(); return nil })
+
 	// Portal sessions authenticate on a dedicated auth service used only by the
 	// portal routes, so protected routes never accept a portal-session cookie.
 	authResolvers := []auth.Resolver{}
@@ -411,7 +417,7 @@ func Run(ctx context.Context, cfg Config) error {
 			if len(jwtSecrets) > 0 {
 				jwtResolver, jwtErr = authjwt.NewResolver(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, jwtSecrets...)
 			} else {
-				jwtResolver, jwtErr = authjwt.NewResolverWithJWKSURL(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL)
+				jwtResolver, jwtErr = authjwt.NewResolverWithJWKSURL(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL, jwksCache, clk)
 			}
 			if jwtErr != nil {
 				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
@@ -427,6 +433,48 @@ func Run(ctx context.Context, cfg Config) error {
 		default:
 			return fmt.Errorf("unsupported auth config at auth[%d]", i)
 		}
+	}
+	var cliMemberships clidevice.Memberships
+	if key := strings.TrimSpace(cfg.CLIAuth.WorkOSAPIKey); key != "" {
+		cliMemberships = workos.New(key, cfg.CLIAuth.WorkOSAPIBaseURL)
+	}
+	cliSecrets := make([][]byte, 0, len(cfg.CLIAuth.SigningSecrets))
+	for _, secret := range cfg.CLIAuth.SigningSecrets {
+		cliSecrets = append(cliSecrets, []byte(secret))
+	}
+	cliService := &clidevice.Service{
+		DB:               database,
+		Auditlogs:        auditlogSvc,
+		Clock:            clk,
+		Ratelimit:        rlSvc,
+		Memberships:      cliMemberships,
+		DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
+		Signer:           nil,
+		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
+	}
+	if len(cliSecrets) > 0 {
+		cliSigner, signErr := tokenjwt.NewHS256Signer[clisession.Claims](cliSecrets[0])
+		if signErr != nil {
+			return fmt.Errorf("unable to create cli access token signer: %w", signErr)
+		}
+		cliService.Signer = cliSigner
+		sessionCache, cacheErr := cache.New[string, clidevice.SessionVerdict](cache.Config[string, clidevice.SessionVerdict]{
+			Fresh:     10 * time.Second,
+			Stale:     10 * time.Second,
+			MaxSize:   10_000,
+			Resource:  "cli_session",
+			Clock:     clk,
+			Scheduler: nil,
+		})
+		if cacheErr != nil {
+			return fmt.Errorf("unable to create cli session cache: %w", cacheErr)
+		}
+		cliService.SessionCache = sessionCache
+		cliResolver, cliErr := clisession.NewResolver(cliService, clk, cliSecrets...)
+		if cliErr != nil {
+			return fmt.Errorf("unable to create cli session resolver: %w", cliErr)
+		}
+		authResolvers = append(authResolvers, cliResolver)
 	}
 	authSvc := auth.New(authResolvers...)
 	portalAuthSvc := auth.New(portalResolvers...)
@@ -513,26 +561,27 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:          database,
-		Flags:             flagSvc,
-		ClickHouse:        ch,
-		ApiRequests:       apiRequests,
-		DirectAuditLogs:   directAuditLogs,
-		RatelimitEvents:   ratelimits,
-		KeyVerifications:  keyVerifications,
-		Clock:             clk,
-		Keys:              keySvc,
-		Auth:              authSvc,
-		PortalAuth:        portalAuthSvc,
-		Validator:         validator,
-		Redactor:          redactor,
-		Ratelimit:         rlSvc,
-		Auditlogs:         auditlogSvc,
-		Caches:            caches,
-		Vault:             vaultClient,
-		CtrlProjectClient: ctrlProjectClient,
-		CtrlAppClient:     ctrlAppClient,
-		Restate:           restateClient,
+		Database:            database,
+		Flags:               flagSvc,
+		ClickHouse:          ch,
+		ApiRequests:         apiRequests,
+		DirectAuditLogs:     directAuditLogs,
+		RatelimitEvents:     ratelimits,
+		KeyVerifications:    keyVerifications,
+		Clock:               clk,
+		Keys:                keySvc,
+		Auth:                authSvc,
+		PortalAuth:          portalAuthSvc,
+		Validator:           validator,
+		Redactor:            redactor,
+		Ratelimit:           rlSvc,
+		RateLimitExemptions: rateLimitExemptions,
+		Auditlogs:           auditlogSvc,
+		Caches:              caches,
+		Vault:               vaultClient,
+		CtrlProjectClient:   ctrlProjectClient,
+		CtrlAppClient:       ctrlAppClient,
+		Restate:             restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,
 		PprofEnabled:           pprofEnabled,
@@ -545,6 +594,7 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHubAppName:              cfg.GitHub.AppName,
 		GitHubPrivateKeyPEM:        cfg.GitHub.PrivateKeyPEM,
 		GitHubClient:               githubClient,
+		CLIDevice:                  cliService,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

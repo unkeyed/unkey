@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file vault/v1/service.proto.
  */
 export const file_vault_v1_service: GenFile = /*@__PURE__*/
-  fileDesc("ChZ2YXVsdC92MS9zZXJ2aWNlLnByb3RvEgh2YXVsdC52MSIRCg9MaXZlbmVzc1JlcXVlc3QiIgoQTGl2ZW5lc3NSZXNwb25zZRIOCgZzdGF0dXMYASABKAkiLwoORW5jcnlwdFJlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRIMCgRkYXRhGAIgASgJIjQKD0VuY3J5cHRSZXNwb25zZRIRCgllbmNyeXB0ZWQYASABKAkSDgoGa2V5X2lkGAIgASgJIjQKDkRlY3J5cHRSZXF1ZXN0Eg8KB2tleXJpbmcYASABKAkSEQoJZW5jcnlwdGVkGAIgASgJIiQKD0RlY3J5cHRSZXNwb25zZRIRCglwbGFpbnRleHQYASABKAkiVgoQUmVFbmNyeXB0UmVxdWVzdBIPCgdrZXlyaW5nGAEgASgJEhEKCWVuY3J5cHRlZBgCIAEoCRITCgZrZXlfaWQYAyABKAlIAIgBAUIJCgdfa2V5X2lkIjYKEVJlRW5jcnlwdFJlc3BvbnNlEhEKCWVuY3J5cHRlZBgBIAEoCRIOCgZrZXlfaWQYAiABKAkiFgoUUmVFbmNyeXB0REVLc1JlcXVlc3QiFwoVUmVFbmNyeXB0REVLc1Jlc3BvbnNlIosBChJFbmNyeXB0QnVsa1JlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRI2CgVpdGVtcxgCIAMoCzInLnZhdWx0LnYxLkVuY3J5cHRCdWxrUmVxdWVzdC5JdGVtc0VudHJ5GiwKCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI8ChdFbmNyeXB0QnVsa1Jlc3BvbnNlSXRlbRIRCgllbmNyeXB0ZWQYASABKAkSDgoGa2V5X2lkGAIgASgJIp8BChNFbmNyeXB0QnVsa1Jlc3BvbnNlEjcKBWl0ZW1zGAEgAygLMigudmF1bHQudjEuRW5jcnlwdEJ1bGtSZXNwb25zZS5JdGVtc0VudHJ5Gk8KCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEjAKBXZhbHVlGAIgASgLMiEudmF1bHQudjEuRW5jcnlwdEJ1bGtSZXNwb25zZUl0ZW06AjgBIosBChJEZWNyeXB0QnVsa1JlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRI2CgVpdGVtcxgCIAMoCzInLnZhdWx0LnYxLkRlY3J5cHRCdWxrUmVxdWVzdC5JdGVtc0VudHJ5GiwKCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJ8ChNEZWNyeXB0QnVsa1Jlc3BvbnNlEjcKBWl0ZW1zGAEgAygLMigudmF1bHQudjEuRGVjcnlwdEJ1bGtSZXNwb25zZS5JdGVtc0VudHJ5GiwKCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ATK7AwoMVmF1bHRTZXJ2aWNlEkMKCExpdmVuZXNzEhkudmF1bHQudjEuTGl2ZW5lc3NSZXF1ZXN0GhoudmF1bHQudjEuTGl2ZW5lc3NSZXNwb25zZSIAEkAKB0VuY3J5cHQSGC52YXVsdC52MS5FbmNyeXB0UmVxdWVzdBoZLnZhdWx0LnYxLkVuY3J5cHRSZXNwb25zZSIAEkAKB0RlY3J5cHQSGC52YXVsdC52MS5EZWNyeXB0UmVxdWVzdBoZLnZhdWx0LnYxLkRlY3J5cHRSZXNwb25zZSIAEkwKC0VuY3J5cHRCdWxrEhwudmF1bHQudjEuRW5jcnlwdEJ1bGtSZXF1ZXN0Gh0udmF1bHQudjEuRW5jcnlwdEJ1bGtSZXNwb25zZSIAEkwKC0RlY3J5cHRCdWxrEhwudmF1bHQudjEuRGVjcnlwdEJ1bGtSZXF1ZXN0Gh0udmF1bHQudjEuRGVjcnlwdEJ1bGtSZXNwb25zZSIAEkYKCVJlRW5jcnlwdBIaLnZhdWx0LnYxLlJlRW5jcnlwdFJlcXVlc3QaGy52YXVsdC52MS5SZUVuY3J5cHRSZXNwb25zZSIAQpIBCgxjb20udmF1bHQudjFCDFNlcnZpY2VQcm90b1ABWjNnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL3ZhdWx0L3YxO3ZhdWx0djGiAgNWWFiqAghWYXVsdC5WMcoCCFZhdWx0XFYx4gIUVmF1bHRcVjFcR1BCTWV0YWRhdGHqAglWYXVsdDo6VjFiBnByb3RvMw");
+  fileDesc("ChZ2YXVsdC92MS9zZXJ2aWNlLnByb3RvEgh2YXVsdC52MSIRCg9MaXZlbmVzc1JlcXVlc3QiIgoQTGl2ZW5lc3NSZXNwb25zZRIOCgZzdGF0dXMYASABKAkiLwoORW5jcnlwdFJlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRIMCgRkYXRhGAIgASgJIjQKD0VuY3J5cHRSZXNwb25zZRIRCgllbmNyeXB0ZWQYASABKAkSDgoGa2V5X2lkGAIgASgJIjQKDkRlY3J5cHRSZXF1ZXN0Eg8KB2tleXJpbmcYASABKAkSEQoJZW5jcnlwdGVkGAIgASgJIiQKD0RlY3J5cHRSZXNwb25zZRIRCglwbGFpbnRleHQYASABKAkiFgoUUmVFbmNyeXB0REVLc1JlcXVlc3QiFwoVUmVFbmNyeXB0REVLc1Jlc3BvbnNlIosBChJFbmNyeXB0QnVsa1JlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRI2CgVpdGVtcxgCIAMoCzInLnZhdWx0LnYxLkVuY3J5cHRCdWxrUmVxdWVzdC5JdGVtc0VudHJ5GiwKCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI8ChdFbmNyeXB0QnVsa1Jlc3BvbnNlSXRlbRIRCgllbmNyeXB0ZWQYASABKAkSDgoGa2V5X2lkGAIgASgJIp8BChNFbmNyeXB0QnVsa1Jlc3BvbnNlEjcKBWl0ZW1zGAEgAygLMigudmF1bHQudjEuRW5jcnlwdEJ1bGtSZXNwb25zZS5JdGVtc0VudHJ5Gk8KCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEjAKBXZhbHVlGAIgASgLMiEudmF1bHQudjEuRW5jcnlwdEJ1bGtSZXNwb25zZUl0ZW06AjgBIosBChJEZWNyeXB0QnVsa1JlcXVlc3QSDwoHa2V5cmluZxgBIAEoCRI2CgVpdGVtcxgCIAMoCzInLnZhdWx0LnYxLkRlY3J5cHRCdWxrUmVxdWVzdC5JdGVtc0VudHJ5GiwKCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJ8ChNEZWNyeXB0QnVsa1Jlc3BvbnNlEjcKBWl0ZW1zGAEgAygLMigudmF1bHQudjEuRGVjcnlwdEJ1bGtSZXNwb25zZS5JdGVtc0VudHJ5GiwKCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKYAQoUUmVFbmNyeXB0QnVsa1JlcXVlc3QSOAoFaXRlbXMYASADKAsyKS52YXVsdC52MS5SZUVuY3J5cHRCdWxrUmVxdWVzdC5JdGVtc0VudHJ5GkYKCkl0ZW1zRW50cnkSCwoDa2V5GAEgASgJEicKBXZhbHVlGAIgASgLMhgudmF1bHQudjEuRGVjcnlwdFJlcXVlc3Q6AjgBImQKGVJlRW5jcnlwdEJ1bGtSZXNwb25zZUl0ZW0SLAoHc3VjY2VzcxgBIAEoCzIZLnZhdWx0LnYxLkVuY3J5cHRSZXNwb25zZUgAEg8KBWVycm9yGAIgASgJSABCCAoGcmVzdWx0IqUBChVSZUVuY3J5cHRCdWxrUmVzcG9uc2USOQoFaXRlbXMYASADKAsyKi52YXVsdC52MS5SZUVuY3J5cHRCdWxrUmVzcG9uc2UuSXRlbXNFbnRyeRpRCgpJdGVtc0VudHJ5EgsKA2tleRgBIAEoCRIyCgV2YWx1ZRgCIAEoCzIjLnZhdWx0LnYxLlJlRW5jcnlwdEJ1bGtSZXNwb25zZUl0ZW06AjgBMscDCgxWYXVsdFNlcnZpY2USQwoITGl2ZW5lc3MSGS52YXVsdC52MS5MaXZlbmVzc1JlcXVlc3QaGi52YXVsdC52MS5MaXZlbmVzc1Jlc3BvbnNlIgASQAoHRW5jcnlwdBIYLnZhdWx0LnYxLkVuY3J5cHRSZXF1ZXN0GhkudmF1bHQudjEuRW5jcnlwdFJlc3BvbnNlIgASQAoHRGVjcnlwdBIYLnZhdWx0LnYxLkRlY3J5cHRSZXF1ZXN0GhkudmF1bHQudjEuRGVjcnlwdFJlc3BvbnNlIgASTAoLRW5jcnlwdEJ1bGsSHC52YXVsdC52MS5FbmNyeXB0QnVsa1JlcXVlc3QaHS52YXVsdC52MS5FbmNyeXB0QnVsa1Jlc3BvbnNlIgASTAoLRGVjcnlwdEJ1bGsSHC52YXVsdC52MS5EZWNyeXB0QnVsa1JlcXVlc3QaHS52YXVsdC52MS5EZWNyeXB0QnVsa1Jlc3BvbnNlIgASUgoNUmVFbmNyeXB0QnVsaxIeLnZhdWx0LnYxLlJlRW5jcnlwdEJ1bGtSZXF1ZXN0Gh8udmF1bHQudjEuUmVFbmNyeXB0QnVsa1Jlc3BvbnNlIgBCkgEKDGNvbS52YXVsdC52MUIMU2VydmljZVByb3RvUAFaM2dpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vdmF1bHQvdjE7dmF1bHR2MaICA1ZYWKoCCFZhdWx0LlYxygIIVmF1bHRcVjHiAhRWYXVsdFxWMVxHUEJNZXRhZGF0YeoCCVZhdWx0OjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message vault.v1.LivenessRequest
@@ -126,57 +126,6 @@ export const DecryptResponseSchema: GenMessage<DecryptResponse> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 5);
 
 /**
- * @generated from message vault.v1.ReEncryptRequest
- */
-export type ReEncryptRequest = Message<"vault.v1.ReEncryptRequest"> & {
-  /**
-   * @generated from field: string keyring = 1;
-   */
-  keyring: string;
-
-  /**
-   * @generated from field: string encrypted = 2;
-   */
-  encrypted: string;
-
-  /**
-   * Specify the key_id to use for re-encryption. If not provided, the latest will be used
-   *
-   * @generated from field: optional string key_id = 3;
-   */
-  keyId?: string;
-};
-
-/**
- * Describes the message vault.v1.ReEncryptRequest.
- * Use `create(ReEncryptRequestSchema)` to create a new message.
- */
-export const ReEncryptRequestSchema: GenMessage<ReEncryptRequest> = /*@__PURE__*/
-  messageDesc(file_vault_v1_service, 6);
-
-/**
- * @generated from message vault.v1.ReEncryptResponse
- */
-export type ReEncryptResponse = Message<"vault.v1.ReEncryptResponse"> & {
-  /**
-   * @generated from field: string encrypted = 1;
-   */
-  encrypted: string;
-
-  /**
-   * @generated from field: string key_id = 2;
-   */
-  keyId: string;
-};
-
-/**
- * Describes the message vault.v1.ReEncryptResponse.
- * Use `create(ReEncryptResponseSchema)` to create a new message.
- */
-export const ReEncryptResponseSchema: GenMessage<ReEncryptResponse> = /*@__PURE__*/
-  messageDesc(file_vault_v1_service, 7);
-
-/**
  * @generated from message vault.v1.ReEncryptDEKsRequest
  */
 export type ReEncryptDEKsRequest = Message<"vault.v1.ReEncryptDEKsRequest"> & {
@@ -187,7 +136,7 @@ export type ReEncryptDEKsRequest = Message<"vault.v1.ReEncryptDEKsRequest"> & {
  * Use `create(ReEncryptDEKsRequestSchema)` to create a new message.
  */
 export const ReEncryptDEKsRequestSchema: GenMessage<ReEncryptDEKsRequest> = /*@__PURE__*/
-  messageDesc(file_vault_v1_service, 8);
+  messageDesc(file_vault_v1_service, 6);
 
 /**
  * @generated from message vault.v1.ReEncryptDEKsResponse
@@ -200,7 +149,7 @@ export type ReEncryptDEKsResponse = Message<"vault.v1.ReEncryptDEKsResponse"> & 
  * Use `create(ReEncryptDEKsResponseSchema)` to create a new message.
  */
 export const ReEncryptDEKsResponseSchema: GenMessage<ReEncryptDEKsResponse> = /*@__PURE__*/
-  messageDesc(file_vault_v1_service, 9);
+  messageDesc(file_vault_v1_service, 7);
 
 /**
  * @generated from message vault.v1.EncryptBulkRequest
@@ -224,7 +173,7 @@ export type EncryptBulkRequest = Message<"vault.v1.EncryptBulkRequest"> & {
  * Use `create(EncryptBulkRequestSchema)` to create a new message.
  */
 export const EncryptBulkRequestSchema: GenMessage<EncryptBulkRequest> = /*@__PURE__*/
-  messageDesc(file_vault_v1_service, 10);
+  messageDesc(file_vault_v1_service, 8);
 
 /**
  * @generated from message vault.v1.EncryptBulkResponseItem
@@ -246,7 +195,7 @@ export type EncryptBulkResponseItem = Message<"vault.v1.EncryptBulkResponseItem"
  * Use `create(EncryptBulkResponseItemSchema)` to create a new message.
  */
 export const EncryptBulkResponseItemSchema: GenMessage<EncryptBulkResponseItem> = /*@__PURE__*/
-  messageDesc(file_vault_v1_service, 11);
+  messageDesc(file_vault_v1_service, 9);
 
 /**
  * @generated from message vault.v1.EncryptBulkResponse
@@ -263,7 +212,7 @@ export type EncryptBulkResponse = Message<"vault.v1.EncryptBulkResponse"> & {
  * Use `create(EncryptBulkResponseSchema)` to create a new message.
  */
 export const EncryptBulkResponseSchema: GenMessage<EncryptBulkResponse> = /*@__PURE__*/
-  messageDesc(file_vault_v1_service, 12);
+  messageDesc(file_vault_v1_service, 10);
 
 /**
  * @generated from message vault.v1.DecryptBulkRequest
@@ -287,7 +236,7 @@ export type DecryptBulkRequest = Message<"vault.v1.DecryptBulkRequest"> & {
  * Use `create(DecryptBulkRequestSchema)` to create a new message.
  */
 export const DecryptBulkRequestSchema: GenMessage<DecryptBulkRequest> = /*@__PURE__*/
-  messageDesc(file_vault_v1_service, 13);
+  messageDesc(file_vault_v1_service, 11);
 
 /**
  * @generated from message vault.v1.DecryptBulkResponse
@@ -306,7 +255,74 @@ export type DecryptBulkResponse = Message<"vault.v1.DecryptBulkResponse"> & {
  * Use `create(DecryptBulkResponseSchema)` to create a new message.
  */
 export const DecryptBulkResponseSchema: GenMessage<DecryptBulkResponse> = /*@__PURE__*/
+  messageDesc(file_vault_v1_service, 12);
+
+/**
+ * @generated from message vault.v1.ReEncryptBulkRequest
+ */
+export type ReEncryptBulkRequest = Message<"vault.v1.ReEncryptBulkRequest"> & {
+  /**
+   * Up to 100 ciphertexts, keyed by caller-provided IDs. Keyrings may differ.
+   *
+   * @generated from field: map<string, vault.v1.DecryptRequest> items = 1;
+   */
+  items: { [key: string]: DecryptRequest };
+};
+
+/**
+ * Describes the message vault.v1.ReEncryptBulkRequest.
+ * Use `create(ReEncryptBulkRequestSchema)` to create a new message.
+ */
+export const ReEncryptBulkRequestSchema: GenMessage<ReEncryptBulkRequest> = /*@__PURE__*/
+  messageDesc(file_vault_v1_service, 13);
+
+/**
+ * @generated from message vault.v1.ReEncryptBulkResponseItem
+ */
+export type ReEncryptBulkResponseItem = Message<"vault.v1.ReEncryptBulkResponseItem"> & {
+  /**
+   * Item failures do not discard successful results from the same request.
+   *
+   * @generated from oneof vault.v1.ReEncryptBulkResponseItem.result
+   */
+  result: {
+    /**
+     * @generated from field: vault.v1.EncryptResponse success = 1;
+     */
+    value: EncryptResponse;
+    case: "success";
+  } | {
+    /**
+     * @generated from field: string error = 2;
+     */
+    value: string;
+    case: "error";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message vault.v1.ReEncryptBulkResponseItem.
+ * Use `create(ReEncryptBulkResponseItemSchema)` to create a new message.
+ */
+export const ReEncryptBulkResponseItemSchema: GenMessage<ReEncryptBulkResponseItem> = /*@__PURE__*/
   messageDesc(file_vault_v1_service, 14);
+
+/**
+ * @generated from message vault.v1.ReEncryptBulkResponse
+ */
+export type ReEncryptBulkResponse = Message<"vault.v1.ReEncryptBulkResponse"> & {
+  /**
+   * @generated from field: map<string, vault.v1.ReEncryptBulkResponseItem> items = 1;
+   */
+  items: { [key: string]: ReEncryptBulkResponseItem };
+};
+
+/**
+ * Describes the message vault.v1.ReEncryptBulkResponse.
+ * Use `create(ReEncryptBulkResponseSchema)` to create a new message.
+ */
+export const ReEncryptBulkResponseSchema: GenMessage<ReEncryptBulkResponse> = /*@__PURE__*/
+  messageDesc(file_vault_v1_service, 15);
 
 /**
  * @generated from service vault.v1.VaultService
@@ -353,14 +369,12 @@ export const VaultService: GenService<{
     output: typeof DecryptBulkResponseSchema;
   },
   /**
-   * ReEncrypt rec
-   *
-   * @generated from rpc vault.v1.VaultService.ReEncrypt
+   * @generated from rpc vault.v1.VaultService.ReEncryptBulk
    */
-  reEncrypt: {
+  reEncryptBulk: {
     methodKind: "unary";
-    input: typeof ReEncryptRequestSchema;
-    output: typeof ReEncryptResponseSchema;
+    input: typeof ReEncryptBulkRequestSchema;
+    output: typeof ReEncryptBulkResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_vault_v1_service, 0);

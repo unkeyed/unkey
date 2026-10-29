@@ -149,8 +149,8 @@ func (f *BoolFlag) Parse(value string) error {
 // Value returns the current boolean value
 func (f *BoolFlag) Value() bool { return f.value }
 
-// HasValue returns true - boolean flags always have a meaningful value
-func (f *BoolFlag) HasValue() bool { return true }
+// HasValue returns true if the flag was explicitly set or came from environment.
+func (f *BoolFlag) HasValue() bool { return f.set || f.hasEnvValue }
 
 // IntFlag represents an integer command line flag
 type IntFlag struct {

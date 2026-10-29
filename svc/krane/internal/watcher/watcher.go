@@ -146,6 +146,7 @@ func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStrea
 		if shouldResetResumeToken(err) {
 			resumeToken = nil
 		}
+		metrics.StreamErrorsTotal.Inc()
 		logger.Error("stream: connection ended", "error", err)
 	}
 	if err := stream.Close(); err != nil && ctx.Err() == nil {
@@ -192,6 +193,7 @@ func (s *Watcher) doFullSync(ctx context.Context, dispatches *sync.WaitGroup) {
 		Cluster: s.clusterKey(),
 	})
 	if err != nil {
+		metrics.FullSyncErrorsTotal.WithLabelValues("open").Inc()
 		logger.Error("full sync: error opening connection", "error", err)
 		return
 	}
@@ -216,6 +218,10 @@ func (s *Watcher) doFullSync(ctx context.Context, dispatches *sync.WaitGroup) {
 		})
 	}
 
+	if err := stream.Err(); err != nil && ctx.Err() == nil {
+		metrics.FullSyncErrorsTotal.WithLabelValues("receive").Inc()
+		logger.Error("full sync: connection ended", "error", err)
+	}
 	if err := stream.Close(); err != nil && ctx.Err() == nil {
 		logger.Error("full sync: error closing connection", "error", err)
 	}

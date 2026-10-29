@@ -50,7 +50,7 @@ func (stubVault) EncryptBulk(context.Context, *vaultv1.EncryptBulkRequest) (*vau
 func (stubVault) DecryptBulk(context.Context, *vaultv1.DecryptBulkRequest) (*vaultv1.DecryptBulkResponse, error) {
 	return nil, errors.New("not implemented")
 }
-func (stubVault) ReEncrypt(context.Context, *vaultv1.ReEncryptRequest) (*vaultv1.ReEncryptResponse, error) {
+func (stubVault) ReEncryptBulk(context.Context, *vaultv1.ReEncryptBulkRequest) (*vaultv1.ReEncryptBulkResponse, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -86,14 +86,6 @@ type sink struct {
 	delay        time.Duration
 	responseBody string
 	requests     []capturedRequest
-	inflight     atomic.Int64
-	maxInflight  atomic.Int64
-}
-
-// maxOverlap reports the highest number of requests this sink served at the
-// same time, which proves whether deliveries overlapped.
-func (s *sink) maxOverlap() int64 {
-	return s.maxInflight.Load()
 }
 
 func newSink(t *testing.T, status int) *sink {
@@ -106,14 +98,6 @@ func newSlowSink(t *testing.T, status int, delay time.Duration) *sink {
 	s := &sink{delay: delay}
 	s.status.Store(int64(status))
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		current := s.inflight.Add(1)
-		defer s.inflight.Add(-1)
-		for {
-			seen := s.maxInflight.Load()
-			if current <= seen || s.maxInflight.CompareAndSwap(seen, current) {
-				break
-			}
-		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -636,28 +620,63 @@ func TestEngine_Integration(t *testing.T) {
 	})
 
 	t.Run("one replica processes drains in parallel up to the limit", func(t *testing.T) {
-		// MaxConcurrentDrains bounds in-replica parallelism. Two due drains
-		// pointed at one slow sink must overlap when the limit is 2. The in-flight
-		// set serializes work per drain, so overlap can only come from different drains.
 		workspaceA, drainA := uniqueIDs()
 		workspaceB, drainB := uniqueIDs()
 		require.NotEqual(t, drainA, drainB)
-		httpSink := newSlowSink(t, http.StatusOK, time.Second)
+		requests := make(chan []byte, 2)
+		acknowledge := make(chan struct{})
+		release := sync.OnceFunc(func() { close(acknowledge) })
+		httpSink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, readErr := io.ReadAll(r.Body)
+			if readErr != nil {
+				http.Error(w, readErr.Error(), http.StatusBadRequest)
+				return
+			}
+			select {
+			case requests <- body:
+			case <-r.Context().Done():
+				return
+			}
+			select {
+			case <-acknowledge:
+				w.WriteHeader(http.StatusOK)
+			case <-r.Context().Done():
+			}
+		}))
+		t.Cleanup(httpSink.Close)
 		start := time.Now().Add(-6 * time.Minute).UnixMilli()
 		insertAuditEvents(t, chConn, workspaceA, []auditEvent{{id: drainA + "_event_1", insertedAt: start}})
 		insertAuditEvents(t, chConn, workspaceB, []auditEvent{{id: drainB + "_event_1", insertedAt: start}})
-		seedDrain(t, mysqlDB, workspaceA, drainA, httpSink.server.URL+"/ingest", start-1)
-		seedDrain(t, mysqlDB, workspaceB, drainB, httpSink.server.URL+"/ingest", start-1)
+		seedDrain(t, mysqlDB, workspaceA, drainA, httpSink.URL+"/ingest", start-1)
+		seedDrain(t, mysqlDB, workspaceB, drainB, httpSink.URL+"/ingest", start-1)
 		cleanupDrain(t, mysqlDB, drainA)
 		cleanupDrain(t, mysqlDB, drainB)
-		startEngineConcurrent(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, 2)
+		deliveries := startEngineConcurrent(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, 2)
+		t.Cleanup(release)
+
+		ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+		defer cancel()
+		var ids []string
+		for range 2 {
+			select {
+			case body := <-requests:
+				events, decodeErr := decodeDeliveredEvents(body)
+				require.NoError(t, decodeErr)
+				require.Len(t, events, 1)
+				id, ok := events[0]["id"].(string)
+				require.True(t, ok)
+				ids = append(ids, id)
+			case <-ctx.Done():
+				t.Fatal("timed out waiting for concurrent deliveries before acknowledging either request")
+			}
+		}
+		require.ElementsMatch(t, []string{drainA + "_event_1", drainB + "_event_1"}, ids)
+		release()
 
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
-			ids, _, parseErr := parseSuccessfulRequests(httpSink.snapshot())
-			require.NoError(c, parseErr)
-			require.Contains(c, ids, drainA+"_event_1")
-			require.Contains(c, ids, drainB+"_event_1")
-			require.Equal(c, int64(2), httpSink.maxOverlap())
+			attempts := deliveries.snapshot()
+			require.True(c, hasDelivery(attempts, drainA, "success", 1))
+			require.True(c, hasDelivery(attempts, drainB, "success", 1))
 		}, 30*time.Second, 250*time.Millisecond)
 	})
 

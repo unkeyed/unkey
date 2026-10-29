@@ -30,8 +30,13 @@ func (n *Noop) GetInstallationToken(_ int64) (InstallationToken, error) {
 }
 
 // GetScopedInstallationToken returns an error indicating GitHub is not configured.
-func (n *Noop) GetScopedInstallationToken(_ int64, _ string, _ map[string]string) (InstallationToken, error) {
+func (n *Noop) GetScopedInstallationToken(_ int64, _ []string, _ map[string]string) (InstallationToken, error) {
 	return InstallationToken{}, errNotConfigured
+}
+
+// GetFileContents returns an error indicating GitHub is not configured.
+func (n *Noop) GetFileContents(_ int64, _, _, _ string) ([]byte, bool, error) {
+	return nil, false, errNotConfigured
 }
 
 // IsRepoPublic reports whether repo is publicly accessible using an

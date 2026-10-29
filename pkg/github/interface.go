@@ -16,11 +16,15 @@ type GitHubClient interface {
 	// GetInstallationToken retrieves an access token for a specific installation.
 	GetInstallationToken(installationID int64) (InstallationToken, error)
 
-	// GetScopedInstallationToken mints an installation token restricted to a
-	// single repository with the given permissions, e.g. {"contents":"read"}.
-	// repo is the "owner/repo" full name. Use for untrusted fork PR builds so an
-	// exfiltrated token grants only minimal, single-repo access.
-	GetScopedInstallationToken(installationID int64, repo string, permissions map[string]string) (InstallationToken, error)
+	// GetScopedInstallationToken mints an installation token restricted to the
+	// given repositories ("owner/repo" full names) and permissions, e.g.
+	// {"contents":"read"}. Use for build clones so an exfiltrated token grants
+	// only read access to the repositories the build needs.
+	GetScopedInstallationToken(installationID int64, repos []string, permissions map[string]string) (InstallationToken, error)
+
+	// GetFileContents returns the raw contents of path in repo ("owner/repo")
+	// at ref. found is false when the file does not exist at that ref.
+	GetFileContents(installationID int64, repo, ref, path string) (content []byte, found bool, err error)
 
 	// IsRepoPublic reports whether repo ("owner/repo") is publicly accessible via
 	// an unauthenticated request. A public repo can be cloned without any token.
@@ -28,12 +32,8 @@ type GitHubClient interface {
 	// e.g. rate limited.
 	IsRepoPublic(repo string) (bool, error)
 
-	// GetInstallationRepo fetches repo ("owner/repo") using the installation's
-	// credentials. An installation token only sees the repositories the
-	// installation was granted, so a nil result (with a nil error) means the
-	// installation cannot access the repo: either it was not granted or it does
-	// not exist. Use this both to resolve repo metadata and to confirm access
-	// before connecting a repository to an app.
+	// GetInstallationRepo returns canonical metadata for repo ("owner/repo")
+	// only if granted to the installation, or nil if absent.
 	GetInstallationRepo(installationID int64, repo string) (*RepoInfo, error)
 
 	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
@@ -97,6 +97,10 @@ type RepoInfo struct {
 	// DefaultBranch is the repository's default branch on GitHub, used as the
 	// tracked branch when the caller does not specify one.
 	DefaultBranch string
+
+	// Private is true for private and internal repositories, which need a
+	// token to clone.
+	Private bool
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

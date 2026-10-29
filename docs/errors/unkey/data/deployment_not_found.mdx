@@ -31,14 +31,14 @@ The deployment you referenced doesn't exist in your workspace. You get HTTP 404.
 ## Likely causes
 
 - The deployment ID has a typo. Deployment IDs start with `d_`.
-- Your root key doesn't have the permission the call needs. The get, promote, rollback, stop, and start endpoints return this 404 instead of a 403, so it's as likely a permission problem as a wrong ID.
+- Your root key can't read the deployment. The get, promote, rollback, stop, and start endpoints return this 404 instead of a 403, so it's as likely a permission problem as a wrong ID. A key that can read the deployment but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 - For a redeploy with `deployments.createDeployment`, the source deployment is from a different app or environment.
 - The deployment is in another workspace.
 
 ## How to fix
 
 1. List deployments with `deployments.listDeployments` and use the returned ID.
-2. Check that the root key has the right permission: `read` on the deployment for `deployments.getDeployment`, `read` on the deployment's `buildLogs` for `deployments.listBuildLogs`, or `promote_deployment`, `rollback_deployment`, `stop_deployment`, or `start_deployment` for the matching call.
+2. Check that the root key has the right permission: `read` on the deployment for `deployments.getDeployment`, `read` on the deployment's `buildLogs` for `deployments.listBuildLogs`, `write` on the deployment's environment for `deployments.promoteDeployment` and `deployments.rollbackDeployment`, or `write` on the deployment for `deployments.stopDeployment` and `deployments.startDeployment`.
 3. For a redeploy, pick a deployment from the same app and environment you're deploying to.
 
 A deployment that exists but can't take traffic returns a precondition error instead.

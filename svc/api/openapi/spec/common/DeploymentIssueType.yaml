@@ -1,0 +1,14 @@
+type: string
+enum:
+  - crash_loop
+x-speakeasy-unknown-values: allow
+x-enum-varnames:
+  - DeploymentIssueTypeCrashLoop
+description: |
+  What is wrong with the running app:
+
+  - `crash_loop`: the app keeps stopping, so Unkey waits longer before each
+    restart. `meta` describes the last exit.
+
+  Handle unknown values, because new types can be added.
+example: crash_loop

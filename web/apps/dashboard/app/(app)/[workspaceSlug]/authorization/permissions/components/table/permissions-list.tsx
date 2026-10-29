@@ -64,7 +64,7 @@ export const PermissionsList = () => {
   );
 
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="flex flex-col md:flex-1">
       <DataTable
         data={permissions}
         columns={columns}
@@ -94,7 +94,7 @@ export const PermissionsList = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button variant="outline" size="md">
+                <Button variant="outline" size="sm">
                   <IconBookBookmarkOutline18 />
                   Learn about Permissions
                 </Button>

@@ -1,6 +1,7 @@
+import { appSource } from "@/components/deploy/app-source";
 import type { App } from "@/lib/collections/deploy/apps";
 import { describe, expect, test } from "vitest";
-import { appSource, filterApps, toAppRow } from "./app-row-model";
+import { filterApps, toAppRow } from "./app-row-model";
 
 function app(overrides: Partial<App>): App {
   return {

@@ -255,9 +255,11 @@ export function ImageRef({ image }: { image: string }) {
 export function AuthorCell({
   deployment,
   withHandle = false,
+  handleClassName = "text-sm",
 }: {
   deployment: DeploymentSummary;
   withHandle?: boolean;
+  handleClassName?: string;
 }) {
   if (deployment.source !== "git" || nonGitOrigin(deployment)) {
     return null;
@@ -270,7 +272,7 @@ export function AuthorCell({
         alt={deployment.gitCommitAuthorHandle ?? "Author"}
       />
       {withHandle && deployment.gitCommitAuthorHandle && (
-        <span data-sentry-mask className="max-w-28 truncate text-sm text-gray-12">
+        <span data-sentry-mask className={cn("max-w-28 truncate text-gray-12", handleClassName)}>
           {deployment.gitCommitAuthorHandle}
         </span>
       )}
@@ -278,7 +280,13 @@ export function AuthorCell({
   );
 }
 
-export function RowTime({ value }: { value: number }) {
+export function RowTime({
+  value,
+  className,
+}: {
+  value: number;
+  className?: string;
+}) {
   return (
     <Interactive className="shrink-0">
       <TimestampInfo
@@ -286,7 +294,7 @@ export function RowTime({ value }: { value: number }) {
         displayType="relative"
         side="left"
         align="center"
-        className="text-sm text-gray-9"
+        className={cn("text-sm text-gray-9", className)}
       />
     </Interactive>
   );

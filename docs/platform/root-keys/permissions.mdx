@@ -49,7 +49,7 @@ For deployments, the scope follows the structure of your workspace:
 - An [environment](/compute/concepts/projects-apps-environments#environments) separates an app's settings and deployments, for example production from preview.
 - A [deployment](/compute/concepts/deployments) is one built version of an app in one environment.
 
-For API management, a [keyspace](/api-management/keyspaces/overview) groups related customer API keys. You can restrict a root key to the keys in one keyspace instead of giving it access to every customer's keys in the workspace.
+For API Management, a [keyspace](/api-management/keyspaces/overview) groups related customer API keys. You can restrict a root key to the keys in one keyspace instead of giving it access to every customer's keys in the workspace.
 
 Choose the smallest scope that covers the job. If an agent is investigating one deployment, it only needs that deployment and its logs. If it monitors an app's environment continuously, it may need all deployments in that environment, including future ones. Neither task needs access to another app.
 
@@ -79,7 +79,7 @@ For example, a permission to read one deployment looks like this:
 unkey:v1:ws_xxx:projects/proj_xxx/apps/app_xxx/environments/env_xxx/deployments/d_xxx#read
 ```
 
-`ws_xxx` identifies the workspace. The path identifies the project, app, environment, and deployment. `#read` permits reading that deployment's details. It doesn't permit changes or access to its logs.
+`ws_xxx` identifies the workspace. The path identifies the <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, app, environment, and deployment. `#read` permits reading that deployment's details. It doesn't permit changes or access to its logs.
 
 IDs ending in `_xxx` are placeholders. Replace each one with the full ID Unkey assigned to that resource. For example, replace `app_xxx` with the app's ID, not its name or slug. This applies even if an API request accepts a name or slug for the same resource.
 
@@ -107,7 +107,7 @@ Creation needs a wildcard at the resource being created because its ID doesn't e
 
 ## Examples
 
-These examples turn common deployment and API management tasks into scoped permissions. Each explains what the key needs to do and what remains outside its access.
+These examples turn common deployment and API Management tasks into scoped permissions. Each explains what the key needs to do and what remains outside its access.
 
 In the deployment examples, `app_xxx` stands for the billing app's ID and `env_xxx` stands for its staging environment's ID.
 

@@ -237,9 +237,9 @@ func (s *Service) AddCustomDomain(
 		// submit rolls the row and its audit entry back, so retrying createDomain is
 		// the recovery. The workflow tolerates reading before the commit lands (see
 		// rowVisibilityGrace in the worker), and a TxRetry rerun re-submitting is
-		// safe because the invocation is keyed by domainID, a virtual object Restate
+		// safe because the invocation is keyed by domain, a virtual object Restate
 		// runs one at a time per domain.
-		sendResp, sendErr := s.startVerification(txCtx, domainID)
+		sendResp, sendErr := s.startVerification(txCtx, domainID, domain)
 		if sendErr != nil {
 			logger.Error(
 				"failed to trigger verification workflow",
@@ -454,7 +454,7 @@ func (s *Service) RetryVerification(
 			return fmt.Errorf("failed to insert audit log: %w", txErr)
 		}
 
-		sendResp, sendErr := s.startVerification(txCtx, domain.ID)
+		sendResp, sendErr := s.startVerification(txCtx, domain.ID, domain.Domain)
 		if sendErr != nil {
 			return fmt.Errorf("failed to trigger verification: %w", sendErr)
 		}
@@ -481,8 +481,8 @@ func (s *Service) RetryVerification(
 }
 
 // startVerification submits the verification workflow for domainID.
-func (s *Service) startVerification(ctx context.Context, domainID string) (restateingress.SimpleSendResponse, error) {
-	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domainID)
+func (s *Service) startVerification(ctx context.Context, domainID, domain string) (restateingress.SimpleSendResponse, error) {
+	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domain)
 
-	return client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
+	return client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{DomainId: domainID})
 }

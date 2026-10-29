@@ -12,9 +12,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_verify_domain"
 )
 
-// TestVerifyDomainPermissions is a permission matrix. Rejections are 404, not 403: a
-// caller that may not verify the domain's environment must not be able to tell a real
-// domain from a missing one by the status code alone.
+// TestVerifyDomainPermissions is a permission matrix. A legacy read does not
+// reveal the domain, so every missing grant is a 404.
 func TestVerifyDomainPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctrlClient := &testutil.MockCustomDomainClient{}

@@ -48,7 +48,7 @@ Your workspace pays for the two products separately. API Management has a tier a
 Manage both under **Settings > Billing**. Only [admins](/platform/workspace/team) can change plans or payment details. Everyone else sees the controls disabled with "Admin access required to manage billing".
 
 <Frame>
-  <img src="/images/dashboard/platform--billing-plans--billing.png" alt="Billing settings page showing the Compute and API management plans with Change and Upgrade buttons, and the Compute cost control budget with its email alerts" />
+  <img src="/images/dashboard/platform--billing-plans--billing.png" alt="Billing settings page showing the Compute and API Management plans with Change and Upgrade buttons, and the Compute cost control budget with its email alerts" />
 </Frame>
 
 ## API Management tier
@@ -67,10 +67,10 @@ You need a Compute plan before you can deploy an <Tooltip tip="A Compute app: a 
 
 Every plan includes git push to deploy, a preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> per pull request, instant rollback, autoscaling, and a monthly usage credit. The plans differ in their resource limits (CPU, memory, disk, replicas, and custom domains), listed on [Limits](/platform/billing/limits). Pro and Business also include team members, so they give a team to a workspace on the free API tier.
 
-Pick a plan under **Settings > Billing** in the **Choose a Compute plan** dialog. If you try to create a project or deploy without one, the dashboard opens the same dialog.
+Pick a plan under **Settings > Billing**. **Change** opens the **Compute plans** screen. If you try to create a project or deploy without a plan, the dashboard opens the same screen.
 
 <Frame>
-  <img src="/images/dashboard/platform--billing-plans--change-compute-plan.png" alt="Change Compute plan dialog listing Starter, Pro, and Business with their monthly prices and what every plan includes" />
+  <img src="/images/dashboard/platform--billing-plans--change-compute-plan.png" alt="Compute plans screen listing Starter, Pro, and Business with their monthly prices and what every plan includes" />
 </Frame>
 
 Usage above the included credit is billed on average actual vCPU and memory (not your configured ceilings), allocated ephemeral disk, egress, and active keys verified through Compute Key Auth. Details are on [Usage](/platform/billing/usage) and [unkey.com/pricing](https://unkey.com/pricing). To cap it, set a monthly [spend budget](/compute/configure/spend-budget). It emails you at 50, 75, and 100 percent and can stop your usage at 100 percent.

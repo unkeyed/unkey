@@ -1,4 +1,5 @@
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
+import { OverviewChartFrame } from "@/components/logs/overview-charts/overview-chart-frame";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchRatelimitOverviewTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
@@ -58,7 +59,7 @@ export const RatelimitOverviewLogsCharts = ({
   };
 
   return (
-    <div className="flex w-full h-[320px] divide-x divide-gray-4">
+    <OverviewChartFrame className="flex h-[320px] divide-x divide-gray-4">
       <div className="w-1/2">
         <OverviewBarChart
           data={timeseries}
@@ -95,6 +96,6 @@ export const RatelimitOverviewLogsCharts = ({
           }}
         />
       </div>
-    </div>
+    </OverviewChartFrame>
   );
 };

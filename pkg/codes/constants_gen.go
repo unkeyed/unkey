@@ -52,6 +52,9 @@ const (
 	UserErrorsTooManyRequestsQueryQuotaExceeded URN = "err:user:too_many_requests:query_quota_exceeded"
 	// WorkspaceRateLimited indicates the workspace has exceeded its API rate limit for the current window.
 	UserErrorsTooManyRequestsWorkspaceRateLimited URN = "err:user:too_many_requests:workspace_rate_limited"
+	// IPRateLimited indicates a client IP has exceeded the rate limit of an unauthenticated endpoint.
+	UserErrorsTooManyRequestsIPRateLimited   URN = "err:user:too_many_requests:ip_rate_limited"
+	UserErrorsTooManyRequestsUserRateLimited URN = "err:user:too_many_requests:user_rate_limited"
 
 	// ----------------
 	// UnkeyAuthErrors
@@ -65,6 +68,10 @@ const (
 	UnkeyAuthErrorsAuthenticationMalformed URN = "err:unkey:authentication:malformed"
 	// KeyNotFound indicates the authentication key was not found.
 	UnkeyAuthErrorsAuthenticationKeyNotFound URN = "err:unkey:authentication:key_not_found"
+	// CredentialRejected indicates a presented credential is not accepted.
+	// CLI refresh uses this when the token is unknown, expired, revoked, or already used.
+	UnkeyAuthErrorsAuthenticationCredentialRejected URN = "err:unkey:authentication:credential_rejected"
+	UnkeyAuthErrorsAuthenticationDeviceLoginExpired URN = "err:unkey:authentication:device_login_expired"
 
 	// Authorization
 

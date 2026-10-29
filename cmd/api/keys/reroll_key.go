@@ -61,7 +61,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rer
 			cli.Int64("expiration", "Milliseconds until the original key is revoked. 0 for immediate.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}
@@ -77,7 +77,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rer
 
 			req := components.V2KeysRerollKeyRequestBody{
 				KeyID:      cmd.String("key-id"),
-				Expiration: cmd.Int64("expiration"),
+				Expiration: new(cmd.Int64("expiration")),
 			}
 
 			res, err := client.Keys.RerollKey(ctx, req)

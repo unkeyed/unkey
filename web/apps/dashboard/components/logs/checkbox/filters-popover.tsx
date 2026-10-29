@@ -47,6 +47,19 @@ type FilterSearchItemBase = {
   icon?: React.ReactNode;
 };
 
+export function matchesFilterSearch(
+  item: Pick<FilterSearchItemBase, "label" | "description" | "path" | "keywords">,
+  query: string,
+): boolean {
+  const normalized = query.trim().toLocaleLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return [item.label, item.description, ...item.path, ...(item.keywords ?? [])]
+    .filter((value): value is string => value !== undefined)
+    .some((value) => value.toLocaleLowerCase().includes(normalized));
+}
+
 export type FilterSearchItem = FilterSearchItemBase &
   (
     | {
@@ -147,6 +160,11 @@ export const FiltersPopover = <TFilter extends FilterValue>({
   const [lastFocusedIndex, setLastFocusedIndex] = useState<number | null>(null);
   const [focusedSearchIndex, setFocusedSearchIndex] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  // The popover mounts before it is positioned, so a plain autoFocus scrolls
+  // the document to the unpositioned input.
+  const focusSearchOnMount = useCallback((input: HTMLInputElement | null) => {
+    input?.focus({ preventScroll: true });
+  }, []);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const searchableItems = useMemo<FilterSearchItem[]>(
@@ -167,18 +185,11 @@ export const FiltersPopover = <TFilter extends FilterValue>({
   );
 
   const matchingSearchItems = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase();
-    if (!query) {
+    if (!search.trim()) {
       return [];
     }
 
-    return searchableItems
-      .filter((item) =>
-        [item.label, item.description, ...item.path, ...(item.keywords ?? [])]
-          .filter((value): value is string => value !== undefined)
-          .some((value) => value.toLocaleLowerCase().includes(query)),
-      )
-      .slice(0, 50);
+    return searchableItems.filter((item) => matchesFilterSearch(item, search)).slice(0, 50);
   }, [search, searchableItems]);
 
   // Handle local state if external state isn't provided
@@ -355,7 +366,7 @@ export const FiltersPopover = <TFilter extends FilterValue>({
                 <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
               </InputGroupAddon>
               <InputGroupInput
-                autoFocus
+                ref={focusSearchOnMount}
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);

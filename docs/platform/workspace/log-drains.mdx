@@ -30,7 +30,7 @@ Each drain sends exactly one stream. Create another drain if you need a second s
 | --- | --- | --- |
 | Audit logs | Workspace change events (`key.create`, `portal.session.exchange`, and the rest). See [Audit logs](/platform/workspace/audit-logs/overview) and [event types](/platform/workspace/audit-logs/event-types). | **Event types**: all events, or specific names by category |
 | Key verifications | Results from verifying API keys | **Keyspaces** and **Outcomes** (for example `VALID`, `RATE_LIMITED`, `EXPIRED`) |
-| Gateway HTTP requests | HTTP requests your Compute gateway handled | **Sources** (projects, apps, environments) and **HTTP statuses** (`2xx`, `3xx`, `4xx`, `5xx`) |
+| Gateway HTTP requests | HTTP requests your Compute gateway handled | **Sources** (<Tooltip tip="Groups of apps, usually one per codebase or product.">projects</Tooltip>, apps, environments) and **HTTP statuses** (`2xx`, `3xx`, `4xx`, `5xx`) |
 | Runtime logs | Application log lines from Compute | **Sources** (projects, apps, environments) and **Severity** (`error`, `warn`, `info`, `debug`) |
 | Rate limits | Pass or block decisions from rate-limit checks | **Namespaces** and **Results** (**Passed** or **Blocked**) |
 

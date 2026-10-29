@@ -1,0 +1,29 @@
+CREATE TABLE `portal_domains` (
+	`pk` bigint unsigned AUTO_INCREMENT NOT NULL,
+	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`portal_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`domain` varchar(256) NOT NULL,
+	`verification_status` enum('pending','verifying','verified','failed') NOT NULL DEFAULT 'pending',
+	`verification_token` varchar(64) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`ownership_verified` boolean NOT NULL DEFAULT false,
+	`cname_verified` boolean NOT NULL DEFAULT false,
+	`target_cname` varchar(256) NOT NULL,
+	`last_checked_at` bigint,
+	`check_attempts` int NOT NULL DEFAULT 0,
+	`verification_error` varchar(512),
+	`domain_connect_provider` varchar(256),
+	`domain_connect_url` varchar(2048),
+	`invocation_id` varchar(256),
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint,
+	CONSTRAINT `portal_domains_pk` PRIMARY KEY(`pk`),
+	CONSTRAINT `portal_domains_id_unique` UNIQUE(`id`),
+	CONSTRAINT `unique_workspace_domain_idx` UNIQUE(`workspace_id`,`domain`),
+	CONSTRAINT `unique_target_cname_idx` UNIQUE(`target_cname`)
+);
+
+CREATE INDEX `domain_idx` ON `portal_domains` (`domain`);
+
+CREATE INDEX `portal_id_idx` ON `portal_domains` (`portal_id`);
+

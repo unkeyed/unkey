@@ -10,21 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import { useEditorCatalogue } from "./editor-catalogue";
 import { EnvironmentPicker } from "./environment-picker";
 import { instanceLabels, useScopeInstances } from "./hooks/use-scope-instances";
 import { InstancePicker } from "./instance-picker";
-import { CATALOGUES } from "./lib/catalogue";
-import { RESOURCE_SCOPES, type ResourceScope } from "./lib/catalogue.types";
+import { catalogueRows } from "./lib/catalogue";
+import { RESOURCE_SCOPES } from "./lib/catalogue.types";
 import { type Policy, newPolicy, policyError } from "./lib/policy";
 import { policySummary } from "./lib/policy-view";
 import { PermissionCatalogue } from "./permission-catalogue";
 
 const GRANT_PREVIEW_LIMIT = 3;
-
-const SCOPE_ITEMS: { value: ResourceScope; label: string }[] = RESOURCE_SCOPES.map((scope) => ({
-  value: scope,
-  label: CATALOGUES[scope].label,
-}));
 
 type PolicySummaryRowProps = {
   policy: Policy;
@@ -72,7 +68,13 @@ type PolicyEditorProps = {
 };
 
 export function PolicyEditor({ policy, error, onChange, onCollapse, onRemove }: PolicyEditorProps) {
-  const catalogue = CATALOGUES[policy.scope];
+  const { catalogues } = useEditorCatalogue();
+  const catalogue = catalogues[policy.scope];
+  const scopeItems = RESOURCE_SCOPES.flatMap((scope) =>
+    catalogueRows(catalogues[scope]).length > 0
+      ? [{ value: scope, label: catalogues[scope].label }]
+      : [],
+  );
   const { instances, isLoading, environmentOptions } = useScopeInstances(policy.scope);
 
   return (
@@ -108,7 +110,7 @@ export function PolicyEditor({ policy, error, onChange, onCollapse, onRemove }: 
           <div className="flex-1">
             <Select
               value={policy.scope}
-              items={SCOPE_ITEMS}
+              items={scopeItems}
               onValueChange={(scope) => {
                 if (scope) {
                   onChange(newPolicy(scope));
@@ -119,7 +121,7 @@ export function PolicyEditor({ policy, error, onChange, onCollapse, onRemove }: 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {SCOPE_ITEMS.map((item) => (
+                {scopeItems.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>

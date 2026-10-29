@@ -1,6 +1,6 @@
 ---
-title: unkey api domains get-domain
-sidebarTitle: "get-domain"
+title: unkey domains get
+sidebarTitle: "get"
 description: "Look up a custom domain and its verification status."
 sources:
   - cmd/api/domains/get_domain.go
@@ -10,13 +10,15 @@ sources:
   - cmd/api/util/flags.go
 ---
 
+import CLIOutput from "/snippets/cli-output.mdx";
+
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 <RootKeyPrereq />
 
-Retrieve a custom domain by ID or name and its <Tooltip tip="Here: proving DNS ownership of a custom domain. Not key verification.">verification</Tooltip> status. Names are unique per workspace, so `api.acme.com` is enough. No project, <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>, or <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> is needed.
+Retrieve a custom domain by ID or name and its <Tooltip tip="Here: proving DNS ownership of a custom domain. Not key verification.">verification</Tooltip> status. Names are unique per workspace, so `api.acme.com` is enough. No <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>, or <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> is needed.
 
-Use it to check progress after `create-domain`. We check DNS about once a minute.
+Use it to check progress after `unkey domains create`. We check DNS about once a minute.
 
 - `status: verified` means routing is set up and a certificate has been requested.
 - Each entry in `dnsRecords` has a `verified` flag, so you can see which records are still missing. A routing record your provider proxies or flattens can stay `false` even while it serves traffic.
@@ -26,7 +28,7 @@ Use it to check progress after `create-domain`. We check DNS about once a minute
 ## Usage
 
 ```bash
-unkey api domains get-domain --domain=<domain id or name>
+unkey domains get --domain=<domain id or name>
 ```
 
 ## Flags
@@ -37,14 +39,14 @@ unkey api domains get-domain --domain=<domain id or name>
 
 ### Shared flags
 
-Every `unkey api` command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+Every resource command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
 
 <ParamField body="--body" type="string">
   A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
 </ParamField>
 
 <ParamField body="--root-key" type="string">
-  Root key for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file written by `unkey auth login`. See [CLI authentication](/platform/cli/authentication).
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
 </ParamField>
 
 <ParamField body="--api-url" type="string" default="https://api.unkey.com">
@@ -52,11 +54,19 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 </ParamField>
 
 <ParamField body="--config" type="string" default="~/.unkey/config.toml">
-  Path of the TOML file that `unkey auth login` writes. Falls back to `UNKEY_CONFIG`.
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
 </ParamField>
 
-<ParamField body="--output" type="string">
-  Output format. Falls back to `UNKEY_OUTPUT`. Set `json` to print the full response envelope (`meta` and `data`) for piping; any other value prints the request ID followed by `data`.
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
 </ParamField>
 
 ## Required permissions
@@ -73,13 +83,13 @@ If the domain doesn't exist or your key doesn't have the permission, you get the
 Check a domain:
 
 ```bash
-unkey api domains get-domain --domain=api.acme.com
+unkey domains get --domain=api.acme.com
 ```
 
 Print only the status:
 
 ```bash
-unkey api domains get-domain --domain=api.acme.com --output=json | jq -r '.data.status'
+unkey domains get --domain=api.acme.com --output=json | jq -r '.data.status'
 ```
 
 ## API endpoint

@@ -111,7 +111,6 @@ func ServeLocalDev(ctx context.Context, listener net.Listener, cfg LocalDevConfi
 	defer events.Close()
 	server, err := zen.New(zen.Config{
 		TLS:                nil,
-		Flags:              nil,
 		EnableH2C:          true,
 		MaxRequestBodySize: 0,
 		StreamRequestBody:  true,

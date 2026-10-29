@@ -15,7 +15,9 @@ export type QueryResult<T> = {
   refetch: () => Promise<unknown>;
 };
 
-export function fromQuery<T>(query: QueryResult<T>): Loadable<T> {
+export function fromQuery<Q extends QueryResult<T>, T = Exclude<Q["data"], undefined>>(
+  query: Q,
+): Loadable<T> {
   const retry = () => {
     void query.refetch();
   };

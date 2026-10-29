@@ -13,6 +13,7 @@ post:
     - `environment.*.read_environment` (to read any environment)
     - `environment.<environment_id>.read_environment` (to read a specific environment)
   operationId: environments.getEnvironment
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getEnvironment
   security:
     - bearer: []

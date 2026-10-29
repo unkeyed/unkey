@@ -13,7 +13,7 @@ sources:
 
 <Danger>`err:unkey:data:environment_not_found`</Danger>
 
-The <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> you referenced couldn't be found. An environment is addressed by project, app, and environment together, and one of them didn't match. You get HTTP 404.
+The <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> you referenced couldn't be found. An environment is addressed by <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, app, and environment together, and one of them didn't match. You get HTTP 404.
 
 ```json Example response
 {
@@ -33,7 +33,7 @@ The <Tooltip tip="A production or preview environment of a Compute app, not the 
 
 - The environment slug is wrong.
 - The project or app slug is wrong. That's also reported as a missing environment. On `deployments.createDeployment` the message says so: `The requested project, app, or environment does not exist.`
-- Your root key doesn't have permission on the environment. `environments.getEnvironment` and `domains.createDomain` return this 404 instead of a 403.
+- Your root key can't read the environment. `environments.getEnvironment`, `domains.createDomain`, and `deployments.createDeployment` return this 404 instead of a 403. A key that can read the environment but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 
 ## How to fix
 

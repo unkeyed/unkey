@@ -27,6 +27,11 @@ import { queryRoles } from "./authorization/roles/query";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
+import { appMetricsDeploys } from "./deploy/app-metrics/deploys";
+import { appMetricsInstanceEvents } from "./deploy/app-metrics/instance-events";
+import { appMetricsInstances } from "./deploy/app-metrics/instances";
+import { appMetricsResources, appMetricsTraffic } from "./deploy/app-metrics/source";
+import { appMetricsSourceByInstance } from "./deploy/app-metrics/source-by-instance";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
@@ -36,12 +41,16 @@ import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { listDisplayDomains } from "./deploy/domains/list-display-domains";
+import { listEnvVars } from "./deploy/env-vars/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
 import { getAvailableRegions } from "./deploy/environment-settings/get-available-regions";
 import { generateRegex } from "./deploy/environment-settings/policies/generate-regex";
-import { getAppRpsMetrics } from "./deploy/metrics/get-app-rps-metrics";
+import { generateDeploymentTree } from "./deploy/legacy/network/generate";
+import { getDeploymentTree } from "./deploy/legacy/network/get";
+import { getInstanceRps } from "./deploy/legacy/network/get-instance-rps";
+import { getRegionRps } from "./deploy/legacy/network/get-region-rps";
 import { getDeploymentCpuTimeseries } from "./deploy/metrics/get-deployment-cpu-timeseries";
 import { getDeploymentDiskTimeseries } from "./deploy/metrics/get-deployment-disk-timeseries";
 import { getDeploymentInstanceCountTimeseries } from "./deploy/metrics/get-deployment-instance-count-timeseries";
@@ -51,16 +60,14 @@ import { getDeploymentNetworkEgressTimeseries } from "./deploy/metrics/get-deplo
 import { getDeploymentNetworkIngressTimeseries } from "./deploy/metrics/get-deployment-network-ingress-timeseries";
 import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-resource-summary";
 import { getDeploymentRpsMetrics } from "./deploy/metrics/get-deployment-rps-metrics";
-import { generateDeploymentTree } from "./deploy/network/generate";
-import { getDeploymentTree } from "./deploy/network/get";
-import { getInstanceRps } from "./deploy/network/get-instance-rps";
-import { getRegionRps } from "./deploy/network/get-region-rps";
+import { getAppRpsMetrics } from "./deploy/metrics/legacy/get-app-rps-metrics";
 import { creationContext } from "./deploy/project/creation-context";
 import { getDefaultProject } from "./deploy/project/get-default";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
 import { queryRequestDetails } from "./deploy/request-logs/details";
+import { queryRequestKeyVerification } from "./deploy/request-logs/key-verification";
 import { llmSearch as requestLogsLlmSearch } from "./deploy/request-logs/llm-search";
 import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
@@ -75,8 +82,6 @@ import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
 import { logdrain } from "./logdrain";
 import { llmSearch } from "./logs/llm-search";
-import { queryLogs } from "./logs/query-logs";
-import { queryTimeseries } from "./logs/query-timeseries";
 import {
   getInvitationList,
   getOrg,
@@ -224,8 +229,6 @@ export const router = t.router({
     }),
   }),
   logs: t.router({
-    queryLogs,
-    queryTimeseries,
     llmSearch,
   }),
   billing: t.router({
@@ -282,6 +285,7 @@ export const router = t.router({
       }),
     }),
     envVar: t.router({
+      list: listEnvVars,
       makeSensitive,
       rename: renameEnvVars,
     }),
@@ -301,12 +305,21 @@ export const router = t.router({
     requestLogs: t.router({
       query: queryRequestLogs,
       details: queryRequestDetails,
+      keyVerification: queryRequestKeyVerification,
       llmSearch: requestLogsLlmSearch,
     }),
     runtimeLogs: t.router({
       query: queryRuntimeLogs,
       llmSearch: runtimeLogsLlmSearch,
       listInstances,
+    }),
+    appMetrics: t.router({
+      traffic: appMetricsTraffic,
+      resources: appMetricsResources,
+      sourceByInstance: appMetricsSourceByInstance,
+      deploys: appMetricsDeploys,
+      instances: appMetricsInstances,
+      instanceEvents: appMetricsInstanceEvents,
     }),
     metrics: t.router({
       getAppRpsMetrics,

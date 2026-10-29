@@ -1,12 +1,55 @@
 package errors
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v3/models/apierrors"
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+func TestFormatErrorEscapesAPIFieldsAndPreservesLayout(t *testing.T) {
+	requestID := uid.New(uid.RequestPrefix)
+	meta := components.Meta{RequestID: requestID + "\x1b[2J"}
+	detail := components.BaseError{Detail: "bad\r\nforged\u202e", Type: "https://example.com/error\a"}
+	for _, tt := range []struct {
+		name string
+		err  error
+	}{
+		{name: "permission", err: &apierrors.ForbiddenErrorResponse{Meta: meta, Error_: detail}},
+		{name: "authentication", err: &apierrors.UnauthorizedErrorResponse{Meta: meta, Error_: detail}},
+		{name: "not found", err: &apierrors.NotFoundErrorResponse{Meta: meta, Error_: detail}},
+		{name: "validation", err: &apierrors.BadRequestErrorResponse{
+			Meta: meta,
+			Error_: components.BadRequestErrorDetails{
+				Detail: detail.Detail,
+				Type:   detail.Type,
+				Errors: []components.ValidationError{{Location: "image\tfield", Message: "invalid\bvalue"}},
+			},
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			output := FormatError(tt.err)
+			require.Contains(t, output, "\n\nRequest ID: "+requestID+`\x1b[2J`)
+			require.Contains(t, output, "\nDocumentation: https://example.com/error\\a")
+			for _, control := range []string{"\x1b", "\r", "\a", "\b", "\t", "\u202e", "\nforged"} {
+				require.NotContains(t, output, control)
+			}
+			if tt.name != "authentication" {
+				require.Contains(t, output, `bad\r\nforged\u202e`)
+			}
+			if tt.name == "validation" {
+				require.Contains(t, output, `image\tfield: invalid\bvalue`)
+			}
+		})
+	}
+}
+
+func TestFormatErrorEscapesGenericErrors(t *testing.T) {
+	require.Equal(t, `dial failed\x1b[2J\r\nforged`, FormatError(errors.New("dial failed\x1b[2J\r\nforged")))
+}
 
 func TestFormatPermissionError(t *testing.T) {
 	tests := []struct {
@@ -63,8 +106,10 @@ func TestFormatAuthenticationError(t *testing.T) {
 			},
 			expectedInMsg: []string{
 				"Authentication failed",
-				"root key is invalid or has expired",
-				"--root-key flag or UNKEY_ROOT_KEY env var",
+				"credential for unkey deploy is invalid or has expired",
+				"--root-key, when you passed one",
+				"UNKEY_ROOT_KEY",
+				"CLI session from unkey login",
 			},
 		},
 		{
@@ -80,9 +125,10 @@ func TestFormatAuthenticationError(t *testing.T) {
 			},
 			expectedInMsg: []string{
 				"Authentication failed",
-				"Could not authenticate your request",
-				"--root-key flag",
-				"UNKEY_ROOT_KEY environment variable",
+				"Could not authenticate unkey deploy",
+				"--root-key",
+				"UNKEY_ROOT_KEY",
+				"unkey login",
 			},
 		},
 	}

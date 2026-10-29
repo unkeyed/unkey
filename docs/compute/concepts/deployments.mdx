@@ -24,7 +24,7 @@ sources:
   - svc/ctrl/worker/deploy/build_handler.go
 ---
 
-Unkey creates a deployment from a GitHub push, a container image, the dashboard, the CLI, or `deployments.createDeployment`. That deployment keeps the image, runtime settings, environment variables, and gateway policies it started with. With auto deploy on and no watch paths, the default branch becomes a production deployment and any other branch becomes a preview. The deployment can enforce API keys and rate limits from API management through its gateway policies.
+Unkey creates a deployment from a GitHub push, a container image, the dashboard, the CLI, or `deployments.createDeployment`. That deployment keeps the image, runtime settings, environment variables, and gateway policies it started with. With auto deploy on and no watch paths, the default branch becomes a production deployment and any other branch becomes a preview. The deployment can enforce API keys and rate limits from API Management through its gateway policies.
 
 ## How a deployment starts
 
@@ -34,7 +34,7 @@ The source you pass decides what gets built. For a GitHub push, auto deploy must
 | --- | --- |
 | Push to the connected default branch | A production deployment |
 | Push to any other branch | A preview deployment |
-| Pull request from a fork | A preview deployment that waits in `awaiting_approval` until a project member approves it |
+| Pull request from a fork | A preview deployment that waits in `awaiting_approval` until a <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> member approves it |
 | Prebuilt image (`oci`) | A deployment of the tag or digest you set, or `latest` if you set neither. Later moves of that tag don't change it |
 | Dashboard, CLI, or API, with no source | A git app builds its default branch. An image app deploys its default image |
 
@@ -44,7 +44,7 @@ A <Tooltip tip="One built and running version of an app in one environment.">dep
 
 A push to a connected GitHub repository creates a deployment for you. With auto deploy on and no watch paths, Unkey deploys from GitHub on every push. The default branch becomes a production deployment, and any other branch becomes a preview deployment. Watch it on the deployment page. The status moves through `pending`, `building`, and `deploying` to `ready`, and the page lists the domains. See [Deploy from GitHub](/compute/get-started/deploy-from-github) and [GitHub integration](/compute/build/github).
 
-To deploy by hand, open the app's **Deployments** page and click **Create deployment**, or click **Redeploy** on an existing deployment. From the CLI or API, use [`unkey api deployments create-deployment`](/compute/cli/deployments/create-deployment) or `deployments.createDeployment` with the project, app, and environment. With no source, a git app builds its default branch and an image app deploys its default image. To deploy something else, pass one source:
+To deploy by hand, open the app's **Deployments** page and click **Create deployment**, or click **Redeploy** on an existing deployment. From the CLI or API, use [`unkey deployments create`](/compute/cli/deployments/create-deployment) or `deployments.createDeployment` with the project, app, and environment. With no source, a git app builds its default branch and an image app deploys its default image. To deploy something else, pass one source:
 
 - `git`: build from the connected repository. Set `branch` for the latest commit on a branch, `commitSha` for an exact commit, or `repository` with a `commitSha` to build a fork.
 - `oci`: run a prebuilt image as it is. Give it a tag or a digest, or you get `latest`. The deployment keeps the image the tag pointed to when you deployed, so moving the tag later doesn't change it.

@@ -3,6 +3,7 @@ package deployments
 import (
 	"context"
 	"fmt"
+
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -10,11 +11,22 @@ import (
 
 func stopDeploymentCmd() *cli.Command {
 	return &cli.Command{
-		Name: "stop-deployment", Usage: "Stop a running deployment", Description: "Request that a deployment stop serving and release its running compute resources. The operation runs asynchronously.\n\nFor full documentation, see https://www.unkey.com/docs/api-reference/v2/deployments/stop-deployment" + util.Disclaimer,
-		Examples: []string{"unkey api deployments stop-deployment --deployment-id=dep_1234abcd"},
-		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("deployment-id", "Unique deployment ID to stop.", cli.Required(), cli.MutuallyExclusive("body"))},
+		Name:        "stop-deployment",
+		Usage:       "Stop a running deployment",
+		Description: "Request that a deployment stop serving and release its running compute resources. The operation runs asynchronously.\n\nFor full documentation, see https://www.unkey.com/docs/api-reference/v2/deployments/stop-deployment" + util.Disclaimer,
+		Examples: []string{
+			"unkey api deployments stop-deployment --deployment-id=dep_1234abcd",
+		},
+		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("deployment-id", "Unique deployment ID to stop.", cli.Required(), cli.MutuallyExclusive("body")),
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}

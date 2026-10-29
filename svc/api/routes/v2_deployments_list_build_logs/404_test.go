@@ -28,7 +28,7 @@ func TestListBuildLogsNotFound(t *testing.T) {
 		t.Helper()
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: deploymentID})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-		require.Equal(t, "The requested deployment does not exist.", res.Body.Error.Detail)
+		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
 		require.NotContains(t, res.RawBody, deploymentID)
 		return res
 	}
@@ -50,7 +50,6 @@ func TestListBuildLogsNotFound(t *testing.T) {
 		permission string
 	}{
 		{name: "legacy deployment read", permission: "environment.*.read_deployment"},
-		{name: "deployment read", permission: rbac.U(deployment, permissions.Read).Value},
 		{name: "runtime log read", permission: rbac.U(deployment.Logs(), permissions.Read).Value},
 		{name: "urn for another deployment", permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID, setup.Environment.ID, uid.New(uid.DeploymentPrefix), permissions.Read)},
 		{name: "urn for another project", permission: permissionFor(setup.Workspace.ID, uid.New(uid.ProjectPrefix), setup.App.ID, setup.Environment.ID, dep.deploymentID, permissions.Read)},
@@ -63,6 +62,13 @@ func TestListBuildLogsNotFound(t *testing.T) {
 			call(t, h.CreateRootKey(setup.Workspace.ID, tc.permission), dep.deploymentID)
 		})
 	}
+
+	t.Run("deployment read is forbidden", func(t *testing.T) {
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(h.CreateRootKey(setup.Workspace.ID, rbac.U(deployment, permissions.Read).Value)), handler.Request{DeploymentId: dep.deploymentID})
+		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+		require.Contains(t, res.Body.Error.Detail, "buildLogs")
+		require.Contains(t, res.Body.Error.Detail, "Log in again")
+	})
 
 	t.Run("existence is not leaked to a key without grants", func(t *testing.T) {
 		rootKey := h.CreateRootKey(setup.Workspace.ID)

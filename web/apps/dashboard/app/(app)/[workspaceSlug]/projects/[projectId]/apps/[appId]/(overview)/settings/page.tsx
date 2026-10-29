@@ -3,9 +3,14 @@
 import { LoadError } from "@/components/load-error";
 import { collection } from "@/lib/collections";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
-import { SettingsDangerZone, SettingsGroup, SettingsGroupContent, SettingsGroups } from "@unkey/ui";
+import {
+  SettingsDangerZone,
+  SettingsGroup,
+  SettingsGroupContent,
+  SettingsGroups,
+  SettingsPageSkeleton,
+} from "@unkey/ui";
 import { useApp } from "../../../_components/settings/hooks/use-app";
-import { SettingsSkeleton } from "../../../_components/settings/settings-skeleton";
 import { AppName } from "./components/app-name";
 import { DeleteApp } from "./components/delete-app";
 import { DisconnectGitHub } from "./components/disconnect-github";
@@ -17,7 +22,7 @@ export default function GeneralSettingsPage() {
     if (appsLoad.failed && !isLoading) {
       return <LoadError title="Could not load this app" onRetry={appsLoad.retry} />;
     }
-    return <SettingsSkeleton />;
+    return <GeneralSettingsSkeleton />;
   }
 
   return (
@@ -31,6 +36,14 @@ export default function GeneralSettingsPage() {
         <DisconnectGitHub />
         <DeleteApp />
       </SettingsDangerZone>
+    </SettingsGroups>
+  );
+}
+
+function GeneralSettingsSkeleton() {
+  return (
+    <SettingsGroups>
+      <SettingsPageSkeleton groups={[{ rows: [{ descriptionLines: 0 }] }]} dangerZone={["w-30"]} />
     </SettingsGroups>
   );
 }

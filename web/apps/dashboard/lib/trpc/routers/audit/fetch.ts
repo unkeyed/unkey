@@ -13,32 +13,6 @@ import { transformFilters } from "./utils";
 const LIMIT = 50;
 const MAX_LIMIT = 200;
 
-const countCache = new Map<string, { count: number; timestamp: number }>();
-const COUNT_CACHE_TTL = 1000 * 60 * 5;
-
-function getCountCacheKey(workspaceId: string, params: Omit<AuditQueryLogsParams, "workspaceId">) {
-  return JSON.stringify({
-    workspaceId,
-    bucket: params.bucket,
-    events: params.events,
-    users: params.users,
-    rootKeys: params.rootKeys,
-    startTime: params.startTime,
-    endTime: params.endTime,
-  });
-}
-
-function getCachedCount(key: string): number | null {
-  const cached = countCache.get(key);
-  if (cached && Date.now() - cached.timestamp < COUNT_CACHE_TTL) {
-    return cached.count;
-  }
-  if (cached) {
-    countCache.delete(key);
-  }
-  return null;
-}
-
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
   total: z.number().nullable(),
@@ -72,17 +46,7 @@ export const fetchAuditLog = workspaceProcedure
     const offset = (page - 1) * pageSize;
 
     const queryArgs = buildQueryArgs(params, ctx.workspace, pageSize, offset);
-    const cacheKey = getCountCacheKey(ctx.workspace.id, params);
-    const cachedCount = getCachedCount(cacheKey);
-
-    const { getLogsQuery, getTotalQuery } = clickhouse.auditLogs.logs(queryArgs);
-
-    const [countResult, logsResult] = await Promise.all([
-      cachedCount !== null
-        ? Promise.resolve({ val: [{ totalCount: cachedCount }], err: null })
-        : getTotalQuery(),
-      getLogsQuery(),
-    ]);
+    const logsResult = await clickhouse.auditLogs.logs(queryArgs).getLogsQuery();
 
     if (logsResult.err) {
       console.error("Clickhouse audit logs query failed", {
@@ -96,21 +60,6 @@ export const fetchAuditLog = workspaceProcedure
         message: "Something went wrong when fetching audit logs from clickhouse.",
         cause: logsResult.err,
       });
-    }
-
-    // A slow or failed count query must not fail the page: the rows are already
-    // fetched, so return them without a total and let the client fall back to
-    // the proven-page count. Mirrors ratelimit/query-logs.
-    if (countResult.err) {
-      console.warn("Clickhouse audit count query failed, returning logs without total", {
-        error: countResult.err.message,
-        workspaceId: ctx.workspace.id,
-      });
-    }
-
-    const totalCount = countResult.err ? null : (countResult.val[0]?.totalCount ?? 0);
-    if (cachedCount === null && totalCount !== null) {
-      countCache.set(cacheKey, { count: totalCount, timestamp: Date.now() });
     }
 
     const logs = logsResult.val;
@@ -154,7 +103,7 @@ export const fetchAuditLog = workspaceProcedure
 
     return {
       auditLogs: items,
-      total: totalCount,
+      total: null,
     };
   });
 

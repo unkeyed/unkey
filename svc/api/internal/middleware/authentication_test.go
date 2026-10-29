@@ -24,6 +24,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 type fakeAuth struct {
@@ -369,6 +370,103 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 		require.Equal(t, string(keys.StatusValid), rows[0].Outcome)
 	case <-time.After(time.Second):
 		t.Fatal("root key usage did not flush")
+	}
+}
+
+func TestWithAuthentication_ReadOnlyRequestsBypassWorkspaceRateLimit(t *testing.T) {
+	t.Parallel()
+
+	exemptions, err := openapi.WorkspaceRateLimitExemptionsFromSpec(openapi.Spec)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name   string
+		path   string
+		status int
+	}{
+		{name: "deployments", path: "/v2/deployments.listDeployments", status: http.StatusOK},
+		{name: "usage", path: "/v2/workspace.getUsage", status: http.StatusOK},
+		{name: "limits", path: "/v2/workspace.getLimits", status: http.StatusOK},
+		{name: "override", path: "/v2/ratelimit.getOverride", status: http.StatusOK},
+		{name: "key metadata", path: "/v2/keys.whoami", status: http.StatusOK},
+		{name: "identities", path: "/v2/identities.listIdentities", status: http.StatusOK},
+		{name: "permissions", path: "/v2/permissions.listPermissions", status: http.StatusOK},
+		{name: "roles", path: "/v2/permissions.listRoles", status: http.StatusOK},
+		{name: "CLI device login", path: "/v2/cli.getDeviceLogin", status: http.StatusOK},
+		{name: "CLI sessions", path: "/v2/cli.listSessions", status: http.StatusOK},
+		{name: "request metrics", path: "/v2/logs.getApiRequestMetrics", status: http.StatusOK},
+		{name: "request logs", path: "/v2/logs.listApiRequests", status: http.StatusOK},
+		{name: "portal keys", path: "/v2/portal.listKeys", status: http.StatusOK},
+		{name: "portal verifications", path: "/v2/portal.getVerifications", status: http.StatusOK},
+		{name: "decide CLI login", path: "/v2/cli.decideDeviceLogin", status: http.StatusTooManyRequests},
+		{name: "create deployment", path: "/v2/deployments.createDeployment", status: http.StatusTooManyRequests},
+		{name: "verify key", path: "/v2/keys.verifyKey", status: http.StatusTooManyRequests},
+		{name: "rate limit", path: "/v2/ratelimit.limit", status: http.StatusTooManyRequests},
+		{name: "batch rate limit", path: "/v2/ratelimit.multiLimit", status: http.StatusTooManyRequests},
+		{name: "unknown read-like route", path: "/v2/unknown.getSomething", status: http.StatusTooManyRequests},
+	}
+	for _, tt := range tests {
+		for _, principalType := range []principal.Type{principal.TypeJWT, principal.TypeAPIKey, principal.TypePortalSession} {
+			for _, quota := range []struct {
+				name  string
+				limit int32
+			}{
+				{name: "zero", limit: 0},
+				{name: "exhausted", limit: 5},
+			} {
+				t.Run(tt.name+"/"+string(principalType)+"/"+quota.name, func(t *testing.T) {
+					t.Parallel()
+
+					workspaceID := uid.New(uid.WorkspacePrefix)
+					limitsCache, err := cache.New[string, keysdb.Limit](cache.Config[string, keysdb.Limit]{
+						Fresh:    time.Minute,
+						Stale:    time.Minute,
+						MaxSize:  10,
+						Resource: "test_workspace_limits",
+						Clock:    clock.NewTestClock(),
+					})
+					require.NoError(t, err)
+					t.Cleanup(limitsCache.Close)
+					limitsCache.Set(t.Context(), workspaceID, keysdb.Limit{
+						WorkspaceID:                  workspaceID,
+						ApiRequestsCountMaxPerMinute: sql.NullInt32{Int32: quota.limit, Valid: true},
+					})
+					auth := &fakeAuth{principal: &principal.Principal{
+						Type:                  principalType,
+						AuthorizedWorkspaceID: workspaceID,
+					}}
+					server, err := zen.New(zen.Config{})
+					require.NoError(t, err)
+					server.RegisterRoute([]zen.Middleware{
+						WithErrorHandling(),
+						WithAuthentication(AuthenticationConfig{
+							Auth:                auth,
+							LimitsCache:         limitsCache,
+							RateLimitExemptions: exemptions,
+							Ratelimit: &fakeRatelimit{response: ratelimit.RatelimitResponse{
+								Success: false,
+								Limit:   int64(quota.limit),
+								Reset:   time.Now().Add(time.Minute),
+							}},
+						}),
+					}, zen.NewRoute(http.MethodPost, tt.path, func(_ context.Context, sess *zen.Session) error {
+						p, err := sess.GetPrincipal()
+						require.NoError(t, err)
+						require.Equal(t, workspaceID, p.AuthorizedWorkspaceID)
+						return sess.JSON(http.StatusOK, map[string]string{"status": "ok"})
+					}))
+
+					req := httptest.NewRequest(http.MethodPost, tt.path, nil)
+					req.Header.Set("X-Unkey-Client", "unkey-dashboard")
+					response := httptest.NewRecorder()
+					server.Mux().ServeHTTP(response, req)
+					require.Equal(t, tt.status, response.Code, response.Body.String())
+					if tt.status == http.StatusOK {
+						require.Empty(t, response.Header().Get("RateLimit-Limit"))
+					}
+				})
+			}
+		}
 	}
 }
 

@@ -46,6 +46,12 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: Not Found - The role does not exist in your workspace, or your root key cannot read it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "429":
       description: Too Many Requests
       content:

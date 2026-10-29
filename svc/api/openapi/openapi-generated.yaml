@@ -620,6 +620,190 @@ components:
                 data:
                     "$ref": "#/components/schemas/App"
             additionalProperties: false
+        V2CliDecideDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - userCode
+                - decision
+            properties:
+                userCode:
+                    type: string
+                    minLength: 4
+                    maxLength: 32
+                    x-unkey-redact: true
+                    description: Code shown in the terminal.
+                decision:
+                    type: string
+                    enum:
+                        - approve
+                        - deny
+                permissions:
+                    type: array
+                    minItems: 1
+                    maxItems: 1000
+                    x-unkey-redact: true
+                    description: Permissions to grant. Each permission must be within the caller's role.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 512
+            oneOf:
+                - properties:
+                    decision:
+                        type: string
+                        enum:
+                            - approve
+                  required:
+                    - permissions
+                - properties:
+                    userCode:
+                        type: string
+                    decision:
+                        type: string
+                        enum:
+                            - deny
+                  additionalProperties: false
+        V2CliDecideDeviceLoginResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2CliExchangeTokenRequestBody:
+            type: object
+            additionalProperties: false
+            properties:
+                loginId:
+                    type: string
+                    minLength: 8
+                    maxLength: 48
+                    x-unkey-redact: true
+                    description: loginId from cli.startDeviceLogin.
+                refreshToken:
+                    type: string
+                    minLength: 8
+                    x-unkey-redact: true
+                    description: Refresh token from the previous login or token exchange.
+            oneOf:
+                - required:
+                    - loginId
+                - required:
+                    - refreshToken
+            description: Supply exactly one credential. A loginId polls for approval; a refreshToken rotates an existing session.
+        V2CliExchangeTokenResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliExchangeTokenResponseData'
+        V2CliExchangeTokenPendingResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        GoneErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource has been soft-deleted and is no longer available. This occurs when:
+                - The resource has been marked as deleted but still exists in the database
+                - The resource is intentionally unavailable but could potentially be restored
+                - The resource cannot be restored through the API or dashboard
+
+                To resolve this error, contact support if you need the resource restored.
+        V2CliGetDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - userCode
+            properties:
+                userCode:
+                    type: string
+                    minLength: 4
+                    maxLength: 32
+                    description: Code shown by `unkey login`.
+        V2CliGetDeviceLoginResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliGetDeviceLoginResponseData'
+        V2CliListSessionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliListSessionsResponseData'
+        V2CliRevokeSessionRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - sessionId
+            properties:
+                sessionId:
+                    type: string
+                    minLength: 1
+                    description: CLI session id.
+        V2CliRevokeSessionResponseBody:
+            type: object
+            additionalProperties: false
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/EmptyResponse'
+        V2CliStartDeviceLoginRequestBody:
+            type: object
+            additionalProperties: false
+            properties:
+                deviceName:
+                    type: string
+                    maxLength: 512
+                    description: Hostname or other label shown on the authorize page.
+        V2CliStartDeviceLoginResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliStartDeviceLoginResponseData'
         V2DeployCreateDeploymentRequestBody:
             type: object
             required:
@@ -2753,6 +2937,7 @@ components:
                         - ks_1234abcd
                 ratelimits:
                     type: array
+                    maxItems: 50
                     items:
                         "$ref": "#/components/schemas/KeysVerifyKeyRatelimit"
                     description: |
@@ -2812,6 +2997,65 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2LivenessResponseData"
+        V2LogsGetApiRequestMetricsRequestBody:
+            type: object
+            properties:
+                filters:
+                    "$ref": "#/components/schemas/V2LogsGetApiRequestMetricsFilters"
+            additionalProperties: false
+        V2LogsGetApiRequestMetricsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 200
+                    items:
+                        "$ref": "#/components/schemas/ApiRequestMetricsPoint"
+                    description: One point per bucket, oldest first, with no gaps. A bucket with no requests has a point with zero counts. The bucket width is the distance between the `time` of two points.
+            additionalProperties: false
+        V2LogsListApiRequestsRequestBody:
+            type: object
+            properties:
+                limit:
+                    type: integer
+                    description: The maximum number of requests to return in one page.
+                    default: 50
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    minLength: 1
+                    maxLength: 1024
+                    description: |
+                        The `pagination.cursor` of the previous page. Send the same `filters` with every page of one listing.
+                        Omit the cursor to get the first page.
+                    example: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
+                filters:
+                    "$ref": "#/components/schemas/V2LogsListApiRequestsFilters"
+            additionalProperties: false
+        V2LogsListApiRequestsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    maxItems: 100
+                    items:
+                        "$ref": "#/components/schemas/ApiRequestLog"
+                    description: The requests that match the filters, newest first.
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2PermissionsCreatePermissionRequestBody:
             type: object
             required:
@@ -2902,6 +3146,7 @@ components:
                     example: "Provides read-only access for customer support representatives. Includes permissions to view user accounts, support tickets, and basic analytics. Does not include access to billing, admin functions, or data modification capabilities."
                 permissions:
                     type: array
+                    maxItems: 1000
                     description: |
                         Permission slugs to attach to the role. Existing permissions are reused. Missing permissions are created automatically when the root key has `rbac.*.create_permission`.
 
@@ -3158,6 +3403,7 @@ components:
                         Accepts either the generated role ID or the unique role name.
                 permissions:
                     type: array
+                    maxItems: 1000
                     description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
                     items:
                         type: string
@@ -4092,23 +4338,6 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitLimitResponseData"
-        GoneErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when the requested resource has been soft-deleted and is no longer available. This occurs when:
-                - The resource has been marked as deleted but still exists in the database
-                - The resource is intentionally unavailable but could potentially be restored
-                - The resource cannot be restored through the API or dashboard
-
-                To resolve this error, contact support if you need the resource restored.
         V2RatelimitListNamespacesRequestBody:
             type: object
             properties:
@@ -5225,6 +5454,142 @@ components:
                         branch of the connected repository.
                     example: main
             additionalProperties: false
+        V2CliExchangeTokenResponseData:
+            type: object
+            description: Session credentials returned by a successful token exchange.
+            required:
+                - accessToken
+                - refreshToken
+                - expiresIn
+                - workspaceId
+                - sessionId
+            properties:
+                accessToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: Short-lived access token.
+                refreshToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: Rotating refresh token. Store it. It is returned only once.
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Seconds until the access token expires. Access tokens last 15 minutes.
+                workspaceId:
+                    type: string
+                    description: Workspace the session belongs to.
+                sessionId:
+                    type: string
+                    description: CLI session id.
+        V2CliGetDeviceLoginResponseData:
+            type: object
+            required:
+                - userCode
+                - status
+                - createdAt
+                - expiresAt
+            properties:
+                userCode:
+                    type: string
+                deviceName:
+                    type: string
+                    description: Label sent by the CLI. The requester chooses it, so do not trust it.
+                requesterIp:
+                    type: string
+                    description: IP address that started the login. Empty when the API could not determine it.
+                requesterUserAgent:
+                    type: string
+                    description: User agent of the client that started the login.
+                workspaceId:
+                    type: string
+                    description: Workspace selected at approval. Empty until the login is approved.
+                status:
+                    type: string
+                    description: pending, approved, consumed, denied, or expired.
+                grantablePermissions:
+                    type: array
+                    description: Permissions the signed-in member's role allows. The approval page starts with all of them selected.
+                    items:
+                        type: string
+                createdAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond time the login was started.
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond expiry.
+        V2CliListSessionsResponseData:
+            type: object
+            required:
+                - sessions
+            properties:
+                sessions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/V2CliListSessionsSession'
+        V2CliListSessionsSession:
+            type: object
+            required:
+                - id
+                - userId
+                - permissions
+                - createdAt
+                - lastUsedAt
+                - expiresAt
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                deviceName:
+                    type: string
+                permissions:
+                    type: array
+                    items:
+                        type: string
+                createdAt:
+                    type: integer
+                    format: int64
+                lastUsedAt:
+                    type: integer
+                    format: int64
+                expiresAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
+                revokedAt:
+                    type: integer
+                    format: int64
+                    description: Unix millisecond time the session was revoked. Omitted when the session is still active.
+        V2CliStartDeviceLoginResponseData:
+            type: object
+            required:
+                - loginId
+                - userCode
+                - verificationUrl
+                - expiresIn
+                - interval
+            properties:
+                loginId:
+                    type: string
+                    x-unkey-redact: true
+                    description: Secret credential used to poll for approval. Do not display it.
+                userCode:
+                    type: string
+                    description: Code the user confirms in the browser.
+                verificationUrl:
+                    type: string
+                    description: Dashboard page with the code filled in.
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Seconds until the login expires.
+                interval:
+                    type: integer
+                    format: int64
+                    description: Seconds to wait between polls.
         V2DeployGitCommit:
             type: object
             description: Optional git commit information
@@ -5387,6 +5752,7 @@ components:
                 - project
                 - availableActions
                 - regions
+                - issues
                 - trigger
                 - runtime
                 - createdAt
@@ -5450,6 +5816,13 @@ components:
                     "$ref": "#/components/schemas/DeploymentError"
                     description: |
                         Why the deployment failed. Present only when `status` is `failed`.
+                issues:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/DeploymentIssue"
+                    description: |
+                        Problems with the running app right now, at most one per type. An issue
+                        is removed when it is resolved. Empty when nothing is wrong.
                 finishedAt:
                     type: integer
                     format: int64
@@ -5644,6 +6017,32 @@ components:
                         handling, use `code`.
                     example: No schedulable regions configured. Please configure at least one schedulable region before deploying.
             additionalProperties: false
+        DeploymentIssue:
+            type: object
+            required:
+                - type
+                - message
+            properties:
+                type:
+                    "$ref": "#/components/schemas/DeploymentIssueType"
+                time:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    maximum: 9223372036854775807
+                    description: |
+                        Unix timestamp in milliseconds of the last occurrence. For `crash_loop`,
+                        this is the time of the last exit. Omitted when unknown.
+                    example: 1704067260000
+                message:
+                    type: string
+                    description: |
+                        Human-readable explanation of the issue and what to do about it. The
+                        wording can change. For programmatic handling, use `type` and `meta`.
+                    example: Your app used more memory than its limit and keeps stopping, so Unkey waits longer before each restart. Check its memory usage, or raise the limit.
+                meta:
+                    "$ref": "#/components/schemas/DeploymentIssueMeta"
+            additionalProperties: false
         DeploymentRuntime:
             type: object
             required:
@@ -5754,6 +6153,74 @@ components:
                 The reason a deployment failed. `unknown` means Unkey could not classify the
                 failure; see `message` for details.
             example: no_schedulable_regions
+        DeploymentIssueType:
+            type: string
+            enum:
+                - crash_loop
+            x-speakeasy-unknown-values: allow
+            x-enum-varnames:
+                - DeploymentIssueTypeCrashLoop
+            description: |
+                What is wrong with the running app:
+
+                - `crash_loop`: the app keeps stopping, so Unkey waits longer before each
+                  restart. `meta` describes the last exit.
+
+                Handle unknown values, because new types can be added.
+            example: crash_loop
+        DeploymentIssueMeta:
+            type: object
+            description: |
+                Details of the issue. Which fields are set depends on `type`:
+
+                - `crash_loop`: `restartCount`, and `reason` and `exitCode` of the last exit
+                  when one was recorded.
+            properties:
+                reason:
+                    "$ref": "#/components/schemas/DeploymentExitReason"
+                exitCode:
+                    type: integer
+                    format: int32
+                    description: |
+                        Exit code of the last exit. Codes above 128 mean the process was killed
+                        by signal `exitCode - 128`, for example 137 for SIGKILL.
+                    example: 137
+                restartCount:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: |
+                        How many times the affected instance was restarted. This is not a total
+                        across the instances of the deployment.
+                    example: 12
+            additionalProperties: false
+        DeploymentExitReason:
+            type: string
+            enum:
+                - out_of_memory
+                - exited_with_error
+                - start_failed
+                - exited_cleanly
+                - unknown
+            x-speakeasy-unknown-values: allow
+            x-enum-varnames:
+                - DeploymentExitReasonOutOfMemory
+                - DeploymentExitReasonExitedWithError
+                - DeploymentExitReasonStartFailed
+                - DeploymentExitReasonExitedCleanly
+                - DeploymentExitReasonUnknown
+            description: |
+                Why the app stopped:
+
+                - `out_of_memory`: the app used more memory than its limit and was stopped.
+                - `exited_with_error`: the app exited with a non-zero `exitCode`.
+                - `start_failed`: the start command could not run, for example because the
+                  entrypoint does not exist.
+                - `exited_cleanly`: the app exited with code 0. A service must keep running,
+                  so Unkey restarts it.
+                - `unknown`: Unkey could not classify the exit. Handle this value, because
+                  new reasons can be added.
+            example: out_of_memory
         EnvironmentShutdownSignal:
             type: string
             enum:
@@ -6661,13 +7128,15 @@ components:
                     maxLength: 256
                 present:
                     type: boolean
-                    description: Matches when the field is present if true, or absent if false, regardless of value.
+                    description: |-
+                        Matches when the field is present if true, or absent if false, regardless of value.
+                        Defaults to true when neither `present` nor `value` is supplied.
                 value:
                     "$ref": "#/components/schemas/StringMatch"
             additionalProperties: false
             description: |-
-                Matches a named request field (header or query parameter). Exactly one of
-                `present` or `value` must be set.
+                Matches a named request field (header or query parameter). Set `present` or
+                `value`, not both. If neither is supplied, the field must be present.
         RemoteIpMatch:
             type: object
             properties:
@@ -7491,17 +7960,20 @@ components:
                 cost:
                     type: integer
                     minimum: 0
+                    maximum: 9223372036854775807
                     default: 1
                     description: Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
                     example: 2
                 limit:
                     type: integer
                     minimum: 0
+                    maximum: 9223372036854775807
                     description: Optionally override the maximum number of requests allowed within the specified interval.
                     example: 50
                 duration:
                     type: integer
                     minimum: 0
+                    maximum: 31536000000
                     description: Optionally override the duration of the rate limit window duration.
                     example: 600000
         V2KeysVerifyKeyResponseData:
@@ -7701,6 +8173,313 @@ components:
             required:
                 - message
             description: Response data for the liveness check endpoint. This provides a simple indication of whether the Unkey API service is running and able to process requests. Monitoring systems can use this endpoint to track service availability and trigger alerts if the service becomes unhealthy.
+        V2LogsGetApiRequestMetricsFilters:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters for the metrics. They have the same shape as the filters of `logs.listApiRequests`, without `requestId`. A missing field does not filter. Different fields are combined with AND.
+            properties:
+                time:
+                    "$ref": "#/components/schemas/TimeFilter"
+                path:
+                    "$ref": "#/components/schemas/TextFilter"
+                method:
+                    "$ref": "#/components/schemas/MethodFilter"
+                status:
+                    "$ref": "#/components/schemas/IntFilter"
+        TimeFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters by the time of the event, in Unix milliseconds. Every bound is combined with AND.
+                Rows older than the workspace's retention are never returned or counted, whatever the bounds.
+            properties:
+                gt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Keep events after this time.
+                gte:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Keep events at or after this time.
+                lt:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Keep events before this time.
+                lte:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: Keep events at or before this time.
+            example:
+                gte: 1791936000000
+                lt: 1792022400000
+        TextFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters a text field. Every operator is exact and case-sensitive. `%` and `_` match only themselves.
+                The positive operators (`is`, `contains`, `startsWith`, `endsWith`) are combined with OR.
+                The negated operators (`isNot`, `notContains`) are combined with AND.
+            properties:
+                is:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Keep rows where the field equals one of the values.
+                isNot:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Remove rows where the field equals one of the values.
+                contains:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Keep rows where the field contains one of the values.
+                notContains:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Remove rows where the field contains one of the values.
+                startsWith:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Keep rows where the field starts with one of the values.
+                endsWith:
+                    "$ref": "#/components/schemas/StringValues"
+                    description: Keep rows where the field ends with one of the values.
+            example:
+                startsWith: ["/v2/keys."]
+                notContains: ["verifyKey"]
+        MethodFilter:
+            type: object
+            additionalProperties: false
+            description: Filters by HTTP method.
+            properties:
+                is:
+                    type: array
+                    minItems: 1
+                    uniqueItems: true
+                    items:
+                        "$ref": "#/components/schemas/HttpMethod"
+                    description: Keep rows with one of these methods.
+                isNot:
+                    type: array
+                    minItems: 1
+                    uniqueItems: true
+                    items:
+                        "$ref": "#/components/schemas/HttpMethod"
+                    description: Remove rows with one of these methods.
+            example:
+                is: ["POST", "PUT"]
+        IntFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters an integer field. `is` keeps rows that equal one of its values.
+                `isNot` and every bound (`gt`, `gte`, `lt`, `lte`) are combined with AND, so `{ "is": [200], "gte": 400 }` matches no rows.
+            properties:
+                is:
+                    "$ref": "#/components/schemas/IntValues"
+                    description: Keep rows where the field equals one of the values.
+                isNot:
+                    "$ref": "#/components/schemas/IntValues"
+                    description: Remove rows where the field equals one of the values.
+                gt:
+                    type: integer
+                    format: int64
+                    description: Keep rows where the field is greater than this value.
+                gte:
+                    type: integer
+                    format: int64
+                    description: Keep rows where the field is greater than or equal to this value.
+                lt:
+                    type: integer
+                    format: int64
+                    description: Keep rows where the field is less than this value.
+                lte:
+                    type: integer
+                    format: int64
+                    description: Keep rows where the field is less than or equal to this value.
+            example:
+                gte: 400
+                lt: 600
+                isNot: [429]
+        StringValues:
+            type: array
+            minItems: 1
+            maxItems: 10
+            items:
+                type: string
+                minLength: 1
+                maxLength: 1024
+            description: |
+                The values of one filter operator. A row matches a positive operator when it matches any value in the list.
+                A row matches a negated operator only when it matches none of the values.
+        HttpMethod:
+            type: string
+            enum:
+                - GET
+                - POST
+                - PUT
+                - PATCH
+                - DELETE
+                - HEAD
+                - OPTIONS
+            description: An HTTP method in upper case.
+            example: POST
+        IntValues:
+            type: array
+            minItems: 1
+            maxItems: 10
+            items:
+                type: integer
+                format: int64
+            description: |
+                The values of one filter operator. A row matches `is` when it equals any value in the list.
+                A row matches `isNot` only when it equals none of the values.
+        ApiRequestMetricsPoint:
+            type: object
+            required:
+                - time
+                - success
+                - clientError
+                - serverError
+                - total
+            additionalProperties: false
+            description: The number of requests in one bucket.
+            properties:
+                time:
+                    type: integer
+                    format: int64
+                    description: The start of the bucket, in Unix milliseconds.
+                    example: 1792020600000
+                success:
+                    type: integer
+                    format: int64
+                    description: The number of requests with a 2xx status.
+                    example: 1200
+                clientError:
+                    type: integer
+                    format: int64
+                    description: The number of requests with a 4xx status.
+                    example: 31
+                serverError:
+                    type: integer
+                    format: int64
+                    description: The number of requests with a 5xx status.
+                    example: 2
+                total:
+                    type: integer
+                    format: int64
+                    description: The number of requests with any status. It also counts 1xx and 3xx responses, which have no field of their own.
+                    example: 1233
+        V2LogsListApiRequestsFilters:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters for the listing. A missing field does not filter. Different fields are combined with AND.
+            properties:
+                time:
+                    "$ref": "#/components/schemas/TimeFilter"
+                path:
+                    "$ref": "#/components/schemas/TextFilter"
+                method:
+                    "$ref": "#/components/schemas/MethodFilter"
+                requestId:
+                    "$ref": "#/components/schemas/ExactFilter"
+                status:
+                    "$ref": "#/components/schemas/IntFilter"
+        ExactFilter:
+            type: object
+            additionalProperties: false
+            description: |
+                Filters a field that matches only as a whole value, such as a host or a request ID.
+                Matching is exact and case-sensitive.
+            properties:
+                is:
+                    "$ref": "#/components/schemas/ExactValues"
+                    description: Keep rows where the field equals one of the values.
+                isNot:
+                    "$ref": "#/components/schemas/ExactValues"
+                    description: Remove rows where the field equals one of the values.
+            example:
+                isNot: ["api.unkey.dev"]
+        ExactValues:
+            type: array
+            minItems: 1
+            maxItems: 25
+            items:
+                type: string
+                minLength: 1
+                maxLength: 1024
+            description: |
+                The values of one exact filter operator. A row matches `is` when it equals any value in the list.
+                A row matches `isNot` only when it equals none of the values.
+                Exact matches take up to 25 values, so one call can look up a page of requests by ID.
+        ApiRequestLog:
+            type: object
+            required:
+                - requestId
+                - time
+                - host
+                - method
+                - path
+                - status
+                - latencyMs
+                - requestHeaders
+                - requestBody
+                - responseHeaders
+                - responseBody
+            additionalProperties: false
+            description: One request that the Unkey API served for your workspace.
+            properties:
+                requestId:
+                    type: string
+                    description: The ID that the Unkey API returned in `meta.requestId` for this request.
+                    example: req_1234abcd
+                time:
+                    type: integer
+                    format: int64
+                    description: When the Unkey API received the request, in Unix milliseconds.
+                    example: 1792021850123
+                host:
+                    type: string
+                    description: The host the request was sent to.
+                    example: api.unkey.com
+                method:
+                    type: string
+                    description: The HTTP method of the request.
+                    example: POST
+                path:
+                    type: string
+                    description: The path of the request.
+                    example: /v2/keys.updateKey
+                status:
+                    type: integer
+                    format: int32
+                    description: The HTTP status of the response.
+                    example: 404
+                latencyMs:
+                    type: integer
+                    format: int64
+                    description: How long the Unkey API took to serve the request, in milliseconds.
+                    example: 38
+                requestHeaders:
+                    type: array
+                    items:
+                        type: string
+                    description: "Request headers as `Name: value` strings. Credential headers show `[REDACTED]`."
+                    example: ["Content-Type: application/json", "Authorization: [REDACTED]"]
+                requestBody:
+                    type: string
+                    description: The request body. Secret values are redacted.
+                    example: '{"keyId":"key_1234abcd","name":"Payments"}'
+                responseHeaders:
+                    type: array
+                    items:
+                        type: string
+                    description: "Response headers as `Name: value` strings."
+                    example: ["Content-Type: application/json"]
+                responseBody:
+                    type: string
+                    description: The response body. Secret values are redacted.
+                    example: '{"meta":{"requestId":"req_1234abcd"},"error":{"status":404}}'
         V2PermissionsCreatePermissionResponseData:
             type: object
             properties:
@@ -9035,6 +9814,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getGatewayRequests
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getRatelimits:
         post:
             description: |
@@ -9109,6 +9889,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRatelimits
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getRuntimeLogs:
         post:
             description: |
@@ -9185,6 +9966,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRuntimeLogs
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getVerifications:
         post:
             description: |
@@ -9254,6 +10036,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getVerifications
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apis.createApi:
         post:
             description: |
@@ -9464,6 +10247,7 @@ paths:
             tags:
                 - apis
             x-speakeasy-name-override: getApi
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apis.listKeys:
         post:
             description: |
@@ -9547,6 +10331,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.createApp:
         post:
             description: |
@@ -9944,6 +10729,7 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: getApp
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.listApps:
         post:
             description: |
@@ -10089,6 +10875,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.updateApp:
         post:
             description: |
@@ -10230,6 +11017,311 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: updateApp
+    /v2/cli.decideDeviceLogin:
+        post:
+            description: |
+                Approves or denies a device login using the signed-in dashboard user's session.
+                Approval requires permissions. Denial must not include permissions and prevents token issuance.
+                Every permission must fit inside the caller's role. Any member can approve, not only admins.
+                The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
+            operationId: cli.decideDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliDecideDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliDecideDeviceLoginResponseBody'
+                    description: Decision recorded.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid decision, code, or permission, or the login is closed.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot grant these permissions or another account approved this login.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Decide CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: decideDeviceLogin
+    /v2/cli.exchangeToken:
+        post:
+            description: |
+                Supply exactly one of `loginId` or `refreshToken`. No authentication header is required.
+                A `loginId` polls a device login started by cli.startDeviceLogin. While the user has not approved it,
+                the API returns HTTP 202 with a Retry-After header in seconds. Approval returns HTTP 200 with access and refresh tokens exactly once.
+                Denial returns HTTP 403. An expired login returns HTTP 410. Stop polling on either response.
+                Device polling is rate limited per IP address.
+                A `refreshToken` rotates an existing session and returns HTTP 200 with new tokens.
+                The user's current membership and permissions are checked again. Reuse of the previous token
+                after the retry grace period revokes the session.
+                Access tokens last 15 minutes. A session expires after 7 days without a refresh,
+                and no later than 30 days after login.
+            operationId: cli.exchangeToken
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliExchangeTokenRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliExchangeTokenResponseBody'
+                    description: Token exchange completed. Includes the access token and refresh token.
+                "202":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliExchangeTokenPendingResponseBody'
+                    description: Awaiting approval. Wait for Retry-After seconds before polling again.
+                    headers:
+                        Retry-After:
+                            description: Seconds to wait before the next poll.
+                            required: true
+                            schema:
+                                minimum: 1
+                                type: integer
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid credential selection or unknown login.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: The refresh token is invalid, expired, or reused outside the retry grace period.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Login was denied, or the user was removed or no longer has the session's permissions.
+                "410":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GoneErrorResponse'
+                    description: The login expired. Start a new device login.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests from this IP address.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Exchange a CLI credential
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: exchangeToken
+    /v2/cli.getDeviceLogin:
+        post:
+            description: |
+                Returns the device label, requester details, and status for a user code.
+                Requires a dashboard session.
+            operationId: cli.getDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliGetDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliGetDeviceLoginResponseBody'
+                    description: Device login found.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown or invalid code.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Get CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: getDeviceLogin
+            x-unkey-workspace-rate-limit-exempt: true
+    /v2/cli.listSessions:
+        post:
+            description: |
+                Lists CLI sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
+                Requires a dashboard session or a CLI access token. Root keys are rejected.
+                This endpoint takes no request body.
+            operationId: cli.listSessions
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliListSessionsResponseBody'
+                    description: Sessions the caller can see.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller is not a dashboard or CLI user.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: List CLI sessions
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: listSessions
+            x-unkey-workspace-rate-limit-exempt: true
+    /v2/cli.revokeSession:
+        post:
+            description: |
+                Revokes a CLI session. A member can revoke their own sessions. An admin can revoke any session in the workspace.
+                Requires a dashboard session or a CLI access token. Root keys are rejected.
+            operationId: cli.revokeSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliRevokeSessionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliRevokeSessionResponseBody'
+                    description: Session revoked, or it was already revoked.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Unknown session.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: The caller cannot revoke this session.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            summary: Revoke a CLI session
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: revokeSession
+    /v2/cli.startDeviceLogin:
+        post:
+            description: |
+                Starts a device login for `unkey login`.
+                The response includes the user code and the dashboard URL where the user confirms it and chooses permissions.
+                No authentication is required. Requests are rate limited per IP address.
+            operationId: cli.startDeviceLogin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2CliStartDeviceLoginRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliStartDeviceLoginResponseBody'
+                    description: Device login started.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests from this IP address.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Start CLI device login
+            tags:
+                - cli
+            x-speakeasy-ignore: true
+            x-speakeasy-name-override: startDeviceLogin
     /v2/deploy.createDeployment:
         post:
             deprecated: true
@@ -10364,6 +11456,7 @@ paths:
                 - deploy
             x-speakeasy-group: internal
             x-speakeasy-name-override: getDeployment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.authorizeDeployment:
         post:
             description: |
@@ -10436,6 +11529,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the required permission.
                 "404":
                     content:
                         application/json:
@@ -10454,8 +11553,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key cannot write to it. Both cases return the same response, so
-                        deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the required permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -10566,6 +11666,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the required permission.
                 "404":
                     content:
                         application/json:
@@ -10584,8 +11690,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key cannot write to it. Both cases return the same response, so
-                        deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the required permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -10803,6 +11910,7 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: getDeployment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.listBuildLogs:
         post:
             description: |
@@ -10937,6 +12045,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks permission to read its build logs.
                 "404":
                     content:
                         application/json:
@@ -10983,7 +12097,16 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: listBuildLogs
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.listDeployments:
         post:
             description: |
@@ -11160,6 +12283,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.promoteDeployment:
         post:
             description: |
@@ -11180,9 +12304,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.promote_deployment` (to promote deployments in any environment)
-                - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
+                Your root key must have write permission on the environment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
             operationId: deployments.promoteDeployment
             requestBody:
                 content:
@@ -11223,6 +12346,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `promote_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -11230,8 +12359,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `promote_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `promote_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11280,9 +12410,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.rollback_deployment` (to roll back deployments in any environment)
-                - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
+                Your root key must have write permission on the environment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
             operationId: deployments.rollbackDeployment
             requestBody:
                 content:
@@ -11323,6 +12452,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `rollback_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -11330,8 +12465,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `rollback_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `rollback_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11375,9 +12511,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.start_deployment` (to start deployments in any environment)
-                - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
+                Your root key must have write permission on the deployment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
             operationId: deployments.startDeployment
             requestBody:
                 content:
@@ -11419,6 +12554,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `start_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -11426,8 +12567,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `start_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `start_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11471,9 +12613,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.stop_deployment` (to stop deployments in any environment)
-                - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
+                Your root key must have write permission on the deployment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
             operationId: deployments.stopDeployment
             requestBody:
                 content:
@@ -11515,6 +12656,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the deployment but lacks the `stop_deployment` permission.
                 "404":
                     content:
                         application/json:
@@ -11522,8 +12669,9 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The deployment does not exist in your workspace, or your
-                        root key lacks the `stop_deployment` permission for it. Both cases
-                        return the same response, so deployment existence is never revealed.
+                        root key cannot read it. Both cases return the same response, so
+                        deployment existence is never revealed. A root key that can read the
+                        deployment but lacks the `stop_deployment` permission receives 403 instead.
                 "412":
                     content:
                         application/json:
@@ -11746,9 +12894,9 @@ paths:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
                         Forbidden - The root key or its workspace is disabled, or the workspace has already attached as
-                        many custom domains as its plan allows. A root key that simply lacks
-                        `environment.*.create_domain` receives a 404 instead, so permissions cannot be used to discover
-                        which environments exist.
+                        many custom domains as its plan allows, or the root key can read the environment but lacks
+                        `environment.*.create_domain`. A root key that cannot read the environment receives a 404
+                        instead, so permissions cannot be used to discover which environments exist.
                 "404":
                     content:
                         application/json:
@@ -11931,9 +13079,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `environment.*.delete_domain` receives a 404 instead, so permissions cannot be used to
-                        discover which domains exist.
+                        Forbidden - The root key or its workspace is disabled, or the root key can read the domain but
+                        lacks `environment.*.delete_domain`. A root key that cannot read the domain receives a 404
+                        instead, so permissions cannot be used to discover which domains exist.
                 "404":
                     content:
                         application/json:
@@ -11952,7 +13100,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The domain does not exist in your workspace, it was already deleted, or your
-                        root key may not delete it.
+                        root key cannot read it.
                 "429":
                     content:
                         application/json:
@@ -12280,6 +13428,7 @@ paths:
                 - domains
             x-speakeasy-name-override: getDomain
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/domains.listDomains:
         post:
             description: |
@@ -12570,7 +13719,16 @@ paths:
             tags:
                 - domains
             x-speakeasy-name-override: listDomains
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/domains.verifyDomain:
         post:
             description: |
@@ -12682,8 +13840,9 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that only lacks
-                        `environment.*.verify_domain` receives a 404 instead.
+                        Forbidden - The root key or its workspace is disabled, or the root key can read the domain but
+                        lacks `environment.*.verify_domain`. A root key that cannot read the domain receives a 404
+                        instead.
                 "404":
                     content:
                         application/json:
@@ -12702,7 +13861,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         Not Found - The domain does not exist in your workspace, or it was deleted, or your
-                        root key is not permitted to verify it.
+                        root key cannot read it.
                 "412":
                     content:
                         application/json:
@@ -12904,6 +14063,7 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: getEnvironment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.listEnvironmentVariables:
         post:
             description: |
@@ -12987,6 +14147,15 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironmentVariables
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.listEnvironments:
         post:
             description: |
@@ -13155,6 +14324,7 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironments
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.removeEnvironmentVariables:
         post:
             description: |
@@ -13571,6 +14741,7 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: listPolicies
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/gateway.setPolicies:
         post:
             description: |
@@ -14203,6 +15374,7 @@ paths:
             tags:
                 - identities
             x-speakeasy-name-override: getIdentity
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/identities.listIdentities:
         post:
             description: |
@@ -14324,6 +15496,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/identities.updateIdentity:
         post:
             description: |
@@ -14790,6 +15963,7 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: getKey
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/keys.migrateKeys:
         post:
             description: |
@@ -15564,6 +16738,7 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: whoami
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/liveness:
         get:
             description: |
@@ -15636,6 +16811,283 @@ paths:
                 - liveness
             x-excluded: true
             x-speakeasy-ignore: true
+    /v2/logs.getApiRequestMetrics:
+        post:
+            description: |
+                Count the requests that the Unkey API served for your workspace per time bucket, split by status class.
+
+                The filters have the same shape as in `logs.listApiRequests`, without `requestId`. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
+
+                `filters.time` sets the window. A missing lower bound is the start of your log retention, and a missing upper bound is now. Unkey picks the bucket width from the window. It is the distance between the `time` of two points. The first bucket starts at or before the window start and counts its whole width. Windows reach back at most 100 days, and requests outside the log retention of your workspace are not counted.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:logs/apiRequests#read`
+            operationId: logs.getApiRequestMetrics
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2LogsGetApiRequestMetricsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                empty:
+                                    summary: A window that ends before it starts
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                series:
+                                    summary: Two buckets of 30 minutes
+                                    value:
+                                        data:
+                                            - clientError: 31
+                                              serverError: 2
+                                              success: 1200
+                                              time: 1792018800000
+                                              total: 1233
+                                            - clientError: 0
+                                              serverError: 0
+                                              success: 0
+                                              time: 1792020600000
+                                              total: 0
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/V2LogsGetApiRequestMetricsResponseBody'
+                    description: One point per bucket, oldest first, with zero counts for buckets without requests.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                unknownField:
+                                    summary: A filter field the metrics do not have
+                                    value:
+                                        error:
+                                            detail: POST request body for '/v2/logs.getApiRequestMetrics' failed to validate schema
+                                            errors:
+                                                - location: /properties/filters/$ref/additionalProperties
+                                                  message: additional properties 'requestId' not allowed
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:logs/apiRequests#read'''
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:logs/apiRequests#read`)
+                "422":
+                    content:
+                        application/json:
+                            examples:
+                                timeout:
+                                    summary: Query took too long
+                                    value:
+                                        error:
+                                            detail: The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again.
+                                            status: 422
+                                            title: Unprocessable Entity
+                                            type: https://unkey.com/docs/errors/user/unprocessable_entity/query_execution_timeout
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: The query exceeds a query limit
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: The log store is not available
+            security:
+                - bearer: []
+            summary: Get API request metrics
+            tags:
+                - logs
+            x-speakeasy-name-override: getApiRequestMetrics
+            x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
+    /v2/logs.listApiRequests:
+        post:
+            description: |
+                List the requests that the Unkey API served for your workspace, newest first.
+
+                Filter by time, path, method, request ID, and status. In one field, values under `is`, `contains`, `startsWith`, and `endsWith` are combined with OR. Values under `isNot` and `notContains`, and the range operators `gt`, `gte`, `lt`, and `lte`, are combined with AND. Different fields are combined with AND. Every text match is exact and case-sensitive.
+
+                To get the next page, send the `pagination.cursor` of the previous page together with the same `filters`. A cursor does not expire, but rows older than the log retention leave the listing.
+
+                Unkey returns only requests inside the log retention of your workspace. The calls to this endpoint are not logged.
+
+                **Required Permissions**
+
+                Your root key must have the following permission:
+                - `unkey:v1:<workspace_id>:logs/apiRequests#read`
+            operationId: logs.listApiRequests
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2LogsListApiRequestsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            examples:
+                                empty:
+                                    summary: No matching requests
+                                    value:
+                                        data: []
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            hasMore: false
+                                page:
+                                    summary: A page with more results
+                                    value:
+                                        data:
+                                            - host: api.unkey.com
+                                              latencyMs: 38
+                                              method: POST
+                                              path: /v2/keys.updateKey
+                                              requestBody: '{"keyId":"key_1234abcd","name":"Payments"}'
+                                              requestHeaders:
+                                                - 'Content-Type: application/json'
+                                                - 'Authorization: [REDACTED]'
+                                              requestId: req_5678efgh
+                                              responseBody: '{"meta":{"requestId":"req_5678efgh"},"error":{"status":404}}'
+                                              responseHeaders:
+                                                - 'Content-Type: application/json'
+                                              status: 404
+                                              time: 1792021850123
+                                        meta:
+                                            requestId: req_1234abcd
+                                        pagination:
+                                            cursor: MTc5MjAyMTg1MDEyMzpyZXFfNTY3OGVmZ2g
+                                            hasMore: true
+                            schema:
+                                $ref: '#/components/schemas/V2LogsListApiRequestsResponseBody'
+                    description: A page of requests, newest first. When `hasMore` is true, send `pagination.cursor` to get the next page.
+                "400":
+                    content:
+                        application/json:
+                            examples:
+                                invalidCursor:
+                                    summary: Invalid cursor
+                                    value:
+                                        error:
+                                            detail: The cursor is not valid. Send the `pagination.cursor` of the previous response, or omit it to get the first page.
+                                            errors: []
+                                            status: 400
+                                            title: Bad Request
+                                            type: https://unkey.com/docs/errors/unkey/application/invalid_input
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            examples:
+                                missingPermission:
+                                    summary: Missing required permission
+                                    value:
+                                        error:
+                                            detail: 'Missing permission: ''unkey:v1:ws_1234abcd:logs/apiRequests#read'''
+                                            status: 403
+                                            title: Insufficient Permissions
+                                            type: https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Insufficient permissions (requires `unkey:v1:<workspace_id>:logs/apiRequests#read`)
+                "422":
+                    content:
+                        application/json:
+                            examples:
+                                resultTooLarge:
+                                    summary: Result too large
+                                    value:
+                                        error:
+                                            detail: The query exceeds a read limit. Send a lower `limit`, a narrower `filters.time` window, or more filters, then try again.
+                                            status: 422
+                                            title: Unprocessable Entity
+                                            type: https://unkey.com/docs/errors/user/unprocessable_entity/query_memory_limit_exceeded
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: The query exceeds a query limit
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: The log store is not available
+            security:
+                - bearer: []
+            summary: List API requests
+            tags:
+                - logs
+            x-speakeasy-name-override: listApiRequests
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+            x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.createPermission:
         post:
             description: |
@@ -15906,6 +17358,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not Found - The role does not exist in your workspace, or your root key cannot read it.
                 "429":
                     content:
                         application/problem+json:
@@ -15989,6 +17447,7 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: GetPermission
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.getRole:
         post:
             description: |
@@ -16054,6 +17513,7 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: GetRole
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.listPermissions:
         post:
             description: |
@@ -16122,6 +17582,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.listRoles:
         post:
             description: |
@@ -16196,6 +17657,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.setRolePermissions:
         post:
             description: |
@@ -16374,7 +17836,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the permission but lacks the required permission. A key that cannot read the permission gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -16392,7 +17854,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The permission does not exist in your workspace, or your root key lacks write access to it.
+                        Not Found - The permission does not exist in your workspace, or your root key cannot read it.
                         Both cases return the same response, so a root key cannot learn which permissions exist.
                 "409":
                     content:
@@ -16541,7 +18003,7 @@ paths:
                                             requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the role but lacks the required permission. A key that cannot read the role gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -16559,7 +18021,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The role does not exist in your workspace, or your root key lacks write access to it.
+                        Not Found - The role does not exist in your workspace, or your root key cannot read it.
                         Both cases return the same response, so a root key cannot learn which roles exist.
                 "409":
                     content:
@@ -16709,8 +18171,10 @@ paths:
                 returns 403 for the whole request rather than minting a reduced session, so a
                 missing grant is visible instead of surfacing later as a broken portal.
 
-                Missing the portal permission itself returns **404**, not 403: a caller who
-                cannot mint for a portal is not told whether it exists.
+                Missing the portal permission itself returns **404** when your root key
+                cannot read the portal or its sessions, so a caller who cannot see a portal
+                is not told whether it exists. A root key that can read the portal but lacks
+                the permission gets **403**.
 
                 Your root key must also be associated with a workspace that has an enabled portal.
             operationId: portal.createSession
@@ -16811,7 +18275,8 @@ paths:
                 - `portal.*.delete_portal` (to delete any portal in the workspace)
                 - `portal.<portal_id>.delete_portal` (to delete a specific portal)
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal gets **404**. One that can read it
+                but lacks the permission gets **403**.
             operationId: portal.deletePortal
             requestBody:
                 content:
@@ -16839,13 +18304,19 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal but lacks the permission to delete it.
                 "404":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        No such portal, or your root key may not delete it.
+                        No such portal, or your root key cannot read it.
                 "429":
                     content:
                         application/problem+json:
@@ -17002,6 +18473,7 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: getPortal
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.getVerifications:
         post:
             description: |
@@ -17082,6 +18554,7 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: getVerifications
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.listKeys:
         post:
             description: |
@@ -17159,6 +18632,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.listSessions:
         post:
             description: |
@@ -17233,6 +18707,15 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: listSessions
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.rerollKey:
         post:
             description: |
@@ -17326,7 +18809,8 @@ paths:
                 which dashboard roles carry. Unlike `portal.createSession`, a dashboard
                 session can call this, not just a root key.
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal's sessions gets **404**. One that can
+                read them but lacks the permission gets **403**.
             operationId: portal.revokeSession
             requestBody:
                 content:
@@ -17354,13 +18838,19 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal's sessions but lacks the permission to revoke them.
                 "404":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        No such portal, or your root key may not revoke its sessions.
+                        No such portal, or your root key cannot read its sessions.
                 "429":
                     content:
                         application/problem+json:
@@ -17402,7 +18892,8 @@ paths:
                 - `portal.*.update_portal` (to update any portal in the workspace)
                 - `portal.<portal_id>.update_portal` (to update a specific portal)
 
-                Without the permission this returns **404**, not 403.
+                A root key that cannot read the portal gets **404**. One that can read it
+                but lacks the permission gets **403**.
             operationId: portal.updatePortal
             requestBody:
                 content:
@@ -17430,6 +18921,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden - Your root key can read the portal but lacks the permission to update it, or it cannot use the named app or keyspace.
                 "404":
                     content:
                         application/json:
@@ -17437,7 +18934,7 @@ paths:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
                         No such portal, the named app or keyspace is not in your workspace, or
-                        your root key may not update it.
+                        your root key cannot read it.
                 "409":
                     content:
                         application/json:
@@ -17822,6 +19319,7 @@ paths:
             tags:
                 - projects
             x-speakeasy-name-override: getProject
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/projects.listProjects:
         post:
             description: |
@@ -17945,6 +19443,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/projects.updateProject:
         post:
             description: |
@@ -18276,7 +19775,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the namespace but lacks the required permission. A key that cannot read the namespace gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -18294,7 +19793,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key lacks delete access to it.
+                        Not Found - The namespace does not exist in your workspace, was already deleted, or your root key cannot read it.
                         All cases return the same response, so a root key cannot learn which namespaces exist.
                 "429":
                     content:
@@ -18513,6 +20012,7 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: getOverride
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.limit:
         post:
             description: |
@@ -18783,6 +20283,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.listOverrides:
         post:
             description: |
@@ -18879,6 +20380,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.multiLimit:
         post:
             description: |
@@ -19240,7 +20742,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Forbidden - The root key or the workspace is disabled. A key that lacks the required permission gets 404 instead.
+                    description: Forbidden - The root key or the workspace is disabled, or the key can read the namespace but lacks the required permission. A key that cannot read the namespace gets 404 instead.
                 "404":
                     content:
                         application/json:
@@ -19258,7 +20760,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The namespace does not exist in your workspace, was deleted, or your root key lacks write access to it.
+                        Not Found - The namespace does not exist in your workspace, was deleted, or your root key cannot read it.
                         All cases return the same response, so a root key cannot learn which namespaces exist.
                 "409":
                     content:
@@ -19470,6 +20972,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/rootKeys.rerollKey:
         post:
             description: |
@@ -19679,6 +21182,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getFlags
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.getLimits:
         post:
             description: |
@@ -19850,6 +21354,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getLimits
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.getUsage:
         post:
             description: |
@@ -20168,6 +21673,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getUsage
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.updateFlag:
         post:
             description: |
@@ -20337,6 +21843,8 @@ tags:
       name: keys
     - description: Health check operations
       name: liveness
+    - description: Log listing operations
+      name: logs
     - description: Permission and role management operations
       name: permissions
     - description: Gateway policy operations
@@ -20349,6 +21857,8 @@ tags:
       name: github
     - description: Workspace limits and usage operations
       name: workspace
+    - description: CLI device login
+      name: cli
 x-speakeasy-retries:
     backoff:
         exponent: 1.5

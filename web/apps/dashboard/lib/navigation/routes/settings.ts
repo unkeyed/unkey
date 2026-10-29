@@ -21,12 +21,12 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/general", { workspaceSlug });
   },
 
-  team({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/team", { workspaceSlug });
+  platformFeatures({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/platform-features", { workspaceSlug });
   },
 
-  rootKeys({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
+  team({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/team", { workspaceSlug });
   },
 
   logdrains: {
@@ -52,6 +52,10 @@ export const settingsRoutes = {
 
   limits({ workspaceSlug }: WorkspaceScope): Route {
     return buildRoute("/[workspaceSlug]/settings/limits", { workspaceSlug });
+  },
+
+  cliSessions({ workspaceSlug }: WorkspaceScope): Route {
+    return buildRoute("/[workspaceSlug]/settings/cli-sessions", { workspaceSlug });
   },
 
   stripe: {

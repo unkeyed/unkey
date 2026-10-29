@@ -7,6 +7,7 @@ export default function BadgeVariants() {
       <Badge variant="secondary">Secondary</Badge>
       <Badge variant="success">Ready</Badge>
       <Badge variant="warning">Building</Badge>
+      <Badge variant="blocked">Blocked</Badge>
       <Badge variant="error">Failed</Badge>
       <Badge variant="count">3</Badge>
       <Badge variant="code">acme-api</Badge>

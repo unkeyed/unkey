@@ -65,7 +65,12 @@ export function PermissionCatalogue({ catalogue, value, onChange }: PermissionCa
           placeholder="Search permissions…"
           className="h-8"
         />
-        <PermissionCatalogueBulkMenu onSelect={setActions} />
+        <PermissionCatalogueBulkMenu
+          offered={ACTIONS.filter((action) =>
+            catalogueRows(catalogue).some((row) => rowOffers(row, action)),
+          )}
+          onSelect={setActions}
+        />
       </div>
 
       {hidden > 0 ? (

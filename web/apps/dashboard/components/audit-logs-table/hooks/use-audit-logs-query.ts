@@ -8,15 +8,18 @@ import {
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
+import { getTimestampFromRelative } from "@/lib/duration";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryTime } from "@/providers/query-time-provider";
 import {
   AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
   isDashboardAuditLogBucket,
 } from "@unkey/schema/src/auditlog";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { AuditLogsQueryPayload } from "../schema/audit-logs.schema";
 
 const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_SINCE = "12h";
 
 // Audit logs are paginated but not sortable, so this composes the shared
 // pagination primitives directly rather than usePaginatedListQuery (which owns
@@ -29,7 +32,14 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
 
   const { page, setPage } = usePaginatedPage(filtersKey);
 
+  // The shared query time is set when the dashboard loads, which can predate
+  // this page on client-side navigation.
+  const { queryTime } = useQueryTime();
+  const [mountedAt] = useState(Date.now);
+  const anchor = Math.max(queryTime, mountedAt);
+
   const queryParams = useMemo(() => {
+    let since: string | null = null;
     const params: AuditLogsQueryPayload = {
       limit: pageSize,
       page,
@@ -71,7 +81,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
         }
         case "since": {
           if (typeof filter.value === "string") {
-            params.since = filter.value;
+            since = filter.value;
           }
           break;
         }
@@ -84,8 +94,15 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
       }
     }
 
+    if (since !== null) {
+      params.startTime = getTimestampFromRelative(since, anchor);
+      params.endTime = anchor;
+    }
+    params.startTime ??= getTimestampFromRelative(DEFAULT_SINCE, anchor);
+    params.endTime ??= anchor;
+
     return params;
-  }, [filters, pageSize, page]);
+  }, [filters, pageSize, page, anchor]);
 
   const utils = trpc.useUtils();
 

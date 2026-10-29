@@ -50,7 +50,8 @@ import { Result } from "../types/fp.js";
  * - `portal.*.update_portal` (to update any portal in the workspace)
  * - `portal.<portal_id>.update_portal` (to update a specific portal)
  *
- * Without the permission this returns **404**, not 403.
+ * A root key that cannot read the portal gets **404**. One that can read it
+ * but lacks the permission gets **403**.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
@@ -63,6 +64,7 @@ export function portalUpdatePortal(
     components.V2PortalUpdatePortalResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
@@ -94,6 +96,7 @@ async function $do(
       components.V2PortalUpdatePortalResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
+      | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
       | errors.ConflictErrorResponse
       | errors.TooManyRequestsErrorResponse
@@ -193,6 +196,7 @@ async function $do(
     components.V2PortalUpdatePortalResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
@@ -209,6 +213,7 @@ async function $do(
     M.json(200, components.V2PortalUpdatePortalResponseBody$inboundSchema),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
+    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {

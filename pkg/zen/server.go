@@ -30,18 +30,11 @@ type Server struct {
 	isListening bool
 	mux         *http.ServeMux
 	srv         *http.Server
-	flags       Flags
 	config      Config
 
 	trustedProxyCIDRs []netip.Prefix
 	sessions          sync.Pool
 	routingErrors     http.Handler
-}
-
-// Flags configures the behavior of a Server instance.
-type Flags struct {
-	// TestMode enables test mode, accepting certain headers from untrusted clients such as fake times for testing purposes.
-	TestMode bool
 }
 
 // Config configures the behavior of a Server instance.
@@ -50,8 +43,6 @@ type Config struct {
 	// TLS configuration for HTTPS connections.
 	// If this is provided, the server will use HTTPS.
 	TLS *tls.Config
-
-	Flags *Flags
 
 	// EnableH2C enables HTTP/2 cleartext (h2c) support.
 	// This allows HTTP/2 connections without TLS, useful for internal services.
@@ -147,18 +138,11 @@ func New(config Config) (*Server, error) {
 		IdleTimeout:  config.IdleTimeout,
 	}
 
-	flags := Flags{
-		TestMode: false,
-	}
-	if config.Flags != nil {
-		flags = *config.Flags
-	}
 	s := &Server{
 		mu:                sync.Mutex{},
 		isListening:       false,
 		mux:               mux,
 		srv:               srv,
-		flags:             flags,
 		config:            config,
 		trustedProxyCIDRs: trustedProxyCIDRs,
 		routingErrors:     nil,
@@ -212,10 +196,6 @@ func (s *Server) returnSession(session any) {
 // This is primarily intended for testing and advanced usage scenarios.
 func (s *Server) Mux() *http.ServeMux {
 	return s.mux
-}
-
-func (s *Server) Flags() Flags {
-	return s.flags
 }
 
 // Listen starts the HTTP server on the specified address.

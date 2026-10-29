@@ -9,11 +9,7 @@ import { TimestampInfo } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { RuntimeLogHeader } from "./runtime-log-header";
 
-type Props = {
-  distanceToTop: number;
-};
-
-export function RuntimeLogDetails({ distanceToTop }: Props) {
+export function RuntimeLogDetails() {
   const { setSelectedLog, selectedLog: log } = useRuntimeLogs();
 
   if (!log) {
@@ -25,7 +21,7 @@ export function RuntimeLogDetails({ distanceToTop }: Props) {
   };
 
   return (
-    <SharedLogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
+    <SharedLogDetails log={log} onClose={handleClose}>
       <SharedLogDetails.Section>
         <RuntimeLogHeader log={log} onClose={handleClose} />
       </SharedLogDetails.Section>

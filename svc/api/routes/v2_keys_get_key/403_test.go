@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_get_key"
 )
@@ -30,30 +31,15 @@ func TestGetKeyForbidden(t *testing.T) {
 	h.Register(route)
 
 	// Create API for testing
-	keySpaceID := uid.New(uid.KeySpacePrefix)
-	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
-		ID:            keySpaceID,
+	api := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
-		CreatedAtM:    time.Now().UnixMilli(),
-		DefaultPrefix: sql.NullString{Valid: false, String: ""},
-		DefaultBytes:  sql.NullInt32{Valid: false, Int32: 0},
+		EncryptedKeys: true,
 	})
-	require.NoError(t, err)
-
-	apiID := uid.New(uid.APIPrefix)
-	err = db.Query.InsertApi(ctx, h.DB.RW(), db.InsertApiParams{
-		ID:          apiID,
-		Name:        "test-api",
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
-		CreatedAtM:  time.Now().UnixMilli(),
-	})
-	require.NoError(t, err)
+	keySpaceID := api.KeyAuthID.String
 
 	// Create another API for cross-API testing
 	otherKeySpaceID := uid.New(uid.KeySpacePrefix)
-	err = db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
+	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            otherKeySpaceID,
 		WorkspaceID:   h.Resources().UserWorkspace.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
@@ -131,9 +117,11 @@ func TestGetKeyForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
-		require.NotNil(t, res.Body)
+		missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{KeyId: uid.New(uid.KeyPrefix)})
+		require.Equal(t, http.StatusNotFound, missing.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, missing.Status, res.Status)
+		require.Equal(t, missing.Body.Error, res.Body.Error)
 	})
 
 	t.Run("wrong permission - has create but not read", func(t *testing.T) {
@@ -145,8 +133,8 @@ func TestGetKeyForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
@@ -190,9 +178,9 @@ func TestGetKeyForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
@@ -211,8 +199,8 @@ func TestGetKeyForbidden(t *testing.T) {
 			Decrypt: new(false), // Even without decrypt, should fail on read permission
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, readReq)
-		require.Equal(t, 403, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, readReq)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
@@ -225,8 +213,8 @@ func TestGetKeyForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 	})
 
@@ -239,8 +227,8 @@ func TestGetKeyForbidden(t *testing.T) {
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
-		require.Equal(t, 403, res.Status)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 	})
 }

@@ -4,5 +4,6 @@
 #MISE raw=true
 set -euo pipefail
 
-bash ./dev/start-cluster.sh ./dev/cluster.yaml
-exec tilt up -f ./dev/Tiltfile -- "$@"
+source ./dev/disable-aws.sh
+source ./dev/local-cluster.sh
+with_local_cluster --start ./dev/cluster.yaml tilt up -f ./dev/Tiltfile -- "$@"

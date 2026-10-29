@@ -50,7 +50,7 @@
 // Register with Restate. The virtual object key is the domain name being verified:
 //
 //	client := hydrav1.NewCustomDomainServiceClient(ctx, "api.example.com")
-//	client.VerifyDomain().Send(&hydrav1.VerifyDomainRequest{})
+//	client.VerifyDomain().Send(&hydrav1.VerifyDomainRequest{DomainId: domainID})
 //
 // # Retry Behavior
 //

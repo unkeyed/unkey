@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildApiLinks, buildAppLinks, buildNamespaceLinks } from "./leaves";
+import {
+  buildApiLinks,
+  buildAppLinks,
+  buildNamespaceLinks,
+  buildWorkspaceSections,
+} from "./leaves";
 import type { ResolvedNavLink } from "./types";
 
 const ws = "acme";
@@ -10,6 +15,38 @@ const projectId = "proj_123";
 
 const rows = (links: ResolvedNavLink[]) =>
   links.map(({ key, label, href, isActive }) => ({ key, label, href, isActive }));
+
+describe("workspace sections", () => {
+  it("lists env vars and root keys before the audit log for an admin", () => {
+    const keys = buildWorkspaceSections(ws, ["projects"], true).map((link) => link.key);
+    expect(keys).toEqual([
+      "projects",
+      "apis",
+      "ratelimits",
+      "authorization",
+      "logs",
+      "identities",
+      "env-vars",
+      "root-keys",
+      "audit",
+      "settings",
+    ]);
+  });
+
+  it("omits root keys for a non-admin", () => {
+    const keys = buildWorkspaceSections(ws, ["projects"], false).map((link) => link.key);
+    expect(keys).not.toContain("root-keys");
+    expect(keys).toContain("env-vars");
+  });
+
+  it.each([
+    ["env-vars", "/acme/env-vars"],
+    ["root-keys", "/acme/root-keys"],
+  ])("marks only %s active on its own segment", (segment, href) => {
+    const active = buildWorkspaceSections(ws, [segment], true).filter((link) => link.isActive);
+    expect(active.map((link) => [link.key, link.href])).toEqual([[segment, href]]);
+  });
+});
 
 describe("keyspace links at workspace scope", () => {
   it("lists requests, keys, the portal and settings", () => {
@@ -184,14 +221,25 @@ describe("buildAppLinks", () => {
   const appId = "app_456";
 
   it("keeps App settings active on its sub-pages", () => {
-    const links = buildAppLinks(ws, projectId, appId, [
-      "projects",
+    const links = buildAppLinks(
+      ws,
       projectId,
-      "apps",
       appId,
-      "settings",
-      "environments",
-    ]);
+      ["projects", projectId, "apps", appId, "settings", "environments"],
+      { metrics: false },
+    );
     expect(links.filter((link) => link.isActive).map((link) => link.key)).toEqual(["settings"]);
+  });
+
+  it("shows Metrics only when app_v2 is on", () => {
+    const segments = ["projects", projectId, "apps", appId, "metrics"];
+    const keys = (enabled: boolean) =>
+      buildAppLinks(ws, projectId, appId, segments, { metrics: enabled }).map((link) => link.key);
+    expect(keys(false)).not.toContain("metrics");
+    expect(keys(true)).toContain("metrics");
+    expect(
+      buildAppLinks(ws, projectId, appId, segments, { metrics: true }).find((link) => link.isActive)
+        ?.key,
+    ).toBe("metrics");
   });
 });

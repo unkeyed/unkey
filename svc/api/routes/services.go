@@ -22,6 +22,8 @@ import (
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
+	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // Services aggregates all dependencies required by API route handlers. It acts
@@ -76,6 +78,8 @@ type Services struct {
 
 	// Ratelimit provides distributed rate limiting across API requests.
 	Ratelimit ratelimit.Service
+
+	RateLimitExemptions openapi.WorkspaceRateLimitExemptions
 
 	// Auditlogs records security-relevant events for compliance and debugging.
 	Auditlogs auditlogs.AuditLogService
@@ -137,4 +141,6 @@ type Services struct {
 	// apps.updateApp). It is a Noop when GitHub is not configured, which makes
 	// those handlers report the repo-connection feature as unavailable.
 	GitHubClient githubclient.GitHubClient
+
+	CLIDevice *clidevice.Service
 }

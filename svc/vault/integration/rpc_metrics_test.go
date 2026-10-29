@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/testutil"
 )
 
@@ -17,7 +18,7 @@ func TestOperationMetrics_CountCompletedRPCs(t *testing.T) {
 		return counterValue(t, "unkey_vault_operations_total", map[string]string{"operation": operation, "outcome": outcome})
 	}
 	before := map[string]float64{}
-	for _, operation := range []string{"encrypt", "decrypt", "encrypt_bulk", "decrypt_bulk", "reencrypt"} {
+	for _, operation := range []string{"encrypt", "decrypt", "encrypt_bulk", "decrypt_bulk", "reencrypt_bulk"} {
 		before[operation] = count(operation, "success")
 	}
 	encrypted, err := v.Client.Encrypt(t.Context(), connect.NewRequest(&vaultv1.EncryptRequest{
@@ -53,16 +54,22 @@ func TestOperationMetrics_CountCompletedRPCs(t *testing.T) {
 	require.Equal(t, before["encrypt_bulk"]+1, count("encrypt_bulk", "success"))
 	require.Equal(t, before["decrypt_bulk"]+1, count("decrypt_bulk", "success"))
 
-	reencrypted, err := v.Client.ReEncrypt(t.Context(), connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring: "ring", Encrypted: encrypted.Msg.GetEncrypted(),
+	id := uid.New(uid.TestPrefix)
+	reencrypted, err := v.Client.ReEncryptBulk(t.Context(), connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			id: {Keyring: "ring", Encrypted: encrypted.Msg.GetEncrypted()},
+		},
 	}))
 	require.NoError(t, err)
-	require.Equal(t, before["reencrypt"]+1, count("reencrypt", "success"))
+	result := reencrypted.Msg.GetItems()[id]
+	require.Empty(t, result.GetError())
+	require.NotNil(t, result.GetSuccess())
+	require.Equal(t, before["reencrypt_bulk"]+1, count("reencrypt_bulk", "success"))
 	require.Equal(t, before["encrypt"]+1, count("encrypt", "success"))
 	require.Equal(t, before["decrypt"]+2, count("decrypt", "success"))
 
 	decrypted, err := v.Client.Decrypt(t.Context(), connect.NewRequest(&vaultv1.DecryptRequest{
-		Keyring: "ring", Encrypted: reencrypted.Msg.GetEncrypted(),
+		Keyring: "ring", Encrypted: result.GetSuccess().GetEncrypted(),
 	}))
 	require.NoError(t, err)
 	require.Equal(t, "secret", decrypted.Msg.GetPlaintext())
@@ -95,9 +102,11 @@ func TestOperationMetrics_CountFailures(t *testing.T) {
 			}))
 			return err
 		}},
-		{"reencrypt", connect.CodeUnknown, func() error {
-			_, err := v.Client.ReEncrypt(t.Context(), connect.NewRequest(&vaultv1.ReEncryptRequest{
-				Keyring: "ring", Encrypted: "not-base64!",
+		{"reencrypt_bulk", connect.CodeUnauthenticated, func() error {
+			_, err := unauthenticated.ReEncryptBulk(t.Context(), connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+				Items: map[string]*vaultv1.DecryptRequest{
+					uid.New(uid.TestPrefix): {Keyring: "ring", Encrypted: "not-base64!"},
+				},
 			}))
 			return err
 		}},

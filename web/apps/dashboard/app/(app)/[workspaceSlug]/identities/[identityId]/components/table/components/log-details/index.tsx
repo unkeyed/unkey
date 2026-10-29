@@ -9,12 +9,11 @@ import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { toast } from "@unkey/ui";
 
 type Props = {
-  distanceToTop: number;
   selectedLog: IdentityLog | null;
   onLogSelect: (log: IdentityLog | null) => void;
 };
 
-export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
+export const IdentityDetailsDrawer = ({ onLogSelect, selectedLog }: Props) => {
   const { details, error, isLoading } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
     time: selectedLog?.time,
@@ -59,7 +58,7 @@ export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog 
   // log that has not been ingested yet. Rendering nothing here read as a dead
   // click and people clicked other rows to try again.
   if (isLoading) {
-    return <LogDetailsSkeleton distanceToTop={distanceToTop} onClose={handleClose} />;
+    return <LogDetailsSkeleton onClose={handleClose} />;
   }
 
   if (error || !details) {
@@ -67,17 +66,11 @@ export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog 
   }
 
   if (details.source === "gateway") {
-    return (
-      <GatewayRequestDetails
-        distanceToTop={distanceToTop}
-        log={details.log}
-        onClose={handleClose}
-      />
-    );
+    return <GatewayRequestDetails log={details.log} onClose={handleClose} />;
   }
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={details.log} onClose={handleClose}>
+    <LogDetails log={details.log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
       <LogDetails.Spacer />

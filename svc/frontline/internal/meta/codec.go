@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/unkeyed/unkey/pkg/paseto"
 )
@@ -20,10 +21,11 @@ type Codec struct {
 
 // Hop records one cross-region forward.
 type Hop struct {
-	Region        string `json:"region"`
-	RequestID     string `json:"request_id"`
-	FrontlineID   string `json:"frontline_id"`
-	TimeUnixMilli int64  `json:"time"`
+	Region         string `json:"region"`
+	RegionPlatform string `json:"region_platform,omitempty"`
+	RequestID      string `json:"request_id"`
+	FrontlineID    string `json:"frontline_id"`
+	TimeUnixMilli  int64  `json:"time"`
 }
 
 // Metadata is the trusted data sent between Frontline regions.
@@ -89,6 +91,17 @@ func (c *Codec) Unmarshal(token string) (*Metadata, error) {
 	message, err := c.verifier.Verify(token)
 	if err != nil {
 		return nil, fmt.Errorf("verify metadata: %w", err)
+	}
+
+	for i := range message.Payload.Hops {
+		hop := &message.Payload.Hops[i]
+		if hop.RegionPlatform != "" {
+			continue
+		}
+		platform, region, ok := strings.Cut(hop.Region, "::")
+		if ok && platform != "" && region != "" {
+			hop.RegionPlatform = region + "." + platform
+		}
 	}
 
 	return &message.Payload, nil

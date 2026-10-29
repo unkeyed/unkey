@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -197,6 +198,11 @@ type seedResult struct {
 // seed creates a workspace, key space, API, and key in the database.
 func (h *testHarness) seed(ctx context.Context) seedResult {
 	h.t.Helper()
+	return h.seedWithIPWhitelist(ctx, "")
+}
+
+func (h *testHarness) seedWithIPWhitelist(ctx context.Context, ipWhitelist string) seedResult {
+	h.t.Helper()
 
 	now := time.Now().UnixMilli()
 	wsID := uid.New("test_ws")
@@ -229,7 +235,7 @@ func (h *testHarness) seed(ctx context.Context) seedResult {
 		Name:        "test-api",
 		WorkspaceID: wsID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		IpWhitelist: sql.NullString{Valid: false},
+		IpWhitelist: sql.NullString{String: ipWhitelist, Valid: ipWhitelist != ""},
 		KeyAuthID:   sql.NullString{Valid: true, String: ksID},
 		CreatedAtM:  now,
 	})
@@ -413,6 +419,52 @@ func rateLimitPolicy(id string, limit int64, windowMs int64, identifier *frontli
 }
 
 // --- KeyAuth integration tests ---
+
+// TestKeyAuth_IPWhitelist prevents gateway authentication from bypassing the
+// stored keyspace allowlist, including when a peer has restored the client IP.
+func TestKeyAuth_IPWhitelist(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := t.Context()
+	s := h.seedWithIPWhitelist(ctx, "198.51.100.42,2001:db8::42")
+	for _, test := range []struct {
+		name, remoteAddr, restoredIP string
+		allowed                      bool
+	}{
+		{name: "unlisted", remoteAddr: "203.0.113.7:1234"},
+		{name: "allowed", remoteAddr: "198.51.100.42:1234", allowed: true},
+		{name: "missing address"},
+		{name: "allowed IPv6", remoteAddr: "[2001:db8::42]:1234", allowed: true},
+		{name: "unlisted IPv6", remoteAddr: "[2001:db8::43]:1234"},
+		{name: "restored allowed client", remoteAddr: "203.0.113.7:1234", restoredIP: "198.51.100.42", allowed: true},
+		{name: "restored unlisted client", remoteAddr: "198.51.100.42:1234", restoredIP: "203.0.113.7"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.RemoteAddr = test.remoteAddr
+			req.Header.Set("Authorization", "Bearer "+s.RawKey)
+			req.Header.Set("X-Forwarded-For", "198.51.100.42")
+			sess := newSession(t, req)
+			if test.restoredIP != "" {
+				ip, err := netip.ParseAddr(test.restoredIP)
+				require.NoError(t, err)
+				sess.SetClientIP(ip)
+			}
+			result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID,
+				[]*frontlinev1.Policy{keyAuthPolicy("auth", []string{s.KeySpaceID})})
+			if test.allowed {
+				require.NoError(t, err)
+				require.NotNil(t, result.Principal)
+				require.Equal(t, s.KeyID, result.Principal.Subject)
+			} else {
+				require.Error(t, err)
+				require.Nil(t, result.Principal)
+				code, ok := fault.GetCode(err)
+				require.True(t, ok)
+				require.Equal(t, codes.Frontline.Auth.InvalidKey.URN(), code)
+			}
+		})
+	}
+}
 
 func TestKeyAuth_ValidKey(t *testing.T) {
 	h := newTestHarness(t)

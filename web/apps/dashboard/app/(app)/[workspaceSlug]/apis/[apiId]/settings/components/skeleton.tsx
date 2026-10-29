@@ -1,14 +1,13 @@
 "use client";
 
-import { Skeleton } from "@unkey/ui";
+import { SettingsPageSkeleton } from "@unkey/ui";
 
-export const SettingsClientSkeleton = () => {
-  return (
-    <>
-      <Skeleton className="w-full h-[180px] rounded-lg" />
-      <Skeleton className="w-full h-[130px] rounded-lg" />
-      <Skeleton className="w-full h-[90px] rounded-lg" />
-      <Skeleton className="w-full h-[120px] rounded-lg" />
-    </>
-  );
-};
+export const SettingsClientSkeleton = () => (
+  <SettingsPageSkeleton
+    groups={[
+      { title: "General", rows: [{ descriptionLines: 2 }, {}, {}] },
+      { title: "Key defaults", rows: [{ descriptionLines: 2 }, { descriptionLines: 2 }] },
+    ]}
+    dangerZone={["w-16", "w-32"]}
+  />
+);

@@ -166,3 +166,51 @@ export function getInstanceEvents(ch: Querier) {
     return { eventsQuery: eventsQuery(args) };
   };
 }
+
+export const crashTimelineRequestSchema = z.object({
+  workspaceId: z.string(),
+  projectId: z.string(),
+  appId: z.string(),
+  environmentId: z.string(),
+  startTime: z.int(),
+  endTime: z.int(),
+  waitingReasons: z.array(z.string()),
+  perPodLimit: z.int(),
+  limit: z.int(),
+});
+
+export type CrashTimelineRequest = z.infer<typeof crashTimelineRequestSchema>;
+
+export const crashTimelineEvent = instanceEvent.pick({
+  time: true,
+  pod_name: true,
+  region: true,
+  deployment_id: true,
+  event_kind: true,
+  reason: true,
+  exit_code: true,
+  event_fingerprint: true,
+});
+
+export type CrashTimelineEvent = z.infer<typeof crashTimelineEvent>;
+
+export function getCrashTimeline(ch: Querier) {
+  return (args: CrashTimelineRequest) =>
+    ch.query({
+      query: `
+        SELECT time, pod_name, region, deployment_id, event_kind, reason, exit_code, event_fingerprint
+        FROM ${TABLE}
+        WHERE workspace_id = {workspaceId: String}
+          AND project_id = {projectId: String}
+          AND app_id = {appId: String}
+          AND environment_id = {environmentId: String}
+          AND time >= {startTime: UInt64}
+          AND time <= {endTime: UInt64}
+          AND (event_kind != 'waiting' OR reason IN {waitingReasons: Array(String)})
+        ORDER BY time DESC, event_fingerprint DESC
+        LIMIT {perPodLimit: Int} BY pod_name, region
+        LIMIT {limit: Int}`,
+      params: crashTimelineRequestSchema,
+      schema: crashTimelineEvent,
+    })(args);
+}

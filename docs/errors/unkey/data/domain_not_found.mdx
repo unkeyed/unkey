@@ -31,7 +31,7 @@ The custom domain you referenced isn't attached to your workspace. You get HTTP 
 ## Likely causes
 
 - The domain ID or name is wrong, or the domain was never added to this workspace.
-- Your root key doesn't have permission. `domains.getDomain`, `domains.deleteDomain`, and `domains.verifyDomain` return this 404 instead of a 403, so it's as likely a permission problem as a missing domain.
+- Your root key can't read the domain. `domains.getDomain`, `domains.deleteDomain`, and `domains.verifyDomain` return this 404 instead of a 403, so it's as likely a permission problem as a missing domain. A key that can read the domain but lacks the action gets a 403 [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions) that names the missing permission.
 
 Names are compared in lowercase and with Unicode converted to Punycode, so `MÜNCHEN.de` and `xn--mnchen-3ya.de` are the same domain.
 

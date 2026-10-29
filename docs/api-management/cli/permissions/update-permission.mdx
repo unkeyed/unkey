@@ -1,0 +1,107 @@
+---
+title: unkey permissions update
+sidebarTitle: "update"
+description: "Change a permission's name, slug, or description."
+sources:
+  - cmd/api/permissions/update_permission.go
+  - svc/api/openapi/spec/paths/v2/permissions/updatePermission/index.yaml
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import CLIOutput from "/snippets/cli-output.mdx";
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Update the name, slug, or description of a permission, identified by its ID or slug.
+
+Omitted fields keep their current values. A request with no fields to update returns the stored permission without a write.
+
+Important: Keys and roles reference the permission by ID, so they keep the permission after a slug change. Key verification can return the old slug for a short time while caches refresh. A slug that another permission in your workspace already uses returns 409.
+
+## Usage
+
+```bash
+unkey permissions update --permission=<permission> [flags]
+```
+
+## Flags
+
+<ParamField body="--description" type="string">
+  New description for the permission. Omit this field to keep the current description. Send null or an empty string to remove it. Pass `--description=` to remove it, or use `--body` with `description: null`.
+</ParamField>
+
+<ParamField body="--name" type="string">
+  New human-readable name for the permission. Omit this field to keep the current name.
+</ParamField>
+
+<ParamField body="--permission" type="string" required>
+  The permission to update. Pass the permission ID (`perm_...`) or its current slug.
+</ParamField>
+
+<ParamField body="--slug" type="string">
+  New slug for the permission. Keys and roles that have this permission get the new slug in verification responses. The slug must be unique in your workspace. Omit this field to keep the current slug.
+</ParamField>
+
+### Shared flags
+
+These flags control authentication, requests, and output. [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--body" type="string">
+  A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
+</ParamField>
+
+## Required permissions
+
+Your root key must have the following permission:
+
+- `unkey:v1:<workspace_id>:projects/<project_id>/rbac/permissions/<permission_id>#write`
+
+See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash
+unkey permissions update --permission=documents-read --name="Read documents" --slug=documents.read
+```
+
+```bash
+unkey permissions update --permission=documents.read --description=
+```
+
+Send the request body as JSON:
+
+```bash
+unkey permissions update --body='{"permission":"documents.read","description":null}'
+```
+
+## API endpoint
+
+The command calls `POST /v2/permissions.updatePermission` and prints its response. See the <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/openapi/spec/paths/v2/permissions/updatePermission/index.yaml" target="_blank">endpoint definition</a> for the HTTP contract. Request fields use camelCase in `--body`.

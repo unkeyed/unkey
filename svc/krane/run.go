@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	promclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
@@ -25,13 +23,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
-	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -89,12 +87,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.DeferCtx(shutdownGrafana)
 
-	reg := promclient.NewRegistry()
-	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
-	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	reg.MustRegister(prometheus.NewSystemMetricsCollector())
-	lazy.SetRegistry(reg)
+	prometheus.RegisterSystemMetrics()
 	buildinfometrics.Register("krane")
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
@@ -172,11 +165,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// Cache for deduplicating deployment status reports. Entries auto-expire
 	// so deleted workloads don't leak memory.
 	fingerprintCache, err := cache.New(cache.Config[string, string]{
-		Fresh:    5 * time.Minute,
-		Stale:    10 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "deployment_fingerprints",
-		Clock:    clock.New(),
+		Fresh:     5 * time.Minute,
+		Stale:     10 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "deployment_fingerprints",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
@@ -188,11 +182,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// is visible on every pod-watch tick until kubelet GCs the pod, so
 	// dedup must outlive the eviction grace period to be useful.
 	instanceEventDedupCache, err := cache.New(cache.Config[string, struct{}]{
-		Fresh:    1 * time.Hour,
-		Stale:    2 * time.Hour,
-		MaxSize:  100_000,
-		Resource: "instance_event_dedup",
-		Clock:    clock.New(),
+		Fresh:     1 * time.Hour,
+		Stale:     2 * time.Hour,
+		MaxSize:   100_000,
+		Resource:  "instance_event_dedup",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create instance event dedup cache: %w", err)
@@ -203,11 +198,12 @@ func Run(ctx context.Context, cfg Config) error {
 	// transition time). Entries auto-expire so deleted pods don't
 	// leak memory.
 	deploymentTransitionsCache, err := cache.New(cache.Config[string, time.Time]{
-		Fresh:    5 * time.Minute,
-		Stale:    15 * time.Minute,
-		MaxSize:  10_000,
-		Resource: "deployment_pod_transitions",
-		Clock:    clock.New(),
+		Fresh:     5 * time.Minute,
+		Stale:     15 * time.Minute,
+		MaxSize:   10_000,
+		Resource:  "deployment_pod_transitions",
+		Clock:     clock.New(),
+		Scheduler: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create deployment transitions cache: %w", err)
@@ -249,6 +245,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 		identity := uid.New(uid.InstancePrefix)
 		return runWithLeadership(ctx, leaseClient, namespace, identity, func(ctx context.Context) {
+			metrics.Leader.Set(1)
+			defer metrics.ResetLeaderGauges()
 			fingerprintCache.Clear(ctx)
 
 			var workers sync.WaitGroup
@@ -320,7 +318,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 
-		prom, err := prometheus.NewWithRegistry(reg)
+		prom, err := prometheus.New()
 		if err != nil {
 			return fmt.Errorf("failed to create prometheus server: %w", err)
 		}

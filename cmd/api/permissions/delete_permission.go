@@ -31,26 +31,24 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("permission", "The permission ID or slug to permanently delete.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			client, err := util.CreateClient(cmd)
+			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Permissions.DeletePermission, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2PermissionsDeletePermissionResponseBody)
+			req, err := util.RequestBody(cmd, components.V2PermissionsDeletePermissionRequestBody{Permission: cmd.String("permission")})
+			if err != nil {
+				return err
+			}
+			if err := util.Confirm(cmd, fmt.Sprintf("Delete permission %q from the workspace and all keys and roles?", req.Permission)); err != nil {
+				return err
 			}
 
-			res, err := client.Permissions.DeletePermission(ctx, components.V2PermissionsDeletePermissionRequestBody{
-				Permission: cmd.String("permission"),
-			})
+			res, err := client.Permissions.DeletePermission(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}

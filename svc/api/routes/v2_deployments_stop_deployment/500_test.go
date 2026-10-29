@@ -30,9 +30,8 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, restate)
 	h.Register(route)
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.stop_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, writeDeployments(setup.Workspace.ID))
 	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
 		WorkspaceID: setup.Workspace.ID,

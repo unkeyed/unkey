@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { renderApi } from "./art-api.mjs";
 import { renderCompute } from "./art-compute.mjs";
 import { renderEditorialBuild, renderEditorialWorkspace } from "./art-editorial.mjs";
@@ -14,6 +16,16 @@ const reviews = validateArtReview(
   [...cards.map((card) => card.id), "homepage--workspace"],
 );
 const approvedCards = cards.filter((card) => reviews.get(card.id).decision === "keep");
+
+test("card metadata matches the source cards and generated artwork", () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL("./card-art.mjs", import.meta.url)), "--check"]);
+});
+
+test("cards without a composition do not ship illustrations", () => {
+  for (const card of cards.filter((card) => card.scene === undefined)) {
+    assert.equal(reviews.get(card.id).decision, "remove", card.id);
+  }
+});
 
 test("art generation does not reattach illustrations to content cards", () => {
   const css = fs.readFileSync(new URL("../card-illustrations.css", import.meta.url), "utf8");
@@ -130,7 +142,7 @@ test("editorial overview artwork uses flat surfaces and monospace technical valu
       renderEditorialBuild(g),
       renderEditorialWorkspace(g),
       ...cards
-        .filter((card) => card.source === "api-management/index.mdx")
+        .filter((card) => card.source === "api-management/index.mdx" && card.scene !== undefined)
         .map((card) => renderApi(card, g)),
     ];
     for (const content of compositions) {
