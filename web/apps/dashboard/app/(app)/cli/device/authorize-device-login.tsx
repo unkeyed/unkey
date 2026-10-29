@@ -437,7 +437,6 @@ function PendingLogin({
       onStale();
     },
   });
-  // A redirect decision stays successful while the browser leaves the page.
   const approving = approve.isLoading || approve.isSuccess;
   const denying = deny.isLoading || deny.isSuccess;
   const busy = approving || denying;

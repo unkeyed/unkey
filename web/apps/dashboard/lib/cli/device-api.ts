@@ -40,8 +40,6 @@ export function parseDeviceLogin(response: DeviceLoginResponse): DeviceLogin {
   };
 }
 
-// The browser follows redirectTo blindly, so it must stay on the origin the
-// approver was shown before deciding.
 export function parseDecision(login: DeviceLogin, response: DecisionResponse): Decision {
   if (login.delivery === "device") {
     return { delivery: "device" };
