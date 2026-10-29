@@ -6,9 +6,12 @@ sources:
   - https://mcp.unkey.com/mcp/v2/install
   - https://mcp.unkey.com/mcp/compute/install
   - docs/platform/root-keys/overview.mdx
+  - svc/api/internal/oauth/oauth.go
+  - svc/api/routes/oauth_authorize/handler.go
+  - svc/api/internal/grant/service.go
 ---
 
-With an Unkey MCP server added, your assistant can create keys, check analytics, or roll back a deployment when you ask it to in chat. It calls the Unkey API for you, using a root key you provide.
+With an Unkey MCP server added, your assistant can create keys, check analytics, or roll back a deployment when you ask it to in chat. It calls the Unkey API for you, with the permissions you approve when you sign in.
 
 ## Choose a server
 
@@ -19,25 +22,48 @@ With an Unkey MCP server added, your assistant can create keys, check analytics,
 
 Add the Unkey server if you're not sure. If you only use Compute, the Compute server gives your assistant a shorter list of tools to choose from.
 
-## Create a root key
+## Sign in with Unkey
 
-The server acts with the permissions of the root key you give it, so create a key just for your assistant.
+Add the server URL to your client with no headers. Most clients take a JSON entry like this one:
+
+```json
+{
+  "mcpServers": {
+    "unkey": {
+      "url": "https://mcp.unkey.com/mcp/v2"
+    }
+  }
+}
+```
+
+The first time the client connects, it asks you to sign in:
+
+1. Approve the sign-in in your client. Your browser opens Unkey.
+2. Sign in to Unkey if you aren't already.
+3. Pick the workspace the assistant works in, and select only the permissions for what you want it to do. You can't grant more than your own role allows.
+4. Approve. The browser sends you back to your client, and the server connects.
+
+Your client keeps the session and renews it on its own, so you don't sign in again each time it starts. A session ends after 7 days without use, or 30 days after you signed in, and the client then asks you to sign in again.
+
+For steps in a specific client, see [Claude Code](/platform/ai-coding/claude-code), [Cursor](/platform/ai-coding/cursor), or [Other clients](/platform/ai-coding/other-clients). The [Unkey server's install page](https://mcp.unkey.com/mcp/v2/install) and the [Compute server's install page](https://mcp.unkey.com/mcp/compute/install) also list every tool and have snippets for each client.
+
+### See and revoke sessions
+
+Every sign-in shows up as a session in your workspace settings, on the **Sessions** page in the dashboard. Revoke a session there to disconnect that client. The next time it connects, it asks you to sign in again.
+
+## Use a root key instead
+
+Sign-in needs a browser, so use a root key for headless machines, CI, or any client that can't open one. The server acts with the permissions of the root key you give it, so create a key just for your assistant.
 
 1. Under **Root Keys** in the dashboard sidebar, click **New root key** and name it after the assistant, for example "Claude Code".
 2. Select only the permissions for what you want the assistant to do. See [Root key permissions](/platform/root-keys/permissions).
 3. Copy the key and store it as an environment variable, for example `UNKEY_ROOT_KEY`.
 
-See [Root keys](/platform/root-keys/overview) for how to rotate or delete the key later.
-
-## Connect your client
-
-Every client needs the server URL and one header with your root key:
+Then send the key in this header with every request. Both servers use the same header:
 
 ```text
 Mcp-Unkey-V2-Bearer: <your root key>
 ```
-
-Both servers use the same header. Most clients take a JSON entry like this one:
 
 ```json
 {
@@ -52,7 +78,7 @@ Both servers use the same header. Most clients take a JSON entry like this one:
 }
 ```
 
-For steps in a specific client, see [Claude Code](/platform/ai-coding/claude-code), [Cursor](/platform/ai-coding/cursor), or [Other clients](/platform/ai-coding/other-clients). The [Unkey server's install page](https://mcp.unkey.com/mcp/v2/install) and the [Compute server's install page](https://mcp.unkey.com/mcp/compute/install) also list every tool and have snippets for each client.
+See [Root keys](/platform/root-keys/overview) for how to rotate or delete the key later.
 
 ## Try it
 
@@ -78,6 +104,8 @@ Most clients ask you to approve each tool call. Read what the assistant is about
 
 ## Fix connection problems
 
+- **The browser doesn't open**: check your client's MCP status view for a sign-in prompt or link, and open it yourself. If the client can't sign in, [use a root key](#use-a-root-key-instead).
+- **The client asks you to sign in again**: the session was revoked or ended. Sign in again to start a new one.
 - **The provided root key is invalid**: the key in the header is wrong, deleted, or rotated. See [key_not_found](/errors/unkey/authentication/key_not_found).
-- **Missing permissions**: the root key can't do what the assistant tried. Add the permission to the key or ask for something else. See [insufficient_permissions](/errors/unkey/authorization/insufficient_permissions).
-- **The server doesn't connect**: check that the URL matches the table exactly, with no trailing slash, and that the header is named `Mcp-Unkey-V2-Bearer`. Restart your client after you edit its config.
+- **Missing permissions**: the session or root key can't do what the assistant tried. Sign in again and grant the permission, add it to the root key, or ask for something else. See [insufficient_permissions](/errors/unkey/authorization/insufficient_permissions).
+- **The server doesn't connect**: check that the URL matches the table exactly, with no trailing slash. With a root key, check that the header is named `Mcp-Unkey-V2-Bearer`. Restart your client after you edit its config.

@@ -8,9 +8,37 @@ sources:
   - https://code.claude.com/docs/en/mcp
 ---
 
-You need a root key for your assistant. See [Create a root key](/platform/ai-coding/mcp-servers#create-a-root-key).
-
 ## Add the Unkey server
+
+<Steps titleSize="h3">
+  <Step title="Add the server">
+    ```bash
+    claude mcp add --transport http unkey "https://mcp.unkey.com/mcp/v2"
+    ```
+
+    To add the Compute server instead, use its URL:
+
+    ```bash
+    claude mcp add --transport http unkey-compute "https://mcp.unkey.com/mcp/compute"
+    ```
+  </Step>
+  <Step title="Sign in with Unkey">
+    In a Claude Code session, run `/mcp`, select **unkey**, and choose to authenticate. Your browser opens Unkey. Pick the workspace and the permissions Claude Code gets, then approve. See [Sign in with Unkey](/platform/ai-coding/mcp-servers#sign-in-with-unkey).
+  </Step>
+  <Step title="Check the connection">
+    ```bash
+    claude mcp list
+    ```
+
+    The server shows **Connected**. Inside a session, `/mcp` shows its status and tools.
+  </Step>
+</Steps>
+
+The server is added for you in the current project. Add `--scope user` to use it in every project, or `--scope project` to save it to `.mcp.json` so your team gets it too. Each person signs in with their own Unkey account.
+
+## Use a root key instead
+
+For CI or a machine without a browser, send a root key in a header instead of signing in. See [Use a root key instead](/platform/ai-coding/mcp-servers#use-a-root-key-instead) to create one.
 
 <Steps titleSize="h3">
   <Step title="Set your root key">
@@ -20,31 +48,15 @@ You need a root key for your assistant. See [Create a root key](/platform/ai-cod
     export UNKEY_ROOT_KEY="unkey_..."
     ```
   </Step>
-  <Step title="Add the server">
+  <Step title="Add the server with the header">
     ```bash
     claude mcp add --transport http unkey "https://mcp.unkey.com/mcp/v2" \
       --header 'Mcp-Unkey-V2-Bearer:${UNKEY_ROOT_KEY}'
     ```
 
     Keep the single quotes. Claude Code saves `${UNKEY_ROOT_KEY}` as written and reads the variable each time it connects, so the key isn't stored in its config.
-
-    To add the Compute server instead, use its URL:
-
-    ```bash
-    claude mcp add --transport http unkey-compute "https://mcp.unkey.com/mcp/compute" \
-      --header 'Mcp-Unkey-V2-Bearer:${UNKEY_ROOT_KEY}'
-    ```
-  </Step>
-  <Step title="Check the connection">
-    ```bash
-    claude mcp list
-    ```
-
-    The server shows **Connected**. Inside a session, run `/mcp` to see its status and tools.
   </Step>
 </Steps>
-
-The server is added for you in the current project. Add `--scope user` to use it in every project, or `--scope project` to save it to `.mcp.json` so your team gets it too. Each person then sets `UNKEY_ROOT_KEY` to their own key.
 
 ## Add the docs
 
