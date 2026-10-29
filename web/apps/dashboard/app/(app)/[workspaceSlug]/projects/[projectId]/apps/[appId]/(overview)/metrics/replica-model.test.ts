@@ -166,9 +166,8 @@ describe("replicaUsage", () => {
 
 describe("replicaSheetModel", () => {
   const row = (overrides: Partial<InstanceRow> = {}): InstanceRow => ({
-    instanceId: "ins_a",
+    presence: { kind: "live", instanceId: "ins_a", status: "running" },
     region: { name: "us-east-1" },
-    status: "running",
     role: "current",
     lastExit: null,
     deployment: { id: "d_new", source: null },
@@ -192,35 +191,40 @@ describe("replicaSheetModel", () => {
   });
 
   it("prefers the live row over the row it was opened with", () => {
-    const live = row({ status: "failed", region: { name: "eu-central-1" } });
+    const live = row({
+      presence: { kind: "live", instanceId: "ins_a", status: "failed" },
+      region: { name: "eu-central-1" },
+    });
     expect(replicaSheetModel({ ...base, instances: ready([live]) })).toEqual({
       name: "pod-a",
       region: "eu-central-1",
       status: "unhealthy",
       deployment: { id: "d_new", source: null },
       lastExit: null,
-      stopped: false,
       usage: loading,
     });
   });
 
   it("holds the opened row and marks it stopped once the instance is gone", () => {
-    const sheet = replicaSheetModel({ ...base, instances: ready([]) });
-    expect(sheet?.status).toBe("running");
-    expect(sheet?.stopped).toBe(true);
+    expect(replicaSheetModel({ ...base, instances: ready([]) })?.status).toBe("stopped");
   });
 
-  it("does not call an instance stopped while the list is loading or failed", () => {
-    expect(replicaSheetModel({ ...base, instances: loading })?.stopped).toBe(false);
-    expect(replicaSheetModel({ ...base, instances: failed() })?.stopped).toBe(false);
+  it("does not call a live instance stopped while the list is loading or failed", () => {
+    expect(replicaSheetModel({ ...base, instances: loading })?.status).toBe("running");
+    expect(replicaSheetModel({ ...base, instances: failed() })?.status).toBe("running");
+  });
+
+  it("calls a pod opened from history stopped before the list loads", () => {
+    const history = row({ presence: { kind: "stopped", lastSeenMs: 60_000 } });
+    const open = { environmentId: "env_prod", row: history };
+    expect(replicaSheetModel({ ...base, open, instances: loading })?.status).toBe("stopped");
   });
 });
 
 describe("openInstanceOf and podSetOf", () => {
   const row = (k8sName: string): InstanceRow => ({
-    instanceId: k8sName,
+    presence: { kind: "live", instanceId: k8sName, status: "running" },
     region: { name: "us-east-1" },
-    status: "running",
     role: "current",
     lastExit: null,
     deployment: { id: "d_new", source: null },

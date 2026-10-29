@@ -9,6 +9,7 @@ import {
   ResourceListContent,
   ResourceListItem,
   ResourceListRow,
+  TimestampInfo,
 } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
@@ -19,6 +20,7 @@ import {
   type LineTone,
   type LogsTarget,
   type UsageCell,
+  instanceIdsOf,
   instanceSrLabel,
 } from "./instances-model";
 
@@ -29,6 +31,7 @@ const TONE_TEXT: Record<LineTone, { name: string; status: string }> = {
   unhealthy: { name: "text-gray-12", status: "text-error-11" },
   previous: { name: "text-gray-12", status: "text-gray-11" },
   current: { name: "text-gray-12", status: "text-gray-11" },
+  stopped: { name: "text-gray-11", status: "text-gray-11" },
 };
 
 export function InstanceTable({
@@ -70,10 +73,17 @@ export function InstanceTable({
               >
                 <span className={cn("truncate text-xs", TONE_TEXT[tone].name)}>{instance.key}</span>
                 <span
-                  className={cn("truncate text-xs", TONE_TEXT[tone].status)}
+                  className={cn("flex min-w-0 gap-1 text-xs", TONE_TEXT[tone].status)}
                   title={instance.statusText}
                 >
-                  {instance.statusText}
+                  <span className="truncate">{instance.statusText}</span>
+                  {instance.presence.kind === "stopped" && (
+                    <TimestampInfo
+                      value={instance.presence.lastSeenMs}
+                      displayType="relative"
+                      className="relative truncate"
+                    />
+                  )}
                 </span>
                 <span className="flex min-w-0 items-center gap-1.5 text-xs text-gray-11">
                   <RegionFlag region={instance.region.name} shape="rect" size="xs" />
@@ -85,9 +95,10 @@ export function InstanceTable({
                   {tone === "unhealthy" && (
                     <Link
                       href={logsHref({
-                        deploymentId: instance.deployment.id,
-                        instanceId: instance.instanceId,
+                        deploymentIds: [instance.deployment.id],
+                        instanceIds: instanceIdsOf(instance),
                       })}
+                      aria-label={`Logs for ${instance.key}`}
                       className="relative rounded-sm text-xs text-gray-11 outline-none hover:text-gray-12 focus-visible:ring-1 focus-visible:ring-grayA-12"
                     >
                       Logs
