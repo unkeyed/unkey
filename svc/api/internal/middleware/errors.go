@@ -5,56 +5,95 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"syscall"
 
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	"go.opentelemetry.io/otel/trace"
 )
 
-// errorLogAttrs builds the structured attributes attached to every 5xx log
-// from this middleware. The goal is to give an on-call engineer enough
-// context to find the failing request in ClickHouse / wide-event logs
-// without having to grep around: workspace and request id pin the row,
-// http.* describes what was called, error.* (added by the logger's fault
-// handler) describes what went wrong.
-//
-// We deliberately don't include the request body — it can contain secrets
-// and is already redacted-and-logged by the wide-event request logger.
-// Key id / identity id are not available here (they live on KeyVerifier,
-// not zen.Session), but the request id lets you pivot to the wide event
-// that does carry them.
-func errorLogAttrs(s *zen.Session, err error, status int, urn codes.URN) []any {
-	workspaceID := ""
-	if principal, principalErr := s.GetPrincipal(); principalErr == nil {
-		workspaceID = principal.AuthorizedWorkspaceID
+func logRequestError(ctx context.Context, s *zen.Session, err, responseErr error) {
+	status := s.StatusCode()
+	if err == nil && responseErr == nil && status < http.StatusInternalServerError {
+		return
 	}
 
-	return []any{
+	urn, _ := fault.GetCode(err)
+	category, _ := fault.GetCategory(err)
+	clientCanceled := errors.Is(s.Request().Context().Err(), context.Canceled)
+	writeFailed := responseErr != nil && !(clientCanceled &&
+		(errors.Is(responseErr, context.Canceled) || errors.Is(responseErr, syscall.EPIPE) || errors.Is(responseErr, syscall.ECONNRESET)))
+	operational := status >= http.StatusInternalServerError || writeFailed || category == codes.CategoryPlatform ||
+		urn == codes.User.BadRequest.RequestTimeout.URN() ||
+		(urn == codes.User.BadRequest.ClientClosedRequest.URN() && !(clientCanceled && errors.Is(err, context.Canceled)))
+
+	var authorizationErr error
+	p, principalErr := s.GetPrincipal()
+	if principalErr == nil {
+		authorizationErr = principal.AuthorizationError(p)
+	}
+	code, parseErr := codes.ParseURN(urn)
+	security := status >= http.StatusBadRequest && (authorizationErr != nil || (parseErr == nil &&
+		(code.Category == codes.CategoryUnkeyAuthentication || code.Category == codes.CategoryUnkeyAuthorization)))
+	if !operational && !security {
+		return
+	}
+	if err == nil {
+		err = fault.New("API returned a server error", fault.Internal(s.InternalError()))
+	}
+	if urn == "" {
+		urn = codes.App.Internal.UnexpectedError.URN()
+	}
+
+	attrs := []any{
 		"error", err,
-		"workspaceId", workspaceID,
 		"requestId", s.RequestID(),
 		"code", string(urn),
+		"faultDomain", string(category),
+		"responseSource", "api",
 		"publicMessage", fault.UserFacingMessage(err),
 		slog.Group("http",
 			slog.String("method", s.Request().Method),
 			slog.String("path", s.Request().URL.Path),
-			slog.String("query", s.Request().URL.RawQuery),
 			slog.String("host", s.Request().Host),
 			slog.String("user_agent", s.UserAgent()),
 			slog.String("ip", s.Location()),
-			slog.String("referer", s.Request().Referer()),
 			slog.Int("status", status),
 		),
+	}
+	if principalErr == nil {
+		attrs = append(attrs,
+			"workspaceId", p.AuthorizedWorkspaceID,
+			"subjectId", p.Subject.ID,
+			"subjectType", string(p.Subject.Type),
+			"authType", string(p.Type),
+		)
+		if authorizationErr != nil {
+			attrs = append(attrs, "authorizationError", authorizationErr, "grantedPermissions", p.Permissions)
+		}
+	}
+	if spanContext := trace.SpanContextFromContext(ctx); spanContext.IsValid() {
+		attrs = append(attrs, "traceId", spanContext.TraceID().String(), "spanId", spanContext.SpanID().String())
+	}
+	if writeFailed {
+		attrs = append(attrs, "responseError", responseErr)
+	}
+	if operational {
+		slog.ErrorContext(ctx, "api error", append(attrs, "event", "api.request_error")...)
+	} else {
+		slog.InfoContext(ctx, "api security denial", append(attrs, "event", "api.security_denial")...)
 	}
 }
 
 // WithErrorHandling translates application and routing errors into HTTP responses.
 func WithErrorHandling() zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
-		return func(ctx context.Context, s *zen.Session) error {
+		return func(ctx context.Context, s *zen.Session) (responseErr error) {
 			err := next(ctx, s)
+			defer func() { logRequestError(ctx, s, err, responseErr) }()
 			if err == nil {
 				return nil
 			}
@@ -90,7 +129,6 @@ func WithErrorHandling() zen.Middleware {
 
 			code, parseErr := codes.ParseURN(urn)
 			if parseErr != nil {
-				logger.Error("failed to parse error code", "error", parseErr.Error())
 				code = codes.App.Internal.UnexpectedError
 			}
 			//nolint:exhaustive
@@ -413,11 +451,6 @@ func WithErrorHandling() zen.Middleware {
 
 			// Service Unavailable errors
 			case codes.UnkeyDataErrorsAnalyticsConnectionFailed:
-				logger.Error(
-					"analytics connection error",
-					errorLogAttrs(s, err, http.StatusServiceUnavailable, urn)...,
-				)
-
 				return s.ProblemJSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -436,10 +469,6 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyAppErrorsValidationAssertionFailed:
 				// Fall through to default 500 error
 			}
-
-			logger.Error("api error",
-				errorLogAttrs(s, err, http.StatusInternalServerError, urn)...,
-			)
 
 			return s.ProblemJSON(http.StatusInternalServerError, openapi.InternalServerErrorResponse{
 				Meta: openapi.Meta{
