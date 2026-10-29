@@ -3,6 +3,7 @@ package guidance
 import (
 	"context"
 	"fmt"
+	"io"
 	"maps"
 	"slices"
 	"strconv"
@@ -46,19 +47,25 @@ func (f *form) confirm(ctx context.Context, schema *Schema, values map[string]an
 }
 
 func (f *form) preview(schema *Schema, values map[string]any, path string) error {
-	preview := func() string {
-		var output strings.Builder
-		fmt.Fprintln(&output, reviewTitle(path))
-		writeReview(&output, "", reviewValue(schema, values, path), "  ")
-		output.WriteByte('\n')
-		return output.String()
-	}
 	if f.screen != nil {
-		f.screen.summary = preview
 		return nil
 	}
-	_, err := fmt.Fprint(f.out, preview())
+	_, err := io.WriteString(f.out, summary(palette{color: false, accent: ""}, schema, values, path))
 	return err
+}
+
+// show keeps the request summary above the active prompt until the returned function runs.
+func (f *form) show(schema *Schema, values map[string]any, path string) func() {
+	return f.section(path, func(p palette) string { return summary(p, schema, values, path) })
+}
+
+func (f *form) section(path string, render func(palette) string) func() {
+	if f.screen == nil || slices.ContainsFunc(f.screen.sections, func(s section) bool { return s.path == path }) {
+		return func() {}
+	}
+	count := len(f.screen.sections)
+	f.screen.sections = append(f.screen.sections, section{path: path, render: render})
+	return func() { f.screen.sections = f.screen.sections[:count] }
 }
 
 func (f *form) review(ctx context.Context, schema *Schema, values map[string]any, path string, needsChanges bool) error {
@@ -66,6 +73,9 @@ func (f *form) review(ctx context.Context, schema *Schema, values map[string]any
 	schema, err := f.variant(schema, values, path)
 	if err != nil {
 		return err
+	}
+	if path != "" {
+		defer f.show(configuration, values, path)()
 	}
 	for {
 		if err := ctx.Err(); err != nil {
@@ -97,7 +107,7 @@ func (f *form) review(ctx context.Context, schema *Schema, values map[string]any
 		if len(configuration.Alternatives) > 0 {
 			options = append(options, prompt.SelectOption{Key: "configuration", Label: "Change configuration"})
 		}
-		name, err := f.prompt.SelectOrdered("Next", options)
+		name, err := f.prompt.SelectOrdered("Edit or continue", options)
 		if err != nil || name == "done" {
 			return err
 		}
@@ -281,42 +291,45 @@ func (f *form) editList(ctx context.Context, schema *Schema, values []any, path 
 	}
 }
 
-func reviewTitle(path string) string {
-	if path == "" {
-		return "Review request"
+func summary(p palette, schema *Schema, values map[string]any, path string) string {
+	fields, ok := reviewValue(schema, values, path).(map[string]any)
+	if !ok || len(fields) == 0 {
+		return ""
 	}
-	return "Review " + label(path)
+	var output strings.Builder
+	indent := ""
+	if path != "" {
+		output.WriteString(p.bold(label(path)) + "\n")
+		indent = "  "
+	}
+	for _, name := range orderedNames(slices.Collect(maps.Keys(fields))) {
+		writeSummary(&output, p, p.done("✓")+" "+p.bold(labelPart(name)), fields[name], indent, indent+"    ")
+	}
+	return output.String()
 }
 
-func writeReview(output *strings.Builder, name string, value any, indent string) {
-	prefix := indent + name
-	if name != "" {
-		prefix += ":"
-	}
+func writeSummary(output *strings.Builder, p palette, head string, value any, indent, children string) {
 	switch value := value.(type) {
 	case map[string]any:
 		if len(value) == 0 {
-			fmt.Fprintln(output, prefix, "(no fields)")
+			fmt.Fprintln(output, indent+head+p.separator()+p.hint("(no fields)"))
 			return
 		}
-		if name != "" {
-			fmt.Fprintln(output, prefix)
-			indent += "  "
-		}
+		fmt.Fprintln(output, indent+head+strings.TrimSpace(p.separator()))
 		for _, key := range slices.Sorted(maps.Keys(value)) {
-			writeReview(output, label(key), value[key], indent)
+			writeSummary(output, p, labelPart(key), value[key], children, children+"  ")
 		}
 	case []any:
 		if len(value) == 0 {
-			fmt.Fprintln(output, prefix, "(no items)")
+			fmt.Fprintln(output, indent+head+p.separator()+p.hint("(no items)"))
 			return
 		}
-		fmt.Fprintln(output, prefix)
+		fmt.Fprintln(output, indent+head+strings.TrimSpace(p.separator()))
 		for i, item := range value {
-			writeReview(output, fmt.Sprintf("Item %d", i+1), item, indent+"  ")
+			writeSummary(output, p, fmt.Sprintf("Item %d", i+1), item, children, children+"  ")
 		}
 	default:
-		fmt.Fprintln(output, prefix, reviewScalar(value))
+		fmt.Fprintln(output, indent+head+p.separator()+p.value(reviewScalar(value)))
 	}
 }
 
