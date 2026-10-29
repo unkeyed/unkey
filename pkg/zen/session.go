@@ -170,8 +170,12 @@ func (s *Session) SkipRequestLog() {
 	s.logRequestToClickHouse = false
 }
 
+// EnableRequestLog includes this request in ClickHouse, overriding SkipRequestLog.
+func (s *Session) EnableRequestLog() {
+	s.logRequestToClickHouse = true
+}
+
 // ShouldLogRequestToClickHouse returns whether this request should be logged to ClickHouse.
-// Returns true by default, false only if explicitly disabled.
 func (s *Session) ShouldLogRequestToClickHouse() bool {
 	return s.logRequestToClickHouse
 }

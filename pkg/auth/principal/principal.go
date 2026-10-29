@@ -1,10 +1,8 @@
 package principal
 
 import (
-	"log/slog"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 )
 
@@ -74,15 +72,6 @@ func (p *Principal) Authorize(query rbac.PermissionQuery) error {
 	err := rbac.Check(query, p.Permissions)
 	if err != nil {
 		p.authorizationError = err
-		logger.Warn("principal authorization denied",
-			slog.String("workspace_id", p.AuthorizedWorkspaceID),
-			slog.String("principal_type", string(p.Type)),
-			slog.String("subject_type", string(p.Subject.Type)),
-			slog.String("subject_id", p.Subject.ID),
-			slog.String("required_permissions", rbac.FormatPermissionQuery(query)),
-			slog.Any("granted_permissions", p.Permissions),
-			slog.Any("error", err),
-		)
 	}
 	return err
 }
