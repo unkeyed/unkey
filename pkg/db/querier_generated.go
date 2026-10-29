@@ -2936,10 +2936,16 @@ type Querier interface {
 	//        d.created_at <= (
 	//          SELECT c.created_at FROM `deployments` c
 	//          WHERE c.id = ? AND c.workspace_id = ?
+	//            AND (? = '' OR c.project_id = ?)
+	//            AND (? = '' OR c.app_id = ?)
+	//            AND (? = '' OR c.environment_id = ?)
 	//        )
 	//        AND (d.created_at, d.pk) <= (
 	//          SELECT c.created_at, c.pk FROM `deployments` c
 	//          WHERE c.id = ? AND c.workspace_id = ?
+	//            AND (? = '' OR c.project_id = ?)
+	//            AND (? = '' OR c.app_id = ?)
+	//            AND (? = '' OR c.environment_id = ?)
 	//        )
 	//      )
 	//    )
