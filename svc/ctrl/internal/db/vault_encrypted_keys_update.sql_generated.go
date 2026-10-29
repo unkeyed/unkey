@@ -7,61 +7,39 @@ package db
 
 import (
 	"context"
-	"encoding/json"
-	"strings"
 )
 
-const updateVaultEncryptedKeys = `-- name: UpdateVaultEncryptedKeys :execrows
+const updateVaultEncryptedKey = `-- name: UpdateVaultEncryptedKey :execrows
 UPDATE encrypted_keys
-SET encrypted = JSON_UNQUOTE(JSON_EXTRACT(
-        CAST(? AS JSON), CONCAT('$."', pk, '".ciphertext')
-    )),
-    encryption_key_id = JSON_UNQUOTE(JSON_EXTRACT(
-        CAST(? AS JSON), CONCAT('$."', pk, '".key_id')
-    ))
-WHERE pk IN (/*SLICE:pks*/?)
-  AND BINARY workspace_id = BINARY JSON_UNQUOTE(JSON_EXTRACT(
-      CAST(? AS JSON), CONCAT('$."', pk, '".keyring')
-  ))
+SET encrypted = ?,
+    encryption_key_id = ?
+WHERE pk = ?
+  AND workspace_id = ?
 `
 
-type UpdateVaultEncryptedKeysParams struct {
-	Updates   json.RawMessage `db:"updates"`
-	Updates_2 json.RawMessage `db:"updates_2"`
-	Pks       []uint64        `db:"pks"`
-	Updates_3 json.RawMessage `db:"updates_3"`
+type UpdateVaultEncryptedKeyParams struct {
+	Ciphertext string `db:"ciphertext"`
+	KeyID      string `db:"key_id"`
+	Pk         uint64 `db:"pk"`
+	Keyring    string `db:"keyring"`
 }
 
 // API key plaintext is immutable. The cron serializes re-encryption writes.
-// Each JSON entry is keyed by primary key and includes its workspace. UPDATE
-// preserves concurrent deletions, unlike a bulk upsert.
+// The bulk generator expands this update without inserting missing rows,
+// so keys deleted during re-encryption remain deleted.
 //
 //	UPDATE encrypted_keys
-//	SET encrypted = JSON_UNQUOTE(JSON_EXTRACT(
-//	        CAST(? AS JSON), CONCAT('$."', pk, '".ciphertext')
-//	    )),
-//	    encryption_key_id = JSON_UNQUOTE(JSON_EXTRACT(
-//	        CAST(? AS JSON), CONCAT('$."', pk, '".key_id')
-//	    ))
-//	WHERE pk IN (/*SLICE:pks*/?)
-//	  AND BINARY workspace_id = BINARY JSON_UNQUOTE(JSON_EXTRACT(
-//	      CAST(? AS JSON), CONCAT('$."', pk, '".keyring')
-//	  ))
-func (q *Queries) UpdateVaultEncryptedKeys(ctx context.Context, arg UpdateVaultEncryptedKeysParams) (int64, error) {
-	query := updateVaultEncryptedKeys
-	var queryParams []interface{}
-	queryParams = append(queryParams, arg.Updates)
-	queryParams = append(queryParams, arg.Updates_2)
-	if len(arg.Pks) > 0 {
-		for _, v := range arg.Pks {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:pks*/?", strings.Repeat(",?", len(arg.Pks))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:pks*/?", "NULL", 1)
-	}
-	queryParams = append(queryParams, arg.Updates_3)
-	result, err := q.db.ExecContext(ctx, query, queryParams...)
+//	SET encrypted = ?,
+//	    encryption_key_id = ?
+//	WHERE pk = ?
+//	  AND workspace_id = ?
+func (q *Queries) UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateVaultEncryptedKey,
+		arg.Ciphertext,
+		arg.KeyID,
+		arg.Pk,
+		arg.Keyring,
+	)
 	if err != nil {
 		return 0, err
 	}

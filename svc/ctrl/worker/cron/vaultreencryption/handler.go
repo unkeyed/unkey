@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -40,7 +42,11 @@ func New(cfg Config) (*Handler, error) {
 	); err != nil {
 		return nil, err
 	}
-	return &Handler{db: cfg.DB, vault: cfg.Vault, heartbeat: cfg.Heartbeat}, nil
+	return &Handler{
+		db:        cfg.DB,
+		vault:     cfg.Vault,
+		heartbeat: cfg.Heartbeat,
+	}, nil
 }
 
 // Re-encryption errors must not contain plaintext or ciphertext: Restate journals them.
@@ -48,21 +54,19 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 	if h.vault == nil {
 		return nil, restate.ToTerminalError(fmt.Errorf("Vault is not configured"))
 	}
+	tables := map[string]func(context.Context, cursor) (cursor, error){
+		"encrypted_keys":                h.encryptedKeys,
+		"app_environment_variables":     h.environmentVariables,
+		"deployments":                   h.deployments,
+		"logdrains":                     h.logdrains,
+		"certificates":                  h.certificates,
+		"shared_secrets":                h.sharedSecrets,
+		"clickhouse_workspace_settings": h.clickhouseSettings,
+		"acme_users":                    h.acmeUsers,
+	}
 	var failures []error
-	for _, table := range []struct {
-		name          string
-		reencryptPage func(context.Context, cursor) (cursor, error)
-	}{
-		{name: "encrypted_keys", reencryptPage: h.encryptedKeys},
-		{name: "app_environment_variables", reencryptPage: h.environmentVariables},
-		{name: "deployments", reencryptPage: h.deployments},
-		{name: "logdrains", reencryptPage: h.logdrains},
-		{name: "certificates", reencryptPage: h.certificates},
-		{name: "shared_secrets", reencryptPage: h.sharedSecrets},
-		{name: "clickhouse_workspace_settings", reencryptPage: h.clickhouseSettings},
-		{name: "acme_users", reencryptPage: h.acmeUsers},
-	} {
-		after, err := restate.Get[cursor](ctx, table.name)
+	for _, table := range slices.Sorted(maps.Keys(tables)) {
+		after, err := restate.Get[cursor](ctx, table)
 		if err != nil {
 			return nil, err
 		}
@@ -70,14 +74,14 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 			next, err := restate.Run(ctx, func(rc restate.RunContext) (cursor, error) {
 				pageCtx, cancel := context.WithTimeout(rc, 30*time.Second)
 				defer cancel()
-				next, err := table.reencryptPage(pageCtx, after)
+				next, err := tables[table](pageCtx, after)
 				return next, restate.ToTerminalError(err)
-			}, restate.WithName(fmt.Sprintf("re-encrypt %s after %d", table.name, after.Pk)))
+			}, restate.WithName(fmt.Sprintf("re-encrypt %s after %d", table, after.Pk)))
 			if err != nil {
-				failures = append(failures, fmt.Errorf("%s: %s", table.name, err))
+				failures = append(failures, fmt.Errorf("%s: %s", table, err))
 				break
 			}
-			restate.Set(ctx, table.name, next)
+			restate.Set(ctx, table, next)
 			if next.Pk == 0 {
 				break
 			}

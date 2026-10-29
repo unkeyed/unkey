@@ -4,7 +4,7 @@ package db
 
 import "context"
 
-// BulkQuerier contains bulk insert methods.
+// BulkQuerier contains bulk write methods.
 type BulkQuerier interface {
 	InsertAcmeChallenges(ctx context.Context, args []InsertAcmeChallengeParams) error
 	InsertAcmeUsers(ctx context.Context, args []InsertAcmeUserParams) error
@@ -50,6 +50,7 @@ type BulkQuerier interface {
 	InsertProjects(ctx context.Context, args []InsertProjectParams) error
 	InsertRoles(ctx context.Context, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, args []InsertRolePermissionParams) error
+	UpdateVaultEncryptedKeys(ctx context.Context, args []UpdateVaultEncryptedKeyParams) (int64, error)
 	InsertWorkspaceBillings(ctx context.Context, args []InsertWorkspaceBillingParams) error
 	InsertWorkspaces(ctx context.Context, args []InsertWorkspaceParams) error
 }

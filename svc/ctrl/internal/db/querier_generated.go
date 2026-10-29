@@ -3052,83 +3052,77 @@ type Querier interface {
 	//    AND last_used_at < ?
 	UpdateUnkeyRootKeysLastUsed(ctx context.Context, arg UpdateUnkeyRootKeysLastUsedParams) error
 	// UpdateVaultAcmeUser preserves concurrent changes by matching the keyring and
-	// old ciphertext byte-for-byte, without changing ACME registration metadata.
+	// old ciphertext using column collations, without changing ACME registration metadata.
 	//
 	//  UPDATE acme_users
 	//  SET encrypted_key = ?
 	//  WHERE pk = ?
-	//    AND BINARY workspace_id = BINARY ?
-	//    AND BINARY encrypted_key = BINARY ?
+	//    AND workspace_id = ?
+	//    AND encrypted_key = ?
 	UpdateVaultAcmeUser(ctx context.Context, arg UpdateVaultAcmeUserParams) (int64, error)
 	// UpdateVaultCertificate preserves concurrent changes by matching the keyring
-	// and old ciphertext byte-for-byte, without changing certificate metadata.
+	// and old ciphertext using column collations, without changing certificate metadata.
 	//
 	//  UPDATE certificates
 	//  SET encrypted_private_key = ?
 	//  WHERE pk = ?
-	//    AND BINARY workspace_id = BINARY ?
-	//    AND BINARY encrypted_private_key = BINARY ?
+	//    AND workspace_id = ?
+	//    AND encrypted_private_key = ?
 	UpdateVaultCertificate(ctx context.Context, arg UpdateVaultCertificateParams) (int64, error)
 	// UpdateVaultClickhouseSetting preserves concurrent changes by matching the
-	// keyring and old ciphertext byte-for-byte, without changing query limits.
+	// keyring and old ciphertext using column collations, without changing query limits.
 	//
 	//  UPDATE clickhouse_workspace_settings
 	//  SET password_encrypted = ?
 	//  WHERE pk = ?
-	//    AND BINARY workspace_id = BINARY ?
-	//    AND BINARY password_encrypted = BINARY ?
+	//    AND workspace_id = ?
+	//    AND password_encrypted = ?
 	UpdateVaultClickhouseSetting(ctx context.Context, arg UpdateVaultClickhouseSettingParams) (int64, error)
 	// UpdateVaultDeployment preserves concurrent changes by matching the keyring
-	// and entire old blob byte-for-byte, without changing business metadata.
+	// using its column collation and the entire old blob, without changing business metadata.
 	//
 	//  UPDATE deployments
 	//  SET encrypted_environment_variables = ?
 	//  WHERE pk = ?
-	//    AND BINARY environment_id = BINARY ?
-	//    AND BINARY encrypted_environment_variables = BINARY ?
+	//    AND environment_id = ?
+	//    AND encrypted_environment_variables = ?
 	UpdateVaultDeployment(ctx context.Context, arg UpdateVaultDeploymentParams) (int64, error)
 	// API key plaintext is immutable. The cron serializes re-encryption writes.
-	// Each JSON entry is keyed by primary key and includes its workspace. UPDATE
-	// preserves concurrent deletions, unlike a bulk upsert.
+	// The bulk generator expands this update without inserting missing rows,
+	// so keys deleted during re-encryption remain deleted.
 	//
 	//  UPDATE encrypted_keys
-	//  SET encrypted = JSON_UNQUOTE(JSON_EXTRACT(
-	//          CAST(? AS JSON), CONCAT('$."', pk, '".ciphertext')
-	//      )),
-	//      encryption_key_id = JSON_UNQUOTE(JSON_EXTRACT(
-	//          CAST(? AS JSON), CONCAT('$."', pk, '".key_id')
-	//      ))
-	//  WHERE pk IN (/*SLICE:pks*/?)
-	//    AND BINARY workspace_id = BINARY JSON_UNQUOTE(JSON_EXTRACT(
-	//        CAST(? AS JSON), CONCAT('$."', pk, '".keyring')
-	//    ))
-	UpdateVaultEncryptedKeys(ctx context.Context, arg UpdateVaultEncryptedKeysParams) (int64, error)
+	//  SET encrypted = ?,
+	//      encryption_key_id = ?
+	//  WHERE pk = ?
+	//    AND workspace_id = ?
+	UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error)
 	// UpdateVaultEnvironmentVariable preserves concurrent changes by matching the
-	// keyring and old ciphertext byte-for-byte, without changing business metadata.
+	// keyring and old ciphertext using column collations, without changing business metadata.
 	//
 	//  UPDATE app_environment_variables
 	//  SET value = ?
 	//  WHERE pk = ?
-	//    AND BINARY environment_id = BINARY ?
-	//    AND BINARY value = BINARY ?
+	//    AND environment_id = ?
+	//    AND value = ?
 	UpdateVaultEnvironmentVariable(ctx context.Context, arg UpdateVaultEnvironmentVariableParams) (int64, error)
-	// UpdateVaultLogdrain preserves concurrent changes by matching the keyring and
-	// entire old config byte-for-byte, without changing lease or delivery metadata.
+	// UpdateVaultLogdrain preserves concurrent changes by matching the keyring using
+	// its column collation and the entire old config, without changing lease or delivery metadata.
 	//
 	//  UPDATE logdrains
 	//  SET config = ?
 	//  WHERE pk = ?
-	//    AND BINARY workspace_id = BINARY ?
-	//    AND BINARY config = BINARY ?
+	//    AND workspace_id = ?
+	//    AND config = ?
 	UpdateVaultLogdrain(ctx context.Context, arg UpdateVaultLogdrainParams) (int64, error)
 	// UpdateVaultSharedSecret atomically replaces ciphertext and encryption-key
-	// metadata only when the keyring and old ciphertext still match byte-for-byte.
+	// metadata only when the keyring and old ciphertext still match using column collations.
 	//
 	//  UPDATE shared_secrets
 	//  SET encrypted = ?, encryption_key_id = ?
 	//  WHERE pk = ?
-	//    AND BINARY workspace_id = BINARY ?
-	//    AND BINARY encrypted = BINARY ?
+	//    AND workspace_id = ?
+	//    AND encrypted = ?
 	UpdateVaultSharedSecret(ctx context.Context, arg UpdateVaultSharedSecretParams) (int64, error)
 	//UpdateWorkspaceBillingTier
 	//

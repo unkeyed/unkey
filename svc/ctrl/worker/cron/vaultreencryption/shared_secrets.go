@@ -11,7 +11,8 @@ import (
 
 func (h *Handler) sharedSecrets(ctx context.Context, after cursor) (cursor, error) {
 	rows, err := h.db.ListVaultSharedSecrets(ctx, db.ListVaultSharedSecretsParams{
-		AfterPk: after.Pk, Limit: batchSize,
+		AfterPk: after.Pk,
+		Limit:   batchSize,
 	})
 	if err != nil {
 		return after, fmt.Errorf("failed to list rows")
@@ -21,7 +22,10 @@ func (h *Handler) sharedSecrets(ctx context.Context, after cursor) (cursor, erro
 	}
 	items := make(map[string]*vaultv1.DecryptRequest, len(rows))
 	for _, row := range rows {
-		items[strconv.FormatUint(row.Pk, 10)] = &vaultv1.DecryptRequest{Keyring: row.Keyring, Encrypted: row.Ciphertext}
+		items[strconv.FormatUint(row.Pk, 10)] = &vaultv1.DecryptRequest{
+			Keyring:   row.Keyring,
+			Encrypted: row.Ciphertext,
+		}
 	}
 	res, err := h.vault.ReEncryptBulk(ctx, &vaultv1.ReEncryptBulkRequest{Items: items})
 	if err != nil {
@@ -36,8 +40,11 @@ func (h *Handler) sharedSecrets(ctx context.Context, after cursor) (cursor, erro
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
 		_, err := h.db.UpdateVaultSharedSecret(ctx, db.UpdateVaultSharedSecretParams{
-			Pk: row.Pk, Keyring: row.Keyring, CiphertextOld: row.Ciphertext,
-			Ciphertext: item.GetEncrypted(), KeyID: item.GetKeyId(),
+			Pk:            row.Pk,
+			Keyring:       row.Keyring,
+			CiphertextOld: row.Ciphertext,
+			Ciphertext:    item.GetEncrypted(),
+			KeyID:         item.GetKeyId(),
 		})
 		if err != nil {
 			return after, fmt.Errorf("failed to update pk %d", row.Pk)

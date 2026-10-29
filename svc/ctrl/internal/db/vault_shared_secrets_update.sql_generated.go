@@ -13,8 +13,8 @@ const updateVaultSharedSecret = `-- name: UpdateVaultSharedSecret :execrows
 UPDATE shared_secrets
 SET encrypted = ?, encryption_key_id = ?
 WHERE pk = ?
-  AND BINARY workspace_id = BINARY ?
-  AND BINARY encrypted = BINARY ?
+  AND workspace_id = ?
+  AND encrypted = ?
 `
 
 type UpdateVaultSharedSecretParams struct {
@@ -26,13 +26,13 @@ type UpdateVaultSharedSecretParams struct {
 }
 
 // UpdateVaultSharedSecret atomically replaces ciphertext and encryption-key
-// metadata only when the keyring and old ciphertext still match byte-for-byte.
+// metadata only when the keyring and old ciphertext still match using column collations.
 //
 //	UPDATE shared_secrets
 //	SET encrypted = ?, encryption_key_id = ?
 //	WHERE pk = ?
-//	  AND BINARY workspace_id = BINARY ?
-//	  AND BINARY encrypted = BINARY ?
+//	  AND workspace_id = ?
+//	  AND encrypted = ?
 func (q *Queries) UpdateVaultSharedSecret(ctx context.Context, arg UpdateVaultSharedSecretParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateVaultSharedSecret,
 		arg.Ciphertext,

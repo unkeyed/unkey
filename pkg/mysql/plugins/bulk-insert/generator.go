@@ -3,26 +3,29 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 )
 
-// Generator handles the generation of bulk insert functions.
+// Generator handles the generation of bulk write functions.
 type Generator struct {
 	options Options
 }
 
-// Options contains configuration for the bulk insert generator.
+// Options contains configuration for the bulk write generator.
 type Options struct {
-	Package                   string `json:"package"`
-	EmitMethodsWithDBArgument bool   `json:"emit_methods_with_db_argument"`
+	Package                   string   `json:"package"`
+	EmitMethodsWithDBArgument bool     `json:"emit_methods_with_db_argument"`
+	BulkUpdates               []string `json:"bulk_updates"`
 }
 
-// BulkFunction represents a bulk insert function signature.
+// BulkFunction represents a bulk write function signature.
 type BulkFunction struct {
 	Name         string
 	ParamsStruct string
+	ReturnsRows  bool
 }
 
 // NewGenerator creates a new Generator with default options.
@@ -31,6 +34,7 @@ func NewGenerator() *Generator {
 		options: Options{
 			Package:                   "db",
 			EmitMethodsWithDBArgument: true,
+			BulkUpdates:               nil,
 		},
 	}
 }
@@ -42,8 +46,9 @@ func (g *Generator) Configure(options []byte) error {
 	}
 
 	var raw struct {
-		Package                   *string `json:"package"`
-		EmitMethodsWithDBArgument *bool   `json:"emit_methods_with_db_argument"`
+		Package                   *string  `json:"package"`
+		EmitMethodsWithDBArgument *bool    `json:"emit_methods_with_db_argument"`
+		BulkUpdates               []string `json:"bulk_updates"`
 	}
 	if err := json.Unmarshal(options, &raw); err != nil {
 		return fmt.Errorf("parse bulk insert plugin options: %w", err)
@@ -55,19 +60,30 @@ func (g *Generator) Configure(options []byte) error {
 	if raw.EmitMethodsWithDBArgument != nil {
 		g.options.EmitMethodsWithDBArgument = *raw.EmitMethodsWithDBArgument
 	}
+	if raw.BulkUpdates != nil {
+		g.options.BulkUpdates = raw.BulkUpdates
+	}
 
 	return nil
 }
 
-// Generate processes the plugin request and generates bulk insert functions.
+// Generate processes the plugin request and generates bulk write functions.
 func (g *Generator) Generate(req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
 	var files []*plugin.File
 
 	// Collect all bulk functions for interface generation
 	var bulkFunctions []BulkFunction
 
-	// Generate bulk insert functions for each existing insert function
 	for _, query := range req.GetQueries() {
+		if slices.Contains(g.options.BulkUpdates, query.GetName()) {
+			file, signature, err := g.generateBulkUpdateFunction(query)
+			if err != nil {
+				return nil, fmt.Errorf("generate bulk update %s: %w", query.GetName(), err)
+			}
+			files = append(files, file)
+			bulkFunctions = append(bulkFunctions, signature)
+			continue
+		}
 		if !g.isInsertQuery(query) {
 			continue
 		}
@@ -88,6 +104,7 @@ func (g *Generator) Generate(req *plugin.GenerateRequest) (*plugin.GenerateRespo
 			bulkFunctions = append(bulkFunctions, BulkFunction{
 				Name:         bulkFunctionName,
 				ParamsStruct: fmt.Sprintf("%sParams", query.GetName()),
+				ReturnsRows:  false,
 			})
 		}
 	}
@@ -187,7 +204,7 @@ func (g *Generator) extractFieldNames(params []*plugin.Parameter) []string {
 	return fields
 }
 
-// generateInterfaceExtension generates an interface extension file with bulk insert methods.
+// generateInterfaceExtension generates an interface extension file with bulk write methods.
 func (g *Generator) generateInterfaceExtension(bulkFunctions []BulkFunction) *plugin.File {
 	content := g.generateInterfaceContent(bulkFunctions)
 	return &plugin.File{
@@ -205,14 +222,19 @@ func (g *Generator) generateInterfaceContent(bulkFunctions []BulkFunction) strin
 	content.WriteString("import \"context\"\n\n")
 
 	// Generate BulkQuerier interface
-	content.WriteString("// BulkQuerier contains bulk insert methods.\n")
+	content.WriteString("// BulkQuerier contains bulk write methods.\n")
 	content.WriteString("type BulkQuerier interface {\n")
 
 	for _, fn := range bulkFunctions {
 		if g.options.EmitMethodsWithDBArgument {
-			content.WriteString(fmt.Sprintf("\t%s(ctx context.Context, db DBTX, args []%s) error\n", fn.Name, fn.ParamsStruct))
+			content.WriteString(fmt.Sprintf("\t%s(ctx context.Context, db DBTX, args []%s)", fn.Name, fn.ParamsStruct))
 		} else {
-			content.WriteString(fmt.Sprintf("\t%s(ctx context.Context, args []%s) error\n", fn.Name, fn.ParamsStruct))
+			content.WriteString(fmt.Sprintf("\t%s(ctx context.Context, args []%s)", fn.Name, fn.ParamsStruct))
+		}
+		if fn.ReturnsRows {
+			content.WriteString(" (int64, error)\n")
+		} else {
+			content.WriteString(" error\n")
 		}
 	}
 

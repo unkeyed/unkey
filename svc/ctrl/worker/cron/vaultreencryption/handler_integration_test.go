@@ -2,6 +2,7 @@ package vaultreencryption_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"strconv"
@@ -39,26 +40,43 @@ func TestReEncryptionDrainsTablesAndPreservesPlaintext(t *testing.T) {
 	keyIDs := make([]string, 201)
 	for i := range keyIDs {
 		keyIDs[i] = uid.New(uid.KeyPrefix)
-		encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: keyIDs[i]})
+		encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+			Keyring: keyring,
+			Data:    keyIDs[i],
+		})
 		require.NoError(t, err)
 		require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
-			WorkspaceID: keyring, KeyID: keyIDs[i], Encrypted: encrypted.GetEncrypted(),
-			EncryptionKeyID: encrypted.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
+			WorkspaceID:     keyring,
+			KeyID:           keyIDs[i],
+			Encrypted:       encrypted.GetEncrypted(),
+			EncryptionKeyID: encrypted.GetKeyId(),
+			CreatedAt:       time.Now().UnixMilli(),
 		}))
 	}
-	shared, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "shared secret"})
+	shared, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+		Keyring: keyring,
+		Data:    "shared secret",
+	})
 	require.NoError(t, err)
 	for range 100 {
 		require.NoError(t, pkgdb.Query.InsertSharedSecret(t.Context(), database.RW(), pkgdb.InsertSharedSecretParams{
-			ID: uid.New(uid.TestPrefix), WorkspaceID: keyring, Encrypted: shared.GetEncrypted(),
-			EncryptionKeyID: shared.GetKeyId(), CreatedAt: time.Now().UnixMilli(), ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
+			ID:              uid.New(uid.TestPrefix),
+			WorkspaceID:     keyring,
+			Encrypted:       shared.GetEncrypted(),
+			EncryptionKeyID: shared.GetKeyId(),
+			CreatedAt:       time.Now().UnixMilli(),
+			ExpiresAt:       time.Now().Add(time.Hour).UnixMilli(),
 		}))
 	}
 	keyIDNew, err := testVault.CreateDEK(t.Context(), keyring)
 	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
 
-	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: database, Vault: client, Heartbeat: healthcheck.NewNoop()})
+	handler, err := vaultreencryption.New(vaultreencryption.Config{
+		DB:        database,
+		Vault:     client,
+		Heartbeat: healthcheck.NewNoop(),
+	})
 	require.NoError(t, err)
 	server := &cronService{handler: handler}
 	runtime := containers.Restate(t, hydrav1.NewCronServiceServer(server,
@@ -76,7 +94,10 @@ func TestReEncryptionDrainsTablesAndPreservesPlaintext(t *testing.T) {
 		stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
 		require.NoError(t, err)
 		require.Equal(t, keyIDNew, stored.EncryptionKeyID)
-		decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: stored.Encrypted})
+		decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+			Keyring:   keyring,
+			Encrypted: stored.Encrypted,
+		})
 		require.NoError(t, err)
 		require.Equal(t, keyID, decrypted.GetPlaintext())
 	}
@@ -89,7 +110,10 @@ func TestReEncryptionDrainsTablesAndPreservesPlaintext(t *testing.T) {
 		var envelope vaultv1.Encrypted
 		require.NoError(t, proto.Unmarshal(encoded, &envelope))
 		require.Equal(t, keyIDNew, envelope.GetEncryptionKeyId())
-		decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: secret.Ciphertext})
+		decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+			Keyring:   keyring,
+			Encrypted: secret.Ciphertext,
+		})
 		require.NoError(t, err)
 		require.Equal(t, "shared secret", decrypted.GetPlaintext())
 	}
@@ -103,8 +127,16 @@ func TestReEncryptionPaginatesConcurrentInserts(t *testing.T) {
 		rows    int
 		rotated bool
 	}{
-		{name: "short page", rows: 99, rotated: false},
-		{name: "full page", rows: 100, rotated: true},
+		{
+			name:    "short page",
+			rows:    99,
+			rotated: false,
+		},
+		{
+			name:    "full page",
+			rows:    100,
+			rotated: true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
@@ -113,12 +145,18 @@ func TestReEncryptionPaginatesConcurrentInserts(t *testing.T) {
 			testVault := vaulttestutil.StartTestVaultWithMemory(t)
 			client := vault.NewConnectVaultServiceClient(testVault.Client)
 			keyring := uid.New(uid.WorkspacePrefix)
-			encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "concurrent insert"})
+			encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+				Keyring: keyring,
+				Data:    "concurrent insert",
+			})
 			require.NoError(t, err)
 			for range tt.rows {
 				require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
-					WorkspaceID: keyring, KeyID: uid.New(uid.KeyPrefix), Encrypted: encrypted.GetEncrypted(),
-					EncryptionKeyID: encrypted.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
+					WorkspaceID:     keyring,
+					KeyID:           uid.New(uid.KeyPrefix),
+					Encrypted:       encrypted.GetEncrypted(),
+					EncryptionKeyID: encrypted.GetKeyId(),
+					CreatedAt:       time.Now().UnixMilli(),
 				}))
 			}
 			keyIDNew, err := testVault.CreateDEK(t.Context(), keyring)
@@ -129,11 +167,18 @@ func TestReEncryptionPaginatesConcurrentInserts(t *testing.T) {
 				VaultServiceClient: client,
 				database:           database,
 				key: pkgdb.InsertKeyEncryptionParams{
-					WorkspaceID: keyring, KeyID: keyIDLater, Encrypted: encrypted.GetEncrypted(),
-					EncryptionKeyID: encrypted.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
+					WorkspaceID:     keyring,
+					KeyID:           keyIDLater,
+					Encrypted:       encrypted.GetEncrypted(),
+					EncryptionKeyID: encrypted.GetKeyId(),
+					CreatedAt:       time.Now().UnixMilli(),
 				},
 			}
-			handler, err := vaultreencryption.New(vaultreencryption.Config{DB: database, Vault: concurrent, Heartbeat: healthcheck.NewNoop()})
+			handler, err := vaultreencryption.New(vaultreencryption.Config{
+				DB:        database,
+				Vault:     concurrent,
+				Heartbeat: healthcheck.NewNoop(),
+			})
 			require.NoError(t, err)
 			runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
 				restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),
@@ -154,7 +199,10 @@ func TestReEncryptionPaginatesConcurrentInserts(t *testing.T) {
 			stored, err = pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyIDLater)
 			require.NoError(t, err)
 			require.Equal(t, keyIDNew, stored.EncryptionKeyID)
-			decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: stored.Encrypted})
+			decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+				Keyring:   keyring,
+				Encrypted: stored.Encrypted,
+			})
 			require.NoError(t, err)
 			require.Equal(t, "concurrent insert", decrypted.GetPlaintext())
 		})
@@ -173,7 +221,10 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 	keysOld := make(map[string]string)
 	encrypt := func(keyring, plaintext string) string {
 		t.Helper()
-		res, encryptErr := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: plaintext})
+		res, encryptErr := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+			Keyring: keyring,
+			Data:    plaintext,
+		})
 		require.NoError(t, encryptErr)
 		keysOld[keyring] = res.GetKeyId()
 		return res.GetEncrypted()
@@ -181,8 +232,14 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 	now := time.Now().UnixMilli()
 	for _, kind := range []pkgdb.AppEnvironmentVariablesType{pkgdb.AppEnvironmentVariablesTypeRecoverable, pkgdb.AppEnvironmentVariablesTypeWriteonly} {
 		require.NoError(t, pkgdb.Query.InsertAppEnvironmentVariable(t.Context(), database.RW(), pkgdb.InsertAppEnvironmentVariableParams{
-			ID: uid.New(uid.TestPrefix), WorkspaceID: workspaceID, AppID: appID, EnvironmentID: environmentID,
-			EnvKey: string(kind), Type: kind, Value: encrypt(environmentID, string(kind)), CreatedAt: now,
+			ID:            uid.New(uid.TestPrefix),
+			WorkspaceID:   workspaceID,
+			AppID:         appID,
+			EnvironmentID: environmentID,
+			EnvKey:        string(kind),
+			Type:          kind,
+			Value:         encrypt(environmentID, string(kind)),
+			CreatedAt:     now,
 		}))
 	}
 	secrets := &ctrlv1.SecretsConfig{Secrets: map[string]string{
@@ -195,44 +252,84 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 	snapshot, err := protojson.Marshal(secrets)
 	require.NoError(t, err)
 	require.NoError(t, database.InsertDeployment(t.Context(), db.InsertDeploymentParams{
-		ID: uid.New(uid.DeploymentPrefix), K8sName: uid.New(uid.TestPrefix), WorkspaceID: workspaceID,
-		ProjectID: uid.New(uid.ProjectPrefix), AppID: appID, EnvironmentID: environmentID,
-		Source: db.DeploymentsSourceOci, EncryptedEnvironmentVariables: snapshot, SentinelConfig: []byte{},
-		Status: "failed", ShutdownSignal: db.DeploymentsShutdownSignalSIGTERM,
-		UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1, DeploymentTrigger: db.DeploymentsTriggerApi, CreatedAt: now,
+		ID:                            uid.New(uid.DeploymentPrefix),
+		K8sName:                       uid.New(uid.TestPrefix),
+		WorkspaceID:                   workspaceID,
+		ProjectID:                     uid.New(uid.ProjectPrefix),
+		AppID:                         appID,
+		EnvironmentID:                 environmentID,
+		Source:                        db.DeploymentsSourceOci,
+		EncryptedEnvironmentVariables: snapshot,
+		SentinelConfig:                []byte{},
+		Status:                        "failed",
+		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
+		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+		DeploymentTrigger:             db.DeploymentsTriggerApi,
+		CreatedAt:                     now,
 	}))
 	configs := []*logdrainv1.Config{
-		{Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
-			Url: "https://logs.example.com", Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON,
-			Headers: []*logdrainv1.HttpHeader{
-				{Name: "Authorization", EncryptedValue: encrypt(workspaceID, "bearer token")},
-				{Name: "X-Custom", EncryptedValue: encrypt(workspaceID, "custom value")},
-			},
-		}}, BatchSize: 37},
-		{Destination: &logdrainv1.Config_Axiom{Axiom: &logdrainv1.AxiomConfig{Dataset: "audit", EncryptedToken: encrypt(workspaceID, "axiom token")}}},
+		{
+			Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
+				Url:    "https://logs.example.com",
+				Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON,
+				Headers: []*logdrainv1.HttpHeader{
+					{
+						Name:           "Authorization",
+						EncryptedValue: encrypt(workspaceID, "bearer token"),
+					},
+					{
+						Name:           "X-Custom",
+						EncryptedValue: encrypt(workspaceID, "custom value"),
+					},
+				},
+			}},
+			BatchSize: 37,
+		},
+		{Destination: &logdrainv1.Config_Axiom{Axiom: &logdrainv1.AxiomConfig{
+			Dataset:        "audit",
+			EncryptedToken: encrypt(workspaceID, "axiom token"),
+		}}},
 	}
 	for _, config := range configs {
 		config.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 0x07})
 		encoded, marshalErr := proto.Marshal(config)
 		require.NoError(t, marshalErr)
 		require.NoError(t, pkgdb.Query.InsertLogdrain(t.Context(), database.RW(), pkgdb.InsertLogdrainParams{
-			ID: uid.New(uid.LogdrainPrefix), WorkspaceID: workspaceID, Name: "rotation test", Stream: pkgdb.LogdrainsStreamAuditLogs,
-			Config: encoded, CreatedAt: now,
+			ID:          uid.New(uid.LogdrainPrefix),
+			WorkspaceID: workspaceID,
+			Name:        "rotation test",
+			Stream:      pkgdb.LogdrainsStreamAuditLogs,
+			Config:      encoded,
+			CreatedAt:   now,
 		}))
 	}
 	require.NoError(t, database.InsertCertificate(t.Context(), db.InsertCertificateParams{
-		ID: uid.New(uid.TestPrefix), WorkspaceID: workspaceID, Hostname: "test.example.com", Certificate: "public certificate",
-		EncryptedPrivateKey: encrypt(workspaceID, "private key"), CreatedAt: now,
+		ID:                  uid.New(uid.TestPrefix),
+		WorkspaceID:         workspaceID,
+		Hostname:            "test.example.com",
+		Certificate:         "public certificate",
+		EncryptedPrivateKey: encrypt(workspaceID, "private key"),
+		CreatedAt:           now,
 	}))
 	require.NoError(t, database.InsertAcmeUser(t.Context(), db.InsertAcmeUserParams{
-		ID: uid.New(uid.TestPrefix), WorkspaceID: "acme", EncryptedKey: encrypt("acme", "account key"), CreatedAt: now,
+		ID:           uid.New(uid.TestPrefix),
+		WorkspaceID:  "acme",
+		EncryptedKey: encrypt("acme", "account key"),
+		CreatedAt:    now,
 	}))
 	require.NoError(t, pkgdb.Query.InsertClickhouseWorkspaceSettings(t.Context(), database.RW(), pkgdb.InsertClickhouseWorkspaceSettingsParams{
-		WorkspaceID: workspaceID, Username: uid.New(uid.TestPrefix), PasswordEncrypted: encrypt(workspaceID, "database password"), CreatedAt: now,
+		WorkspaceID:       workspaceID,
+		Username:          uid.New(uid.TestPrefix),
+		PasswordEncrypted: encrypt(workspaceID, "database password"),
+		CreatedAt:         now,
 	}))
 	require.NoError(t, pkgdb.Query.InsertSharedSecret(t.Context(), database.RW(), pkgdb.InsertSharedSecretParams{
-		ID: uid.New(uid.TestPrefix), WorkspaceID: workspaceID, Encrypted: encrypt(workspaceID, "one time secret"),
-		EncryptionKeyID: keysOld[workspaceID], CreatedAt: now, ExpiresAt: now + time.Hour.Milliseconds(),
+		ID:              uid.New(uid.TestPrefix),
+		WorkspaceID:     workspaceID,
+		Encrypted:       encrypt(workspaceID, "one time secret"),
+		EncryptionKeyID: keysOld[workspaceID],
+		CreatedAt:       now,
+		ExpiresAt:       now + time.Hour.Milliseconds(),
 	}))
 	keysNew := make(map[string]string)
 	for _, keyring := range []string{workspaceID, environmentID, "acme"} {
@@ -240,7 +337,11 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 		require.NoError(t, err)
 	}
 	testVault.Clock.Tick(25 * time.Hour)
-	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: database, Vault: client, Heartbeat: healthcheck.NewNoop()})
+	handler, err := vaultreencryption.New(vaultreencryption.Config{
+		DB:        database,
+		Vault:     client,
+		Heartbeat: healthcheck.NewNoop(),
+	})
 	require.NoError(t, err)
 	runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
 		restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),
@@ -257,12 +358,17 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 		var envelope vaultv1.Encrypted
 		require.NoError(t, proto.Unmarshal(encoded, &envelope))
 		require.Equal(t, keysNew[keyring], envelope.GetEncryptionKeyId())
-		decrypted, decryptErr := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: encrypted})
+		decrypted, decryptErr := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+			Keyring:   keyring,
+			Encrypted: encrypted,
+		})
 		require.NoError(t, decryptErr)
 		require.Equal(t, plaintext, decrypted.GetPlaintext())
 	}
 	variables, err := pkgdb.Query.ListAppEnvVarsByAppAndEnv(t.Context(), database.RW(), pkgdb.ListAppEnvVarsByAppAndEnvParams{
-		AppID: appID, EnvironmentID: environmentID, Limit: 10,
+		AppID:         appID,
+		EnvironmentID: environmentID,
+		Limit:         10,
 	})
 	require.NoError(t, err)
 	require.Len(t, variables, 2)
@@ -321,7 +427,10 @@ func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	client := vault.NewConnectVaultServiceClient(testVault.Client)
 	keyring := uid.New(uid.WorkspacePrefix)
-	encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "old ciphertext on the current DEK"})
+	encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+		Keyring: keyring,
+		Data:    "old ciphertext on the current DEK",
+	})
 	require.NoError(t, err)
 	encoded, err := base64.StdEncoding.DecodeString(encrypted.GetEncrypted())
 	require.NoError(t, err)
@@ -334,21 +443,34 @@ func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
 	ciphertextOld := base64.StdEncoding.EncodeToString(encoded)
 	keyID := uid.New(uid.KeyPrefix)
 	require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
-		WorkspaceID: keyring, KeyID: keyID, Encrypted: ciphertextOld, EncryptionKeyID: encrypted.GetKeyId(),
-		CreatedAt: envelope.GetTime(),
+		WorkspaceID:     keyring,
+		KeyID:           keyID,
+		Encrypted:       ciphertextOld,
+		EncryptionKeyID: encrypted.GetKeyId(),
+		CreatedAt:       envelope.GetTime(),
 	}))
 	keyringRecent := uid.New(uid.WorkspacePrefix)
-	recent, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyringRecent, Data: "recent ciphertext"})
+	recent, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+		Keyring: keyringRecent,
+		Data:    "recent ciphertext",
+	})
 	require.NoError(t, err)
 	keyIDRecent := uid.New(uid.KeyPrefix)
 	require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
-		WorkspaceID: keyringRecent, KeyID: keyIDRecent, Encrypted: recent.GetEncrypted(), EncryptionKeyID: recent.GetKeyId(),
-		CreatedAt: time.Now().UnixMilli(),
+		WorkspaceID:     keyringRecent,
+		KeyID:           keyIDRecent,
+		Encrypted:       recent.GetEncrypted(),
+		EncryptionKeyID: recent.GetKeyId(),
+		CreatedAt:       time.Now().UnixMilli(),
 	}))
 	keyIDRecentNew, err := testVault.CreateDEK(t.Context(), keyringRecent)
 	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
-	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: database, Vault: client, Heartbeat: healthcheck.NewNoop()})
+	handler, err := vaultreencryption.New(vaultreencryption.Config{
+		DB:        database,
+		Vault:     client,
+		Heartbeat: healthcheck.NewNoop(),
+	})
 	require.NoError(t, err)
 	runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
 		restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),
@@ -359,13 +481,19 @@ func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
 	stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
 	require.NoError(t, err)
 	require.Equal(t, encrypted.GetKeyId(), stored.EncryptionKeyID)
-	decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: stored.Encrypted})
+	decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   keyring,
+		Encrypted: stored.Encrypted,
+	})
 	require.NoError(t, err)
 	require.Equal(t, "old ciphertext on the current DEK", decrypted.GetPlaintext())
 	storedRecent, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyIDRecent)
 	require.NoError(t, err)
 	require.Equal(t, keyIDRecentNew, storedRecent.EncryptionKeyID)
-	decrypted, err = client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyringRecent, Encrypted: storedRecent.Encrypted})
+	decrypted, err = client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   keyringRecent,
+		Encrypted: storedRecent.Encrypted,
+	})
 	require.NoError(t, err)
 	require.Equal(t, "recent ciphertext", decrypted.GetPlaintext())
 
@@ -377,13 +505,19 @@ func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
 	stored, err = pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
 	require.NoError(t, err)
 	require.Equal(t, keyIDNew, stored.EncryptionKeyID)
-	decrypted, err = client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: stored.Encrypted})
+	decrypted, err = client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   keyring,
+		Encrypted: stored.Encrypted,
+	})
 	require.NoError(t, err)
 	require.Equal(t, "old ciphertext on the current DEK", decrypted.GetPlaintext())
 	storedRecentAgain, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyIDRecent)
 	require.NoError(t, err)
 	require.Equal(t, keyIDRecentNew, storedRecentAgain.EncryptionKeyID)
-	decrypted, err = client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyringRecent, Encrypted: storedRecentAgain.Encrypted})
+	decrypted, err = client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   keyringRecent,
+		Encrypted: storedRecentAgain.Encrypted,
+	})
 	require.NoError(t, err)
 	require.Equal(t, "recent ciphertext", decrypted.GetPlaintext())
 }
@@ -395,11 +529,17 @@ func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	client := vault.NewConnectVaultServiceClient(testVault.Client)
 	keyringOld := uid.New(uid.WorkspacePrefix)
-	old, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyringOld, Data: "beyond the first batch"})
+	old, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+		Keyring: keyringOld,
+		Data:    "beyond the first batch",
+	})
 	require.NoError(t, err)
 	keyID := uid.New(uid.KeyPrefix)
 	keyring := uid.New(uid.WorkspacePrefix)
-	current, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "current"})
+	current, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+		Keyring: keyring,
+		Data:    "current",
+	})
 	require.NoError(t, err)
 	keys := make([]string, 100)
 	for i := range keys {
@@ -409,18 +549,28 @@ func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
 			ciphertext = "invalid-base64"
 		}
 		require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
-			WorkspaceID: keyring, KeyID: keys[i], Encrypted: ciphertext,
-			EncryptionKeyID: current.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
+			WorkspaceID:     keyring,
+			KeyID:           keys[i],
+			Encrypted:       ciphertext,
+			EncryptionKeyID: current.GetKeyId(),
+			CreatedAt:       time.Now().UnixMilli(),
 		}))
 	}
 	require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
-		WorkspaceID: keyringOld, KeyID: keyID, Encrypted: old.GetEncrypted(),
-		EncryptionKeyID: old.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
+		WorkspaceID:     keyringOld,
+		KeyID:           keyID,
+		Encrypted:       old.GetEncrypted(),
+		EncryptionKeyID: old.GetKeyId(),
+		CreatedAt:       time.Now().UnixMilli(),
 	}))
 	_, err = testVault.CreateDEK(t.Context(), keyringOld)
 	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
-	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: database, Vault: client, Heartbeat: healthcheck.NewNoop()})
+	handler, err := vaultreencryption.New(vaultreencryption.Config{
+		DB:        database,
+		Vault:     client,
+		Heartbeat: healthcheck.NewNoop(),
+	})
 	require.NoError(t, err)
 	runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
 		restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),
@@ -445,29 +595,44 @@ func TestReEncryptionRetriesFailedBulkWriteAndContinuesOtherTables(t *testing.T)
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	client := vault.NewConnectVaultServiceClient(testVault.Client)
 	keyring := uid.New(uid.WorkspacePrefix)
-	encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "recoverable key"})
+	encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+		Keyring: keyring,
+		Data:    "recoverable key",
+	})
 	require.NoError(t, err)
 	keys := make([]string, 3)
 	for i := range keys {
 		keys[i] = uid.New(uid.KeyPrefix)
 		require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
-			WorkspaceID: keyring, KeyID: keys[i], Encrypted: encrypted.GetEncrypted(),
-			EncryptionKeyID: encrypted.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
+			WorkspaceID:     keyring,
+			KeyID:           keys[i],
+			Encrypted:       encrypted.GetEncrypted(),
+			EncryptionKeyID: encrypted.GetKeyId(),
+			CreatedAt:       time.Now().UnixMilli(),
 		}))
 	}
 	failing := &failingKeyWriteDB{
 		Database: database,
+		DBTX:     database.RW(),
 		err:      fmt.Errorf("write failed for ciphertext %s", encrypted.GetEncrypted()),
 	}
 	failing.enabled.Store(true)
 	require.NoError(t, pkgdb.Query.InsertSharedSecret(t.Context(), database.RW(), pkgdb.InsertSharedSecretParams{
-		ID: uid.New(uid.TestPrefix), WorkspaceID: keyring, Encrypted: encrypted.GetEncrypted(),
-		EncryptionKeyID: encrypted.GetKeyId(), CreatedAt: time.Now().UnixMilli(), ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
+		ID:              uid.New(uid.TestPrefix),
+		WorkspaceID:     keyring,
+		Encrypted:       encrypted.GetEncrypted(),
+		EncryptionKeyID: encrypted.GetKeyId(),
+		CreatedAt:       time.Now().UnixMilli(),
+		ExpiresAt:       time.Now().Add(time.Hour).UnixMilli(),
 	}))
 	keyIDNew, err := testVault.CreateDEK(t.Context(), keyring)
 	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
-	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: failing, Vault: client, Heartbeat: healthcheck.NewNoop()})
+	handler, err := vaultreencryption.New(vaultreencryption.Config{
+		DB:        failing,
+		Vault:     client,
+		Heartbeat: healthcheck.NewNoop(),
+	})
 	require.NoError(t, err)
 	runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
 		restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),
@@ -494,7 +659,10 @@ func TestReEncryptionRetriesFailedBulkWriteAndContinuesOtherTables(t *testing.T)
 		stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
 		require.NoError(t, err)
 		require.Equal(t, keyIDNew, stored.EncryptionKeyID)
-		decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: stored.Encrypted})
+		decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+			Keyring:   keyring,
+			Encrypted: stored.Encrypted,
+		})
 		require.NoError(t, err)
 		require.Equal(t, "recoverable key", decrypted.GetPlaintext())
 	}
@@ -502,15 +670,20 @@ func TestReEncryptionRetriesFailedBulkWriteAndContinuesOtherTables(t *testing.T)
 
 type failingKeyWriteDB struct {
 	db.Database
+	db.DBTX
 	err     error
 	enabled atomic.Bool
 }
 
-func (d *failingKeyWriteDB) UpdateVaultEncryptedKeys(ctx context.Context, params db.UpdateVaultEncryptedKeysParams) (int64, error) {
+func (d *failingKeyWriteDB) Bulk() *db.BulkQueries {
+	return db.NewBulkQueries(d)
+}
+
+func (d *failingKeyWriteDB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	if d.enabled.Load() {
-		return 0, d.err
+		return nil, d.err
 	}
-	return d.Database.UpdateVaultEncryptedKeys(ctx, params)
+	return d.DBTX.ExecContext(ctx, query, args...)
 }
 
 // Renewal can commit while Vault processes the old private key. The sweep must
@@ -522,22 +695,40 @@ func TestReEncryptionPreservesConcurrentCertificateRenewal(t *testing.T) {
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
 	client := vault.NewConnectVaultServiceClient(testVault.Client)
 	keyring := uid.New(uid.WorkspacePrefix)
-	old, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "old private key"})
+	old, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+		Keyring: keyring,
+		Data:    "old private key",
+	})
 	require.NoError(t, err)
 	certificate := db.InsertCertificateParams{
-		ID: uid.New(uid.CertificatePrefix), WorkspaceID: keyring, Hostname: "renewal.example.com",
-		Certificate: "old public certificate", EncryptedPrivateKey: old.GetEncrypted(), CreatedAt: time.Now().UnixMilli(),
+		ID:                  uid.New(uid.CertificatePrefix),
+		WorkspaceID:         keyring,
+		Hostname:            "renewal.example.com",
+		Certificate:         "old public certificate",
+		EncryptedPrivateKey: old.GetEncrypted(),
+		CreatedAt:           time.Now().UnixMilli(),
 	}
 	require.NoError(t, database.InsertCertificate(t.Context(), certificate))
-	renewed, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "renewed private key"})
+	renewed, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+		Keyring: keyring,
+		Data:    "renewed private key",
+	})
 	require.NoError(t, err)
 	_, err = testVault.CreateDEK(t.Context(), keyring)
 	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
 	certificate.Certificate = "renewed public certificate"
 	certificate.EncryptedPrivateKey = renewed.GetEncrypted()
-	concurrent := &renewingVault{VaultServiceClient: client, database: database, certificate: certificate}
-	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: database, Vault: concurrent, Heartbeat: healthcheck.NewNoop()})
+	concurrent := &renewingVault{
+		VaultServiceClient: client,
+		database:           database,
+		certificate:        certificate,
+	}
+	handler, err := vaultreencryption.New(vaultreencryption.Config{
+		DB:        database,
+		Vault:     concurrent,
+		Heartbeat: healthcheck.NewNoop(),
+	})
 	require.NoError(t, err)
 	runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
 		restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),
@@ -549,7 +740,10 @@ func TestReEncryptionPreservesConcurrentCertificateRenewal(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, certificate.Certificate, stored.Certificate)
 	require.Equal(t, renewed.GetEncrypted(), stored.EncryptedPrivateKey)
-	decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: stored.EncryptedPrivateKey})
+	decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+		Keyring:   keyring,
+		Encrypted: stored.EncryptedPrivateKey,
+	})
 	require.NoError(t, err)
 	require.Equal(t, "renewed private key", decrypted.GetPlaintext())
 }
@@ -588,7 +782,10 @@ func TestReEncryptionWithoutVaultFailsAtInvocationNotStartup(t *testing.T) {
 	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
-	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: database, Heartbeat: healthcheck.NewNoop()})
+	handler, err := vaultreencryption.New(vaultreencryption.Config{
+		DB:        database,
+		Heartbeat: healthcheck.NewNoop(),
+	})
 	require.NoError(t, err)
 	runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
 		restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),

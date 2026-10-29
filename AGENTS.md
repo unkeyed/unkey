@@ -152,6 +152,8 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 ## Go conventions
 
+- Put each struct field on its own line in declarations and literals, including
+  tests. Never put multiple struct fields on the same line.
 - Build Go through `mise run build` and test Go through Rask with
   `mise run test` or `mise exec -- rask ./path`.
 - Use `mise exec -- go test` for targeted fuzzing, which needs Go's fuzz runner.

@@ -13,8 +13,8 @@ const updateVaultCertificate = `-- name: UpdateVaultCertificate :execrows
 UPDATE certificates
 SET encrypted_private_key = ?
 WHERE pk = ?
-  AND BINARY workspace_id = BINARY ?
-  AND BINARY encrypted_private_key = BINARY ?
+  AND workspace_id = ?
+  AND encrypted_private_key = ?
 `
 
 type UpdateVaultCertificateParams struct {
@@ -25,13 +25,13 @@ type UpdateVaultCertificateParams struct {
 }
 
 // UpdateVaultCertificate preserves concurrent changes by matching the keyring
-// and old ciphertext byte-for-byte, without changing certificate metadata.
+// and old ciphertext using column collations, without changing certificate metadata.
 //
 //	UPDATE certificates
 //	SET encrypted_private_key = ?
 //	WHERE pk = ?
-//	  AND BINARY workspace_id = BINARY ?
-//	  AND BINARY encrypted_private_key = BINARY ?
+//	  AND workspace_id = ?
+//	  AND encrypted_private_key = ?
 func (q *Queries) UpdateVaultCertificate(ctx context.Context, arg UpdateVaultCertificateParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateVaultCertificate,
 		arg.Ciphertext,

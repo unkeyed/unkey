@@ -70,7 +70,10 @@ func (h *Handler) reencryptValues(ctx context.Context, keyring string, values []
 	for chunk := range slices.Chunk(values, batchSize) {
 		items := make(map[string]*vaultv1.DecryptRequest, len(chunk))
 		for i, value := range chunk {
-			items[strconv.Itoa(i)] = &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: *value}
+			items[strconv.Itoa(i)] = &vaultv1.DecryptRequest{
+				Keyring:   keyring,
+				Encrypted: *value,
+			}
 		}
 		res, err := h.vault.ReEncryptBulk(ctx, &vaultv1.ReEncryptBulkRequest{Items: items})
 		if err != nil {

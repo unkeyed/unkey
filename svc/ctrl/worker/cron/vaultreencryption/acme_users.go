@@ -11,7 +11,8 @@ import (
 
 func (h *Handler) acmeUsers(ctx context.Context, after cursor) (cursor, error) {
 	rows, err := h.db.ListVaultAcmeUsers(ctx, db.ListVaultAcmeUsersParams{
-		AfterPk: after.Pk, Limit: batchSize,
+		AfterPk: after.Pk,
+		Limit:   batchSize,
 	})
 	if err != nil {
 		return after, fmt.Errorf("failed to list rows")
@@ -21,7 +22,10 @@ func (h *Handler) acmeUsers(ctx context.Context, after cursor) (cursor, error) {
 	}
 	items := make(map[string]*vaultv1.DecryptRequest, len(rows))
 	for _, row := range rows {
-		items[strconv.FormatUint(row.Pk, 10)] = &vaultv1.DecryptRequest{Keyring: row.Keyring, Encrypted: row.Ciphertext}
+		items[strconv.FormatUint(row.Pk, 10)] = &vaultv1.DecryptRequest{
+			Keyring:   row.Keyring,
+			Encrypted: row.Ciphertext,
+		}
 	}
 	res, err := h.vault.ReEncryptBulk(ctx, &vaultv1.ReEncryptBulkRequest{Items: items})
 	if err != nil {
@@ -36,7 +40,10 @@ func (h *Handler) acmeUsers(ctx context.Context, after cursor) (cursor, error) {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
 		_, err := h.db.UpdateVaultAcmeUser(ctx, db.UpdateVaultAcmeUserParams{
-			Pk: row.Pk, Keyring: row.Keyring, CiphertextOld: row.Ciphertext, Ciphertext: item.GetEncrypted(),
+			Pk:            row.Pk,
+			Keyring:       row.Keyring,
+			CiphertextOld: row.Ciphertext,
+			Ciphertext:    item.GetEncrypted(),
 		})
 		if err != nil {
 			return after, fmt.Errorf("failed to update pk %d", row.Pk)

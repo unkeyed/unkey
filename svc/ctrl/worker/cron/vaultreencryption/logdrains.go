@@ -10,7 +10,8 @@ import (
 
 func (h *Handler) logdrains(ctx context.Context, after cursor) (cursor, error) {
 	rows, err := h.db.ListVaultLogdrains(ctx, db.ListVaultLogdrainsParams{
-		AfterPk: after.Pk, Limit: batchSize,
+		AfterPk: after.Pk,
+		Limit:   batchSize,
 	})
 	if err != nil {
 		return after, fmt.Errorf("failed to list rows")
@@ -27,7 +28,10 @@ func (h *Handler) logdrains(ctx context.Context, after cursor) (cursor, error) {
 			continue
 		}
 		_, err = h.db.UpdateVaultLogdrain(ctx, db.UpdateVaultLogdrainParams{
-			Pk: row.Pk, Keyring: row.Keyring, CiphertextOld: string(row.Ciphertext), Ciphertext: ciphertext,
+			Pk:            row.Pk,
+			Keyring:       row.Keyring,
+			CiphertextOld: row.Ciphertext,
+			Ciphertext:    ciphertext,
 		})
 		if err != nil {
 			return after, fmt.Errorf("failed to update pk %d", row.Pk)

@@ -13,25 +13,25 @@ const updateVaultDeployment = `-- name: UpdateVaultDeployment :execrows
 UPDATE deployments
 SET encrypted_environment_variables = ?
 WHERE pk = ?
-  AND BINARY environment_id = BINARY ?
-  AND BINARY encrypted_environment_variables = BINARY ?
+  AND environment_id = ?
+  AND encrypted_environment_variables = ?
 `
 
 type UpdateVaultDeploymentParams struct {
 	Ciphertext    []byte `db:"ciphertext"`
 	Pk            uint64 `db:"pk"`
 	Keyring       string `db:"keyring"`
-	CiphertextOld string `db:"ciphertext_old"`
+	CiphertextOld []byte `db:"ciphertext_old"`
 }
 
 // UpdateVaultDeployment preserves concurrent changes by matching the keyring
-// and entire old blob byte-for-byte, without changing business metadata.
+// using its column collation and the entire old blob, without changing business metadata.
 //
 //	UPDATE deployments
 //	SET encrypted_environment_variables = ?
 //	WHERE pk = ?
-//	  AND BINARY environment_id = BINARY ?
-//	  AND BINARY encrypted_environment_variables = BINARY ?
+//	  AND environment_id = ?
+//	  AND encrypted_environment_variables = ?
 func (q *Queries) UpdateVaultDeployment(ctx context.Context, arg UpdateVaultDeploymentParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateVaultDeployment,
 		arg.Ciphertext,

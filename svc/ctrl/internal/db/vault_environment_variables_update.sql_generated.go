@@ -13,8 +13,8 @@ const updateVaultEnvironmentVariable = `-- name: UpdateVaultEnvironmentVariable 
 UPDATE app_environment_variables
 SET value = ?
 WHERE pk = ?
-  AND BINARY environment_id = BINARY ?
-  AND BINARY value = BINARY ?
+  AND environment_id = ?
+  AND value = ?
 `
 
 type UpdateVaultEnvironmentVariableParams struct {
@@ -25,13 +25,13 @@ type UpdateVaultEnvironmentVariableParams struct {
 }
 
 // UpdateVaultEnvironmentVariable preserves concurrent changes by matching the
-// keyring and old ciphertext byte-for-byte, without changing business metadata.
+// keyring and old ciphertext using column collations, without changing business metadata.
 //
 //	UPDATE app_environment_variables
 //	SET value = ?
 //	WHERE pk = ?
-//	  AND BINARY environment_id = BINARY ?
-//	  AND BINARY value = BINARY ?
+//	  AND environment_id = ?
+//	  AND value = ?
 func (q *Queries) UpdateVaultEnvironmentVariable(ctx context.Context, arg UpdateVaultEnvironmentVariableParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateVaultEnvironmentVariable,
 		arg.Ciphertext,

@@ -13,8 +13,8 @@ const updateVaultClickhouseSetting = `-- name: UpdateVaultClickhouseSetting :exe
 UPDATE clickhouse_workspace_settings
 SET password_encrypted = ?
 WHERE pk = ?
-  AND BINARY workspace_id = BINARY ?
-  AND BINARY password_encrypted = BINARY ?
+  AND workspace_id = ?
+  AND password_encrypted = ?
 `
 
 type UpdateVaultClickhouseSettingParams struct {
@@ -25,13 +25,13 @@ type UpdateVaultClickhouseSettingParams struct {
 }
 
 // UpdateVaultClickhouseSetting preserves concurrent changes by matching the
-// keyring and old ciphertext byte-for-byte, without changing query limits.
+// keyring and old ciphertext using column collations, without changing query limits.
 //
 //	UPDATE clickhouse_workspace_settings
 //	SET password_encrypted = ?
 //	WHERE pk = ?
-//	  AND BINARY workspace_id = BINARY ?
-//	  AND BINARY password_encrypted = BINARY ?
+//	  AND workspace_id = ?
+//	  AND password_encrypted = ?
 func (q *Queries) UpdateVaultClickhouseSetting(ctx context.Context, arg UpdateVaultClickhouseSettingParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateVaultClickhouseSetting,
 		arg.Ciphertext,

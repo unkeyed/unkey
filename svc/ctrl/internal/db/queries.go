@@ -15,7 +15,7 @@ func (q *Queries) WithTx(tx DBTx) *Queries {
 	return &Queries{db: tx}
 }
 
-// BulkQueries provides methods for generated bulk insert queries.
+// BulkQueries provides methods for generated bulk write queries.
 type BulkQueries struct {
 	db DBTX
 }

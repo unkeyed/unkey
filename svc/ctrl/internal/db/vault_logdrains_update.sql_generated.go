@@ -13,25 +13,25 @@ const updateVaultLogdrain = `-- name: UpdateVaultLogdrain :execrows
 UPDATE logdrains
 SET config = ?
 WHERE pk = ?
-  AND BINARY workspace_id = BINARY ?
-  AND BINARY config = BINARY ?
+  AND workspace_id = ?
+  AND config = ?
 `
 
 type UpdateVaultLogdrainParams struct {
 	Ciphertext    []byte `db:"ciphertext"`
 	Pk            uint64 `db:"pk"`
 	Keyring       string `db:"keyring"`
-	CiphertextOld string `db:"ciphertext_old"`
+	CiphertextOld []byte `db:"ciphertext_old"`
 }
 
-// UpdateVaultLogdrain preserves concurrent changes by matching the keyring and
-// entire old config byte-for-byte, without changing lease or delivery metadata.
+// UpdateVaultLogdrain preserves concurrent changes by matching the keyring using
+// its column collation and the entire old config, without changing lease or delivery metadata.
 //
 //	UPDATE logdrains
 //	SET config = ?
 //	WHERE pk = ?
-//	  AND BINARY workspace_id = BINARY ?
-//	  AND BINARY config = BINARY ?
+//	  AND workspace_id = ?
+//	  AND config = ?
 func (q *Queries) UpdateVaultLogdrain(ctx context.Context, arg UpdateVaultLogdrainParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateVaultLogdrain,
 		arg.Ciphertext,

@@ -150,8 +150,48 @@ var myQuerier MyQuerier = queries
 - **Better transaction performance**: All inserts happen atomically
 - **Improved throughput**: Especially beneficial for large datasets
 
+## Bulk updates
+
+Add singular `Update...` query names to `bulk_updates` in the plugin's
+`codegen.options` to generate typed bulk updates:
+
+```json
+{
+  "emit_methods_with_db_argument": false,
+  "bulk_updates": ["UpdateVaultEncryptedKey"]
+}
+```
+
+Keep the source query as a single-row `:execrows` update:
+
+```sql
+-- name: UpdateVaultEncryptedKey :execrows
+UPDATE encrypted_keys
+SET encrypted = sqlc.arg(ciphertext),
+    encryption_key_id = sqlc.arg(key_id)
+WHERE pk = sqlc.arg(pk)
+  AND workspace_id = sqlc.arg(keyring);
+```
+
+The plugin generates this method on `BulkQueries`:
+
+```go
+func (q *BulkQueries) UpdateVaultEncryptedKeys(ctx context.Context, args []UpdateVaultEncryptedKeyParams) (int64, error)
+```
+
+Each call executes one parameterized `UPDATE` with `CASE` expressions. It returns
+the affected-row count without inserting missing rows. An empty slice returns
+zero without a query. If predicates overlap, the first matching entry wins.
+Callers must bound the slice size to fit database statement and parameter limits.
+
+Bulk updates support one table, `column = parameter` assignments, and equality
+predicates joined by `AND`. Use distinct `sqlc.arg` names for all parameters.
+The generator rejects unsupported SQL and updates to predicate columns, because
+MySQL evaluates assignments from left to right. It does not generate updates
+unless their names appear in `bulk_updates`.
+
 ## Limitations
 
-- Only works with INSERT queries that have parameters
+- Automatic query detection only covers INSERT queries that have parameters
 - Requires MySQL for ON DUPLICATE KEY UPDATE support
 - Generated functions maintain the same transaction semantics as individual inserts

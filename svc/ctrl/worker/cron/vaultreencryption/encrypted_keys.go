@@ -2,7 +2,6 @@ package vaultreencryption
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -12,7 +11,8 @@ import (
 
 func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, error) {
 	rows, err := h.db.ListVaultEncryptedKeys(ctx, db.ListVaultEncryptedKeysParams{
-		AfterPk: after.Pk, Limit: batchSize,
+		AfterPk: after.Pk,
+		Limit:   batchSize,
 	})
 	if err != nil {
 		return after, fmt.Errorf("failed to list rows")
@@ -22,19 +22,16 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 	}
 	items := make(map[string]*vaultv1.DecryptRequest, len(rows))
 	for _, row := range rows {
-		items[strconv.FormatUint(row.Pk, 10)] = &vaultv1.DecryptRequest{Keyring: row.Keyring, Encrypted: row.Ciphertext}
+		items[strconv.FormatUint(row.Pk, 10)] = &vaultv1.DecryptRequest{
+			Keyring:   row.Keyring,
+			Encrypted: row.Ciphertext,
+		}
 	}
 	res, err := h.vault.ReEncryptBulk(ctx, &vaultv1.ReEncryptBulkRequest{Items: items})
 	if err != nil {
 		return after, fmt.Errorf("failed to re-encrypt rows")
 	}
-	type update struct {
-		Keyring    string `json:"keyring"`
-		Ciphertext string `json:"ciphertext"`
-		KeyID      string `json:"key_id"`
-	}
-	updates := make(map[uint64]update, len(rows))
-	pks := make([]uint64, 0, len(rows))
+	updates := make([]db.UpdateVaultEncryptedKeyParams, 0, len(rows))
 	for _, row := range rows {
 		if err := ctx.Err(); err != nil {
 			return after, err
@@ -43,19 +40,14 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		updates[row.Pk] = update{
+		updates = append(updates, db.UpdateVaultEncryptedKeyParams{
+			Pk:         row.Pk,
 			Keyring:    row.Keyring,
-			Ciphertext: item.GetEncrypted(), KeyID: item.GetKeyId(),
-		}
-		pks = append(pks, row.Pk)
+			Ciphertext: item.GetEncrypted(),
+			KeyID:      item.GetKeyId(),
+		})
 	}
-	payload, err := json.Marshal(updates)
-	if err != nil {
-		return after, fmt.Errorf("failed to encode updates")
-	}
-	_, err = h.db.UpdateVaultEncryptedKeys(ctx, db.UpdateVaultEncryptedKeysParams{
-		Updates: payload, Updates_2: payload, Pks: pks, Updates_3: payload,
-	})
+	_, err = h.db.Bulk().UpdateVaultEncryptedKeys(ctx, updates)
 	if err != nil {
 		return after, fmt.Errorf("failed to update rows")
 	}

@@ -13,8 +13,8 @@ const updateVaultAcmeUser = `-- name: UpdateVaultAcmeUser :execrows
 UPDATE acme_users
 SET encrypted_key = ?
 WHERE pk = ?
-  AND BINARY workspace_id = BINARY ?
-  AND BINARY encrypted_key = BINARY ?
+  AND workspace_id = ?
+  AND encrypted_key = ?
 `
 
 type UpdateVaultAcmeUserParams struct {
@@ -25,13 +25,13 @@ type UpdateVaultAcmeUserParams struct {
 }
 
 // UpdateVaultAcmeUser preserves concurrent changes by matching the keyring and
-// old ciphertext byte-for-byte, without changing ACME registration metadata.
+// old ciphertext using column collations, without changing ACME registration metadata.
 //
 //	UPDATE acme_users
 //	SET encrypted_key = ?
 //	WHERE pk = ?
-//	  AND BINARY workspace_id = BINARY ?
-//	  AND BINARY encrypted_key = BINARY ?
+//	  AND workspace_id = ?
+//	  AND encrypted_key = ?
 func (q *Queries) UpdateVaultAcmeUser(ctx context.Context, arg UpdateVaultAcmeUserParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateVaultAcmeUser,
 		arg.Ciphertext,
