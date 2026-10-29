@@ -30,8 +30,6 @@ export const deviceAuthorizations = mysqlTable(
     sessionId: id("session_id").unique(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     approvedAt: bigint("approved_at", { mode: "number" }),
-    // A non-null client_id marks an OAuth authorization request. The redirect
-    // columns are null for CLI device logins.
     clientId: id("client_id"),
     redirectUri: caseSensitiveVarchar("redirect_uri", { length: 2048 }),
     redirectUriPresented: boolean("redirect_uri_presented"),
