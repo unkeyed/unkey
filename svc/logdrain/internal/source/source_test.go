@@ -138,7 +138,10 @@ func TestAuditLogsRead_DashboardBucketsOnly(t *testing.T) {
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
 	var rows []auditLogRow
-	for _, event := range []struct{ id, bucket string }{
+	for _, event := range []struct {
+		id     string
+		bucket auditlog.Bucket
+	}{
 		{"a", auditlog.BucketUnkeyMutations},
 		{"b", auditlog.BucketBackoffice},
 		{"c", auditlog.BucketUnkeyMutations},

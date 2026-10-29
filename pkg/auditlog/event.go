@@ -22,7 +22,7 @@ type Event struct {
 	EventID     string         `json:"event_id"`
 	Time        int64          `json:"time"`
 	WorkspaceID string         `json:"workspace_id"`
-	Bucket      string         `json:"bucket"`
+	Bucket      Bucket         `json:"bucket"`
 	Source      string         `json:"source"`
 	Event       string         `json:"event"`
 	Description string         `json:"description"`
@@ -63,35 +63,43 @@ const (
 	EventSourceCustomer = "customer"
 )
 
-// Bucket values for Event.Bucket. BucketBackoffice holds staff actions
-// taken on a workspace from the back office. Dashboard and log drain readers
-// must restrict to DashboardBuckets so those rows never leak.
+// Bucket names the ClickHouse audit log bucket an Event is stored in.
+// BucketBackoffice holds staff actions taken on a workspace from the back
+// office. Dashboard and log drain readers must restrict to DashboardBuckets
+// so those rows never leak.
+type Bucket string
+
 const (
-	BucketUnkeyMutations = "unkey_mutations"
-	BucketBackoffice     = "unkey_backoffice"
+	BucketUnkeyMutations Bucket = "unkey_mutations"
+	BucketBackoffice     Bucket = "unkey_backoffice"
 )
 
 // DashboardBuckets lists the buckets a workspace member may read
 // through the dashboard or export through a log drain.
-var DashboardBuckets = []string{BucketUnkeyMutations}
+var DashboardBuckets = []Bucket{BucketUnkeyMutations}
 
 // KnownBuckets lists every bucket a writer may emit.
-var KnownBuckets = []string{BucketUnkeyMutations, BucketBackoffice}
+var KnownBuckets = []Bucket{BucketUnkeyMutations, BucketBackoffice}
 
-// IsKnownBucket reports whether bucket is one of KnownBuckets.
-func IsKnownBucket(bucket string) bool {
-	return slices.Contains(KnownBuckets, bucket)
+// String returns the bucket name as stored in ClickHouse.
+func (b Bucket) String() string {
+	return string(b)
+}
+
+// IsKnown reports whether b is one of KnownBuckets.
+func (b Bucket) IsKnown() bool {
+	return slices.Contains(KnownBuckets, b)
 }
 
 // ResolveBucket returns the bucket to store for an event. An empty bucket
 // resolves to BucketUnkeyMutations. Any other value outside KnownBuckets is
 // a programmer error and returns an assertion error, so a typo can never
 // create a bucket that no reader filters on.
-func ResolveBucket(bucket string) (string, error) {
+func ResolveBucket(bucket Bucket) (Bucket, error) {
 	if bucket == "" {
 		return BucketUnkeyMutations, nil
 	}
-	if err := assert.True(IsKnownBucket(bucket), "unknown audit log bucket"); err != nil {
+	if err := assert.True(bucket.IsKnown(), "unknown audit log bucket"); err != nil {
 		return "", err
 	}
 	return bucket, nil

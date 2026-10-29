@@ -94,7 +94,7 @@ func encodeAuditLogEvent(event auditlog.Event) (schema.AuditLogV1, error) {
 		EventID:       event.EventID,
 		Time:          event.Time,
 		WorkspaceID:   event.WorkspaceID,
-		Bucket:        bucket,
+		Bucket:        bucket.String(),
 		Source:        source,
 		Event:         event.Event,
 		Description:   event.Description,

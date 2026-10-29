@@ -12,8 +12,8 @@ import (
 func TestResolveBucket(t *testing.T) {
 	tests := []struct {
 		name    string
-		bucket  string
-		want    string
+		bucket  Bucket
+		want    Bucket
 		wantErr bool
 	}{
 		{name: "empty resolves to unkey_mutations", bucket: "", want: BucketUnkeyMutations},
@@ -40,6 +40,6 @@ func TestResolveBucket(t *testing.T) {
 func TestDashboardBucketsExcludeBackoffice(t *testing.T) {
 	require.NotContains(t, DashboardBuckets, BucketBackoffice)
 	for _, bucket := range DashboardBuckets {
-		require.True(t, IsKnownBucket(bucket))
+		require.True(t, bucket.IsKnown())
 	}
 }
