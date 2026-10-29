@@ -8,6 +8,7 @@ import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import { LoadingState } from "@/components/loading-state";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { redirectToSignIn } from "@/lib/auth/redirect-utils";
@@ -23,7 +24,7 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useSyncExternalStore } from "react";
+import { Suspense, useEffect } from "react";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
 import { resolveUsagePeriod } from "./[workspaceSlug]/settings/usage/period";
 
@@ -40,8 +41,10 @@ function WorkspaceContent({
   workspace: WorkspaceLike;
   children: React.ReactNode;
 }) {
+  // Pages read live queries that have no server snapshot, so they render only in the browser.
+  const hydrated = useHydrated();
   if (workspace.enabled) {
-    return <QueryTimeProvider>{children}</QueryTimeProvider>;
+    return <QueryTimeProvider>{hydrated ? children : null}</QueryTimeProvider>;
   }
   return (
     <div className="flex flex-1 items-center justify-center p-12">
@@ -63,15 +66,7 @@ function WorkspaceContent({
   );
 }
 
-const subscribeNever = () => () => {};
-
 export default function Layout({ children }: LayoutProps) {
-  // The shell reads browser storage and live queries, so it renders only after hydration.
-  const hydrated = useSyncExternalStore(
-    subscribeNever,
-    () => true,
-    () => false,
-  );
   const router = useRouter();
   const pathname = usePathname();
   const { user, workspace, isLoading, isSwitching, error, workspaceMissing } = useWorkspace();
@@ -113,7 +108,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [user, isLoading, error, workspaceMissing, router]);
 
   // Show loading state while checking authentication and workspace
-  if (!hydrated || isSwitching || isLoading || !user || !workspace) {
+  if (isSwitching || isLoading || !user || !workspace) {
     return (
       <div className="h-dvh flex flex-col">
         <LoadingState message={isSwitching ? "Switching workspace..." : "Loading workspace..."}>

@@ -27,18 +27,24 @@ type RouteParams = {
   identityId?: string;
 };
 
-export function useBreadcrumbs(): BreadcrumbDescriptor[] {
+export function useWorkspaceCrumbHref(): string {
   const workspace = useWorkspaceNavigation();
+  const params = useParams<RouteParams>();
+  const projectsNav = useFlag("projectsNav");
+  // Project-scoped trail from the first render so the crumbs do not shift when the owner resolves.
+  return projectsNav && resourceFromParams(params)
+    ? routes.projects.list({ workspaceSlug: workspace.slug })
+    : resolveWorkspaceHref(workspace.slug, params);
+}
+
+export function useBreadcrumbs(): BreadcrumbDescriptor[] {
+  const workspaceHref = useWorkspaceCrumbHref();
   const params = useParams<RouteParams>();
   const segments = useSelectedLayoutSegments();
   const projectsNav = useFlag("projectsNav");
   const resource = projectsNav ? resourceFromParams(params) : null;
   const resourceOwner = useResourceProjectId(resource);
 
-  // Project-scoped trail from the first render so the crumbs do not shift when the owner resolves.
-  const workspaceHref = resource
-    ? routes.projects.list({ workspaceSlug: workspace.slug })
-    : resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
   if (segments[1] === "account") {
     crumbs.push({ type: "account" });

@@ -85,7 +85,14 @@ export default async function RootLayout({
     loadFlags(),
     authPromise,
     authPromise.then(({ userId, orgId }) =>
-      userId && orgId ? loadWorkspace(orgId).catch(() => undefined) : undefined,
+      userId && orgId
+        ? loadWorkspace(orgId).catch((error) => {
+            console.error("Failed to load the initial workspace; the client will fetch it", {
+              error,
+            });
+            return undefined;
+          })
+        : undefined,
     ),
   ]);
   return (
