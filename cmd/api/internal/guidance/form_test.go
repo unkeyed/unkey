@@ -249,3 +249,10 @@ func (a *formAnswers) SelectOrdered(_ string, options []prompt.SelectOption, _ .
 	}
 	return choice, nil
 }
+
+func TestSplitColumnsCarriesStyleAcrossWrappedLines(t *testing.T) {
+	head, rest := splitColumns("\x1b[1m✓\x1b[0m \x1b[36m界abc\x1b[0m", 4)
+	require.Equal(t, "\x1b[1m✓\x1b[0m \x1b[36m界\x1b[0m", head)
+	require.Equal(t, "\x1b[36mabc\x1b[0m", rest)
+	require.Equal(t, 4, visibleWidth(head))
+}

@@ -29,12 +29,14 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 				return err
 			}
 			var notice strings.Builder
-			fmt.Fprintln(&notice, "The API rejected the input. Your answers are kept for this session.")
+			fmt.Fprintln(&notice, "The API rejected the request. Your answers are kept.")
 			for _, field := range problem.Error_.Errors {
-				fmt.Fprintf(&notice, "  Check %s\n", terminalSafe(field.Location))
+				fmt.Fprintf(&notice, "  %s: %s\n", terminalSafe(field.Location), terminalSafe(field.Message))
 			}
+			var sections []section
 			if f.screen != nil {
 				f.screen.notice = notice.String()
+				sections, f.screen.sections = f.screen.sections, nil
 			} else if _, writeErr := fmt.Fprint(f.out, notice.String()); writeErr != nil {
 				return writeErr
 			}
@@ -42,14 +44,20 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 				{Key: "cancel", Label: "Cancel"}, {Key: "edit", Label: "Edit saved answers"},
 			})
 			if promptErr != nil {
-				return fmt.Errorf("guided input cancelled: %w", promptErr)
+				return cancelled(promptErr, "cancelled; the corrected request was not sent")
 			}
 			if choice != "edit" {
 				return err
 			}
+			if f.screen != nil {
+				if err := f.screen.commit(); err != nil {
+					return err
+				}
+				f.screen.notice, f.screen.sections = "", sections
+			}
 			for {
 				if err := f.review(ctx, schema, values, "", needsChanges); err != nil {
-					return fmt.Errorf("guided input cancelled: %w", err)
+					return cancelled(err, "cancelled; the corrected request was not sent")
 				}
 				updated, err := requestJSON(values, array)
 				if err != nil {
@@ -62,7 +70,7 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 					continue
 				}
 				if err := f.confirm(ctx, schema, values, cmd.Usage, needsChanges); err != nil {
-					return fmt.Errorf("guided input cancelled: %w", err)
+					return cancelled(err, "cancelled; the corrected request was not sent")
 				}
 				updated, err = requestJSON(values, array)
 				if err != nil {

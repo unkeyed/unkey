@@ -7,6 +7,7 @@ sources:
   - cmd/api/resources.go
   - cmd/api/internal/guidance/review.go
   - cmd/api/internal/guidance/recovery.go
+  - cmd/api/internal/guidance/terminal.go
   - cmd/api/util/flags.go
   - cmd/api/util/output.go
   - cmd/api/util/human.go
@@ -114,9 +115,9 @@ unkey projects list --body='{"limit":25,"search":"payments","cursor":"<cursor>"}
 
 Successful human output does not show the request ID by default. Add `--debug` when you need it for troubleshooting. JSON output still includes `meta.requestId`, with or without `--debug`.
 
-## Guided input
+## Interactive prompts
 
-Guided input collects request fields in your terminal. Canonical resource commands such as `unkey projects create` open a form when required inputs are missing. Update commands also open a form when you supply only the target, so you can choose what to change. Both stdin and stderr must be terminals.
+Canonical resource commands such as `unkey projects create` ask for required inputs that are missing. Update commands also ask what to change when you supply only the target. Both stdin and stderr must be terminals.
 
 ```bash
 unkey projects create
@@ -124,36 +125,38 @@ unkey projects update --project=payments
 unkey deployments promote
 ```
 
-The form keeps fields you supply as flags and collects missing fields. Nested objects and lists have their own prompts, so you don't need to write JSON for those inputs. If additional settings are offered, select **Continue** when finished.
+The CLI keeps fields you supply as flags and asks only for missing fields. Nested objects and lists have their own prompts, so you don't need to write JSON for those inputs. If additional settings are offered, select **Continue** when finished.
 
-Before an action, **Review request** shows labelled fields and indented lists instead of JSON. Select the action, such as **Create project**, to proceed. Select **Back** to edit fields, omit an optional field, or change a list item, then select **Continue** to return to the summary. Nested edits keep the other entered fields. Secrets, environment variable values, and arbitrary JSON values are hidden in the review. Select **Cancel** or press Ctrl+C to stop. Destructive commands still require their separate confirmation.
+Each answered or supplied field stays above the current question as one line, such as `✓ Name Acme Billing`, with nested objects and lists indented below it. Before an action, select the action, such as **Create project**, to proceed. Select **Back** to edit fields, omit an optional field, or change a list item, then select **Continue** to return to the action. Nested edits keep the other entered fields. Secrets, environment variable values, and arbitrary JSON values show as `[hidden]`. Select **Cancel** or press Ctrl+C to stop without sending the request. Destructive commands still require their separate confirmation.
 
 Read-only commands, such as lists and searches, run after you finish selecting filters. They don't ask you to confirm a request.
 
-The review uses **Yes** and **No** for booleans and distinguishes **Clear (null)**, **(empty text)**, and **(no items)**. It stays human-readable on stderr even with `--json`; the JSON response on stdout is unchanged.
+The summary uses **Yes** and **No** for booleans and distinguishes **Clear (null)**, **(empty text)**, and **(no items)**. It stays human-readable on stderr even with `--json`; the JSON response on stdout is unchanged.
+
+Prompts use your terminal theme's colors. Set `NO_COLOR` to any value, or `CLICOLOR=0`, to turn color off; labels and values are then separated by a colon. When `TERM=dumb`, prompts don't move the cursor: each question is printed on its own line, and choices are numbered so you type a number.
 
 Complete commands run directly unless you pass `--interactive`. Review does not add a prompt to scripts or complete flag-based commands.
 
 <ParamField body="--interactive" type="boolean">
-  Open guided input even when all required fields are supplied. Use this for optional settings, list filters, or search fields. Requires terminals on stdin and stderr. You can't combine it with `--body` or `--no-input`.
+  Ask for inputs even when all required fields are supplied. Use this for optional settings, list filters, or search fields. Requires terminals on stdin and stderr. You can't combine it with `--body` or `--no-input`.
 </ParamField>
 
 <ParamField body="--no-input" type="boolean">
-  Disable guided input. Missing required flags fail instead of opening a form. This doesn't confirm destructive commands. Use `--yes` separately when needed.
+  Never ask for input. Missing required flags fail instead of opening prompts. This doesn't confirm destructive commands. Use `--yes` separately when needed.
 </ParamField>
 
-Lists with no missing required fields run immediately unless you pass `--interactive`. For example, the projects list form lets you set search text and a page limit:
+Lists with no missing required fields run immediately unless you pass `--interactive`. For example, `unkey projects list --interactive` lets you set search text and a page limit:
 
 ```bash
 unkey projects list --interactive
 unkey keys create --api-id=api_1234abcd --interactive
 ```
 
-In guided updates, fields you don't select remain omitted and unchanged. Where the field supports it, **Clear (null)** sends `null`. Choosing **No** sends `false`, entering zero sends `0`, and submitting a list with no items sends `[]`. These values aren't the same as leaving a field out.
+In interactive updates, fields you don't select remain omitted and unchanged. Where the field supports it, **Clear (null)** sends `null`. Choosing **No** sends `false`, entering zero sends `0`, and submitting a list with no items sends `[]`. These values aren't the same as leaving a field out.
 
 ### Correct rejected input
 
-If the API returns a structured input-validation rejection, guided input offers **Edit saved answers**. Answers stay in memory for that command only. Edit the rejected input, review it, and explicitly send the corrected request. Selecting **Cancel** returns the API error. The CLI does not resend an unchanged request.
+If the API returns a structured input-validation rejection, the CLI shows the rejected fields and offers **Edit saved answers**. Answers stay in memory for that command only. Edit the rejected input, review it, and explicitly send the corrected request. Selecting **Cancel** returns the API error. The CLI does not resend an unchanged request.
 
 This correction flow applies to the API's `invalid_input` 400 response with field errors. It does not reopen input for permission failures, conflicts, other 400 responses, or 422 resource-limit errors. Resource commands do not automatically retry API requests, including network and 5xx failures. A failed mutation may have completed. Check its state before running it again.
 
@@ -167,9 +170,9 @@ Manual ID entry doesn't require list permission. If loading choices fails, the C
 
 ### Keep scripts noninteractive
 
-Guided input is available only on canonical resource commands, not legacy `unkey api` paths. An explicit `--body`, `--no-input`, or `--interactive=false` disables guidance. Redirecting stdin or stderr also disables automatic guidance. Explicit `--interactive` fails when either isn't a terminal.
+Prompts are available only on canonical resource commands, not legacy `unkey api` paths. An explicit `--body`, `--no-input`, or `--interactive=false` disables them. Redirecting stdin or stderr also disables automatic prompts. Explicit `--interactive` fails when either isn't a terminal.
 
-Prompts go to stderr, leaving stdout for the result. Redirecting only stdout or selecting `--json` doesn't disable guidance when stdin and stderr remain terminals. Use `--no-input` in scripts to make that choice explicit:
+Prompts go to stderr, leaving stdout for the result. Redirecting only stdout or selecting `--json` doesn't disable prompts when stdin and stderr remain terminals. Use `--no-input` in scripts to make that choice explicit:
 
 ```bash
 unkey projects create --name=Demo --slug=demo \
