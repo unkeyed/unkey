@@ -15,14 +15,9 @@ export const createPlainIssue = workspaceProcedure
       issueType,
       severity,
       message: z.string().min(20, "Feedback must contain at least 20 characters"),
-      pageUrl: z
+      pathname: z
         .string()
-        .url()
-        .refine((value) => ["http:", "https:"].includes(new URL(value).protocol))
-        .transform((value) => {
-          const url = new URL(value);
-          return `${url.origin}${url.pathname}`;
-        })
+        .regex(/^\/[^?#]*$/)
         .optional(),
     }),
   )
@@ -115,7 +110,7 @@ export const createPlainIssue = workspaceProcedure
             }),
           ],
         }),
-        ...(input.pageUrl ? [uiComponent.plainText({ text: `Page: ${input.pageUrl}` })] : []),
+        ...(input.pathname ? [uiComponent.plainText({ text: `Page: ${input.pathname}` })] : []),
       ],
       labelTypeIds: [issueToId[input.issueType]],
     });
