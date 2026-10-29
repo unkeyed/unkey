@@ -31,6 +31,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("role", "The role ID or name to permanently delete.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -39,18 +40,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Permissions.DeleteRole, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2PermissionsDeleteRoleResponseBody)
+			req, err := util.RequestBody(cmd, components.V2PermissionsDeleteRoleRequestBody{Role: cmd.String("role")})
+			if err != nil {
+				return err
+			}
+			if err := util.Confirm(cmd, fmt.Sprintf("Delete role %q from the workspace and all assigned keys?", req.Role)); err != nil {
+				return err
 			}
 
-			res, err := client.Permissions.DeleteRole(ctx, components.V2PermissionsDeleteRoleRequestBody{
-				Role: cmd.String("role"),
-			})
+			res, err := client.Permissions.DeleteRole(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}

@@ -369,7 +369,11 @@ var ExitFunc = os.Exit
 // This is a convenience function that prints the message and calls os.Exit
 func Exit(message string, code int) error {
 	if message != "" {
-		fmt.Println(message)
+		output := os.Stdout
+		if code != 0 {
+			output = os.Stderr
+		}
+		fmt.Fprintln(output, message)
 	}
 	ExitFunc(code)
 	return nil // unreachable but satisfies error interface

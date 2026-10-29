@@ -1,0 +1,109 @@
+---
+title: unkey workspace usage
+sidebarTitle: "usage"
+description: "Read billable API operations, compute usage, and active keys for a calendar month."
+sources:
+  - cmd/api/workspace/get_usage.go
+  - svc/api/openapi/spec/paths/v2/workspace/getUsage/index.yaml
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import CLIOutput from "/snippets/cli-output.mdx";
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Get the usage of your workspace for one calendar month (UTC): billable API
+operations, compute usage per environment, and active keys per app.
+
+Use this to track usage during the month or to look back at a past
+month. The response has no prices. Your invoice is the source of truth.
+Compute usage can be up to 15 minutes late, and it can change for up to 7
+days.
+
+Send `{}` for the current month to date, or
+`{"period": {"year": 2026, "month": 9}}` for a full past month. The month
+must start within the last 90 days.
+
+Run without `--period` for the current month. Replace the year and month in the example with a month that starts within the last 90 days.
+
+## Usage
+
+```bash
+unkey workspace usage [flags]
+```
+
+## Flags
+
+<ParamField body="--period" type="string">
+  A JSON object. The calendar month (UTC) to read. Omit it for the current month to date. A past month returns the full month. It cannot be in the future, and it must start within the last 90 days, because compute usage is kept for 90 days.
+
+  <Expandable title="Properties">
+    <ResponseField name="year" type="integer" required>
+      The year, for example 2026.
+    </ResponseField>
+
+    <ResponseField name="month" type="integer" required>
+      The month, from 1 (January) to 12 (December). Range: 1 to 12.
+    </ResponseField>
+  </Expandable>
+</ParamField>
+
+### Shared flags
+
+These flags control authentication, requests, and output. [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--body" type="string">
+  A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
+</ParamField>
+
+## Required permissions
+
+Your root key must have this permission:
+
+- `unkey:v1:<workspace_id>:usage#read`
+
+See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash
+unkey workspace usage --period='{"year":2026,"month":9}'
+```
+
+Send the request body as JSON:
+
+```bash
+unkey workspace usage --body='{}'
+```
+
+## API endpoint
+
+The command calls `POST /v2/workspace.getUsage` and prints its response. See the <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/openapi/spec/paths/v2/workspace/getUsage/index.yaml" target="_blank">endpoint definition</a> for the HTTP contract. Request fields use camelCase in `--body`.

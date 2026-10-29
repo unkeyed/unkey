@@ -6,10 +6,11 @@ allowed-tools: [Read, Write, Edit, Glob, Grep, Bash]
 argument-hint: "[group-name or 'all']"
 ---
 
-# Generate CLI Commands from OpenAPI Spec
+# Generate CLI commands from the OpenAPI spec
 
-You generate and maintain CLI command files in `cmd/api/` that wrap the Unkey Go SDK.
-Each API endpoint from the OpenAPI spec becomes a CLI subcommand.
+Generate and maintain CLI command files in `cmd/api/` that wrap the Unkey Go SDK. Each supported API endpoint has one implementation shared by its canonical resource command and legacy `unkey api` path.
+
+The body-mode rules below apply only to endpoints with an OpenAPI request body. Bodyless operations, such as `workspace.getFlags` and `workspace.getLimits`, omit `--body` and call the SDK without a request argument. Cover their authentication, routes, empty requests, and rejection of `--body` in the shared integration suite instead of adding request-construction tests.
 
 **Modes** (determined by the argument passed after `/gen-api-cli`):
 - A group name (e.g., `keys`, `apis`): generate/update that group only
@@ -27,23 +28,19 @@ When the argument is `check`:
    - **Stale commands**: CLI commands whose descriptions no longer match the OpenAPI spec (compare verbatim, ignoring markdown stripping)
    - **Flag mismatches**: request body fields in the spec that are missing as CLI flags, CLI flags that no longer exist in the spec, leaves without exactly one explicit `--body` flag, or request-building flags without `cli.MutuallyExclusive("body")`. Do not require mutual exclusion on operational flags.
    - **Type mismatches**: flag types that don't match the OpenAPI property types (e.g., spec says integer but flag is string)
+   - **Presentation drift**: missing canonical paths in `resourcePaths`, docs that teach legacy paths, or output that bypasses the shared human/JSON renderer
 4. Output a summary with file paths and specific lines that need attention
 5. Do NOT modify any files in this mode
 
-## Step 1: Update the SDK to latest
+## Step 1: Use the pinned SDK
 
-Before generating anything, update the Go SDK to the latest version:
-
-```
-go get github.com/unkeyed/sdks/api/go/v3@latest
-go mod tidy
-```
+Use the SDK version pinned in `go.mod` and `go.sum`. Do not run routine dependency upgrades or `go get ...@latest` during command generation. If the pinned SDK lacks a required endpoint or type, report the mismatch. Change the dependency only when that upgrade is explicitly in scope.
 
 ## Step 2: Read the inputs
 
 1. **OpenAPI spec**: Read `svc/api/openapi/openapi-generated.yaml` — the source of truth for all endpoints.
 2. **Go SDK source**: Find the exact version in `go.mod` under `github.com/unkeyed/sdks/api/go/v3`, then read the SDK source from the Go module cache at `~/go/pkg/mod/github.com/unkeyed/sdks/api/go/v3@<version>/`. You MUST read the actual SDK files to verify struct names, field names, and field types. Do not guess.
-3. **Existing code**: Read `cmd/api/util/` (shared helpers — do NOT modify), `cmd/api/root.go`, and any existing subpackages to understand the current state.
+3. **Existing code**: Read `cmd/api/util/` (shared helpers, do not change for routine generation), `cmd/api/root.go`, `cmd/api/resources.go`, `build/cli/main.go`, and the affected subpackages. Verify the output policy in `util/output.go` and `util/human.go` rather than recreating it in a leaf command.
 
 ## Step 3: Group endpoints
 
@@ -62,6 +59,9 @@ Group them by resource:
 - `projects` — endpoints matching `projects.*`
 - `ratelimit` — endpoints matching `ratelimit.*`
 - `analytics` — endpoints matching `analytics.*`
+- `rootkeys` — endpoints matching `rootKeys.*`, exposed as `root-keys`
+- `logs` — endpoints matching `logs.*`
+- `workspace` — endpoints matching `workspace.*`; the CLI entrypoint adds the local `list` and `switch` commands to this resource group
 
 Skip `deploy.*` (already handled by `cmd/deploy`) and `liveness` (GET health check, not useful as CLI).
 
@@ -72,9 +72,11 @@ Each group is a subpackage under `cmd/api/`. Each command is its own file:
 ```
 cmd/api/
 ├── root.go                        # Cmd, imports and registers group subpackages
+├── resources.go                   # ResourceCommands and canonical resourcePaths
 ├── util/
-│   ├── client.go                  # CreateClient, APIAction
+│   ├── client.go                  # CreateClient
 │   ├── output.go                  # Output
+│   ├── human.go                   # Human-readable tables and details
 │   ├── errors.go                  # FormatError
 │   └── flags.go                   # Shared flags
 ├── apis/
@@ -96,14 +98,16 @@ package {group}
 
 import "github.com/unkeyed/unkey/pkg/cli"
 
-var Cmd = &cli.Command{
-	Name:        "{group}",
-	Usage:       "...",
-	Description: "...",
-	Commands: []*cli.Command{
-		{leafCmd1},
-		{leafCmd2},
-	},
+func Cmd() *cli.Command {
+	return &cli.Command{
+		Name:        "{group}",
+		Usage:       "...",
+		Description: "...",
+		Commands: []*cli.Command{
+			{leafCmd1}(),
+			{leafCmd2}(),
+		},
+	}
 }
 ```
 
@@ -111,11 +115,11 @@ var Cmd = &cli.Command{
 
 Each leaf command lives in its own file named with the kebab-case action using underscores: `create_api.go`, `verify_key.go`, `list_overrides.go`.
 
-The variable name is unexported: `createAPICmd`, `verifyKeyCmd`, `listOverridesCmd`.
+The constructor is an unexported function returning a fresh `*cli.Command`: `createAPICmd()`, `verifyKeyCmd()`, `listOverridesCmd()`.
 
 ### Register new groups
 
-After creating a new group subpackage, import it in `cmd/api/root.go` and add `{group}.Cmd` to the `Commands` slice. Only add entries that don't already exist.
+After creating a new group subpackage, import it in `cmd/api/root.go` and add `{group}.Cmd()` to `groups()`. Add each endpoint's canonical path to `resourcePaths` in `cmd/api/resources.go`. `ResourceCommands()` reuses fresh endpoint constructors for the canonical tree. Do not duplicate request handling or share mutable command instances between the two trees.
 
 Each leaf command explicitly declares one fresh `--body` flag. Group commands and `cmd/api.Cmd()` do not add or decorate body flags. Every request-building flag on the leaf must include `cli.MutuallyExclusive("body")`. Operational flags for authentication, API URL, configuration, and output must not include that option.
 
@@ -134,7 +138,8 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/...` + u
 
 ## Command naming conventions
 
-- **Command name**: Convert the action part of the operationId to kebab-case.
+- **Canonical command path**: Use the resource followed by an action. Read `resourcePaths` as the source of truth, including moved resources and nested subresources: `projects list`, `keys list`, `roles create`, `environments variables list`, and `keys permissions add`. Keep existing legacy paths working.
+- **Legacy endpoint name**: Convert the action part of the operationId to kebab-case.
   - `createApi` → `create-api`
   - `listKeys` → `list-keys`
   - `verifyKey` → `verify-key`
@@ -145,7 +150,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/...` + u
 
 - **File name**: kebab-case action with underscores: `create_api.go`, `verify_key.go`
 
-- **Variable name**: camelCase with SDK acronym rules: `createAPICmd`, `verifyKeyCmd`
+- **Constructor name**: camelCase with SDK acronym rules: `createAPICmd`, `verifyKeyCmd`
 
 ## SDK naming conventions (Speakeasy-generated)
 
@@ -196,6 +201,7 @@ Every example must pass all required flags and satisfy `RequireOneOf` or any
 action-level source/update requirement. Use realistic IDs and slugs, and use
 syntactically valid JSON that satisfies the referenced schema. Run examples
 through command parsing in tests when practical.
+Endpoint constructors keep their legacy examples so `ResourceCommands()` can rewrite them using `resourcePaths`. Product documentation uses the canonical paths.
 
 ### Flag descriptions
 Use a short, one-sentence summary of the OpenAPI property `description`. Since every command links to full docs, flag descriptions should be concise — just enough to know what the flag does. Do NOT copy the full multi-sentence OpenAPI description.
@@ -222,6 +228,8 @@ util.ConfigFlag(),
 util.OutputFlag(),
 ```
 
+`groups()` adds fresh `--json` and `--debug` flags to endpoint commands for both command trees. Do not declare duplicates in the leaves or make these operational flags mutually exclusive with `--body`.
+
 Add one explicit `cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive.")` to the leaf. Keep flag order consistent with existing commands.
 
 Then map OpenAPI request body properties to CLI flags:
@@ -232,12 +240,12 @@ Then map OpenAPI request body properties to CLI flags:
 | `string` (optional) | `*string` | `cli.String("name", "desc")` | check non-empty, then `&v` |
 | `integer` (required) | `int64` | `cli.Int64("name", "desc", cli.Required())` | `cmd.Int64("name")` |
 | `integer` (optional) | `*int64` | `cli.Int64("name", "desc")` | check non-zero, then `&v` |
-| `boolean` (optional) | `*bool` | `cli.Bool("name", "desc", cli.Default(X))` | `ptr.P(cmd.Bool("name"))` — use `pkg/ptr` for the pointer |
+| `boolean` (optional) | `*bool` | `cli.Bool("name", "desc", cli.Default(X))` | `new(cmd.Bool("name"))` |
 
 **Boolean flag defaults**: Look up `default:` in the OpenAPI spec. Use `cli.Default(true)` or `cli.Default(false)` accordingly. For partial-update endpoints where omitting a boolean means "don't change" (no `default:` in spec), do NOT set a default — use `cmd.FlagIsSet("name")` to check if the user explicitly passed it:
 ```go
 if cmd.FlagIsSet("enabled") {
-    req.Enabled = ptr.P(cmd.Bool("enabled"))
+    req.Enabled = new(cmd.Bool("enabled"))
 }
 ```
 | `array of strings` | `[]string` | `cli.StringSlice("name", "desc")` | `cmd.StringSlice("name")` |
@@ -255,12 +263,12 @@ selector flags.
 
 ## Action pattern
 
-Every leaf command uses a plain `func(ctx, cmd) error` action. No wrappers — each command
-explicitly creates the client, formats errors, and prints output:
+Every leaf command uses a plain `func(ctx, cmd) error` action. For commands without
+confirmation, create the client, format errors, and print output as follows:
 
 ```go
 Action: func(ctx context.Context, cmd *cli.Command) error {
-    client, err := util.CreateClient(cmd)
+    client, err := util.CreateClient(ctx, cmd)
     if err != nil {
         return err
     }
@@ -287,13 +295,13 @@ Action: func(ctx context.Context, cmd *cli.Command) error {
     }
 
     // Optional bool — look up the default in the OpenAPI spec (check `default:` on the property).
-    // Use cli.Bool with cli.Default and ptr.P from pkg/ptr:
-    req.Enabled = ptr.P(cmd.Bool("enabled")) // default: true in spec
-    req.Decrypt = ptr.P(cmd.Bool("decrypt")) // default: false in spec
+    // Use cli.Bool with cli.Default and new:
+    req.Enabled = new(cmd.Bool("enabled")) // default: true in spec
+    req.Decrypt = new(cmd.Bool("decrypt")) // default: false in spec
 
     // For partial-update endpoints where omitting a bool means "don't change":
     if cmd.FlagIsSet("enabled") {
-        req.Enabled = ptr.P(cmd.Bool("enabled"))
+        req.Enabled = new(cmd.Bool("enabled"))
     }
 
     // String slice:
@@ -320,15 +328,39 @@ Action: func(ctx context.Context, cmd *cli.Command) error {
 
 Every leaf command explicitly declares `cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive.")`. Add `cli.MutuallyExclusive("body")` to every endpoint request-building flag, including optional pagination, filter, and boolean flags. Do not add it to `util.RootKeyFlag()`, `util.APIURLFlag()`, `util.ConfigFlag()`, or `util.OutputFlag()`.
 
-Explicitly supplied `--body` JSON is decoded and sent by `util.SendBody` using the endpoint's exact generated SDK request type. Branch on `cmd.FlagIsSet("body")` immediately after client creation and before normal request construction, JSON parsing, and action-level validation. Pass `cmd.String("body")` and the generated SDK method directly, for example `client.Apis.CreateAPI`. Do not wrap the method in a closure. An explicitly empty body activates body mode and is rejected as invalid JSON. Mutual exclusion waives required and `RequireOneOf` checks for request-building flags. `SendBody` applies standard SDK error formatting; request schema and business validation belong to the API.
+For commands without confirmation, explicitly supplied `--body` JSON is decoded and sent by `util.SendBody` using the endpoint's exact generated SDK request type. Branch on `cmd.FlagIsSet("body")` immediately after client creation and before normal request construction, JSON parsing, and action-level validation. Pass `cmd.String("body")` and the generated SDK method directly, for example `client.Apis.CreateAPI`. Do not wrap the method in a closure. Destructive commands use `util.RequestBody` as described below instead of an early send. An explicitly empty body activates body mode and is rejected as invalid JSON. Mutual exclusion waives required and `RequireOneOf` checks for request-building flags. Request schema and business validation belong to the API.
 
 Authentication and transport/output flags remain active. Root-key and config bearer authentication still apply, while `--api-url` and `--output` retain their normal behavior. Do not generate browser-session or cookie-authenticated commands; this CLI supports bearer-authenticated API operations only.
 
 Generated union and slice request types are inferred from the direct SDK method value and are supported when they implement normal JSON unmarshalling.
 
+## Destructive confirmation
+
+Every delete or remove command must confirm before sending, including removal of environment variables, key roles, or key permissions. Follow `cmd/api/keys/delete_key.go` and `cmd/api/environments/remove_environment_variables.go`. Do not add confirmation to promotion, rollback, stop, or general updates without an explicit requirement.
+- Add `util.YesFlag()` as an operational flag, never mutually exclusive with `--body`.
+- Resolve the exact SDK request with `util.RequestBody(cmd, typedFlagRequest)`. Decode and reject malformed body input before confirmation. Do not send body mode through `util.SendBody` before confirming.
+- Build a target-specific question from that resolved request, not separately from flags. Show requested project/app/environment and variable names for variable removal, all environments for app/project deletion, and IDs/slugs/names for workspace targets. Never infer an environment. Distinguish permanent key erasure.
+- Call `util.Confirm(cmd, question)`, then send the same typed request through the SDK and use shared error/output helpers. Confirmation uses stderr and requires both stdin and stderr terminals, explicit `y`/`yes`, default N, and cancellation on EOF. Noninteractive callers must pass `--yes`; it waives no authentication, permissions, or delete protection.
+- Request-capture tests for these commands pass `--yes`. Cover both command trees and body/flag modes, cancellation without a destructive request, nonterminal rejection, and protection errors after `--yes`; use `cmd/api/destructive_test.go` for the shared behavior.
+
+## Presentation policy
+
+Always pass the complete SDK response body to `util.Output`, including in body mode. Never extract only `data`, print a request ID in a leaf, or implement another renderer.
+
+- Human output is the default, including for pipes. Lists use summary tables with selected columns. Empty lists use a resource-specific message such as `No projects found.` Single resources use labeled details. Actions without data use a resource-specific confirmation such as `Key deleted.`, `Settings updated.`, or `Variables saved.` Asynchronous actions say they were requested rather than completed.
+- `--json` and `--output=json` preserve the full response envelope, including all fields, metadata, and pagination. Scripts must select JSON explicitly.
+- `--output` and `UNKEY_OUTPUT` accept only `human` and `json`. Unsupported values are errors, not another spelling of human output.
+- Successful request IDs appear only in JSON metadata or with `--debug` on stderr, labeled `Request ID:`. API errors go to stderr and include a labeled request ID when available. Never mix diagnostics into stdout.
+- Human output includes a cursor hint when more results are available. In body mode, the hint must tell the user to set `cursor` inside `--body`, never combine it with `--cursor`. JSON retains the API pagination fields.
+- Login codes, URLs, instructions, and waiting messages go to stderr; only `Signed in.` or `Root key saved.` goes to stdout. Login/logout success must not expose tokens, opaque workspace IDs, or storage paths. Logout's next-active-workspace notice belongs on stderr; revocation failure must not claim success. Keep IDs where workspace switching needs them.
+- Deploy progress and context go to stderr; final details/domains go to stdout. Spinners/colors require stderr TTY, `TERM=dumb` disables both, and nonempty `NO_COLOR` disables color. Do not add deploy JSON flags or move diagnostics into results.
+- `unkey version` prints the installed CLI version, like `--version`; deployment operations belong under `deployments`, not placeholder version subcommands. Health checks use concise success text on stdout without emoji and errors on stderr; scripts rely on exit status.
+
+If a new response needs a resource-specific table or confirmation, handle it in the shared renderer with focused tests. Do not add per-command formatting.
+
 ## Reference implementation
 
-See `cmd/api/apis/create_api.go` for a complete working example. Follow this pattern exactly for all new commands.
+See `cmd/api/apis/create_api.go` for a non-destructive endpoint. Delete and remove commands must use the typed confirmation pattern above instead of its early body send.
 
 ## Linter requirements
 
@@ -346,134 +378,34 @@ The project uses strict linters via golangci-lint. Watch out for:
 
 ## Step 5: Generate documentation
 
-For each command, generate a documentation page at `docs/{product}/cli/{group}/{command-name}.mdx`, where `{product}` is `api-management` or `compute`.
+Keep existing documentation filenames, URLs, and navigation entries. The page at `docs/compute/cli/projects/list-projects.mdx`, for example, teaches `unkey projects list`. For new endpoints, follow the existing `docs/{product}/cli/{group}/{legacy-action}.mdx` convention, where `{product}` is `api-management`, `compute`, or `platform`, and register the page in `docs/docs.json`.
 
-### Doc file structure
+Use `docs/compute/cli/projects/list-projects.mdx` as the page template. Titles, sidebar labels, usage, examples, and CLI link text must use canonical resource paths from `resourcePaths`. Preserve API endpoint names and link destinations.
 
-Each command gets its own `.mdx` file using Mintlify components:
+- Include a one-sentence description and source files in frontmatter.
+- Document request fields with `<ParamField>`, including their actual required status and defaults. Use the full OpenAPI property descriptions here rather than the CLI help summaries.
+- For JSON flags, use `<Expandable>` and nested `<ResponseField>` components based on the referenced OpenAPI schemas. Include a valid example.
+- Import `CLIOutput` from `/snippets/cli-output.mdx` inside the `--output` field instead of duplicating the output policy. Link to `/platform/cli/output-and-flags` for the complete shared flag reference, including `--json` and `--debug`.
+- For confirmed commands, document `--yes` with `CLIConfirmation` from `/snippets/cli-confirmation.mdx`, and keep the command's flag metadata in `docs/scripts/manifest.json` aligned. Scripts need `--yes` even with `--body` or JSON output.
+- Link to the corresponding API endpoint page. Use root-relative documentation links and `bash` fences for shell commands.
 
-```mdx
----
-title: "create-api"
-description: "Create an API namespace for organizing keys by environment, service, or product"
----
-
-Copy the full description from the OpenAPI spec here (same as the CLI Description,
-but keep markdown formatting since this is a docs page).
-
-## Usage
+Run the rerunnable migration from the repository root after adding or changing resource mappings. It reads `cmd/api/resources.go`, updates command references and shared output guidance, and preserves page paths and link targets:
 
 ```bash
-unkey api apis create-api [flags]
+mise exec -- node docs/scripts/cli-human-output.mjs
+mise exec -- node docs/scripts/cli-human-output.mjs --check
 ```
 
-## Flags
-
-<ParamField body="--name" type="string" required>
-Unique identifier for this API namespace within your workspace. Use descriptive names
-like 'payment-service-prod' or 'user-api-dev' to clearly identify purpose and environment.
-</ParamField>
-
-<ParamField body="--enabled" type="bool" default="true">
-Whether the key is active for verification.
-</ParamField>
-
-<ParamField body="--meta" type="JSON string">
-Arbitrary JSON metadata returned during key verification.
-</ParamField>
-
-For JSON flags, use an Expandable to show the schema:
-
-<ParamField body="--credits" type="JSON string">
-Credit and refill configuration.
-<Expandable title="JSON schema">
-  <ResponseField name="remaining" type="integer" required>
-  Number of credits remaining.
-  </ResponseField>
-  <ResponseField name="refill" type="object">
-  Auto-refill configuration.
-    <Expandable title="properties">
-      <ResponseField name="interval" type="string" required>
-      Refill interval: "daily" or "monthly".
-      </ResponseField>
-      <ResponseField name="amount" type="integer" required>
-      Credits to add each interval.
-      </ResponseField>
-    </Expandable>
-  </ResponseField>
-</Expandable>
-</ParamField>
-
-## Global Flags
-
-Include this exact section on every command doc:
-
-| Flag | Type | Description |
-|------|------|-------------|
-| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
-| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
-| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format — use `json` for raw JSON |
-| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
-
-## Examples
-
-<CodeGroup>
-```bash Basic
-unkey api apis create-api --name=payment-service-prod
-```
-```bash With options
-unkey api apis create-api --name=user-api-dev --output=json
-```
-```bash With JSON flags
-unkey api keys create-key --api-id=api_123 --meta='{"plan":"pro"}'
-```
-</CodeGroup>
-```
-
-### Key rules for docs
-
-- **Flag descriptions**: Use the FULL OpenAPI property description here (unlike CLI help which uses short summaries). This is the detailed reference.
-- **JSON schemas**: Use `<Expandable>` with nested `<ResponseField>` to document the shape of JSON flags. Read the OpenAPI spec's `$ref` schemas to get the exact field definitions.
-- **Required flags**: Use `required` attribute on `<ParamField>`.
-- **Default values**: Use `default` attribute on `<ParamField>`.
-- **Link to API reference**: Add a note at the bottom linking to the corresponding API endpoint page.
-
-### Register in docs.json
-
-**IMPORTANT**: Every new doc file MUST be registered in `docs/docs.json` or it won't appear in the documentation site. After creating doc files, read the current `docs.json`, find the product's CLI navigation group, and add any missing pages. The structure should be:
-
-```json
-{
-  "groups": [
-    {
-      "group": "APIs",
-      "pages": [
-        "api-management/cli/apis/create-api",
-        "api-management/cli/apis/delete-api",
-        "api-management/cli/apis/get-api",
-        "api-management/cli/apis/list-keys"
-      ]
-    },
-    {
-      "group": "Keys",
-      "pages": [
-        "api-management/cli/keys/create-key",
-        ...
-      ]
-    }
-  ]
-}
-```
+In audit mode, run only `--check`. Review the diff after migration, including nested commands and resources whose canonical group differs from their legacy group.
 
 ### Audit mode docs and tests check
 
 When running in `check` mode, also report:
-- **Missing docs**: CLI commands with no corresponding `.mdx` file in `docs/api-management/cli/` or `docs/compute/cli/`
+- **Missing docs**: CLI commands with no corresponding `.mdx` file in `docs/api-management/cli/`, `docs/compute/cli/`, or `docs/platform/cli/`
 - **Missing from nav**: Doc files that exist but aren't registered in `docs.json`
 - **Missing tests**: CLI command files with no corresponding `_test.go` file. Do not require per-leaf body-mode tests unless the command has structurally unusual request construction.
 - **Body flag ownership**: A leaf command that does not explicitly define exactly one `--body` flag.
-- **Body-mode gating**: A leaf that does not declare its own `--body`, mark every request-building flag with `cli.MutuallyExclusive("body")`, or branch on `cmd.FlagIsSet("body")` before ordinary request-flag parsing and validation.
+- **Body-mode gating**: A leaf that does not declare its own `--body`, mark every request-building flag with `cli.MutuallyExclusive("body")`, or select the typed body before request-flag validation. For destructive commands, require `util.RequestBody` followed by `util.Confirm` before the SDK call in both modes.
 
 ## Step 6: Write tests
 
@@ -536,7 +468,7 @@ The root integration suite in `cmd/api/root_test.go` owns shared `--body` behavi
 ### Types
 
 - Import request types from `github.com/unkeyed/unkey/svc/api/openapi` (e.g., `openapi.V2KeysCreateKeyRequestBody`)
-- Use `ptr.P()` from `github.com/unkeyed/unkey/pkg/ptr` for pointer fields
+- Use `new(value)` for pointer fields, matching the repository's Go version
 - Use `nullable.NewNullableWithValue()` from `github.com/oapi-codegen/nullable` for nullable fields
 - Use `--flag=value` syntax in args (not `--flag value`)
 - Commands are functions now (`Cmd()` not `Cmd`), so each test gets fresh flag state
@@ -559,8 +491,15 @@ When running in `check` mode, also report:
 
 ## Step 7: Verify
 
-After generating, run:
+Write command fields and each flag, example, and child command on separate lines. Run `gofmt` on changed Go files, then run scoped tests, the Go build, and documentation checks through mise:
+
+```bash
+mise exec -- gofmt -w <changed-go-files>
+mise exec -- rask ./cmd/api/...
+mise run build
+mise run docs-lint
 ```
-mise run lint && mise run build && mise run fmt
-```
-Fix any errors before finishing. Never use `go build` directly. Always use `mise run build`.
+
+`gofmt` preserves existing line breaks in composite literals; it does not choose their layout. Review declarations for readability instead of adding a custom formatter or formatting tests.
+
+Keep coverage for canonical and legacy command routing, human empty and populated output, full JSON envelopes, invalid output values, pagination, and stdout/stderr separation. Report unavailable checks and pre-existing failures without weakening them. Never use `go build` directly. Always use `mise run build`.

@@ -10,5 +10,5 @@ import (
 
 func TestDeletePortal(t *testing.T) {
 	want := components.V2PortalDeletePortalRequestBody{Portal: "acme-portal"}
-	require.Equal(t, want, testutil.CaptureRequest[components.V2PortalDeletePortalRequestBody](t, Cmd(), "portal delete-portal --portal=acme-portal"))
+	require.Equal(t, want, testutil.CaptureRequest[components.V2PortalDeletePortalRequestBody](t, Cmd(), "portal delete-portal --portal=acme-portal --yes"))
 }

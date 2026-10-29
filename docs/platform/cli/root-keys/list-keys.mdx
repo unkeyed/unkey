@@ -1,0 +1,90 @@
+---
+title: unkey root-keys list
+sidebarTitle: "list"
+description: "List readable root keys without exposing their secrets."
+sources:
+  - cmd/api/rootkeys/list_keys.go
+  - svc/api/openapi/spec/paths/v2/rootKeys/listKeys/index.yaml
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import CLIOutput from "/snippets/cli-output.mdx";
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+List readable root keys in the authenticated workspace, ordered by key ID.
+Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#read` for each returned key.
+Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
+A caller with no readable keys receives an empty page.
+
+Includes disabled and expired keys from the root-key store.
+Deleted keys are excluded. Secrets and hashes are never returned.
+Pass the returned cursor when hasMore is true to retrieve the next page.
+
+## Usage
+
+```bash
+unkey root-keys list [flags]
+```
+
+## Flags
+
+<ParamField body="--cursor" type="string">
+  Opaque cursor from a previous response. Omit for the first page.
+</ParamField>
+
+<ParamField body="--limit" type="integer" default="100">
+  Maximum number of readable root keys per page. Range: 1 to 100.
+</ParamField>
+
+### Shared flags
+
+These flags control authentication, requests, and output. [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--body" type="string">
+  A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
+</ParamField>
+
+## Examples
+
+```bash
+unkey root-keys list --limit=20
+```
+
+Send the request body as JSON:
+
+```bash
+unkey root-keys list --body='{"limit":20}'
+```
+
+## API endpoint
+
+The command calls `POST /v2/rootKeys.listKeys` and prints its response. See the <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/openapi/spec/paths/v2/rootKeys/listKeys/index.yaml" target="_blank">endpoint definition</a> for the HTTP contract. Request fields use camelCase in `--body`.

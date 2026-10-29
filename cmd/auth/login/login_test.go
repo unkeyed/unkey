@@ -68,10 +68,10 @@ func TestNonterminalLoginDoesNotOpenABrowser(t *testing.T) {
 			err := New().Run(t.Context(), []string{"unkey", "--api-url", srv.URL})
 			require.EqualError(t, err, "Authorization was denied.")
 		})
-		require.Contains(t, stdout, verificationURL)
-		require.NotContains(t, stdout, "Could not open a browser")
+		require.Empty(t, stdout)
 	})
-	require.Empty(t, stderr)
+	require.Contains(t, stderr, verificationURL)
+	require.NotContains(t, stderr, "Could not open a browser")
 }
 
 func TestRootKeyFlagStoresTheKey(t *testing.T) {
@@ -80,12 +80,16 @@ func TestRootKeyFlagStoresTheKey(t *testing.T) {
 	t.Setenv("UNKEY_ROOT_KEY", "")
 	store := &memoryRootKeyStore{}
 
-	out := captureStdout(t, func() {
-		cmd := newCommand(store)
-		err := cmd.Run(context.Background(), []string{"unkey", "--root-key", "unkey_from_flag"})
-		require.NoError(t, err)
+	var stdout string
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			cmd := newCommand(store)
+			err := cmd.Run(context.Background(), []string{"unkey", "--root-key", "unkey_from_flag"})
+			require.NoError(t, err)
+		})
 	})
-	require.Contains(t, out, "Authentication successful. Key stored in the system keychain.")
+	require.Equal(t, "Root key saved.\n", stdout)
+	require.Empty(t, stderr)
 	require.Equal(t, "unkey_from_flag", store.secret)
 	require.NotContains(t, configBody(t, home), "unkey_from_flag")
 }
@@ -97,12 +101,16 @@ func TestRootKeyFlagFallsBackToTheConfigFile(t *testing.T) {
 	store := &memoryRootKeyStore{unavailable: true}
 
 	path := filepath.Join(home, ".unkey", "config.toml")
-	out := captureStdout(t, func() {
-		cmd := newCommand(store)
-		err := cmd.Run(context.Background(), []string{"unkey", "--root-key", "unkey_from_flag"})
-		require.NoError(t, err)
+	var stdout string
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			cmd := newCommand(store)
+			err := cmd.Run(context.Background(), []string{"unkey", "--root-key", "unkey_from_flag"})
+			require.NoError(t, err)
+		})
 	})
-	require.Contains(t, out, "Authentication successful. Key stored in "+path)
+	require.Equal(t, "Root key saved.\n", stdout)
+	require.Empty(t, stderr)
 
 	cfg, err := cli.LoadUserConfig(path)
 	require.NoError(t, err)
@@ -156,21 +164,30 @@ func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
 
 	var slept []time.Duration
 	opened := ""
-	err := run(context.Background(), options{
-		apiURL:    srv.URL,
-		noBrowser: false,
-		keys:      store,
-		client:    srv.Client(),
-		sleep: func(_ context.Context, d time.Duration) error {
-			slept = append(slept, d)
-			return nil
-		},
-		open: func(url string) error {
-			opened = url
-			return nil
-		},
+	var stdout string
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			err := run(context.Background(), options{
+				apiURL:    srv.URL,
+				noBrowser: false,
+				keys:      store,
+				client:    srv.Client(),
+				sleep: func(_ context.Context, d time.Duration) error {
+					slept = append(slept, d)
+					return nil
+				},
+				open: func(url string) error {
+					opened = url
+					return nil
+				},
+			})
+			require.NoError(t, err)
+		})
 	})
-	require.NoError(t, err)
+	require.Equal(t, "Signed in.\n", stdout)
+	require.Equal(t, "Your confirmation code:\n\n  A B C D - E F G H\n\n"+
+		"Open this URL, check the code, and choose permissions:\n  "+verificationURL+"\n\n"+
+		"Waiting for browser approval...\n", stderr)
 	require.NotNil(t, startedBody.DeviceName)
 	require.NotEmpty(t, *startedBody.DeviceName)
 	require.Equal(t, verificationURL, opened)
@@ -183,6 +200,42 @@ func TestDeviceLoginPollsUntilTheKeyIsIssued(t *testing.T) {
 	require.Equal(t, workspaceID, stored.WorkspaceID)
 	require.Equal(t, sessionID, stored.SessionID)
 	require.Equal(t, srv.URL, stored.APIURL)
+}
+
+func TestDeviceLoginReportsBrowserFailureOnStderr(t *testing.T) {
+	useSessionStore(t)
+	t.Setenv("HOME", t.TempDir())
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/cli.startDeviceLogin":
+			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 1))
+		case "/v2/cli.exchangeToken":
+			writeEnvelope(t, w, http.StatusOK, completeEnvelope(uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix)))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	var stdout string
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			err := run(t.Context(), options{
+				apiURL: srv.URL,
+				client: srv.Client(),
+				open: func(url string) error {
+					require.Equal(t, verificationURL, url)
+					return errors.New("browser unavailable")
+				},
+			})
+			require.NoError(t, err)
+		})
+	})
+	require.Equal(t, "Signed in.\n", stdout)
+	require.Equal(t, "Your confirmation code:\n\n  A B C D - E F G H\n\n"+
+		"Open this URL, check the code, and choose permissions:\n  "+verificationURL+"\n\n"+
+		"Could not open a browser (browser unavailable). Use the URL above.\n\n"+
+		"Waiting for browser approval...\n", stderr)
 }
 
 func TestDeviceLoginStopsWhenDenied(t *testing.T) {
@@ -235,14 +288,22 @@ func TestDeviceLoginRetriesTransientPollErrors(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	err := run(context.Background(), options{
-		apiURL:    srv.URL,
-		noBrowser: true,
-		keys:      store,
-		client:    srv.Client(),
-		sleep:     func(context.Context, time.Duration) error { return nil },
+	var stdout string
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			err := run(context.Background(), options{
+				apiURL:    srv.URL,
+				noBrowser: true,
+				keys:      store,
+				client:    srv.Client(),
+				sleep:     func(context.Context, time.Duration) error { return nil },
+			})
+			require.NoError(t, err)
+		})
 	})
-	require.NoError(t, err)
+	require.Equal(t, "Signed in.\n", stdout)
+	require.Contains(t, stderr, verificationURL)
+	require.Contains(t, stderr, "Waiting for browser approval...\n")
 	require.Equal(t, 2, polls)
 }
 
@@ -300,13 +361,16 @@ func TestDeviceLoginRevokesTheSessionWhenItCannotBeStored(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	stderr := captureStderr(t, func() {
-		err := run(context.Background(), options{
-			apiURL:    srv.URL,
-			noBrowser: true,
-			client:    srv.Client(),
-			sleep:     func(context.Context, time.Duration) error { return nil },
+		stdout := captureStdout(t, func() {
+			err := run(context.Background(), options{
+				apiURL:    srv.URL,
+				noBrowser: true,
+				client:    srv.Client(),
+				sleep:     func(context.Context, time.Duration) error { return nil },
+			})
+			require.ErrorContains(t, err, "could not store the CLI session, so it was revoked")
 		})
-		require.ErrorContains(t, err, "could not store the CLI session, so it was revoked")
+		require.Empty(t, stdout)
 	})
 	require.True(t, revoked)
 	require.NotContains(t, stderr, "refresh_issued")

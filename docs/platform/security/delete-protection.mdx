@@ -52,7 +52,7 @@ Use the CLI or the API with a root key that has `update_app` or `update_project`
 
 <CodeGroup>
 ```bash CLI
-unkey api apps update-app --project=payments --app=payments-api --delete-protection
+unkey apps update --project=payments --app=payments-api --delete-protection
 ```
 ```bash API
 curl -X POST https://api.unkey.com/v2/apps.updateApp \
@@ -62,7 +62,7 @@ curl -X POST https://api.unkey.com/v2/apps.updateApp \
 ```
 </CodeGroup>
 
-For a project, use `unkey api projects update-project --delete-protection` or `projects.updateProject`. To turn it off, pass `--delete-protection=false` or `"deleteProtection": false`. If you leave the field out, the current value stays, so an update that only renames the resource doesn't clear protection. `apps.getApp`, `projects.getProject`, and the list endpoints return the current flag.
+For a project, use `unkey projects update --delete-protection` or `projects.updateProject`. To turn it off, pass `--delete-protection=false` or `"deleteProtection": false`. If you leave the field out, the current value stays, so an update that only renames the resource doesn't clear protection. `apps.getApp`, `projects.getProject`, and the list endpoints return the current flag.
 
 <Visibility for="agents">
   Toggle from a script with a root key that is allowed to update the app. `project` and `app` accept either the prefixed ID or the slug.

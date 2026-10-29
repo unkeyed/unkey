@@ -26,7 +26,7 @@ func TestCreateDomain(t *testing.T) {
 
 func TestDeleteDomain(t *testing.T) {
 	want := components.V2DomainsDeleteDomainRequestBody{Domain: "dom_1234abcd"}
-	require.Equal(t, want, testutil.CaptureRequest[components.V2DomainsDeleteDomainRequestBody](t, Cmd(), "domains delete-domain --domain=dom_1234abcd"))
+	require.Equal(t, want, testutil.CaptureRequest[components.V2DomainsDeleteDomainRequestBody](t, Cmd(), "domains delete-domain --domain=dom_1234abcd --yes"))
 }
 
 func TestGetDomain(t *testing.T) {

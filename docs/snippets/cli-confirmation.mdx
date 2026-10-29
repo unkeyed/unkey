@@ -1,0 +1,3 @@
+Skip the local confirmation prompt. Without `--yes`, the CLI shows the requested target on stderr and asks `[y/N]`. Enter `y` or `yes` to proceed. An empty answer, any other answer, or end of input cancels without sending the destructive request.
+
+Both stdin and stderr must be terminals to confirm interactively. In CI, with redirected input, or with redirected stderr, pass `--yes` explicitly. This also applies to `--body` and legacy `unkey api` paths. Authentication, permissions, and delete protection still apply. See [Confirm destructive commands](/platform/cli/output-and-flags#confirm-destructive-commands).

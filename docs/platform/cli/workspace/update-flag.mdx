@@ -1,0 +1,94 @@
+---
+title: unkey workspace flags update
+sidebarTitle: "flags update"
+description: "Enable or disable a feature flag for your workspace."
+sources:
+  - cmd/api/workspace/update_flag.go
+  - svc/api/openapi/spec/paths/v2/workspace/updateFlag/index.yaml
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import CLIOutput from "/snippets/cli-output.mdx";
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Enable or disable a flag for your workspace. Use `workspace.getFlags` to
+find flag slugs and check whether they can be enabled or disabled.
+
+Get a real slug and its allowed transitions from [workspace flags get](/platform/cli/workspace/get-flags) before updating it. Replace `example_feature` in the examples with that slug. Pass `--enabled=false` explicitly to disable a flag.
+
+## Usage
+
+```bash
+unkey workspace flags update --enabled=<enabled> --slug=<slug> [flags]
+```
+
+## Flags
+
+<ParamField body="--enabled" type="boolean" required>
+  Set to true to enable the flag or false to disable it, regardless of the flag's default.
+</ParamField>
+
+<ParamField body="--slug" type="string" required>
+  Lowercase snake_case slug of the flag to update, as returned by `workspace.getFlags`.
+</ParamField>
+
+### Shared flags
+
+These flags control authentication, requests, and output. [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--body" type="string">
+  A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
+</ParamField>
+
+## Required permissions
+
+Your root key must have the following permission:
+
+- `unkey:v1:<workspace_id>:flags#write`
+
+See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash
+unkey workspace flags update --slug=example_feature --enabled=false
+```
+
+Send the request body as JSON:
+
+```bash
+unkey workspace flags update --body='{"slug":"example_feature","enabled":false}'
+```
+
+## API endpoint
+
+The command calls `POST /v2/workspace.updateFlag` and prints its response. See the <a href="https://github.com/unkeyed/unkey/blob/main/svc/api/openapi/spec/paths/v2/workspace/updateFlag/index.yaml" target="_blank">endpoint definition</a> for the HTTP contract. Request fields use camelCase in `--body`.

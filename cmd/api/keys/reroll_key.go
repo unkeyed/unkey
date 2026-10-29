@@ -77,7 +77,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rer
 
 			req := components.V2KeysRerollKeyRequestBody{
 				KeyID:      cmd.String("key-id"),
-				Expiration: cmd.Int64("expiration"),
+				Expiration: new(cmd.Int64("expiration")),
 			}
 
 			res, err := client.Keys.RerollKey(ctx, req)
