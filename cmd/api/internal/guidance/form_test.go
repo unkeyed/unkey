@@ -256,3 +256,9 @@ func TestSplitColumnsCarriesStyleAcrossWrappedLines(t *testing.T) {
 	require.Equal(t, "\x1b[36mabc\x1b[0m", rest)
 	require.Equal(t, 4, visibleWidth(head))
 }
+
+func TestFieldProblemNamesFieldOnce(t *testing.T) {
+	require.Equal(t, "Slug is already in use.", fieldProblem("body.slug", "Slug is already in use."))
+	require.Equal(t, "Display name: must be at most 256 characters", fieldProblem("body.displayName", "must be at most 256 characters"))
+	require.Equal(t, "Invalid input.", fieldProblem("", "Invalid input."))
+}

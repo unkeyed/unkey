@@ -156,7 +156,7 @@ In interactive updates, fields you don't select remain omitted and unchanged. Wh
 
 ### Correct rejected input
 
-If the API returns a structured input-validation rejection, the CLI shows the rejected fields and offers **Edit saved answers**. Answers stay in memory for that command only. Edit the rejected input, review it, and explicitly send the corrected request. Selecting **Cancel** returns the API error. The CLI does not resend an unchanged request.
+If the API rejects the input with field errors, the CLI lists each rejected field with the API's message and offers **Edit answers**. Your answers stay in memory until the command exits. Edit the rejected field, check the summary, and select the action again to send the corrected request. Selecting **Cancel** returns the API error. The CLI does not resend an unchanged request.
 
 This correction flow applies to the API's `invalid_input` 400 response with field errors. It does not reopen input for permission failures, conflicts, other 400 responses, or 422 resource-limit errors. Resource commands do not automatically retry API requests, including network and 5xx failures. A failed mutation may have completed. Check its state before running it again.
 
