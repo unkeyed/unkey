@@ -28,9 +28,9 @@ go = "1.27.3"
 "github:goreleaser/goreleaser-pro" = "2.15.4"
 "github:pnpm/pnpm" = { version = "11.28.5", platforms.macos-x64.asset_pattern = "pnpm-darwin-x64.tar.gz" }
 "github:speakeasy-api/speakeasy" = "1.790.1"
-"npm:deepsec" = "2.3.10"
+"npm:deepsec" = { version = "2.3.10", lazy = true }
 # Mintlify CLI for the product docs site (docs); see mise tasks docs-*.
-"npm:mint" = "4.2.866"
+"npm:mint" = { version = "4.2.866", lazy = true }
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
 "aqua:stripe/stripe-cli" = "1.53.1"

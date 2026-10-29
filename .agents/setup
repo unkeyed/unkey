@@ -32,10 +32,11 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
     docker-ce \
     docker-ce-cli \
     docker-compose-plugin \
-    acl
-elif ! command -v setfacl >/dev/null 2>&1; then
+    acl \
+    python3
+elif ! command -v setfacl >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
   sudo apt-get update
-  sudo apt-get install -y acl
+  sudo apt-get install -y acl python3
 fi
 echo "Docker installation completed in $((SECONDS - docker_started_at))s."
 
@@ -63,7 +64,7 @@ echo "Toolchain installation completed in $((SECONDS - toolchain_started_at))s."
 
 echo "Installing web dependencies..."
 web_started_at=$SECONDS
-"$mise" run install-web
+python3 .agents/install-web.py "$mise"
 echo "Web dependency installation completed in $((SECONDS - web_started_at))s."
 
 echo "Creating local web environment files when missing..."
