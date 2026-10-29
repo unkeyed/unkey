@@ -24,8 +24,9 @@ const (
 	// clearLine erases from cursor to end of line (ESC [ K or ESC [ 0 K).
 	// We combine with carriageReturn to clear the entire line.
 	clearLine      = "\033[K" // ESC [ K - erase from cursor to end of line
-	carriageReturn = "\r"     // Move cursor to beginning of current line (ASCII 13)
-	newLine        = "\r\n"   // Carriage return + line feed for new line in raw mode
+	clearBelow     = "\033[J"
+	carriageReturn = "\r"   // Move cursor to beginning of current line (ASCII 13)
+	newLine        = "\r\n" // Carriage return + line feed for new line in raw mode
 
 	// SGR (Select Graphic Rendition) sequences for text colors.
 	// Format: ESC [ <color-code> m

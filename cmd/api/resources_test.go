@@ -126,7 +126,7 @@ func TestInvalidOutputDoesNotSendMutation(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	output, _, err := runCLI(t, "projects", "delete", "--project=payments", "--output=jsno", "--root-key="+uid.New(uid.KeyPrefix), "--api-url="+server.URL)
-	require.ErrorContains(t, err, "jsno")
+	require.ErrorContains(t, err, "invalid value for flag --output")
 	require.Empty(t, output)
 }
 

@@ -51,7 +51,13 @@ func TestUpdateSettingsRejectsInvalidEnums(t *testing.T) {
 		t.Run(flag, func(t *testing.T) {
 			root := &cli.Command{Name: "unkey", Commands: []*cli.Command{Cmd()}}
 			err := root.Run(context.Background(), strings.Fields("unkey environments update-settings --project=p --app=a --environment=e --root-key=test "+flag))
-			require.ErrorContains(t, err, "invalid enum value")
+			require.ErrorIs(t, err, cli.ErrInvalidEnumValue)
+			var input *cli.InputError
+			require.ErrorAs(t, err, &input)
+			require.Equal(t, cli.InputErrorInvalidFlagValue, input.Kind)
+			name, value, _ := strings.Cut(flag, "=")
+			require.Equal(t, []string{strings.TrimPrefix(name, "--")}, input.Flags)
+			require.NotContains(t, err.Error(), value)
 		})
 	}
 }
