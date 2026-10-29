@@ -53,6 +53,18 @@ func TestBearer(t *testing.T) {
 			code:        codes.Auth.Authentication.Malformed.URN(),
 		},
 		{
+			name:        "token with embedded space",
+			headerValue: "Bearer AbC123 xYz",
+			wantErr:     true,
+			code:        codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
+			name:        "token with embedded tab",
+			headerValue: "bearer AbC123\txYz",
+			wantErr:     true,
+			code:        codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
 			name:        "empty authorization header",
 			headerValue: "",
 			wantErr:     true,
@@ -103,6 +115,7 @@ func TestBearer(t *testing.T) {
 			// Check error conditions
 			if tt.wantErr {
 				require.Error(t, err)
+				require.Empty(t, token)
 
 				code, ok := fault.GetCode(err)
 				if tt.code != "" {

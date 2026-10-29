@@ -44,7 +44,7 @@ func Bearer(s *Session) (string, error) {
 	}
 
 	bearer = strings.TrimSpace(bearer)
-	if bearer == "" {
+	if bearer == "" || strings.ContainsAny(bearer, " \t") {
 		return "", fault.New("invalid token", fault.Code(codes.Auth.Authentication.Malformed.URN()))
 	}
 
