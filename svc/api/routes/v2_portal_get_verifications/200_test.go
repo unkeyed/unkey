@@ -169,6 +169,8 @@ func sumTotals(keys []openapi.V2PortalGetVerificationsKeySeries) int64 {
 // external_id at write time, not by current key ownership).
 func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+	// Keep the exclusive query end on a minute boundary behind wall time.
+	h.Clock.Set(h.Clock.Now().Add(-2 * time.Minute).Truncate(time.Minute))
 
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -202,7 +204,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		IdentityID:  new(identityA.ID),
 	})
 	require.NoError(t, db.Query.SoftDeleteKeyByID(context.Background(), h.DB.RW(), db.SoftDeleteKeyByIDParams{
-		Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		Now: sql.NullInt64{Int64: h.Clock.Now().UnixMilli(), Valid: true},
 		ID:  keyADeleted.KeyID,
 	}))
 
@@ -230,7 +232,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		for i := range n {
 			h.KeyVerifications.Buffer(schema.KeyVerification{
 				RequestID:   uid.New(uid.RequestPrefix),
-				Time:        now - int64(i*1000),
+				Time:        now - int64((i+1)*1000),
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  keySpaceID,
 				KeyID:       keyID,
@@ -305,6 +307,8 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 // timeseries to a single key while staying scoped to the session identity.
 func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+	// Keep the exclusive query end on a minute boundary behind wall time.
+	h.Clock.Set(h.Clock.Now().Add(-2 * time.Minute).Truncate(time.Minute))
 
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{
@@ -335,7 +339,7 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	for i := range 4 {
 		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        now - int64(i*1000),
+			Time:        now - int64((i+1)*1000),
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 			KeyID:       targetKey.KeyID,
@@ -349,7 +353,7 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	for i := range 6 {
 		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
-			Time:        now - int64(i*1000),
+			Time:        now - int64((i+1)*1000),
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
 			KeyID:       otherKey.KeyID,
