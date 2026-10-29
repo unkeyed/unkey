@@ -17,9 +17,9 @@ import (
 	"github.com/unkeyed/unkey/svc/vault/keys"
 )
 
-// TestReEncrypt verifies that successive DEK rotations move the ciphertext to
+// TestReEncryptBulk verifies that successive DEK rotations move the ciphertext to
 // each new key without changing its plaintext across varying data sizes.
-func TestReEncrypt(t *testing.T) {
+func TestReEncryptBulk(t *testing.T) {
 
 	s3 := containers.S3(t)
 
@@ -72,15 +72,20 @@ func TestReEncrypt(t *testing.T) {
 				require.NoError(t, createDekErr)
 				require.NotContains(t, deks, dekID)
 				deks = append(deks, dekID)
-				reReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-					Keyring:   keyring,
-					Encrypted: encrypted,
+				id := uid.New(uid.TestPrefix)
+				reReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+					Items: map[string]*vaultv1.DecryptRequest{
+						id: {Keyring: keyring, Encrypted: encrypted},
+					},
 				})
 				reReq.Header().Add("Authorization", fmt.Sprintf("Bearer %s", bearer))
-				reEnc, reEncryptErr := v.ReEncrypt(ctx, reReq)
+				reEnc, reEncryptErr := v.ReEncryptBulk(ctx, reReq)
 				require.NoError(t, reEncryptErr)
-				require.Equal(t, dekID, reEnc.Msg.GetKeyId())
-				encrypted = reEnc.Msg.GetEncrypted()
+				result := reEnc.Msg.GetItems()[id]
+				require.Empty(t, result.GetError())
+				require.NotNil(t, result.GetSuccess())
+				require.Equal(t, dekID, result.GetSuccess().GetKeyId())
+				encrypted = result.GetSuccess().GetEncrypted()
 			}
 			decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 				Keyring:   keyring,

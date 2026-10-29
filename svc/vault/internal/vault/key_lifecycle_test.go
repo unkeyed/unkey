@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // TestKeyLifecycle_MultipleEncryptionsUseSameKey verifies that multiple
@@ -83,19 +84,24 @@ func TestKeyLifecycle_ReEncryptPreservesData(t *testing.T) {
 	require.NoError(t, err)
 
 	// Re-encrypt
-	reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   keyring,
-		Encrypted: encRes.Msg.GetEncrypted(),
+	id := uid.New(uid.TestPrefix)
+	reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			id: {Keyring: keyring, Encrypted: encRes.Msg.GetEncrypted()},
+		},
 	})
 	reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-	reencRes, err := service.ReEncrypt(ctx, reencReq)
+	reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 	require.NoError(t, err)
+	result := reencRes.Msg.GetItems()[id]
+	require.Empty(t, result.GetError())
+	require.NotNil(t, result.GetSuccess())
 
 	// Decrypt the re-encrypted data
 	decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 		Keyring:   keyring,
-		Encrypted: reencRes.Msg.GetEncrypted(),
+		Encrypted: result.GetSuccess().GetEncrypted(),
 	})
 	decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
@@ -124,17 +130,22 @@ func TestKeyLifecycle_ReEncryptProducesDifferentCiphertext(t *testing.T) {
 	originalEncrypted := encRes.Msg.GetEncrypted()
 
 	// Re-encrypt
-	reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   keyring,
-		Encrypted: originalEncrypted,
+	id := uid.New(uid.TestPrefix)
+	reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			id: {Keyring: keyring, Encrypted: originalEncrypted},
+		},
 	})
 	reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-	reencRes, err := service.ReEncrypt(ctx, reencReq)
+	reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 	require.NoError(t, err)
+	result := reencRes.Msg.GetItems()[id]
+	require.Empty(t, result.GetError())
+	require.NotNil(t, result.GetSuccess())
 
 	// Ciphertexts should be different (different nonce)
-	require.NotEqual(t, originalEncrypted, reencRes.Msg.GetEncrypted(),
+	require.NotEqual(t, originalEncrypted, result.GetSuccess().GetEncrypted(),
 		"re-encrypted data should have different ciphertext")
 }
 
@@ -158,14 +169,19 @@ func TestKeyLifecycle_OldCiphertextStillDecryptable(t *testing.T) {
 	originalEncrypted := encRes.Msg.GetEncrypted()
 
 	// Re-encrypt
-	reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   keyring,
-		Encrypted: originalEncrypted,
+	id := uid.New(uid.TestPrefix)
+	reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			id: {Keyring: keyring, Encrypted: originalEncrypted},
+		},
 	})
 	reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-	_, err = service.ReEncrypt(ctx, reencReq)
+	reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 	require.NoError(t, err)
+	result := reencRes.Msg.GetItems()[id]
+	require.Empty(t, result.GetError())
+	require.NotNil(t, result.GetSuccess())
 
 	// Original ciphertext should still be decryptable
 	decReq := connect.NewRequest(&vaultv1.DecryptRequest{
@@ -200,15 +216,20 @@ func TestKeyLifecycle_MultipleReEncryptions(t *testing.T) {
 
 	// Re-encrypt multiple times
 	for i := 0; i < 5; i++ {
-		reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-			Keyring:   keyring,
-			Encrypted: encrypted,
+		id := uid.New(uid.TestPrefix)
+		reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+			Items: map[string]*vaultv1.DecryptRequest{
+				id: {Keyring: keyring, Encrypted: encrypted},
+			},
 		})
 		reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-		reencRes, err := service.ReEncrypt(ctx, reencReq)
+		reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 		require.NoError(t, err, "re-encryption %d failed", i)
-		encrypted = reencRes.Msg.GetEncrypted()
+		result := reencRes.Msg.GetItems()[id]
+		require.Empty(t, result.GetError(), "re-encryption %d failed", i)
+		require.NotNil(t, result.GetSuccess())
+		encrypted = result.GetSuccess().GetEncrypted()
 	}
 
 	// Decrypt final result
@@ -267,12 +288,17 @@ func TestKeyLifecycle_CrossKeyringReEncryptFails(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to re-encrypt with keyring B
-	reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   "keyring-reencrypt",
-		Encrypted: encRes.Msg.GetEncrypted(),
+	id := uid.New(uid.TestPrefix)
+	reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			id: {Keyring: "keyring-reencrypt", Encrypted: encRes.Msg.GetEncrypted()},
+		},
 	})
 	reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-	_, err = service.ReEncrypt(ctx, reencReq)
-	require.Error(t, err, "re-encryption with wrong keyring should fail")
+	reencRes, err := service.ReEncryptBulk(ctx, reencReq)
+	require.NoError(t, err)
+	result := reencRes.Msg.GetItems()[id]
+	require.NotEmpty(t, result.GetError(), "re-encryption with wrong keyring should fail")
+	require.Nil(t, result.GetSuccess())
 }

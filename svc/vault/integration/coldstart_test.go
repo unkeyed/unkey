@@ -83,24 +83,29 @@ func Test_ColdStart(t *testing.T) {
 
 	_, err = v.CreateDEK(ctx, bobKeyRing)
 	require.NoError(t, err)
-	bobReencryptReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   bobKeyRing,
-		Encrypted: bobEncryptionRes.Msg.GetEncrypted(),
+	id := uid.New(uid.TestPrefix)
+	bobReencryptReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			id: {Keyring: bobKeyRing, Encrypted: bobEncryptionRes.Msg.GetEncrypted()},
+		},
 	})
 	bobReencryptReq.Header().Set("Authorization", "Bearer test-bearer-token")
-	bobReencryptionRes, err := v.ReEncrypt(ctx, bobReencryptReq)
+	bobReencryptionRes, err := v.ReEncryptBulk(ctx, bobReencryptReq)
 	require.NoError(t, err)
+	result := bobReencryptionRes.Msg.GetItems()[id]
+	require.Empty(t, result.GetError())
+	require.NotNil(t, result.GetSuccess())
 
 	// Bob decrypts his secret
 	bobDecryptReq := connect.NewRequest(&vaultv1.DecryptRequest{
 		Keyring:   bobKeyRing,
-		Encrypted: bobReencryptionRes.Msg.GetEncrypted(),
+		Encrypted: result.GetSuccess().GetEncrypted(),
 	})
 	bobDecryptReq.Header().Set("Authorization", "Bearer test-bearer-token")
 	bobDecryptionRes, err := v.Decrypt(ctx, bobDecryptReq)
 	require.NoError(t, err)
 	require.Equal(t, bobData, bobDecryptionRes.Msg.GetPlaintext())
 	// expect the key to be different
-	require.NotEqual(t, bobEncryptionRes.Msg.GetKeyId(), bobReencryptionRes.Msg.GetKeyId())
+	require.NotEqual(t, bobEncryptionRes.Msg.GetKeyId(), result.GetSuccess().GetKeyId())
 
 }
