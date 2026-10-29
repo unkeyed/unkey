@@ -46,9 +46,18 @@ func (f *form) confirm(ctx context.Context, schema *Schema, values map[string]an
 }
 
 func (f *form) preview(schema *Schema, values map[string]any, path string) error {
-	var preview strings.Builder
-	writeReview(&preview, "", reviewValue(schema, values, path), "  ")
-	_, err := fmt.Fprintf(f.out, "\n%s\n%s\n", reviewTitle(path), preview.String())
+	preview := func() string {
+		var output strings.Builder
+		fmt.Fprintln(&output, reviewTitle(path))
+		writeReview(&output, "", reviewValue(schema, values, path), "  ")
+		output.WriteByte('\n')
+		return output.String()
+	}
+	if f.screen != nil {
+		f.screen.summary = preview
+		return nil
+	}
+	_, err := fmt.Fprint(f.out, preview())
 	return err
 }
 

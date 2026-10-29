@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/prompt"
 	"golang.org/x/term"
 )
 
@@ -26,7 +26,7 @@ func Attach(command *cli.Command, legacy string) {
 		cli.Bool("interactive", "Choose inputs and optional settings interactively", cli.MutuallyExclusive(exclusive...)),
 		cli.Bool("no-input", "Never prompt; missing inputs fail immediately"),
 	)
-	command.Prepare = func(ctx context.Context, cmd *cli.Command) error {
+	command.Prepare = func(ctx context.Context, cmd *cli.Command) (err error) {
 		if cmd.Bool("no-input") || cmd.FlagIsSet("body") || (cmd.FlagIsSet("interactive") && !cmd.Bool("interactive")) {
 			return nil
 		}
@@ -78,13 +78,16 @@ func Attach(command *cli.Command, legacy string) {
 				conflicts[rule] = rules
 			}
 		}
+		screen := newTerminalForm()
+		defer func() { err = errors.Join(err, screen.finish()) }()
 		form := form{
-			prompt:    prompt.New(prompt.WithWriter(os.Stderr)),
-			out:       os.Stderr,
+			prompt:    screen,
+			out:       screen,
+			screen:    screen,
 			pick:      resourcePicker(ctx, cmd, legacy),
 			conflicts: conflicts,
 		}
-		if _, err := fmt.Fprintln(form.out, "Guided input · Ctrl+C cancels without sending the request."); err != nil {
+		if _, err := fmt.Fprintln(form.out, "Ctrl+C to cancel"); err != nil {
 			return err
 		}
 		if err := form.object(ctx, schema, values, "", needsChanges); err != nil {
