@@ -13,20 +13,21 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption/internal/db"
 )
 
 const batchSize = 100
 
 type Config struct {
-	DB db.Database
+	DB mysql.DBTX
 	// Vault may be nil so workers without Vault can still run other cron jobs.
 	Vault     vault.VaultServiceClient
 	Heartbeat healthcheck.Heartbeat
 }
 
 type Handler struct {
-	db        db.Database
+	db        *db.Queries
 	vault     vault.VaultServiceClient
 	heartbeat healthcheck.Heartbeat
 }
@@ -43,7 +44,7 @@ func New(cfg Config) (*Handler, error) {
 		return nil, err
 	}
 	return &Handler{
-		db:        cfg.DB,
+		db:        db.NewQueries(cfg.DB),
 		vault:     cfg.Vault,
 		heartbeat: cfg.Heartbeat,
 	}, nil

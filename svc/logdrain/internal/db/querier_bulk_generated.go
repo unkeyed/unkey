@@ -4,7 +4,7 @@ package db
 
 import "context"
 
-// BulkQuerier contains bulk write methods.
+// BulkQuerier contains bulk insert methods.
 type BulkQuerier interface {
 	InsertLogdrains(ctx context.Context, args []InsertLogdrainParams) error
 }

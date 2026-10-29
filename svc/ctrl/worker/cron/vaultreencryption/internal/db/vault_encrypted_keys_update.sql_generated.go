@@ -25,8 +25,7 @@ type UpdateVaultEncryptedKeyParams struct {
 }
 
 // API key plaintext is immutable. The cron serializes re-encryption writes.
-// The bulk generator expands this update without inserting missing rows,
-// so keys deleted during re-encryption remain deleted.
+// Keys deleted during re-encryption remain deleted.
 //
 //	UPDATE encrypted_keys
 //	SET encrypted = ?,

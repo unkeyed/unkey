@@ -335,7 +335,7 @@ func New(cfg Config) (*Service, error) {
 	}
 
 	vaultReEncryptionH, err := vaultreencryption.New(vaultreencryption.Config{
-		DB:        cfg.DB,
+		DB:        cfg.DB.RW(),
 		Vault:     cfg.Vault,
 		Heartbeat: cfg.Heartbeats.VaultReEncryption,
 	})

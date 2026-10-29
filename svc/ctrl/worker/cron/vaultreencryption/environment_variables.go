@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption/internal/db"
 )
 
 func (h *Handler) environmentVariables(ctx context.Context, after cursor) (cursor, error) {

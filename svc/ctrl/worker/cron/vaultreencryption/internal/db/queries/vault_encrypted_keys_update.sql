@@ -1,7 +1,6 @@
 -- name: UpdateVaultEncryptedKey :execrows
 -- API key plaintext is immutable. The cron serializes re-encryption writes.
--- The bulk generator expands this update without inserting missing rows,
--- so keys deleted during re-encryption remain deleted.
+-- Keys deleted during re-encryption remain deleted.
 UPDATE encrypted_keys
 SET encrypted = sqlc.arg(ciphertext),
     encryption_key_id = sqlc.arg(key_id)

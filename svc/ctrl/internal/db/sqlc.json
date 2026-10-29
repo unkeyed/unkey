@@ -10,8 +10,7 @@
           "out": ".",
           "plugin": "bulk-insert",
           "options": {
-            "emit_methods_with_db_argument": false,
-            "bulk_updates": ["UpdateVaultEncryptedKey"]
+            "emit_methods_with_db_argument": false
           }
         }
       ],

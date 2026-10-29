@@ -4,7 +4,7 @@ package db
 
 import "context"
 
-// BulkQuerier contains bulk write methods.
+// BulkQuerier contains bulk insert methods.
 type BulkQuerier interface {
 	UpsertRatelimitGlobalCounters(ctx context.Context, db DBTX, args []UpsertRatelimitGlobalCountersParams) error
 }

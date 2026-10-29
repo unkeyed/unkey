@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption/internal/db"
 )
 
 func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, error) {
@@ -31,7 +31,6 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 	if err != nil {
 		return after, fmt.Errorf("failed to re-encrypt rows")
 	}
-	updates := make([]db.UpdateVaultEncryptedKeyParams, 0, len(rows))
 	for _, row := range rows {
 		if err := ctx.Err(); err != nil {
 			return after, err
@@ -40,16 +39,15 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		updates = append(updates, db.UpdateVaultEncryptedKeyParams{
+		_, err := h.db.UpdateVaultEncryptedKey(ctx, db.UpdateVaultEncryptedKeyParams{
 			Pk:         row.Pk,
 			Keyring:    row.Keyring,
 			Ciphertext: item.GetEncrypted(),
 			KeyID:      item.GetKeyId(),
 		})
-	}
-	_, err = h.db.Bulk().UpdateVaultEncryptedKeys(ctx, updates)
-	if err != nil {
-		return after, fmt.Errorf("failed to update rows")
+		if err != nil {
+			return after, fmt.Errorf("failed to update pk %d", row.Pk)
+		}
 	}
 	if len(rows) < batchSize {
 		return cursor{Pk: 0}, nil

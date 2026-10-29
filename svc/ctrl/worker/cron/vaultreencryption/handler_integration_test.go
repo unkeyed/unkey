@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -19,11 +20,13 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	pkgdb "github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption"
+	vaultdb "github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption/internal/db"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -73,7 +76,7 @@ func TestReEncryptionDrainsTablesAndPreservesPlaintext(t *testing.T) {
 	testVault.Clock.Tick(25 * time.Hour)
 
 	handler, err := vaultreencryption.New(vaultreencryption.Config{
-		DB:        database,
+		DB:        database.RW(),
 		Vault:     client,
 		Heartbeat: healthcheck.NewNoop(),
 	})
@@ -101,7 +104,7 @@ func TestReEncryptionDrainsTablesAndPreservesPlaintext(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, keyID, decrypted.GetPlaintext())
 	}
-	secrets, err := database.ListVaultSharedSecrets(t.Context(), db.ListVaultSharedSecretsParams{Limit: 101})
+	secrets, err := vaultdb.NewQueries(database.RW()).ListVaultSharedSecrets(t.Context(), vaultdb.ListVaultSharedSecretsParams{Limit: 101})
 	require.NoError(t, err)
 	require.Len(t, secrets, 100)
 	for _, secret := range secrets {
@@ -175,7 +178,7 @@ func TestReEncryptionPaginatesConcurrentInserts(t *testing.T) {
 				},
 			}
 			handler, err := vaultreencryption.New(vaultreencryption.Config{
-				DB:        database,
+				DB:        database.RW(),
 				Vault:     concurrent,
 				Heartbeat: healthcheck.NewNoop(),
 			})
@@ -338,7 +341,7 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 	}
 	testVault.Clock.Tick(25 * time.Hour)
 	handler, err := vaultreencryption.New(vaultreencryption.Config{
-		DB:        database,
+		DB:        database.RW(),
 		Vault:     client,
 		Heartbeat: healthcheck.NewNoop(),
 	})
@@ -375,7 +378,8 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 	for _, variable := range variables {
 		check(environmentID, variable.Value, variable.Key)
 	}
-	deployments, err := database.ListVaultDeployments(t.Context(), db.ListVaultDeploymentsParams{Limit: 10})
+	queries := vaultdb.NewQueries(database.RW())
+	deployments, err := queries.ListVaultDeployments(t.Context(), vaultdb.ListVaultDeploymentsParams{Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, deployments, 1)
 	var snapshotNew ctrlv1.SecretsConfig
@@ -387,7 +391,7 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 		name := "VALUE_" + strconv.Itoa(i)
 		check(environmentID, snapshotNew.Secrets[name], name)
 	}
-	drains, err := database.ListVaultLogdrains(t.Context(), db.ListVaultLogdrainsParams{Limit: 10})
+	drains, err := queries.ListVaultLogdrains(t.Context(), vaultdb.ListVaultLogdrainsParams{Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, drains, 2)
 	for i, drain := range drains {
@@ -410,11 +414,11 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 	acme, err := database.FindAcmeUserByWorkspaceID(t.Context(), "acme")
 	require.NoError(t, err)
 	check("acme", acme.EncryptedKey, "account key")
-	settings, err := database.ListVaultClickhouseSettings(t.Context(), db.ListVaultClickhouseSettingsParams{Limit: 10})
+	settings, err := queries.ListVaultClickhouseSettings(t.Context(), vaultdb.ListVaultClickhouseSettingsParams{Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, settings, 1)
 	check(workspaceID, settings[0].Ciphertext, "database password")
-	shared, err := database.ListVaultSharedSecrets(t.Context(), db.ListVaultSharedSecretsParams{Limit: 10})
+	shared, err := queries.ListVaultSharedSecrets(t.Context(), vaultdb.ListVaultSharedSecretsParams{Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, shared, 1)
 	check(workspaceID, shared[0].Ciphertext, "one time secret")
@@ -467,7 +471,7 @@ func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
 	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
 	handler, err := vaultreencryption.New(vaultreencryption.Config{
-		DB:        database,
+		DB:        database.RW(),
 		Vault:     client,
 		Heartbeat: healthcheck.NewNoop(),
 	})
@@ -567,7 +571,7 @@ func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
 	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
 	handler, err := vaultreencryption.New(vaultreencryption.Config{
-		DB:        database,
+		DB:        database.RW(),
 		Vault:     client,
 		Heartbeat: healthcheck.NewNoop(),
 	})
@@ -588,7 +592,7 @@ func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
 	}
 }
 
-func TestReEncryptionRetriesFailedBulkWriteAndContinuesOtherTables(t *testing.T) {
+func TestReEncryptionRetriesFailedWriteAndContinuesOtherTables(t *testing.T) {
 	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
@@ -611,10 +615,12 @@ func TestReEncryptionRetriesFailedBulkWriteAndContinuesOtherTables(t *testing.T)
 			CreatedAt:       time.Now().UnixMilli(),
 		}))
 	}
+	keyFail, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keys[1])
+	require.NoError(t, err)
 	failing := &failingKeyWriteDB{
-		Database: database,
-		DBTX:     database.RW(),
-		err:      fmt.Errorf("write failed for ciphertext %s", encrypted.GetEncrypted()),
+		DBTX:   database.RW(),
+		pkFail: keyFail.Pk,
+		err:    fmt.Errorf("write failed for ciphertext %s", encrypted.GetEncrypted()),
 	}
 	failing.enabled.Store(true)
 	require.NoError(t, pkgdb.Query.InsertSharedSecret(t.Context(), database.RW(), pkgdb.InsertSharedSecretParams{
@@ -642,12 +648,16 @@ func TestReEncryptionRetriesFailedBulkWriteAndContinuesOtherTables(t *testing.T)
 		_, err = cronClient.RunVaultReEncryption().Request(t.Context(), &hydrav1.RunVaultReEncryptionRequest{})
 		require.Error(t, err)
 		require.NotContains(t, err.Error(), encrypted.GetEncrypted(), "database errors must not expose ciphertext")
-		for _, keyID := range keys {
+		for i, keyID := range keys {
 			stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
 			require.NoError(t, err)
-			require.Equal(t, encrypted.GetEncrypted(), stored.Encrypted, "a failed bulk write must leave the entire page unchanged")
+			if i == 0 {
+				require.Equal(t, keyIDNew, stored.EncryptionKeyID, "writes before the failed row must persist")
+			} else {
+				require.Equal(t, encrypted.GetEncrypted(), stored.Encrypted, "the failed row and later rows must remain unchanged")
+			}
 		}
-		secrets, err := database.ListVaultSharedSecrets(t.Context(), db.ListVaultSharedSecretsParams{Limit: 100})
+		secrets, err := vaultdb.NewQueries(database.RW()).ListVaultSharedSecrets(t.Context(), vaultdb.ListVaultSharedSecretsParams{Limit: 100})
 		require.NoError(t, err)
 		require.Len(t, secrets, 1)
 		require.NotEqual(t, encrypted.GetEncrypted(), secrets[0].Ciphertext, "a failed table must not block other tables")
@@ -669,19 +679,19 @@ func TestReEncryptionRetriesFailedBulkWriteAndContinuesOtherTables(t *testing.T)
 }
 
 type failingKeyWriteDB struct {
-	db.Database
-	db.DBTX
+	mysql.DBTX
+	pkFail  uint64
 	err     error
 	enabled atomic.Bool
 }
 
-func (d *failingKeyWriteDB) Bulk() *db.BulkQueries {
-	return db.NewBulkQueries(d)
-}
-
 func (d *failingKeyWriteDB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	if d.enabled.Load() {
-		return nil, d.err
+	if d.enabled.Load() && strings.Contains(query, "UPDATE encrypted_keys") {
+		for _, arg := range args {
+			if pk, ok := arg.(uint64); ok && pk == d.pkFail {
+				return nil, d.err
+			}
+		}
 	}
 	return d.DBTX.ExecContext(ctx, query, args...)
 }
@@ -725,7 +735,7 @@ func TestReEncryptionPreservesConcurrentCertificateRenewal(t *testing.T) {
 		certificate:        certificate,
 	}
 	handler, err := vaultreencryption.New(vaultreencryption.Config{
-		DB:        database,
+		DB:        database.RW(),
 		Vault:     concurrent,
 		Heartbeat: healthcheck.NewNoop(),
 	})
@@ -783,7 +793,7 @@ func TestReEncryptionWithoutVaultFailsAtInvocationNotStartup(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	handler, err := vaultreencryption.New(vaultreencryption.Config{
-		DB:        database,
+		DB:        database.RW(),
 		Heartbeat: healthcheck.NewNoop(),
 	})
 	require.NoError(t, err)

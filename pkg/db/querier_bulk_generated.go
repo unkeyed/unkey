@@ -4,7 +4,7 @@ package db
 
 import "context"
 
-// BulkQuerier contains bulk write methods.
+// BulkQuerier contains bulk insert methods.
 type BulkQuerier interface {
 	InsertApis(ctx context.Context, db DBTX, args []InsertApiParams) error
 	UpsertAppBuildSettings(ctx context.Context, db DBTX, args []UpsertAppBuildSettingsParams) error

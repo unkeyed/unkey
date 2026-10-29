@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption/internal/db"
 )
 
 func (h *Handler) logdrains(ctx context.Context, after cursor) (cursor, error) {
