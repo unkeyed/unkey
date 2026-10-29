@@ -3,7 +3,7 @@
 import { RegionFlag } from "@/components/region-flag";
 import type { InstanceRow } from "@/lib/metrics/app-metrics";
 import { regionInfo } from "@/lib/regions";
-import { IconChevronRightOutline12 } from "@unkey/icons";
+import { IconChevronRightOutline12, IconServerOutline18 } from "@unkey/icons";
 import {
   ResourceListBody,
   ResourceListContent,
@@ -17,6 +17,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   type InstanceTableRow,
+  LINE_COLOR,
   type LineTone,
   type LogsTarget,
   type UsageCell,
@@ -69,9 +70,20 @@ export function InstanceTable({
                 onPointerLeave={() => onHover(null)}
                 onFocus={() => onHover(instance.key)}
                 onBlur={() => onHover(null)}
-                className={cn(COLUMNS, "h-12 text-sm")}
+                className={cn(COLUMNS, "group/row h-12 text-sm")}
               >
-                <span className={cn("truncate text-xs", TONE_TEXT[tone].name)}>{instance.key}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span aria-hidden="true" className="relative flex shrink-0">
+                    <IconServerOutline18 className="size-4 text-gray-12 [mask-image:radial-gradient(circle_at_calc(100%-3px)_calc(100%-3px),transparent_4.5px,#000_5px)]" />
+                    <span
+                      className="absolute right-0 bottom-0 size-1.5 rounded-full"
+                      style={{ backgroundColor: LINE_COLOR[tone] }}
+                    />
+                  </span>
+                  <span className={cn("truncate font-medium", TONE_TEXT[tone].name)}>
+                    {instance.key}
+                  </span>
+                </span>
                 <span
                   className={cn("flex min-w-0 gap-1 text-xs", TONE_TEXT[tone].status)}
                   title={instance.statusText}
@@ -104,7 +116,9 @@ export function InstanceTable({
                       Logs
                     </Link>
                   )}
-                  <IconChevronRightOutline12 className="size-3 text-gray-8" />
+                  <span className="flex items-center justify-center rounded-sm p-0.5 text-gray-9 transition-colors group-hover/row:bg-grayA-4 group-hover/row:text-gray-12 group-has-focus-visible/row:bg-grayA-4 group-has-focus-visible/row:text-gray-12 motion-reduce:transition-none">
+                    <IconChevronRightOutline12 className="size-2.5" />
+                  </span>
                 </span>
               </ResourceListRow>
             </ResourceListItem>
