@@ -15,6 +15,15 @@ export const createPlainIssue = workspaceProcedure
       issueType,
       severity,
       message: z.string().min(20, "Feedback must contain at least 20 characters"),
+      pageUrl: z
+        .string()
+        .url()
+        .refine((value) => ["http:", "https:"].includes(new URL(value).protocol))
+        .transform((value) => {
+          const url = new URL(value);
+          return `${url.origin}${url.pathname}`;
+        })
+        .optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -95,6 +104,18 @@ export const createPlainIssue = workspaceProcedure
             }),
           ],
         }),
+        uiComponent.row({
+          mainContent: [
+            uiComponent.plainText({ text: `Workspace ID: ${ctx.workspace.id}`, color: "MUTED" }),
+          ],
+          asideContent: [
+            uiComponent.copyButton({
+              value: ctx.workspace.id,
+              tooltip: "Copy Workspace ID",
+            }),
+          ],
+        }),
+        ...(input.pageUrl ? [uiComponent.plainText({ text: `Page: ${input.pageUrl}` })] : []),
       ],
       labelTypeIds: [issueToId[input.issueType]],
     });
