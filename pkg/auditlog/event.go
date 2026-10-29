@@ -81,7 +81,8 @@ var DashboardBuckets = []Bucket{BucketUnkeyMutations}
 // KnownBuckets lists every bucket a writer may emit.
 var KnownBuckets = []Bucket{BucketUnkeyMutations, BucketBackoffice}
 
-// String returns the bucket name as stored in ClickHouse.
+// String satisfies fmt.Stringer, which is the only way the clickhouse-go
+// String column accepts a named string type on insert.
 func (b Bucket) String() string {
 	return string(b)
 }

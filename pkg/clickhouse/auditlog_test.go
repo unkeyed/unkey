@@ -50,7 +50,7 @@ func TestEncodeAuditLogEvents(t *testing.T) {
 		row := rows[0]
 		require.Equal(t, "log_1", row.EventID)
 		require.Equal(t, "ws_a", row.WorkspaceID)
-		require.Equal(t, "unkey_mutations", row.Bucket)
+		require.Equal(t, auditlog.BucketUnkeyMutations, row.Bucket)
 		require.Equal(t, auditlog.EventSourcePlatform, row.Source)
 		require.Equal(t, "key.create", row.Event)
 		require.Equal(t, "Created key foo", row.Description)
