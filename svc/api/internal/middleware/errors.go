@@ -15,7 +15,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func logRequestError(ctx context.Context, s *zen.Session, err, responseErr error) {
+func recordRequestError(ctx context.Context, s *zen.Session, err, responseErr error) {
 	status := s.StatusCode()
 	if err == nil && responseErr == nil && status < http.StatusInternalServerError {
 		return
@@ -38,7 +38,10 @@ func logRequestError(ctx context.Context, s *zen.Session, err, responseErr error
 	code, parseErr := codes.ParseURN(urn)
 	security := status >= http.StatusBadRequest && (authorizationErr != nil || (parseErr == nil &&
 		(code.Category == codes.CategoryUnkeyAuthentication || code.Category == codes.CategoryUnkeyAuthorization)))
-	if !operational && !security {
+	if security {
+		s.EnableRequestLog()
+	}
+	if !operational {
 		return
 	}
 	if err == nil {
@@ -81,11 +84,7 @@ func logRequestError(ctx context.Context, s *zen.Session, err, responseErr error
 	if writeFailed {
 		attrs = append(attrs, "responseError", responseErr)
 	}
-	if operational {
-		slog.ErrorContext(ctx, "api error", append(attrs, "event", "api.request_error")...)
-	} else {
-		slog.InfoContext(ctx, "api security denial", append(attrs, "event", "api.security_denial")...)
-	}
+	slog.ErrorContext(ctx, "api error", append(attrs, "event", "api.request_error")...)
 }
 
 // WithErrorHandling translates application and routing errors into HTTP responses.
@@ -93,7 +92,7 @@ func WithErrorHandling() zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) (responseErr error) {
 			err := next(ctx, s)
-			defer func() { logRequestError(ctx, s, err, responseErr) }()
+			defer func() { recordRequestError(ctx, s, err, responseErr) }()
 			if err == nil {
 				return nil
 			}

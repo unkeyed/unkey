@@ -131,7 +131,7 @@ func TestRegisteredRequestLogging(t *testing.T) {
 		{name: "invalid_input", code: codes.App.Validation.InvalidInput.URN(), status: 400},
 		{name: "body_too_large", status: 400, bodyLimit: 1},
 		{name: "body_close_failure", status: 400, closeErr: true},
-		{name: "invalid_credentials", code: codes.Auth.Authentication.CredentialRejected.URN(), status: 401, event: "api.security_denial"},
+		{name: "invalid_credentials", code: codes.Auth.Authentication.CredentialRejected.URN(), status: 401},
 		{name: "database", code: codes.App.Internal.UnexpectedError.URN(), status: 500, event: "api.request_error"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
