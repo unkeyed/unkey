@@ -60,6 +60,11 @@ func loginNotFound() error {
 	return rejectedInvalid("This login code was not found. Run unkey login again.")
 }
 
+// approvalNotFound names no holder: none is known until the row is found.
+func approvalNotFound() error {
+	return rejectedInvalid("This login was not found. Start signing in again.")
+}
+
 func alreadyIssued() error {
 	return rejectedInvalid("This login already issued a CLI session. If this CLI did not store it, revoke that session and run unkey login again.")
 }

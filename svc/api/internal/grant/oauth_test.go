@@ -522,6 +522,34 @@ func TestOAuthRejectionsSendUsersBackToTheApp(t *testing.T) {
 	require.Equal(t, string(client.ID), session.ClientID)
 }
 
+// TestOAuthWorkspaceRefusalsDoNotMentionTheCLI guarantees that a sign-in
+// refused because the workspace became unusable is worded for the OAuth client,
+// at approval and at redemption.
+func TestOAuthWorkspaceRefusalsDoNotMentionTheCLI(t *testing.T) {
+	h := testutil.NewHarness(t)
+	svc := newOAuthService(h, mem{})
+	workspace := h.Resources().UserWorkspace
+	client := registerTestClient(t, svc, "https://gateway.test/oauth/callback")
+	approved := authorizeRequest(t, svc, client, "https://gateway.test/oauth/callback")
+	callback := approveRequest(t, svc, h, uid.New(uid.TestPrefix), approved)
+	pending := authorizeRequest(t, svc, client, "https://gateway.test/oauth/callback")
+
+	_, err := db.Query.UpdateWorkspaceEnabled(t.Context(), h.DB.RW(), db.UpdateWorkspaceEnabledParams{Enabled: false, ID: workspace.ID})
+	require.NoError(t, err)
+
+	_, err = svc.Redeem(t.Context(), redeemRequest(approved, callback.Query().Get("code")))
+	require.ErrorIs(t, err, ErrRejected)
+	require.Equal(t, "This workspace cannot approve a sign-in.", fault.UserFacingMessage(err))
+
+	_, err = svc.Approve(t.Context(), ApproveRequest{
+		Principal:   developerPrincipal(workspace, uid.New(uid.TestPrefix)),
+		UserCode:    pending.userCode,
+		Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)},
+	})
+	require.ErrorIs(t, err, ErrRejected)
+	require.Equal(t, "This workspace cannot approve a sign-in.", fault.UserFacingMessage(err))
+}
+
 // TestSessionAuditFollowsTheHolder guarantees that OAuth sessions are audited
 // under their own events with the client named, while CLI sessions keep
 // theirs.

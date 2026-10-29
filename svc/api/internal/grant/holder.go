@@ -103,6 +103,14 @@ func (h Holder) noun() string {
 	return "session"
 }
 
+// loginNoun names this holder's grant requests in user-facing messages.
+func (h Holder) loginNoun() string {
+	if h.clientID == "" {
+		return "CLI login"
+	}
+	return "sign-in"
+}
+
 // signInAgain is the next step when this holder's session ends. label is the
 // session's device name; for an OAuth client it is the client's name.
 func (h Holder) signInAgain(label string) string {

@@ -126,7 +126,7 @@ func TestUserCodeAttemptsShareAUserBudgetAcrossActionsAndWorkspaces(t *testing.T
 		case 2:
 			_, err = svc.Deny(t.Context(), DenyRequest{Principal: caller, UserCode: code})
 		}
-		require.Equal(t, "This login code was not found. Run unkey login again.", fault.UserFacingMessage(err))
+		require.Equal(t, "This login was not found. Start signing in again.", fault.UserFacingMessage(err))
 	}
 
 	_, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})

@@ -127,7 +127,7 @@ func (s *Service) issue(ctx context.Context, req request, remoteIP string, userA
 		return issueResult{}, err
 	}
 	if !workspaceUsable(workspace) {
-		return s.denyIssue(ctx, row.ID, "This workspace cannot approve a CLI login.")
+		return s.denyIssue(ctx, row.ID, "This workspace cannot approve a "+holder.loginNoun()+".")
 	}
 
 	roles, found, err := s.Memberships.ActiveRoles(ctx, workspace.OrgID, row.ApproverUserID.String)

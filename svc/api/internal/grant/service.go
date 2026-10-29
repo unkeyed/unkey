@@ -178,13 +178,13 @@ func (s *Service) limitUserCodeAttempts(ctx context.Context, userID string) erro
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("cli user code rate limit failed"),
-			fault.Public("CLI login is temporarily unavailable. Try again later."),
+			fault.Public("Login is temporarily unavailable. Try again later."),
 		)
 	}
 	if !resp.Success {
 		return fault.New("cli user code rate limit exceeded",
 			fault.Code(codes.User.TooManyRequests.UserRateLimited.URN()),
-			fault.Public("Too many CLI login attempts. Wait 10 minutes and try again."),
+			fault.Public("Too many login attempts. Wait 10 minutes and try again."),
 		)
 	}
 	return nil

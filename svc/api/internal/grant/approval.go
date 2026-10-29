@@ -22,7 +22,7 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 	row, err := db.Query.FindDeviceAuthorizationByUserCode(ctx, s.DB.RO(), normalizeUserCode(req.UserCode))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return Authorization{}, loginNotFound()
+			return Authorization{}, approvalNotFound()
 		}
 		return Authorization{}, err
 	}
@@ -77,7 +77,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) (Decided, err
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
-				return loginNotFound()
+				return approvalNotFound()
 			}
 			return err
 		}
@@ -85,7 +85,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) (Decided, err
 		if err != nil {
 			return err
 		}
-		if err := s.rejectClosed(row); err != nil {
+		if err := s.rejectClosed(locked); err != nil {
 			return err
 		}
 		if row.ApproverUserID.Valid && row.ApproverUserID.String != req.Principal.Subject.ID {
@@ -97,7 +97,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) (Decided, err
 			return err
 		}
 		if !workspaceUsable(workspace) {
-			return forbidden("This workspace cannot approve a CLI login.")
+			return forbidden("This workspace cannot approve a " + locked.delivery.holder().loginNoun() + ".")
 		}
 
 		now := s.Clock.Now().UnixMilli()
@@ -132,7 +132,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) (Decided, err
 			return err
 		}
 		if n != 1 {
-			return invalid("Could not approve this login. Run unkey login again.")
+			return invalid("Could not approve this login. " + locked.delivery.holder().signInAgain(row.DeviceName.String))
 		}
 		decided = approved.decided
 		return nil
@@ -157,7 +157,7 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) (Decided, error) {
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
-				return loginNotFound()
+				return approvalNotFound()
 			}
 			return err
 		}
@@ -198,14 +198,15 @@ func (s *Service) authorizationStatus(row db.DeviceAuthorization) db.DeviceAutho
 	return row.Status
 }
 
-func (s *Service) rejectClosed(row db.DeviceAuthorization) error {
-	switch s.authorizationStatus(row) {
+func (s *Service) rejectClosed(req request) error {
+	holder := req.delivery.holder()
+	switch s.authorizationStatus(req.row) {
 	case db.DeviceAuthorizationsStatusConsumed:
 		return invalid("This login was already used.")
 	case db.DeviceAuthorizationsStatusDenied:
 		return invalid("This login was denied.")
 	case db.DeviceAuthorizationsStatusExpired:
-		return invalid("This login code expired. Run unkey login again.")
+		return invalid("This " + holder.loginNoun() + " expired. " + holder.signInAgain(req.row.DeviceName.String))
 	case db.DeviceAuthorizationsStatusPending, db.DeviceAuthorizationsStatusApproved:
 		return nil
 	default:
