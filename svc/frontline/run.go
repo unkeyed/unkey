@@ -556,5 +556,6 @@ func buildEngine(
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)
 	}
+	r.Defer(func() error { eng.Close(); return nil })
 	return eng, nil
 }
