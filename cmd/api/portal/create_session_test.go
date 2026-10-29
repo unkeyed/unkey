@@ -1,13 +1,16 @@
 package portal
 
 import (
-	"context"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
+	"testing"
+
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"strings"
-	"testing"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestCreateSession(t *testing.T) {
@@ -26,9 +29,29 @@ func TestCreateSession(t *testing.T) {
 }
 
 func TestCreateSessionPermissionValidation(t *testing.T) {
-	root := &cli.Command{Name: "unkey", Commands: []*cli.Command{Cmd()}}
-	err := root.Run(context.Background(), strings.Fields("unkey portal create-session --portal=my-portal --external-id=u --scopes=keys:read,keys:delete --root-key=test"))
-	require.ErrorContains(t, err, `invalid scope "keys:delete"`)
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	t.Cleanup(server.Close)
+	for _, invalid := range []string{"keys:delete", uid.New(uid.KeyPrefix)} {
+		t.Run(invalid, func(t *testing.T) {
+			root := &cli.Command{Name: "unkey", Commands: []*cli.Command{Cmd()}}
+			err := root.Run(t.Context(), []string{
+				"unkey", "portal", "create-session", "--portal=my-portal", "--external-id=" + uid.New(uid.IdentityPrefix),
+				"--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL, "--scopes=keys:read," + invalid,
+			})
+			var input *cli.InputError
+			require.ErrorAs(t, err, &input)
+			require.Equal(t, cli.InputErrorInvalidFlagValue, input.Kind)
+			require.Equal(t, []string{"scopes"}, input.Flags)
+			require.ErrorIs(t, err, cli.ErrValidationFailed)
+			require.ErrorContains(t, err, "Valid choices: keys:read, keys:reroll, analytics:read")
+			require.NotContains(t, err.Error(), invalid)
+			require.Zero(t, calls.Load())
+		})
+	}
 }
 
 // keys:create is still in the SDK's Scope enum, so the CLI has to reject it locally.
