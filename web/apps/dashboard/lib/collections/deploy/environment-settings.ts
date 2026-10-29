@@ -366,6 +366,7 @@ async function writeDefaultSettings(
           storageMib: d.storageMib,
           command: [],
           healthcheck: null,
+          shutdownSignal: d.shutdownSignal,
           upstreamProtocol: d.upstreamProtocol,
           openapiSpecPath: null,
           ...(regionNames.length > 0
