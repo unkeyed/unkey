@@ -2,6 +2,7 @@ import {
   parseAsFilterValueArray,
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
+import { refreshQueryTime } from "@/providers/query-time-provider";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import type {
@@ -139,6 +140,7 @@ export const useFilters = () => {
       newParams.users = usersFilters.length > 0 ? usersFilters : null;
       newParams.rootKeys = rootKeysFilters.length > 0 ? rootKeysFilters : null;
 
+      refreshQueryTime();
       setSearchParams(newParams);
     },
     [setSearchParams],
