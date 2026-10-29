@@ -78,9 +78,24 @@ export function replicaUsage(
   if (!own) {
     return { status: "none" };
   }
+  const byTime = new Map(own.points.map((point) => [point.t, point]));
+  const points: ResourcePoint[] = [];
+  for (let t = grid.startMs; t < grid.endMs; t += grid.bucketMs) {
+    points.push(
+      byTime.get(t) ?? {
+        t,
+        cpu: null,
+        memory: null,
+        disk: null,
+        ingress: null,
+        egress: null,
+        instances: null,
+      },
+    );
+  }
   return {
     status: "ready",
-    sections: REPLICA_METRICS.map((metric) => replicaSection(metric, replica, grid, own.points)),
+    sections: REPLICA_METRICS.map((metric) => replicaSection(metric, replica, grid, points)),
   };
 }
 
@@ -133,7 +148,7 @@ export function replicaSheetModel({
   }
   const live =
     instances.status === "ready"
-      ? instances.data.find((row) => row.instanceId === open.row.instanceId)
+      ? instances.data.find((row) => row.replica.k8sName === open.row.replica.k8sName)
       : undefined;
   const row = live ?? open.row;
   return {
@@ -142,7 +157,7 @@ export function replicaSheetModel({
     status: instanceStateOf(row),
     deployment: row.deployment,
     lastExit: row.lastExit,
-    stopped: instances.status === "ready" && !live,
+    stopped: row.instanceId === null || (instances.status === "ready" && !live),
     usage: replicaUsage(usage, row.replica),
   };
 }

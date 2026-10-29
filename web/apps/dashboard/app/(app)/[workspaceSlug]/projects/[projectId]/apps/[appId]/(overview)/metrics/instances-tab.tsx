@@ -53,9 +53,9 @@ export function InstancesTab({ view, markers, syncId, ...handlers }: Props) {
               <IconServerOutline18 />
             </EmptyStateIcon>
             <EmptyStateHeader>
-              <EmptyStateTitle>No running instances</EmptyStateTitle>
+              <EmptyStateTitle>No instances in this range</EmptyStateTitle>
               <EmptyStateDescription>
-                Instances show up here once a deployment is running in this environment.
+                Select a longer range or deploy an app to see instance metrics.
               </EmptyStateDescription>
             </EmptyStateHeader>
           </EmptyState>

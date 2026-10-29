@@ -61,6 +61,7 @@ export type Sources = { [S in MetricSource]: Loadable<SourceResult<S>> };
 export type InstanceSeries = {
   grid: Grid;
   instances: Array<{ instance: string; points: ResourcePoint[] }>;
+  history: { instances: InstanceRow[]; truncated: boolean };
 };
 
 export type DeploySource =
@@ -93,7 +94,7 @@ export type ReplicaTarget = {
 export type DeployRole = "current" | "rolling-out" | "previous";
 
 export type InstanceRow = {
-  instanceId: string;
+  instanceId: string | null;
   region: { name: string };
   status: InstanceStatus;
   role: DeployRole;
@@ -122,6 +123,26 @@ export type InstanceEvent = {
   reason: string;
   exitCode: number | null;
 };
+
+export function instancesInRange(
+  live: Loadable<InstanceRow[]>,
+  usage: Loadable<InstanceSeries>,
+): Loadable<InstanceRow[]> {
+  if (live.status !== "ready") {
+    return live;
+  }
+  if (usage.status !== "ready") {
+    return live.data.length > 0 ? live : usage;
+  }
+  const rows = new Map(
+    [...usage.data.history.instances, ...live.data].map((row) => [row.replica.k8sName, row]),
+  );
+  return {
+    status: "ready",
+    data: [...rows.values()],
+    stale: live.stale ?? usage.stale,
+  };
+}
 
 const CLAMPED_RETRY_MS = 2_000;
 const MAX_CLAMPED_RETRIES = 2;

@@ -7,6 +7,7 @@ import { Button, Card } from "@unkey/ui";
 import type { Route } from "next";
 import { useState } from "react";
 import { withEpisodeMarkers } from "./event-markers";
+import { HistoryNotice } from "./history-notice";
 import { InstanceFilterBar } from "./instance-filters";
 import { InstanceTable } from "./instance-table";
 import type { FilterKey, InstancesTabView, LogsTarget } from "./instances-model";
@@ -47,6 +48,11 @@ export function InstancesLayout({
   });
   return (
     <Card className="overflow-hidden">
+      {view.historyTruncated && (
+        <div className="border-b border-grayA-4 px-4 py-2">
+          <HistoryNotice />
+        </div>
+      )}
       <div className="relative z-20 grid divide-y divide-grayA-4 md:grid-cols-2 md:divide-x md:divide-y-0">
         {view.usage.map((card) => (
           <UsageCardView
