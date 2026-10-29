@@ -48,7 +48,6 @@ func TestTokenGrantTypeErrors(t *testing.T) {
 		{name: "device grant", form: url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:device_code"}}, code: oauth.UnsupportedGrantType},
 		{name: "repeated parameter", form: url.Values{"grant_type": {oauth.GrantAuthorizationCode, oauth.GrantRefreshToken}}, code: oauth.InvalidRequest},
 		{name: "refresh without client_id", form: url.Values{"grant_type": {oauth.GrantRefreshToken}, "refresh_token": {uid.Secure(32)}}, code: oauth.InvalidRequest},
-		{name: "foreign resource", form: url.Values{"grant_type": {oauth.GrantAuthorizationCode}, "resource": {"https://evil.test"}}, code: oauth.InvalidTarget},
 		{name: "unknown scope on refresh", form: url.Values{"grant_type": {oauth.GrantRefreshToken}, "scope": {"admin"}}, code: oauth.InvalidScope},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

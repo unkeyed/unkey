@@ -18,8 +18,7 @@ const StateBytesMax = 1024
 
 // AuthorizeRequest is a verified OAuth authorization request. The caller
 // loaded Client, matched RedirectURI against it, and parsed Challenge. Scope
-// and resource were checked against the server's constants and are not
-// stored: there is one of each.
+// and resource are not stored: there is one of each.
 type AuthorizeRequest struct {
 	Client      Client
 	RedirectURI RedirectURI

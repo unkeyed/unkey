@@ -74,9 +74,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if oerr := oauth.ParseScope(query.Get("scope")); oerr != nil {
 		return fail(oerr.Code, oerr.Description)
 	}
-	if !oauth.ResourceAllowed(query.Get("resource"), h.Grants.Issuer) {
-		return fail(oauth.InvalidTarget, "resource must be "+h.Grants.Issuer+".")
-	}
 
 	authorized, err := h.Grants.Authorize(ctx, grant.AuthorizeRequest{
 		Client:      client,

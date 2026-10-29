@@ -1,6 +1,6 @@
 // Package oauth is the wire vocabulary of the API's OAuth 2.1 authorization
 // server: endpoint paths, single-valued parameter parsing, RFC 6749 and RFC
-// 7591 error bodies, token responses, scope and resource rules, and the RFC
+// 7591 error bodies, token responses, scope rules, and the RFC
 // 8414 metadata document. Grant semantics (clients, PKCE, codes, sessions)
 // live in package grant; this package never touches the database.
 package oauth
@@ -43,7 +43,7 @@ const (
 	jsonContentType = "application/json"
 )
 
-// ErrorCode is an RFC 6749, RFC 7591, or RFC 8707 error code.
+// ErrorCode is an RFC 6749 or RFC 7591 error code.
 type ErrorCode string
 
 const (
@@ -52,7 +52,6 @@ const (
 	UnsupportedGrantType    ErrorCode = "unsupported_grant_type"
 	UnsupportedResponseType ErrorCode = "unsupported_response_type"
 	InvalidScope            ErrorCode = "invalid_scope"
-	InvalidTarget           ErrorCode = "invalid_target"
 	AccessDenied            ErrorCode = "access_denied"
 	ServerError             ErrorCode = "server_error"
 	TemporarilyUnavailable  ErrorCode = "temporarily_unavailable"
@@ -151,12 +150,6 @@ func ParseScope(raw string) *Error {
 		}
 	}
 	return nil
-}
-
-// ResourceAllowed accepts an absent resource (RFC 8707) or the issuer, with
-// or without a trailing slash. Access tokens are always for this API.
-func ResourceAllowed(raw string, issuer string) bool {
-	return raw == "" || strings.TrimRight(raw, "/") == issuer
 }
 
 // TokenResponse is the RFC 6749 section 5.1 body.

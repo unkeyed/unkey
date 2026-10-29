@@ -29,9 +29,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if form.Repeated() {
 		return invalidRequest(s, "Parameters must not repeat.")
 	}
-	if !oauth.ResourceAllowed(form.Get("resource"), h.Grants.Issuer) {
-		return oauth.WriteError(s, http.StatusBadRequest, oauth.Error{Code: oauth.InvalidTarget, Description: "resource must be " + h.Grants.Issuer + "."})
-	}
 
 	var tokens grant.Tokens
 	var err error

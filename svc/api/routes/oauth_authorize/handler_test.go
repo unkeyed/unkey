@@ -122,7 +122,6 @@ func TestAuthorizeRedirectsErrorsToTheVerifiedURI(t *testing.T) {
 		{name: "implicit flow", mutate: func(q url.Values) { q.Set("response_type", "token") }, code: oauth.UnsupportedResponseType, state: true},
 		{name: "missing response_type", mutate: func(q url.Values) { q.Del("response_type") }, code: oauth.InvalidRequest, state: true},
 		{name: "unknown scope", mutate: func(q url.Values) { q.Set("scope", "api admin") }, code: oauth.InvalidScope, state: true},
-		{name: "foreign resource", mutate: func(q url.Values) { q.Set("resource", "https://evil.test") }, code: oauth.InvalidTarget, state: true},
 		{name: "repeated parameter", mutate: func(q url.Values) { q["scope"] = []string{oauth.ScopeAPI, oauth.ScopeAPI} }, code: oauth.InvalidRequest, state: true},
 		{name: "repeated state", mutate: func(q url.Values) { q.Add("state", "other") }, code: oauth.InvalidRequest, state: false},
 		{name: "oversized state", mutate: func(q url.Values) { q.Set("state", strings.Repeat("s", grant.StateBytesMax+1)) }, code: oauth.InvalidRequest, state: false},
@@ -164,6 +163,7 @@ func TestAuthorizeSendsTheBrowserToConsent(t *testing.T) {
 			q.Set("scope", oauth.ScopeAPI)
 			q.Set("resource", granttest.Issuer+"/")
 		}},
+		{name: "mcp server as resource", mutate: func(q url.Values) { q.Set("resource", "https://mcp.gateway.test/mcp") }},
 		{name: "redirect_uri omitted", mutate: func(q url.Values) { q.Del("redirect_uri") }},
 		{name: "state omitted", mutate: func(q url.Values) { q.Del("state") }},
 	} {

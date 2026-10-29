@@ -28,6 +28,7 @@ import (
 // must fail and end the session so the access token stops working with a 401
 // the gateway understands.
 func TestAuthorizationCodeFlowIssuesASessionTheAPIAccepts(t *testing.T) {
+	const mcpServerURL = "https://mcp.gateway.test/mcp"
 	h, grants := newTokenHarness(t)
 	h.Register(&register.Handler{Grants: grants}, h.OAuthMiddleware()...)
 	h.Register(&authorize.Handler{Grants: grants}, h.OAuthMiddleware()...)
@@ -62,7 +63,7 @@ func TestAuthorizationCodeFlowIssuesASessionTheAPIAccepts(t *testing.T) {
 		"code_challenge_method": {"S256"},
 		"state":                 {state},
 		"scope":                 {oauth.ScopeAPI},
-		"resource":              {granttest.Issuer},
+		"resource":              {mcpServerURL},
 	}.Encode()
 	rr := httptest.NewRecorder()
 	h.Mux().ServeHTTP(rr, httptest.NewRequest(http.MethodGet, authorizeURL, nil))
@@ -91,6 +92,7 @@ func TestAuthorizationCodeFlowIssuesASessionTheAPIAccepts(t *testing.T) {
 		"client_id":     {clientID},
 		"redirect_uri":  {redirectURI},
 		"code_verifier": {verifier},
+		"resource":      {mcpServerURL},
 	}
 	issued := postToken(t, h, form, gatewayIP)
 	require.Equal(t, http.StatusOK, issued.status)

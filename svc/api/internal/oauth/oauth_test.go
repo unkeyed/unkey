@@ -55,18 +55,10 @@ func TestParamsNeverResolveRepeatedValues(t *testing.T) {
 	require.False(t, params.Has("client_id"))
 }
 
-// TestScopeAndResourceRules guarantees that only the advertised scope and
-// this API as a resource are accepted.
-func TestScopeAndResourceRules(t *testing.T) {
+// TestScopeRules guarantees that only the advertised scope is accepted.
+func TestScopeRules(t *testing.T) {
 	require.Nil(t, ParseScope(""))
 	require.Nil(t, ParseScope("api"))
 	require.Nil(t, ParseScope(" api  api "))
 	require.Equal(t, InvalidScope, ParseScope("api admin").Code)
-
-	issuer := "https://api.unkey.test"
-	require.True(t, ResourceAllowed("", issuer))
-	require.True(t, ResourceAllowed(issuer, issuer))
-	require.True(t, ResourceAllowed(issuer+"/", issuer))
-	require.False(t, ResourceAllowed("https://mcp.unkey.test", issuer))
-	require.False(t, ResourceAllowed(issuer+"/v2", issuer))
 }
