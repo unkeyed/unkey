@@ -21,6 +21,8 @@ const (
 	consentPath      = "/oauth/consent"
 )
 
+var _ [32]struct{} = [len(userCodeAlphabet)]struct{}{}
+
 // Start creates a device authorization and returns the code the user compares.
 func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) {
 	if err := s.requireEnabled(); err != nil {
@@ -112,7 +114,7 @@ func randomUserCode(length int) (string, error) {
 	}
 	chars := make([]byte, length)
 	for i, b := range buf {
-		chars[i] = userCodeAlphabet[int(b)%len(userCodeAlphabet)]
+		chars[i] = userCodeAlphabet[b%32]
 	}
 	return string(chars), nil
 }

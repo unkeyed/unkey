@@ -22,7 +22,7 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 	row, err := db.Query.FindDeviceAuthorizationByUserCode(ctx, s.DB.RO(), normalizeUserCode(req.UserCode))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return Authorization{}, approvalNotFound()
+			return Authorization{}, requestNotFound()
 		}
 		return Authorization{}, err
 	}
@@ -77,7 +77,7 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) (Decided, err
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
-				return approvalNotFound()
+				return requestNotFound()
 			}
 			return err
 		}
@@ -157,7 +157,7 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) (Decided, error) {
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
-				return approvalNotFound()
+				return requestNotFound()
 			}
 			return err
 		}

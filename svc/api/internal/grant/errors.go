@@ -56,11 +56,11 @@ func unauthenticated(message string) error {
 	)
 }
 
-func loginNotFound() error {
+func cliLoginNotFound() error {
 	return rejectedInvalid("This login code was not found. Run unkey login again.")
 }
 
-func approvalNotFound() error {
+func requestNotFound() error {
 	return rejectedInvalid("This login was not found. Start signing in again.")
 }
 

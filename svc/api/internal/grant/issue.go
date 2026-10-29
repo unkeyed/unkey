@@ -28,7 +28,7 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 	row, err := db.Query.FindDeviceAuthorizationByID(ctx, s.DB.RW(), strings.TrimSpace(req.LoginID))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return PollResult{}, loginNotFound()
+			return PollResult{}, cliLoginNotFound()
 		}
 		return PollResult{}, err
 	}
@@ -37,7 +37,7 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 		return PollResult{}, err
 	}
 	if _, ok := parsed.delivery.(deviceDelivery); !ok {
-		return PollResult{}, loginNotFound()
+		return PollResult{}, cliLoginNotFound()
 	}
 
 	switch s.authorizationStatus(row) {
