@@ -36,24 +36,32 @@ func clickhouseCounts(t *testing.T, h *harness.Harness, column, where string, ar
 
 	// Reads system tables, which have no reader function.
 	tables, err := h.ClickHouseConn.Query(h.Ctx, `
-		SELECT c.table FROM system.columns c
+		SELECT c.table, s.engine FROM system.columns c
 		JOIN system.tables s ON s.database = c.database AND s.name = c.table
 		WHERE c.database = 'default' AND c.name = ? AND s.engine LIKE '%MergeTree'`, column)
 	require.NoError(t, err)
-	var names []string
+	engines := make(map[string]string)
 	for tables.Next() {
-		var name string
-		require.NoError(t, tables.Scan(&name))
-		names = append(names, name)
+		var name, engine string
+		require.NoError(t, tables.Scan(&name, &engine))
+		engines[name] = engine
 	}
 	require.NoError(t, tables.Err())
 	require.NoError(t, tables.Close())
-	require.NotEmpty(t, names)
+	require.NotEmpty(t, engines)
 
+	// Replacing, Summing and Aggregating tables collapse rows that share a key
+	// whenever a background merge runs, so a plain count can drop between two
+	// reads. FINAL counts them as if every merge had run. Plain MergeTree never
+	// collapses rows and rejects FINAL.
 	counts := make(map[string]uint64)
-	for _, name := range names {
+	for name, engine := range engines {
+		final := ""
+		if engine != "MergeTree" {
+			final = " FINAL"
+		}
 		var count uint64
-		require.NoError(t, h.ClickHouseConn.QueryRow(h.Ctx, "SELECT count() FROM default."+name+" WHERE "+where, args...).Scan(&count))
+		require.NoError(t, h.ClickHouseConn.QueryRow(h.Ctx, "SELECT count() FROM default."+name+final+" WHERE "+where, args...).Scan(&count))
 		if count > 0 {
 			counts[name] = count
 		}
