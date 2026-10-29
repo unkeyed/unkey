@@ -3087,15 +3087,22 @@ type Querier interface {
 	//    AND BINARY environment_id = BINARY ?
 	//    AND BINARY encrypted_environment_variables = BINARY ?
 	UpdateVaultDeployment(ctx context.Context, arg UpdateVaultDeploymentParams) (int64, error)
-	// Replace only the version that was read. Binary comparison protects
-	// concurrent writes even on case-insensitive database collations.
+	// API key plaintext is immutable. The cron serializes re-encryption writes.
+	// Each JSON entry is keyed by primary key and includes its workspace. UPDATE
+	// preserves concurrent deletions, unlike a bulk upsert.
 	//
 	//  UPDATE encrypted_keys
-	//  SET encrypted = ?, encryption_key_id = ?
-	//  WHERE pk = ?
-	//    AND BINARY workspace_id = BINARY ?
-	//    AND BINARY encrypted = BINARY ?
-	UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error)
+	//  SET encrypted = JSON_UNQUOTE(JSON_EXTRACT(
+	//          CAST(? AS JSON), CONCAT('$."', pk, '".ciphertext')
+	//      )),
+	//      encryption_key_id = JSON_UNQUOTE(JSON_EXTRACT(
+	//          CAST(? AS JSON), CONCAT('$."', pk, '".key_id')
+	//      ))
+	//  WHERE pk IN (/*SLICE:pks*/?)
+	//    AND BINARY workspace_id = BINARY JSON_UNQUOTE(JSON_EXTRACT(
+	//        CAST(? AS JSON), CONCAT('$."', pk, '".keyring')
+	//    ))
+	UpdateVaultEncryptedKeys(ctx context.Context, arg UpdateVaultEncryptedKeysParams) (int64, error)
 	// UpdateVaultEnvironmentVariable preserves concurrent changes by matching the
 	// keyring and old ciphertext byte-for-byte, without changing business metadata.
 	//

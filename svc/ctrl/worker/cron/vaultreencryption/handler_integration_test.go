@@ -3,7 +3,9 @@ package vaultreencryption_test
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -434,6 +436,81 @@ func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, old.GetEncrypted(), stored.Encrypted, "a failed page must not advance the cursor")
 	}
+}
+
+func TestReEncryptionRetriesFailedBulkWriteAndContinuesOtherTables(t *testing.T) {
+	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	testVault := vaulttestutil.StartTestVaultWithMemory(t)
+	client := vault.NewConnectVaultServiceClient(testVault.Client)
+	keyring := uid.New(uid.WorkspacePrefix)
+	encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{Keyring: keyring, Data: "recoverable key"})
+	require.NoError(t, err)
+	keys := make([]string, 3)
+	for i := range keys {
+		keys[i] = uid.New(uid.KeyPrefix)
+		require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
+			WorkspaceID: keyring, KeyID: keys[i], Encrypted: encrypted.GetEncrypted(),
+			EncryptionKeyID: encrypted.GetKeyId(), CreatedAt: time.Now().UnixMilli(),
+		}))
+	}
+	failing := &failingKeyWriteDB{
+		Database: database,
+		err:      fmt.Errorf("write failed for ciphertext %s", encrypted.GetEncrypted()),
+	}
+	failing.enabled.Store(true)
+	require.NoError(t, pkgdb.Query.InsertSharedSecret(t.Context(), database.RW(), pkgdb.InsertSharedSecretParams{
+		ID: uid.New(uid.TestPrefix), WorkspaceID: keyring, Encrypted: encrypted.GetEncrypted(),
+		EncryptionKeyID: encrypted.GetKeyId(), CreatedAt: time.Now().UnixMilli(), ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
+	}))
+	keyIDNew, err := testVault.CreateDEK(t.Context(), keyring)
+	require.NoError(t, err)
+	testVault.Clock.Tick(25 * time.Hour)
+	handler, err := vaultreencryption.New(vaultreencryption.Config{DB: failing, Vault: client, Heartbeat: healthcheck.NewNoop()})
+	require.NoError(t, err)
+	runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
+		restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(1), restate.KillOnMaxAttempts()),
+	))
+	cronClient := hydrav1.NewCronServiceIngressClient(runtime.IngressClient, "vault-re-encryption")
+	for range 2 {
+		_, err = cronClient.RunVaultReEncryption().Request(t.Context(), &hydrav1.RunVaultReEncryptionRequest{})
+		require.Error(t, err)
+		require.NotContains(t, err.Error(), encrypted.GetEncrypted(), "database errors must not expose ciphertext")
+		for _, keyID := range keys {
+			stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
+			require.NoError(t, err)
+			require.Equal(t, encrypted.GetEncrypted(), stored.Encrypted, "a failed bulk write must leave the entire page unchanged")
+		}
+		secrets, err := database.ListVaultSharedSecrets(t.Context(), db.ListVaultSharedSecretsParams{Limit: 100})
+		require.NoError(t, err)
+		require.Len(t, secrets, 1)
+		require.NotEqual(t, encrypted.GetEncrypted(), secrets[0].Ciphertext, "a failed table must not block other tables")
+	}
+	failing.enabled.Store(false)
+	_, err = cronClient.RunVaultReEncryption().Request(t.Context(), &hydrav1.RunVaultReEncryptionRequest{})
+	require.NoError(t, err)
+	for _, keyID := range keys {
+		stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
+		require.NoError(t, err)
+		require.Equal(t, keyIDNew, stored.EncryptionKeyID)
+		decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: stored.Encrypted})
+		require.NoError(t, err)
+		require.Equal(t, "recoverable key", decrypted.GetPlaintext())
+	}
+}
+
+type failingKeyWriteDB struct {
+	db.Database
+	err     error
+	enabled atomic.Bool
+}
+
+func (d *failingKeyWriteDB) UpdateVaultEncryptedKeys(ctx context.Context, params db.UpdateVaultEncryptedKeysParams) (int64, error) {
+	if d.enabled.Load() {
+		return 0, d.err
+	}
+	return d.Database.UpdateVaultEncryptedKeys(ctx, params)
 }
 
 // Renewal can commit while Vault processes the old private key. The sweep must

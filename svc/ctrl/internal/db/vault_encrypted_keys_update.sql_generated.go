@@ -7,40 +7,61 @@ package db
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 )
 
-const updateVaultEncryptedKey = `-- name: UpdateVaultEncryptedKey :execrows
+const updateVaultEncryptedKeys = `-- name: UpdateVaultEncryptedKeys :execrows
 UPDATE encrypted_keys
-SET encrypted = ?, encryption_key_id = ?
-WHERE pk = ?
-  AND BINARY workspace_id = BINARY ?
-  AND BINARY encrypted = BINARY ?
+SET encrypted = JSON_UNQUOTE(JSON_EXTRACT(
+        CAST(? AS JSON), CONCAT('$."', pk, '".ciphertext')
+    )),
+    encryption_key_id = JSON_UNQUOTE(JSON_EXTRACT(
+        CAST(? AS JSON), CONCAT('$."', pk, '".key_id')
+    ))
+WHERE pk IN (/*SLICE:pks*/?)
+  AND BINARY workspace_id = BINARY JSON_UNQUOTE(JSON_EXTRACT(
+      CAST(? AS JSON), CONCAT('$."', pk, '".keyring')
+  ))
 `
 
-type UpdateVaultEncryptedKeyParams struct {
-	Ciphertext    string `db:"ciphertext"`
-	KeyID         string `db:"key_id"`
-	Pk            uint64 `db:"pk"`
-	Keyring       string `db:"keyring"`
-	CiphertextOld string `db:"ciphertext_old"`
+type UpdateVaultEncryptedKeysParams struct {
+	Updates   json.RawMessage `db:"updates"`
+	Updates_2 json.RawMessage `db:"updates_2"`
+	Pks       []uint64        `db:"pks"`
+	Updates_3 json.RawMessage `db:"updates_3"`
 }
 
-// Replace only the version that was read. Binary comparison protects
-// concurrent writes even on case-insensitive database collations.
+// API key plaintext is immutable. The cron serializes re-encryption writes.
+// Each JSON entry is keyed by primary key and includes its workspace. UPDATE
+// preserves concurrent deletions, unlike a bulk upsert.
 //
 //	UPDATE encrypted_keys
-//	SET encrypted = ?, encryption_key_id = ?
-//	WHERE pk = ?
-//	  AND BINARY workspace_id = BINARY ?
-//	  AND BINARY encrypted = BINARY ?
-func (q *Queries) UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateVaultEncryptedKey,
-		arg.Ciphertext,
-		arg.KeyID,
-		arg.Pk,
-		arg.Keyring,
-		arg.CiphertextOld,
-	)
+//	SET encrypted = JSON_UNQUOTE(JSON_EXTRACT(
+//	        CAST(? AS JSON), CONCAT('$."', pk, '".ciphertext')
+//	    )),
+//	    encryption_key_id = JSON_UNQUOTE(JSON_EXTRACT(
+//	        CAST(? AS JSON), CONCAT('$."', pk, '".key_id')
+//	    ))
+//	WHERE pk IN (/*SLICE:pks*/?)
+//	  AND BINARY workspace_id = BINARY JSON_UNQUOTE(JSON_EXTRACT(
+//	      CAST(? AS JSON), CONCAT('$."', pk, '".keyring')
+//	  ))
+func (q *Queries) UpdateVaultEncryptedKeys(ctx context.Context, arg UpdateVaultEncryptedKeysParams) (int64, error) {
+	query := updateVaultEncryptedKeys
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Updates)
+	queryParams = append(queryParams, arg.Updates_2)
+	if len(arg.Pks) > 0 {
+		for _, v := range arg.Pks {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:pks*/?", strings.Repeat(",?", len(arg.Pks))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:pks*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Updates_3)
+	result, err := q.db.ExecContext(ctx, query, queryParams...)
 	if err != nil {
 		return 0, err
 	}

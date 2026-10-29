@@ -2,6 +2,7 @@ package vaultreencryption
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -28,11 +29,6 @@ type Handler struct {
 	heartbeat healthcheck.Heartbeat
 }
 
-type pageResult struct {
-	Cursor cursor
-	Failed int32
-}
-
 type cursor struct {
 	Pk uint64
 }
@@ -47,48 +43,49 @@ func New(cfg Config) (*Handler, error) {
 	return &Handler{db: cfg.DB, vault: cfg.Vault, heartbeat: cfg.Heartbeat}, nil
 }
 
-// Only counters and cursors enter the journal, never plaintext or ciphertext.
+// Re-encryption errors must not contain plaintext or ciphertext: Restate journals them.
 func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncryptionRequest) (*hydrav1.RunVaultReEncryptionResponse, error) {
 	if h.vault == nil {
 		return nil, restate.ToTerminalError(fmt.Errorf("Vault is not configured"))
 	}
-	var failed int32
+	var failures []error
 	for _, table := range []struct {
-		name string
-		scan func(context.Context, cursor) pageResult
+		name          string
+		reencryptPage func(context.Context, cursor) (cursor, error)
 	}{
-		{name: "encrypted_keys", scan: h.encryptedKeys},
-		{name: "app_environment_variables", scan: h.environmentVariables},
-		{name: "deployments", scan: h.deployments},
-		{name: "logdrains", scan: h.logdrains},
-		{name: "certificates", scan: h.certificates},
-		{name: "shared_secrets", scan: h.sharedSecrets},
-		{name: "clickhouse_workspace_settings", scan: h.clickhouseSettings},
-		{name: "acme_users", scan: h.acmeUsers},
+		{name: "encrypted_keys", reencryptPage: h.encryptedKeys},
+		{name: "app_environment_variables", reencryptPage: h.environmentVariables},
+		{name: "deployments", reencryptPage: h.deployments},
+		{name: "logdrains", reencryptPage: h.logdrains},
+		{name: "certificates", reencryptPage: h.certificates},
+		{name: "shared_secrets", reencryptPage: h.sharedSecrets},
+		{name: "clickhouse_workspace_settings", reencryptPage: h.clickhouseSettings},
+		{name: "acme_users", reencryptPage: h.acmeUsers},
 	} {
 		after, err := restate.Get[cursor](ctx, table.name)
 		if err != nil {
 			return nil, err
 		}
 		for {
-			page, err := restate.Run(ctx, func(rc restate.RunContext) (pageResult, error) {
+			next, err := restate.Run(ctx, func(rc restate.RunContext) (cursor, error) {
 				pageCtx, cancel := context.WithTimeout(rc, 30*time.Second)
 				defer cancel()
-				return table.scan(pageCtx, after), nil
+				next, err := table.reencryptPage(pageCtx, after)
+				return next, restate.ToTerminalError(err)
 			}, restate.WithName(fmt.Sprintf("re-encrypt %s after %d", table.name, after.Pk)))
 			if err != nil {
-				return nil, err
-			}
-			restate.Set(ctx, table.name, page.Cursor)
-			failed += page.Failed
-			if page.Cursor.Pk == 0 || page.Cursor == after {
+				failures = append(failures, fmt.Errorf("%s: %s", table.name, err))
 				break
 			}
-			after = page.Cursor
+			restate.Set(ctx, table.name, next)
+			if next.Pk == 0 {
+				break
+			}
+			after = next
 		}
 	}
-	if failed > 0 {
-		return nil, restate.ToTerminalError(fmt.Errorf("ciphertext re-encryption had %d failures; see table and pk in worker logs", failed))
+	if err := errors.Join(failures...); err != nil {
+		return nil, restate.ToTerminalError(err)
 	}
 	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error { return h.heartbeat.Ping(rc) }, restate.WithName("send heartbeat")); err != nil {
 		return nil, err

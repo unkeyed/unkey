@@ -2,25 +2,23 @@ package vaultreencryption
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strconv"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-func (h *Handler) encryptedKeys(ctx context.Context, after cursor) pageResult {
-	result := pageResult{Cursor: after, Failed: 0}
+func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, error) {
 	rows, err := h.db.ListVaultEncryptedKeys(ctx, db.ListVaultEncryptedKeysParams{
 		AfterPk: after.Pk, Limit: batchSize,
 	})
 	if err != nil {
-		logger.Error("ciphertext scan failed", "table", "encrypted_keys")
-		result.Failed++
-		return result
+		return after, fmt.Errorf("failed to list rows")
 	}
 	if len(rows) == 0 {
-		return pageResult{Cursor: cursor{Pk: 0}, Failed: 0}
+		return cursor{Pk: 0}, nil
 	}
 	items := make(map[string]*vaultv1.DecryptRequest, len(rows))
 	for _, row := range rows {
@@ -28,33 +26,41 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) pageResult {
 	}
 	res, err := h.vault.ReEncryptBulk(ctx, &vaultv1.ReEncryptBulkRequest{Items: items})
 	if err != nil {
-		logger.Error("ciphertext batch re-encryption failed", "table", "encrypted_keys")
-		result.Failed++
-		return result
+		return after, fmt.Errorf("failed to re-encrypt rows")
 	}
+	type update struct {
+		Keyring    string `json:"keyring"`
+		Ciphertext string `json:"ciphertext"`
+		KeyID      string `json:"key_id"`
+	}
+	updates := make(map[uint64]update, len(rows))
+	pks := make([]uint64, 0, len(rows))
 	for _, row := range rows {
-		if ctx.Err() != nil {
-			result.Failed++
-			return result
+		if err := ctx.Err(); err != nil {
+			return after, err
 		}
-		result.Cursor.Pk = row.Pk
 		item := res.GetItems()[strconv.FormatUint(row.Pk, 10)]
 		if item == nil {
-			logger.Error("ciphertext re-encryption failed", "table", "encrypted_keys", "pk", row.Pk)
-			result.Failed++
-			continue
+			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		_, err := h.db.UpdateVaultEncryptedKey(ctx, db.UpdateVaultEncryptedKeyParams{
-			Pk: row.Pk, Keyring: row.Keyring, CiphertextOld: row.Ciphertext,
+		updates[row.Pk] = update{
+			Keyring:    row.Keyring,
 			Ciphertext: item.GetEncrypted(), KeyID: item.GetKeyId(),
-		})
-		if err != nil {
-			logger.Error("ciphertext re-encryption failed", "table", "encrypted_keys", "pk", row.Pk)
-			result.Failed++
 		}
+		pks = append(pks, row.Pk)
+	}
+	payload, err := json.Marshal(updates)
+	if err != nil {
+		return after, fmt.Errorf("failed to encode updates")
+	}
+	_, err = h.db.UpdateVaultEncryptedKeys(ctx, db.UpdateVaultEncryptedKeysParams{
+		Updates: payload, Updates_2: payload, Pks: pks, Updates_3: payload,
+	})
+	if err != nil {
+		return after, fmt.Errorf("failed to update rows")
 	}
 	if len(rows) < batchSize {
-		result.Cursor = cursor{Pk: 0}
+		return cursor{Pk: 0}, nil
 	}
-	return result
+	return cursor{Pk: rows[len(rows)-1].Pk}, nil
 }
