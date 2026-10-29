@@ -1393,5 +1393,35 @@
     "id": "errors--overview--8",
     "decision": "remove",
     "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "platform--index--28",
+    "decision": "remove",
+    "reason": "Content cards ship without artwork; only the homepage displays illustrations."
+  },
+  {
+    "id": "platform--index--29",
+    "decision": "remove",
+    "reason": "Content cards ship without artwork; only the homepage displays illustrations."
+  },
+  {
+    "id": "platform--index--30",
+    "decision": "remove",
+    "reason": "Content cards ship without artwork; only the homepage displays illustrations."
+  },
+  {
+    "id": "platform--index--31",
+    "decision": "remove",
+    "reason": "Content cards ship without artwork; only the homepage displays illustrations."
+  },
+  {
+    "id": "platform--index--32",
+    "decision": "remove",
+    "reason": "Content cards ship without artwork; only the homepage displays illustrations."
+  },
+  {
+    "id": "platform--index--33",
+    "decision": "remove",
+    "reason": "Content cards ship without artwork; only the homepage displays illustrations."
   }
 ]
