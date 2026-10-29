@@ -85,6 +85,23 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				}
 				updatedDeployment = &deployment
 
+				// A report built before krane deleted the workload can arrive
+				// after its Delete. Recording its pods would leave running rows
+				// whose IPs the cluster reassigns to other workloads.
+				topology, err := db.NewQueries(tx).FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
+					DeploymentID: deployment.ID,
+					RegionID:     cluster.RegionID,
+				})
+				if err != nil && !db.IsNotFound(err) {
+					return err
+				}
+				if db.IsNotFound(err) || topology.DesiredStatus != db.DeploymentTopologyDesiredStatusRunning {
+					return db.NewQueries(tx).DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{
+						DeploymentID: deployment.ID,
+						RegionID:     cluster.RegionID,
+					})
+				}
+
 				staleInstances, err := db.NewQueries(tx).FindInstancesByDeploymentIdAndRegionID(ctx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 					DeploymentID: deployment.ID,
 					RegionID:     cluster.RegionID,
