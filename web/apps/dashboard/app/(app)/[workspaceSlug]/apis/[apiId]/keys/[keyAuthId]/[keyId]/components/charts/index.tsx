@@ -1,5 +1,6 @@
 import { createOutcomeChartConfig } from "@/components/charts/chart-colors";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
+import { OverviewChartFrame } from "@/components/logs/overview-charts/overview-chart-frame";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
@@ -7,11 +8,9 @@ import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-time
 export const KeyDetailsLogsChart = ({
   keyspaceId,
   keyId,
-  onMount,
 }: {
   keyId: string;
   keyspaceId: string;
-  onMount: (distanceToTop: number) => void;
 }) => {
   const { filters, updateFilters } = useFilters();
 
@@ -55,13 +54,12 @@ export const KeyDetailsLogsChart = ({
   };
 
   return (
-    <div className="w-full md:h-[320px]">
+    <OverviewChartFrame>
       <OverviewBarChart
         data={verificationTimeseries}
         isLoading={verificationIsLoading}
         isError={verificationIsError}
         enableSelection
-        onMount={onMount}
         onSelectionChange={handleSelectionChange}
         config={createOutcomeChartConfig()}
         granularity={granularity}
@@ -74,6 +72,6 @@ export const KeyDetailsLogsChart = ({
         }}
         tooltipItems={[{ label: "Invalid", dataKey: "error" }]}
       />
-    </div>
+    </OverviewChartFrame>
   );
 };

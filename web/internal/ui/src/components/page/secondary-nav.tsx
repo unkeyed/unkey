@@ -14,7 +14,7 @@ function SecondaryNav({ className, children, ...props }: React.ComponentProps<"n
       )}
       {...props}
     >
-      <div className="contents md:sticky md:top-4 md:flex md:max-h-dvh md:flex-col md:gap-3 md:overflow-y-auto">
+      <div className="contents md:sticky md:top-[calc(var(--app-header-h,0px)+--spacing(4))] md:flex md:max-h-[calc(var(--app-body-h,100dvh)-2rem)] md:flex-col md:gap-3 md:overflow-y-auto">
         {children}
       </div>
     </nav>

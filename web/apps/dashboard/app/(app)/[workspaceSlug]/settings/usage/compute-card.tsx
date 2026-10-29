@@ -273,7 +273,7 @@ function ProjectRow({
         className="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none"
         style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
       >
-        <div className="overflow-hidden">
+        <div className="relative overflow-hidden">
           {project.apps.length === 0 ? null : (
             <>
               <ResourceBar usage={project} />

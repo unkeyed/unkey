@@ -3,11 +3,7 @@
 import { LogDetails } from "@/components/logs/details/log-details";
 import { useRatelimitLogsContext } from "../../../context/logs";
 
-type Props = {
-  distanceToTop: number;
-};
-
-export const RatelimitLogDetails = ({ distanceToTop }: Props) => {
+export const RatelimitLogDetails = () => {
   const { setSelectedLog, selectedLog: log } = useRatelimitLogsContext();
 
   if (!log) {
@@ -19,7 +15,7 @@ export const RatelimitLogDetails = ({ distanceToTop }: Props) => {
   };
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
+    <LogDetails log={log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
       <LogDetails.Spacer />

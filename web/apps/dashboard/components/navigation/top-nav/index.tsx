@@ -20,18 +20,13 @@ import { ProjectCrumb } from "./project-crumb";
 import { UserButton } from "./user-button";
 import { WorkspaceCrumb } from "./workspace-crumb";
 
-export const TOP_NAV_HEIGHT = 52;
-
 export function TopNav() {
   const workspace = useWorkspaceNavigation();
   const crumbs = useBreadcrumbs();
   const { setOpenMobile } = useSidebar();
 
   return (
-    <header
-      className="flex w-full shrink-0 items-center gap-1 border-b bg-background px-4"
-      style={{ height: TOP_NAV_HEIGHT }}
-    >
+    <header className="flex h-(--app-nav-h) w-full shrink-0 items-center gap-1 border-b bg-background px-4">
       <Link
         href={routes.workspaces.overview({ workspaceSlug: workspace.slug })}
         aria-label="Unkey"
