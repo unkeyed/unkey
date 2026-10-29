@@ -58,7 +58,6 @@ regenerate the embedded input definitions from the repository root:
 
 ```bash
 mise exec -- go generate ./cmd/api/internal/guidance
-mise exec -- go generate ./cmd/api/internal/discovery
 ```
 
 `tools/cliguidance` reads `resourcePaths` and the authoritative OpenAPI spec.
@@ -66,11 +65,6 @@ Keep endpoint-version overrides aligned with the SDK method each command
 calls. Its output, `internal/guidance/schemas_generated.json`, has one compact
 endpoint per line. Do not hand-edit it, bulk pretty-print it, or embed the full
 OpenAPI specification.
-
-`unkey describe` uses separate metadata in `internal/discovery`. Preserve full
-request schemas and their referenced definitions for agents, not the reduced
-form schemas. Discovery must stay offline and omit runtime flag values and
-credentials. Its catalogue covers canonical API endpoints, not orchestration.
 
 ## Verify endpoint changes
 

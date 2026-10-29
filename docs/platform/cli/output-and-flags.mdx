@@ -5,8 +5,6 @@ description: "Read human-friendly output, pipe the full JSON response, and use s
 sources:
   - cmd/api/root.go
   - cmd/api/resources.go
-  - cmd/api/describe.go
-  - cmd/api/internal/discovery/command.go
   - cmd/api/internal/guidance/review.go
   - cmd/api/internal/guidance/recovery.go
   - cmd/api/util/flags.go
@@ -178,19 +176,15 @@ unkey projects create --name=Demo --slug=demo \
   --no-input --json --error-format=json
 ```
 
-## Discover commands without API access
+## Find command options
 
-`unkey describe` prints a JSON catalogue of canonical API resource commands. Add a command path to inspect its flags, examples, flag constraints, and OpenAPI request schema:
+Use `--help` to list commands or read a command's flags, requirements, and examples. Help works without credentials or API requests.
 
 ```bash
-unkey describe
-unkey describe projects create
-unkey describe gateway policies update
+unkey --help
+unkey projects create --help
+unkey gateway policies update --help
 ```
-
-Discovery runs offline, without authentication or API requests. It describes the API endpoints included in that CLI build, not the live server's permissions or resource state. Login and the `unkey deploy` workflow are outside this catalogue.
-
-Request schemas retain the source OpenAPI schema semantics and referenced definitions. They are separate from the reduced metadata used for interactive forms. Use the command's flag constraints as well as its request schema: some CLI flags combine several body fields or impose additional exclusions.
 
 ## Send a raw body
 

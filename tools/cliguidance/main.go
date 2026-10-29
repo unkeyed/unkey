@@ -9,7 +9,6 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,24 +24,15 @@ var endpointOverrides = map[string]string{
 func main() {
 	spec := flag.String("spec", "svc/api/openapi/openapi-generated.yaml", "OpenAPI source")
 	resources := flag.String("resources", "cmd/api/resources.go", "Go source declaring resourcePaths")
-	out := flag.String("out", "", "Output JSON (defaults to the selected mode's schemas_generated.json)")
-	mode := flag.String("mode", "guidance", "Output mode: guidance or discovery")
+	out := flag.String("out", "cmd/api/internal/guidance/schemas_generated.json", "Output JSON")
 	flag.Parse()
-	outputPath := *out
-	if outputPath == "" {
-		outputPath = filepath.Join("cmd/api/internal", *mode, "schemas_generated.json")
-	}
-	if err := generateMode(*spec, *resources, outputPath, *mode); err != nil {
+	if err := generate(*spec, *resources, *out); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
 func generate(specPath, resourcesPath, outputPath string) error {
-	return generateMode(specPath, resourcesPath, outputPath, "guidance")
-}
-
-func generateMode(specPath, resourcesPath, outputPath, mode string) error {
 	spec, err := os.ReadFile(specPath)
 	if err != nil {
 		return fmt.Errorf("read OpenAPI: %w", err)
@@ -51,15 +41,7 @@ func generateMode(specPath, resourcesPath, outputPath, mode string) error {
 	if err != nil {
 		return err
 	}
-	var data []byte
-	switch mode {
-	case "guidance":
-		data, err = extract(spec, keys)
-	case "discovery":
-		data, err = extractDiscovery(spec, keys)
-	default:
-		return fmt.Errorf("unknown output mode %q", mode)
-	}
+	data, err := extract(spec, keys)
 	if err != nil {
 		return err
 	}
@@ -122,33 +104,11 @@ func extract(data []byte, keys []string) ([]byte, error) {
 	if err := yaml.Unmarshal(data, &document); err != nil {
 		return nil, fmt.Errorf("parse OpenAPI: %w", err)
 	}
-	endpoints, err := selectEndpoints(document, keys)
-	if err != nil {
-		return nil, err
-	}
-	schemas := make(map[string]any, len(keys))
-	for key, endpoint := range endpoints {
-		schema, err := requestSchema(document, endpoint.Operation)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", key, err)
-		}
-		schemas[key] = schema
-	}
-	return encodeEntries(schemas)
-}
-
-type selectedEndpoint struct {
-	Path      string
-	Method    string
-	Operation map[string]any
-}
-
-func selectEndpoints(document map[string]any, keys []string) (map[string]selectedEndpoint, error) {
 	paths, ok := document["paths"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("OpenAPI paths not found")
 	}
-	endpoints := make(map[string]selectedEndpoint, len(keys))
+	schemas := make(map[string]any, len(keys))
 	for path, raw := range paths {
 		_, route, ok := strings.Cut(strings.TrimPrefix(path, "/"), "/")
 		if !ok {
@@ -169,7 +129,7 @@ func selectEndpoints(document map[string]any, keys []string) (map[string]selecte
 		if path != selected {
 			continue
 		}
-		if _, exists := endpoints[key]; exists {
+		if _, exists := schemas[key]; exists {
 			return nil, fmt.Errorf("duplicate endpoint for %q", key)
 		}
 		item, ok := raw.(map[string]any)
@@ -180,25 +140,22 @@ func selectEndpoints(document map[string]any, keys []string) (map[string]selecte
 		if !ok {
 			return nil, fmt.Errorf("%s: POST operation not found", path)
 		}
-		endpoints[key] = selectedEndpoint{Path: path, Method: "POST", Operation: op}
+		schema, err := requestSchema(document, op)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", key, err)
+		}
+		schemas[key] = schema
 	}
 	for _, key := range keys {
-		if _, ok := endpoints[key]; !ok {
+		if _, ok := schemas[key]; !ok {
 			return nil, fmt.Errorf("canonical command %q has no OpenAPI endpoint", key)
 		}
 	}
-	return endpoints, nil
-}
-
-func encodeEntries(entries map[string]any) ([]byte, error) {
-	keys := make([]string, 0, len(entries))
-	for key := range entries {
-		keys = append(keys, key)
-	}
+	keys = slices.Clone(keys)
 	slices.Sort(keys)
 	encoded := []byte("{\n")
 	for i, key := range keys {
-		entry, err := json.Marshal(map[string]any{key: entries[key]})
+		entry, err := json.Marshal(map[string]any{key: schemas[key]})
 		if err != nil {
 			return nil, fmt.Errorf("encode %s: %w", key, err)
 		}
