@@ -33,6 +33,12 @@ func (s *Service) Redeem(ctx context.Context, req RedeemRequest) (Tokens, error)
 	if err := s.requireOAuth(); err != nil {
 		return Tokens{}, err
 	}
+	return s.limitFailures(ctx, "redeem_failures", req.RemoteIP, failedRedeemLimitPerMinute, func() (Tokens, error) {
+		return s.redeem(ctx, req)
+	})
+}
+
+func (s *Service) redeem(ctx context.Context, req RedeemRequest) (Tokens, error) {
 	if req.Code == "" {
 		return Tokens{}, rejectedCode()
 	}

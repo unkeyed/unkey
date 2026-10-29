@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -53,8 +54,12 @@ func TestRefreshTokenFamilyRejectsMalformedTokens(t *testing.T) {
 func TestRefreshRejectsMalformedTokenWithoutRevoking(t *testing.T) {
 	signer, err := tokenjwt.NewHS256Signer[clisession.Claims]([]byte(testSecret))
 	require.NoError(t, err)
+	clk := clock.NewTestClock()
+	limiter := ratelimit.NewLocal(clk)
+	t.Cleanup(func() { require.NoError(t, limiter.Close()) })
 	svc := &Service{
-		Clock:            clock.NewTestClock(),
+		Clock:            clk,
+		Ratelimit:        limiter,
 		Memberships:      mem{},
 		DashboardBaseURL: "http://localhost:3000",
 		Signer:           signer,

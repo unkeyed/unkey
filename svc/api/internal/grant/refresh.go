@@ -21,10 +21,18 @@ var errRefreshRotated = errors.New("refresh token rotated concurrently")
 // refresh token still rotates the session during [refreshReuseGrace]. After
 // that window, presenting it or any older token of the family revokes the
 // family.
+//
+// Failed refreshes are limited per address, so tokens cannot be guessed.
 func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (Tokens, error) {
 	if err := s.requireEnabled(); err != nil {
 		return Tokens{}, err
 	}
+	return s.limitFailures(ctx, "refresh_failures", req.RemoteIP, failedRefreshLimitPerMinute, func() (Tokens, error) {
+		return s.refresh(ctx, req)
+	})
+}
+
+func (s *Service) refresh(ctx context.Context, req RefreshRequest) (Tokens, error) {
 	token := strings.TrimSpace(req.RefreshToken)
 	family, ok := refreshTokenFamily(token)
 	if !ok {

@@ -2,6 +2,7 @@ package grant
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -48,6 +49,13 @@ const (
 	userCodeLimit           = 60
 	userCodeLimitWindow     = 10 * time.Minute
 	authorizeLimitPerMinute = 30
+
+	// Failed redemptions and refreshes are limited per address and only
+	// failures count. The OAuth gateway sends every user's requests from a
+	// few addresses, so a limit on all attempts, or one keyed on the public
+	// client_id, would let anyone lock every user out.
+	failedRedeemLimitPerMinute  = 30
+	failedRefreshLimitPerMinute = 30
 )
 
 type PollStatus string
@@ -223,6 +231,43 @@ func (s *Service) limitAddress(ctx context.Context, action string, remoteIP stri
 		)
 	}
 	return nil
+}
+
+// limitFailures runs attempt unless remoteIP already failed limit times in
+// the last minute, and counts the attempt when it is refused with
+// ErrRejected. The limiter failing open matches limitAddress.
+func (s *Service) limitFailures(ctx context.Context, action string, remoteIP string, limit int64, attempt func() (Tokens, error)) (Tokens, error) {
+	identifier := remoteIP
+	if identifier == "" {
+		identifier = "unknown"
+	}
+	failures := ratelimit.RatelimitRequest{
+		WorkspaceID: ratelimitScope,
+		Namespace:   ratelimitScope + "." + action,
+		Identifier:  identifier,
+		Limit:       limit,
+		Duration:    time.Minute,
+		Cost:        0,
+		Time:        time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
+	}
+	peek, err := s.Ratelimit.Ratelimit(ctx, failures)
+	if err != nil {
+		logger.Error("grant failure limit: ratelimiter error", "action", action, "error", err.Error())
+	} else if !peek.Success || peek.Remaining == 0 {
+		return Tokens{}, fault.New("grant failure limit exceeded",
+			fault.Code(codes.User.TooManyRequests.IPRateLimited.URN()),
+			fault.Public("Too many failed attempts from this address. Try again in a minute."),
+		)
+	}
+
+	tokens, err := attempt()
+	if errors.Is(err, ErrRejected) {
+		failures.Cost = 1
+		if _, countErr := s.Ratelimit.Ratelimit(ctx, failures); countErr != nil {
+			logger.Error("grant failure limit: ratelimiter error", "action", action, "error", countErr.Error())
+		}
+	}
+	return tokens, err
 }
 
 // sessionExpiry is the idle deadline for a session used at now. It never
