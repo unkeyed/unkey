@@ -22,6 +22,7 @@ export class Cli extends ClientSDK {
    * Approval requires permissions. Denial must not include permissions and prevents token issuance.
    * Every permission must fit inside the caller's role. Any member can approve, not only admins.
    * The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
+   * For an OAuth app's request, the response carries `redirectTo`, the URL the browser must open next.
    */
   async decideDeviceLogin(
     request: components.V2CliDecideDeviceLoginRequestBodyUnion,

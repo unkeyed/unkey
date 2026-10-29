@@ -128,7 +128,7 @@ func TestDecideDeviceLoginSerializesApproveAndDeny(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				require.NoError(t, json.NewEncoder(w).Encode(components.V2CliDecideDeviceLoginResponseBody{
-					Data: components.EmptyResponse{},
+					Data: components.V2CliDecideDeviceLoginResponseData{},
 					Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
 				}))
 			}))

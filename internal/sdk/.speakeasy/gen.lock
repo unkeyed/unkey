@@ -1,16 +1,16 @@
 lockVersion: 2.0.0
 id: dd266259-e27e-4ada-9a56-5846bef9afd5
 management:
-  docChecksum: 05e0b287ca872307aac5305ce1c58d69
+  docChecksum: af44028d514bad7ad85eb50a95f061d1
   docVersion: 2.0.0
   speakeasyVersion: 1.790.1
   generationVersion: 2.918.1
   releaseVersion: 0.0.0
   configChecksum: 8908dd0e19872a58e24ce04ef1523f49
 persistentEdits:
-  generation_id: a35761ae-abba-425e-8a70-90ca9c3c728a
-  pristine_commit_hash: 8363bf37e717d564677d31b3fdb54c4749ed0a4b
-  pristine_tree_hash: 7fdcf72a2f42187dc5e6e447e3d3a86527ea972e
+  generation_id: 1617819d-c7e6-4be5-84b1-7865023384c9
+  pristine_commit_hash: 51f15d8790482983338a6da69cc0d881f02ae3c4
+  pristine_tree_hash: 4f3d9b84b25c26f68d0c8a175d0f838b830941e7
 features:
   go:
     additionalDependencies: 0.1.0
@@ -39,8 +39,8 @@ trackedFiles:
     pristine_git_object: 94f1985a8427997d7d90a7ecd07ccc7f177e5855
   cli.go:
     id: 1b325b84d4be
-    last_write_checksum: sha1:26d8a663b16def0f91e54b1162fb020e273cea5e
-    pristine_git_object: 4cec0f46652ac77ed7b6dd2661f0e56803a7643c
+    last_write_checksum: sha1:4b781dde7124e9897dc0770c7a4efab832cdb89f
+    pristine_git_object: eabf95127423c709580d680cba48f394229ddd9a
   client.go:
     id: d633516feaf9
     last_write_checksum: sha1:741ad0b2f3de547d102d845d1bdebbf138b43ee5
@@ -81,6 +81,10 @@ trackedFiles:
     id: 7556720b8112
     last_write_checksum: sha1:54625ae5a8ca8f009ef766685ddb12618dca9d16
     pristine_git_object: bc67b21c2095eb6d35bff0bc80eefeaabec18abe
+  docs/models/components/delivery.md:
+    id: e3ef20f051d8
+    last_write_checksum: sha1:efcc91d631d59d71787e3278d3651694ad32509c
+    pristine_git_object: 5984e050ed5dc446d01524616b5347ccd39d19f6
   docs/models/components/emptyresponse.md:
     id: 058494548c6c
     last_write_checksum: sha1:868dd998e03e8e5ea1e1e6738e1bd6f0508ff89a
@@ -115,8 +119,12 @@ trackedFiles:
     pristine_git_object: 4fc86f70e6df210bac15a9053b5397a182a64c71
   docs/models/components/v2clidecidedeviceloginresponsebody.md:
     id: 5abdc2c69915
-    last_write_checksum: sha1:9d3313198b91879a1715db31fe1b34059fb5eebc
-    pristine_git_object: 94a8effc765ee0cd32546e0f6f7562b49181c606
+    last_write_checksum: sha1:1a66d2881b1b7ae285d59e5a94204d6ce0c8b7fb
+    pristine_git_object: e004e2f4fb7bf98b951f2e47289bfb6358c2fce7
+  docs/models/components/v2clidecidedeviceloginresponsedata.md:
+    id: 47810fd1152a
+    last_write_checksum: sha1:9407378044b1ced3aec72ba0d0aba4205f31b576
+    pristine_git_object: 21a75769ceca21b4c8015a8bb9d11020eb02187c
   docs/models/components/v2cliexchangetokenpendingresponsebody.md:
     id: 0802c4b6b714
     last_write_checksum: sha1:4b284f99e130d957c4f9d486757975a3fdea031d
@@ -141,6 +149,10 @@ trackedFiles:
     id: 47b192092b1b
     last_write_checksum: sha1:e62f912afa6eed16240181cedce026c14c1770f0
     pristine_git_object: 1bf37912465f0470cf041055372176112292a68a
+  docs/models/components/v2cligetdeviceloginclient.md:
+    id: ce7ff1df6d38
+    last_write_checksum: sha1:0e9d05b3e2197a6c801302a35fafe4801095e730
+    pristine_git_object: 698b8c52cc6af850ac4b5b89e9861ea95e03431b
   docs/models/components/v2cligetdeviceloginrequestbody.md:
     id: 32501c3f7726
     last_write_checksum: sha1:b181a38d8873c7a1a42495feedb907560221d05a
@@ -151,8 +163,8 @@ trackedFiles:
     pristine_git_object: 305bea6334620a9febf0e95b13c70e866f70fe75
   docs/models/components/v2cligetdeviceloginresponsedata.md:
     id: c71691dfdb4f
-    last_write_checksum: sha1:f0369be6e6cc0b07ce0dc30ff7a77d338601cbfb
-    pristine_git_object: 0ce9e3b3deeb90ab5f072c7ddb544bb9ef1b3f85
+    last_write_checksum: sha1:c32bb2451236e8ccc277785e8988078513ad7a65
+    pristine_git_object: a0722f324b43b281578df173d16e64534be0dfe8
   docs/models/components/v2clilistsessionsresponsebody.md:
     id: 88941e8fe714
     last_write_checksum: sha1:cab51d43d34f4dbdd95944e0afbe2041cd136ef1
@@ -163,8 +175,8 @@ trackedFiles:
     pristine_git_object: 579a292e3e4915002ba3dfcfb48e9b4fdc6688c0
   docs/models/components/v2clilistsessionssession.md:
     id: cc917f00ee01
-    last_write_checksum: sha1:487de09b7bd639284b188b60cf0d169741093743
-    pristine_git_object: 2682c94ebe3584e17a7fabd8feef357f34765a51
+    last_write_checksum: sha1:ed24eab3d5ed164985e52a69fe31459780a7ab23
+    pristine_git_object: 6a2b63812abe5a812cd8536f73ef9298192645dc
   docs/models/components/v2clirevokesessionrequestbody.md:
     id: df806d4ed474
     last_write_checksum: sha1:a40503e4bc4a8cc7db430fd8f948dbcdbfc88714
@@ -219,8 +231,8 @@ trackedFiles:
     pristine_git_object: 74c97866b709408a9935d5f08996d83ef93c33f9
   docs/sdks/cli/README.md:
     id: a2f72787863f
-    last_write_checksum: sha1:e527611dc61eb6fa17f47b8fb3305489e8933593
-    pristine_git_object: 0d9662e91272a9cb67976b241c676fd270cf4619
+    last_write_checksum: sha1:88a4eb8eaf7c9d42689d7fde270969c84a53489b
+    pristine_git_object: 3488bfae5147aa69278e12ef086234405734e9de
   go.mod:
     id: c47645c391ad
     last_write_checksum: sha1:c79d1a143ed99d49ce2ae4ccaceef066076e787c
@@ -343,8 +355,12 @@ trackedFiles:
     pristine_git_object: 0cb22955b301e4e0093de23f3e94acaaed485151
   models/components/v2clidecidedeviceloginresponsebody.go:
     id: c11d9bde088c
-    last_write_checksum: sha1:d2cd4f6a0154403ce3aba851dc7b43ba85703bfe
-    pristine_git_object: 8e4badadebfd12443a130f535f60a046fd4a4b1f
+    last_write_checksum: sha1:71a9c0a121fcbb63621422a20047072ba4ce5933
+    pristine_git_object: c0030bf1e39c07fd5c77851dccffe8de521c5172
+  models/components/v2clidecidedeviceloginresponsedata.go:
+    id: 60d864a39562
+    last_write_checksum: sha1:4a62657dbca8b4b266a3428991dddb0003e7817e
+    pristine_git_object: d713f31ad1d2aa65b22de2c5f6c0b42703629f5f
   models/components/v2cliexchangetokenpendingresponsebody.go:
     id: f11e89e3bd19
     last_write_checksum: sha1:7bedc4a29a6c3b58a5bfe4f9a16d2145779ca2c1
@@ -361,6 +377,10 @@ trackedFiles:
     id: 8390ea1c8ffe
     last_write_checksum: sha1:20f0ff11cd0b27dd05884fa0583584396c86970e
     pristine_git_object: d36323ab3da551ea26a8f6a88eeb33aaa671a689
+  models/components/v2cligetdeviceloginclient.go:
+    id: 590f05c028a7
+    last_write_checksum: sha1:dede0ee1748ac993f0fb7626378e7eee069a938d
+    pristine_git_object: 02fb9d4e53da3fe0c10dc3ad44e9f23bfa660fcb
   models/components/v2cligetdeviceloginrequestbody.go:
     id: 38223928f32b
     last_write_checksum: sha1:d7afec2f83de428ade75522948a5a2649733828b
@@ -371,8 +391,8 @@ trackedFiles:
     pristine_git_object: 4193fee1b790269f28bab0b09b4f44be556c71b8
   models/components/v2cligetdeviceloginresponsedata.go:
     id: 093006e5e06b
-    last_write_checksum: sha1:cf06142835ac486b2bacf061b30d82efe31b44b3
-    pristine_git_object: 77e9df60a552c0576ddee0d8ce958b0561be748a
+    last_write_checksum: sha1:9f1c2938ad599d7b926e68e9df385b89f7806000
+    pristine_git_object: a6647e2c7945848b699fdca2d4862e5bd31a9013
   models/components/v2clilistsessionsresponsebody.go:
     id: 2bc6ac4c0f5b
     last_write_checksum: sha1:512f6cda3fd4fb361fcde1a44be7c9e9181acfb0
@@ -383,8 +403,8 @@ trackedFiles:
     pristine_git_object: 3c5ea79a836aaa08b5b68333f08a8db9b26f921b
   models/components/v2clilistsessionssession.go:
     id: 564f82944155
-    last_write_checksum: sha1:2cd4999ef82617d7196b33dc7e59adb6c2082ee8
-    pristine_git_object: b4954547451d99f13400a555c57f575c41def86c
+    last_write_checksum: sha1:cdaf221b570c787f2a20e1e187cd1e713abdf165
+    pristine_git_object: e5bf710ef50c38171e150bdbda6fbaa4ee2fea24
   models/components/v2clirevokesessionrequestbody.go:
     id: cc12e89c9e54
     last_write_checksum: sha1:444235890c76729e31f338c0beaf414b67230211
@@ -4916,7 +4936,7 @@ examples:
         application/json: {"userCode": "<value>"}
       responses:
         "200":
-          application/json: {"meta": {"requestId": "req_123"}, "data": {"userCode": "<value>", "status": "<value>", "createdAt": 996464, "expiresAt": 923239}}
+          application/json: {"meta": {"requestId": "req_123"}, "data": {"userCode": "<value>", "delivery": "redirect", "status": "<value>", "createdAt": 996464, "expiresAt": 923239}}
         "400":
           application/json: {"meta": {"requestId": "req_123"}, "error": {"detail": "Property foo is required but is missing.", "status": 404, "title": "Not Found", "type": "https://unkey.com/docs/errors/unkey/resource/not_found", "errors": []}}
         "401":

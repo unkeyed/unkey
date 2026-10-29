@@ -17,11 +17,13 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 )
 
-// Allow reports whether a CLI session may authenticate a request.
+// Allow reports whether a session may authenticate a request. An inactive
+// session is returned with clisession.ErrInactive so the caller can name its
+// holder.
 func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Session, error) {
 	if verdict, hit := s.SessionCache.Get(ctx, sessionID); hit == cache.Hit {
 		if !verdict.Allowed {
-			return clisession.Session{}, clisession.ErrInactive
+			return verdict.Session, clisession.ErrInactive
 		}
 		return verdict.Session, nil
 	}
@@ -44,6 +46,7 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		WorkspaceID: row.WorkspaceID,
 		DeviceName:  row.DeviceName.String,
 		ExpiresAt:   time.UnixMilli(row.ExpiresAt),
+		ClientID:    row.ClientID.String,
 	}
 	active := !row.RevokedAt.Valid && row.ExpiresAt > s.Clock.Now().UnixMilli()
 	if active {
@@ -59,7 +62,7 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		Session: session,
 	})
 	if !active {
-		return clisession.Session{}, clisession.ErrInactive
+		return session, clisession.ErrInactive
 	}
 	return session, nil
 }
@@ -108,11 +111,13 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 			return nil
 		}
 
+		holder := holderOf(row)
+		audit := holder.audit()
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 		actor := auditactor.FromPrincipal(req.Principal)
 		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			Event:         auditlog.CLISessionRevokeEvent,
-			Display:       "Revoked CLI session " + row.ID,
+			Event:         audit.revoke,
+			Display:       "Revoked " + audit.display + " " + row.ID,
 			WorkspaceID:   row.WorkspaceID,
 			ActorType:     actor.Type,
 			ActorID:       actor.ID,
@@ -122,11 +127,11 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 			RemoteIP:      req.RemoteIP,
 			UserAgent:     req.UserAgent,
 			Targets: []auditlog.AuditLogTarget{{
-				Type:        auditlog.CLISessionTargetType,
+				Type:        audit.target,
 				ID:          row.ID,
 				Name:        row.DeviceName.String,
 				DisplayName: row.DeviceName.String,
-				Meta:        map[string]any{},
+				Meta:        holder.targetMeta(),
 			}},
 		}}); err != nil {
 			return err
@@ -176,6 +181,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 			LastUsedAt:  row.LastUsedAt,
 			ExpiresAt:   row.ExpiresAt,
 			RevokedAt:   0,
+			ClientID:    holderOf(row).clientID,
 		}
 		if row.RevokedAt.Valid {
 			info.RevokedAt = row.RevokedAt.Int64

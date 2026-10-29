@@ -560,6 +560,24 @@ func (e V2CliDecideDeviceLoginRequestBody1Decision) Valid() bool {
 	}
 }
 
+// Defines values for V2CliGetDeviceLoginResponseDataDelivery.
+const (
+	Device   V2CliGetDeviceLoginResponseDataDelivery = "device"
+	Redirect V2CliGetDeviceLoginResponseDataDelivery = "redirect"
+)
+
+// Valid indicates whether the value is a known member of the V2CliGetDeviceLoginResponseDataDelivery enum.
+func (e V2CliGetDeviceLoginResponseDataDelivery) Valid() bool {
+	switch e {
+	case Device:
+		return true
+	case Redirect:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
 	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
@@ -3674,11 +3692,17 @@ type V2CliDecideDeviceLoginRequestBody1Decision string
 
 // V2CliDecideDeviceLoginResponseBody defines model for V2CliDecideDeviceLoginResponseBody.
 type V2CliDecideDeviceLoginResponseBody struct {
-	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
-	Data EmptyResponse `json:"data"`
+	Data V2CliDecideDeviceLoginResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2CliDecideDeviceLoginResponseData defines model for V2CliDecideDeviceLoginResponseData.
+type V2CliDecideDeviceLoginResponseData struct {
+	// RedirectTo Present when the login's delivery is `redirect`. Navigate the browser here: the OAuth app's
+	// redirect URI with an authorization code after approval, or with error=access_denied after denial.
+	RedirectTo *string `json:"redirectTo,omitempty"`
 }
 
 // V2CliExchangeTokenPendingResponseBody defines model for V2CliExchangeTokenPendingResponseBody.
@@ -3733,6 +3757,18 @@ type V2CliExchangeTokenResponseData struct {
 	WorkspaceId string `json:"workspaceId"`
 }
 
+// V2CliGetDeviceLoginClient The OAuth app asking for access. Present only when delivery is `redirect`.
+type V2CliGetDeviceLoginClient struct {
+	// Id The app's OAuth client_id.
+	Id string `json:"id"`
+
+	// Name Name chosen by whoever registered the app. Do not trust it.
+	Name string `json:"name"`
+
+	// RedirectUri Where the decision sends the browser. Show its host; it is the trustworthy part of the request.
+	RedirectUri string `json:"redirectUri"`
+}
+
 // V2CliGetDeviceLoginRequestBody defines model for V2CliGetDeviceLoginRequestBody.
 type V2CliGetDeviceLoginRequestBody struct {
 	// UserCode Code shown by `unkey login`.
@@ -3749,10 +3785,17 @@ type V2CliGetDeviceLoginResponseBody struct {
 
 // V2CliGetDeviceLoginResponseData defines model for V2CliGetDeviceLoginResponseData.
 type V2CliGetDeviceLoginResponseData struct {
+	// Client The OAuth app asking for access. Present only when delivery is `redirect`.
+	Client *V2CliGetDeviceLoginClient `json:"client,omitempty"`
+
 	// CreatedAt Unix millisecond time the login was started.
 	CreatedAt int64 `json:"createdAt"`
 
-	// DeviceName Label sent by the CLI. The requester chooses it, so do not trust it.
+	// Delivery How an approved login reaches its holder. `device`: the Unkey CLI polls for it.
+	// `redirect`: an OAuth app asked for access, and the decision sends the browser to `client.redirectUri`.
+	Delivery V2CliGetDeviceLoginResponseDataDelivery `json:"delivery"`
+
+	// DeviceName Label sent by the CLI, or the OAuth app's registered name. The requester chooses it, so do not trust it.
 	DeviceName *string `json:"deviceName,omitempty"`
 
 	// ExpiresAt Unix millisecond expiry.
@@ -3775,6 +3818,10 @@ type V2CliGetDeviceLoginResponseData struct {
 	WorkspaceId *string `json:"workspaceId,omitempty"`
 }
 
+// V2CliGetDeviceLoginResponseDataDelivery How an approved login reaches its holder. `device`: the Unkey CLI polls for it.
+// `redirect`: an OAuth app asked for access, and the decision sends the browser to `client.redirectUri`.
+type V2CliGetDeviceLoginResponseDataDelivery string
+
 // V2CliListSessionsResponseBody defines model for V2CliListSessionsResponseBody.
 type V2CliListSessionsResponseBody struct {
 	Data V2CliListSessionsResponseData `json:"data"`
@@ -3790,6 +3837,8 @@ type V2CliListSessionsResponseData struct {
 
 // V2CliListSessionsSession defines model for V2CliListSessionsSession.
 type V2CliListSessionsSession struct {
+	// ClientId The OAuth app holding the session. Omitted for Unkey CLI sessions.
+	ClientId   *string `json:"clientId,omitempty"`
 	CreatedAt  int64   `json:"createdAt"`
 	DeviceName *string `json:"deviceName,omitempty"`
 

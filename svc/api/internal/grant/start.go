@@ -15,7 +15,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-const userCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+const (
+	userCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	devicePath       = "/cli/device"
+	consentPath      = "/oauth/consent"
+)
 
 // Start creates a device authorization and returns the code the user compares.
 func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) {
@@ -39,7 +43,7 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 		if err != nil {
 			return Started{}, err
 		}
-		complete, err := dashboardVerificationURL(verificationURI, userCode)
+		complete, err := dashboardVerificationURL(verificationURI, devicePath, userCode)
 		if err != nil {
 			return Started{}, fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -93,25 +97,34 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 }
 
 func newUserCode() (string, error) {
-	buf := make([]byte, 8)
+	chars, err := randomUserCode(8)
+	if err != nil {
+		return "", err
+	}
+	return chars[:4] + "-" + chars[4:], nil
+}
+
+// randomUserCode draws length characters from userCodeAlphabet. The alphabet
+// has 32 characters, so taking each byte modulo 32 is unbiased.
+func randomUserCode(length int) (string, error) {
+	buf := make([]byte, length)
 	if _, err := rand.Read(buf); err != nil {
 		return "", err
 	}
-
-	chars := make([]byte, 8)
+	chars := make([]byte, length)
 	for i, b := range buf {
 		chars[i] = userCodeAlphabet[int(b)%len(userCodeAlphabet)]
 	}
-	return string(chars[:4]) + "-" + string(chars[4:]), nil
+	return string(chars), nil
 }
 
-func dashboardVerificationURL(base string, userCode string) (string, error) {
+func dashboardVerificationURL(base string, path string, userCode string) (string, error) {
 	parsed, err := url.Parse(base)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return "", errors.New("dashboard base url must be an absolute http(s) url")
 	}
 
-	parsed.Path = strings.TrimRight(parsed.Path, "/") + "/cli/device"
+	parsed.Path = strings.TrimRight(parsed.Path, "/") + path
 	query := parsed.Query()
 	query.Set("user_code", userCode)
 	parsed.RawQuery = query.Encode()

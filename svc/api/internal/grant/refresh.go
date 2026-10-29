@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/db"
 )
 
@@ -27,7 +28,7 @@ func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (Tokens, erro
 	token := strings.TrimSpace(req.RefreshToken)
 	family, ok := refreshTokenFamily(token)
 	if !ok {
-		return Tokens{}, invalidRefreshToken()
+		return Tokens{}, invalidRefreshToken(req.Holder, "")
 	}
 
 	presented := hashRefreshToken(token)
@@ -42,8 +43,13 @@ func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (Tokens, erro
 }
 
 func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSession, currentHash string) (Tokens, error) {
+	holder := holderOf(row)
+	if holder != req.Holder {
+		return Tokens{}, invalidRefreshToken(req.Holder, "")
+	}
+	label := row.DeviceName.String
 	if row.RevokedAt.Valid || row.ExpiresAt <= s.Clock.Now().UnixMilli() {
-		return Tokens{}, unauthenticated("This CLI session is no longer valid. Run unkey login again.")
+		return Tokens{}, sessionEnded(holder, label)
 	}
 
 	workspace, err := db.Query.FindWorkspaceByID(ctx, s.DB.RO(), row.WorkspaceID)
@@ -54,7 +60,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		if err := s.endSession(ctx, row); err != nil {
 			return Tokens{}, err
 		}
-		return Tokens{}, forbidden("This workspace cannot refresh a CLI session.")
+		return Tokens{}, forbidden("This workspace cannot refresh a " + holder.noun() + ".")
 	}
 
 	roles, found, err := s.Memberships.ActiveRoles(ctx, workspace.OrgID, row.UserID)
@@ -65,7 +71,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		if err := s.endSession(ctx, row); err != nil {
 			return Tokens{}, err
 		}
-		return Tokens{}, forbidden("You are no longer a member of this workspace. Run unkey login again.")
+		return Tokens{}, forbidden("You are no longer a member of this workspace. " + holder.signInAgain(label))
 	}
 
 	stored, err := decodePermissions(row.Permissions)
@@ -80,7 +86,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 		if err := s.endSession(ctx, row); err != nil {
 			return Tokens{}, err
 		}
-		return Tokens{}, forbidden("Your role no longer includes the permissions on this CLI session. Run unkey login again.")
+		return Tokens{}, forbidden("Your role no longer includes the permissions on this " + holder.noun() + ". " + holder.signInAgain(label))
 	}
 
 	next := newRefreshToken(row.RefreshFamily)
@@ -119,24 +125,25 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 			return errRefreshRotated
 		}
 
+		audit := holder.audit()
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			Event:         auditlog.CLISessionRefreshEvent,
-			Display:       "Refreshed CLI session " + row.ID,
+			Event:         audit.refresh,
+			Display:       "Refreshed " + audit.display + " " + row.ID,
 			WorkspaceID:   workspace.ID,
 			ActorType:     auditlog.UserActor,
 			ActorID:       row.UserID,
 			ActorName:     row.UserName.String,
-			ActorMeta:     map[string]any{"via": "cli", "session_id": row.ID, "device": row.DeviceName.String},
+			ActorMeta:     holder.actorMeta(row.ID, label),
 			CorrelationID: "",
 			RemoteIP:      req.RemoteIP,
 			UserAgent:     req.UserAgent,
 			Targets: []auditlog.AuditLogTarget{{
-				Type:        auditlog.CLISessionTargetType,
+				Type:        audit.target,
 				ID:          row.ID,
-				Name:        row.DeviceName.String,
-				DisplayName: row.DeviceName.String,
-				Meta:        map[string]any{},
+				Name:        label,
+				DisplayName: label,
+				Meta:        holder.targetMeta(),
 			}},
 		}}); err != nil {
 			return err
@@ -164,12 +171,12 @@ func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, 
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return Tokens{}, s.refreshOlderToken(ctx, family)
+			return Tokens{}, s.refreshOlderToken(ctx, req.Holder, family)
 		}
 		return Tokens{}, err
 	}
 	if row.RevokedAt.Valid {
-		return Tokens{}, unauthenticated("This CLI session is no longer valid. Run unkey login again.")
+		return Tokens{}, sessionEnded(holderOf(row), row.DeviceName.String)
 	}
 	if refreshReuseAllowed(row.RotatedAt, s.Clock.Now().UnixMilli()) {
 		return s.rotate(ctx, req, row, row.RefreshTokenHash)
@@ -178,32 +185,36 @@ func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, 
 	if err := s.endSession(ctx, row); err != nil {
 		return Tokens{}, err
 	}
-	return Tokens{}, reusedRefreshToken()
+	return Tokens{}, reusedRefreshToken(holderOf(row), row.DeviceName.String)
 }
 
 // refreshOlderToken handles a well-formed token that is neither the current
 // nor the previous one. If its family still has a live session, the token was
 // rotated away more than once, so it is reuse and the family is revoked.
-func (s *Service) refreshOlderToken(ctx context.Context, family string) error {
+func (s *Service) refreshOlderToken(ctx context.Context, presenter Holder, family string) error {
 	row, err := db.Query.FindUnrevokedCLISessionByRefreshFamily(ctx, s.DB.RW(), family)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return invalidRefreshToken()
+			return invalidRefreshToken(presenter, "")
 		}
 		return err
 	}
 	if err := s.endSession(ctx, row); err != nil {
 		return err
 	}
-	return reusedRefreshToken()
+	return reusedRefreshToken(holderOf(row), row.DeviceName.String)
 }
 
-func invalidRefreshToken() error {
-	return unauthenticated("The refresh token is invalid. Run unkey login again.")
+func invalidRefreshToken(h Holder, label string) error {
+	return unauthenticated("The refresh token is invalid. " + h.signInAgain(label))
 }
 
-func reusedRefreshToken() error {
-	return unauthenticated("This refresh token was already used. The CLI session was revoked. Run unkey login again.")
+func reusedRefreshToken(h Holder, label string) error {
+	return unauthenticated("This refresh token was already used. The " + h.noun() + " was revoked. " + h.signInAgain(label))
+}
+
+func sessionEnded(h Holder, label string) error {
+	return unauthenticated(clisession.SessionEnded(string(h.clientID), label))
 }
 
 func refreshReuseAllowed(rotatedAt sql.NullInt64, now int64) bool {

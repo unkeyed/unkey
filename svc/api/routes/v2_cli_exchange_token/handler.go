@@ -32,6 +32,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if req.RefreshToken != nil {
 		tokens, err := h.Grants.Refresh(ctx, grant.RefreshRequest{
 			RefreshToken: *req.RefreshToken,
+			Holder:       grant.CLI,
 			RemoteIP:     s.Location(),
 			UserAgent:    s.UserAgent(),
 		})

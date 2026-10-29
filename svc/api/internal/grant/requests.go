@@ -24,7 +24,8 @@ type GetRequest struct {
 	UserCode  string
 }
 
-// Authorization is the non-secret state of a device login.
+// Authorization is the non-secret state of a grant request, for the consent
+// page.
 type Authorization struct {
 	UserCode           string
 	DeviceName         string
@@ -34,6 +35,27 @@ type Authorization struct {
 	WorkspaceID        string
 	CreatedAt          int64
 	ExpiresAt          int64
+	// Client is the OAuth client asking for access. Nil for a CLI device
+	// login.
+	Client *ConsentClient
+}
+
+// ConsentClient is the OAuth client asking for access.
+type ConsentClient struct {
+	ID ClientID
+	// Name was chosen by whoever registered the client. Do not trust it.
+	Name string
+	// RedirectURI is where approval sends the browser. Its host is the
+	// trustworthy part of the consent screen.
+	RedirectURI string
+}
+
+// Decided is where the approver's browser goes after a decision. RedirectTo
+// is set only for OAuth requests: the client's redirect URI with code, state,
+// and iss after approval, or error=access_denied after denial. For a CLI
+// device login it is empty because the CLI collects the grant by polling.
+type Decided struct {
+	RedirectTo string
 }
 
 // ApproveRequest records the permissions the dashboard user granted.
@@ -66,8 +88,12 @@ type PollResult struct {
 // RefreshRequest exchanges a refresh token for a new pair.
 type RefreshRequest struct {
 	RefreshToken string
-	RemoteIP     string
-	UserAgent    string
+	// Holder presents the token: CLI from cli.exchangeToken, HeldBy(id) from
+	// the OAuth token endpoint. A token held by someone else is rejected
+	// without rotating.
+	Holder    Holder
+	RemoteIP  string
+	UserAgent string
 }
 
 // Tokens is a new access token and the next refresh token.
@@ -102,4 +128,6 @@ type SessionInfo struct {
 	LastUsedAt  int64
 	ExpiresAt   int64
 	RevokedAt   int64
+	// ClientID is the OAuth client holding the session. Empty for the CLI.
+	ClientID ClientID
 }

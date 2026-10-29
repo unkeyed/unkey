@@ -55,6 +55,10 @@ func FromPrincipal(p *principal.Principal) Actor {
 		actor.Meta["via"] = "cli"
 		actor.Meta["session_id"] = source.SessionID
 		actor.Meta["device"] = source.DeviceName
+		if source.ClientID != "" {
+			actor.Meta["via"] = "oauth"
+			actor.Meta["client_id"] = source.ClientID
+		}
 	}
 
 	return actor

@@ -3,9 +3,11 @@
 package components
 
 type V2CliListSessionsSession struct {
-	ID          string   `json:"id"`
-	UserID      string   `json:"userId"`
-	DeviceName  *string  `json:"deviceName,omitzero"`
+	ID         string  `json:"id"`
+	UserID     string  `json:"userId"`
+	DeviceName *string `json:"deviceName,omitzero"`
+	// The OAuth app holding the session. Omitted for Unkey CLI sessions.
+	ClientID    *string  `json:"clientId,omitzero"`
 	Permissions []string `json:"permissions"`
 	CreatedAt   int64    `json:"createdAt"`
 	LastUsedAt  int64    `json:"lastUsedAt"`
@@ -34,6 +36,13 @@ func (v *V2CliListSessionsSession) GetDeviceName() *string {
 		return nil
 	}
 	return v.DeviceName
+}
+
+func (v *V2CliListSessionsSession) GetClientID() *string {
+	if v == nil {
+		return nil
+	}
+	return v.ClientID
 }
 
 func (v *V2CliListSessionsSession) GetPermissions() []string {

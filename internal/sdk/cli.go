@@ -39,6 +39,7 @@ func newCli(rootSDK *Client, sdkConfig config.SDKConfiguration, hooks *hooks.Hoo
 // Approval requires permissions. Denial must not include permissions and prevents token issuance.
 // Every permission must fit inside the caller's role. Any member can approve, not only admins.
 // The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
+// For an OAuth app's request, the response carries `redirectTo`, the URL the browser must open next.
 func (s *Cli) DecideDeviceLogin(ctx context.Context, request components.V2CliDecideDeviceLoginRequestBody, opts ...operations.Option) (*operations.CliDecideDeviceLoginResponse, error) {
 	o := operations.Options{}
 	supportedOptions := []string{

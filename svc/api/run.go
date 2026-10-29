@@ -451,6 +451,8 @@ func Run(ctx context.Context, cfg Config) error {
 		DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
 		Signer:           nil,
 		SessionCache:     cache.NewNoopCache[string, grant.SessionVerdict](),
+		Issuer:           "",
+		RedirectOrigins:  nil,
 	}
 	if len(cliSecrets) > 0 {
 		cliSigner, signErr := tokenjwt.NewHS256Signer[clisession.Claims](cliSecrets[0])

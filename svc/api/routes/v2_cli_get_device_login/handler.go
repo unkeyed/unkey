@@ -44,9 +44,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	permissions := GrantablePermissions(p)
 
+	delivery := openapi.Device
+	var client *openapi.V2CliGetDeviceLoginClient
+	if authz.Client != nil {
+		delivery = openapi.Redirect
+		client = &openapi.V2CliGetDeviceLoginClient{
+			Id:          string(authz.Client.ID),
+			Name:        authz.Client.Name,
+			RedirectUri: authz.Client.RedirectURI,
+		}
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.V2CliGetDeviceLoginResponseData{
+			Delivery:             delivery,
+			Client:               client,
 			UserCode:             authz.UserCode,
 			DeviceName:           optional(authz.DeviceName),
 			RequesterIp:          optional(authz.RequesterIP),

@@ -44,11 +44,11 @@ func TestExchangeIssuesAndRefreshesTokens(t *testing.T) {
 	}
 	started, err := devices.Start(t.Context(), grant.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.70"})
 	require.NoError(t, err)
-	require.NoError(t, devices.Approve(t.Context(), grant.ApproveRequest{
+	granttest.MustApprove(t, devices, grant.ApproveRequest{
 		Principal:   p,
 		UserCode:    started.UserCode,
 		Permissions: []string{"unkey:v1:" + workspace.ID + ":rootKeys/*#read"},
-	}))
+	})
 	issued := testutil.CallRoute[handler.Request, handler.Response](h, route, jsonHeaders, handler.Request{LoginId: &started.LoginID})
 	require.Equal(t, http.StatusOK, issued.Status, issued.RawBody)
 	require.Empty(t, issued.Headers.Get("Retry-After"))

@@ -1,0 +1,9 @@
+type: object
+additionalProperties: false
+properties:
+  redirectTo:
+    type: string
+    x-unkey-redact: true
+    description: |
+      Present when the login's delivery is `redirect`. Navigate the browser here: the OAuth app's
+      redirect URI with an authorization code after approval, or with error=access_denied after denial.

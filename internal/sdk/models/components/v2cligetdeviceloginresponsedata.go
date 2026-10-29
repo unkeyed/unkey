@@ -6,9 +6,39 @@ import (
 	"github.com/unkeyed/unkey/internal/sdk/internal/utils"
 )
 
+// Delivery - How an approved login reaches its holder. `device`: the Unkey CLI polls for it.
+// `redirect`: an OAuth app asked for access, and the decision sends the browser to `client.redirectUri`.
+type Delivery string
+
+const (
+	DeliveryDevice   Delivery = "device"
+	DeliveryRedirect Delivery = "redirect"
+)
+
+func (e Delivery) ToPointer() *Delivery {
+	return &e
+}
+
+// IsExact returns true if the value matches a known enum value, false otherwise.
+func (e *Delivery) IsExact() bool {
+	if e != nil {
+		switch *e {
+		case "device", "redirect":
+			return true
+		}
+	}
+	return false
+}
+
 type V2CliGetDeviceLoginResponseData struct {
 	UserCode string `json:"userCode"`
-	// Label sent by the CLI. The requester chooses it, so do not trust it.
+	// How an approved login reaches its holder. `device`: the Unkey CLI polls for it.
+	// `redirect`: an OAuth app asked for access, and the decision sends the browser to `client.redirectUri`.
+	//
+	Delivery Delivery `json:"delivery"`
+	// The OAuth app asking for access. Present only when delivery is `redirect`.
+	Client *V2CliGetDeviceLoginClient `json:"client,omitzero"`
+	// Label sent by the CLI, or the OAuth app's registered name. The requester chooses it, so do not trust it.
 	DeviceName *string `json:"deviceName,omitzero"`
 	// IP address that started the login. Empty when the API could not determine it.
 	RequesterIP *string `json:"requesterIp,omitzero"`
@@ -42,6 +72,20 @@ func (v *V2CliGetDeviceLoginResponseData) GetUserCode() string {
 		return ""
 	}
 	return v.UserCode
+}
+
+func (v *V2CliGetDeviceLoginResponseData) GetDelivery() Delivery {
+	if v == nil {
+		return Delivery("")
+	}
+	return v.Delivery
+}
+
+func (v *V2CliGetDeviceLoginResponseData) GetClient() *V2CliGetDeviceLoginClient {
+	if v == nil {
+		return nil
+	}
+	return v.Client
 }
 
 func (v *V2CliGetDeviceLoginResponseData) GetDeviceName() *string {

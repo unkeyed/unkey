@@ -48,9 +48,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			LastUsedAt:  row.LastUsedAt,
 			ExpiresAt:   row.ExpiresAt,
 			RevokedAt:   nil,
+			ClientId:    nil,
 		}
 		if row.DeviceName != "" {
 			item.DeviceName = &row.DeviceName
+		}
+		if row.ClientID != "" {
+			clientID := string(row.ClientID)
+			item.ClientId = &clientID
 		}
 		if row.RevokedAt != 0 {
 			revokedAt := row.RevokedAt

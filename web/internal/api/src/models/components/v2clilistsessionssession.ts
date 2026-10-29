@@ -11,6 +11,10 @@ export type V2CliListSessionsSession = {
   id: string;
   userId: string;
   deviceName?: string | undefined;
+  /**
+   * The OAuth app holding the session. Omitted for Unkey CLI sessions.
+   */
+  clientId?: string | undefined;
   permissions: Array<string>;
   createdAt: number;
   lastUsedAt: number;
@@ -33,6 +37,7 @@ export const V2CliListSessionsSession$inboundSchema: z.ZodType<
   id: z.string(),
   userId: z.string(),
   deviceName: z.string().optional(),
+  clientId: z.string().optional(),
   permissions: z.array(z.string()),
   createdAt: z.number().int(),
   lastUsedAt: z.number().int(),

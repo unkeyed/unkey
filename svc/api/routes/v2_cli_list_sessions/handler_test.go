@@ -40,11 +40,11 @@ func TestListSessionsWithoutBodyOrContentType(t *testing.T) {
 	started, err := devices.Start(t.Context(), grant.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.80"})
 	require.NoError(t, err)
 	permissions := []string{"unkey:v1:" + workspace.ID + ":rootKeys/*#read"}
-	require.NoError(t, devices.Approve(t.Context(), grant.ApproveRequest{
+	granttest.MustApprove(t, devices, grant.ApproveRequest{
 		Principal:   p,
 		UserCode:    started.UserCode,
 		Permissions: permissions,
-	}))
+	})
 	tokens, err := devices.Poll(t.Context(), grant.PollRequest{LoginID: started.LoginID, RemoteIP: "203.0.113.81"})
 	require.NoError(t, err)
 	req := httptest.NewRequest(route.Method(), route.Path(), nil)

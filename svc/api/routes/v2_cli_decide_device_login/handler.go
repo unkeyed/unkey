@@ -36,28 +36,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	var decided grant.Decided
 	switch req.Decision {
 	case openapi.V2CliDecideDeviceLoginRequestBodyDecisionApprove:
-		if err := h.Grants.Approve(ctx, grant.ApproveRequest{
+		decided, err = h.Grants.Approve(ctx, grant.ApproveRequest{
 			Principal:   p,
 			UserCode:    req.UserCode,
 			Permissions: ptr.SafeDeref(req.Permissions),
-		}); err != nil {
-			return err
-		}
+		})
 	case openapi.V2CliDecideDeviceLoginRequestBodyDecisionDeny:
-		if err := h.Grants.Deny(ctx, grant.DenyRequest{
+		decided, err = h.Grants.Deny(ctx, grant.DenyRequest{
 			Principal: p,
 			UserCode:  req.UserCode,
-		}); err != nil {
-			return err
-		}
+		})
 	default:
 		return fault.New("unexpected cli login decision")
 	}
+	if err != nil {
+		return err
+	}
 
+	data := openapi.V2CliDecideDeviceLoginResponseData{RedirectTo: nil}
+	if decided.RedirectTo != "" {
+		data.RedirectTo = &decided.RedirectTo
+	}
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: openapi.EmptyResponse{},
+		Data: data,
 	})
 }

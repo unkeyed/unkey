@@ -26,6 +26,10 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 		}
 		return Authorization{}, err
 	}
+	parsed, err := parseRequest(row)
+	if err != nil {
+		return Authorization{}, err
+	}
 	return Authorization{
 		UserCode:           row.UserCode,
 		DeviceName:         row.DeviceName.String,
@@ -35,42 +39,50 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 		WorkspaceID:        row.WorkspaceID.String,
 		CreatedAt:          row.CreatedAt,
 		ExpiresAt:          row.ExpiresAt,
+		Client:             parsed.delivery.consentClient(row.DeviceName.String),
 	}, nil
 }
 
-// Approve stores the permissions the dashboard user granted.
-func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
+// Approve stores the permissions the dashboard user granted. For an OAuth
+// request it also mints the authorization code, which only this response
+// carries.
+func (s *Service) Approve(ctx context.Context, req ApproveRequest) (Decided, error) {
 	if err := s.requireEnabled(); err != nil {
-		return err
+		return Decided{}, err
 	}
 	source, err := RequireDashboardSession(req.Principal)
 	if err != nil {
-		return err
+		return Decided{}, err
 	}
 	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
-		return err
+		return Decided{}, err
 	}
 
 	validated, err := principalpermissions.ValidateDelegatedPermissions(ctx, req.Principal, req.Permissions)
 	if err != nil {
-		return err
+		return Decided{}, err
 	}
 
 	rolesJSON, err := json.Marshal(source.Roles)
 	if err != nil {
-		return err
+		return Decided{}, err
 	}
 	permsJSON, err := json.Marshal(validated)
 	if err != nil {
-		return err
+		return Decided{}, err
 	}
 
-	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	var decided Decided
+	err = db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
 				return loginNotFound()
 			}
+			return err
+		}
+		locked, err := parseRequest(row)
+		if err != nil {
 			return err
 		}
 		if err := s.rejectClosed(row); err != nil {
@@ -88,6 +100,11 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 			return forbidden("This workspace cannot approve a CLI login.")
 		}
 
+		now := s.Clock.Now().UnixMilli()
+		approved, err := locked.delivery.approve(row.ExpiresAt, now, s.Issuer)
+		if err != nil {
+			return err
+		}
 		n, err := db.Query.ApproveDeviceAuthorization(ctx, tx, db.ApproveDeviceAuthorizationParams{
 			WorkspaceID: sql.NullString{
 				String: req.Principal.AuthorizedWorkspaceID,
@@ -104,11 +121,11 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 			ApproverRoles: rolesJSON,
 			Permissions:   permsJSON,
 			ApprovedAt: sql.NullInt64{
-				Int64: s.Clock.Now().UnixMilli(),
+				Int64: now,
 				Valid: true,
 			},
-			ExpiresAt: row.ExpiresAt,
-			CodeHash:  sql.NullString{},
+			ExpiresAt: approved.expiresAt,
+			CodeHash:  approved.codeHash,
 			ID:        row.ID,
 		})
 		if err != nil {
@@ -117,23 +134,26 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		if n != 1 {
 			return invalid("Could not approve this login. Run unkey login again.")
 		}
+		decided = approved.decided
 		return nil
 	})
+	return decided, err
 }
 
-// Deny marks the login denied.
-func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
+// Deny marks the login denied. Denying twice returns the same Decided.
+func (s *Service) Deny(ctx context.Context, req DenyRequest) (Decided, error) {
 	if err := s.requireEnabled(); err != nil {
-		return err
+		return Decided{}, err
 	}
 	if _, err := RequireDashboardSession(req.Principal); err != nil {
-		return err
+		return Decided{}, err
 	}
 	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
-		return err
+		return Decided{}, err
 	}
 
-	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	var decided Decided
+	err := db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -141,11 +161,16 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 			}
 			return err
 		}
+		locked, err := parseRequest(row)
+		if err != nil {
+			return err
+		}
 		if row.Status == db.DeviceAuthorizationsStatusConsumed {
 			return invalid("This login was already used.")
 		}
 		if row.Status == db.DeviceAuthorizationsStatusDenied {
-			return nil
+			decided, err = locked.delivery.deny(s.Issuer)
+			return err
 		}
 		if row.ApproverUserID.Valid && row.ApproverUserID.String != req.Principal.Subject.ID {
 			return forbidden("Another account already approved this login.")
@@ -158,8 +183,10 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 		if n != 1 {
 			return invalid("This login was already used.")
 		}
-		return nil
+		decided, err = locked.delivery.deny(s.Issuer)
+		return err
 	})
+	return decided, err
 }
 
 func (s *Service) authorizationStatus(row db.DeviceAuthorization) db.DeviceAuthorizationsStatus {

@@ -13,6 +13,9 @@ properties:
     type: string
   deviceName:
     type: string
+  clientId:
+    type: string
+    description: The OAuth app holding the session. Omitted for Unkey CLI sessions.
   permissions:
     type: array
     items:

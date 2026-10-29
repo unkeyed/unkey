@@ -24,4 +24,5 @@ const (
 	EnvironmentTargetType        AuditLogTargetType = "environment"
 	DomainTargetType             AuditLogTargetType = "domain"
 	CLISessionTargetType         AuditLogTargetType = "cliSession"
+	OAuthSessionTargetType       AuditLogTargetType = "oauthSession"
 )

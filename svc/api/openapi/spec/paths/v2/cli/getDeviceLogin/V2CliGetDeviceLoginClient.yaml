@@ -1,0 +1,16 @@
+type: object
+description: The OAuth app asking for access. Present only when delivery is `redirect`.
+required:
+  - id
+  - name
+  - redirectUri
+properties:
+  id:
+    type: string
+    description: The app's OAuth client_id.
+  name:
+    type: string
+    description: Name chosen by whoever registered the app. Do not trust it.
+  redirectUri:
+    type: string
+    description: Where the decision sends the browser. Show its host; it is the trustworthy part of the request.

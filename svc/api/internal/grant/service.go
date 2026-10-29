@@ -32,11 +32,22 @@ const (
 	refreshReuseGrace = 10 * time.Second
 	retainExpiredFor  = 24 * time.Hour
 
-	ratelimitScope      = "cli_device_login"
-	startLimitPerMinute = 20
-	pollLimitPerMinute  = 120
-	userCodeLimit       = 60
-	userCodeLimitWindow = 10 * time.Minute
+	// consentTTL is how long an OAuth authorization request waits for the
+	// user to sign in and decide.
+	consentTTL = 10 * time.Minute
+	// codeTTL is the authorization code lifetime. Approval shrinks an OAuth
+	// request's expiry to approval time plus codeTTL.
+	codeTTL = 60 * time.Second
+	// consentHandleLength is the user code length for OAuth requests. Nobody
+	// types it, so it is long enough that guessing one is hopeless.
+	consentHandleLength = 26
+
+	ratelimitScope          = "cli_device_login"
+	startLimitPerMinute     = 20
+	pollLimitPerMinute      = 120
+	userCodeLimit           = 60
+	userCodeLimitWindow     = 10 * time.Minute
+	authorizeLimitPerMinute = 30
 )
 
 type PollStatus string
@@ -55,7 +66,7 @@ type Memberships interface {
 	ActiveRoles(ctx context.Context, orgID string, userID string) (roles []string, found bool, err error)
 }
 
-// Service runs device login and CLI sessions.
+// Service runs grant requests, OAuth clients, and the sessions they issue.
 type Service struct {
 	DB               db.Database
 	Auditlogs        auditlogs.AuditLogService
@@ -65,6 +76,14 @@ type Service struct {
 	DashboardBaseURL string
 	Signer           tokenjwt.Signer[clisession.Claims]
 	SessionCache     cache.Cache[string, SessionVerdict]
+
+	// Issuer is the OAuth authorization server's issuer, the API's public
+	// origin. It is the RFC 8414 issuer and the RFC 9207 iss parameter.
+	// Empty disables OAuth; device login keeps working.
+	Issuer string
+	// RedirectOrigins, when non-empty, is the closed set of origins OAuth
+	// clients may register redirect URIs under.
+	RedirectOrigins []string
 }
 
 // SessionVerdict is the cached answer for one CLI session.
@@ -86,6 +105,22 @@ func (s *Service) requireEnabled() error {
 		return fault.New("cli auth is not configured",
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Public("CLI login is not configured on this API."),
+		)
+	}
+	return nil
+}
+
+// OAuthEnabled reports whether the OAuth endpoints can run: everything device
+// login needs plus an issuer.
+func (s *Service) OAuthEnabled() bool {
+	return s.Enabled() && strings.TrimSpace(s.Issuer) != ""
+}
+
+func (s *Service) requireOAuth() error {
+	if !s.OAuthEnabled() {
+		return fault.New("oauth is not configured",
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Public("OAuth is not configured on this API."),
 		)
 	}
 	return nil
@@ -156,6 +191,10 @@ func (s *Service) limitUserCodeAttempts(ctx context.Context, userID string) erro
 }
 
 func (s *Service) limit(ctx context.Context, action string, remoteIP string, perMinute int64) error {
+	return s.limitAddress(ctx, action, remoteIP, perMinute, time.Minute, "Too many CLI login requests from this address. Try again in a minute.")
+}
+
+func (s *Service) limitAddress(ctx context.Context, action string, remoteIP string, limit int64, window time.Duration, message string) error {
 	// The identifier is the client IP. Start and poll run before any workspace
 	// is chosen, and the request does not carry one. A workspace id would be
 	// missing or caller-supplied, so it cannot key this limit. Per-IP keeps
@@ -168,19 +207,19 @@ func (s *Service) limit(ctx context.Context, action string, remoteIP string, per
 		WorkspaceID: ratelimitScope,
 		Namespace:   ratelimitScope + "." + action,
 		Identifier:  identifier,
-		Limit:       perMinute,
-		Duration:    time.Minute,
+		Limit:       limit,
+		Duration:    window,
 		Cost:        1,
 		Time:        time.Time{}, //nolint:exhaustruct // use ratelimiter's clock
 	})
 	if err != nil {
-		logger.Error("cli device login rate limit: ratelimiter error", "action", action, "error", err.Error())
+		logger.Error("grant rate limit: ratelimiter error", "action", action, "error", err.Error())
 		return nil
 	}
 	if !resp.Success {
-		return fault.New("cli device login rate limit exceeded",
+		return fault.New("grant rate limit exceeded",
 			fault.Code(codes.User.TooManyRequests.IPRateLimited.URN()),
-			fault.Public("Too many CLI login requests from this address. Try again in a minute."),
+			fault.Public(message),
 		)
 	}
 	return nil

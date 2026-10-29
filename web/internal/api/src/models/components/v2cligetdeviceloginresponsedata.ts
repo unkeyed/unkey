@@ -4,13 +4,47 @@
 
 import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
+import { ClosedEnum } from "../../types/enums.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import {
+  V2CliGetDeviceLoginClient,
+  V2CliGetDeviceLoginClient$inboundSchema,
+} from "./v2cligetdeviceloginclient.js";
+
+/**
+ * How an approved login reaches its holder. `device`: the Unkey CLI polls for it.
+ *
+ * @remarks
+ * `redirect`: an OAuth app asked for access, and the decision sends the browser to `client.redirectUri`.
+ */
+export const Delivery = {
+  Device: "device",
+  Redirect: "redirect",
+} as const;
+/**
+ * How an approved login reaches its holder. `device`: the Unkey CLI polls for it.
+ *
+ * @remarks
+ * `redirect`: an OAuth app asked for access, and the decision sends the browser to `client.redirectUri`.
+ */
+export type Delivery = ClosedEnum<typeof Delivery>;
 
 export type V2CliGetDeviceLoginResponseData = {
   userCode: string;
   /**
-   * Label sent by the CLI. The requester chooses it, so do not trust it.
+   * How an approved login reaches its holder. `device`: the Unkey CLI polls for it.
+   *
+   * @remarks
+   * `redirect`: an OAuth app asked for access, and the decision sends the browser to `client.redirectUri`.
+   */
+  delivery: Delivery;
+  /**
+   * The OAuth app asking for access. Present only when delivery is `redirect`.
+   */
+  client?: V2CliGetDeviceLoginClient | undefined;
+  /**
+   * Label sent by the CLI, or the OAuth app's registered name. The requester chooses it, so do not trust it.
    */
   deviceName?: string | undefined;
   /**
@@ -44,12 +78,18 @@ export type V2CliGetDeviceLoginResponseData = {
 };
 
 /** @internal */
+export const Delivery$inboundSchema: z.ZodNativeEnum<typeof Delivery> = z
+  .nativeEnum(Delivery);
+
+/** @internal */
 export const V2CliGetDeviceLoginResponseData$inboundSchema: z.ZodType<
   V2CliGetDeviceLoginResponseData,
   z.ZodTypeDef,
   unknown
 > = z.object({
   userCode: z.string(),
+  delivery: Delivery$inboundSchema,
+  client: V2CliGetDeviceLoginClient$inboundSchema.optional(),
   deviceName: z.string().optional(),
   requesterIp: z.string().optional(),
   requesterUserAgent: z.string().optional(),
