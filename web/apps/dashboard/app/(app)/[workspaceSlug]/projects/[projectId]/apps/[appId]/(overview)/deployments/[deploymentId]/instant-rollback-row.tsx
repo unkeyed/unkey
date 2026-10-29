@@ -21,6 +21,11 @@ const RollbackDialog = dynamic(
   { ssr: false },
 );
 
+const StopDialog = dynamic(
+  () => import("../components/table/components/actions/stop-dialog").then((m) => m.StopDialog),
+  { ssr: false },
+);
+
 export function InstantRollbackRow() {
   const { deployment } = useDeployment();
   const { data: environments = [] } = useEnvironments();
@@ -28,6 +33,7 @@ export function InstantRollbackRow() {
   const isRolledBack = app?.isRolledBack ?? false;
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const [rollbackOpen, setRollbackOpen] = useState(false);
+  const [stopTarget, setStopTarget] = useState<DeploymentSummary>();
   const [dialogTarget, setDialogTarget] = useState<DeploymentSummary>();
 
   const environment = environments.find((e) => e.id === deployment.environmentId);
@@ -63,7 +69,15 @@ export function InstantRollbackRow() {
               without cold starts.
             </p>
           </div>
-          <div className="w-full shrink-0 self-center sm:w-auto">
+          <div className="flex w-full flex-wrap gap-2 self-center sm:w-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setStopTarget(target)}
+              className="px-3"
+            >
+              Stop previous deployment
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -82,6 +96,9 @@ export function InstantRollbackRow() {
           targetDeployment={dialogTarget}
           currentDeployment={deployment}
         />
+      )}
+      {stopTarget && (
+        <StopDialog isOpen onClose={() => setStopTarget(undefined)} deployment={stopTarget} />
       )}
       {planGate}
     </>
