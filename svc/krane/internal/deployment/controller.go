@@ -55,9 +55,8 @@ type Controller struct {
 	// in tests or environments without ctrl-side ClickHouse wiring.
 	eventDedup cache.Cache[string, struct{}]
 
-	// reportLocks serializes reportIfChanged per k8s_name so the fingerprint
-	// Get and post-RPC Set can't race with another concurrent event for the
-	// same workload and both report the same state.
+	// reportLocks serializes building and reporting a workload's status per
+	// k8s_name, so reports reach ctrl in the order their pods were listed.
 	reportLocks keymutex.KeyMutex
 
 	// lagRecorder records pod watch delivery lag, deduplicated per
@@ -239,29 +238,31 @@ func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.
 	return nil
 }
 
-// reportIfChanged reports deployment status only when the instance list differs
-// from the last successful report. Returns true if a report was sent.
+// reportIfChanged builds the workload's status and reports it only when the
+// instance list differs from the last successful report. Returns the status
+// and whether a report was sent.
 //
-// Serialized per k8s_name: pod events for the same workload are processed
-// concurrently, so the fingerprint Get/RPC/Set window would otherwise race
-// and let two events both pass the dedupe check.
-func (c *Controller) reportIfChanged(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) (bool, error) {
-	update := status.GetUpdate()
-	if update == nil {
-		// Deletes are always forwarded.
-		return true, c.reportDeploymentStatus(ctx, status)
-	}
-
-	unlock := c.reportLocks.Lock(update.GetK8SName())
+// Serialized per k8s_name from build to report: pod events for the same
+// workload are processed concurrently. Building outside the lock would let a
+// snapshot listed earlier reach ctrl after a newer one, which records a dead
+// pod address as running, and would let two events both pass the dedupe check.
+func (c *Controller) reportIfChanged(ctx context.Context, w workload) (*ctrlv1.ReportDeploymentStatusRequest, bool, error) {
+	unlock := c.reportLocks.Lock(w.k8sName)
 	defer unlock()
 
+	status, err := c.buildDeploymentStatus(ctx, w)
+	if err != nil {
+		return nil, false, err
+	}
+
+	update := status.GetUpdate()
 	fp := instanceFingerprint(update.GetInstances())
 	if prev, hit := c.fingerprints.Get(ctx, update.GetK8SName()); hit == cache.Hit && prev == fp {
 		metrics.ReportDedupedTotal.WithLabelValues("deployment").Inc()
-		return false, nil
+		return status, false, nil
 	}
 
-	return true, c.reportDeploymentStatus(ctx, status)
+	return status, true, c.reportDeploymentStatus(ctx, status)
 }
 
 // instanceFingerprint builds a deterministic string from the instance list so
