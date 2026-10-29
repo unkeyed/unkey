@@ -40,15 +40,15 @@ export const projectRoutes = {
     ...scope
   }: ProjectScope & {
     appId?: string;
-    deploymentId?: string;
-    instanceId?: string;
+    deploymentId?: string | ReadonlyArray<string>;
+    instanceId?: string | ReadonlyArray<string>;
     startTime?: number;
     endTime?: number;
   }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/logs", projectParams(scope), {
       appId: appId ? isFilter(appId) : undefined,
-      deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
-      instanceId: instanceId ? isFilter(instanceId) : undefined,
+      deploymentId: anyOfFilter(deploymentId),
+      instanceId: anyOfFilter(instanceId),
       startTime: startTime?.toString(),
       endTime: endTime?.toString(),
     });
@@ -180,4 +180,9 @@ function appParams({ appId, ...scope }: AppScope) {
  */
 function isFilter(value: string): `is:${string}` {
   return `is:${value}`;
+}
+
+function anyOfFilter(values: string | ReadonlyArray<string> | undefined): string | undefined {
+  const list = typeof values === "string" ? [values] : (values ?? []);
+  return list.length > 0 ? list.map(isFilter).join(",") : undefined;
 }
