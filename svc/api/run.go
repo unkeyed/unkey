@@ -34,6 +34,7 @@ import (
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	authworkos "github.com/unkeyed/unkey/pkg/auth/workos"
+	"github.com/unkeyed/unkey/pkg/workos"
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
@@ -250,6 +251,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
+	rateLimitExemptions, err := openapi.WorkspaceRateLimitExemptionsFromSpec(openapi.Spec)
+	if err != nil {
+		return fmt.Errorf("unable to load workspace rate limit exemptions: %w", err)
+	}
+
 	// Bodies are logged to ClickHouse verbatim apart from this, so an empty
 	// field set means every annotated secret would be persisted in the clear.
 	// Refuse to start rather than log plaintext keys.
@@ -430,7 +436,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	var cliMemberships clidevice.Memberships
 	if key := strings.TrimSpace(cfg.CLIAuth.WorkOSAPIKey); key != "" {
-		cliMemberships = authworkos.NewMembershipClient(key, cfg.CLIAuth.WorkOSAPIBaseURL)
+		cliMemberships = workos.New(key, cfg.CLIAuth.WorkOSAPIBaseURL)
 	}
 	cliSecrets := make([][]byte, 0, len(cfg.CLIAuth.SigningSecrets))
 	for _, secret := range cfg.CLIAuth.SigningSecrets {
@@ -444,7 +450,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Memberships:      cliMemberships,
 		DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
 		Signer:           nil,
-		SessionCache:     nil,
+		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
 	}
 	if len(cliSecrets) > 0 {
 		cliSigner, signErr := tokenjwt.NewHS256Signer[clisession.Claims](cliSecrets[0])
@@ -555,26 +561,27 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:          database,
-		Flags:             flagSvc,
-		ClickHouse:        ch,
-		ApiRequests:       apiRequests,
-		DirectAuditLogs:   directAuditLogs,
-		RatelimitEvents:   ratelimits,
-		KeyVerifications:  keyVerifications,
-		Clock:             clk,
-		Keys:              keySvc,
-		Auth:              authSvc,
-		PortalAuth:        portalAuthSvc,
-		Validator:         validator,
-		Redactor:          redactor,
-		Ratelimit:         rlSvc,
-		Auditlogs:         auditlogSvc,
-		Caches:            caches,
-		Vault:             vaultClient,
-		CtrlProjectClient: ctrlProjectClient,
-		CtrlAppClient:     ctrlAppClient,
-		Restate:           restateClient,
+		Database:            database,
+		Flags:               flagSvc,
+		ClickHouse:          ch,
+		ApiRequests:         apiRequests,
+		DirectAuditLogs:     directAuditLogs,
+		RatelimitEvents:     ratelimits,
+		KeyVerifications:    keyVerifications,
+		Clock:               clk,
+		Keys:                keySvc,
+		Auth:                authSvc,
+		PortalAuth:          portalAuthSvc,
+		Validator:           validator,
+		Redactor:            redactor,
+		Ratelimit:           rlSvc,
+		RateLimitExemptions: rateLimitExemptions,
+		Auditlogs:           auditlogSvc,
+		Caches:              caches,
+		Vault:               vaultClient,
+		CtrlProjectClient:   ctrlProjectClient,
+		CtrlAppClient:       ctrlAppClient,
+		Restate:             restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,
 		PprofEnabled:           pprofEnabled,

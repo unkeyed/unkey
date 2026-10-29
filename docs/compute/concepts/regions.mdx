@@ -44,7 +44,7 @@ In the dashboard, open the app, go to **App settings** > **Environments**, and o
 
 <CodeGroup>
 ```bash CLI
-unkey api environments update-settings \
+unkey environments settings update \
   --project=payments --app=payments-api --environment=production \
   --regions='[{"name":"us-east-1","replicas":{"min":1,"max":2}},{"name":"eu-central-1","replicas":{"min":1,"max":2}}]'
 ```

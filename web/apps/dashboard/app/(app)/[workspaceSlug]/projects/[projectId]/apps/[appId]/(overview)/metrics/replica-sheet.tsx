@@ -61,7 +61,9 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
           <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6">
             <dl className="flex flex-col divide-y divide-grayA-4 rounded-lg border border-grayA-4">
               <DetailRow label="Status">
-                <span className="text-gray-12">{instanceLabel[sheet.status]}</span>
+                <span className="text-gray-12">
+                  {sheet.stopped ? "Stopped" : instanceLabel[sheet.status]}
+                </span>
               </DetailRow>
               <DetailRow label="Region">
                 <span className="flex items-center gap-1.5 text-gray-12">

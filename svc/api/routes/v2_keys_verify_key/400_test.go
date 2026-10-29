@@ -71,6 +71,65 @@ func TestBadRequest(t *testing.T) {
 			require.NotNil(t, res.Body.Error)
 		})
 
+		t.Run("ratelimit count cap", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+			})
+
+			ratelimits := func(n int) []openapi.KeysVerifyKeyRatelimit {
+				out := make([]openapi.KeysVerifyKeyRatelimit, n)
+				for i := range out {
+					out[i] = openapi.KeysVerifyKeyRatelimit{
+						Name:     fmt.Sprintf("limit-%d", i),
+						Limit:    new(10),
+						Duration: new(60000),
+					}
+				}
+
+				return out
+			}
+
+			atCap := ratelimits(50)
+			okRes := testutil.CallRoute[handler.Request, handler.Response](h, route, validHeaders, handler.Request{
+				Key:        key.Key,
+				Ratelimits: &atCap,
+			})
+			require.Equal(t, 200, okRes.Status)
+
+			overCap := ratelimits(51)
+			res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, handler.Request{
+				Key:        key.Key,
+				Ratelimits: &overCap,
+			})
+			require.Equal(t, 400, res.Status)
+			require.NotNil(t, res.Body)
+			require.NotNil(t, res.Body.Error)
+		})
+
+		t.Run("ratelimit duration cap", func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+			})
+
+			verify := func(duration int) int {
+				ratelimits := []openapi.KeysVerifyKeyRatelimit{{
+					Name:     "tokens",
+					Limit:    new(10),
+					Duration: new(duration),
+				}}
+
+				return testutil.CallRoute[handler.Request, handler.Response](h, route, validHeaders, handler.Request{
+					Key:        key.Key,
+					Ratelimits: &ratelimits,
+				}).Status
+			}
+
+			require.Equal(t, 200, verify(31536000000), "one year is the documented maximum")
+			require.Equal(t, 400, verify(31536000001), "a longer window would never rotate")
+		})
+
 		t.Run("invalid credits cost", func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,

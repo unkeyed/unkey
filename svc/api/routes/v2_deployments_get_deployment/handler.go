@@ -80,7 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	data, err := deployment.ToResponse(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID, db.ListDeploymentsRow(dep))
+	data, err := deployment.ToResponse(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID, principal.Permissions, db.ListDeploymentsRow(dep))
 	if err != nil {
 		return fault.Wrap(
 			err,

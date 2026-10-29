@@ -3,11 +3,7 @@ import { LogsTimeseriesBarChart } from "@/components/logs/chart";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchTimeseries } from "./hooks/use-fetch-timeseries";
 
-export function LogsChart({
-  onMount,
-}: {
-  onMount: (distanceToTop: number) => void;
-}) {
+export function LogsChart() {
   const { filters, updateFilters } = useFilters();
   const { timeseries, isLoading, isError, bucketMs, granularity } = useFetchTimeseries();
 
@@ -63,7 +59,6 @@ export function LogsChart({
           color: "var(--color-error-9)",
         },
       }}
-      onMount={onMount}
       onSelectionChange={handleSelectionChange}
       isLoading={isLoading}
       isError={isError}

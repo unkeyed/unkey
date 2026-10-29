@@ -23,9 +23,10 @@ var Cmd = &cli.Command{
 					return err
 				}
 				if len(sessions) == 0 {
-					fmt.Println("No CLI sessions stored. Run unkey login.")
+					fmt.Println("No saved workspaces. Run 'unkey login' to sign in.")
 					return nil
 				}
+				fmt.Println("  WORKSPACE")
 				for _, item := range sessions {
 					marker := " "
 					if item.WorkspaceID == active {
@@ -33,6 +34,7 @@ var Cmd = &cli.Command{
 					}
 					fmt.Printf("%s %s\n", marker, item.WorkspaceID)
 				}
+				fmt.Println("\n* Active workspace")
 				return nil
 			},
 		},
@@ -48,7 +50,7 @@ var Cmd = &cli.Command{
 				if err := session.Switch(cmd.Args()[0]); err != nil {
 					return fmt.Errorf("switch workspace: %w", err)
 				}
-				fmt.Printf("Active workspace is %s.\n", cmd.Args()[0])
+				fmt.Printf("Using workspace %s.\n", cmd.Args()[0])
 				return nil
 			},
 		},

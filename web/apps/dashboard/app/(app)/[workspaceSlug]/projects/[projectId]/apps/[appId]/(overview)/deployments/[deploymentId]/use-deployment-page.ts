@@ -2,6 +2,7 @@ import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-statu
 import { useFlag } from "@/lib/flags/provider";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { getDeploymentDomains } from "../../../components/domain-priority";
 import { useProjectData } from "../../data-provider";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { deploymentPageModel } from "./deployment-page-model";
@@ -15,13 +16,8 @@ export type DeploymentPage = ReturnType<typeof useDeploymentPage>;
 export function useDeploymentPage() {
   const buildRequested = Boolean(useSearchParams().get("build"));
   const { deployment } = useDeployment();
-  const {
-    getDomainsForDeployment,
-    customDomains,
-    isDomainsLoading,
-    isCustomDomainsLoading,
-    refetchDomains,
-  } = useProjectData();
+  const { domains, customDomains, isDomainsLoading, isCustomDomainsLoading, refetchDomains } =
+    useProjectData();
   const { app } = useAppCurrentDeployment();
   const { steps, derivedStatus } = useDeploymentStatus(deployment, { loadEndedSteps: true });
   const showSuccessBanner = useSuccessBanner(deployment.status);
@@ -53,7 +49,7 @@ export function useDeploymentPage() {
       deployment,
       status: derivedStatus,
       buildRequested,
-      domains: getDomainsForDeployment(deployment.id),
+      domains: getDeploymentDomains(deployment, domains),
       domainsLoading,
       customDomains,
       currentDeploymentId: app?.currentDeploymentId ?? null,

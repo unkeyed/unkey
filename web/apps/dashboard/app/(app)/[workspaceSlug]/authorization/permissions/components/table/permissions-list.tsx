@@ -64,7 +64,7 @@ export const PermissionsList = () => {
   );
 
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="flex flex-col md:flex-1">
       <DataTable
         data={permissions}
         columns={columns}

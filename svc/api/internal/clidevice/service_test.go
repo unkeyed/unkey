@@ -4,16 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"slices"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/auth/workos"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -54,9 +57,11 @@ func newService(h *testutil.Harness, membership mem) *Service {
 		DB:               h.DB,
 		Auditlogs:        h.Auditlogs,
 		Clock:            h.Clock,
+		Ratelimit:        h.Ratelimit,
 		Memberships:      membership,
 		DashboardBaseURL: "http://localhost:3000",
 		Signer:           signer,
+		SessionCache:     cache.NewNoopCache[string, SessionVerdict](),
 	}
 }
 
@@ -91,7 +96,89 @@ func permissionOnlyDeveloperHas(t *testing.T, workspaceID string) string {
 	return ""
 }
 
-func TestApproveRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
+func TestUserCodeAttemptsShareAUserBudgetAcrossActionsAndWorkspaces(t *testing.T) {
+	h := testutil.NewHarness(t)
+	svc := newService(h, mem{})
+	limiter := ratelimit.NewLocal(h.Clock)
+	t.Cleanup(func() { require.NoError(t, limiter.Close()) })
+	svc.Ratelimit = limiter
+	workspace := h.Resources().UserWorkspace
+	p := adminPrincipal(workspace, uid.New(uid.TestPrefix))
+	started, err := svc.Start(t.Context(), StartRequest{RemoteIP: "203.0.113.7"})
+	require.NoError(t, err)
+	otherWorkspace := workspace
+	otherWorkspace.ID = uid.New(uid.WorkspacePrefix)
+	other := adminPrincipal(otherWorkspace, p.Subject.ID)
+
+	for i := range 60 {
+		caller := p
+		if i%2 == 1 {
+			caller = other
+		}
+		code, err := newUserCode()
+		require.NoError(t, err)
+		require.NotEqual(t, started.UserCode, code)
+		switch i % 3 {
+		case 0:
+			_, err = svc.Get(t.Context(), GetRequest{Principal: caller, UserCode: code})
+		case 1:
+			err = svc.Approve(t.Context(), ApproveRequest{Principal: caller, UserCode: code, Permissions: caller.Permissions})
+		case 2:
+			err = svc.Deny(t.Context(), DenyRequest{Principal: caller, UserCode: code})
+		}
+		require.Equal(t, "This login code was not found. Run unkey login again.", fault.UserFacingMessage(err))
+	}
+
+	_, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
+	err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
+	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
+	err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
+	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
+
+	otherUser := adminPrincipal(workspace, uid.New(uid.TestPrefix))
+	login, err := svc.Get(t.Context(), GetRequest{Principal: otherUser, UserCode: started.UserCode})
+	require.NoError(t, err)
+	require.Equal(t, "pending", login.Status)
+
+	h.Clock.Tick(10*time.Minute + time.Second)
+	login, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+	require.NoError(t, err)
+	require.Equal(t, "expired", login.Status)
+}
+
+type unavailableCodeLimiter struct{}
+
+func (unavailableCodeLimiter) Ratelimit(context.Context, ratelimit.RatelimitRequest) (ratelimit.RatelimitResponse, error) {
+	return ratelimit.RatelimitResponse{}, errors.New("limiter unavailable")
+}
+
+func (unavailableCodeLimiter) RatelimitMany(context.Context, []ratelimit.RatelimitRequest) ([]ratelimit.RatelimitResponse, error) {
+	return nil, errors.New("limiter unavailable")
+}
+
+func TestUserCodeActionsRejectUnavailableLimiters(t *testing.T) {
+	h := testutil.NewHarness(t)
+	svc := newService(h, mem{})
+	p := adminPrincipal(h.Resources().UserWorkspace, uid.New(uid.TestPrefix))
+	started, err := svc.Start(t.Context(), StartRequest{RemoteIP: "203.0.113.9"})
+	require.NoError(t, err)
+
+	svc.Ratelimit = unavailableCodeLimiter{}
+	_, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
+	err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
+	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
+	err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
+	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
+
+	svc.Ratelimit = h.Ratelimit
+	login, err := svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
+	require.NoError(t, err)
+	require.Equal(t, "pending", login.Status)
+}
+
+func TestApproveRejectsMaliciousAndOverscopedPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	svc := newService(h, mem{})
@@ -100,9 +187,6 @@ func TestApproveRejectsMissingMaliciousAndOverscopedPermissions(t *testing.T) {
 
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.7", UserAgent: "unkey-cli/1.0"})
 	require.NoError(t, err)
-
-	err = svc.Approve(t.Context(), ApproveRequest{Principal: developer, UserCode: started.UserCode, Permissions: nil})
-	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
 
 	err = svc.Approve(t.Context(), ApproveRequest{Principal: developer, UserCode: started.UserCode, Permissions: []string{"not a permission"}})
 	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
@@ -136,6 +220,9 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	userID := uid.New(uid.TestPrefix)
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.8", UserAgent: "unkey-cli/1.0"})
 	require.NoError(t, err)
+	require.Equal(t, "http://localhost:3000/cli/device?user_code="+started.UserCode, started.VerificationURL)
+	require.Equal(t, int32(deviceTTL/time.Second), started.ExpiresIn)
+	require.EqualValues(t, pollIntervalSeconds, started.Interval)
 
 	pending, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID, RemoteIP: "127.0.0.1", UserAgent: "unkey-cli"})
 	require.NoError(t, err)
@@ -289,6 +376,47 @@ func TestPreviousRefreshTokenWithinGraceDoesNotRevokeTheFamily(t *testing.T) {
 
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: again.RefreshToken})
 	require.NoError(t, err)
+}
+
+type overlappingMemberships struct {
+	arrived sync.WaitGroup
+	mu      sync.Mutex
+	calls   int
+}
+
+func (m *overlappingMemberships) ActiveRoles(context.Context, string, string) ([]string, bool, error) {
+	m.mu.Lock()
+	m.calls++
+	wait := m.calls <= 2
+	m.mu.Unlock()
+	if wait {
+		m.arrived.Done()
+		m.arrived.Wait()
+	}
+	return []string{"admin"}, true, nil
+}
+
+func TestOverlappingRefreshesHonorTheGraceWindow(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	svc := newService(h, mem{})
+	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
+	memberships := &overlappingMemberships{}
+	memberships.arrived.Add(2)
+	svc.Memberships = memberships
+	results := make(chan error, 2)
+	for range 2 {
+		go func() {
+			_, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
+			results <- err
+		}()
+	}
+	for range 2 {
+		require.NoError(t, <-results)
+	}
+	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	require.NoError(t, err)
+	require.False(t, row.RevokedAt.Valid)
 }
 
 func TestExpiredAndRevokedSessionsCannotRefresh(t *testing.T) {
@@ -483,6 +611,18 @@ func TestRevokeAndListAreScopedToTheCaller(t *testing.T) {
 	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
 	require.NoError(t, err)
 	require.True(t, row.RevokedAt.Valid)
+	logs := h.FindAuditLogsByTargetID(t.Context(), t, owned.SessionID)
+	found := false
+	for _, log := range logs {
+		if log.Event != "cli.session.revoke" {
+			continue
+		}
+		found = true
+		require.Equal(t, admin.Subject.ID, log.Actor.ID)
+		require.NotContains(t, log.Actor.Meta, "session_id")
+		require.NotContains(t, log.Actor.Meta, "device")
+	}
+	require.True(t, found)
 }
 
 func TestConcurrentPollsIssueOneSession(t *testing.T) {

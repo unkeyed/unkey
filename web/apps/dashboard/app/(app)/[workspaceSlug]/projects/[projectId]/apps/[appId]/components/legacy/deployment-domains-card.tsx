@@ -26,7 +26,7 @@ import {
 import { type ReactNode, useState } from "react";
 import { useProjectData } from "../../(overview)/data-provider";
 import { useDeployment } from "../../(overview)/deployments/[deploymentId]/layout-provider";
-import { getDomainPriority } from "../domain-priority";
+import { getDeploymentDomains, getDomainPriority } from "../domain-priority";
 import { GlowIcon } from "../glow-icon";
 import { TagBadge } from "./tag-badge";
 
@@ -36,15 +36,10 @@ export function DeploymentDomainsCard({
 }: { glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
   const [urlsOpen, setUrlsOpen] = useState(false);
   const { deployment } = useDeployment();
-  const {
-    getDomainsForDeployment,
-    isDomainsLoading,
-    customDomains,
-    isCustomDomainsLoading,
-    project,
-  } = useProjectData();
+  const { domains, isDomainsLoading, customDomains, isCustomDomainsLoading, project } =
+    useProjectData();
 
-  const domainsForDeployment = getDomainsForDeployment(deployment.id);
+  const domainsForDeployment = getDeploymentDomains(deployment, domains);
   const filtered = domainFilter ? domainsForDeployment.filter(domainFilter) : domainsForDeployment;
   const {
     primary: primaryDomain,

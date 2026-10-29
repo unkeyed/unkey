@@ -24,6 +24,7 @@ const (
 	accessTTL           = 15 * time.Minute
 	sessionIdle         = 7 * 24 * time.Hour
 	sessionMax          = 30 * 24 * time.Hour
+
 	// refreshReuseGrace is how long the immediately previous refresh token
 	// still rotates the session. A client whose response was lost can retry
 	// inside this window without revoking the family. After it, that token
@@ -34,9 +35,10 @@ const (
 	ratelimitScope      = "cli_device_login"
 	startLimitPerMinute = 20
 	pollLimitPerMinute  = 120
+	userCodeLimit       = 60
+	userCodeLimitWindow = 10 * time.Minute
 )
 
-// PollStatus is the value cli.pollDeviceLogin returns in status.
 type PollStatus string
 
 const (
@@ -89,23 +91,22 @@ func (s *Service) requireEnabled() error {
 	return nil
 }
 
-// RequireDashboardSession rejects root keys and CLI access tokens.
-// Get, approve, and deny are dashboard actions.
-func RequireDashboardSession(p *principal.Principal) error {
+// RequireDashboardSession returns the dashboard JWT source and rejects other credentials.
+func RequireDashboardSession(p *principal.Principal) (principal.JWTSource, error) {
 	if p == nil {
-		return dashboardSessionRequired()
+		return principal.JWTSource{}, dashboardSessionRequired()
 	}
 	source, ok := p.Source.(principal.JWTSource)
 	if !ok || len(source.Roles) == 0 || p.Subject.Type != principal.SubjectTypeUser || p.Subject.ID == "" {
-		return dashboardSessionRequired()
+		return principal.JWTSource{}, dashboardSessionRequired()
 	}
-	return nil
+	return source, nil
 }
 
 // RequireUserSession accepts a dashboard session or a CLI access token.
 // List and revoke use it. Root keys are rejected.
 func RequireUserSession(p *principal.Principal) error {
-	if err := RequireDashboardSession(p); err == nil {
+	if _, err := RequireDashboardSession(p); err == nil {
 		return nil
 	}
 	if p == nil {
@@ -128,10 +129,33 @@ func workspaceUsable(workspace db.Workspace) bool {
 	return !workspace.DeletedAtM.Valid && workspace.Enabled && strings.TrimSpace(workspace.OrgID) != ""
 }
 
-func (s *Service) limit(ctx context.Context, action string, remoteIP string, perMinute int64) error {
-	if s.Ratelimit == nil {
-		return nil
+func (s *Service) limitUserCodeAttempts(ctx context.Context, userID string) error {
+	resp, err := s.Ratelimit.Ratelimit(ctx, ratelimit.RatelimitRequest{
+		WorkspaceID: ratelimitScope,
+		Namespace:   ratelimitScope + ".user_code",
+		Identifier:  userID,
+		Limit:       userCodeLimit,
+		Duration:    userCodeLimitWindow,
+		Cost:        1,
+		Time:        s.Clock.Now(),
+	})
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("cli user code rate limit failed"),
+			fault.Public("CLI login is temporarily unavailable. Try again later."),
+		)
 	}
+	if !resp.Success {
+		return fault.New("cli user code rate limit exceeded",
+			fault.Code(codes.User.TooManyRequests.UserRateLimited.URN()),
+			fault.Public("Too many CLI login attempts. Wait 10 minutes and try again."),
+		)
+	}
+	return nil
+}
+
+func (s *Service) limit(ctx context.Context, action string, remoteIP string, perMinute int64) error {
 	// The identifier is the client IP. Start and poll run before any workspace
 	// is chosen, and the request does not carry one. A workspace id would be
 	// missing or caller-supplied, so it cannot key this limit. Per-IP keeps

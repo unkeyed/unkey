@@ -1,0 +1,19 @@
+speakeasyVersion: 1.790.1
+sources: {}
+targets:
+    internal-go:
+        source: api
+workflow:
+    workflowVersion: 1.0.0
+    speakeasyVersion: 1.790.1
+    sources:
+        api:
+            inputs:
+                - location: ../../svc/api/openapi/openapi-generated.yaml
+            overlays:
+                - location: overlay.yaml
+    targets:
+        internal-go:
+            target: go
+            source: api
+            output: .speakeasy/staging/internal-go

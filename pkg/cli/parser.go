@@ -33,7 +33,7 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 		}
 
 		// Handle help flags first - these short-circuit normal processing
-		if arg == "-h" || arg == "--help" || arg == "help" {
+		if arg == "-h" || arg == "--help" {
 			c.showHelp()
 			return nil
 		}
@@ -44,40 +44,25 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 			return nil
 		}
 
-		// Handle "help <command>" pattern - show help for specific subcommand
-		if arg == "help" && i+1 < len(args) {
-			cmdName := args[i+1]
-			for _, subcmd := range c.Commands {
-				if subcmd.Name == cmdName {
-					subcmd.parent = c
-					subcmd.showHelp()
-					return nil
+		if arg == "help" {
+			target := c
+			for _, name := range args[i+1:] {
+				next := target.findCommand(name)
+				if next == nil {
+					return fmt.Errorf("unknown command: %s", name)
 				}
-				// Check aliases
-				if slices.Contains(subcmd.Aliases, cmdName) {
-					subcmd.parent = c
-					subcmd.showHelp()
-					return nil
-				}
+				target = next
 			}
-			return fmt.Errorf("unknown command: %s", cmdName)
+
+			target.showHelp()
+			return nil
 		}
 
 		// Check for subcommands (non-flag arguments)
 		// Note: single "-" is treated as a positional arg (commonly means stdin)
 		if !strings.HasPrefix(arg, "-") || arg == "-" {
-			// Look for matching subcommand
-			for _, subcmd := range c.Commands {
-				if subcmd.Name == arg {
-					subcmd.parent = c
-					return subcmd.parse(ctx, args[i+1:]) //nolint: gosec
-
-				}
-				// Check aliases
-				if slices.Contains(subcmd.Aliases, arg) {
-					subcmd.parent = c
-					return subcmd.parse(ctx, args[i+1:]) //nolint: gosec
-				}
+			if subcmd := c.findCommand(arg); subcmd != nil {
+				return subcmd.parse(ctx, args[i+1:]) //nolint: gosec
 			}
 
 			if len(c.Commands) > 0 {
@@ -112,8 +97,6 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 
 	// Validate all required flags are present
 	if err := c.validateRequiredFlags(); err != nil {
-		fmt.Printf("Error: %v\n\n", err)
-		c.showHelp()
 		return err
 	}
 
@@ -128,6 +111,46 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	}
 
 	return nil
+}
+
+func (c *Command) findCommand(name string) *Command {
+	for _, command := range c.Commands {
+		if command.Name == name || slices.Contains(command.Aliases, name) {
+			command.parent = c
+			return command
+		}
+	}
+	if c.parent == nil {
+		return c.rootAliases[name]
+	}
+	return nil
+}
+
+func (c *Command) initRootAliases() error {
+	c.rootAliases = make(map[string]*Command)
+
+	var visit func(*Command) error
+	visit = func(parent *Command) error {
+		for _, command := range parent.Commands {
+			command.parent = parent
+			for _, alias := range command.RootAliases {
+				if alias == "" || strings.ContainsAny(alias, " \t\r\n/") || strings.HasPrefix(alias, "-") {
+					return fmt.Errorf("invalid root alias: %q", alias)
+				}
+				if alias == "help" || alias == "h" || c.findCommand(alias) != nil {
+					return fmt.Errorf("root alias %q conflicts with another command", alias)
+				}
+				c.rootAliases[alias] = command
+			}
+
+			if err := visit(command); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	return visit(c)
 }
 
 // parseFlag handles parsing of a single flag and its value

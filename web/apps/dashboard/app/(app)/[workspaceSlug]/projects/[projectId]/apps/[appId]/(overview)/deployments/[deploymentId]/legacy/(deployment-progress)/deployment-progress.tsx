@@ -17,6 +17,7 @@ import { SettingCardGroup } from "@unkey/ui";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DeploymentStep } from "../../(deployment-progress)/deployment-step";
+import { getDeploymentDomains } from "../../../../../components/domain-priority";
 import { DeploymentDomainsCard } from "../../../../../components/legacy/deployment-domains-card";
 import { useProjectData } from "../../../../data-provider";
 import { useDeployment } from "../../layout-provider";
@@ -35,7 +36,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   const workspaceSlug = params.workspaceSlug as string;
   const isFailed = deployment.status === "failed";
 
-  const { getDomainsForDeployment, projectId } = useProjectData();
+  const { domains, projectId } = useProjectData();
 
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -61,7 +62,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   const queuedImplicitlyComplete =
     !queued && Boolean(building ?? deploying ?? network ?? finalizing);
 
-  const domainsForDeployment = getDomainsForDeployment(deployment.id);
+  const domainsForDeployment = getDeploymentDomains(deployment, domains);
 
   // Latch true once we observe the build actively in progress; stays true after it completes
   const hasFreshBuild = useRef(false);

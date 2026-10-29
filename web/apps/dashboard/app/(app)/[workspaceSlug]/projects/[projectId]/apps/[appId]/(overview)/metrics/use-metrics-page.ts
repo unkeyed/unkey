@@ -7,6 +7,7 @@ import {
   type MetricId,
   RANGE_PRESETS,
   type RangePreset,
+  environmentRefOf,
 } from "@/lib/metrics/app-metrics";
 import { routes } from "@/lib/navigation/routes";
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
@@ -60,12 +61,12 @@ export function useMetricsPage() {
 
   const environment = resolveEnvironment(environments, query.env, isEnvironmentsLoading);
   const grid = useBucketClock(query.range);
-  const scope: AppMetricsScope | null =
-    environment.kind === "found"
-      ? { appId, environmentId: environment.environment.id, grid }
-      : null;
+  const found = environment.kind === "found" ? environment.environment : null;
+  const environmentId = found?.id ?? null;
+  const scope: AppMetricsScope | null = found
+    ? { appId, environment: environmentRefOf(found), grid }
+    : null;
 
-  const environmentId = scope?.environmentId ?? null;
   const sources = useMetricSources(scope);
   const perInstance = needsInstanceSeries(query.tab, query.expand);
   const instances = useMetricInstances(scope, perInstance);

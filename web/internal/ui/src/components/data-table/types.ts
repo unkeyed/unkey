@@ -124,7 +124,6 @@ export interface DataTableProps<TData> {
   loadMoreFooterProps?: LoadMoreFooterProps;
   rowClassName?: (row: TData) => string;
   selectedClassName?: (row: TData, isSelected: boolean) => string;
-  fixedHeight?: number;
 
   // Features (optional)
   enableKeyboardNav?: boolean;

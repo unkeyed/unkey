@@ -620,12 +620,12 @@ components:
                 data:
                     "$ref": "#/components/schemas/App"
             additionalProperties: false
-        V2CliApproveDeviceLoginRequestBody:
+        V2CliDecideDeviceLoginRequestBody:
             type: object
             additionalProperties: false
             required:
                 - userCode
-                - permissions
+                - decision
             properties:
                 userCode:
                     type: string
@@ -633,6 +633,11 @@ components:
                     maxLength: 32
                     x-unkey-redact: true
                     description: Code shown in the terminal.
+                decision:
+                    type: string
+                    enum:
+                        - approve
+                        - deny
                 permissions:
                     type: array
                     minItems: 1
@@ -643,7 +648,23 @@ components:
                         type: string
                         minLength: 1
                         maxLength: 512
-        V2CliApproveDeviceLoginResponseBody:
+            oneOf:
+                - properties:
+                    decision:
+                        type: string
+                        enum:
+                            - approve
+                  required:
+                    - permissions
+                - properties:
+                    userCode:
+                        type: string
+                    decision:
+                        type: string
+                        enum:
+                            - deny
+                  additionalProperties: false
+        V2CliDecideDeviceLoginResponseBody:
             type: object
             additionalProperties: false
             required:
@@ -654,17 +675,38 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
-        V2CliDenyDeviceLoginRequestBody:
+        V2CliExchangeTokenRequestBody:
             type: object
             additionalProperties: false
-            required:
-                - userCode
             properties:
-                userCode:
+                loginId:
                     type: string
-                    minLength: 4
-                    maxLength: 32
-        V2CliDenyDeviceLoginResponseBody:
+                    minLength: 8
+                    maxLength: 48
+                    x-unkey-redact: true
+                    description: loginId from cli.startDeviceLogin.
+                refreshToken:
+                    type: string
+                    minLength: 8
+                    x-unkey-redact: true
+                    description: Refresh token from the previous login or token exchange.
+            oneOf:
+                - required:
+                    - loginId
+                - required:
+                    - refreshToken
+            description: Supply exactly one credential. A loginId polls for approval; a refreshToken rotates an existing session.
+        V2CliExchangeTokenResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2CliExchangeTokenResponseData'
+        V2CliExchangeTokenPendingResponseBody:
             type: object
             additionalProperties: false
             required:
@@ -675,6 +717,23 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/EmptyResponse'
+        GoneErrorResponse:
+            type: object
+            required:
+                - meta
+                - error
+            properties:
+                meta:
+                    $ref: "#/components/schemas/Meta"
+                error:
+                    $ref: "#/components/schemas/BaseError"
+            description: |-
+                Error response when the requested resource has been soft-deleted and is no longer available. This occurs when:
+                - The resource has been marked as deleted but still exists in the database
+                - The resource is intentionally unavailable but could potentially be restored
+                - The resource cannot be restored through the API or dashboard
+
+                To resolve this error, contact support if you need the resource restored.
         V2CliGetDeviceLoginRequestBody:
             type: object
             additionalProperties: false
@@ -696,9 +755,6 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/V2CliGetDeviceLoginResponseData'
-        V2CliListSessionsRequestBody:
-            type: object
-            additionalProperties: false
         V2CliListSessionsResponseBody:
             type: object
             required:
@@ -709,49 +765,6 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/V2CliListSessionsResponseData'
-        V2CliPollDeviceLoginRequestBody:
-            type: object
-            additionalProperties: false
-            required:
-                - loginId
-            properties:
-                loginId:
-                    type: string
-                    minLength: 8
-                    maxLength: 48
-                    x-unkey-redact: true
-                    description: loginId from cli.startDeviceLogin.
-        V2CliPollDeviceLoginResponseBody:
-            type: object
-            required:
-                - meta
-                - data
-            properties:
-                meta:
-                    $ref: '#/components/schemas/Meta'
-                data:
-                    $ref: '#/components/schemas/V2CliPollDeviceLoginResponseData'
-        V2CliRefreshTokenRequestBody:
-            type: object
-            additionalProperties: false
-            required:
-                - refreshToken
-            properties:
-                refreshToken:
-                    type: string
-                    minLength: 8
-                    x-unkey-redact: true
-                    description: Refresh token from the previous login or refresh.
-        V2CliRefreshTokenResponseBody:
-            type: object
-            required:
-                - meta
-                - data
-            properties:
-                meta:
-                    $ref: '#/components/schemas/Meta'
-                data:
-                    $ref: '#/components/schemas/V2CliRefreshTokenResponseData'
         V2CliRevokeSessionRequestBody:
             type: object
             additionalProperties: false
@@ -2924,6 +2937,7 @@ components:
                         - ks_1234abcd
                 ratelimits:
                     type: array
+                    maxItems: 50
                     items:
                         "$ref": "#/components/schemas/KeysVerifyKeyRatelimit"
                     description: |
@@ -4324,23 +4338,6 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitLimitResponseData"
-        GoneErrorResponse:
-            type: object
-            required:
-                - meta
-                - error
-            properties:
-                meta:
-                    $ref: "#/components/schemas/Meta"
-                error:
-                    $ref: "#/components/schemas/BaseError"
-            description: |-
-                Error response when the requested resource has been soft-deleted and is no longer available. This occurs when:
-                - The resource has been marked as deleted but still exists in the database
-                - The resource is intentionally unavailable but could potentially be restored
-                - The resource cannot be restored through the API or dashboard
-
-                To resolve this error, contact support if you need the resource restored.
         V2RatelimitListNamespacesRequestBody:
             type: object
             properties:
@@ -5457,6 +5454,34 @@ components:
                         branch of the connected repository.
                     example: main
             additionalProperties: false
+        V2CliExchangeTokenResponseData:
+            type: object
+            description: Session credentials returned by a successful token exchange.
+            required:
+                - accessToken
+                - refreshToken
+                - expiresIn
+                - workspaceId
+                - sessionId
+            properties:
+                accessToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: Short-lived access token.
+                refreshToken:
+                    type: string
+                    x-unkey-redact: true
+                    description: Rotating refresh token. Store it. It is returned only once.
+                expiresIn:
+                    type: integer
+                    format: int64
+                    description: Seconds until the access token expires. Access tokens last 15 minutes.
+                workspaceId:
+                    type: string
+                    description: Workspace the session belongs to.
+                sessionId:
+                    type: string
+                    description: CLI session id.
         V2CliGetDeviceLoginResponseData:
             type: object
             required:
@@ -5538,91 +5563,23 @@ components:
                     type: integer
                     format: int64
                     description: Unix millisecond time the session was revoked. Omitted when the session is still active.
-        V2CliPollDeviceLoginResponseData:
-            type: object
-            required:
-                - status
-                - interval
-            properties:
-                status:
-                    type: string
-                    enum:
-                        - permissions_required
-                        - access_denied
-                        - expired_token
-                        - complete
-                    description: |
-                        `permissions_required` while the user has not approved the login yet. `access_denied` and `expired_token` are terminal. `complete` includes the access token and refresh token.
-                interval:
-                    type: integer
-                    format: int64
-                    description: Seconds to wait before polling again.
-                detail:
-                    type: string
-                    description: Human-readable reason for a terminal status.
-                accessToken:
-                    type: string
-                    x-unkey-redact: true
-                    description: Short-lived access token. Present only when status is complete.
-                refreshToken:
-                    type: string
-                    x-unkey-redact: true
-                    description: Rotating refresh token. Present only when status is complete. Store it. It is returned only once.
-                expiresIn:
-                    type: integer
-                    format: int64
-                    description: Seconds until the access token expires. Access tokens last 15 minutes. Present only when status is complete.
-                workspaceId:
-                    type: string
-                    description: Workspace the session belongs to. Present only when status is complete.
-                sessionId:
-                    type: string
-                    description: CLI session id. Present only when status is complete.
-        V2CliRefreshTokenResponseData:
-            type: object
-            required:
-                - accessToken
-                - refreshToken
-                - expiresIn
-                - workspaceId
-                - sessionId
-            properties:
-                accessToken:
-                    type: string
-                    x-unkey-redact: true
-                refreshToken:
-                    type: string
-                    x-unkey-redact: true
-                    description: The next refresh token. The previous one no longer works.
-                expiresIn:
-                    type: integer
-                    format: int64
-                    description: Seconds until the access token expires. Access tokens last 15 minutes.
-                workspaceId:
-                    type: string
-                sessionId:
-                    type: string
         V2CliStartDeviceLoginResponseData:
             type: object
             required:
                 - loginId
                 - userCode
-                - verificationUri
-                - verificationUriComplete
+                - verificationUrl
                 - expiresIn
                 - interval
             properties:
                 loginId:
                     type: string
                     x-unkey-redact: true
-                    description: Secret the CLI sends to cli.pollDeviceLogin. Do not display it.
+                    description: Secret credential used to poll for approval. Do not display it.
                 userCode:
                     type: string
                     description: Code the user confirms in the browser.
-                verificationUri:
-                    type: string
-                    description: Dashboard page where the user enters the code.
-                verificationUriComplete:
+                verificationUrl:
                     type: string
                     description: Dashboard page with the code filled in.
                 expiresIn:
@@ -8003,17 +7960,20 @@ components:
                 cost:
                     type: integer
                     minimum: 0
+                    maximum: 9223372036854775807
                     default: 1
                     description: Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
                     example: 2
                 limit:
                     type: integer
                     minimum: 0
+                    maximum: 9223372036854775807
                     description: Optionally override the maximum number of requests allowed within the specified interval.
                     example: 50
                 duration:
                     type: integer
                     minimum: 0
+                    maximum: 31536000000
                     description: Optionally override the duration of the rate limit window duration.
                     example: 600000
         V2KeysVerifyKeyResponseData:
@@ -9854,6 +9814,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getGatewayRequests
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getRatelimits:
         post:
             description: |
@@ -9928,6 +9889,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRatelimits
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getRuntimeLogs:
         post:
             description: |
@@ -10004,6 +9966,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRuntimeLogs
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getVerifications:
         post:
             description: |
@@ -10073,6 +10036,7 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getVerifications
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apis.createApi:
         post:
             description: |
@@ -10283,6 +10247,7 @@ paths:
             tags:
                 - apis
             x-speakeasy-name-override: getApi
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apis.listKeys:
         post:
             description: |
@@ -10366,6 +10331,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.createApp:
         post:
             description: |
@@ -10763,6 +10729,7 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: getApp
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.listApps:
         post:
             description: |
@@ -10908,6 +10875,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.updateApp:
         post:
             description: |
@@ -11049,32 +11017,33 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: updateApp
-    /v2/cli.approveDeviceLogin:
+    /v2/cli.decideDeviceLogin:
         post:
             description: |
-                Stores the permissions selected by the signed-in user.
+                Approves or denies a device login using the signed-in dashboard user's session.
+                Approval requires permissions. Denial must not include permissions and prevents token issuance.
                 Every permission must fit inside the caller's role. Any member can approve, not only admins.
                 The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
-            operationId: cli.approveDeviceLogin
+            operationId: cli.decideDeviceLogin
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/V2CliApproveDeviceLoginRequestBody'
+                            $ref: '#/components/schemas/V2CliDecideDeviceLoginRequestBody'
                 required: true
             responses:
                 "200":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/V2CliApproveDeviceLoginResponseBody'
-                    description: Permissions stored.
+                                $ref: '#/components/schemas/V2CliDecideDeviceLoginResponseBody'
+                    description: Decision recorded.
                 "400":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Invalid code or permission.
+                    description: Invalid decision, code, or permission, or the login is closed.
                 "401":
                     content:
                         application/json:
@@ -11086,65 +11055,100 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: The caller cannot grant these permissions.
+                    description: The caller cannot grant these permissions or another account approved this login.
                 "500":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error.
-            summary: Approve CLI device login
+            summary: Decide CLI device login
             tags:
                 - cli
             x-speakeasy-ignore: true
-            x-speakeasy-name-override: approveDeviceLogin
-    /v2/cli.denyDeviceLogin:
+            x-speakeasy-name-override: decideDeviceLogin
+    /v2/cli.exchangeToken:
         post:
             description: |
-                Denies a device login so the CLI does not receive a session.
-            operationId: cli.denyDeviceLogin
+                Supply exactly one of `loginId` or `refreshToken`. No authentication header is required.
+                A `loginId` polls a device login started by cli.startDeviceLogin. While the user has not approved it,
+                the API returns HTTP 202 with a Retry-After header in seconds. Approval returns HTTP 200 with access and refresh tokens exactly once.
+                Denial returns HTTP 403. An expired login returns HTTP 410. Stop polling on either response.
+                Device polling is rate limited per IP address.
+                A `refreshToken` rotates an existing session and returns HTTP 200 with new tokens.
+                The user's current membership and permissions are checked again. Reuse of the previous token
+                after the retry grace period revokes the session.
+                Access tokens last 15 minutes. A session expires after 7 days without a refresh,
+                and no later than 30 days after login.
+            operationId: cli.exchangeToken
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/V2CliDenyDeviceLoginRequestBody'
+                            $ref: '#/components/schemas/V2CliExchangeTokenRequestBody'
                 required: true
             responses:
                 "200":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/V2CliDenyDeviceLoginResponseBody'
-                    description: Login denied.
+                                $ref: '#/components/schemas/V2CliExchangeTokenResponseBody'
+                    description: Token exchange completed. Includes the access token and refresh token.
+                "202":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2CliExchangeTokenPendingResponseBody'
+                    description: Awaiting approval. Wait for Retry-After seconds before polling again.
+                    headers:
+                        Retry-After:
+                            description: Seconds to wait before the next poll.
+                            required: true
+                            schema:
+                                minimum: 1
+                                type: integer
                 "400":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Unknown or closed login.
+                    description: Invalid credential selection or unknown login.
                 "401":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Unauthorized
+                    description: The refresh token is invalid, expired, or reused outside the retry grace period.
                 "403":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Another account already approved this login.
+                    description: Login was denied, or the user was removed or no longer has the session's permissions.
+                "410":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GoneErrorResponse'
+                    description: The login expired. Start a new device login.
+                "429":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too many requests from this IP address.
                 "500":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error.
-            summary: Deny CLI device login
+                    description: Internal server error, including when CLI login is not configured on this API.
+            security: []
+            summary: Exchange a CLI credential
             tags:
                 - cli
             x-speakeasy-ignore: true
-            x-speakeasy-name-override: denyDeviceLogin
+            x-speakeasy-name-override: exchangeToken
     /v2/cli.getDeviceLogin:
         post:
             description: |
@@ -11187,18 +11191,14 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: getDeviceLogin
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/cli.listSessions:
         post:
             description: |
                 Lists CLI sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
                 Requires a dashboard session or a CLI access token. Root keys are rejected.
+                This endpoint takes no request body.
             operationId: cli.listSessions
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2CliListSessionsRequestBody'
-                required: true
             responses:
                 "200":
                     content:
@@ -11229,97 +11229,7 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: listSessions
-    /v2/cli.pollDeviceLogin:
-        post:
-            description: |
-                Polls a device login started by cli.startDeviceLogin.
-                While the user is confirming the code or choosing permissions, the status is `permissions_required`.
-                When both steps are done, the response includes an access token and a refresh token exactly once.
-                No authentication header is required. `loginId` is the secret. Requests are rate limited per IP address.
-            operationId: cli.pollDeviceLogin
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2CliPollDeviceLoginRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/V2CliPollDeviceLoginResponseBody'
-                    description: Current login state. `complete` includes the access token and refresh token.
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Unknown login.
-                "429":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: Too many requests from this IP address.
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error, including when CLI login is not configured on this API.
-            security: []
-            summary: Poll CLI device login
-            tags:
-                - cli
-            x-speakeasy-ignore: true
-            x-speakeasy-name-override: pollDeviceLogin
-    /v2/cli.refreshToken:
-        post:
-            description: |
-                Exchanges a CLI refresh token for a new access token and a new refresh token.
-                The user's current role is checked again. If they were removed, or their role no longer includes any of the session's permissions, the session is revoked.
-                Reusing an old refresh token revokes the session.
-                Access tokens last 15 minutes. A session expires after 7 days without a refresh, and 30 days after login even when it is refreshed.
-                No authentication header is required. The refresh token is the credential.
-            operationId: cli.refreshToken
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/V2CliRefreshTokenRequestBody'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/V2CliRefreshTokenResponseBody'
-                    description: New access token and refresh token.
-                "401":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: The refresh token is invalid, expired, or was already used.
-                "403":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: The user was removed or no longer has the session's permissions.
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error, including when CLI login is not configured on this API.
-            security: []
-            summary: Refresh a CLI session
-            tags:
-                - cli
-            x-speakeasy-ignore: true
-            x-speakeasy-name-override: refreshToken
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/cli.revokeSession:
         post:
             description: |
@@ -11546,6 +11456,7 @@ paths:
                 - deploy
             x-speakeasy-group: internal
             x-speakeasy-name-override: getDeployment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.authorizeDeployment:
         post:
             description: |
@@ -11999,6 +11910,7 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: getDeployment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.listBuildLogs:
         post:
             description: |
@@ -12194,6 +12106,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.listDeployments:
         post:
             description: |
@@ -12370,6 +12283,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.promoteDeployment:
         post:
             description: |
@@ -12390,9 +12304,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.promote_deployment` (to promote deployments in any environment)
-                - `environment.<environment_id>.promote_deployment` (to promote deployments in a specific environment)
+                Your root key must have write permission on the environment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
             operationId: deployments.promoteDeployment
             requestBody:
                 content:
@@ -12497,9 +12410,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.rollback_deployment` (to roll back deployments in any environment)
-                - `environment.<environment_id>.rollback_deployment` (to roll back deployments in a specific environment)
+                Your root key must have write permission on the environment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
             operationId: deployments.rollbackDeployment
             requestBody:
                 content:
@@ -12599,9 +12511,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.start_deployment` (to start deployments in any environment)
-                - `environment.<environment_id>.start_deployment` (to start deployments in a specific environment)
+                Your root key must have write permission on the deployment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
             operationId: deployments.startDeployment
             requestBody:
                 content:
@@ -12702,9 +12613,8 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.stop_deployment` (to stop deployments in any environment)
-                - `environment.<environment_id>.stop_deployment` (to stop deployments in a specific environment)
+                Your root key must have write permission on the deployment:
+                - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
             operationId: deployments.stopDeployment
             requestBody:
                 content:
@@ -13518,6 +13428,7 @@ paths:
                 - domains
             x-speakeasy-name-override: getDomain
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/domains.listDomains:
         post:
             description: |
@@ -13817,6 +13728,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/domains.verifyDomain:
         post:
             description: |
@@ -14151,6 +14063,7 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: getEnvironment
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.listEnvironmentVariables:
         post:
             description: |
@@ -14242,6 +14155,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.listEnvironments:
         post:
             description: |
@@ -14410,6 +14324,7 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironments
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.removeEnvironmentVariables:
         post:
             description: |
@@ -14826,6 +14741,7 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: listPolicies
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/gateway.setPolicies:
         post:
             description: |
@@ -15458,6 +15374,7 @@ paths:
             tags:
                 - identities
             x-speakeasy-name-override: getIdentity
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/identities.listIdentities:
         post:
             description: |
@@ -15579,6 +15496,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/identities.updateIdentity:
         post:
             description: |
@@ -16045,6 +15963,7 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: getKey
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/keys.migrateKeys:
         post:
             description: |
@@ -16819,6 +16738,7 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: whoami
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/liveness:
         get:
             description: |
@@ -17001,23 +16921,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
                     description: The query exceeds a query limit
-                "429":
-                    content:
-                        application/json:
-                            examples:
-                                workspaceRateLimited:
-                                    summary: Workspace rate limit exceeded
-                                    value:
-                                        error:
-                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
-                                            status: 429
-                                            title: Too Many Requests
-                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
-                                        meta:
-                                            requestId: req_1234abcd
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: The workspace rate limit is exceeded
                 "500":
                     content:
                         application/json:
@@ -17037,6 +16940,7 @@ paths:
                 - logs
             x-speakeasy-name-override: getApiRequestMetrics
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/logs.listApiRequests:
         post:
             description: |
@@ -17156,23 +17060,6 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
                     description: The query exceeds a query limit
-                "429":
-                    content:
-                        application/json:
-                            examples:
-                                workspaceRateLimited:
-                                    summary: Workspace rate limit exceeded
-                                    value:
-                                        error:
-                                            detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
-                                            status: 429
-                                            title: Too Many Requests
-                                            type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
-                                        meta:
-                                            requestId: req_1234abcd
-                            schema:
-                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
-                    description: The workspace rate limit is exceeded
                 "500":
                     content:
                         application/json:
@@ -17200,6 +17087,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.createPermission:
         post:
             description: |
@@ -17559,6 +17447,7 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: GetPermission
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.getRole:
         post:
             description: |
@@ -17624,6 +17513,7 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: GetRole
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.listPermissions:
         post:
             description: |
@@ -17692,6 +17582,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.listRoles:
         post:
             description: |
@@ -17766,6 +17657,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.setRolePermissions:
         post:
             description: |
@@ -18581,6 +18473,7 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: getPortal
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.getVerifications:
         post:
             description: |
@@ -18661,6 +18554,7 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: getVerifications
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.listKeys:
         post:
             description: |
@@ -18738,6 +18632,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.listSessions:
         post:
             description: |
@@ -18820,6 +18715,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.rerollKey:
         post:
             description: |
@@ -19423,6 +19319,7 @@ paths:
             tags:
                 - projects
             x-speakeasy-name-override: getProject
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/projects.listProjects:
         post:
             description: |
@@ -19546,6 +19443,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/projects.updateProject:
         post:
             description: |
@@ -20114,6 +20012,7 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: getOverride
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.limit:
         post:
             description: |
@@ -20384,6 +20283,7 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.listOverrides:
         post:
             description: |
@@ -20480,6 +20380,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.multiLimit:
         post:
             description: |
@@ -21071,6 +20972,7 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/rootKeys.rerollKey:
         post:
             description: |
@@ -21280,6 +21182,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getFlags
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.getLimits:
         post:
             description: |
@@ -21451,6 +21354,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getLimits
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.getUsage:
         post:
             description: |
@@ -21769,6 +21673,7 @@ paths:
                 - workspace
             x-speakeasy-name-override: getUsage
             x-unkey-idempotency: idempotent
+            x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.updateFlag:
         post:
             description: |

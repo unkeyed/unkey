@@ -194,7 +194,32 @@
                   "platform/cli/authentication",
                   "platform/cli/login",
                   "platform/cli/output-and-flags",
-                  "platform/cli/auth/login"
+                  {
+                    "group": "Root keys",
+                    "pages": [
+                      "platform/cli/root-keys/create-key",
+                      "platform/cli/root-keys/delete-key",
+                      "platform/cli/root-keys/list-keys",
+                      "platform/cli/root-keys/reroll-key",
+                      "platform/cli/root-keys/update-key"
+                    ]
+                  },
+                  {
+                    "group": "API request logs",
+                    "pages": [
+                      "platform/cli/logs/list-api-requests",
+                      "platform/cli/logs/get-api-request-metrics"
+                    ]
+                  },
+                  {
+                    "group": "Workspace",
+                    "pages": [
+                      "platform/cli/workspace/get-flags",
+                      "platform/cli/workspace/get-limits",
+                      "platform/cli/workspace/get-usage",
+                      "platform/cli/workspace/update-flag"
+                    ]
+                  }
                 ]
               },
               {
@@ -249,6 +274,7 @@
                         "group": "Authentication",
                         "pages": [
                           "errors/unkey/authentication/credential_rejected",
+                          "errors/unkey/authentication/device_login_expired",
                           "errors/unkey/authentication/key_not_found",
                           "errors/unkey/authentication/malformed",
                           "errors/unkey/authentication/missing",
@@ -335,6 +361,7 @@
                         "pages": [
                           "errors/user/too_many_requests/ip_rate_limited",
                           "errors/user/too_many_requests/query_quota_exceeded",
+                          "errors/user/too_many_requests/user_rate_limited",
                           "errors/user/too_many_requests/workspace_rate_limited"
                         ]
                       },
@@ -725,7 +752,10 @@
                   "compute/cli/deployments/promote-deployment",
                   "compute/cli/deployments/rollback-deployment",
                   "compute/cli/deployments/start-deployment",
-                  "compute/cli/deployments/stop-deployment"
+                  "compute/cli/deployments/stop-deployment",
+                  "compute/cli/deployments/authorize-deployment",
+                  "compute/cli/deployments/cancel-deployment",
+                  "compute/cli/deployments/list-build-logs"
                 ]
               },
               {
@@ -1022,7 +1052,9 @@
                   "api-management/cli/permissions/get-role",
                   "api-management/cli/permissions/list-permissions",
                   "api-management/cli/permissions/list-roles",
-                  "api-management/cli/permissions/set-role-permissions"
+                  "api-management/cli/permissions/set-role-permissions",
+                  "api-management/cli/permissions/update-permission",
+                  "api-management/cli/permissions/update-role"
                 ]
               },
               {
@@ -1033,7 +1065,11 @@
                   "api-management/cli/ratelimit/limit",
                   "api-management/cli/ratelimit/list-overrides",
                   "api-management/cli/ratelimit/multi-limit",
-                  "api-management/cli/ratelimit/set-override"
+                  "api-management/cli/ratelimit/set-override",
+                  "api-management/cli/ratelimit/create-namespace",
+                  "api-management/cli/ratelimit/delete-namespace",
+                  "api-management/cli/ratelimit/list-namespaces",
+                  "api-management/cli/ratelimit/update-namespace"
                 ]
               },
               {
@@ -1341,8 +1377,12 @@
       "source": "/cli/login"
     },
     {
-      "destination": "/platform/cli/auth/login",
+      "destination": "/platform/cli/login",
       "source": "/cli/auth/login"
+    },
+    {
+      "destination": "/platform/cli/login",
+      "source": "/platform/cli/auth/login"
     },
     {
       "destination": "/platform/cli/authentication",
@@ -3184,7 +3224,6 @@
   "seo": {
     "indexing": "navigable",
     "metatags": {
-      "canonical": "https://www.unkey.com/docs",
       "og:site_name": "Unkey Docs"
     }
   },

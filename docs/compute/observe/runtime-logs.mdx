@@ -2,7 +2,7 @@
 title: Runtime logs
 description: "Read and filter what your instances write to stdout and stderr."
 sources:
-  - dev/k8s/manifests/vector-logs.yaml
+  - dev/k8s/vector/vector.toml
   - pkg/clickhouse/schema/023_runtime_logs_raw_v1.sql
   - pkg/clickhouse/user.go
   - web/apps/dashboard/lib/schemas/runtime-logs.filter.schema.ts

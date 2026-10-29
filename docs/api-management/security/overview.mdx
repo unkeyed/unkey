@@ -9,7 +9,8 @@ sources:
   - svc/api/routes/v2_keys_create_key/handler.go
   - web/internal/db/src/schema/keyAuth.ts
   - web/internal/db/src/schema/util/delete_protection.ts
-  - web/apps/dashboard/app/api/v1/github/verify/route.ts
+  - svc/ctrl/api/webhooks/keyleak/handler.go
+  - svc/ctrl/worker/keyleak/notify.go
   - pkg/rbac/permissions.go
 ---
 

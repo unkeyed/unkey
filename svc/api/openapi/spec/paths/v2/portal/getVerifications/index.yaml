@@ -18,6 +18,7 @@ post:
     account-wide chart from one call by summing them. Pass `keyId` to narrow the
     window to a single key.
   operationId: portal.getVerifications
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getVerifications
   security:
     - portalSession: []

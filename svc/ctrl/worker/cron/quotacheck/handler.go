@@ -20,9 +20,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
+	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 )
 
 // stateKeyNotifiedWorkspaces tracks per-workspace last-notified

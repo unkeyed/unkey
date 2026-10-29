@@ -1,11 +1,16 @@
-import { and, db, desc, eq, gte, lt, or, schema, sql } from "@/lib/db";
-import { RANGE_PRESETS, clampedGrid, rollupsServe } from "@/lib/metrics/app-metrics";
+import { and, db, desc, eq, gte, isNull, lt, or, schema, sql } from "@/lib/db";
+import {
+  RANGE_PRESETS,
+  clampedGrid,
+  environmentRefSchema,
+  rollupsServe,
+} from "@/lib/metrics/app-metrics";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 export const environmentScopeInput = z.object({
   appId: z.string(),
-  environmentId: z.string(),
+  environment: environmentRefSchema,
 });
 
 export const metricsScopeInput = environmentScopeInput.extend({
@@ -20,14 +25,16 @@ export async function loadEnvironmentScope(
   workspaceId: string,
   input: z.infer<typeof environmentScopeInput>,
 ) {
+  const ref = input.environment;
   const environment = await db.query.environments.findFirst({
     where: (table, { and, eq }) =>
       and(
-        eq(table.id, input.environmentId),
+        "id" in ref ? eq(table.id, ref.id) : and(eq(table.kind, ref.kind), isNull(table.deletedAt)),
         eq(table.appId, input.appId),
         eq(table.workspaceId, workspaceId),
       ),
-    columns: { projectId: true, kind: true },
+    columns: { id: true, projectId: true, kind: true },
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
   if (!environment) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Environment not found" });
@@ -36,7 +43,7 @@ export async function loadEnvironmentScope(
     workspaceId,
     projectId: environment.projectId,
     appId: input.appId,
-    environmentId: input.environmentId,
+    environmentId: environment.id,
     environmentKind: environment.kind,
   };
 }

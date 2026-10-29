@@ -54,7 +54,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getGatewayRequests \
 ```
 
 ```bash CLI
-unkey api analytics get-gateway-requests \
+unkey analytics gateway-requests \
   --query="SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10"
 ```
 </CodeGroup>
@@ -68,7 +68,7 @@ curl -X POST https://api.unkey.com/v2/analytics.getRuntimeLogs \
 ```
 
 ```bash CLI
-unkey api analytics get-runtime-logs \
+unkey analytics runtime-logs \
   --query="SELECT time, severity, message FROM runtime_logs_v1 WHERE lower(message) LIKE '%timeout%' ORDER BY time DESC LIMIT 100"
 ```
 </CodeGroup>

@@ -9,7 +9,7 @@ sources:
   - svc/frontline/internal/db/ingress_route_find_by_fqdn.sql_generated.go
   - svc/ctrl/worker/cron/deployspendcheck/check.go
   - svc/ctrl/worker/cron/deployspendcheck/thresholds.go
-  - svc/ctrl/services/deployment/deploy_gate.go
+  - svc/api/internal/deployment/preflight.go
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/spend-budget-v2.tsx
 ---
 
@@ -17,7 +17,7 @@ sources:
 
 import { ProductLink } from "/snippets/product-link.jsx";
 
-The workspace that owns this API reached its monthly Compute spend budget, so its compute is paused. Nothing is broken and no data is lost. You get `402 Payment Required`.
+The workspace that owns this API reached its monthly Compute spend budget, so its compute is paused. You get `402 Payment Required`.
 
 ```json Example response
 {

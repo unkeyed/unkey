@@ -5,6 +5,7 @@ import type { MetricSource, SourcePoint } from "@unkey/clickhouse/src/app-metric
 import { DAY_MS, type Grid } from "@unkey/clickhouse/src/app-metrics/grid";
 import type { ResourcePoint } from "@unkey/clickhouse/src/app-metrics/resources";
 import type { TrafficPoint } from "@unkey/clickhouse/src/app-metrics/traffic";
+import { z } from "zod";
 
 export {
   METRIC_CATALOG,
@@ -27,6 +28,28 @@ export {
 } from "@unkey/clickhouse/src/app-metrics/grid";
 export type { ResourcePoint, TrafficPoint };
 
+export const environmentRefSchema = z.union([
+  z.object({ id: z.string() }),
+  z.object({ kind: z.literal("production") }),
+]);
+
+export type EnvironmentRef = z.infer<typeof environmentRefSchema>;
+
+export const PRODUCTION: EnvironmentRef = { kind: "production" };
+
+// Production is addressed by kind, so the overview glance can query before the
+// environment list loads and still share its cache with the metrics page.
+export function environmentRefOf(environment: {
+  id: string;
+  kind: "production" | "preview";
+}): EnvironmentRef {
+  return environment.kind === "production" ? PRODUCTION : { id: environment.id };
+}
+
+export function environmentKeyOf(ref: EnvironmentRef): string {
+  return "id" in ref ? ref.id : ref.kind;
+}
+
 export function spansDays(grid: Pick<Grid, "startMs" | "endMs">): boolean {
   return grid.endMs - grid.startMs >= DAY_MS;
 }
@@ -38,6 +61,7 @@ export type Sources = { [S in MetricSource]: Loadable<SourceResult<S>> };
 export type InstanceSeries = {
   grid: Grid;
   instances: Array<{ instance: string; points: ResourcePoint[] }>;
+  history: { instances: InstanceRow[]; truncated: boolean };
 };
 
 export type DeploySource =
@@ -70,7 +94,7 @@ export type ReplicaTarget = {
 export type DeployRole = "current" | "rolling-out" | "previous";
 
 export type InstanceRow = {
-  instanceId: string;
+  instanceId: string | null;
   region: { name: string };
   status: InstanceStatus;
   role: DeployRole;
@@ -99,6 +123,26 @@ export type InstanceEvent = {
   reason: string;
   exitCode: number | null;
 };
+
+export function instancesInRange(
+  live: Loadable<InstanceRow[]>,
+  usage: Loadable<InstanceSeries>,
+): Loadable<InstanceRow[]> {
+  if (live.status !== "ready") {
+    return live;
+  }
+  if (usage.status !== "ready") {
+    return live.data.length > 0 ? live : usage;
+  }
+  const rows = new Map(
+    [...usage.data.history.instances, ...live.data].map((row) => [row.replica.k8sName, row]),
+  );
+  return {
+    status: "ready",
+    data: [...rows.values()],
+    stale: live.stale ?? usage.stale,
+  };
+}
 
 const CLAMPED_RETRY_MS = 2_000;
 const MAX_CLAMPED_RETRIES = 2;

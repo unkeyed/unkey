@@ -265,6 +265,21 @@
     "reason": "Not shown on any page; individual card artwork library removed from the docs tree."
   },
   {
+    "id": "api-management--index--9",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "api-management--index--10",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
+    "id": "api-management--index--11",
+    "decision": "remove",
+    "reason": "No individual card illustration shipped; homepage is the only page that shows card art."
+  },
+  {
     "id": "api-management--keyspaces--overview--1",
     "decision": "remove",
     "reason": "Cartoon folder, physical credential slab, and overlapping unlabeled slider tile repeat the rejected style."
@@ -1323,11 +1338,6 @@
     "id": "platform--workspace--settings--1",
     "decision": "remove",
     "reason": "Envelope-to-avatar invitation is generic people-management clip-art."
-  },
-  {
-    "id": "platform--workspace--settings--2",
-    "decision": "remove",
-    "reason": "Navigation card added during the accuracy review; no bespoke illustration commissioned."
   },
   {
     "id": "platform--workspace--settings--3",

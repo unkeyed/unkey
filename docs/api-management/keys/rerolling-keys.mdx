@@ -6,7 +6,8 @@ sources:
   - svc/api/openapi/spec/paths/v2/keys/rerollKey/V2KeysRerollKeyResponseData.yaml
   - svc/api/routes/v2_keys_reroll_key/handler.go
   - web/apps/dashboard/components/api-keys-table/components/actions/components/rotate-key/rotate-key.constants.ts
-  - web/apps/dashboard/lib/trpc/routers/key/reroll/index.ts
+  - web/apps/dashboard/components/api-keys-table/components/actions/components/rotate-key/hooks/use-rotate-key.ts
+  - web/apps/dashboard/components/api-keys-table/components/actions/components/rotate-key/rotate-key-dialog.tsx
   - web/apps/dashboard/components/api-keys-table/components/actions/keys-table-action.popover.constants.tsx
 ---
 
@@ -65,7 +66,7 @@ The event is recorded in the audit log as `key.reroll`.
 
 ## From the dashboard
 
-Choose **Rotate key** from the key's actions menu. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, 24 hours (the default), or **Do not expire original key**. That last option keeps the old key working with its current expiry. The dashboard is stricter than the API: you can't rotate an expired key, and the grace period can't go past the key's original expiry. The new key is shown once.
+Choose **Rotate key** from the key's actions menu. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, 24 hours (the default), or **Do not expire original key**. That last option keeps the old key working with its current expiry. You can't rotate an expired key from the dashboard. A grace period can extend the original key's expiry, just as it can through the API. The new key is shown once.
 
 <Frame>
   <img src="/images/dashboard/api-management--keys-rerolling-keys--rotate-key.png" alt="Rotate key dialog with the grace period dropdown open, from Revoke immediately to 24 hours" />

@@ -188,7 +188,8 @@ func WithErrorHandling() zen.Middleware {
 			// Too Many Requests - Rate limiting
 			case codes.UserErrorsTooManyRequestsQueryQuotaExceeded,
 				codes.UserErrorsTooManyRequestsWorkspaceRateLimited,
-				codes.UserErrorsTooManyRequestsIPRateLimited:
+				codes.UserErrorsTooManyRequestsIPRateLimited,
+				codes.UserErrorsTooManyRequestsUserRateLimited:
 				return s.ProblemJSON(http.StatusTooManyRequests, openapi.TooManyRequestsErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),
@@ -247,7 +248,8 @@ func WithErrorHandling() zen.Middleware {
 				})
 
 			// Gone errors
-			case codes.UnkeyDataErrorsRatelimitNamespaceGone:
+			case codes.UnkeyDataErrorsRatelimitNamespaceGone,
+				codes.UnkeyAuthErrorsAuthenticationDeviceLoginExpired:
 				return s.ProblemJSON(http.StatusGone, openapi.GoneErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

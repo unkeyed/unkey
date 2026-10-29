@@ -37,8 +37,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -422,7 +422,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(keyleak.New(keyleak.Config{
-		Members:         workos.New(cfg.WorkOSAPIKey),
+		Members:         workos.New(cfg.WorkOSAPIKey, ""),
 		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
 		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
 	}).Definition(
@@ -458,9 +458,10 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewAppServiceServer(appSvc))
 
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
-		DB:        database,
-		Admin:     restateAdminClient,
-		Auditlogs: auditlogSvc,
+		DB:           database,
+		Admin:        restateAdminClient,
+		Auditlogs:    auditlogSvc,
+		StandbyDelay: 0,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create environment worker service: %w", err)

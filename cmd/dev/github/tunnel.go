@@ -5,19 +5,21 @@ package github
 // Flow:
 //  1. Reads UNKEY_GITHUB_APP_ID from dev/.env.github (written by `dev github setup`).
 //  2. Reads the app private key from dev/.github-private-key.pem.
-//  3. Starts an ngrok process and polls its local API (localhost:4040) until an HTTPS URL appears.
+//  3. Starts an ngrok process and reads its HTTPS tunnel URL from the child's JSON logs.
 //  4. Generates a short-lived GitHub App JWT signed with the private key; the JWT's `iss`
 //     claim is the app ID -- GitHub uses this to identify which app is authenticating.
 //  5. Calls PATCH /app/hook/config with the JWT; GitHub updates the webhook URL for the
 //     app identified by the JWT issuer, so no app ID is needed in the request URL.
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,15 +42,7 @@ var tunnelCmd = &cli.Command{
 	Action: startTunnel,
 }
 
-// ngrokTunnelsResponse is the subset of ngrok's local API response we need.
-type ngrokTunnelsResponse struct {
-	Tunnels []struct {
-		PublicURL string `json:"public_url"`
-		Proto     string `json:"proto"`
-	} `json:"tunnels"`
-}
-
-func startTunnel(_ context.Context, cmd *cli.Command) error {
+func startTunnel(ctx context.Context, cmd *cli.Command) error {
 	envFile := cmd.String("env-file")
 	pemFile := cmd.String("pem-file")
 	port := cmd.String("port")
@@ -70,15 +64,22 @@ func startTunnel(_ context.Context, cmd *cli.Command) error {
 
 	// Start ngrok in the background
 	fmt.Printf("Starting ngrok tunnel to localhost:%s...\n", port)
-	ngrok := exec.Command("ngrok", "http", port)
+	address := "http://localhost:" + port
+	ngrok := exec.CommandContext(ctx, "ngrok", "http", address, "--log=stdout", "--log-format=json", "--log-level=info")
+	output, err := ngrok.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to read ngrok output: %w", err)
+	}
 	if err := ngrok.Start(); err != nil {
 		return fmt.Errorf("failed to start ngrok: %w", err)
 	}
-
-	// Poll ngrok's local API until the tunnel URL is ready
-	publicURL, err := waitForNgrokURL()
-	if err != nil {
+	defer func() {
 		_ = ngrok.Process.Kill()
+		_ = ngrok.Wait()
+	}()
+
+	publicURL, err := waitForNgrokURL(ctx, output, address)
+	if err != nil {
 		return err
 	}
 
@@ -88,12 +89,10 @@ func startTunnel(_ context.Context, cmd *cli.Command) error {
 
 	token, err := generateAppJWT(appID, string(pem))
 	if err != nil {
-		_ = ngrok.Process.Kill()
 		return fmt.Errorf("failed to generate JWT: %w", err)
 	}
 
 	if err := patchWebhookURL(token, webhookURL); err != nil {
-		_ = ngrok.Process.Kill()
 		return err
 	}
 
@@ -101,45 +100,57 @@ func startTunnel(_ context.Context, cmd *cli.Command) error {
 	fmt.Printf("✔ Tunnel running (press Ctrl+C to stop)\n\n")
 	fmt.Printf("Inspect traffic at: http://localhost:4040\n")
 
-	// Keep running until killed. Ctrl+C signals the whole process group, so
-	// ngrok's exit status is almost always "signal: interrupt" and carries no
-	// actionable information; the tunnel ending is the expected outcome.
-	_ = ngrok.Wait()
+	if _, err := io.Copy(io.Discard, output); err != nil && ctx.Err() == nil {
+		return fmt.Errorf("failed to read ngrok output: %w", err)
+	}
 	return nil
 }
 
-// waitForNgrokURL polls ngrok's local API until an HTTPS tunnel URL appears.
-func waitForNgrokURL() (string, error) {
-	client := &http.Client{Timeout: 2 * time.Second}
-	deadline := time.Now().Add(15 * time.Second)
-
-	for time.Now().Before(deadline) {
-		time.Sleep(500 * time.Millisecond)
-
-		resp, err := client.Get("http://localhost:4040/api/tunnels")
-		if err != nil {
-			continue
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			continue
-		}
-
-		var result ngrokTunnelsResponse
-		if err := json.Unmarshal(body, &result); err != nil {
-			continue
-		}
-
-		for _, t := range result.Tunnels {
-			if t.Proto == "https" {
-				return t.PublicURL, nil
+// waitForNgrokURL only trusts startup events from the child, not the shared admin API.
+func waitForNgrokURL(ctx context.Context, output io.Reader, address string) (string, error) {
+	ready := make(chan string, 1)
+	failed := make(chan error, 1)
+	go func() {
+		scanner := bufio.NewScanner(output)
+		for scanner.Scan() {
+			var event struct {
+				Message string `json:"msg"`
+				Address string `json:"addr"`
+				URL     string `json:"url"`
 			}
+			if err := json.Unmarshal(scanner.Bytes(), &event); err != nil {
+				continue
+			}
+			if event.Message != "started tunnel" || event.Address != address {
+				continue
+			}
+			publicURL, err := url.Parse(event.URL)
+			if err != nil || publicURL.Scheme != "https" || publicURL.Hostname() == "" || publicURL.User != nil ||
+				(publicURL.Path != "" && publicURL.Path != "/") || publicURL.RawQuery != "" || publicURL.ForceQuery || publicURL.Fragment != "" {
+				continue
+			}
+			ready <- strings.TrimSuffix(publicURL.String(), "/")
+			return
 		}
-	}
+		if err := scanner.Err(); err != nil {
+			failed <- fmt.Errorf("failed to read ngrok output: %w", err)
+			return
+		}
+		failed <- fmt.Errorf("ngrok output ended before a valid HTTPS tunnel was ready")
+	}()
 
-	return "", fmt.Errorf("timed out waiting for ngrok tunnel\n\nMake sure ngrok is authenticated: ngrok config add-authtoken <token>")
+	timer := time.NewTimer(15 * time.Second)
+	defer timer.Stop()
+	select {
+	case publicURL := <-ready:
+		return publicURL, nil
+	case err := <-failed:
+		return "", err
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case <-timer.C:
+		return "", fmt.Errorf("timed out waiting for ngrok tunnel\n\nMake sure ngrok is authenticated: ngrok config add-authtoken <token>")
+	}
 }
 
 // readAppID parses UNKEY_GITHUB_APP_ID from the env file.

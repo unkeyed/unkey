@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 // Services aggregates all dependencies required by API route handlers. It acts
@@ -77,6 +78,8 @@ type Services struct {
 
 	// Ratelimit provides distributed rate limiting across API requests.
 	Ratelimit ratelimit.Service
+
+	RateLimitExemptions openapi.WorkspaceRateLimitExemptions
 
 	// Auditlogs records security-relevant events for compliance and debugging.
 	Auditlogs auditlogs.AuditLogService

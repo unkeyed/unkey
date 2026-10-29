@@ -102,14 +102,14 @@ Before you start, make sure that:
         The slug is what you pass to later commands. It must be unique in your workspace, and `default` is reserved.
 
         ```bash
-        unkey api projects create-project --name=Payments --slug=payments
+        unkey projects create --name=Payments --slug=payments
         ```
       </Step>
       <Step title="Create the app">
         Pass the image with `--oci`. It becomes the app's default image, and you can't connect a repository to the app later.
 
         ```bash
-        unkey api apps create-app \
+        unkey apps create \
           --project=payments --name=API --slug=api \
           --oci='{"image":"ghcr.io/acme/api:v1.2.3"}'
         ```
@@ -120,14 +120,14 @@ Before you start, make sure that:
         With no source flag, the app deploys its default image. The command returns the deployment ID right away, and the rollout runs in the background.
 
         ```bash
-        unkey api deployments create-deployment \
+        unkey deployments create \
           --project=payments --app=api --environment=production
         ```
 
         Check its status with the ID it returned:
 
         ```bash
-        unkey api deployments get-deployment --deployment-id=d_... --output json
+        unkey deployments get --deployment-id=d_... --output json
         ```
 
         The deployment moves through `pending`, `starting`, `building`, `deploying`, `network`, and `finalizing` to `ready`. The `building` step has nothing to build, so it's short. If another deployment in the workspace is running, it waits its turn.
@@ -141,12 +141,12 @@ Before you start, make sure that:
 
         <CodeGroup>
           ```bash Deploy a new image
-          unkey api deployments create-deployment \
+          unkey deployments create \
             --project=payments --app=api --environment=production \
             --oci='{"image":"ghcr.io/acme/api:v1.2.4"}'
           ```
           ```bash Run an earlier deployment again
-          unkey api deployments create-deployment \
+          unkey deployments create \
             --project=payments --app=api --environment=production \
             --deployment='{"deploymentId":"d_..."}'
           ```
@@ -159,7 +159,7 @@ Before you start, make sure that:
 </Tabs>
 
 <Visibility for="agents">
-  `unkey api deployments create-deployment` calls `POST /v3/deployments.createDeployment` with an `oci` source. `POST /v2/deployments.createDeployment` still works and takes `image.dockerImage` instead, but it's deprecated. The `POST /v2/deploy.createDeployment` that `unkey deploy` uses is internal and deprecated, and may change; call the public endpoint directly instead.
+  `unkey deployments create` calls `POST /v3/deployments.createDeployment` with an `oci` source. `POST /v2/deployments.createDeployment` still works and takes `image.dockerImage` instead, but it's deprecated. The `POST /v2/deploy.createDeployment` that `unkey deploy` uses is internal and deprecated, and may change; call the public endpoint directly instead.
 
   ```bash Create an image deployment
   curl -X POST https://api.unkey.com/v3/deployments.createDeployment \

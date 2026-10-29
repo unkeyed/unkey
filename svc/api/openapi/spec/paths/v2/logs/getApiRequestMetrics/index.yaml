@@ -14,6 +14,7 @@ post:
     Your root key must have the following permission:
     - `unkey:v1:<workspace_id>:logs/apiRequests#read`
   operationId: logs.getApiRequestMetrics
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getApiRequestMetrics
   x-unkey-idempotency: idempotent
   security:
@@ -114,23 +115,6 @@ post:
                   detail: The query exceeds a read limit. Send a narrower `filters.time` window or more filters, then try again.
                   status: 422
                   type: https://unkey.com/docs/errors/user/unprocessable_entity/query_execution_timeout
-    "429":
-      description: The workspace rate limit is exceeded
-      content:
-        application/json:
-          schema:
-            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
-          examples:
-            workspaceRateLimited:
-              summary: Workspace rate limit exceeded
-              value:
-                meta:
-                  requestId: req_1234abcd
-                error:
-                  title: Too Many Requests
-                  detail: This workspace has exceeded its API rate limit of 1000/1m0s. Please try again later.
-                  status: 429
-                  type: https://unkey.com/docs/errors/user/too_many_requests/workspace_rate_limited
     "500":
       description: Internal server error
       content:

@@ -6,14 +6,10 @@ post:
   description: |
     Lists CLI sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
     Requires a dashboard session or a CLI access token. Root keys are rejected.
+    This endpoint takes no request body.
   operationId: cli.listSessions
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listSessions
-  requestBody:
-    required: true
-    content:
-      application/json:
-        schema:
-          $ref: ./V2CliListSessionsRequestBody.yaml
   responses:
     "200":
       description: Sessions the caller can see.

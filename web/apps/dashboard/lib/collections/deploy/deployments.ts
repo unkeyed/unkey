@@ -96,6 +96,7 @@ export const deploymentSchema = z.object({
       exitCode: z.number().int().nullable(),
     })
     .nullable(),
+  domains: z.array(z.string()),
 });
 
 export type Deployment = z.infer<typeof deploymentSchema>;
@@ -251,6 +252,7 @@ function toDeployment(
           exitCode: crashLoop.meta?.exitCode ?? null,
         }
       : null,
+    domains: deployment.domains ?? [],
   };
 }
 

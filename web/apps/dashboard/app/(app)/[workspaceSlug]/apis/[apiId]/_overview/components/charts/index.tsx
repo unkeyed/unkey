@@ -1,6 +1,7 @@
 import { createOutcomeChartConfig } from "@/components/charts/chart-colors";
 import { OverviewAreaChart } from "@/components/logs/overview-charts/overview-area-chart";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
+import { OverviewChartFrame } from "@/components/logs/overview-charts/overview-chart-frame";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
@@ -8,10 +9,8 @@ import { useFetchActiveKeysTimeseries } from "./line-chart/hooks/use-fetch-times
 
 export const KeysOverviewLogsCharts = ({
   apiId,
-  onMount,
 }: {
   apiId: string;
-  onMount: (distanceToTop: number) => void;
 }) => {
   const { filters, updateFilters } = useFilters();
 
@@ -85,14 +84,13 @@ export const KeysOverviewLogsCharts = ({
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full md:h-[320px]">
+    <OverviewChartFrame className="flex flex-col md:flex-row">
       <div className="w-full md:w-1/2 min-w-0 overflow-x-clip border-r max-md:h-72">
         <OverviewBarChart
           data={verificationTimeseries}
           isLoading={verificationIsLoading}
           isError={verificationIsError}
           enableSelection
-          onMount={onMount}
           onSelectionChange={(selection) =>
             handleSelectionChange({
               ...selection,
@@ -128,6 +126,6 @@ export const KeysOverviewLogsCharts = ({
           granularity={activeKeysGranularity}
         />
       </div>
-    </div>
+    </OverviewChartFrame>
   );
 };

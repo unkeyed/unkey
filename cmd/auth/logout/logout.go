@@ -1,18 +1,14 @@
 package logout
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"strings"
-	"time"
 
 	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/internal/sdk"
+	"github.com/unkeyed/unkey/internal/sdk/models/components"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/cli/session"
 )
@@ -20,13 +16,14 @@ import (
 func New() *cli.Command {
 	return &cli.Command{
 		Name:        "logout",
-		Usage:       "Revoke the active CLI session",
-		Description: "Revokes the active CLI session on the server and deletes it from this machine.",
+		RootAliases: []string{"logout"},
+		Usage:       "Sign out of the active workspace",
+		Description: "Revokes the active browser session on the server and removes it from this machine. Root keys are not removed.",
 		Flags:       []cli.Flag{util.APIURLFlag()},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			current, err := session.Active()
 			if errors.Is(err, session.ErrNotFound) {
-				fmt.Println("No CLI session is stored.")
+				fmt.Println("No saved browser session.")
 				return nil
 			}
 			if err != nil {
@@ -34,20 +31,22 @@ func New() *cli.Command {
 			}
 			fallbackURL := cmd.String("api-url")
 			used, revokeErr := revoke(ctx, fallbackURL)
-			workspaceID := current.WorkspaceID
 			if used.WorkspaceID != "" {
-				workspaceID = used.WorkspaceID
+				current = used
 			}
-			if _, err := session.Delete(workspaceID); err != nil && !errors.Is(err, session.ErrNotFound) {
+			if _, err := session.Delete(current.WorkspaceID, current.SessionID); err != nil && !errors.Is(err, session.ErrNotFound) {
 				return err
-			}
-			fmt.Printf("Signed out of workspace %s.\n", workspaceID)
-			if next, err := session.Active(); err == nil {
-				fmt.Printf("Active workspace is %s.\n", next.WorkspaceID)
 			}
 			if revokeErr != nil {
 				fmt.Fprintln(os.Stderr, "The session was removed from this machine but could not be revoked on the server. It stays valid until it expires.")
-				return fmt.Errorf("revoke CLI session: %w", revokeErr)
+			} else {
+				fmt.Println("Signed out.")
+			}
+			if next, err := session.Active(); err == nil {
+				fmt.Fprintf(os.Stderr, "Switched to workspace %s.\n", next.WorkspaceID)
+			}
+			if revokeErr != nil {
+				return fmt.Errorf("could not sign out: %w", revokeErr)
 			}
 			return nil
 		},
@@ -61,24 +60,17 @@ func revoke(ctx context.Context, fallbackURL string) (session.Session, error) {
 	if err != nil {
 		return session.Session{}, err
 	}
-	body, err := json.Marshal(map[string]string{"sessionId": current.SessionID})
+	api := sdk.NewClient(apiURL(current, fallbackURL), nil)
+	res, err := api.Cli.RevokeSession(ctx, components.V2CliRevokeSessionRequestBody{SessionID: current.SessionID}, sdk.Bearer(current.AccessToken))
 	if err != nil {
+		var response *sdk.ResponseError
+		if errors.As(err, &response) {
+			return current, fmt.Errorf("server returned HTTP %d: %w", response.StatusCode, err)
+		}
 		return current, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL(current, fallbackURL)+"/v2/cli.revokeSession", bytes.NewReader(body))
-	if err != nil {
-		return current, err
-	}
-	req.Header.Set("content-type", "application/json")
-	req.Header.Set("authorization", "Bearer "+current.AccessToken)
-	res, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
-	if err != nil {
-		return current, err
-	}
-	defer func() { _ = res.Body.Close() }()
-	payload, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
-	if res.StatusCode >= 300 {
-		return current, fmt.Errorf("revoke returned %d: %s", res.StatusCode, strings.TrimSpace(string(payload)))
+	if res.V2CliRevokeSessionResponseBody == nil {
+		return current, fmt.Errorf("server returned HTTP %d", res.HTTPMeta.Response.StatusCode)
 	}
 	return current, nil
 }

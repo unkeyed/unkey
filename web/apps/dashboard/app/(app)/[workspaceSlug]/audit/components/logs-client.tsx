@@ -1,7 +1,7 @@
 "use client";
 
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { AuditLogsControlCloud } from "./control-cloud";
 import { AuditLogsControls } from "./controls";
 import { AuditLogDetails } from "./table/log-details";
@@ -17,26 +17,12 @@ export type WorkspaceProps = {
 
 export const LogsClient = (props: WorkspaceProps) => {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
-
-  const handleDistanceToTop = useCallback((distanceToTop: number) => {
-    setTableDistanceToTop(distanceToTop);
-  }, []);
-
   return (
     <>
       <AuditLogsControls {...props} />
       <AuditLogsControlCloud />
-      <AuditLogsTable
-        onMount={handleDistanceToTop}
-        selectedLog={selectedLog}
-        setSelectedLog={setSelectedLog}
-      />
-      <AuditLogDetails
-        distanceToTop={tableDistanceToTop}
-        selectedLog={selectedLog}
-        setSelectedLog={setSelectedLog}
-      />
+      <AuditLogsTable selectedLog={selectedLog} setSelectedLog={setSelectedLog} />
+      <AuditLogDetails selectedLog={selectedLog} setSelectedLog={setSelectedLog} />
     </>
   );
 };

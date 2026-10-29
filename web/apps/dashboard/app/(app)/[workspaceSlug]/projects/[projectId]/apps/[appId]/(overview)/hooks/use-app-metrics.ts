@@ -3,6 +3,7 @@
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { type Loadable, type QueryResult, fromQuery } from "@/lib/loadable/loadable";
 import {
+  type EnvironmentRef,
   type Grid,
   type InstanceEvent,
   type InstanceRow,
@@ -10,23 +11,24 @@ import {
   type SourceResult,
   type Sources,
   clampedRetryMs,
+  environmentKeyOf,
 } from "@/lib/metrics/app-metrics";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useRef, useState } from "react";
 
-export type AppMetricsScope = { appId: string; environmentId: string; grid: Grid };
+export type AppMetricsScope = { appId: string; environment: EnvironmentRef; grid: Grid };
 
 function inputOf(scope: AppMetricsScope | null) {
   return {
     appId: scope?.appId ?? "",
-    environmentId: scope?.environmentId ?? "",
+    environment: scope?.environment ?? { id: "" },
     range: scope?.grid.range ?? "24h",
     endMs: scope?.grid.endMs ?? 0,
   };
 }
 
 function viewKeyOf(scope: AppMetricsScope | null): string | null {
-  return scope && `${scope.appId}:${scope.environmentId}:${scope.grid.range}`;
+  return scope && `${scope.appId}:${environmentKeyOf(scope.environment)}:${scope.grid.range}`;
 }
 
 // Holds the last result while only endMs or the open pod moved, so charts do not
@@ -42,7 +44,12 @@ function useHeldAcrossTicks<T>(scope: AppMetricsScope | null, query: QueryResult
   return fromQuery({ ...query, data });
 }
 
-const CLOCK_DRIVEN = { staleTime: Number.POSITIVE_INFINITY, refetchOnWindowFocus: false };
+const CLOCK_DRIVEN = {
+  staleTime: Number.POSITIVE_INFINITY,
+  refetchOnWindowFocus: false,
+  // Unbatched so a fast source never waits on a slow one
+  trpc: { context: { skipBatch: true } },
+};
 
 function gridDriven<T extends { grid: Grid }>(scope: AppMetricsScope | null, enabled = true) {
   return {
@@ -108,28 +115,29 @@ export function useMetricSourceByInstance(
   );
   const utils = trpc.useUtils();
   const appId = scope?.appId;
-  const environmentId = scope?.environmentId;
-  const seen = useRef<{ environmentId: string; podSet: string } | null>(null);
+  const environment = scope?.environment;
+  const seen = useRef<{ environmentKey: string; podSet: string } | null>(null);
   useEffect(() => {
-    if (podSet === null || !appId || !environmentId) {
+    if (podSet === null || !appId || !environment) {
       return;
     }
+    const environmentKey = environmentKeyOf(environment);
     const previous = seen.current;
-    seen.current = { environmentId, podSet };
-    if (previous?.environmentId === environmentId && previous.podSet !== podSet) {
-      utils.deploy.appMetrics.sourceByInstance.invalidate({ appId, environmentId });
+    seen.current = { environmentKey, podSet };
+    if (previous?.environmentKey === environmentKey && previous.podSet !== podSet) {
+      utils.deploy.appMetrics.sourceByInstance.invalidate({ appId, environment });
     }
-  }, [podSet, appId, environmentId, utils]);
+  }, [podSet, appId, environment, utils]);
   return useHeldAcrossTicks(scope, query);
 }
 
 export function useMetricInstances(
-  environment: { appId: string; environmentId: string } | null,
+  scope: AppMetricsScope | null,
   enabled: boolean,
 ): Loadable<InstanceRow[]> {
-  const active = enabled && environment !== null;
+  const active = enabled && scope !== null;
   const query = trpc.deploy.appMetrics.instances.useQuery(
-    { appId: environment?.appId ?? "", environmentId: environment?.environmentId ?? "" },
+    { appId: scope?.appId ?? "", environment: scope?.environment ?? { id: "" } },
     { enabled: active, refetchOnWindowFocus: false },
   );
   useCollectionPolling(query.refetch, { intervalMs: INSTANCES_POLL_MS, enabled: active });

@@ -6,7 +6,7 @@
 @plugin '@tailwindcss/container-queries';
 
 
-@source '../../../internal/ui/src/**/*.tsx';
+@source '../../../internal/ui/src/**/*.{ts,tsx}';
 
 
 @utility container {
@@ -163,11 +163,35 @@
   }
 
   html {
-    @apply scroll-smooth overscroll-none;
+    @apply overscroll-none overflow-x-clip overflow-y-scroll;
+    scrollbar-gutter: stable;
+  }
+
+  html:has([data-app-shell]) {
+    --app-nav-h: 52px;
+    --app-banner-h: 36px;
+    --app-header-h: var(--app-nav-h);
+    --app-body-h: calc(100dvh - var(--app-header-h));
+    scroll-padding-top: calc(var(--app-header-h) + --spacing(2));
+  }
+
+  html:has([data-compute-paused]) {
+    --app-header-h: calc(var(--app-nav-h) + var(--app-banner-h));
   }
 
   body {
-    @apply bg-background text-gray-12 overscroll-none;
+    @apply bg-background text-gray-12 overscroll-none overflow-x-clip;
+  }
+
+  /* vaul's scroll lock targets body; with html as the scroller that makes body a
+     scroll box and unpins the sticky nav, so lock html like Base UI does. */
+  html:has(> body[data-scroll-locked]) {
+    overflow: hidden;
+  }
+
+  html > body[data-scroll-locked] {
+    overflow: visible !important;
+    margin-right: 0 !important;
   }
 
   [data-sonner-toast] {

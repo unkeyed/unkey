@@ -6,6 +6,7 @@ import {
 } from "@/lib/collections/deploy/instance-status";
 import { exitSummary } from "@/lib/collections/deploy/last-exit";
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
+import { instancesInRange } from "@/lib/metrics/app-metrics";
 import type {
   DeployRole,
   DeploySource,
@@ -57,7 +58,9 @@ const ROLE_COPY: Record<DeployRole, { sr: string | null; status: string | null }
 };
 
 export function instanceSrLabel({ state, role }: RoleState): string {
-  return [instanceLabel[state], ROLE_COPY[role].sr].filter(Boolean).join(", ");
+  return [state === "inactive" ? "Stopped" : instanceLabel[state], ROLE_COPY[role].sr]
+    .filter(Boolean)
+    .join(", ");
 }
 
 export type InstanceView = InstanceRow & {
@@ -77,7 +80,10 @@ function instanceViews(instances: InstanceRow[]): InstanceView[] {
       key: row.replica.k8sName,
       state,
       tone,
-      statusText: crash || ROLE_COPY[row.role].status || instanceLabel[state],
+      statusText:
+        row.instanceId === null
+          ? "Stopped"
+          : crash || ROLE_COPY[row.role].status || instanceLabel[state],
     };
   });
 }
@@ -119,8 +125,11 @@ function shareOfOwnAllocation(instances: InstanceView[], metric: InstanceMetric)
   return (key, p) => shareOf(p[metric], allocations.get(key) ?? 0);
 }
 
-function chartOf(pointsByKey: ReadonlyMap<string, ResourcePoint[]>, read: Reader) {
+function chartOf(grid: Grid, pointsByKey: ReadonlyMap<string, ResourcePoint[]>, read: Reader) {
   const byTime = new Map<number, AreaChartPoint>();
+  for (let t = grid.startMs; t < grid.endMs; t += grid.bucketMs) {
+    byTime.set(t, { originalTimestamp: t });
+  }
   for (const [key, points] of pointsByKey) {
     for (const p of points) {
       const point = byTime.get(p.t) ?? { originalTimestamp: p.t };
@@ -159,7 +168,7 @@ function linesChart(usage: Usage, read: Reader, lines: ReadonlyArray<Line>): Ins
       return points ? [[key, points]] : [];
     }),
   );
-  return { series, chart: chartStateOf(usage.grid, chartOf(drawn, read)) };
+  return { series, chart: chartStateOf(usage.grid, chartOf(usage.grid, drawn, read)) };
 }
 
 function instanceLines(instances: InstanceView[], usage: Usage, read: Reader): InstanceChart {
@@ -173,9 +182,10 @@ function instanceLines(instances: InstanceView[], usage: Usage, read: Reader): I
 
 export function instanceChart(
   series: Loadable<InstanceSeries>,
-  instances: Loadable<InstanceRow[]>,
+  live: Loadable<InstanceRow[]>,
   metric: InstanceMetric,
 ): InstanceChart {
+  const instances = instancesInRange(live, series);
   if (instances.status !== "ready") {
     return { series: {}, chart: instances };
   }
@@ -366,6 +376,7 @@ export type InstancesTabView =
       legend: UsageLegend;
       usage: UsageCard[];
       rows: InstanceTableRow[];
+      historyTruncated: boolean;
     };
 
 export function instancesTabView(input: {
@@ -375,7 +386,7 @@ export function instancesTabView(input: {
   events: Loadable<InstanceEvent[]>;
   filter: FilterSelection;
 }): InstancesTabView {
-  const { instances } = input;
+  const instances = instancesInRange(input.instances, input.usage);
   if (instances.status !== "ready") {
     return instances;
   }
@@ -386,6 +397,7 @@ export function instancesTabView(input: {
   const usage = usageOf(input.usage);
   return {
     status: "ready",
+    historyTruncated: input.usage.status === "ready" && input.usage.data.history.truncated,
     grid: input.grid,
     filters,
     episodes:

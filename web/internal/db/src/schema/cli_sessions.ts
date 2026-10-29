@@ -3,13 +3,6 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
-// cli_sessions is the credential a device login issues. The access token is a
-// short-lived JWT and is not stored. The refresh token is stored only as a
-// hash. previous_refresh_token_hash keeps the token just rotated away so a
-// replay of that token revokes the refresh_family. expires_at is an idle
-// deadline moved forward on each successful refresh, never past the absolute
-// maximum measured from created_at. revoked_at wins over expiry: a revoked
-// row must never authenticate.
 export const cliSessions = mysqlTable(
   "cli_sessions",
   {

@@ -78,6 +78,7 @@ const crashing = instance("eu-1", {
 
 const usage: InstanceSeries = {
   grid,
+  history: { instances: [], truncated: false },
   instances: [
     { instance: "us-0", points: [point(0, 100, 128 * MIB), point(60_000, 250, 256 * MIB)] },
     { instance: "eu-0", points: [point(0, 470, 500 * MIB), point(60_000, null, null)] },
@@ -159,6 +160,51 @@ describe("instance tones and instanceSrLabel", () => {
 });
 
 describe("instancesTabView", () => {
+  it("keeps deleted pods' history, allocation and region after a rollout", () => {
+    const stopped = instance(
+      "gone",
+      {
+        instanceId: null,
+        status: "inactive",
+        role: "previous",
+        region: { name: "eu-central-1" },
+        deployment: { id: "d_old", source: null },
+      },
+      { cpuMillicores: 2000, memoryMib: 2048 },
+    );
+    const historicalUsage = ready<InstanceSeries>({
+      ...usage,
+      history: {
+        instances: [stopped, { ...usEast, instanceId: null, status: "inactive" }],
+        truncated: true,
+      },
+    });
+    const result = view({ instances: ready([usEast]), usage: historicalUsage });
+    expect(result.rows.map((r) => r.instance.key)).toEqual(["us-0", "gone"]);
+    expect(result.rows[0].instance.statusText).toBe("Running");
+    expect(result.historyTruncated).toBe(true);
+    expect(result.usage[0].chart.status === "ready" && result.usage[0].chart.chart[0]).toEqual({
+      originalTimestamp: 0,
+      "us-0": 0.2,
+      gone: 0.4995,
+    });
+    const filtered = view({
+      instances: ready([]),
+      usage: historicalUsage,
+      filter: { regions: ["eu-central-1"], statuses: ["previous"], instances: ["gone"] },
+    });
+    expect(filtered.filters.regions.selected).toEqual(["eu-central-1"]);
+    expect(filtered.filters.statuses.selected).toEqual(["previous"]);
+    expect(filtered.filters.instances.selected).toEqual(["gone"]);
+    expect(filtered.rows.map((r) => r.instance.key)).toEqual(["gone"]);
+    expect(filtered.rows[0].instance.statusText).toBe("Stopped");
+    expect(filtered.usage[0].chart.status === "ready" && filtered.usage[0].chart.chart).toEqual([
+      { originalTimestamp: 0, gone: 0.4995 },
+      { originalTimestamp: 60_000 },
+    ]);
+    expect(instanceChart(historicalUsage, ready([]), "cpu").series).toHaveProperty("gone");
+  });
+
   it("passes loading, failure and no instances through as their own states", () => {
     const base = {
       grid,
@@ -169,6 +215,8 @@ describe("instancesTabView", () => {
     const failure = failed();
     expect(instancesTabView({ ...base, instances: loading })).toBe(loading);
     expect(instancesTabView({ ...base, instances: failure })).toBe(failure);
+    expect(instancesTabView({ ...base, instances: ready([]), usage: loading })).toBe(loading);
+    expect(instancesTabView({ ...base, instances: ready([]), usage: failure })).toBe(failure);
     expect(instancesTabView({ ...base, instances: ready([]) })).toEqual({ status: "empty" });
   });
 
@@ -253,6 +301,7 @@ describe("instancesTabView", () => {
       instances: ready([usEast, late]),
       usage: ready({
         grid,
+        history: { instances: [], truncated: false },
         instances: [
           { instance: "us-0", points: [point(0, 100, null), point(60_000, null, null)] },
           { instance: "us-late", points: [point(0, null, null), point(60_000, 200, null)] },

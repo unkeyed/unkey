@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -16,9 +17,24 @@ func (c *Command) showHelp() {
 	c.showUsageLine()
 	c.showVersion()
 	c.showCommands()
+	c.showRootAliases()
 	c.showFlags()
 	c.showGlobalOptions()
 	c.showExamples()
+}
+
+func (c *Command) showRootAliases() {
+	if len(c.rootAliases) == 0 {
+		return
+	}
+
+	fmt.Println("ALIASES:")
+	for _, alias := range slices.Sorted(maps.Keys(c.rootAliases)) {
+		command := c.rootAliases[alias]
+		path := strings.Join(command.buildCommandPath(), " ")
+		fmt.Printf("   %s → %s\n", alias, path)
+	}
+	fmt.Println()
 }
 
 // showHeader displays the command name and description
@@ -66,8 +82,7 @@ func (c *Command) showUsageLine() {
 		fmt.Printf(" [command]")
 	}
 
-	// Add arguments indicator if this command has an action but no subcommands
-	if c.Action != nil && len(c.Commands) == 0 {
+	if c.AcceptsArgs {
 		fmt.Printf(" [arguments...]")
 	}
 

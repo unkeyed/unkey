@@ -77,10 +77,6 @@ export type VirtualTableProps<TTableData> = {
    */
   onRowMouseLeave?: () => void;
   /**
-   * Fixed table height in pixels. Without it the table fills its flex parent on desktop
-   */
-  fixedHeight?: number;
-  /**
    * Expansion support - controlled state of expanded row IDs
    */
   expandedIds?: Set<string | number>;
