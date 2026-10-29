@@ -64,6 +64,7 @@ const historicalInstance = z.object({
   cpuMillicores: z.number(),
   memoryMib: z.number(),
   storageMib: z.number(),
+  lastSeenMs: z.number().int(),
 });
 
 // The deployment ids come from the day rollup, which every resource MV fills
@@ -247,7 +248,8 @@ const HISTORY_QUERY = `
     regions.region AS region,
     cpuMillicores,
     memoryMib,
-    storageMib
+    storageMib,
+    least(observed.bucketMs + toInt64({sourceSec: UInt32}) * 1000, {endMs: Int64}) AS lastSeenMs
   FROM observed
   LEFT JOIN (
     SELECT

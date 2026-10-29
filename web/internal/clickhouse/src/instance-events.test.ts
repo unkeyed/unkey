@@ -45,4 +45,14 @@ describe("getCrashTimeline", () => {
 
     expect(ch.queries[0]).toContain("app_id = {appId: String}");
   });
+
+  it("selects the message only for terminated rows, cut to 500 characters", async () => {
+    const ch = new CapturingQuerier();
+
+    await getCrashTimeline(ch)(request);
+
+    expect(ch.queries[0]).toContain(
+      "if(event_kind = 'terminated', leftUTF8(message, 500), '') AS message",
+    );
+  });
 });

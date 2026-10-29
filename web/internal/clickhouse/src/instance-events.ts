@@ -190,6 +190,7 @@ export const crashTimelineEvent = instanceEvent.pick({
   reason: true,
   exit_code: true,
   event_fingerprint: true,
+  message: true,
 });
 
 export type CrashTimelineEvent = z.infer<typeof crashTimelineEvent>;
@@ -198,7 +199,8 @@ export function getCrashTimeline(ch: Querier) {
   return (args: CrashTimelineRequest) =>
     ch.query({
       query: `
-        SELECT time, pod_name, region, deployment_id, event_kind, reason, exit_code, event_fingerprint
+        SELECT time, pod_name, region, deployment_id, event_kind, reason, exit_code, event_fingerprint,
+          if(event_kind = 'terminated', leftUTF8(message, 500), '') AS message
         FROM ${TABLE}
         WHERE workspace_id = {workspaceId: String}
           AND project_id = {projectId: String}
