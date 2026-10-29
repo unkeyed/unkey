@@ -4,6 +4,7 @@ import (
 	"context"
 
 	unkey "github.com/unkeyed/sdks/api/go/v3"
+	"github.com/unkeyed/sdks/api/go/v3/retry"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/cli/credentials"
 )
@@ -21,6 +22,7 @@ func createClient(ctx context.Context, cmd *cli.Command, keys credentials.RootKe
 
 	opts := []unkey.SDKOption{
 		unkey.WithSecurity(cred.Key),
+		unkey.WithRetryConfig(retry.Config{Strategy: "none", Backoff: nil, RetryConnectionErrors: false}),
 	}
 
 	url := cred.APIURL

@@ -22,6 +22,9 @@ func Confirm(cmd *cli.Command, question string) error {
 		return nil
 	}
 	question = terminalText(question)
+	if cmd.Bool("no-input") {
+		return fmt.Errorf("%s\nconfirmation is disabled by --no-input; use --yes to confirm", question)
+	}
 	if !term.IsTerminal(int(os.Stdin.Fd())) || !term.IsTerminal(int(os.Stderr.Fd())) {
 		return fmt.Errorf("%s\nconfirmation requires a terminal; rerun with --yes to confirm", question)
 	}

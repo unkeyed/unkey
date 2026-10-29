@@ -74,7 +74,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/logs/list-ap
 
 			res, err := client.Logs.ListAPIRequests(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
 			return util.Output(cmd, res.V2LogsListAPIRequestsResponseBody)
 		},

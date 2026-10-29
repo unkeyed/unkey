@@ -18,7 +18,7 @@ func createKeyCmd() *cli.Command {
 
 Use this endpoint when users sign up, upgrade subscription tiers, or need additional keys. Keys are cryptographically secure and unique to the specified API namespace.
 
-Important: The key is returned only once. Store it immediately and provide it to your user, as it cannot be retrieved later.
+Important: Store the returned key securely. Unless you create a recoverable key, the plaintext cannot be retrieved later. Recoverable keys require key encryption and permission to decrypt them.
 
 Common use cases:
 - Generate keys for new user registrations
@@ -78,7 +78,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/cre
 			send := func(req components.V2KeysCreateKeyRequestBody) error {
 				res, err := client.Keys.CreateKey(ctx, req)
 				if err != nil {
-					return fmt.Errorf("%s", util.FormatError(err))
+					return err
 				}
 				return util.Output(cmd, res.V2KeysCreateKeyResponseBody)
 			}

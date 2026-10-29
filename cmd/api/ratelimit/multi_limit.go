@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			send := func(limits []components.V2RatelimitLimitRequestBody) error {
 				res, err := client.Ratelimit.MultiLimit(ctx, limits)
 				if err != nil {
-					return fmt.Errorf("%s", util.FormatError(err))
+					return err
 				}
 				return util.Output(cmd, res.V2RatelimitMultiLimitResponseBody)
 			}
