@@ -393,6 +393,71 @@ func TestGuidedTerminalPolicyMergesCompositeFlag(t *testing.T) {
 	require.Nil(t, request.Name)
 }
 
+func TestGuidedTerminalListSummaryTracksEdits(t *testing.T) {
+	requests := make(chan components.V2KeysUpdateKeyRequestBody, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request components.V2KeysUpdateKeyRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		requests <- request
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(components.V2KeysUpdateKeyResponseBody{
+			Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+		}); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	keyID := uid.New(uid.KeyPrefix)
+	limits := []components.RatelimitRequest{
+		{Name: "requests", Limit: 100, Duration: 60000, AutoApply: new(false)},
+		{Name: "tokens", Limit: 5, Duration: 1000, AutoApply: new(false)},
+	}
+	raw, err := json.Marshal(limits)
+	require.NoError(t, err)
+	out, terminal, err := runGuidedTerminal(t, []string{
+		"keys", "update", "--key-id=" + keyID, "--ratelimits=" + string(raw), "--enabled=false", "--interactive",
+		"--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
+	}, []terminalAnswer{
+		{expect: "Additional settings", answer: "\r"},
+		{expect: "Update key", answer: "\x1b[B\r"},
+		{expect: "Edit or continue", answer: "\x1b[A\x1b[A\r"},
+		{expect: "Change value", answer: "\r"},
+		{expect: "Keep this list", answer: "\x1b[B\x1b[B\r"},
+		{expect: "Remove item", answer: "\x1b[B\r"},
+		{expect: "Keep this list", answer: "\x1b[B\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "Name: tokens")
+			require.NotContains(t, screen, "Name: requests")
+			require.NotContains(t, screen, "Item 2")
+			require.NotContains(t, screen, "Clear (null)")
+		}},
+		{expect: "? Ratelimits #2 › Name ", answer: "events\r"},
+		{expect: "Auto apply", answer: "\r"},
+		{expect: "Duration", answer: "2000\r"},
+		{expect: "Limit", answer: "7\r"},
+		{expect: "Keep this list", answer: "\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "Name: tokens")
+			require.Contains(t, screen, "Name: events")
+			require.NotContains(t, screen, "Name: requests")
+			require.NotContains(t, screen, "Clear (null)")
+		}},
+		{expect: "Edit or continue", answer: "\r"},
+		{expect: "Update key", answer: "\r"},
+	}, terminalSettings{columns: 100, rows: 40})
+	require.NoError(t, err, terminal)
+	require.Len(t, requests, 1)
+	remaining := []components.RatelimitRequest{
+		{Name: "tokens", Limit: 5, Duration: 1000, AutoApply: new(false)},
+		{Name: "events", Limit: 7, Duration: 2000, AutoApply: new(false)},
+	}
+	require.Equal(t, components.V2KeysUpdateKeyRequestBody{
+		KeyID: keyID, Enabled: new(false), Ratelimits: optionalnullable.From(&remaining),
+	}, <-requests)
+	recordGuided(t, "list-summary", terminal, out)
+}
+
 func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 	requests := make(chan components.V2ProjectsCreateProjectRequestBody, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
