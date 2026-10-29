@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/apierrors"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -12,20 +13,30 @@ import (
 )
 
 func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema *Schema, values map[string]any, array, needsChanges bool) cli.Action {
-	return func(ctx context.Context, cmd *cli.Command) error {
+	return func(ctx context.Context, cmd *cli.Command) (err error) {
+		if f.screen != nil {
+			defer func() { err = errors.Join(err, f.screen.finish()) }()
+		}
 		for {
+			if f.screen != nil {
+				if err := f.screen.finish(); err != nil {
+					return err
+				}
+			}
 			err := action(ctx, cmd)
 			problem, ok := errors.AsType[*apierrors.BadRequestErrorResponse](err)
 			if !ok || problem.Error_.Type != codes.App.Validation.InvalidInput.DocsURL() || len(problem.Error_.Errors) == 0 {
 				return err
 			}
-			if _, writeErr := fmt.Fprintln(f.out, "The API rejected the input. Your answers are kept for this session."); writeErr != nil {
-				return writeErr
-			}
+			var notice strings.Builder
+			fmt.Fprintln(&notice, "The API rejected the input. Your answers are kept for this session.")
 			for _, field := range problem.Error_.Errors {
-				if _, writeErr := fmt.Fprintf(f.out, "  Check %s\n", terminalSafe(field.Location)); writeErr != nil {
-					return writeErr
-				}
+				fmt.Fprintf(&notice, "  Check %s\n", terminalSafe(field.Location))
+			}
+			if f.screen != nil {
+				f.screen.notice = notice.String()
+			} else if _, writeErr := fmt.Fprint(f.out, notice.String()); writeErr != nil {
+				return writeErr
 			}
 			choice, promptErr := f.prompt.SelectOrdered("Correct the request?", []prompt.SelectOption{
 				{Key: "cancel", Label: "Cancel"}, {Key: "edit", Label: "Edit saved answers"},

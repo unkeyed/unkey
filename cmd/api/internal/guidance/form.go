@@ -25,6 +25,7 @@ type questions interface {
 type form struct {
 	prompt    questions
 	out       io.Writer
+	screen    *terminalForm
 	pick      func(context.Context, *form, string, map[string]any) (string, bool, error)
 	conflicts map[string][]string
 }
