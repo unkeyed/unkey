@@ -262,3 +262,12 @@ func TestFieldProblemNamesFieldOnce(t *testing.T) {
 	require.Equal(t, "Display name: must be at most 256 characters", fieldProblem("body.displayName", "must be at most 256 characters"))
 	require.Equal(t, "Invalid input.", fieldProblem("", "Invalid input."))
 }
+
+func TestWrapWordsBreaksAtSpacesAndKeepsStyle(t *testing.T) {
+	head, rest := wrapWords("\x1b[31m✗\x1b[0m grant that permission", 14)
+	require.Equal(t, "\x1b[31m✗\x1b[0m grant that", head)
+	require.Equal(t, "permission", rest)
+	head, rest = wrapWords("\x1b[36mproj_demo7Hq2Xc9\x1b[0m", 8)
+	require.Equal(t, "\x1b[36mproj_dem\x1b[0m", head)
+	require.Equal(t, "\x1b[36mo7Hq2Xc9\x1b[0m", rest)
+}

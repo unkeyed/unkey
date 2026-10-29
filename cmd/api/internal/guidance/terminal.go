@@ -376,7 +376,7 @@ func (f *terminalForm) draw(controls []string, row, column int) error {
 	if content := f.content(); content != "" {
 		for _, line := range strings.Split(content, "\n") {
 			for visibleWidth(line) > width {
-				part, rest := splitColumns(line, width)
+				part, rest := wrapWords(line, width)
 				lines = append(lines, part)
 				line = "  " + rest
 			}
@@ -435,6 +435,18 @@ var (
 
 func visibleWidth(text string) int {
 	return uniseg.StringWidth(escapeSequences.ReplaceAllString(text, ""))
+}
+
+// wrapWords cuts styled text at the last space within width, or after width columns if there is none.
+func wrapWords(text string, width int) (string, string) {
+	head, rest := splitColumns(text, width)
+	plain := escapeSequences.ReplaceAllString(head, "")
+	space := strings.LastIndex(plain, " ")
+	if space < 0 || strings.TrimSpace(plain[:space]) == "" {
+		return head, rest
+	}
+	head, rest = splitColumns(text, uniseg.StringWidth(plain[:space]))
+	return head, strings.Replace(rest, " ", "", 1)
 }
 
 // splitColumns cuts styled text after width columns and carries any open style into the rest.
