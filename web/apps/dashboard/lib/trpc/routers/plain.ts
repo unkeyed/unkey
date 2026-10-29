@@ -15,6 +15,10 @@ export const createPlainIssue = workspaceProcedure
       issueType,
       severity,
       message: z.string().min(20, "Feedback must contain at least 20 characters"),
+      pathname: z
+        .string()
+        .regex(/^\/[^?#]*$/)
+        .optional(),
     }),
   )
   .mutation(async ({ input, ctx }) => {
@@ -95,6 +99,18 @@ export const createPlainIssue = workspaceProcedure
             }),
           ],
         }),
+        uiComponent.row({
+          mainContent: [
+            uiComponent.plainText({ text: `Workspace ID: ${ctx.workspace.id}`, color: "MUTED" }),
+          ],
+          asideContent: [
+            uiComponent.copyButton({
+              value: ctx.workspace.id,
+              tooltip: "Copy Workspace ID",
+            }),
+          ],
+        }),
+        ...(input.pathname ? [uiComponent.plainText({ text: `Page: ${input.pathname}` })] : []),
       ],
       labelTypeIds: [issueToId[input.issueType]],
     });
