@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/apierrors"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -29,9 +31,10 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 				return err
 			}
 			var notice strings.Builder
-			fmt.Fprintln(&notice, "The API rejected the request. Your answers are kept.")
+			first, size := utf8.DecodeRuneInString(cmd.Usage)
+			fmt.Fprintf(&notice, "✗ Couldn't %c%s\n", unicode.ToLower(first), cmd.Usage[size:])
 			for _, field := range problem.Error_.Errors {
-				fmt.Fprintf(&notice, "  %s: %s\n", terminalSafe(field.Location), terminalSafe(field.Message))
+				fmt.Fprintf(&notice, "  %s\n", fieldProblem(field.Location, field.Message))
 			}
 			var sections []section
 			if f.screen != nil {
@@ -40,11 +43,11 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 			} else if _, writeErr := fmt.Fprint(f.out, notice.String()); writeErr != nil {
 				return writeErr
 			}
-			choice, promptErr := f.prompt.SelectOrdered("Correct the request?", []prompt.SelectOption{
-				{Key: "cancel", Label: "Cancel"}, {Key: "edit", Label: "Edit saved answers"},
+			choice, promptErr := f.prompt.SelectOrdered("Edit your answers and try again?", []prompt.SelectOption{
+				{Key: "cancel", Label: "Cancel"}, {Key: "edit", Label: "Edit answers"},
 			})
 			if promptErr != nil {
-				return cancelled(promptErr, "cancelled; the corrected request was not sent")
+				return cancelled(promptErr, "cancelled; no request was sent")
 			}
 			if choice != "edit" {
 				return err
@@ -57,20 +60,20 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 			}
 			for {
 				if err := f.review(ctx, schema, values, "", needsChanges); err != nil {
-					return cancelled(err, "cancelled; the corrected request was not sent")
+					return cancelled(err, "cancelled; no request was sent")
 				}
 				updated, err := requestJSON(values, array)
 				if err != nil {
 					return err
 				}
 				if string(updated) == body.Value() {
-					if _, err := fmt.Fprintln(f.out, "Change the rejected input before sending again."); err != nil {
+					if _, err := fmt.Fprintln(f.out, "Nothing changed. Edit the rejected field first."); err != nil {
 						return err
 					}
 					continue
 				}
 				if err := f.confirm(ctx, schema, values, cmd.Usage, needsChanges); err != nil {
-					return cancelled(err, "cancelled; the corrected request was not sent")
+					return cancelled(err, "cancelled; no request was sent")
 				}
 				updated, err = requestJSON(values, array)
 				if err != nil {
@@ -86,4 +89,14 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 			}
 		}
 	}
+}
+
+// fieldProblem names the rejected field unless the API message already starts with it.
+func fieldProblem(location, message string) string {
+	name := label(strings.TrimPrefix(terminalSafe(location), "body."))
+	message = terminalSafe(message)
+	if location == "" || strings.HasPrefix(strings.ToLower(message), strings.ToLower(name)) {
+		return message
+	}
+	return name + ": " + message
 }

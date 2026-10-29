@@ -110,7 +110,7 @@ func (f *terminalForm) content() string {
 			case strings.HasPrefix(line, " "):
 				content.WriteString(line + "\n")
 			default:
-				content.WriteString(f.palette.problem("✗ "+line) + "\n")
+				content.WriteString(f.palette.problem("✗") + " " + strings.TrimPrefix(line, "✗ ") + "\n")
 			}
 		}
 	}

@@ -532,15 +532,15 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 		{expect: "? Name ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service) ", answer: "\r"},
 		{expect: "Create project", answer: "\r"},
-		{expect: "Edit saved answers", answer: "\x1b[B\r"},
+		{expect: "Edit answers", answer: "\x1b[B\r"},
 		{expect: "Continue", answer: "\r"},
-		{expect: "Change the rejected input", answer: "\x1b[B\x1b[B\r"},
+		{expect: "Nothing changed", answer: "\x1b[B\x1b[B\r"},
 		{expect: "? Slug (demo-service) ", answer: "demo-service-fixed\r", check: func(t *testing.T, screen string) {
-			require.Contains(t, screen, "body.slug: Use a different slug.")
-			require.Contains(t, screen, "✗ The API rejected the request")
+			require.Contains(t, screen, "  Slug: Use a different slug.")
+			require.Contains(t, screen, "✗ Couldn't create project")
 			require.NotContains(t, screen, "? Name")
-			require.NotContains(t, screen, "Edit saved answers")
-			require.NotContains(t, screen, "Correct the request?")
+			require.NotContains(t, screen, "Edit answers")
+			require.NotContains(t, screen, "Edit your answers and try again?")
 		}},
 		{expect: "Continue", answer: "\r"},
 		{expect: "Create project", answer: "\x1b[B\r"},
@@ -563,7 +563,7 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 		{expect: "? Name ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service) ", answer: "\r"},
 		{expect: "Create project", answer: "\r"},
-		{expect: "Edit saved answers", answer: "\r"},
+		{expect: "Edit answers", answer: "\r"},
 	})
 	require.Error(t, err)
 	require.Empty(t, out)
@@ -574,7 +574,7 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 		{expect: "? Name ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service) ", answer: "\r"},
 		{expect: "Create project", answer: "\r"},
-		{expect: "Edit saved answers", answer: "\x1b[B\r"},
+		{expect: "Edit answers", answer: "\x1b[B\r"},
 		{expect: "Edit Slug", answer: "\x1b[B\x1b[B\r"},
 		{expect: "? Slug (demo-service) ", answer: "demo-service-fixed\r"},
 		{expect: "Continue", answer: "\r"},
@@ -589,7 +589,7 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 	require.Error(t, err)
 	require.Empty(t, out)
 	require.Len(t, requests, 1)
-	require.NotContains(t, terminal, "Edit saved answers")
+	require.NotContains(t, terminal, "Edit answers")
 }
 
 func TestGuidedTerminalDoesNotRetryOtherFailures(t *testing.T) {
@@ -621,7 +621,7 @@ func TestGuidedTerminalDoesNotRetryOtherFailures(t *testing.T) {
 			require.Error(t, err)
 			require.Empty(t, out)
 			require.Equal(t, int64(1), requests.Load())
-			require.NotContains(t, terminal, "Edit saved answers")
+			require.NotContains(t, terminal, "Edit answers")
 		})
 	}
 }

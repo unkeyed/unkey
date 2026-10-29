@@ -122,7 +122,7 @@ func TestResourcePickerListFailureFallsBackWithoutLeakingResponse(t *testing.T) 
 	require.True(t, handled)
 	require.Equal(t, id, value)
 	require.Empty(t, script.answers)
-	require.Contains(t, output.String(), "enter the ID manually")
+	require.Contains(t, output.String(), "Enter the ID instead")
 	require.NotContains(t, output.String(), secret)
 	require.NotContains(t, output.String(), "\x1b")
 }

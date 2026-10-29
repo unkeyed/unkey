@@ -165,7 +165,7 @@ func resourceFallback(ctx context.Context, f *form, field string) (string, error
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	if _, err := fmt.Fprintln(f.out, "Could not load choices. Listing may require additional permission; enter the ID manually."); err != nil {
+	if _, err := fmt.Fprintln(f.out, "Couldn't load the list. Your key may lack list permission. Enter the ID instead."); err != nil {
 		return "", err
 	}
 	return manualResource(ctx, f, field)
