@@ -82,7 +82,7 @@ export function CliSessions({ owners }: { owners: CliSessionOwner[] }) {
     <PageContainer>
       <PageHeader className="max-w-[920px]">
         <PageHeaderContent>
-          <PageHeaderTitle>CLI sessions</PageHeaderTitle>
+          <PageHeaderTitle>Sessions</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <PageBody className="max-w-[920px]">
@@ -112,7 +112,7 @@ function CliSessionResults({
   const revoke = useMutation({
     mutationFn: revokeCliSession,
     async onSuccess() {
-      toast.success("CLI session revoked.");
+      toast.success("Session revoked.");
       await queryClient.invalidateQueries({ queryKey });
     },
     onError(error) {
@@ -151,12 +151,7 @@ function CliSessionResults({
         .with({ status: "loading" }, () => <CliSessionsSkeleton />)
         .with({ status: "failed" }, ({ error, retry }) => (
           <ItemGroup variant="outline">
-            <LoadError
-              title="Could not load CLI sessions"
-              error={error}
-              frame="none"
-              onRetry={retry}
-            />
+            <LoadError title="Could not load sessions" error={error} frame="none" onRetry={retry} />
           </ItemGroup>
         ))
         .with({ status: "empty" }, () => <CliSessionsEmpty />)
@@ -172,7 +167,7 @@ function CliSessionResults({
               "bg-gray-8",
               rows.filter((session) => sessionState(session) !== "active"),
             )}
-            <ListPager state={footer} noun="CLI sessions" />
+            <ListPager state={footer} noun="sessions" />
           </>
         ))
         .exhaustive()}
@@ -338,7 +333,7 @@ const SKELETON_ROWS = ["first", "second", "third"] as const;
 function CliSessionsSkeleton() {
   return (
     <ItemGroup variant="outline" aria-busy="true">
-      <output className="sr-only">Loading CLI sessions...</output>
+      <output className="sr-only">Loading sessions...</output>
       <div aria-hidden="true">
         {SKELETON_ROWS.map((row, index) => (
           <Fragment key={row}>
@@ -366,7 +361,7 @@ function CliSessionsEmpty() {
           <IconTerminalOutline18 />
         </EmptyStateIcon>
         <EmptyStateHeader>
-          <EmptyStateTitle>No CLI sessions yet</EmptyStateTitle>
+          <EmptyStateTitle>No sessions yet</EmptyStateTitle>
           <EmptyStateDescription>
             Run{" "}
             <code className="rounded-md bg-grayA-3 px-1.5 py-0.5 font-mono text-xs text-gray-12">
