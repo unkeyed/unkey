@@ -178,6 +178,62 @@ func TestGuidedTerminalSearchAndPlainList(t *testing.T) {
 	recordGuided(t, "search-after", terminal, out)
 }
 
+func TestGuidedTerminalPickerSearchPaginationAndDeleteCancellation(t *testing.T) {
+	requests := make(chan components.V2ProjectsListProjectsRequestBody, 3)
+	mutations := make(chan string, 1)
+	projectID := uid.New(uid.ProjectPrefix)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/projects.listProjects" {
+			mutations <- r.URL.Path
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		var request components.V2ProjectsListProjectsRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		requests <- request
+		response := components.V2ProjectsListProjectsResponseBody{
+			Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+			Data: []components.Project{}, Pagination: components.Pagination{HasMore: false},
+		}
+		if request.Search != nil && request.Cursor == nil {
+			response.Pagination = components.Pagination{HasMore: true, Cursor: new("demo-next-page")}
+		}
+		if request.Cursor != nil {
+			response.Data = []components.Project{{ID: projectID, Name: "Demo Service", Slug: "demo-service"}}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	out, terminal, err := runGuidedTerminal(t, []string{
+		"projects", "delete", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
+	}, []terminalAnswer{
+		{expect: "Browse existing resources", answer: "\r"},
+		{expect: "No resources found", answer: "\r"},
+		{expect: "Search: ", answer: "Demo\r"},
+		{expect: "Next page", answer: "\x1b[B\r"},
+		{expect: "Demo Service (", answer: "\r"},
+		{expect: "[y/N]: ", answer: "n\r"},
+	})
+	require.Error(t, err)
+	require.Empty(t, out)
+	require.Contains(t, terminal, "cancelled")
+	require.Nil(t, (<-requests).Search)
+	searched := <-requests
+	require.Equal(t, new("Demo"), searched.Search)
+	require.Nil(t, searched.Cursor)
+	page := <-requests
+	require.Equal(t, new("Demo"), page.Search)
+	require.Equal(t, new("demo-next-page"), page.Cursor)
+	require.Empty(t, mutations)
+	recordGuided(t, "picker-cancel-after", terminal, out)
+}
+
 func TestGuidedTerminalSecretIsHiddenAndPreserved(t *testing.T) {
 	requests := make(chan components.V2KeysVerifyKeyRequestBody, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
