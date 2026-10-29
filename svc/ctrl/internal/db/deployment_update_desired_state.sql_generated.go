@@ -32,7 +32,11 @@ type UpdateDeploymentDesiredStateParams struct {
 }
 
 // UpdateDeploymentDesiredState changes intent and notifies every regional stream
-// atomically. Advancing topology timestamps preserves repeated stop/wake delivery.
+// atomically. Ctrl watches deployment_topology, not deployments, to notify Krane.
+// Updating deployment intent alone would not notify those streams. The topology
+// timestamp must advance even for repeated requests in the same millisecond.
+// This does not write the legacy topology desired_status column. Remove the
+// timestamp write only when the stream also watches deployment intent directly.
 // Explicit running intent resets unsuccessful outcomes before readers see it.
 //
 //	UPDATE deployments d
