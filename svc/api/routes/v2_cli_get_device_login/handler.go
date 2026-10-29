@@ -6,7 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -14,7 +14,7 @@ type Request = openapi.V2CliGetDeviceLoginRequestBody
 type Response = openapi.V2CliGetDeviceLoginResponseBody
 
 type Handler struct {
-	Devices *clidevice.Service
+	Grants *grant.Service
 }
 
 func (h *Handler) Method() string { return http.MethodPost }
@@ -26,7 +26,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	if _, err := clidevice.RequireDashboardSession(p); err != nil {
+	if _, err := grant.RequireDashboardSession(p); err != nil {
 		return err
 	}
 
@@ -35,7 +35,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	authz, err := h.Devices.Get(ctx, clidevice.GetRequest{
+	authz, err := h.Grants.Get(ctx, grant.GetRequest{
 		Principal: p,
 		UserCode:  req.UserCode,
 	})

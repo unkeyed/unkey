@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
+	"github.com/unkeyed/unkey/svc/api/internal/grant/granttest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_start_device_login"
@@ -23,7 +23,7 @@ func withClientIP(ip string) http.Header {
 
 func TestStartRecordsTheRequester(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{Devices: clidevicetest.New(h)}
+	route := &handler.Handler{Grants: granttest.New(h)}
 	h.Register(route, h.PublicMiddleware()...)
 
 	deviceName := "laptop"
@@ -43,7 +43,7 @@ func TestStartRecordsTheRequester(t *testing.T) {
 
 func TestStartIsRateLimitedPerIP(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{Devices: clidevicetest.New(h)}
+	route := &handler.Handler{Grants: granttest.New(h)}
 	h.Register(route, h.PublicMiddleware()...)
 
 	headers := withClientIP("203.0.113.21")
@@ -57,7 +57,7 @@ func TestStartIsRateLimitedPerIP(t *testing.T) {
 
 func TestStartWithoutConfigurationIsUnavailable(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{Devices: &clidevice.Service{DB: h.DB, Clock: h.Clock}}
+	route := &handler.Handler{Grants: &grant.Service{DB: h.DB, Clock: h.Clock}}
 	h.Register(route, h.PublicMiddleware()...)
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, jsonHeaders, handler.Request{DeviceName: nil})

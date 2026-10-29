@@ -22,7 +22,7 @@ import (
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -142,5 +142,5 @@ type Services struct {
 	// those handlers report the repo-connection feature as unavailable.
 	GitHubClient githubclient.GitHubClient
 
-	CLIDevice *clidevice.Service
+	Grants *grant.Service
 }

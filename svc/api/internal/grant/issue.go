@@ -1,4 +1,4 @@
-package clidevice
+package grant
 
 import (
 	"bytes"

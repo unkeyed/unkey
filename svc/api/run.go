@@ -59,7 +59,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/pkg/zen/validation"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes"
 )
@@ -434,7 +434,7 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unsupported auth config at auth[%d]", i)
 		}
 	}
-	var cliMemberships clidevice.Memberships
+	var cliMemberships grant.Memberships
 	if key := strings.TrimSpace(cfg.CLIAuth.WorkOSAPIKey); key != "" {
 		cliMemberships = workos.New(key, cfg.CLIAuth.WorkOSAPIBaseURL)
 	}
@@ -442,7 +442,7 @@ func Run(ctx context.Context, cfg Config) error {
 	for _, secret := range cfg.CLIAuth.SigningSecrets {
 		cliSecrets = append(cliSecrets, []byte(secret))
 	}
-	cliService := &clidevice.Service{
+	cliService := &grant.Service{
 		DB:               database,
 		Auditlogs:        auditlogSvc,
 		Clock:            clk,
@@ -450,7 +450,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Memberships:      cliMemberships,
 		DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
 		Signer:           nil,
-		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
+		SessionCache:     cache.NewNoopCache[string, grant.SessionVerdict](),
 	}
 	if len(cliSecrets) > 0 {
 		cliSigner, signErr := tokenjwt.NewHS256Signer[clisession.Claims](cliSecrets[0])
@@ -458,7 +458,7 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create cli access token signer: %w", signErr)
 		}
 		cliService.Signer = cliSigner
-		sessionCache, cacheErr := cache.New[string, clidevice.SessionVerdict](cache.Config[string, clidevice.SessionVerdict]{
+		sessionCache, cacheErr := cache.New[string, grant.SessionVerdict](cache.Config[string, grant.SessionVerdict]{
 			Fresh:     10 * time.Second,
 			Stale:     10 * time.Second,
 			MaxSize:   10_000,
@@ -594,7 +594,7 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHubAppName:              cfg.GitHub.AppName,
 		GitHubPrivateKeyPEM:        cfg.GitHub.PrivateKeyPEM,
 		GitHubClient:               githubClient,
-		CLIDevice:                  cliService,
+		Grants:                     cliService,
 	},
 		zen.InstanceInfo{
 			ID:     cfg.InstanceID,

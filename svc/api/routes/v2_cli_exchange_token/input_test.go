@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
+	"github.com/unkeyed/unkey/svc/api/internal/grant/granttest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_exchange_token"
@@ -16,7 +16,7 @@ import (
 
 func TestExchangeRejectsInvalidCredentialsOverHTTP(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{Devices: clidevicetest.New(h)}
+	route := &handler.Handler{Grants: granttest.New(h)}
 	h.Register(route, h.PublicMiddleware()...)
 	cases := []struct {
 		name string

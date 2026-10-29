@@ -11,8 +11,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth/workos"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
+	"github.com/unkeyed/unkey/svc/api/internal/grant/granttest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_list_sessions"
@@ -20,8 +20,8 @@ import (
 
 func TestListSessionsWithoutBodyOrContentType(t *testing.T) {
 	h := testutil.NewHarness(t)
-	devices := clidevicetest.New(h)
-	route := &handler.Handler{Devices: devices}
+	devices := granttest.New(h)
+	route := &handler.Handler{Grants: devices}
 	workspace := h.Resources().UserWorkspace
 	p := &principal.Principal{
 		Version:               principal.Version,
@@ -37,15 +37,15 @@ func TestListSessionsWithoutBodyOrContentType(t *testing.T) {
 			return next(ctx, session)
 		}
 	})...)
-	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.80"})
+	started, err := devices.Start(t.Context(), grant.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.80"})
 	require.NoError(t, err)
 	permissions := []string{"unkey:v1:" + workspace.ID + ":rootKeys/*#read"}
-	require.NoError(t, devices.Approve(t.Context(), clidevice.ApproveRequest{
+	require.NoError(t, devices.Approve(t.Context(), grant.ApproveRequest{
 		Principal:   p,
 		UserCode:    started.UserCode,
 		Permissions: permissions,
 	}))
-	tokens, err := devices.Poll(t.Context(), clidevice.PollRequest{LoginID: started.LoginID, RemoteIP: "203.0.113.81"})
+	tokens, err := devices.Poll(t.Context(), grant.PollRequest{LoginID: started.LoginID, RemoteIP: "203.0.113.81"})
 	require.NoError(t, err)
 	req := httptest.NewRequest(route.Method(), route.Path(), nil)
 	req.Header.Set("Authorization", "Bearer "+uid.New(uid.TestPrefix))
@@ -59,7 +59,7 @@ func TestListSessionsWithoutBodyOrContentType(t *testing.T) {
 
 func TestBodylessListSessionsRejectsRootKeysAndInvalidBearers(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{Devices: clidevicetest.New(h)}
+	route := &handler.Handler{Grants: granttest.New(h)}
 	h.Register(route)
 	workspace := h.Resources().UserWorkspace
 	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#read")

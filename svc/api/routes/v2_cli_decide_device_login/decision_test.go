@@ -14,8 +14,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
+	"github.com/unkeyed/unkey/svc/api/internal/grant/granttest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_decide_device_login"
@@ -25,7 +25,7 @@ import (
 func TestDecisionRejectsInvalidInputOverHTTP(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspaceID := h.Resources().UserWorkspace.ID
-	route := &handler.Handler{Devices: clidevicetest.New(h)}
+	route := &handler.Handler{Grants: granttest.New(h)}
 	h.Register(route)
 	rootKey := h.CreateRootKey(workspaceID)
 	cases := []struct {
@@ -56,7 +56,7 @@ func TestDecisionRejectsInvalidInputOverHTTP(t *testing.T) {
 
 func TestUserCodeRoutesShareTheUserBudget(t *testing.T) {
 	h := testutil.NewHarness(t)
-	devices := clidevicetest.New(h)
+	devices := granttest.New(h)
 	limiter := ratelimit.NewLocal(h.Clock)
 	t.Cleanup(func() { require.NoError(t, limiter.Close()) })
 	devices.Ratelimit = limiter
@@ -77,11 +77,11 @@ func TestUserCodeRoutesShareTheUserBudget(t *testing.T) {
 			return next(ctx, session)
 		}
 	})
-	get := &gethandler.Handler{Devices: devices}
-	decide := &handler.Handler{Devices: devices}
+	get := &gethandler.Handler{Grants: devices}
+	decide := &handler.Handler{Grants: devices}
 	h.Register(get, middlewares...)
 	h.Register(decide, middlewares...)
-	started, err := devices.Start(t.Context(), clidevice.StartRequest{RemoteIP: clientIP.String()})
+	started, err := devices.Start(t.Context(), grant.StartRequest{RemoteIP: clientIP.String()})
 	require.NoError(t, err)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -117,8 +117,8 @@ func TestDecisionApprovesOrDeniesTheLogin(t *testing.T) {
 	for _, decision := range []openapi.V2CliDecideDeviceLoginRequestBodyDecision{"approve", "deny"} {
 		t.Run(string(decision), func(t *testing.T) {
 			h := testutil.NewHarness(t)
-			devices := clidevicetest.New(h)
-			route := &handler.Handler{Devices: devices}
+			devices := granttest.New(h)
+			route := &handler.Handler{Grants: devices}
 			workspace := h.Resources().UserWorkspace
 			p := &principal.Principal{
 				Version:               principal.Version,
@@ -134,7 +134,7 @@ func TestDecisionApprovesOrDeniesTheLogin(t *testing.T) {
 					return next(ctx, session)
 				}
 			})...)
-			started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.60"})
+			started, err := devices.Start(t.Context(), grant.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.60"})
 			require.NoError(t, err)
 			req := handler.Request{UserCode: started.UserCode, Decision: decision}
 			if decision == "approve" {
@@ -145,13 +145,13 @@ func TestDecisionApprovesOrDeniesTheLogin(t *testing.T) {
 				"Authorization": {"Bearer " + uid.New(uid.TestPrefix)},
 			}, req)
 			require.Equal(t, http.StatusOK, res.Status, res.RawBody)
-			result, err := devices.Poll(t.Context(), clidevice.PollRequest{LoginID: started.LoginID, RemoteIP: "203.0.113.61"})
+			result, err := devices.Poll(t.Context(), grant.PollRequest{LoginID: started.LoginID, RemoteIP: "203.0.113.61"})
 			require.NoError(t, err)
 			if decision == "approve" {
-				require.Equal(t, clidevice.PollComplete, result.Status)
+				require.Equal(t, grant.PollComplete, result.Status)
 				require.NotEmpty(t, result.AccessToken)
 			} else {
-				require.Equal(t, clidevice.PollDenied, result.Status)
+				require.Equal(t, grant.PollDenied, result.Status)
 				require.Empty(t, result.AccessToken)
 			}
 		})

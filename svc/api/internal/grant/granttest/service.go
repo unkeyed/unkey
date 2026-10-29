@@ -1,5 +1,5 @@
-// Package clidevicetest builds a [clidevice.Service] for route tests.
-package clidevicetest
+// Package granttest builds a [grant.Service] for route tests.
+package granttest
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/cache"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -20,12 +20,12 @@ func (allowAdmin) ActiveRoles(context.Context, string, string) ([]string, bool, 
 }
 
 // New returns a service that treats every user as an admin member.
-func New(h *testutil.Harness) *clidevice.Service {
+func New(h *testutil.Harness) *grant.Service {
 	signer, err := tokenjwt.NewHS256Signer[clisession.Claims]([]byte(signingSecret))
 	if err != nil {
 		panic(err)
 	}
-	return &clidevice.Service{
+	return &grant.Service{
 		DB:               h.DB,
 		Auditlogs:        h.Auditlogs,
 		Clock:            h.Clock,
@@ -33,6 +33,6 @@ func New(h *testutil.Harness) *clidevice.Service {
 		Memberships:      allowAdmin{},
 		DashboardBaseURL: "http://dashboard.test",
 		Signer:           signer,
-		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
+		SessionCache:     cache.NewNoopCache[string, grant.SessionVerdict](),
 	}
 }

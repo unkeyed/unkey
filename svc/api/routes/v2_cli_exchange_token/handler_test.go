@@ -11,8 +11,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
+	"github.com/unkeyed/unkey/svc/api/internal/grant/granttest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_exchange_token"
@@ -28,10 +28,10 @@ func withClientIP(ip string) http.Header {
 
 func TestPollWaitsUntilTheLoginIsApproved(t *testing.T) {
 	h := testutil.NewHarness(t)
-	devices := clidevicetest.New(h)
-	route := &handler.Handler{Devices: devices}
+	devices := granttest.New(h)
+	route := &handler.Handler{Grants: devices}
 	h.Register(route, h.PublicMiddleware()...)
-	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.40", UserAgent: ""})
+	started, err := devices.Start(t.Context(), grant.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.40", UserAgent: ""})
 	require.NoError(t, err)
 
 	res := testutil.CallRoute[handler.Request, openapi.V2CliExchangeTokenPendingResponseBody](h, route, withClientIP("203.0.113.41"), handler.Request{LoginId: &started.LoginID})
@@ -46,7 +46,7 @@ func TestPollWaitsUntilTheLoginIsApproved(t *testing.T) {
 
 func TestPollRejectsAnUnknownLogin(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{Devices: clidevicetest.New(h)}
+	route := &handler.Handler{Grants: granttest.New(h)}
 	h.Register(route, h.PublicMiddleware()...)
 
 	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, withClientIP("203.0.113.42"), handler.Request{LoginId: new(uid.New(uid.DeviceAuthorizationPrefix))})
@@ -55,12 +55,12 @@ func TestPollRejectsAnUnknownLogin(t *testing.T) {
 
 func TestPollReturnsForbiddenWhenLoginIsDenied(t *testing.T) {
 	h := testutil.NewHarness(t)
-	devices := clidevicetest.New(h)
-	route := &handler.Handler{Devices: devices}
+	devices := granttest.New(h)
+	route := &handler.Handler{Grants: devices}
 	h.Register(route, h.PublicMiddleware()...)
-	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.43"})
+	started, err := devices.Start(t.Context(), grant.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.43"})
 	require.NoError(t, err)
-	require.NoError(t, devices.Deny(t.Context(), clidevice.DenyRequest{
+	require.NoError(t, devices.Deny(t.Context(), grant.DenyRequest{
 		Principal: &principal.Principal{
 			Version:               principal.Version,
 			Type:                  principal.TypeJWT,
@@ -83,10 +83,10 @@ func TestPollReturnsForbiddenWhenLoginIsDenied(t *testing.T) {
 
 func TestPollReturnsGoneWhenLoginExpires(t *testing.T) {
 	h := testutil.NewHarness(t)
-	devices := clidevicetest.New(h)
-	route := &handler.Handler{Devices: devices}
+	devices := granttest.New(h)
+	route := &handler.Handler{Grants: devices}
 	h.Register(route, h.PublicMiddleware()...)
-	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.45"})
+	started, err := devices.Start(t.Context(), grant.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.45"})
 	require.NoError(t, err)
 	h.Clock.Tick(time.Duration(started.ExpiresIn) * time.Second)
 

@@ -1,4 +1,4 @@
-package clidevice
+package grant
 
 import "github.com/unkeyed/unkey/pkg/auth/principal"
 

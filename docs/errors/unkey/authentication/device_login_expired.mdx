@@ -4,8 +4,8 @@ description: "The CLI device login expired before token exchange completed."
 sources:
   - pkg/codes/unkey_auth.go
   - svc/api/routes/v2_cli_exchange_token/handler.go
-  - svc/api/internal/clidevice/service.go
-  - svc/api/internal/clidevice/issue.go
+  - svc/api/internal/grant/service.go
+  - svc/api/internal/grant/issue.go
   - svc/api/internal/middleware/errors.go
   - cmd/auth/login/device.go
 ---

@@ -6,7 +6,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -14,7 +14,7 @@ type Request = openapi.V2CliStartDeviceLoginRequestBody
 type Response = openapi.V2CliStartDeviceLoginResponseBody
 
 type Handler struct {
-	Devices *clidevice.Service
+	Grants *grant.Service
 }
 
 func (h *Handler) Method() string { return http.MethodPost }
@@ -27,7 +27,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	started, err := h.Devices.Start(ctx, clidevice.StartRequest{
+	started, err := h.Grants.Start(ctx, grant.StartRequest{
 		DeviceName: ptr.SafeDeref(req.DeviceName),
 		RemoteIP:   s.Location(),
 		UserAgent:  s.UserAgent(),

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
-	"github.com/unkeyed/unkey/svc/api/internal/clidevice/clidevicetest"
+	"github.com/unkeyed/unkey/svc/api/internal/grant"
+	"github.com/unkeyed/unkey/svc/api/internal/grant/granttest"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_cli_decide_device_login"
@@ -14,10 +14,10 @@ import (
 
 func TestDenyRequiresADashboardSession(t *testing.T) {
 	h := testutil.NewHarness(t)
-	devices := clidevicetest.New(h)
-	route := &handler.Handler{Devices: devices}
+	devices := granttest.New(h)
+	route := &handler.Handler{Grants: devices}
 	h.Register(route)
-	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.51", UserAgent: ""})
+	started, err := devices.Start(t.Context(), grant.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.51", UserAgent: ""})
 	require.NoError(t, err)
 
 	workspace := h.Resources().UserWorkspace
@@ -30,7 +30,7 @@ func TestDenyRequiresADashboardSession(t *testing.T) {
 
 func TestDenyRejectsAnInvalidBearer(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{Devices: clidevicetest.New(h)}
+	route := &handler.Handler{Grants: granttest.New(h)}
 	h.Register(route)
 
 	res := testutil.CallRoute[handler.Request, openapi.UnauthorizedErrorResponse](h, route, http.Header{

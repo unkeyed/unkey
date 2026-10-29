@@ -658,12 +658,12 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		},
 	)
 
-	srv.RegisterRoute(publicMiddlewares, &v2CliStartDeviceLogin.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(publicMiddlewares, &v2CliExchangeToken.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(protectedMiddlewares, &v2CliGetDeviceLogin.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(protectedMiddlewares, &v2CliDecideDeviceLogin.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(protectedMiddlewares, &v2CliListSessions.Handler{Devices: svc.CLIDevice})
-	srv.RegisterRoute(protectedMiddlewares, &v2CliRevokeSession.Handler{Devices: svc.CLIDevice})
+	srv.RegisterRoute(publicMiddlewares, &v2CliStartDeviceLogin.Handler{Grants: svc.Grants})
+	srv.RegisterRoute(publicMiddlewares, &v2CliExchangeToken.Handler{Grants: svc.Grants})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliGetDeviceLogin.Handler{Grants: svc.Grants})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliDecideDeviceLogin.Handler{Grants: svc.Grants})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliListSessions.Handler{Grants: svc.Grants})
+	srv.RegisterRoute(protectedMiddlewares, &v2CliRevokeSession.Handler{Grants: svc.Grants})
 
 	// ---------------------------------------------------------------------------
 	// v2/keys
