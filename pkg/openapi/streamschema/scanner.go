@@ -10,9 +10,7 @@ import (
 )
 
 const (
-	// bufferBytes is the size of the read buffer. It is also the most input
-	// processed between two context checks.
-	bufferBytes = 32 << 10
+	bufferBytesMax = 32 << 10
 	// readsEmptyMax is how many consecutive (0, nil) reads are tolerated
 	// before the reader is treated as stuck, matching bufio.
 	readsEmptyMax = 100
@@ -34,9 +32,6 @@ var numberByte = func() (table [256]bool) {
 	return table
 }()
 
-// scanner reads strict JSON tokens from r through a fixed buffer. Every token
-// that spans several bytes calls [scanner.ensure] before decoding them, so a
-// token split across reads decodes exactly like a contiguous one.
 type scanner struct {
 	ctx context.Context
 	r   io.Reader
@@ -56,7 +51,7 @@ func newScanner(ctx context.Context, r io.Reader, inputBytesMax int64) scanner {
 	return scanner{
 		ctx:           ctx,
 		r:             r,
-		buf:           make([]byte, bufferBytes),
+		buf:           make([]byte, 512),
 		start:         0,
 		end:           0,
 		read:          0,
@@ -77,6 +72,12 @@ func (s *scanner) fill() error {
 		return fault.Wrap(err, fault.Internal("validation canceled"))
 	}
 
+	if s.end == len(s.buf) && len(s.buf) < bufferBytesMax {
+		grown := make([]byte, min(len(s.buf)*2, bufferBytesMax))
+		s.end = copy(grown, s.buf[s.start:s.end])
+		s.start = 0
+		s.buf = grown
+	}
 	if s.start > 0 {
 		s.end = copy(s.buf, s.buf[s.start:s.end])
 		s.start = 0

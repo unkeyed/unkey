@@ -156,9 +156,6 @@ func TestValidatePreservesReaderAndContextErrors(t *testing.T) {
 	})
 }
 
-// TestValidateHeapIsIndependentOfInputSize guarantees the streaming property
-// that motivates this package: a huge string or array costs the same heap
-// allocations as a small one.
 func TestValidateHeapIsIndependentOfInputSize(t *testing.T) {
 	stringSchema := mustCompile(t, map[string]any{"type": "object", "properties": map[string]any{"s": map[string]any{"maxLength": 1 << 40}}})
 	stringBody := func(count int64) io.Reader {
@@ -183,8 +180,9 @@ func TestValidateHeapIsIndependentOfInputSize(t *testing.T) {
 					require.NoError(t, run.schema.Validate(context.Background(), run.body(count)))
 				})
 			}
-			small, large := allocs(1<<10), allocs(1<<21)
+			small, large := allocs(1<<16), allocs(1<<21)
 			require.Equal(t, small, large, "allocations grew with input size")
+			require.Less(t, allocs(1), small, "tiny inputs allocated the full read buffer")
 		})
 	}
 

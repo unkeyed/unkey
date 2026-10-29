@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-output="${1:?usage: bash benchmarks/streamschema.sh OUTPUT_DIRECTORY}"
+output="${1:?usage: bash benchmarks/streamschema.sh OUTPUT_DIRECTORY [MODE ...]}"
+modes=("${@:2}")
+if (( ${#modes[@]} == 0 )); then modes=(before after ram adaptive); fi
 mkdir -p "$output"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
@@ -10,7 +12,7 @@ export GOMAXPROCS=4 GOGC=100 GOMEMLIMIT=off
 mise exec -- go test -c -o "$scratch/compare.test" ./pkg/spool/integration
 {
   git rev-parse HEAD
-  sha256sum pkg/spool/integration/comparison_bench_test.go pkg/spool/integration/memory_comparison_test.go benchmarks/streamschema.sh
+  sha256sum pkg/spool/integration/comparison_bench_test.go pkg/spool/integration/memory_comparison_test.go pkg/openapi/validation/{plan,budget}.go pkg/openapi/streamschema/scanner.go benchmarks/streamschema.sh
   mise exec -- go version
   uname -a
   uptime
@@ -21,10 +23,8 @@ mise exec -- go test -c -o "$scratch/compare.test" ./pkg/spool/integration
 
 while read -r benchmark fixture concurrency iterations; do
   for repeat in 1 2 3 4 5 6; do
-    modes=(before after ram)
-    if (( repeat > 3 )); then modes=(ram after before); fi
-    for step in 0 1 2; do
-      mode="${modes[$(((repeat - 1 + step) % 3))]}"
+    for (( step=0; step<${#modes[@]}; step++ )); do
+      mode="${modes[$(((repeat - 1 + step) % ${#modes[@]}))]}"
       label="$benchmark-$fixture-c$concurrency-$mode-$repeat"
       printf '%s\n' "$label"
       mise exec -- "$scratch/compare.test" -test.run='^$' \

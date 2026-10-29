@@ -48,9 +48,9 @@
 // holding keyword values copied from a document of at most SchemaBytesMax bytes.
 //
 // One call to [Schema.Validate] holds Go heap bounded by its limits, not by the
-// input: a fixed 32 KiB read buffer; member-name and number buffers whose length
-// never exceeds KeyBytesMax and NumberBytesMax (capacity may reach about twice
-// that through append growth); the member names of open objects, whose
+// input: a read buffer that grows from 512 bytes to 32 KiB; member-name and number
+// buffers whose length never exceeds KeyBytesMax and NumberBytesMax (capacity
+// may reach about twice that through append growth); the member names of open objects, whose
 // accounted size is capped by KeysRetainedBytesMax; up to DepthMax cleared
 // name sets of at most 64 entries kept for reuse; and one path segment and one
 // recursion frame per open container up to DepthMax. Each retained name is

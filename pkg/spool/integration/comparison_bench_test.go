@@ -106,7 +106,7 @@ type replayBody struct {
 
 func comparisonAdmission(b *testing.B, mode string, schema map[string]any) func(*http.Request) (io.ReadCloser, error) {
 	b.Helper()
-	if mode == "before" {
+	if mode == "before" || mode == "adaptive" {
 		spec, err := json.Marshal(map[string]any{
 			"openapi": "3.1.0", "info": map[string]any{"title": "Comparison", "version": "1.0.0"},
 			"paths": map[string]any{"/upload": map[string]any{"post": map[string]any{
@@ -115,6 +115,22 @@ func comparisonAdmission(b *testing.B, mode string, schema map[string]any) func(
 			}}},
 		})
 		require.NoError(b, err)
+		if mode == "adaptive" {
+			plan, err := validation.Compile(spec)
+			require.NoError(b, err)
+			budget, err := validation.NewBudget(validation.Limits{BodyBytesMax: 128 << 20, BufferedBodyBytesMax: 1 << 20, BytesMax: 1 << 30, RequestsMax: 8})
+			require.NoError(b, err)
+			return func(r *http.Request) (io.ReadCloser, error) {
+				result, err := plan.Validate(r, budget)
+				if err != nil {
+					return nil, err
+				}
+				if result != nil {
+					return nil, errRejected
+				}
+				return r.Body, nil
+			}
+		}
 		validator, err := validation.NewFromBytes(spec)
 		require.NoError(b, err)
 		return func(r *http.Request) (io.ReadCloser, error) {
@@ -161,7 +177,7 @@ func BenchmarkValidationComparison(b *testing.B) {
 		b.Run(name, func(b *testing.B) {
 			for _, concurrency := range []int{1, 8} {
 				b.Run(fmt.Sprintf("c%d", concurrency), func(b *testing.B) {
-					for _, mode := range []string{"before", "after", "ram"} {
+					for _, mode := range []string{"before", "after", "ram", "adaptive"} {
 						b.Run(mode, func(b *testing.B) {
 							admit := comparisonAdmission(b, mode, fixture.schema)
 							digest := comparisonDigest(b, fixture)
@@ -210,7 +226,7 @@ func BenchmarkHTTPValidationComparison(b *testing.B) {
 			digest := comparisonDigest(b, fixture)
 			for _, concurrency := range []int{1, 8} {
 				b.Run(fmt.Sprintf("c%d", concurrency), func(b *testing.B) {
-					for _, mode := range []string{"before", "after", "ram"} {
+					for _, mode := range []string{"before", "after", "ram", "adaptive"} {
 						b.Run(mode, func(b *testing.B) {
 							admit := comparisonAdmission(b, mode, fixture.schema)
 							upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
