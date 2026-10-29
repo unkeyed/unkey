@@ -40,7 +40,7 @@ export function RuntimeLogsTable() {
   const columns = useMemo(() => createRuntimeLogsColumns({ selectedLogKey }), [selectedLogKey]);
 
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="flex flex-col md:flex-1">
       <DataTable<RuntimeLogRow>
         data={historicalLogs}
         realtimeData={realtimeLogs}

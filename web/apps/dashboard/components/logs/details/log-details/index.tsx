@@ -7,20 +7,13 @@ import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import { type ReactNode, createContext, useContext, useMemo } from "react";
+import { type ReactNode, createContext, useContext } from "react";
 import { LogFooter } from "./components/log-footer";
 import { LogHeader } from "./components/log-header";
 import { LogMetaSection } from "./components/log-meta";
 import { LogSection } from "./components/log-section";
 
-export const DEFAULT_DRAGGABLE_WIDTH = 500;
 export const EMPTY_TEXT = "<EMPTY>";
-
-export const createPanelStyle = (distanceToTop: number) => ({
-  top: `${distanceToTop}px`,
-  height: `calc(100vh - ${distanceToTop}px)`,
-  paddingBottom: "1rem",
-});
 
 export type StandardLogTypes = Log | EnrichedRatelimitLog;
 export type SupportedLogTypes =
@@ -98,28 +91,18 @@ const isStandardLog = (log: SupportedLogTypes): log is Log | EnrichedRatelimitLo
 };
 
 type LogDetailsProps = {
-  distanceToTop: number;
   log: SupportedLogTypes | null;
   onClose: () => void;
   children: ReactNode;
 };
 
-export const LogDetails = ({ distanceToTop, log, onClose, children }: LogDetailsProps) => {
-  const panelStyle = useMemo(() => createPanelStyle(distanceToTop), [distanceToTop]);
-
+export const LogDetails = ({ log, onClose, children }: LogDetailsProps) => {
   if (!log) {
     return null;
   }
 
   return (
-    <ResizablePanel
-      onClose={onClose}
-      className="bg-raised font-mono shadow-floating z-20 absolute right-0 overflow-y-auto"
-      style={{
-        ...panelStyle,
-        width: `${DEFAULT_DRAGGABLE_WIDTH}px`,
-      }}
-    >
+    <ResizablePanel onClose={onClose}>
       <LogDetailsContext.Provider value={{ log, onClose }}>{children}</LogDetailsContext.Provider>
     </ResizablePanel>
   );

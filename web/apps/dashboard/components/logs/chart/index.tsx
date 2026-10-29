@@ -13,6 +13,7 @@ import {
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { IconGridOutline18 } from "@unkey/icons";
+import { StickySlot } from "@unkey/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
@@ -35,7 +36,6 @@ type LogsTimeseriesBarChartProps = {
   data?: TimeseriesData[];
   config: ChartConfig;
   height?: number;
-  onMount?: (distanceToTop: number) => void;
   onSelectionChange?: (selection: { start: number; end: number }) => void;
   isLoading?: boolean;
   isError?: boolean;
@@ -43,11 +43,18 @@ type LogsTimeseriesBarChartProps = {
   granularity?: TimeseriesGranularity;
 };
 
-export function LogsTimeseriesBarChart({
+export function LogsTimeseriesBarChart(props: LogsTimeseriesBarChartProps) {
+  return (
+    <StickySlot slot="chart">
+      <LogsTimeseriesBarChartBody {...props} />
+    </StickySlot>
+  );
+}
+
+function LogsTimeseriesBarChartBody({
   data,
   config,
   height = 50,
-  onMount,
   onSelectionChange,
   isLoading,
   isError,
@@ -85,13 +92,6 @@ export function LogsTimeseriesBarChart({
     }
     return map;
   }, [data]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
-  useEffect(() => {
-    if (onMount) {
-      const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
-      onMount(distanceToTop);
-    }
-  }, [onMount, isLoading, isError]);
 
   // Helper to find data point from x coordinate
   const getDataPointFromEvent = (

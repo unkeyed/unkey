@@ -40,28 +40,25 @@ function WorkspaceContent({
   workspace: WorkspaceLike;
   children: React.ReactNode;
 }) {
+  if (workspace.enabled) {
+    return <QueryTimeProvider>{children}</QueryTimeProvider>;
+  }
   return (
-    <div className="w-full flex-1 flex flex-col md:has-data-[width=full]:min-h-0 md:has-data-[width=full]:basis-0">
-      {workspace.enabled ? (
-        <QueryTimeProvider>{children}</QueryTimeProvider>
-      ) : (
-        <div className="flex flex-1 items-center justify-center p-12">
-          <EmptyState>
-            <EmptyStateHeader>
-              <EmptyStateTitle>This workspace is disabled</EmptyStateTitle>
-              <EmptyStateDescription>
-                Contact{" "}
-                <Link
-                  href={`mailto:support@unkey.com?body=workspaceId: ${workspace.id}`}
-                  className="underline"
-                >
-                  support@unkey.com
-                </Link>
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-          </EmptyState>
-        </div>
-      )}
+    <div className="flex flex-1 items-center justify-center p-12">
+      <EmptyState>
+        <EmptyStateHeader>
+          <EmptyStateTitle>This workspace is disabled</EmptyStateTitle>
+          <EmptyStateDescription>
+            Contact{" "}
+            <Link
+              href={`mailto:support@unkey.com?body=workspaceId: ${workspace.id}`}
+              className="underline"
+            >
+              support@unkey.com
+            </Link>
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+      </EmptyState>
     </div>
   );
 }
@@ -127,19 +124,16 @@ export default function Layout({ children }: LayoutProps) {
       <Suspense fallback={null}>
         <UpgradeSuccessDialog />
       </Suspense>
-      <div className="h-dvh w-full flex flex-col overflow-hidden bg-background">
-        <ComputePausedBanner />
-        <TopNav />
+      <div data-app-shell className="min-h-dvh w-full flex flex-col bg-background">
+        <div className="sticky top-0 z-20">
+          <ComputePausedBanner />
+          <TopNav />
+        </div>
         <MobileNavDrawer />
-        <div className="relative flex flex-1 overflow-hidden">
+        <div className="relative flex flex-1">
           {!isCreationWizard && <SidebarV2 className="bg-background" />}
-          <div className="flex-1 overflow-auto">
-            <div
-              className="isolate bg-background w-full min-h-full flex flex-col items-center"
-              id="layout-wrapper"
-            >
-              <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
-            </div>
+          <div className="isolate flex min-w-0 flex-1 flex-col bg-background">
+            <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
           </div>
         </div>
       </div>

@@ -13,6 +13,7 @@ post:
     - `api.*.read_api` (to read any API)
     - `api.<api_id>.read_api` (to read a specific API)
   operationId: apis.getApi
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getApi
   security:
     - bearer: []

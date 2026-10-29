@@ -46,6 +46,7 @@ describe("replicaUsage", () => {
   };
   const series = (points: ResourcePoint[]): InstanceSeries => ({
     grid,
+    history: { instances: [], truncated: false },
     instances: [{ instance: "pod-a", points }],
   });
 
@@ -116,13 +117,19 @@ describe("replicaUsage", () => {
 
   it("keeps a stopped pod's last points and leaves a gap after it stops", () => {
     const later: Grid = { ...grid, endMs: 300_000 };
-    const stopped = sections({ ...series([live, { ...gap, t: 120_000 }]), grid: later })[0];
+    const stopped = sections({
+      ...series([live]),
+      grid: later,
+    })[0];
     expect(stopped.chart).toEqual({
       status: "ready",
       grid: later,
       chart: [
+        { originalTimestamp: 0, cpu: undefined },
         { originalTimestamp: 60_000, cpu: 0.5 },
         { originalTimestamp: 120_000, cpu: undefined },
+        { originalTimestamp: 180_000, cpu: undefined },
+        { originalTimestamp: 240_000, cpu: undefined },
       ],
     });
   });
@@ -134,7 +141,10 @@ describe("replicaUsage", () => {
       chart: {
         status: "ready",
         grid,
-        chart: [{ originalTimestamp: 60_000, disk: 512 * MIB }],
+        chart: [
+          { originalTimestamp: 0, disk: undefined },
+          { originalTimestamp: 60_000, disk: 512 * MIB },
+        ],
       },
       scale: { unit: "bytes", yMax: null, tickCount: 4 },
       allocation: null,

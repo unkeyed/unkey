@@ -4,7 +4,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { IconRefresh3Outline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { IdentityDetailsLogsChart } from "./components/charts";
 import { IdentityDetailsLogsControlCloud } from "./components/control-cloud";
 import { IdentityDetailsLogsControls } from "./components/controls";
@@ -18,15 +18,6 @@ export const IdentityDetailsLogsClient = ({
   identityId: string;
 }) => {
   const [selectedLog, setSelectedLog] = useState<IdentityLog | null>(null);
-  const [tableDistanceToTop, setTableDistanceToTop] = useState(0);
-
-  const handleDistanceToTop = useCallback((distanceToTop: number) => {
-    setTableDistanceToTop(distanceToTop);
-  }, []);
-
-  const handleSelectedLog = useCallback((log: IdentityLog | null) => {
-    setSelectedLog(log);
-  }, []);
 
   const createErrorFallback = (componentName: string) => (error: Error, reset: () => void) => (
     <div className="flex items-center justify-center w-full h-32 bg-error-2 border border-error-6 rounded-lg">
@@ -44,7 +35,7 @@ export const IdentityDetailsLogsClient = ({
 
   return (
     <IdentityDetailsLogsProvider>
-      <div className="flex flex-col md:flex-1 md:min-h-0">
+      <div className="flex flex-col md:flex-1">
         <ErrorBoundary fallback={createErrorFallback("Controls")}>
           <IdentityDetailsLogsControls identityId={identityId} />
         </ErrorBoundary>
@@ -53,26 +44,20 @@ export const IdentityDetailsLogsClient = ({
           <IdentityDetailsLogsControlCloud />
         </ErrorBoundary>
 
-        <div className="flex flex-col md:flex-1 md:min-h-0">
-          <ErrorBoundary fallback={createErrorFallback("Chart")}>
-            <IdentityDetailsLogsChart identityId={identityId} onMount={handleDistanceToTop} />
-          </ErrorBoundary>
+        <ErrorBoundary fallback={createErrorFallback("Chart")}>
+          <IdentityDetailsLogsChart identityId={identityId} />
+        </ErrorBoundary>
 
-          <ErrorBoundary fallback={createErrorFallback("Logs Table")}>
-            <IdentityDetailsLogsTable
-              selectedLog={selectedLog}
-              onLogSelect={handleSelectedLog}
-              identityId={identityId}
-            />
-          </ErrorBoundary>
-        </div>
+        <ErrorBoundary fallback={createErrorFallback("Logs Table")}>
+          <IdentityDetailsLogsTable
+            selectedLog={selectedLog}
+            onLogSelect={setSelectedLog}
+            identityId={identityId}
+          />
+        </ErrorBoundary>
 
         <ErrorBoundary fallback={createErrorFallback("Log Details")}>
-          <IdentityDetailsDrawer
-            distanceToTop={tableDistanceToTop}
-            onLogSelect={handleSelectedLog}
-            selectedLog={selectedLog}
-          />
+          <IdentityDetailsDrawer onLogSelect={setSelectedLog} selectedLog={selectedLog} />
         </ErrorBoundary>
       </div>
     </IdentityDetailsLogsProvider>

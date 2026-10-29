@@ -9,12 +9,11 @@ import { toast } from "@unkey/ui";
 import { useFetchRequestDetails } from "../hooks/use-fetch-request-details";
 
 type Props = {
-  distanceToTop: number;
   selectedLog: KeyDetailsLog | null;
   onLogSelect: (log: KeyDetailsLog | null) => void;
 };
 
-export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
+export const KeyDetailsDrawer = ({ onLogSelect, selectedLog }: Props) => {
   const { details, error, isLoading } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
     time: selectedLog?.time,
@@ -70,7 +69,7 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
   // log that has not been ingested yet. Rendering nothing here read as a dead
   // click and people clicked other rows to try again.
   if (isLoading) {
-    return <LogDetailsSkeleton distanceToTop={distanceToTop} onClose={handleClose} />;
+    return <LogDetailsSkeleton onClose={handleClose} />;
   }
 
   if (error || !details) {
@@ -78,17 +77,11 @@ export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Pr
   }
 
   if (details.source === "gateway") {
-    return (
-      <GatewayRequestDetails
-        distanceToTop={distanceToTop}
-        log={details.log}
-        onClose={handleClose}
-      />
-    );
+    return <GatewayRequestDetails log={details.log} onClose={handleClose} />;
   }
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={details.log} onClose={handleClose}>
+    <LogDetails log={details.log} onClose={handleClose}>
       <LogDetails.Header onClose={handleClose} />
       <LogDetails.Sections />
       <LogDetails.Spacer />

@@ -3,10 +3,8 @@
 import { ResizablePanel } from "@/components/logs/details/resizable-panel";
 import { IconXmarkOutline18 } from "@unkey/icons";
 import { Button, Skeleton } from "@unkey/ui";
-import { DEFAULT_DRAGGABLE_WIDTH, createPanelStyle } from "..";
 
 type Props = {
-  distanceToTop: number;
   onClose: () => void;
 };
 
@@ -21,16 +19,9 @@ const FOOTER_LABEL_WIDTHS = ["w-10", "w-12", "w-24", "w-20", "w-32"];
  * panel's header, sections, and footer so swapping in the loaded log does not
  * shift the layout.
  */
-export const LogDetailsSkeleton = ({ distanceToTop, onClose }: Props) => {
+export const LogDetailsSkeleton = ({ onClose }: Props) => {
   return (
-    <ResizablePanel
-      onClose={onClose}
-      className="bg-raised font-mono shadow-floating z-20 absolute right-0 overflow-y-auto"
-      style={{
-        ...createPanelStyle(distanceToTop),
-        width: `${DEFAULT_DRAGGABLE_WIDTH}px`,
-      }}
-    >
+    <ResizablePanel onClose={onClose}>
       <div>
         <output className="sr-only">Loading request details</output>
 

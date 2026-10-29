@@ -43,7 +43,6 @@ type OverviewBarChartProps = {
   enableSelection?: boolean;
   labels: ChartLabels;
   tooltipItems?: ChartTooltipItem[];
-  onMount?: (distanceToTop: number) => void;
   granularity?: TimeseriesGranularity;
 };
 
@@ -56,10 +55,8 @@ export function OverviewBarChart({
   enableSelection = false,
   labels,
   tooltipItems = [],
-  onMount,
   granularity,
 }: OverviewBarChartProps) {
-  const chartRef = useRef<HTMLDivElement>(null);
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Selection>({ start: "", end: "" });
 
@@ -88,14 +85,6 @@ export function OverviewBarChart({
     }
     return map;
   }, [data]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: We need this to re-trigger distanceToTop calculation
-  useEffect(() => {
-    if (onMount) {
-      const distanceToTop = chartRef.current?.getBoundingClientRect().top ?? 0;
-      onMount(distanceToTop);
-    }
-  }, [onMount, isLoading, isError]);
 
   // Helper to find data point from x coordinate
   const getDataPointFromEvent = (
@@ -250,7 +239,7 @@ export function OverviewBarChart({
   }
 
   return (
-    <div className="flex flex-col h-full" ref={chartRef}>
+    <div className="flex flex-col h-full">
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
           <div className="text-gray-10 text-2xs leading-4">{labels.title}</div>

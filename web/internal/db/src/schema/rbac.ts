@@ -1,7 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
   bigint,
-  index,
   mysqlEnum,
   mysqlTable,
   unique,
@@ -124,7 +123,6 @@ export const roles = mysqlTable(
   (table) => [
     unique("unique_name_per_workspace_idx").on(table.workspaceId, table.name),
     unique("unique_name_per_project_idx").on(table.projectId, table.name),
-    index("roles_project_id_idx").on(table.projectId),
   ],
 );
 

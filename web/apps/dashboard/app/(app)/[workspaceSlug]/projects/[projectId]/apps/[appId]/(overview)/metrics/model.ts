@@ -115,6 +115,7 @@ export type PanelModel = {
   card: MetricCardModel;
   stats: PanelStats | null;
   byInstance: InstanceChart | null;
+  historyTruncated: boolean;
   deploys: DeployView[];
 };
 
@@ -223,6 +224,8 @@ function panelOf(
   const card = cardOf(input.sources, metric);
   return {
     card,
+    historyTruncated:
+      input.byInstance.status === "ready" && input.byInstance.data.history.truncated,
     stats:
       card.state.status === "ready"
         ? panelStats(card.state.chart, METRIC_VIEWS[metric].primary)

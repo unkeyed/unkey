@@ -1,5 +1,10 @@
+allow_k8s_contexts('unkey')
+if k8s_context() != 'unkey':
+    fail('Use mise run dev to start the Unkey cluster with an isolated kubeconfig.')
+local(['minikube', '-p', 'unkey', 'status'], quiet=True, echo_off=True)
+
 for key, value in decode_json(local(['mise', 'env', '--json'], dir='..', quiet=True, echo_off=True)).items():
-    if not key.startswith('AWS_'):
+    if key != 'KUBECONFIG' and not key.startswith('AWS_'):
         os.putenv(key, value)
 
 for key in os.environ:
@@ -16,25 +21,6 @@ load('ext://namespace', 'namespace_create')
 load('ext://secret', 'secret_create_generic')
 load('ext://helm_resource', standard_helm_resource='helm_resource')
 load('./helm.Tiltfile', metal_helm_resource='helm_resource')
-
-def validate_dev_cluster():
-    context = 'unkey-dev-local'
-    profile = 'unkey'
-    allow_k8s_contexts(context)
-    if k8s_context() != context:
-        fail('Use mise run dev to start the Unkey cluster and select the %s context. Other Kubernetes contexts are not modified.' % context)
-
-    local(['minikube', '-p', profile, 'status'], quiet=True, echo_off=True)
-    kube_config = decode_json(local(['kubectl', 'config', 'view', '-o', 'json'], quiet=True, echo_off=True))
-    clusters = {entry['name']: entry['cluster'] for entry in kube_config.get('clusters', [])}
-    contexts = {entry['name']: entry['context'] for entry in kube_config.get('contexts', [])}
-    # Minikube status verifies the server in the cluster entry named for its profile.
-    profile_server = clusters.get(profile, {}).get('server', '')
-    active_server = clusters.get(contexts.get(context, {}).get('cluster', ''), {}).get('server', '')
-    if kube_config.get('current-context') != context or not profile_server or active_server != profile_server:
-        fail('The active Kubernetes context does not point to the unkey Minikube profile. Use mise run dev to start and select it. Shared clusters are not supported.')
-
-validate_dev_cluster()
 
 config.define_string('topolvm_backing_size')
 config.define_bool('orb')

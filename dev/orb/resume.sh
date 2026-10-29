@@ -18,4 +18,4 @@ if [[ -z $volume && -z $container ]] && builder=$(docker buildx inspect unkey 2>
     docker buildx rm --keep-daemon --keep-state unkey
   fi
 fi
-"$HOME/.local/bin/mise" exec -- minikube delete -p unkey
+"$HOME/.local/bin/mise" exec -- env KUBECONFIG=/dev/null minikube delete -p unkey
