@@ -24,12 +24,8 @@ jobs:
       - uses: ./.depot/actions/setup-mise
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Scope changelog to CLI dependencies
-        run: |
-          mkdir -p .cache
-          mise run release-config -- .goreleaser.yaml > .cache/release.yaml
       - name: Run GoReleaser (split)
-        run: mise exec -- goreleaser release --clean --split --config .cache/release.yaml
+        run: mise exec -- goreleaser release --clean --split --config .goreleaser.yaml
         env:
           GOOS: ${{ matrix.goos }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

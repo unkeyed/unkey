@@ -71,12 +71,7 @@ npms:
     tag: "{{ if .Prerelease }}next{{ else }}latest{{ end }}"
 
 changelog:
-  use: github
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
+  disable: true
 
 release:
   prerelease: auto
