@@ -21,7 +21,6 @@ post:
     Additional permission required for decrypt functionality:
     - `api.*.decrypt_key` or `api.<api_id>.decrypt_key`
   operationId: apis.listKeys
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listKeys
   requestBody:
     content:

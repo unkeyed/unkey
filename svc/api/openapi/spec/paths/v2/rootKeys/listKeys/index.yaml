@@ -12,7 +12,6 @@ post:
     Deleted keys are excluded. Secrets and hashes are never returned.
     Pass the returned cursor when hasMore is true to retrieve the next page.
   operationId: rootKeys.listKeys
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listKeys
   security:
     - bearer: []

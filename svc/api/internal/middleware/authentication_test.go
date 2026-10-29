@@ -24,7 +24,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 type fakeAuth struct {
@@ -373,103 +372,6 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 	}
 }
 
-func TestWithAuthentication_ReadOnlyRequestsBypassWorkspaceRateLimit(t *testing.T) {
-	t.Parallel()
-
-	exemptions, err := openapi.WorkspaceRateLimitExemptionsFromSpec(openapi.Spec)
-	require.NoError(t, err)
-
-	tests := []struct {
-		name   string
-		path   string
-		status int
-	}{
-		{name: "deployments", path: "/v2/deployments.listDeployments", status: http.StatusOK},
-		{name: "usage", path: "/v2/workspace.getUsage", status: http.StatusOK},
-		{name: "limits", path: "/v2/workspace.getLimits", status: http.StatusOK},
-		{name: "override", path: "/v2/ratelimit.getOverride", status: http.StatusOK},
-		{name: "key metadata", path: "/v2/keys.whoami", status: http.StatusOK},
-		{name: "identities", path: "/v2/identities.listIdentities", status: http.StatusOK},
-		{name: "permissions", path: "/v2/permissions.listPermissions", status: http.StatusOK},
-		{name: "roles", path: "/v2/permissions.listRoles", status: http.StatusOK},
-		{name: "CLI device login", path: "/v2/cli.getDeviceLogin", status: http.StatusOK},
-		{name: "CLI sessions", path: "/v2/cli.listSessions", status: http.StatusOK},
-		{name: "request metrics", path: "/v2/logs.getApiRequestMetrics", status: http.StatusOK},
-		{name: "request logs", path: "/v2/logs.listApiRequests", status: http.StatusOK},
-		{name: "portal keys", path: "/v2/portal.listKeys", status: http.StatusOK},
-		{name: "portal verifications", path: "/v2/portal.getVerifications", status: http.StatusOK},
-		{name: "decide CLI login", path: "/v2/cli.decideDeviceLogin", status: http.StatusTooManyRequests},
-		{name: "create deployment", path: "/v2/deployments.createDeployment", status: http.StatusTooManyRequests},
-		{name: "verify key", path: "/v2/keys.verifyKey", status: http.StatusTooManyRequests},
-		{name: "rate limit", path: "/v2/ratelimit.limit", status: http.StatusTooManyRequests},
-		{name: "batch rate limit", path: "/v2/ratelimit.multiLimit", status: http.StatusTooManyRequests},
-		{name: "unknown read-like route", path: "/v2/unknown.getSomething", status: http.StatusTooManyRequests},
-	}
-	for _, tt := range tests {
-		for _, principalType := range []principal.Type{principal.TypeJWT, principal.TypeAPIKey, principal.TypePortalSession} {
-			for _, quota := range []struct {
-				name  string
-				limit int32
-			}{
-				{name: "zero", limit: 0},
-				{name: "exhausted", limit: 5},
-			} {
-				t.Run(tt.name+"/"+string(principalType)+"/"+quota.name, func(t *testing.T) {
-					t.Parallel()
-
-					workspaceID := uid.New(uid.WorkspacePrefix)
-					limitsCache, err := cache.New[string, keysdb.Limit](cache.Config[string, keysdb.Limit]{
-						Fresh:    time.Minute,
-						Stale:    time.Minute,
-						MaxSize:  10,
-						Resource: "test_workspace_limits",
-						Clock:    clock.NewTestClock(),
-					})
-					require.NoError(t, err)
-					t.Cleanup(limitsCache.Close)
-					limitsCache.Set(t.Context(), workspaceID, keysdb.Limit{
-						WorkspaceID:                  workspaceID,
-						ApiRequestsCountMaxPerMinute: sql.NullInt32{Int32: quota.limit, Valid: true},
-					})
-					auth := &fakeAuth{principal: &principal.Principal{
-						Type:                  principalType,
-						AuthorizedWorkspaceID: workspaceID,
-					}}
-					server, err := zen.New(zen.Config{})
-					require.NoError(t, err)
-					server.RegisterRoute([]zen.Middleware{
-						WithErrorHandling(),
-						WithAuthentication(AuthenticationConfig{
-							Auth:                auth,
-							LimitsCache:         limitsCache,
-							RateLimitExemptions: exemptions,
-							Ratelimit: &fakeRatelimit{response: ratelimit.RatelimitResponse{
-								Success: false,
-								Limit:   int64(quota.limit),
-								Reset:   time.Now().Add(time.Minute),
-							}},
-						}),
-					}, zen.NewRoute(http.MethodPost, tt.path, func(_ context.Context, sess *zen.Session) error {
-						p, err := sess.GetPrincipal()
-						require.NoError(t, err)
-						require.Equal(t, workspaceID, p.AuthorizedWorkspaceID)
-						return sess.JSON(http.StatusOK, map[string]string{"status": "ok"})
-					}))
-
-					req := httptest.NewRequest(http.MethodPost, tt.path, nil)
-					req.Header.Set("X-Unkey-Client", "unkey-dashboard")
-					response := httptest.NewRecorder()
-					server.Mux().ServeHTTP(response, req)
-					require.Equal(t, tt.status, response.Code, response.Body.String())
-					if tt.status == http.StatusOK {
-						require.Empty(t, response.Header().Get("RateLimit-Limit"))
-					}
-				})
-			}
-		}
-	}
-}
-
 func testMiddlewarePrincipal(authorizedWorkspaceID string) *principal.Principal {
 	return &principal.Principal{
 		Version: principal.Version,
@@ -529,6 +431,117 @@ func TestWithAuthentication_MarksNewRootKeyUsageWithEmptyWorkspace(t *testing.T)
 
 type apiRequestRecorder struct {
 	requests []schema.ApiRequest
+}
+
+func TestWithAuthentication_DashboardHasSeparateWorkspaceAllowance(t *testing.T) {
+	t.Parallel()
+
+	for _, quota := range []struct {
+		name        string
+		limit       sql.NullInt32
+		requests    int
+		limitHeader string
+		statusAfter int
+	}{
+		{name: "limited", limit: sql.NullInt32{Int32: 2, Valid: true}, requests: 1000, limitHeader: "1000", statusAfter: http.StatusTooManyRequests},
+		{name: "blocked", limit: sql.NullInt32{Int32: 0, Valid: true}, requests: 1000, limitHeader: "1000", statusAfter: http.StatusTooManyRequests},
+		{name: "higher limit", limit: sql.NullInt32{Int32: 2000, Valid: true}, requests: 2000, limitHeader: "2000", statusAfter: http.StatusTooManyRequests},
+		{name: "unlimited", limit: sql.NullInt32{}, requests: 1001, limitHeader: "", statusAfter: http.StatusOK},
+	} {
+		t.Run(quota.name, func(t *testing.T) {
+			t.Parallel()
+			clk := clock.NewTestClock()
+			limiter := ratelimit.NewLocal(clk)
+			t.Cleanup(func() { require.NoError(t, limiter.Close()) })
+			limitsCache, err := cache.New[string, keysdb.Limit](cache.Config[string, keysdb.Limit]{
+				Fresh:    time.Minute,
+				Stale:    time.Minute,
+				MaxSize:  10,
+				Resource: "test_workspace_limits",
+				Clock:    clk,
+			})
+			require.NoError(t, err)
+			t.Cleanup(limitsCache.Close)
+			workspaceID := uid.New(uid.WorkspacePrefix)
+			limitsCache.Set(t.Context(), workspaceID, keysdb.Limit{
+				WorkspaceID:                  workspaceID,
+				ApiRequestsCountMaxPerMinute: quota.limit,
+			})
+			auth := &fakeAuth{principal: &principal.Principal{
+				Type:                  principal.TypeJWT,
+				Source:                principal.JWTSource{},
+				AuthorizedWorkspaceID: workspaceID,
+			}}
+			server, err := zen.New(zen.Config{})
+			require.NoError(t, err)
+			for _, path := range []string{"/v2/deployments.listDeployments", "/v2/deployments.createDeployment"} {
+				server.RegisterRoute([]zen.Middleware{
+					WithErrorHandling(),
+					WithAuthentication(AuthenticationConfig{
+						Auth:        auth,
+						LimitsCache: limitsCache,
+						Ratelimit:   limiter,
+					}),
+				}, zen.NewRoute(http.MethodPost, path, func(_ context.Context, sess *zen.Session) error {
+					return sess.JSON(http.StatusOK, struct{}{})
+				}))
+			}
+			call := func(path string) *httptest.ResponseRecorder {
+				t.Helper()
+				req := httptest.NewRequest(http.MethodPost, path, nil)
+				req.Header.Set("X-Unkey-Client", "unkey-dashboard")
+				res := httptest.NewRecorder()
+				server.Mux().ServeHTTP(res, req)
+				return res
+			}
+			if quota.limit.Valid && quota.limit.Int32 == 0 {
+				auth.principal.Source = principal.CLISessionSource{}
+				require.Equal(t, http.StatusTooManyRequests, call("/v2/deployments.listDeployments").Code)
+				auth.principal.Type = principal.TypePortalSession
+				auth.principal.Source = principal.PortalSessionSource{}
+				require.Equal(t, http.StatusTooManyRequests, call("/v2/deployments.listDeployments").Code)
+				auth.principal.Type = principal.TypeJWT
+				auth.principal.Source = principal.JWTSource{}
+				res := httptest.NewRecorder()
+				server.Mux().ServeHTTP(res, httptest.NewRequest(http.MethodPost, "/v2/deployments.listDeployments", nil))
+				require.Equal(t, http.StatusTooManyRequests, res.Code)
+			}
+			for i := range quota.requests {
+				path := "/v2/deployments.listDeployments"
+				if i%2 == 0 {
+					path = "/v2/deployments.createDeployment"
+				}
+				res := call(path)
+				require.Equal(t, http.StatusOK, res.Code, res.Body.String())
+				require.Equal(t, quota.limitHeader, res.Header().Get("RateLimit-Limit"))
+			}
+			res := call("/v2/deployments.listDeployments")
+			require.Equal(t, quota.statusAfter, res.Code)
+			if quota.statusAfter == http.StatusTooManyRequests {
+				require.NotEmpty(t, res.Header().Get("Retry-After"))
+			}
+
+			auth.principal.Type = principal.TypeAPIKey
+			auth.principal.Source = principal.KeySource{}
+			for i := range 3 {
+				res := call("/v2/deployments.listDeployments")
+				status := http.StatusOK
+				if quota.limit.Valid && i >= int(quota.limit.Int32) {
+					status = http.StatusTooManyRequests
+				}
+				require.Equal(t, status, res.Code, res.Body.String())
+			}
+			auth.principal.Type = principal.TypeJWT
+			auth.principal.Source = principal.JWTSource{}
+			require.Equal(t, quota.statusAfter, call("/v2/deployments.createDeployment").Code)
+			auth.principal.AuthorizedWorkspaceID = uid.New(uid.WorkspacePrefix)
+			limitsCache.Set(t.Context(), auth.principal.AuthorizedWorkspaceID, keysdb.Limit{
+				WorkspaceID:                  auth.principal.AuthorizedWorkspaceID,
+				ApiRequestsCountMaxPerMinute: quota.limit,
+			})
+			require.Equal(t, http.StatusOK, call("/v2/deployments.listDeployments").Code)
+		})
+	}
 }
 
 func (r *apiRequestRecorder) Buffer(req schema.ApiRequest) {

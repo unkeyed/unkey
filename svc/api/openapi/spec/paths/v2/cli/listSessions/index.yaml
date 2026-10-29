@@ -8,7 +8,6 @@ post:
     Requires a dashboard session or a CLI access token. Root keys are rejected.
     This endpoint takes no request body.
   operationId: cli.listSessions
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listSessions
   responses:
     "200":

@@ -20,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 const workspaceRatelimitNamespace = "workspace.ratelimit"
@@ -44,13 +43,15 @@ type AuthenticationConfig struct {
 
 	// Ratelimit enforces workspace-level API request limits.
 	Ratelimit ratelimit.Service
-
-	RateLimitExemptions openapi.WorkspaceRateLimitExemptions
 }
 
-// WithAuthentication authenticates requests and applies workspace rate limits
-// unless the operation is exempt in OpenAPI. Handlers must still authorize the
-// principal from [zen.Session.GetPrincipal].
+// WithAuthentication authenticates the request and applies workspace-level rate limiting.
+//
+// Handlers behind this middleware can call [zen.Session.GetPrincipal] and then
+// perform route-specific authorization. Workspace rate limiting lives here so
+// every credential source is checked consistently after authentication resolves
+// the workspace and before business logic runs. Root key usage is recorded at
+// this boundary because later route authorization can have multiple outcomes.
 func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, sess *zen.Session) error {
@@ -98,7 +99,7 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 				}()
 			}
 
-			if err := checkWorkspaceRateLimit(ctx, sess, config, p.AuthorizedWorkspaceID); err != nil {
+			if err := checkWorkspaceRateLimit(ctx, sess, config, p); err != nil {
 				return err
 			}
 
@@ -106,21 +107,17 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 		}
 	}
 }
-func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config AuthenticationConfig, workspaceID string) error {
+func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config AuthenticationConfig, p *principalauth.Principal) error {
 	if config.LimitsCache == nil || config.Ratelimit == nil {
 		return nil
 	}
 
-	if config.RateLimitExemptions.Contains(sess.Request().Method, sess.Request().URL.Path) {
-		return nil
-	}
-
-	limits, _, err := config.LimitsCache.SWR(ctx, workspaceID, func(ctx context.Context) (keysdb.Limit, error) {
-		return keysdb.Query.FindLimitsByWorkspaceID(ctx, config.Database.RO(), workspaceID)
+	limits, _, err := config.LimitsCache.SWR(ctx, p.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+		return keysdb.Query.FindLimitsByWorkspaceID(ctx, config.Database.RO(), p.AuthorizedWorkspaceID)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		logger.Error("workspace rate limit: failed to load limits",
-			"workspace_id", workspaceID,
+			"workspace_id", p.AuthorizedWorkspaceID,
 			"error", err.Error(),
 		)
 		// Workspace API rate limiting fails open when limit lookup is unavailable.
@@ -132,6 +129,13 @@ func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config Auth
 	}
 
 	limit := limits.ApiRequestsCountMaxPerMinute.Int32
+	namespace := workspaceRatelimitNamespace
+	_, dashboardJWT := p.Source.(principalauth.JWTSource)
+	if dashboardJWT && p.Type == principalauth.TypeJWT && sess.Request().Header.Get("X-Unkey-Client") == "unkey-dashboard" {
+		limit = max(limit, 1000)
+		namespace = "dashboard.ratelimit"
+	}
+
 	duration := time.Minute
 
 	if limit == 0 {
@@ -145,9 +149,9 @@ func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config Auth
 	}
 
 	resp, err := config.Ratelimit.Ratelimit(ctx, ratelimit.RatelimitRequest{
-		WorkspaceID: workspaceID,
-		Namespace:   workspaceRatelimitNamespace,
-		Identifier:  workspaceID,
+		WorkspaceID: p.AuthorizedWorkspaceID,
+		Namespace:   namespace,
+		Identifier:  p.AuthorizedWorkspaceID,
 		Limit:       int64(limit),
 		Duration:    duration,
 		Cost:        1,
@@ -155,7 +159,7 @@ func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config Auth
 	})
 	if err != nil {
 		logger.Error("workspace rate limit: ratelimiter error",
-			"workspace_id", workspaceID,
+			"workspace_id", p.AuthorizedWorkspaceID,
 			"error", err.Error(),
 		)
 		// Workspace API rate limiting fails open when the limiter backend is unavailable.

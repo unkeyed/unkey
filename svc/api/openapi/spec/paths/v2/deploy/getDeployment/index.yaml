@@ -11,7 +11,6 @@ post:
 
     **Authentication**: Requires a valid root key with appropriate permissions.
   operationId: deploy.getDeployment
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getDeployment
   x-speakeasy-group: internal
   security:
