@@ -56,8 +56,8 @@ export const useWorkspace = () => {
 };
 
 export const WorkspaceProvider: React.FC<
-  PropsWithChildren<{ initialUser: AuthenticatedUser | null }>
-> = ({ children, initialUser }) => {
+  PropsWithChildren<{ initialUser: AuthenticatedUser | null; initialWorkspace?: CurrentWorkspace }>
+> = ({ children, initialUser, initialWorkspace }) => {
   const pathname = usePathname();
   const [isSwitching, setIsSwitching] = useState(false);
   const switching = useRef(false);
@@ -94,6 +94,7 @@ export const WorkspaceProvider: React.FC<
   const workspaceQuery = trpc.workspace.getCurrent.useQuery(undefined, {
     ...baseQueryOptions,
     enabled: !isAuthRoute,
+    initialData: initialWorkspace,
     // NOT_FOUND is a definitive answer (no workspace yet), not a transient
     // failure, so retrying it only delays onboarding redirects.
     retry: (failureCount, error) =>
