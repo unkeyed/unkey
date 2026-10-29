@@ -1,24 +1,21 @@
 package gdprerasure
 
-// The registries below are the whole erasure policy: per subject, the ordered
-// steps that remove or pseudonymize its data. Table names only ever come from
-// here. coverage_test.go fails when a schema table that can hold workspace
-// data is neither erased here nor retained there with a reason.
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
 
-const (
-	workspaceScope = "workspace_id = :workspace_id"
-
-	endUserIdentities = "SELECT id FROM identities WHERE workspace_id = :workspace_id AND external_id = :external_id"
-	endUserKeys       = "SELECT id FROM `keys` WHERE workspace_id = :workspace_id AND identity_id IN (" + endUserIdentities + ")"
-
-	// legacyRootKeys are root keys from before unkey_root_keys. They live in
-	// the internal workspace and point at the workspace they grant access to.
-	legacyRootKeys = "SELECT id FROM `keys` WHERE for_workspace_id = :workspace_id"
-
-	endUserVerifications = "workspace_id = :workspace_id AND (external_id = :external_id OR has(:identity_ids, identity_id))"
-
-	auditActor = "actor_id = :user_id"
+	restate "github.com/restatedev/sdk-go"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+// The registries below are the whole erasure policy: per subject, the ordered
+// steps that remove or pseudonymize its data. MySQL statements are the sqlc
+// queries in svc/ctrl/internal/db/queries/gdpr_erasure_*.sql, and ClickHouse
+// statements are the erasure methods in pkg/clickhouse/gdpr_erasure.go.
+// coverage_test.go fails when a schema table that can hold workspace data is
+// neither erased here nor retained there with a reason.
 
 // workspaceSteps erases a workspace. Compute stops first so no row vanishes
 // under a running pod. The Stripe customer goes before workspace_billing, the
@@ -32,118 +29,78 @@ var workspaceSteps = concat(
 		deleteStripeCustomer{},
 		deleteDepotProjects{},
 
-		mysqlDelete{table: "keys_permissions", by: "legacy root key", where: "key_id IN (" + legacyRootKeys + ")"},
-		mysqlDelete{table: "keys_roles", by: "legacy root key", where: "key_id IN (" + legacyRootKeys + ")"},
-		mysqlDelete{table: "encrypted_keys", by: "legacy root key", where: "key_id IN (" + legacyRootKeys + ")"},
-		mysqlDelete{table: "ratelimits", by: "legacy root key", where: "key_id IN (" + legacyRootKeys + ")"},
-		mysqlDelete{table: "keys", by: "legacy root key", where: "for_workspace_id = :workspace_id"},
+		// Legacy root keys are root keys from before unkey_root_keys. They live
+		// in the internal workspace and point at the workspace they grant
+		// access to.
+		mysqlDelete{table: "keys_permissions", by: "legacy root key", query: byWorkspace(db.Querier.EraseWorkspaceLegacyRootKeyPermissions)},
+		mysqlDelete{table: "keys_roles", by: "legacy root key", query: byWorkspace(db.Querier.EraseWorkspaceLegacyRootKeyRoles)},
+		mysqlDelete{table: "encrypted_keys", by: "legacy root key", query: byWorkspace(db.Querier.EraseWorkspaceLegacyRootKeyEncryptions)},
+		mysqlDelete{table: "ratelimits", by: "legacy root key", query: byWorkspace(db.Querier.EraseWorkspaceLegacyRootKeyRatelimits)},
+		mysqlDelete{table: "keys", by: "legacy root key", query: byWorkspace(db.Querier.EraseWorkspaceLegacyRootKeys)},
 
-		mysqlDelete{table: "connection_app_targets", by: "", where: "connection_id IN (SELECT id FROM app_connections WHERE " + workspaceScope + ")"},
-		mysqlDelete{table: "deployment_connection_app_targets", by: "", where: "deployment_id IN (SELECT id FROM deployments WHERE " + workspaceScope + ")"},
-		mysqlDelete{table: "frontline_routes", by: "", where: "project_id IN (SELECT id FROM projects WHERE " + workspaceScope + ")"},
+		deleteByWorkspace("connection_app_targets", db.Querier.EraseWorkspaceConnectionAppTargets),
+		deleteByWorkspace("deployment_connection_app_targets", db.Querier.EraseWorkspaceDeploymentConnectionAppTargets),
+		deleteByWorkspace("frontline_routes", db.Querier.EraseWorkspaceFrontlineRoutes),
+
+		deleteByWorkspace("acme_challenges", db.Querier.EraseWorkspaceAcmeChallenges),
+		deleteByWorkspace("acme_users", db.Querier.EraseWorkspaceAcmeUsers),
+		deleteByWorkspace("apis", db.Querier.EraseWorkspaceApis),
+		deleteByWorkspace("app_build_settings", db.Querier.EraseWorkspaceAppBuildSettings),
+		deleteByWorkspace("app_connections", db.Querier.EraseWorkspaceAppConnections),
+		deleteByWorkspace("app_environment_variables", db.Querier.EraseWorkspaceAppEnvironmentVariables),
+		deleteByWorkspace("app_regional_settings", db.Querier.EraseWorkspaceAppRegionalSettings),
+		deleteByWorkspace("app_runtime_settings", db.Querier.EraseWorkspaceAppRuntimeSettings),
+		deleteByWorkspace("app_source_oci", db.Querier.EraseWorkspaceAppSourceOci),
+		deleteByWorkspace("apps", db.Querier.EraseWorkspaceApps),
+		deleteByWorkspace("billing_subscriptions", db.Querier.EraseWorkspaceBillingSubscriptions),
+		deleteByWorkspace("certificates", db.Querier.EraseWorkspaceCertificates),
+		deleteByWorkspace("cilium_network_policies", db.Querier.EraseWorkspaceCiliumNetworkPolicies),
+		deleteByWorkspace("cli_sessions", db.Querier.EraseWorkspaceCliSessions),
+		deleteByWorkspace("clickhouse_outbox", db.Querier.EraseWorkspaceClickhouseOutbox),
+		deleteByWorkspace("clickhouse_workspace_settings", db.Querier.EraseWorkspaceClickhouseWorkspaceSettings),
+		deleteByWorkspace("compute_signup_credit_claims", db.Querier.EraseWorkspaceComputeSignupCreditClaims),
+		deleteByWorkspace("custom_domains", db.Querier.EraseWorkspaceCustomDomains),
+		deleteByWorkspace("deployment_connections", db.Querier.EraseWorkspaceDeploymentConnections),
+		deleteByWorkspace("deployment_steps", db.Querier.EraseWorkspaceDeploymentSteps),
+		deleteByWorkspace("deployment_topology", db.Querier.EraseWorkspaceDeploymentTopology),
+		deleteByWorkspace("deployments", db.Querier.EraseWorkspaceDeployments),
+		deleteByWorkspace("device_authorizations", db.Querier.EraseWorkspaceDeviceAuthorizations),
+		deleteByWorkspace("encrypted_keys", db.Querier.EraseWorkspaceEncryptedKeys),
+		deleteByWorkspace("environments", db.Querier.EraseWorkspaceEnvironments),
+		deleteByWorkspace("flag_overrides", db.Querier.EraseWorkspaceFlagOverrides),
+		deleteByWorkspace("github_app_installations", db.Querier.EraseWorkspaceGithubAppInstallations),
+		deleteByWorkspace("github_repo_connections", db.Querier.EraseWorkspaceGithubRepoConnections),
+		deleteByWorkspace("horizontal_autoscaling_policies", db.Querier.EraseWorkspaceHorizontalAutoscalingPolicies),
+		deleteByWorkspace("identities", db.Querier.EraseWorkspaceIdentities),
+		deleteByWorkspace("instances", db.Querier.EraseWorkspaceInstances),
+		deleteByWorkspace("key_auth", db.Querier.EraseWorkspaceKeyAuth),
+		deleteByWorkspace("key_migrations", db.Querier.EraseWorkspaceKeyMigrations),
+		deleteByWorkspace("keys", db.Querier.EraseWorkspaceKeys),
+		deleteByWorkspace("keys_permissions", db.Querier.EraseWorkspaceKeysPermissions),
+		deleteByWorkspace("keys_roles", db.Querier.EraseWorkspaceKeysRoles),
+		deleteByWorkspace("limits", db.Querier.EraseWorkspaceLimits),
+		deleteByWorkspace("logdrains", db.Querier.EraseWorkspaceLogdrains),
+		deleteByWorkspace("openapi_specs", db.Querier.EraseWorkspaceOpenapiSpecs),
+		deleteByWorkspace("permissions", db.Querier.EraseWorkspacePermissions),
+		deleteByWorkspace("portal_domains", db.Querier.EraseWorkspacePortalDomains),
+		deleteByWorkspace("portal_sessions", db.Querier.EraseWorkspacePortalSessions),
+		deleteByWorkspace("portals", db.Querier.EraseWorkspacePortals),
+		deleteByWorkspace("projects", db.Querier.EraseWorkspaceProjects),
+		deleteByWorkspace("ratelimit_global_counters", db.Querier.EraseWorkspaceRatelimitGlobalCounters),
+		deleteByWorkspace("ratelimit_namespaces", db.Querier.EraseWorkspaceRatelimitNamespaces),
+		deleteByWorkspace("ratelimit_overrides", db.Querier.EraseWorkspaceRatelimitOverrides),
+		deleteByWorkspace("ratelimits", db.Querier.EraseWorkspaceRatelimits),
+		deleteByWorkspace("roles", db.Querier.EraseWorkspaceRoles),
+		deleteByWorkspace("roles_permissions", db.Querier.EraseWorkspaceRolesPermissions),
+		deleteByWorkspace("shared_secrets", db.Querier.EraseWorkspaceSharedSecrets),
+		deleteByWorkspace("unkey_principal_permissions", db.Querier.EraseWorkspaceUnkeyPrincipalPermissions),
+		deleteByWorkspace("unkey_root_keys", db.Querier.EraseWorkspaceUnkeyRootKeys),
+		deleteByWorkspace("workspace_billing", db.Querier.EraseWorkspaceWorkspaceBilling),
 	},
-	mysqlDeleteByWorkspace(
-		"acme_challenges",
-		"acme_users",
-		"apis",
-		"app_build_settings",
-		"app_connections",
-		"app_environment_variables",
-		"app_regional_settings",
-		"app_runtime_settings",
-		"app_source_oci",
-		"apps",
-		"billing_subscriptions",
-		"certificates",
-		"cilium_network_policies",
-		"cli_sessions",
-		"clickhouse_outbox",
-		"clickhouse_workspace_settings",
-		"compute_signup_credit_claims",
-		"custom_domains",
-		"deployment_connections",
-		"deployment_steps",
-		"deployment_topology",
-		"deployments",
-		"device_authorizations",
-		"encrypted_keys",
-		"environments",
-		"flag_overrides",
-		"github_app_installations",
-		"github_repo_connections",
-		"horizontal_autoscaling_policies",
-		"identities",
-		"instances",
-		"key_auth",
-		"key_migrations",
-		"keys",
-		"keys_permissions",
-		"keys_roles",
-		"limits",
-		"logdrains",
-		"openapi_specs",
-		"permissions",
-		"portal_domains",
-		"portal_sessions",
-		"portals",
-		"projects",
-		"ratelimit_global_counters",
-		"ratelimit_namespaces",
-		"ratelimit_overrides",
-		"ratelimits",
-		"roles",
-		"roles_permissions",
-		"shared_secrets",
-		"unkey_principal_permissions",
-		"unkey_root_keys",
-		"workspace_billing",
-	),
-	clickhouseDeleteByWorkspace(deleteMutation,
-		"audit_logs_raw_v1",
-		"frontline_requests_raw_v1",
-		"key_verifications_raw_v2",
-		"ratelimits_raw_v2",
-		"runtime_logs_raw_v1",
-	),
-	clickhouseDeleteByWorkspace(deleteLightweight,
-		"active_workspaces_per_month_v2",
-		"api_requests_per_day_v2",
-		"api_requests_per_hour_v2",
-		"api_requests_per_minute_v2",
-		"api_requests_per_month_v2",
-		"api_requests_raw_v2",
-		"billable_ratelimits_per_month_v2",
-		"billable_verifications_per_month_v2",
-		"build_step_logs_v1",
-		"build_steps_v1",
-		"frontline_requests_per_15m_v1",
-		"frontline_requests_per_5m_v1",
-		"frontline_requests_per_day_v1",
-		"frontline_requests_per_hour_v1",
-		"frontline_requests_per_minute_v1",
-		"instance_checkpoints_v1",
-		"instance_events_raw_v1",
-		"instance_resources_per_15s_v1",
-		"instance_resources_per_day_v1",
-		"instance_resources_per_hour_v1",
-		"instance_resources_per_minute_v1",
-		"instance_resources_per_month_v1",
-		"instance_usage_per_hour_v1",
-		"key_last_used_v1",
-		"key_verifications_per_day_v3",
-		"key_verifications_per_hour_v3",
-		"key_verifications_per_minute_v3",
-		"key_verifications_per_month_v3",
-		"logdrain_deliveries_raw_v1",
-		"ratelimits_last_used_v2",
-		"ratelimits_per_day_v2",
-		"ratelimits_per_hour_v2",
-		"ratelimits_per_minute_v2",
-		"ratelimits_per_month_v2",
-	),
+	clickhouseWorkspaceDeletes(),
 	[]step{
 		deleteWorkOSOrganization{},
-		mysqlDelete{table: "workspaces", by: "", where: "id = :workspace_id"},
+		deleteByWorkspace("workspaces", db.Querier.EraseWorkspace),
 	},
 )
 
@@ -151,24 +108,21 @@ var workspaceSteps = concat(
 // id, including soft-deleted ones, and every key linked to them. Keys go first
 // so verifications stop arriving before ClickHouse is cleaned. Identities go
 // last because every other step finds its rows through them.
-var endUserSteps = []step{
-	mysqlDelete{table: "keys_permissions", by: "", where: "workspace_id = :workspace_id AND key_id IN (" + endUserKeys + ")"},
-	mysqlDelete{table: "keys_roles", by: "", where: "workspace_id = :workspace_id AND key_id IN (" + endUserKeys + ")"},
-	mysqlDelete{table: "encrypted_keys", by: "", where: "workspace_id = :workspace_id AND key_id IN (" + endUserKeys + ")"},
-	mysqlDelete{table: "ratelimits", by: "key", where: "workspace_id = :workspace_id AND key_id IN (" + endUserKeys + ")"},
-	mysqlDelete{table: "keys", by: "", where: "workspace_id = :workspace_id AND identity_id IN (" + endUserIdentities + ")"},
-
-	clickhouseDelete{table: "key_verifications_raw_v2", where: endUserVerifications, mode: deleteMutation},
-	clickhouseDelete{table: "key_verifications_per_minute_v3", where: endUserVerifications, mode: deleteLightweight},
-	clickhouseDelete{table: "key_verifications_per_hour_v3", where: endUserVerifications, mode: deleteLightweight},
-	clickhouseDelete{table: "key_verifications_per_day_v3", where: endUserVerifications, mode: deleteLightweight},
-	clickhouseDelete{table: "key_verifications_per_month_v3", where: endUserVerifications, mode: deleteLightweight},
-	clickhouseDelete{table: "key_last_used_v1", where: "workspace_id = :workspace_id AND has(:identity_ids, identity_id)", mode: deleteLightweight},
-
-	mysqlDelete{table: "ratelimits", by: "identity", where: "workspace_id = :workspace_id AND identity_id IN (" + endUserIdentities + ")"},
-	mysqlDelete{table: "portal_sessions", by: "", where: "workspace_id = :workspace_id AND external_id = :external_id"},
-	mysqlDelete{table: "identities", by: "", where: "workspace_id = :workspace_id AND external_id = :external_id"},
-}
+var endUserSteps = concat(
+	[]step{
+		mysqlDelete{table: "keys_permissions", by: "", query: byEndUser(db.Querier.EraseEndUserKeyPermissions)},
+		mysqlDelete{table: "keys_roles", by: "", query: byEndUser(db.Querier.EraseEndUserKeyRoles)},
+		mysqlDelete{table: "encrypted_keys", by: "", query: byEndUser(db.Querier.EraseEndUserKeyEncryptions)},
+		mysqlDelete{table: "ratelimits", by: "key", query: byEndUser(db.Querier.EraseEndUserKeyRatelimits)},
+		mysqlDelete{table: "keys", by: "", query: byEndUser(db.Querier.EraseEndUserKeys)},
+	},
+	clickhouseEndUserDeletes(),
+	[]step{
+		mysqlDelete{table: "ratelimits", by: "identity", query: byEndUser(db.Querier.EraseEndUserIdentityRatelimits)},
+		mysqlDelete{table: "portal_sessions", by: "", query: byEndUser(db.Querier.EraseEndUserPortalSessions)},
+		mysqlDelete{table: "identities", by: "", query: byEndUser(db.Querier.EraseEndUserIdentities)},
+	},
+)
 
 // userSteps erases a dashboard user. The Resend contact and Plain customer go
 // first, so a key that cannot delete them stops the erasure before any row
@@ -179,37 +133,99 @@ var endUserSteps = []step{
 var userSteps = []step{
 	deleteResendContact{},
 	deletePlainCustomer{},
-	mysqlDelete{table: "cli_sessions", by: "", where: "user_id = :user_id"},
-	mysqlDelete{table: "device_authorizations", by: "", where: "approver_user_id = :user_id"},
-	mysqlDelete{table: "compute_signup_credit_claims", by: "", where: "workos_user_id = :user_id"},
-	mysqlUpdate{table: "deployments", by: "trigger actor", set: "triggered_by = NULL", where: "triggered_by = :user_id"},
-	mysqlUpdate{
-		table: "clickhouse_outbox",
-		by:    "audit actor",
-		set:   "payload = JSON_REMOVE(payload, '$.actor.name', '$.actor.meta', '$.remote_ip', '$.user_agent')",
-		where: "version = 'audit_log.v1' AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.actor.id')) = :user_id" +
-			" AND JSON_CONTAINS_PATH(payload, 'one', '$.actor.name', '$.actor.meta', '$.remote_ip', '$.user_agent')",
-	},
-	clickhouseUpdate{
-		table: "audit_logs_raw_v1",
-		set:   "actor_name = '', actor_meta = '{}', remote_ip = '', user_agent = ''",
-		where: auditActor + " AND (actor_name != '' OR remote_ip != '' OR user_agent != '' OR toJSONString(actor_meta) != '{}')",
-	},
+	mysqlDelete{table: "cli_sessions", by: "", query: byUser(db.Querier.EraseUserCliSessions)},
+	mysqlDelete{table: "device_authorizations", by: "", query: byUser(db.Querier.EraseUserDeviceAuthorizations)},
+	mysqlDelete{table: "compute_signup_credit_claims", by: "", query: byUser(db.Querier.EraseUserComputeSignupCreditClaims)},
+	mysqlUpdate{table: "deployments", by: "trigger actor", query: byUser(db.Querier.PseudonymizeUserDeploymentTriggers)},
+	mysqlUpdate{table: "clickhouse_outbox", by: "audit actor", query: byUserJSON(db.Querier.PseudonymizeUserAuditOutbox)},
+	pseudonymizeAuditLogs{},
 	deleteWorkOSUser{},
 }
 
-func mysqlDeleteByWorkspace(tables ...string) []step {
-	steps := make([]step, 0, len(tables))
-	for _, table := range tables {
-		steps = append(steps, mysqlDelete{table: table, by: "", where: workspaceScope})
+func deleteByWorkspace[ID id](table string, query func(db.Querier, context.Context, ID) (int64, error)) step {
+	return mysqlDelete{table: table, by: "", query: byWorkspace(query)}
+}
+
+func byWorkspace[ID id](query func(db.Querier, context.Context, ID) (int64, error)) mysqlQuery {
+	return func(ctx context.Context, q db.Querier, s subject) (int64, error) {
+		if s.workspaceID == "" {
+			return 0, restate.TerminalErrorf("workspace id is empty for this subject")
+		}
+		return query(q, ctx, idOf[ID](s.workspaceID))
+	}
+}
+
+func byUser[ID id](query func(db.Querier, context.Context, ID) (int64, error)) mysqlQuery {
+	return func(ctx context.Context, q db.Querier, s subject) (int64, error) {
+		if s.userID == "" {
+			return 0, restate.TerminalErrorf("user id is empty for this subject")
+		}
+		return query(q, ctx, idOf[ID](s.userID))
+	}
+}
+
+// byUserJSON passes the user id as a JSON string, for queries that compare it
+// with a value inside a JSON column.
+func byUserJSON(query func(db.Querier, context.Context, json.RawMessage) (int64, error)) mysqlQuery {
+	return func(ctx context.Context, q db.Querier, s subject) (int64, error) {
+		if s.userID == "" {
+			return 0, restate.TerminalErrorf("user id is empty for this subject")
+		}
+		userID, err := json.Marshal(s.userID)
+		if err != nil {
+			return 0, restate.ToTerminalError(err)
+		}
+		return query(q, ctx, userID)
+	}
+}
+
+// id is the type sqlc generates for an id argument: sql.NullString when the
+// compared column is nullable, string otherwise.
+type id interface {
+	string | sql.NullString
+}
+
+func idOf[ID id](value string) ID {
+	var out ID
+	switch target := any(&out).(type) {
+	case *string:
+		*target = value
+	case *sql.NullString:
+		*target = sql.NullString{String: value, Valid: true}
+	}
+	return out
+}
+
+// endUserParams is the parameter struct sqlc generates for every end user
+// query, so byEndUser accepts each of their distinct types.
+type endUserParams interface {
+	~struct {
+		WorkspaceID string `db:"workspace_id"`
+		ExternalID  string `db:"external_id"`
+	}
+}
+
+func byEndUser[P endUserParams](query func(db.Querier, context.Context, P) (int64, error)) mysqlQuery {
+	return func(ctx context.Context, q db.Querier, s subject) (int64, error) {
+		if s.workspaceID == "" || s.externalID == "" {
+			return 0, restate.TerminalErrorf("workspace id or external id is empty for this subject")
+		}
+		return query(q, ctx, P{WorkspaceID: s.workspaceID, ExternalID: s.externalID})
+	}
+}
+
+func clickhouseWorkspaceDeletes() []step {
+	var steps []step
+	for _, table := range clickhouse.WorkspaceErasureTables() {
+		steps = append(steps, clickhouseWorkspaceDelete{table: table})
 	}
 	return steps
 }
 
-func clickhouseDeleteByWorkspace(mode clickhouseDeleteMode, tables ...string) []step {
-	steps := make([]step, 0, len(tables))
-	for _, table := range tables {
-		steps = append(steps, clickhouseDelete{table: table, where: workspaceScope, mode: mode})
+func clickhouseEndUserDeletes() []step {
+	var steps []step
+	for _, table := range clickhouse.EndUserErasureTables() {
+		steps = append(steps, clickhouseEndUserDelete{table: table})
 	}
 	return steps
 }

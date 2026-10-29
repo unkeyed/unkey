@@ -7,6 +7,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 type Querier interface {
@@ -619,6 +620,456 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	//EraseEndUserIdentities
+	//
+	//  DELETE FROM identities
+	//  WHERE workspace_id = ? AND external_id = ?
+	//  LIMIT 10000
+	EraseEndUserIdentities(ctx context.Context, arg EraseEndUserIdentitiesParams) (int64, error)
+	//EraseEndUserIdentityRatelimits
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE ratelimits.workspace_id = ?
+	//    AND ratelimits.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?)
+	//  LIMIT 10000
+	EraseEndUserIdentityRatelimits(ctx context.Context, arg EraseEndUserIdentityRatelimitsParams) (int64, error)
+	//EraseEndUserKeyEncryptions
+	//
+	//  DELETE FROM encrypted_keys
+	//  WHERE encrypted_keys.workspace_id = ?
+	//    AND encrypted_keys.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.workspace_id = ? AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?))
+	//  LIMIT 10000
+	EraseEndUserKeyEncryptions(ctx context.Context, arg EraseEndUserKeyEncryptionsParams) (int64, error)
+	//EraseEndUserKeyPermissions
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE keys_permissions.workspace_id = ?
+	//    AND keys_permissions.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.workspace_id = ? AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?))
+	//  LIMIT 10000
+	EraseEndUserKeyPermissions(ctx context.Context, arg EraseEndUserKeyPermissionsParams) (int64, error)
+	//EraseEndUserKeyRatelimits
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE ratelimits.workspace_id = ?
+	//    AND ratelimits.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.workspace_id = ? AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?))
+	//  LIMIT 10000
+	EraseEndUserKeyRatelimits(ctx context.Context, arg EraseEndUserKeyRatelimitsParams) (int64, error)
+	//EraseEndUserKeyRoles
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE keys_roles.workspace_id = ?
+	//    AND keys_roles.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.workspace_id = ? AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?))
+	//  LIMIT 10000
+	EraseEndUserKeyRoles(ctx context.Context, arg EraseEndUserKeyRolesParams) (int64, error)
+	//EraseEndUserKeys
+	//
+	//  DELETE FROM `keys`
+	//  WHERE `keys`.workspace_id = ?
+	//    AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?)
+	//  LIMIT 10000
+	EraseEndUserKeys(ctx context.Context, arg EraseEndUserKeysParams) (int64, error)
+	//EraseEndUserPortalSessions
+	//
+	//  DELETE FROM portal_sessions
+	//  WHERE workspace_id = ? AND external_id = ?
+	//  LIMIT 10000
+	EraseEndUserPortalSessions(ctx context.Context, arg EraseEndUserPortalSessionsParams) (int64, error)
+	//EraseUserCliSessions
+	//
+	//  DELETE FROM cli_sessions
+	//  WHERE user_id = ?
+	//  LIMIT 10000
+	EraseUserCliSessions(ctx context.Context, userID string) (int64, error)
+	//EraseUserComputeSignupCreditClaims
+	//
+	//  DELETE FROM compute_signup_credit_claims
+	//  WHERE workos_user_id = ?
+	//  LIMIT 10000
+	EraseUserComputeSignupCreditClaims(ctx context.Context, userID string) (int64, error)
+	//EraseUserDeviceAuthorizations
+	//
+	//  DELETE FROM device_authorizations
+	//  WHERE approver_user_id = ?
+	//  LIMIT 10000
+	EraseUserDeviceAuthorizations(ctx context.Context, userID sql.NullString) (int64, error)
+	//EraseWorkspace
+	//
+	//  DELETE FROM workspaces
+	//  WHERE id = ?
+	//  LIMIT 10000
+	EraseWorkspace(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAcmeChallenges
+	//
+	//  DELETE FROM acme_challenges
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAcmeChallenges(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAcmeUsers
+	//
+	//  DELETE FROM acme_users
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAcmeUsers(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceApis
+	//
+	//  DELETE FROM apis
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceApis(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppBuildSettings
+	//
+	//  DELETE FROM app_build_settings
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppBuildSettings(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppConnections
+	//
+	//  DELETE FROM app_connections
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppConnections(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppEnvironmentVariables
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppEnvironmentVariables(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppRegionalSettings
+	//
+	//  DELETE FROM app_regional_settings
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppRegionalSettings(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppRuntimeSettings
+	//
+	//  DELETE FROM app_runtime_settings
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppRuntimeSettings(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppSourceOci
+	//
+	//  DELETE FROM app_source_oci
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppSourceOci(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceApps
+	//
+	//  DELETE FROM apps
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceApps(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceBillingSubscriptions
+	//
+	//  DELETE FROM billing_subscriptions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceBillingSubscriptions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceCertificates
+	//
+	//  DELETE FROM certificates
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceCertificates(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceCiliumNetworkPolicies
+	//
+	//  DELETE FROM cilium_network_policies
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceCiliumNetworkPolicies(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceCliSessions
+	//
+	//  DELETE FROM cli_sessions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceCliSessions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceClickhouseOutbox
+	//
+	//  DELETE FROM clickhouse_outbox
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceClickhouseOutbox(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceClickhouseWorkspaceSettings
+	//
+	//  DELETE FROM clickhouse_workspace_settings
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceClickhouseWorkspaceSettings(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceComputeSignupCreditClaims
+	//
+	//  DELETE FROM compute_signup_credit_claims
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceComputeSignupCreditClaims(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceConnectionAppTargets
+	//
+	//  DELETE FROM connection_app_targets
+	//  WHERE connection_id IN (SELECT app_connections.id FROM app_connections WHERE app_connections.workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceConnectionAppTargets(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceCustomDomains
+	//
+	//  DELETE FROM custom_domains
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceCustomDomains(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeploymentConnectionAppTargets
+	//
+	//  DELETE FROM deployment_connection_app_targets
+	//  WHERE deployment_id IN (SELECT deployments.id FROM deployments WHERE deployments.workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceDeploymentConnectionAppTargets(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeploymentConnections
+	//
+	//  DELETE FROM deployment_connections
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeploymentConnections(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeploymentSteps
+	//
+	//  DELETE FROM deployment_steps
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeploymentSteps(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeploymentTopology
+	//
+	//  DELETE FROM deployment_topology
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeploymentTopology(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeployments
+	//
+	//  DELETE FROM deployments
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeployments(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeviceAuthorizations
+	//
+	//  DELETE FROM device_authorizations
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeviceAuthorizations(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceEncryptedKeys
+	//
+	//  DELETE FROM encrypted_keys
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceEncryptedKeys(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceEnvironments
+	//
+	//  DELETE FROM environments
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceEnvironments(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceFlagOverrides
+	//
+	//  DELETE FROM flag_overrides
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceFlagOverrides(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceFrontlineRoutes
+	//
+	//  DELETE FROM frontline_routes
+	//  WHERE project_id IN (SELECT projects.id FROM projects WHERE projects.workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceFrontlineRoutes(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceGithubAppInstallations
+	//
+	//  DELETE FROM github_app_installations
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceGithubAppInstallations(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceGithubRepoConnections
+	//
+	//  DELETE FROM github_repo_connections
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceGithubRepoConnections(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceHorizontalAutoscalingPolicies
+	//
+	//  DELETE FROM horizontal_autoscaling_policies
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceHorizontalAutoscalingPolicies(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceIdentities
+	//
+	//  DELETE FROM identities
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceIdentities(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceInstances
+	//
+	//  DELETE FROM instances
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceInstances(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeyAuth
+	//
+	//  DELETE FROM key_auth
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeyAuth(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeyMigrations
+	//
+	//  DELETE FROM key_migrations
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeyMigrations(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeys
+	//
+	//  DELETE FROM `keys`
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeys(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeysPermissions
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeysPermissions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeysRoles
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeysRoles(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceLegacyRootKeyEncryptions
+	//
+	//  DELETE FROM encrypted_keys
+	//  WHERE encrypted_keys.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.for_workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeyEncryptions(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLegacyRootKeyPermissions
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE keys_permissions.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.for_workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeyPermissions(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLegacyRootKeyRatelimits
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE ratelimits.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.for_workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeyRatelimits(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLegacyRootKeyRoles
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE keys_roles.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.for_workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeyRoles(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLegacyRootKeys
+	//
+	//  DELETE FROM `keys`
+	//  WHERE for_workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeys(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLimits
+	//
+	//  DELETE FROM limits
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceLimits(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceLogdrains
+	//
+	//  DELETE FROM logdrains
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceLogdrains(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceOpenapiSpecs
+	//
+	//  DELETE FROM openapi_specs
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceOpenapiSpecs(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspacePermissions
+	//
+	//  DELETE FROM permissions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspacePermissions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspacePortalDomains
+	//
+	//  DELETE FROM portal_domains
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspacePortalDomains(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspacePortalSessions
+	//
+	//  DELETE FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspacePortalSessions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspacePortals
+	//
+	//  DELETE FROM portals
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspacePortals(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceProjects
+	//
+	//  DELETE FROM projects
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceProjects(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRatelimitGlobalCounters
+	//
+	//  DELETE FROM ratelimit_global_counters
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRatelimitGlobalCounters(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRatelimitNamespaces
+	//
+	//  DELETE FROM ratelimit_namespaces
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRatelimitNamespaces(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRatelimitOverrides
+	//
+	//  DELETE FROM ratelimit_overrides
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRatelimitOverrides(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRatelimits
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRatelimits(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRoles
+	//
+	//  DELETE FROM roles
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRoles(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRolesPermissions
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRolesPermissions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceSharedSecrets
+	//
+	//  DELETE FROM shared_secrets
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceSharedSecrets(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceUnkeyPrincipalPermissions
+	//
+	//  DELETE FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceUnkeyPrincipalPermissions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceUnkeyRootKeys
+	//
+	//  DELETE FROM unkey_root_keys
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceUnkeyRootKeys(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceWorkspaceBilling
+	//
+	//  DELETE FROM workspace_billing
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceWorkspaceBilling(ctx context.Context, workspaceID string) (int64, error)
 	// Returns the challenge row for a domain, if one exists. domain_id is unique on
 	// acme_challenges, so there is at most one. Used as the idempotency check for
 	// infra certificate provisioning: once a challenge exists the renewal cron owns
@@ -2612,6 +3063,22 @@ type Querier interface {
 	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
 	//  WHERE d.project_id = ?
 	NotifyDeploymentTopologiesByProject(ctx context.Context, arg NotifyDeploymentTopologiesByProjectParams) error
+	//PseudonymizeUserAuditOutbox
+	//
+	//  UPDATE clickhouse_outbox
+	//  SET payload = JSON_REMOVE(payload, '$.actor.name', '$.actor.meta', '$.remote_ip', '$.user_agent')
+	//  WHERE version = 'audit_log.v1'
+	//    AND JSON_EXTRACT(payload, '$.actor.id') = CAST(? AS JSON)
+	//    AND JSON_CONTAINS_PATH(payload, 'one', '$.actor.name', '$.actor.meta', '$.remote_ip', '$.user_agent')
+	//  LIMIT 10000
+	PseudonymizeUserAuditOutbox(ctx context.Context, userID json.RawMessage) (int64, error)
+	//PseudonymizeUserDeploymentTriggers
+	//
+	//  UPDATE deployments
+	//  SET triggered_by = NULL
+	//  WHERE triggered_by = ?
+	//  LIMIT 10000
+	PseudonymizeUserDeploymentTriggers(ctx context.Context, userID sql.NullString) (int64, error)
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes

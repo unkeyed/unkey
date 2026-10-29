@@ -7,6 +7,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -15,8 +16,9 @@ import (
 // ClickHouse is the slice of the ClickHouse client the erasure needs. A noop
 // client finds no rows.
 type ClickHouse interface {
-	Exec(ctx context.Context, sql string, args ...any) error
-	QueryToMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error)
+	EraseWorkspaceRows(ctx context.Context, table, workspaceID string) (int64, error)
+	EraseEndUserRows(ctx context.Context, table string, endUser clickhouse.EndUserErasure) (int64, error)
+	PseudonymizeAuditActor(ctx context.Context, actorID string) (int64, error)
 }
 
 // Config holds the workflow's dependencies.

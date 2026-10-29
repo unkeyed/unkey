@@ -80,6 +80,21 @@ func (n *noop) InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) er
 	return nil
 }
 
+// EraseWorkspaceRows implements the Querier interface but finds no rows.
+func (n *noop) EraseWorkspaceRows(ctx context.Context, table, workspaceID string) (int64, error) {
+	return 0, nil
+}
+
+// EraseEndUserRows implements the Querier interface but finds no rows.
+func (n *noop) EraseEndUserRows(ctx context.Context, table string, endUser EndUserErasure) (int64, error) {
+	return 0, nil
+}
+
+// PseudonymizeAuditActor implements the Querier interface but finds no rows.
+func (n *noop) PseudonymizeAuditActor(ctx context.Context, actorID string) (int64, error) {
+	return 0, nil
+}
+
 func (n *noop) Conn() ch.Conn {
 	return nil
 }

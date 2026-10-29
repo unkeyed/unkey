@@ -1,6 +1,11 @@
 package gdprerasure
 
-import restate "github.com/restatedev/sdk-go"
+import (
+	"context"
+
+	restate "github.com/restatedev/sdk-go"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+)
 
 // step is one erasure action. A subject's steps run in registry order, and
 // every step converges: run again, it finds nothing left and affects zero rows.
@@ -9,59 +14,52 @@ type step interface {
 	execute(ctx restate.Context, w *Workflow, s subject) (int64, error)
 }
 
-// mysqlDelete removes the rows of table that match where, in bounded batches.
-// where may use the subject placeholders listed in subject.value. by tells
-// apart two deletes from the same table in one registry.
+// mysqlQuery runs one batch of a generated erasure query for the subject and
+// returns the rows it affected.
+type mysqlQuery func(ctx context.Context, q db.Querier, s subject) (int64, error)
+
+// mysqlDelete removes the rows of table that query matches, in bounded
+// batches. by tells apart two deletes from the same table in one registry.
 type mysqlDelete struct {
 	table string
 	by    string
-	where string
+	query mysqlQuery
 }
 
 func (d mysqlDelete) name() string { return qualify("delete mysql "+d.table, d.by) }
 
-// mysqlUpdate rewrites the rows of table that match where, in bounded batches.
-// where must stop matching a row once set has rewritten it, so the batches
-// drain.
+// mysqlUpdate rewrites the rows of table that query matches, in bounded
+// batches. query must stop matching a row once it has rewritten it, so the
+// batches drain.
 type mysqlUpdate struct {
 	table string
 	by    string
-	set   string
-	where string
+	query mysqlQuery
 }
 
 func (u mysqlUpdate) name() string { return qualify("update mysql "+u.table, u.by) }
 
-// clickhouseDeleteMode is how a ClickHouse delete removes rows.
-type clickhouseDeleteMode int
-
-const (
-	// deleteLightweight masks rows at once and drops them on the next merge.
-	deleteLightweight clickhouseDeleteMode = iota
-
-	// deleteMutation rewrites every part holding a matching row. Tables with a
-	// projection reject lightweight deletes, so they need this.
-	deleteMutation
-)
-
-// clickhouseDelete removes the rows of table that match where.
-type clickhouseDelete struct {
+// clickhouseWorkspaceDelete removes the workspace's rows from table, one of
+// clickhouse.WorkspaceErasureTables.
+type clickhouseWorkspaceDelete struct {
 	table string
-	where string
-	mode  clickhouseDeleteMode
 }
 
-func (d clickhouseDelete) name() string { return "delete clickhouse " + d.table }
+func (d clickhouseWorkspaceDelete) name() string { return "delete clickhouse " + d.table }
 
-// clickhouseUpdate rewrites the rows of table that match where with a mutation.
-// where must stop matching a row once set has rewritten it.
-type clickhouseUpdate struct {
+// clickhouseEndUserDelete removes the end user's rows from table, one of
+// clickhouse.EndUserErasureTables.
+type clickhouseEndUserDelete struct {
 	table string
-	set   string
-	where string
 }
 
-func (u clickhouseUpdate) name() string { return "update clickhouse " + u.table }
+func (d clickhouseEndUserDelete) name() string { return "delete clickhouse " + d.table }
+
+// pseudonymizeAuditLogs blanks the user's personal data in the audit log rows
+// they wrote.
+type pseudonymizeAuditLogs struct{}
+
+func (pseudonymizeAuditLogs) name() string { return "update clickhouse audit_logs_raw_v1" }
 
 // teardownCompute stops the workspace's running Deploy compute and waits for it
 // to drain, so no row is deleted from under a running pod.

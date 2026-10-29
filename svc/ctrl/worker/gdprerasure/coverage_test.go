@@ -1,6 +1,11 @@
 package gdprerasure
 
 import (
+	"context"
+	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -8,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 // retainedMySQLTables are schema tables a workspace erasure deliberately leaves
@@ -23,15 +29,14 @@ var retainedMySQLTables = map[string]string{
 var retainedClickHouseTables = map[string]string{}
 
 type schemaTable struct {
-	columns       []string
-	hasProjection bool
+	columns []string
 }
 
 var (
 	mysqlTablePattern      = regexp.MustCompile("(?s)CREATE TABLE `(\\w+)` \\((.*?)\\n\\);")
 	clickhouseTablePattern = regexp.MustCompile("(?s)CREATE TABLE (?:IF NOT EXISTS )?(?:`?default`?\\.)?`?(\\w+)`?\\s*\\((.*?)\\n\\)")
 	columnPattern          = regexp.MustCompile("(?m)^\\s*`?(\\w+)`?\\s+[A-Za-z]")
-	projectionPattern      = regexp.MustCompile(`(?m)^\s*PROJECTION\s`)
+	mysqlStatementPattern  = regexp.MustCompile("(?m)^(DELETE FROM|UPDATE) `?(\\w+)`?$")
 )
 
 // TestWorkspaceErasureCoversEverySchemaTable guarantees that a new table cannot
@@ -76,9 +81,9 @@ func accounted(t *testing.T, table string, erased []string, retained map[string]
 }
 
 // TestRegistriesMatchSchema guarantees that every registry step names a real
-// table and binds only placeholders its subject provides, and that ClickHouse
-// tables with a projection are deleted with a mutation, because they reject a
-// lightweight DELETE outright.
+// table and that MySQL steps are scoped to their subject. MySQL steps run
+// against a recorder, so the check covers the statement each step actually
+// sends. pkg/clickhouse checks its own erasure statements.
 func TestRegistriesMatchSchema(t *testing.T) {
 	mysqlSchema := readSchema(t, "../../../../pkg/mysql/schema", mysqlTablePattern)
 	clickhouseSchema := readSchema(t, "../../../../pkg/clickhouse/schema", clickhouseTablePattern)
@@ -103,27 +108,76 @@ func TestRegistriesMatchSchema(t *testing.T) {
 				switch s := s.(type) {
 				case mysqlDelete:
 					require.Contains(t, mysqlSchema, s.table)
-					_, _, err := registry.subject.bind(s.where)
-					require.NoError(t, err, s.name())
+					requireScopedStatement(t, s.name(), "DELETE FROM", s.table, s.query, registry.subject)
 				case mysqlUpdate:
 					require.Contains(t, mysqlSchema, s.table)
-					_, _, err := registry.subject.bind(s.set + " " + s.where)
-					require.NoError(t, err, s.name())
-				case clickhouseDelete:
+					requireScopedStatement(t, s.name(), "UPDATE", s.table, s.query, registry.subject)
+				case clickhouseWorkspaceDelete:
 					require.Contains(t, clickhouseSchema, s.table)
-					_, _, err := registry.subject.bind(s.where)
-					require.NoError(t, err, s.name())
-					if clickhouseSchema[s.table].hasProjection {
-						require.Equal(t, deleteMutation, s.mode, "%s has a projection and rejects lightweight deletes", s.table)
-					}
-				case clickhouseUpdate:
+				case clickhouseEndUserDelete:
 					require.Contains(t, clickhouseSchema, s.table)
-					_, _, err := registry.subject.bind(s.set + " " + s.where)
-					require.NoError(t, err, s.name())
 				}
 			}
 		})
 	}
+}
+
+// requireScopedStatement runs one batch of query against a recorder and
+// requires that it writes table, is limited to batchRowsMax rows, binds only
+// the subject's values, and refuses a subject without them.
+func requireScopedStatement(t *testing.T, name, verb, table string, query mysqlQuery, s subject) {
+	t.Helper()
+
+	recorder := &recordingDB{DBTX: nil, statement: "", args: nil}
+	_, err := query(context.Background(), db.NewQueries(recorder), s)
+	require.NoError(t, err, name)
+
+	target := mysqlStatementPattern.FindStringSubmatch(recorder.statement)
+	require.NotNil(t, target, "%s sent no DELETE or UPDATE:\n%s", name, recorder.statement)
+	require.Equal(t, verb, target[1], name)
+	require.Equal(t, table, target[2], name)
+	require.Regexp(t, fmt.Sprintf("(?m)^LIMIT %d$", batchRowsMax), recorder.statement, name)
+
+	require.NotEmpty(t, recorder.args, "%s is not scoped to the subject", name)
+	values := []string{s.workspaceID, s.externalID, s.userID}
+	for _, arg := range recorder.args {
+		require.Contains(t, values, boundString(t, arg), "%s binds a value the subject does not provide", name)
+	}
+
+	_, err = query(context.Background(), db.NewQueries(&recordingDB{DBTX: nil, statement: "", args: nil}), subject{})
+	require.Error(t, err, "%s runs without the subject's ids", name)
+}
+
+func boundString(t *testing.T, arg any) string {
+	t.Helper()
+	switch value := arg.(type) {
+	case string:
+		return value
+	case sql.NullString:
+		require.True(t, value.Valid)
+		return value.String
+	case json.RawMessage:
+		var decoded string
+		require.NoError(t, json.Unmarshal(value, &decoded))
+		return decoded
+	default:
+		t.Fatalf("unexpected argument type %T", arg)
+		return ""
+	}
+}
+
+// recordingDB captures the statement a generated query sends instead of
+// running it.
+type recordingDB struct {
+	db.DBTX
+	statement string
+	args      []any
+}
+
+func (r *recordingDB) ExecContext(_ context.Context, statement string, args ...any) (sql.Result, error) {
+	r.statement = statement
+	r.args = args
+	return driver.RowsAffected(0), nil
 }
 
 func registryTables(steps []step) (mysqlTables []string, clickhouseTables []string) {
@@ -131,7 +185,7 @@ func registryTables(steps []step) (mysqlTables []string, clickhouseTables []stri
 		switch s := s.(type) {
 		case mysqlDelete:
 			mysqlTables = append(mysqlTables, s.table)
-		case clickhouseDelete:
+		case clickhouseWorkspaceDelete:
 			clickhouseTables = append(clickhouseTables, s.table)
 		}
 	}
@@ -154,7 +208,7 @@ func readSchema(t *testing.T, dir string, tablePattern *regexp.Regexp) map[strin
 			for _, column := range columnPattern.FindAllStringSubmatch(match[2], -1) {
 				columns = append(columns, column[1])
 			}
-			tables[match[1]] = schemaTable{columns: columns, hasProjection: projectionPattern.MatchString(match[2])}
+			tables[match[1]] = schemaTable{columns: columns}
 		}
 	}
 	require.NotEmpty(t, tables, "no tables parsed under %s", dir)
