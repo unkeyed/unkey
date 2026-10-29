@@ -224,7 +224,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		IdentityID:  new(identityA.ID),
 	})
 
-	now := time.Now().UnixMilli()
+	now := h.Clock.Now().UnixMilli()
 
 	buffer := func(keySpaceID, keyID, externalID, identityID string, n int) {
 		for i := range n {
@@ -331,7 +331,7 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 		IdentityID:  new(identityA.ID),
 	})
 
-	now := time.Now().UnixMilli()
+	now := h.Clock.Now().UnixMilli()
 	for i := range 4 {
 		h.KeyVerifications.Buffer(schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),

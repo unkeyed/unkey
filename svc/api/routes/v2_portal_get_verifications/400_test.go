@@ -111,7 +111,7 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 		ExternalID:  externalA,
 	})
 
-	now := time.Now().UnixMilli()
+	now := h.Clock.Now().UnixMilli()
 	var lastKey seed.CreateKeyResponse
 	for range 2 {
 		key := h.CreateKey(seed.CreateKeyRequest{
@@ -186,7 +186,7 @@ func TestPortalSessionAnalyticsRejectsOversizedResponse(t *testing.T) {
 	// A minute-granularity window over several keys is what makes the body grow:
 	// every key carries a bucket per minute it saw traffic. The ceiling is
 	// lowered rather than seeding a production-scale body.
-	now := time.Now().UnixMilli()
+	now := h.Clock.Now().UnixMilli()
 	minuteMs := int64(time.Minute / time.Millisecond)
 	var lastKey seed.CreateKeyResponse
 	for range 8 {
