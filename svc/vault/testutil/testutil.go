@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"github.com/unkeyed/unkey/svc/vault/internal/vault"
@@ -26,6 +27,7 @@ type TestVault struct {
 	Token string
 	// Client is a pre-configured vault client with auth interceptor.
 	Client vaultv1connect.VaultServiceClient
+	Clock  *clock.TestClock
 }
 
 // StartTestVault creates an in-memory vault with S3 storage and HTTP server.
@@ -54,6 +56,7 @@ func StartTestVault(t *testing.T) *TestVault {
 	require.NoError(t, err)
 
 	token := "test-vault-token"
+	clock := clock.NewTestClock()
 
 	// Create vault service
 	v, err := vault.New(vault.Config{
@@ -61,6 +64,7 @@ func StartTestVault(t *testing.T) *TestVault {
 		MasterKey:         masterKey,
 		PreviousMasterKey: nil,
 		BearerToken:       token,
+		Clock:             clock,
 	})
 	require.NoError(t, err)
 
@@ -81,6 +85,7 @@ func StartTestVault(t *testing.T) *TestVault {
 		URL:    server.URL,
 		Token:  token,
 		Client: client,
+		Clock:  clock,
 	}
 }
 
@@ -98,6 +103,7 @@ func StartTestVaultWithMemory(t *testing.T) *TestVault {
 	require.NoError(t, err)
 
 	token := "test-vault-token"
+	clock := clock.NewTestClock()
 
 	// Create vault service
 	v, err := vault.New(vault.Config{
@@ -105,6 +111,7 @@ func StartTestVaultWithMemory(t *testing.T) *TestVault {
 		MasterKey:         masterKey,
 		PreviousMasterKey: nil,
 		BearerToken:       token,
+		Clock:             clock,
 	})
 	require.NoError(t, err)
 
@@ -125,6 +132,7 @@ func StartTestVaultWithMemory(t *testing.T) *TestVault {
 		URL:    server.URL,
 		Token:  token,
 		Client: client,
+		Clock:  clock,
 	}
 }
 

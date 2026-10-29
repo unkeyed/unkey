@@ -22,7 +22,6 @@ func (s *Service) ReEncryptBulk(ctx context.Context, req *connect.Request[vaultv
 	defer span.End()
 	span.SetAttributes(attribute.Int("count", len(req.Msg.GetItems())))
 
-	s.keyCache.Clear(ctx)
 	items := make(map[string]*vaultv1.ReEncryptBulkResponseItem, len(req.Msg.GetItems()))
 	for id, item := range req.Msg.GetItems() {
 		if err := ctx.Err(); err != nil {

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"math"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -35,11 +37,13 @@ func TestReEncryptBulk(t *testing.T) {
 	require.NoError(t, err)
 
 	bearer := "bearer"
+	clock := clock.NewTestClock()
 
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
 		MasterKey:   masterKey,
 		BearerToken: bearer,
+		Clock:       clock,
 	})
 	require.NoError(t, err)
 
@@ -72,6 +76,7 @@ func TestReEncryptBulk(t *testing.T) {
 				require.NoError(t, createDekErr)
 				require.NotContains(t, deks, dekID)
 				deks = append(deks, dekID)
+				clock.Tick(25 * time.Hour)
 				id := uid.New(uid.TestPrefix)
 				reReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
 					Items: map[string]*vaultv1.DecryptRequest{
