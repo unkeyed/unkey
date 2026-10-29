@@ -104,7 +104,7 @@ func TestResourcePickerUnsupportedTargetsLeaveTextPromptToForm(t *testing.T) {
 	}
 }
 
-func TestResourcePickerListFailureFallsBackWithoutLeakingResponse(t *testing.T) {
+func TestResourcePickerListFailureShowsSanitizedReason(t *testing.T) {
 	secret := uid.New(uid.TestPrefix)
 	id := uid.New(uid.ProjectPrefix)
 	cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -122,9 +122,7 @@ func TestResourcePickerListFailureFallsBackWithoutLeakingResponse(t *testing.T) 
 	require.True(t, handled)
 	require.Equal(t, id, value)
 	require.Empty(t, script.answers)
-	require.Contains(t, output.String(), "Enter the ID instead")
-	require.NotContains(t, output.String(), secret)
-	require.NotContains(t, output.String(), "\x1b")
+	require.Equal(t, "Permission denied: "+secret+"\\x1b[31m\n  Enter the project ID instead.\n", output.String())
 }
 
 func TestResourcePickerScopesNeverBecomeRequestFields(t *testing.T) {
