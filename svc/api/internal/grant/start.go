@@ -104,8 +104,7 @@ func newUserCode() (string, error) {
 	return chars[:4] + "-" + chars[4:], nil
 }
 
-// randomUserCode draws length characters from userCodeAlphabet. The alphabet
-// has 32 characters, so taking each byte modulo 32 is unbiased.
+// randomUserCode draws length characters from userCodeAlphabet.
 func randomUserCode(length int) (string, error) {
 	buf := make([]byte, length)
 	if _, err := rand.Read(buf); err != nil {

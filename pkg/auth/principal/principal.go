@@ -150,9 +150,8 @@ func (JWTSource) principalSource() {}
 // deadline, which never passes the session's absolute maximum. A root key this
 // session mints must not outlive it.
 //
-// OAuth clients hold the same kind of session. ClientID names that client and
-// is empty for the Unkey CLI. Keeping one source type means the root key
-// expiry bound and the session list and revoke rules apply to both holders.
+// ClientID names the OAuth client holding the session and is empty for the
+// Unkey CLI.
 type CLISessionSource struct {
 	SessionID  string
 	DeviceName string

@@ -37,9 +37,6 @@ func (s *Service) Redeem(ctx context.Context, req RedeemRequest) (Tokens, error)
 		return Tokens{}, rejectedCode()
 	}
 
-	// No lock here: issue locks the row and re-checks it. Locking in a
-	// transaction around issue would split find and consume across two
-	// transactions on two connections.
 	row, err := db.Query.FindDeviceAuthorizationByCodeHash(ctx, s.DB.RW(), sql.NullString{String: hashCode(req.Code), Valid: true})
 	if err != nil {
 		if db.IsNotFound(err) {

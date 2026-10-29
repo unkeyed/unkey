@@ -14,9 +14,7 @@
 //
 // Both modes share dashboard approval (narrowed to the approver's role),
 // issuance (WorkOS role re-check, session row, audit), refresh rotation, the
-// revocation cache, and the sessions list. The mode is decided once, when a
-// row is parsed, and every behaviour that differs by mode is a method on the
-// parsed delivery.
+// revocation cache, and the sessions list.
 //
 // Storage keeps the device login names because PlanetScale cannot rename:
 // requests live in device_authorizations, sessions in cli_sessions, and

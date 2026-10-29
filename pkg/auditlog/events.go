@@ -116,7 +116,6 @@ const (
 	CLISessionRefreshEvent AuditLogEvent = "cli.session.refresh"
 	CLISessionRevokeEvent  AuditLogEvent = "cli.session.revoke"
 
-	// OAuth session events: sessions held by a registered OAuth client
 	OAuthSessionCreateEvent  AuditLogEvent = "oauth.session.create"
 	OAuthSessionRefreshEvent AuditLogEvent = "oauth.session.refresh"
 	OAuthSessionRevokeEvent  AuditLogEvent = "oauth.session.revoke"

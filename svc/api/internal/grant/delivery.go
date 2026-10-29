@@ -16,14 +16,7 @@ const (
 	authorizationCodeLength = 32
 )
 
-// delivery is how an approved request reaches its holder. It is sealed: only
-// deviceDelivery and redirectDelivery implement it, and only parseRequest
-// picks one. Every behaviour that differs by mode is a method here, so a third
-// mode does not compile until each behaviour is decided for it.
-//
-// Entry points that serve one mode assert it (Poll: deviceDelivery, Redeem:
-// redirectDelivery) and treat the other mode as not found. That is how a login
-// id presented as a code, or a code presented as a login id, is rejected.
+// delivery is how an approved request reaches its holder.
 type delivery interface {
 	// holder is who holds the session this request issues.
 	holder() Holder

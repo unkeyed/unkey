@@ -26,10 +26,10 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 	require.Equal(t, []string{
 		"code", // portal exchangeCode request, the single-use code
 		"data.accessToken",
-		"data.key",        // createKey and rerollKey responses
-		"data.loginId",    // cli.startDeviceLogin response, the poll secret
-		"data.plaintext",  // getKey response, recoverable key material
-		"data.redirectTo", // cli.decideDeviceLogin response, carries the authorization code
+		"data.key",       // createKey and rerollKey responses
+		"data.loginId",   // cli.startDeviceLogin response, the poll secret
+		"data.plaintext", // getKey response, recoverable key material
+		"data.redirectTo",
 		"data.refreshToken",
 		"data.url",         // portal URL, which carries the exchange code in its query
 		"data[].plaintext", // listKeys response, one entry per key
