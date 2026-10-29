@@ -90,7 +90,7 @@ func TestGuidedTerminalCreateAndCancellation(t *testing.T) {
 			require.NoError(t, json.Unmarshal([]byte(out), &got))
 			require.Equal(t, response, got)
 		} else {
-			require.Contains(t, out, "Project created.")
+			require.Contains(t, out, "✓ Created project demo-service")
 			recordGuided(t, "create-after", terminal, out)
 		}
 	}
@@ -159,7 +159,7 @@ func TestGuidedTerminalColorAndLineMode(t *testing.T) {
 	require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service"}, <-requests)
 	require.Contains(t, terminal, "Ctrl+C to cancel")
 	require.NotContains(t, terminal, "\x1b")
-	require.Contains(t, out, "Project created.")
+	require.Contains(t, out, "✓ Created project demo-service")
 }
 
 func TestGuidedTerminalUpdatePreservesPatch(t *testing.T) {
@@ -192,7 +192,7 @@ func TestGuidedTerminalUpdatePreservesPatch(t *testing.T) {
 	require.Equal(t, components.V2KeysUpdateKeyRequestBody{
 		KeyID: keyID, Enabled: new(false), Expires: optionalnullable.From(new(int64(0))), Roles: []string{}, Name: optionalnullable.From[string](nil),
 	}, <-requests)
-	require.Contains(t, out, "Key updated.")
+	require.Contains(t, out, "✓ Updated key")
 	recordGuided(t, "update-after", terminal, out)
 }
 
@@ -439,7 +439,7 @@ func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 	require.NoError(t, err, terminal)
 	require.Len(t, requests, 1)
 	require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service"}, <-requests)
-	require.Contains(t, out, "Project created.")
+	require.Contains(t, out, "✓ Created project demo-service")
 	recordGuided(t, "review-edit-after", terminal, out)
 	out, terminal, err = runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name ", answer: "Demo Service\r"},
@@ -488,7 +488,7 @@ func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 			}, terminalSettings{columns: 40, rows: rows, history: strings.Repeat("Earlier shell output\n", 30)})
 			require.NoError(t, err, terminal)
 			require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: name, Slug: "demo-service"}, <-requests)
-			require.Contains(t, out, "Project created.")
+			require.Contains(t, out, "✓ Created project demo-service")
 		})
 	}
 }
@@ -557,7 +557,7 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 	require.Len(t, requests, 2)
 	require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service"}, <-requests)
 	require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service-fixed"}, <-requests)
-	require.Contains(t, out, "Project created.")
+	require.Contains(t, out, "✓ Created project demo-service")
 	recordGuided(t, "validation-correction-after", terminal, out)
 	out, terminal, err = runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name ", answer: "Demo Service\r"},

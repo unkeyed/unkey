@@ -170,30 +170,30 @@ func TestOutputEmptyResponses(t *testing.T) {
 		{"nil projects", &components.V2ProjectsListProjectsResponseBody{}, "No projects found.\n"},
 		{"empty role list", &components.V2PermissionsListRolesResponseBody{Data: []components.Role{}}, "No roles found.\n"},
 		{"empty permission list", &components.V2PermissionsListPermissionsResponseBody{}, "No permissions found.\n"},
-		{"roles cleared", &components.V2KeysSetRolesResponseBody{Data: []components.Role{}}, "Roles updated.\nNo roles assigned.\n"},
-		{"nil roles", &components.V2KeysSetRolesResponseBody{}, "Roles updated.\nNo roles assigned.\n"},
-		{"roles removed", &components.V2KeysRemoveRolesResponseBody{}, "Roles updated.\nNo roles assigned.\n"},
-		{"roles added", &components.V2KeysAddRolesResponseBody{}, "Roles updated.\nNo roles assigned.\n"},
-		{"permissions cleared", &components.V2KeysSetPermissionsResponseBody{Data: []components.Permission{}}, "Permissions updated.\nNo permissions assigned.\n"},
-		{"permissions removed", &components.V2KeysRemovePermissionsResponseBody{}, "Permissions updated.\nNo permissions assigned.\n"},
-		{"permissions added", &components.V2KeysAddPermissionsResponseBody{}, "Permissions updated.\nNo permissions assigned.\n"},
-		{"role permissions cleared", &components.V2PermissionsSetRolePermissionsResponseBody{}, "Permissions updated.\nNo permissions assigned.\n"},
+		{"roles cleared", &components.V2KeysSetRolesResponseBody{Data: []components.Role{}}, "✓ Updated roles\n  No roles assigned.\n"},
+		{"nil roles", &components.V2KeysSetRolesResponseBody{}, "✓ Updated roles\n  No roles assigned.\n"},
+		{"roles removed", &components.V2KeysRemoveRolesResponseBody{}, "✓ Updated roles\n  No roles assigned.\n"},
+		{"roles added", &components.V2KeysAddRolesResponseBody{}, "✓ Updated roles\n  No roles assigned.\n"},
+		{"permissions cleared", &components.V2KeysSetPermissionsResponseBody{Data: []components.Permission{}}, "✓ Updated permissions\n  No permissions assigned.\n"},
+		{"permissions removed", &components.V2KeysRemovePermissionsResponseBody{}, "✓ Updated permissions\n  No permissions assigned.\n"},
+		{"permissions added", &components.V2KeysAddPermissionsResponseBody{}, "✓ Updated permissions\n  No permissions assigned.\n"},
+		{"role permissions cleared", &components.V2PermissionsSetRolePermissionsResponseBody{}, "✓ Updated permissions\n  No permissions assigned.\n"},
 		{"no analytics results", &components.V2AnalyticsGetRatelimitsResponseBody{}, "No results found.\n"},
-		{"queued deletion", &components.V2ProjectsDeleteProjectResponseBody{}, "Deletion requested.\n"},
-		{"queued stop", &components.V2DeploymentsStopDeploymentResponseBody{}, "Stop requested.\n"},
-		{"completed mutation", &components.V2KeysDeleteKeyResponseBody{}, "Key deleted.\n"},
-		{"absent data", &components.V2IdentitiesDeleteIdentityResponseBody{}, "Identity deleted.\n"},
+		{"queued deletion", &components.V2ProjectsDeleteProjectResponseBody{}, "✓ Deletion requested\n"},
+		{"queued stop", &components.V2DeploymentsStopDeploymentResponseBody{}, "✓ Stop requested\n"},
+		{"completed mutation", &components.V2KeysDeleteKeyResponseBody{}, "✓ Deleted key\n"},
+		{"absent data", &components.V2IdentitiesDeleteIdentityResponseBody{}, "✓ Deleted identity\n"},
 		{"root keys", &components.V2RootKeysListKeysResponseBody{}, "No root keys found.\n"},
 		{"build logs", &components.V2DeploymentsListBuildLogsResponseBody{}, "No build logs found.\n"},
 		{"API requests", &components.V2LogsListAPIRequestsResponseBody{}, "No API requests found.\n"},
 		{"request metrics", &components.V2LogsGetAPIRequestMetricsResponseBody{}, "No API request metrics found.\n"},
 		{"rate limit namespaces", &components.V2RatelimitListNamespacesResponseBody{}, "No rate limit namespaces found.\n"},
 		{"workspace flags", &components.V2WorkspaceGetFlagsResponseBody{}, "No workspace flags found.\n"},
-		{"root key deletion", &components.V2RootKeysDeleteKeyResponseBody{}, "Root key deleted.\n"},
-		{"root key update", &components.V2RootKeysUpdateKeyResponseBody{}, "Root key updated.\n"},
-		{"namespace deletion", &components.V2RatelimitDeleteNamespaceResponseBody{}, "Rate limit namespace deleted.\n"},
-		{"queued cancellation", &components.V2DeploymentsCancelDeploymentResponseBody{}, "Cancellation requested.\n"},
-		{"queued authorization", &components.V2DeploymentsAuthorizeDeploymentResponseBody{}, "Authorization requested.\n"},
+		{"root key deletion", &components.V2RootKeysDeleteKeyResponseBody{}, "✓ Deleted root key\n"},
+		{"root key update", &components.V2RootKeysUpdateKeyResponseBody{}, "✓ Updated root key\n"},
+		{"namespace deletion", &components.V2RatelimitDeleteNamespaceResponseBody{}, "✓ Deleted rate limit namespace\n"},
+		{"queued cancellation", &components.V2DeploymentsCancelDeploymentResponseBody{}, "✓ Cancellation requested\n"},
+		{"queued authorization", &components.V2DeploymentsAuthorizeDeploymentResponseBody{}, "✓ Authorization requested\n"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -216,31 +216,31 @@ func TestOutputMutationStatusPreservesReturnedData(t *testing.T) {
 		{
 			name:     "created key",
 			response: &components.V2KeysCreateKeyResponseBody{Data: components.V2KeysCreateKeyResponseData{KeyID: keyID, Key: plaintext}},
-			status:   "Key created.",
+			status:   "✓ Created key",
 			values:   []string{keyID, plaintext},
 		},
 		{
 			name:     "updated project",
 			response: &components.V2ProjectsUpdateProjectResponseBody{Data: components.Project{ID: projectID, Name: "Payments", Slug: "payments"}},
-			status:   "Project updated.",
+			status:   "✓ Updated project",
 			values:   []string{projectID, "Payments", "payments"},
 		},
 		{
 			name:     "queued deployment",
 			response: &components.V2DeploymentsCreateDeploymentResponseBody{Data: components.V2DeploymentsCreateDeploymentResponseData{DeploymentID: deploymentID}},
-			status:   "Deployment requested.",
+			status:   "✓ Deployment requested",
 			values:   []string{deploymentID},
 		},
 		{
 			name:     "queued v3 deployment",
 			response: &components.V3DeploymentsCreateDeploymentResponseBody{Data: components.V3DeploymentsCreateDeploymentResponseData{DeploymentID: deploymentID}},
-			status:   "Deployment requested.",
+			status:   "✓ Deployment requested",
 			values:   []string{deploymentID},
 		},
 		{
 			name:     "assigned roles",
 			response: &components.V2KeysSetRolesResponseBody{Data: []components.Role{{ID: uid.New(uid.RolePrefix), Name: "Billing reader"}}},
-			status:   "Roles updated.",
+			status:   "✓ Updated roles",
 			values:   []string{"NAME", "Billing reader"},
 		},
 	} {
@@ -251,6 +251,28 @@ func TestOutputMutationStatusPreservesReturnedData(t *testing.T) {
 				require.Contains(t, output, value)
 			}
 			require.Equal(t, 1, strings.Count(output, test.status))
+		})
+	}
+}
+
+func TestOutputCreatedResourceNamesRequestedIdentity(t *testing.T) {
+	projectID := uid.New(uid.ProjectPrefix)
+	response := &components.V2ProjectsCreateProjectResponseBody{Data: components.V2ProjectsCreateProjectResponseData{ID: projectID}}
+	for _, test := range []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"slug flag", []string{"--name=Demo Service", "--slug=demo-service"}, "✓ Created project demo-service\n  ID:  " + projectID + "\n"},
+		{"slug body", []string{`--body={"name":"Demo Service","slug":"demo-service"}`}, "✓ Created project demo-service\n  ID:  " + projectID + "\n"},
+		{"name only", []string{`--body={"name":"Demo Service"}`}, "✓ Created project Demo Service\n  ID:  " + projectID + "\n"},
+		{"control characters", []string{"--slug=demo\x1b[2J"}, "✓ Created project demo\\x1b[2J\n  ID:  " + projectID + "\n"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.want, captureOutput(t, response, test.args...))
+			var got components.V2ProjectsCreateProjectResponseBody
+			require.NoError(t, json.Unmarshal([]byte(captureOutput(t, response, append(test.args, "--json")...)), &got))
+			require.Equal(t, *response, got)
 		})
 	}
 }
@@ -290,35 +312,35 @@ func TestOutputNoDataMutationsIdentifyOnlySafeTargets(t *testing.T) {
 			response: &components.V2KeysDeleteKeyResponseBody{},
 			request:  components.V2KeysDeleteKeyRequestBody{KeyID: keyID},
 			flags:    []string{"--key-id=" + keyID},
-			want:     "Key deleted.\nKey ID: " + keyID + "\n",
+			want:     "✓ Deleted key\n  Key ID: " + keyID + "\n",
 		},
 		{
 			name:     "queued stop",
 			response: &components.V2DeploymentsStopDeploymentResponseBody{},
 			request:  components.V2DeploymentsStopDeploymentRequestBody{DeploymentID: deploymentID},
 			flags:    []string{"--deployment-id=" + deploymentID},
-			want:     "Stop requested.\nDeployment ID: " + deploymentID + "\n",
+			want:     "✓ Stop requested\n  Deployment ID: " + deploymentID + "\n",
 		},
 		{
 			name:     "override deletion",
 			response: &components.V2RatelimitDeleteOverrideResponseBody{},
 			request:  components.V2RatelimitDeleteOverrideRequestBody{Namespace: "payments", Identifier: "premium_*"},
 			flags:    []string{"--namespace=payments", "--identifier=premium_*"},
-			want:     "Rate limit override deleted.\nNamespace: payments\nIdentifier: premium_*\n",
+			want:     "✓ Deleted rate limit override\n  Namespace: payments\n  Identifier: premium_*\n",
 		},
 		{
 			name:     "environment values stay private",
 			response: &components.V2EnvironmentsSetEnvironmentVariablesResponseBody{},
 			request:  components.V2EnvironmentsSetEnvironmentVariablesRequestBody{Project: "payments", App: "api", Environment: "production", Variables: variables},
 			flags:    []string{"--project=payments", "--app=api", "--environment=production", "--variables=" + string(variablesJSON)},
-			want:     "Variables saved.\nProject: payments\nApp: api\nEnvironment: production\n",
+			want:     "✓ Saved variables\n  Project: payments\n  App: api\n  Environment: production\n",
 		},
 		{
 			name:     "target escapes terminal controls",
 			response: &components.V2ProjectsDeleteProjectResponseBody{},
 			request:  components.V2ProjectsDeleteProjectRequestBody{Project: "payments\n\x1b[2J"},
 			flags:    []string{"--project=payments\n\x1b[2J"},
-			want:     "Deletion requested.\nProject: payments\\n\\x1b[2J\n",
+			want:     "✓ Deletion requested\n  Project: payments\\n\\x1b[2J\n",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -429,7 +451,7 @@ func TestOutputDebugDiagnosticsStayOnStderr(t *testing.T) {
 	})
 	requestID := uid.New(uid.RequestPrefix)
 	response := &components.V2KeysDeleteKeyResponseBody{Meta: components.Meta{RequestID: requestID}}
-	require.Equal(t, "Key deleted.\n", captureOutput(t, response, "--debug"))
+	require.Equal(t, "✓ Deleted key\n", captureOutput(t, response, "--debug"))
 	output := captureOutput(t, response, "--debug", "--json")
 	var got components.V2KeysDeleteKeyResponseBody
 	require.NoError(t, json.Unmarshal([]byte(output), &got))
@@ -482,6 +504,7 @@ func captureOutput(t *testing.T, response any, args ...string) string {
 			cli.String("project", "Project"), cli.String("app", "App"), cli.String("environment", "Environment"),
 			cli.String("namespace", "Namespace"), cli.String("identifier", "Identifier"),
 			cli.String("variables", "Environment variables"),
+			cli.String("name", "Name"), cli.String("slug", "Slug"),
 		},
 		Action: func(_ context.Context, cmd *cli.Command) error { return Output(cmd, response) },
 	}

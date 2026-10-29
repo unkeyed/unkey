@@ -83,9 +83,16 @@ An empty list prints a message instead of a table:
 No projects found.
 ```
 
-Mutations print a confirmation such as `Key created.`, `Settings updated.`, or `Variables saved.` before returned data. When the response has no data or returns assignments, the CLI also shows available request targets such as the key ID or project, app, and environment. It does not echo credentials or variable values from the request. An asynchronous action prints a message such as `Deletion requested.` instead of claiming the work has finished.
+Mutations start with one confirmation line, such as `✓ Updated settings` or `✓ Saved variables`. A create confirmation adds the requested slug or name. Returned data and request targets follow on indented lines:
 
-Clearing role or permission assignments prints `Roles updated.` or `Permissions updated.`, followed by `No roles assigned.` or `No permissions assigned.` An empty list operation still prints `No roles found.` or `No permissions found.`
+```plaintext
+✓ Created project demo-service
+  ID:  proj_demo7Hq2Xc9
+```
+
+When the response has no data or returns assignments, the CLI shows available request targets, such as the key ID or the project, app, and environment. It does not echo credentials or variable values from the request. An asynchronous action prints a line such as `✓ Deletion requested` instead of claiming the work has finished. The check mark is green only on a color terminal. `NO_COLOR`, `CLICOLOR=0`, and `TERM=dumb` turn color off.
+
+Clearing role or permission assignments prints `✓ Updated roles` or `✓ Updated permissions`, followed by `No roles assigned.` or `No permissions assigned.` An empty list operation still prints `No roles found.` or `No permissions found.`
 
 Human environment-variable lists hide values by default. Add `--reveal` to `unkey environments variables list` to show recoverable values. Write-only values show `not retrievable`. An empty recoverable value shows `(empty)` when revealed. JSON preserves returned values regardless of `--reveal`, so treat redirected JSON as sensitive data.
 
