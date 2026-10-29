@@ -265,7 +265,7 @@ func TestEvaluate_FirewallDeniesOutsideRemoteIpRange(t *testing.T) {
 			req.RemoteAddr = tt.remoteAddr
 			sess := &zen.Session{}
 			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
-			engine := &Engine{firewall: firewallExec.New(), regexCache: newRegexCache()}
+			engine := &Engine{firewall: firewallExec.New(), regexCache: testRegexCache(t)}
 
 			_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), policies)
 			if !tt.denied {
@@ -288,7 +288,7 @@ func TestEvaluate_KeyAuthSkipCannotBypassStricterPolicyThroughPathVariant(t *tes
 	publicCfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{uid.New(uid.KeySpacePrefix)}}
 	adminCfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{uid.New(uid.KeySpacePrefix)}}
 	engine := &Engine{
-		regexCache: newRegexCache(),
+		regexCache: testRegexCache(t),
 		keyAuth: keyAuthenticatorFunc(func(_ context.Context, _ *zen.Session, _ *http.Request, _ string, cfg *frontlinev1.KeyAuth) (*principal.Principal, error) {
 			if cfg == adminCfg {
 				return nil, denied
@@ -384,7 +384,7 @@ func TestEvaluate_RejectsAmbiguousPath(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, tt.target, nil)
 			sess := &zen.Session{}
 			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
-			engine := &Engine{firewall: firewallExec.New(), regexCache: newRegexCache()}
+			engine := &Engine{firewall: firewallExec.New(), regexCache: testRegexCache(t)}
 
 			_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), tt.policies)
 			code, _ := fault.GetCode(err)
@@ -437,7 +437,7 @@ paths:
 			openapi, err := openapiExec.New(clock.New(), 0, 0)
 			require.NoError(t, err)
 			t.Cleanup(openapi.Close)
-			engine := &Engine{openapi: openapi, regexCache: newRegexCache()}
+			engine := &Engine{openapi: openapi, regexCache: testRegexCache(t)}
 
 			req := httptest.NewRequest(tt.method, tt.target, nil)
 			sess := &zen.Session{}

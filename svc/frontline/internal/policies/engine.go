@@ -90,18 +90,25 @@ func New(cfg Config) (*Engine, error) {
 		return nil, fmt.Errorf("create openapi executor: %w", err)
 	}
 
+	regexCache, err := newRegexCache(cfg.Clock)
+	if err != nil {
+		openapi.Close()
+		return nil, fmt.Errorf("create regex cache: %w", err)
+	}
+
 	return &Engine{
 		keyAuth:     cfg.KeyAuth,
 		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
 		firewall:    firewallExec.New(),
 		openapi:     openapi,
-		regexCache:  newRegexCache(),
+		regexCache:  regexCache,
 	}, nil
 }
 
-// Close releases the engine's OpenAPI cache workers after requests have drained.
+// Close releases the engine's cache workers after requests have drained.
 func (e *Engine) Close() {
 	e.openapi.Close()
+	e.regexCache.Close()
 }
 
 // ParseMiddleware performs lenient deserialization of sentinel_config bytes into
