@@ -14,6 +14,13 @@ import {
 import { Controller, type UseFormReturn } from "react-hook-form";
 import type { RuntimeValues } from "./model";
 
+const SIGNALS: Record<EnvironmentShutdownSignal, string> = {
+  SIGTERM: "Sent to your app when its container stops.",
+  SIGINT: "Sent to your app when its container stops.",
+  SIGQUIT: "Sent to your app when its container stops.",
+  SIGKILL: "Stops the app without allowing cleanup.",
+};
+
 export function ShutdownSignalField({ form }: { form: UseFormReturn<RuntimeValues> }) {
   return (
     <SettingsRow>
@@ -28,11 +35,7 @@ export function ShutdownSignalField({ form }: { form: UseFormReturn<RuntimeValue
             <FormField
               className="max-w-(--setting-w)"
               error={fieldState.error?.message}
-              description={
-                field.value === "SIGKILL"
-                  ? "Stops the app without allowing cleanup."
-                  : "Sent to your app when its container stops."
-              }
+              description={SIGNALS[field.value]}
             >
               {(control) => (
                 <Select

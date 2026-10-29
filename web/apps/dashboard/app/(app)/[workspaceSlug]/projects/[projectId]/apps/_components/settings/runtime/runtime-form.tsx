@@ -2,10 +2,10 @@
 
 import { SettingsForm } from "@unkey/ui";
 import { ComputeFields } from "../compute/compute-fields";
+import { AdvancedFields } from "./advanced-fields";
 import { CommandField } from "./command-field";
 import { HealthcheckFields } from "./healthcheck-fields";
 import { PortField } from "./port-field";
-import { ShutdownSignalField } from "./shutdown-signal-field";
 import { useRuntimeForm } from "./use-runtime-form";
 
 export function RuntimeForm() {
@@ -15,8 +15,8 @@ export function RuntimeForm() {
       <ComputeFields form={form} />
       <PortField form={form} />
       <CommandField form={form} />
-      <ShutdownSignalField form={form} />
       <HealthcheckFields form={form} />
+      <AdvancedFields form={form} />
     </SettingsForm>
   );
 }

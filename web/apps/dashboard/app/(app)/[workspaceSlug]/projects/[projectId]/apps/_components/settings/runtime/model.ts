@@ -16,15 +16,49 @@ import {
 export const HTTP_METHODS = ["GET", "POST"] as const;
 
 export const HEALTHCHECK_FIELDS = [
-  { name: "intervalSeconds", label: "Interval", min: 1, max: 3600, unit: "s" },
-  { name: "timeoutSeconds", label: "Timeout", min: 1, max: 3600, unit: "s" },
-  { name: "failureThreshold", label: "Failure threshold", min: 1, max: 100, unit: "" },
-  { name: "initialDelaySeconds", label: "Initial delay", min: 0, max: 3600, unit: "s" },
+  {
+    name: "intervalSeconds",
+    label: "Interval",
+    ariaLabel: "Interval in seconds",
+    min: 1,
+    max: 3600,
+    suffix: "s",
+    noun: "seconds",
+  },
+  {
+    name: "timeoutSeconds",
+    label: "Timeout",
+    ariaLabel: "Timeout in seconds",
+    min: 1,
+    max: 3600,
+    suffix: "s",
+    noun: "seconds",
+  },
+  {
+    name: "failureThreshold",
+    label: "Failure threshold",
+    ariaLabel: "Failure threshold",
+    min: 1,
+    max: 100,
+    suffix: null,
+    noun: "failures",
+  },
+  {
+    name: "initialDelaySeconds",
+    label: "Initial delay",
+    ariaLabel: "Initial delay in seconds",
+    min: 0,
+    max: 3600,
+    suffix: "s",
+    noun: "seconds",
+  },
 ] as const;
 
 const PORT_MESSAGE = "Use a port from 1 to 65535";
 
 const PATH_PATTERN = /^(\/[\w-]+)+(\.\w+)?$/;
+
+const timingSchema = z.number().or(z.nan());
 
 const healthcheckSchema = z
   .object({
@@ -36,22 +70,22 @@ const healthcheckSchema = z
         (path) => path === "" || PATH_PATTERN.test(path),
         "Start with / and use letters, numbers, - and _, like /health",
       ),
-    intervalSeconds: z.number().or(z.nan()),
-    timeoutSeconds: z.number().or(z.nan()),
-    failureThreshold: z.number().or(z.nan()),
-    initialDelaySeconds: z.number().or(z.nan()),
+    intervalSeconds: timingSchema,
+    timeoutSeconds: timingSchema,
+    failureThreshold: timingSchema,
+    initialDelaySeconds: timingSchema,
   })
   .superRefine((values, ctx) => {
     if (values.path === "") {
       return;
     }
-    for (const { name, min, max, unit } of HEALTHCHECK_FIELDS) {
+    for (const { name, min, max, noun } of HEALTHCHECK_FIELDS) {
       const value = values[name];
       if (!Number.isInteger(value) || value < min || value > max) {
         ctx.addIssue({
           code: "custom",
           path: [name],
-          message: `Use ${min} to ${max} ${unit === "s" ? "seconds" : "failures"}`,
+          message: `Use ${min} to ${max} ${noun}`,
         });
       }
     }
@@ -107,18 +141,32 @@ export function runtimeFormSchema(
   });
 }
 
+const DEFAULT_HEALTHCHECK: HealthcheckValues = Object.freeze({
+  ...ENVIRONMENT_SETTINGS_DEFAULTS.healthcheck,
+  method: "GET",
+  path: "",
+});
+
+export const TIMING_PATHS = HEALTHCHECK_FIELDS.map(({ name }) => `healthcheck.${name}` as const);
+
+export const ADVANCED_PATHS = ["shutdownSignal", ...TIMING_PATHS] as const;
+
+export function hasAdvancedOverrides(values: RuntimeValues): boolean {
+  return (
+    values.shutdownSignal !== ENVIRONMENT_SETTINGS_DEFAULTS.shutdownSignal ||
+    HEALTHCHECK_FIELDS.some(
+      ({ name }) => values.healthcheck[name] !== ENVIRONMENT_SETTINGS_DEFAULTS.healthcheck[name],
+    )
+  );
+}
+
 export function readRuntime(settings: EnvironmentSettings): RuntimeValues {
   return {
     compute: readCompute(settings),
     port: settings.port,
     command: settings.command.join(" "),
     shutdownSignal: settings.shutdownSignal,
-    healthcheck: {
-      ...ENVIRONMENT_SETTINGS_DEFAULTS.healthcheck,
-      method: settings.healthcheck?.method ?? "GET",
-      path: settings.healthcheck?.path ?? "",
-      ...settings.healthcheck,
-    },
+    healthcheck: settings.healthcheck ?? DEFAULT_HEALTHCHECK,
   };
 }
 
@@ -144,7 +192,7 @@ export function writeRuntime(
     draft.shutdownSignal = values.shutdownSignal;
   }
   if (!sameJson(values.healthcheck, saved.healthcheck)) {
-    writeHealthcheck(draft, values.healthcheck);
+    writeHealthcheck(draft, values.healthcheck, saved.healthcheck);
   }
 }
 
@@ -152,6 +200,24 @@ function writeCommand(draft: EnvironmentSettings, command: string): void {
   draft.command = command === "" ? [] : command.split(/\s+/);
 }
 
-function writeHealthcheck(draft: EnvironmentSettings, values: HealthcheckValues): void {
-  draft.healthcheck = values.path === "" ? null : { ...values };
+function writeHealthcheck(
+  draft: EnvironmentSettings,
+  values: HealthcheckValues,
+  saved: HealthcheckValues,
+): void {
+  if (values.path === "") {
+    draft.healthcheck = null;
+    return;
+  }
+  const kept = draft.healthcheck ?? values;
+  const pick = <K extends keyof HealthcheckValues>(key: K) =>
+    values[key] === saved[key] ? kept[key] : values[key];
+  draft.healthcheck = {
+    method: pick("method"),
+    path: pick("path"),
+    intervalSeconds: pick("intervalSeconds"),
+    timeoutSeconds: pick("timeoutSeconds"),
+    failureThreshold: pick("failureThreshold"),
+    initialDelaySeconds: pick("initialDelaySeconds"),
+  };
 }
