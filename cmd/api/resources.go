@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/unkeyed/unkey/cmd/api/internal/guidance"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -46,6 +47,7 @@ func ResourceCommands() []*cli.Command {
 				parent = child
 			}
 			command.Name = parts[len(parts)-1]
+			guidance.Attach(command, legacy)
 			parent.Commands = append(parent.Commands, command)
 		}
 	}
