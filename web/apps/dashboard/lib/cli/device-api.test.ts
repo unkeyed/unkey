@@ -12,10 +12,15 @@ import {
   denyDeviceLogin,
   getDeviceLogin,
   listCliSessions,
+  parseDecision,
+  parseDeviceLogin,
   revokeCliSession,
 } from "./device-api";
 
 const userCode = "BCDF-GHJK";
+const handle = "BCDFGHJKLMNPQRSTVWXZ234567";
+const redirectUri = "https://gateway.example.com:8443/oauth/callback";
+const redirectTo = `${redirectUri}?code=${newId("test")}&state=${newId("test")}`;
 const sessionId = newId("test");
 const permissions = [`unkey:v1:${newId("workspace")}:**#read`];
 const meta = { requestId: newId("request") };
@@ -23,6 +28,7 @@ const loginResponse: V2CliGetDeviceLoginResponseBody = {
   meta,
   data: {
     userCode,
+    delivery: "device",
     deviceName: "Test laptop",
     requesterIp: "192.0.2.1",
     status: "pending",
@@ -47,6 +53,17 @@ const sessionsResponse: V2CliListSessionsResponseBody = {
   },
 };
 const emptyResponse: V2CliDecideDeviceLoginResponseBody = { meta, data: {} };
+const redirectResponse: V2CliDecideDeviceLoginResponseBody = { meta, data: { redirectTo } };
+const deviceLogin = parseDeviceLogin(loginResponse.data);
+const clientId = newId("test");
+const appResponse: V2CliGetDeviceLoginResponseBody["data"] = {
+  ...loginResponse.data,
+  userCode: handle,
+  delivery: "redirect",
+  deviceName: "Unkey MCP",
+  client: { id: clientId, name: "Unkey MCP", redirectUri },
+};
+const appLogin = parseDeviceLogin(appResponse);
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -63,17 +80,31 @@ describe("dashboard CLI API", () => {
     },
     {
       route: "decideDeviceLogin",
-      call: () => approveDeviceLogin({ userCode, permissions }),
+      call: () => approveDeviceLogin(deviceLogin, permissions),
       body: { userCode, permissions, decision: "approve" },
       response: emptyResponse,
-      expected: undefined,
+      expected: { delivery: "device" },
     },
     {
       route: "decideDeviceLogin",
-      call: () => denyDeviceLogin(userCode),
+      call: () => denyDeviceLogin(deviceLogin),
       body: { userCode, decision: "deny" },
       response: emptyResponse,
-      expected: undefined,
+      expected: { delivery: "device" },
+    },
+    {
+      route: "decideDeviceLogin",
+      call: () => approveDeviceLogin(appLogin, permissions),
+      body: { userCode: handle, permissions, decision: "approve" },
+      response: redirectResponse,
+      expected: { delivery: "redirect", redirectTo },
+    },
+    {
+      route: "decideDeviceLogin",
+      call: () => denyDeviceLogin(appLogin),
+      body: { userCode: handle, decision: "deny" },
+      response: redirectResponse,
+      expected: { delivery: "redirect", redirectTo },
     },
     {
       route: "listSessions",
@@ -115,8 +146,8 @@ describe("dashboard CLI API", () => {
   });
 
   it.each([
-    { operation: "approve", call: () => approveDeviceLogin({ userCode, permissions }) },
-    { operation: "deny", call: () => denyDeviceLogin(userCode) },
+    { operation: "approve", call: () => approveDeviceLogin(deviceLogin, permissions) },
+    { operation: "deny", call: () => denyDeviceLogin(deviceLogin) },
     { operation: "revoke", call: () => revokeCliSession(sessionId) },
   ])(
     "does not retry $operation after a server error and keeps the API detail",
@@ -162,5 +193,70 @@ describe("dashboard CLI API", () => {
     expect(getErrorMessage(error, "Could not load CLI sessions.")).toBe(
       "Could not load CLI sessions.",
     );
+  });
+});
+
+describe("parseDeviceLogin", () => {
+  it("keeps a CLI login as device delivery without an app", () => {
+    expect(parseDeviceLogin(loginResponse.data)).toEqual({
+      ...loginResponse.data,
+      delivery: "device",
+    });
+  });
+
+  it("adds the redirect host to an OAuth app login", () => {
+    expect(appLogin).toEqual({
+      ...appResponse,
+      delivery: "redirect",
+      client: {
+        id: clientId,
+        name: "Unkey MCP",
+        redirectUri,
+        redirectHost: "gateway.example.com:8443",
+      },
+    });
+  });
+
+  it("rejects a redirect login without its app", () => {
+    expect(() =>
+      parseDeviceLogin({ ...loginResponse.data, userCode: handle, delivery: "redirect" }),
+    ).toThrow();
+  });
+
+  it.each(["javascript:alert(1)", "not a url", "unkey://callback"])(
+    "rejects the redirect URI %s",
+    (uri) => {
+      expect(() =>
+        parseDeviceLogin({
+          ...loginResponse.data,
+          userCode: handle,
+          delivery: "redirect",
+          client: { id: newId("test"), name: "Unkey MCP", redirectUri: uri },
+        }),
+      ).toThrow();
+    },
+  );
+});
+
+describe("parseDecision", () => {
+  it("ignores redirectTo for a CLI login", () => {
+    expect(parseDecision(deviceLogin, { redirectTo })).toEqual({ delivery: "device" });
+  });
+
+  it("follows redirectTo on the app's redirect origin", () => {
+    expect(parseDecision(appLogin, { redirectTo })).toEqual({ delivery: "redirect", redirectTo });
+  });
+
+  it.each([
+    { name: "missing", response: {} },
+    { name: "another host", response: { redirectTo: "https://evil.example.com/oauth/callback" } },
+    {
+      name: "another port",
+      response: { redirectTo: "https://gateway.example.com/oauth/callback" },
+    },
+    { name: "a downgraded scheme", response: { redirectTo: "http://gateway.example.com:8443/cb" } },
+    { name: "a script", response: { redirectTo: "javascript:alert(1)" } },
+  ])("rejects a redirect to $name", ({ response }) => {
+    expect(() => parseDecision(appLogin, response)).toThrow();
   });
 });

@@ -9,7 +9,7 @@ import { fromQuery } from "@/lib/loadable/loadable";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IconLaptop2Outline18, IconTerminalOutline18 } from "@unkey/icons";
+import { IconLaptop2Outline18, IconLink4Outline18, IconTerminalOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   AlertDialog,
@@ -61,6 +61,15 @@ function sessionState(session: CliSession): SessionState {
     return "revoked";
   }
   return session.expiresAt <= Date.now() ? "expired" : "active";
+}
+
+type SessionHolder = { kind: "cli" | "app"; name: string };
+
+function sessionHolder(session: CliSession): SessionHolder {
+  if (session.clientId) {
+    return { kind: "app", name: session.deviceName || "Unknown app" };
+  }
+  return { kind: "cli", name: session.deviceName || "Unknown device" };
 }
 
 export type CliSessionOwner = Pick<User, "id" | "fullName" | "email">;
@@ -202,14 +211,20 @@ function SessionItem({
   const state = sessionState(session);
   const { badge, label } = STATES[state];
   const endsAt = session.revokedAt ?? session.expiresAt;
+  const holder = sessionHolder(session);
 
   return (
     <Item>
       <ItemMedia className="bg-grayA-3 text-gray-11">
-        <IconLaptop2Outline18 />
+        {holder.kind === "app" ? <IconLink4Outline18 /> : <IconLaptop2Outline18 />}
       </ItemMedia>
       <ItemContent>
-        <ItemTitle>{session.deviceName || "Unknown device"}</ItemTitle>
+        <ItemTitle className="flex items-center gap-2">
+          <span className="truncate">{holder.name}</span>
+          <Badge variant="secondary" size="sm">
+            {holder.kind === "app" ? "App" : "CLI"}
+          </Badge>
+        </ItemTitle>
         <ItemDescription>
           {match(owner)
             .with("hidden", () => null)
@@ -241,7 +256,7 @@ function SessionItem({
           <Button
             type="button"
             variant="outline"
-            aria-label={`Revoke ${session.deviceName || "unknown device"}`}
+            aria-label={`Revoke ${holder.name}`}
             disabled={disabled}
             onClick={onRevoke}
           >
@@ -264,6 +279,7 @@ function RevokeSessionDialog({
   onCancel: () => void;
   onConfirm: (session: CliSession) => void;
 }) {
+  const holder = session ? sessionHolder(session) : null;
   return (
     <AlertDialog
       open={session !== null}
@@ -275,13 +291,24 @@ function RevokeSessionDialog({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Revoke this CLI session?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {holder?.kind === "app" ? "Revoke this app session?" : "Revoke this CLI session?"}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            The CLI on{" "}
-            <span className="font-medium text-gray-12">
-              {session?.deviceName || "this unknown device"}
-            </span>{" "}
-            loses access right away.
+            {holder?.kind === "app" ? (
+              <>
+                <span className="font-medium text-gray-12">{holder.name}</span> loses access right
+                away.
+              </>
+            ) : (
+              <>
+                The CLI on{" "}
+                <span className="font-medium text-gray-12">
+                  {session?.deviceName || "this unknown device"}
+                </span>{" "}
+                loses access right away.
+              </>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

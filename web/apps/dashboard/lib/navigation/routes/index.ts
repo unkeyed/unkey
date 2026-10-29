@@ -12,6 +12,7 @@ import { cliRoutes } from "./cli";
 import { envVarRoutes } from "./env-vars";
 import { identityRoutes } from "./identities";
 import { logRoutes } from "./logs";
+import { oauthRoutes } from "./oauth";
 import { projectRoutes } from "./projects";
 import { ratelimitRoutes } from "./ratelimits";
 import { rootKeyRoutes } from "./root-keys";
@@ -36,5 +37,6 @@ export const routes = {
   logs: logRoutes,
   auth: authRoutes,
   cli: cliRoutes,
+  oauth: oauthRoutes,
   workspaces: workspaceRoutes,
 };

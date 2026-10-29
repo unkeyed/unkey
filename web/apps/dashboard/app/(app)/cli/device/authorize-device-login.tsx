@@ -9,6 +9,7 @@ import {
 import { LoadError } from "@/components/load-error";
 import { Logomark } from "@/components/logomark";
 import {
+  type Decision,
   type DeviceLogin,
   approveDeviceLogin,
   denyDeviceLogin,
@@ -24,20 +25,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   IconCheckOutline18,
   IconCircleInfoOutline18,
+  IconLink4Outline18,
   IconTerminalOutline18,
   IconXmarkOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, Combobox, FormField, Skeleton, toast } from "@unkey/ui";
+import type { Route } from "next";
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { type Access, PermissionsField, accessPolicies } from "./permissions-field";
 
 type AuthorizeDeviceLoginProps = {
   userCode: string;
+  entry: DeviceLogin["delivery"];
 };
 
-export function AuthorizeDeviceLogin({ userCode }: AuthorizeDeviceLoginProps) {
+export function AuthorizeDeviceLogin({ userCode, entry }: AuthorizeDeviceLoginProps) {
   const { workspace } = useWorkspace();
   const queryClient = useQueryClient();
   const trimmed = userCode.trim();
@@ -66,19 +70,30 @@ export function AuthorizeDeviceLogin({ userCode }: AuthorizeDeviceLoginProps) {
   if (trimmed.length === 0) {
     return (
       <CenteredFlow>
-        <BrandHeader
-          tone="pending"
-          title="Sign in to the Unkey CLI"
-          description={
-            <>
-              Run{" "}
-              <code className="rounded-md bg-grayA-3 px-1.5 py-0.5 font-mono text-xs text-gray-12">
-                unkey login
-              </code>{" "}
-              and open the link it prints to approve the login.
-            </>
-          }
-        />
+        {match(entry)
+          .with("device", () => (
+            <BrandHeader
+              tone="cli"
+              title="Sign in to the Unkey CLI"
+              description={
+                <>
+                  Run{" "}
+                  <code className="rounded-md bg-grayA-3 px-1.5 py-0.5 font-mono text-xs text-gray-12">
+                    unkey login
+                  </code>{" "}
+                  and open the link it prints to approve the login.
+                </>
+              }
+            />
+          ))
+          .with("redirect", () => (
+            <BrandHeader
+              tone="app"
+              title="Connect an app to Unkey"
+              description="Start from the app you want to connect. It sends you here to approve access."
+            />
+          ))
+          .exhaustive()}
       </CenteredFlow>
     );
   }
@@ -188,29 +203,67 @@ function DeviceLoginView({
         onStale={onStale}
       />
     ))
-    .with("approved", "consumed", () => <Approved workspaceSlug={workspace.slug} />)
-    .with("denied", () => (
-      <BrandHeader
-        tone="closed"
-        title="This login was denied"
-        description="Run unkey login again if you want to start a new one."
-      />
-    ))
-    .otherwise(() => (
-      <BrandHeader
-        tone="closed"
-        title="This login has expired"
-        description="Run unkey login again to get a new code."
-      />
-    ));
+    .with("approved", "consumed", () =>
+      match(login)
+        .with({ delivery: "device" }, () => <Approved workspaceSlug={workspace.slug} />)
+        .with({ delivery: "redirect" }, ({ client }) => (
+          <BrandHeader
+            tone="success"
+            title={`You approved ${client.name}`}
+            description={`Go back to ${client.name} to keep going. You can close this tab.`}
+          />
+        ))
+        .exhaustive(),
+    )
+    .with("denied", () =>
+      match(login)
+        .with({ delivery: "device" }, () => (
+          <BrandHeader
+            tone="closed"
+            title="This login was denied"
+            description="Run unkey login again if you want to start a new one."
+          />
+        ))
+        .with({ delivery: "redirect" }, ({ client }) => (
+          <BrandHeader
+            tone="closed"
+            title="This request was denied"
+            description={`Go back to ${client.name} and sign in again if you want to connect it.`}
+          />
+        ))
+        .exhaustive(),
+    )
+    .otherwise(() =>
+      match(login)
+        .with({ delivery: "device" }, () => (
+          <BrandHeader
+            tone="closed"
+            title="This login has expired"
+            description="Run unkey login again to get a new code."
+          />
+        ))
+        .with({ delivery: "redirect" }, ({ client }) => (
+          <BrandHeader
+            tone="closed"
+            title="This request has expired"
+            description={`Go back to ${client.name} and sign in again.`}
+          />
+        ))
+        .exhaustive(),
+    );
 }
 
-type BrandTone = "pending" | "success" | "closed";
+type BrandTone = "cli" | "app" | "success" | "closed";
 
 const BRAND_BADGES: Record<BrandTone, ReactNode> = {
-  pending: (
+  cli: (
     <span className="absolute -right-2 -bottom-2 flex size-7 items-center justify-center rounded-lg border border-grayA-4 bg-gray-12 text-gray-1">
       <IconTerminalOutline18 className="size-3.5" />
+    </span>
+  ),
+  app: (
+    <span className="absolute -right-2 -bottom-2 flex size-7 items-center justify-center rounded-lg border border-grayA-4 bg-gray-12 text-gray-1">
+      <IconLink4Outline18 className="size-3.5" />
     </span>
   ),
   success: (
@@ -251,7 +304,7 @@ function BrandHeader({
         <h1
           ref={headingRef}
           tabIndex={-1}
-          className="text-xl font-semibold text-gray-12 outline-hidden"
+          className="break-words text-xl font-semibold text-gray-12 outline-hidden"
         >
           {title}
         </h1>
@@ -357,10 +410,17 @@ function PendingLogin({
   const [access, setAccess] = useState<Access>({ kind: "none" });
   const [missing, setMissing] = useState(false);
   const permissionsRef = useRef<HTMLButtonElement>(null);
+  const settle = async (decision: Decision, status: "approved" | "denied") => {
+    if (decision.delivery === "redirect") {
+      window.location.assign(decision.redirectTo);
+      return;
+    }
+    await onChanged(status);
+  };
   const approve = useMutation({
-    mutationFn: approveDeviceLogin,
-    async onSuccess() {
-      await onChanged("approved");
+    mutationFn: (permissions: string[]) => approveDeviceLogin(login, permissions),
+    async onSuccess(decision) {
+      await settle(decision, "approved");
     },
     onError(error) {
       toast.error(getErrorMessage(error, "Could not approve this login."));
@@ -368,17 +428,69 @@ function PendingLogin({
     },
   });
   const deny = useMutation({
-    mutationFn: () => denyDeviceLogin(login.userCode),
-    async onSuccess() {
-      await onChanged("denied");
+    mutationFn: () => denyDeviceLogin(login),
+    async onSuccess(decision) {
+      await settle(decision, "denied");
     },
     onError(error) {
       toast.error(getErrorMessage(error, "Could not deny this login."));
       onStale();
     },
   });
-  const busy = approve.isLoading || deny.isLoading;
+  // A redirect decision stays successful while the browser leaves the page.
+  const approving = approve.isLoading || approve.isSuccess;
+  const denying = deny.isLoading || deny.isSuccess;
+  const busy = approving || denying;
   const grantable = login.grantablePermissions ?? [];
+  const prompt = match(login)
+    .with({ delivery: "device" }, ({ userCode }) => ({
+      header: (
+        <BrandHeader
+          tone="cli"
+          title="Sign in to the Unkey CLI"
+          description="Approve this request so the CLI can work in your workspace."
+        />
+      ),
+      check: (
+        <Step
+          number={1}
+          title="Confirm the code"
+          description="Check this code matches the one in your terminal."
+        >
+          <CodeBoxes userCode={userCode} />
+        </Step>
+      ),
+      holder: "the CLI",
+      warning:
+        "Only authorize if you started this login. Whoever started it gets access to this workspace.",
+      submit: "Authorize CLI",
+      returnTo: routes.cli.device({ user_code: userCode }),
+    }))
+    .with({ delivery: "redirect" }, ({ userCode, client }) => ({
+      header: (
+        <BrandHeader
+          tone="app"
+          title={`${client.name} wants access to your Unkey workspace`}
+          description="Approve this request so the app can work in your workspace."
+        />
+      ),
+      check: (
+        <Step
+          number={1}
+          title="Check where you will be sent"
+          description="The app chose its own name. This address is where your browser goes after you decide."
+        >
+          <p className="break-all rounded-md border border-grayA-4 bg-grayA-2 px-3 py-2 font-mono text-base font-medium text-gray-12">
+            {client.redirectHost}
+          </p>
+        </Step>
+      ),
+      holder: client.name,
+      warning: `Continue only if you started this from ${client.name}. Whoever started it gets access to this workspace.`,
+      submit: "Approve",
+      returnTo: routes.oauth.consent({ user_code: userCode }),
+    }))
+    .exhaustive();
 
   const authorize = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -391,40 +503,27 @@ function PendingLogin({
       permissionsRef.current?.focus({ preventScroll: true });
       return;
     }
-    approve.mutate({
-      userCode: login.userCode,
-      permissions: buildUrns(workspaceId, accessPolicies(access)),
-    });
+    approve.mutate(buildUrns(workspaceId, accessPolicies(access)));
   };
 
   return (
     <form onSubmit={authorize} className="flex w-full flex-col gap-8">
-      <BrandHeader
-        tone="pending"
-        title="Sign in to the Unkey CLI"
-        description="Approve this request so the CLI can work in your workspace."
-      />
+      {prompt.header}
       <OnboardingCard>
         <OnboardingCardContent className="mt-0 flex flex-col gap-6">
-          <Step
-            number={1}
-            title="Confirm the code"
-            description="Check this code matches the one in your terminal."
-          >
-            <CodeBoxes userCode={login.userCode} />
-          </Step>
+          {prompt.check}
           <Step
             number={2}
             title="Choose access"
-            description="Pick what the CLI can do in this workspace."
+            description={`Pick what ${prompt.holder} can do in this workspace.`}
           >
             <div className="flex flex-col gap-4">
               <FormField label="Workspace">
-                {({ id }) => <WorkspacePicker id={id} userCode={login.userCode} disabled={busy} />}
+                {({ id }) => <WorkspacePicker id={id} returnTo={prompt.returnTo} disabled={busy} />}
               </FormField>
               {grantable.length === 0 ? (
                 <p className="text-sm text-gray-11">
-                  Your role has no permissions it can give to the CLI.
+                  Your role has no permissions it can give to {prompt.holder}.
                 </p>
               ) : (
                 <PermissionsField
@@ -447,8 +546,7 @@ function PendingLogin({
               aria-hidden="true"
               className="mt-0.5 size-3.5 shrink-0 text-gray-9"
             />
-            Only authorize if you started this login. Whoever started it gets access to this
-            workspace.
+            {prompt.warning}
           </p>
         </OnboardingCardContent>
         <OnboardingCardFooter className="flex items-center justify-end gap-2">
@@ -457,7 +555,7 @@ function PendingLogin({
             variant="outline"
             size="md"
             disabled={busy}
-            loading={deny.isLoading}
+            loading={denying}
             onClick={() => deny.mutate()}
           >
             Deny
@@ -467,9 +565,9 @@ function PendingLogin({
             variant="primary"
             size="md"
             disabled={busy || grantable.length === 0}
-            loading={approve.isLoading}
+            loading={approving}
           >
-            Authorize CLI
+            {prompt.submit}
           </Button>
         </OnboardingCardFooter>
       </OnboardingCard>
@@ -479,9 +577,9 @@ function PendingLogin({
 
 function WorkspacePicker({
   id,
-  userCode,
+  returnTo,
   disabled,
-}: { id?: string; userCode: string; disabled: boolean }) {
+}: { id?: string; returnTo: Route; disabled: boolean }) {
   const { workspace, switchWorkspace } = useWorkspace();
   const available = trpc.workspace.listAvailable.useQuery();
   const orgs = available.data ?? [];
@@ -501,7 +599,7 @@ function WorkspacePicker({
       }))}
       value={workspace.orgId}
       onSelect={(organizationId) => {
-        switchWorkspace(organizationId, routes.cli.device({ user_code: userCode }));
+        switchWorkspace(organizationId, returnTo);
       }}
     />
   );
