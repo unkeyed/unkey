@@ -6,6 +6,7 @@ export * from "./keys";
 export * from "./unkey_root_keys";
 export * from "./device_authorizations";
 export * from "./cli_sessions";
+export * from "./oauth_clients";
 export * from "./ratelimit";
 export * from "./workspaces";
 export * from "./identity";

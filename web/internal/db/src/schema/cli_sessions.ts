@@ -25,6 +25,8 @@ export const cliSessions = mysqlTable(
     lastUsedAt: bigint("last_used_at", { mode: "number" }).notNull(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
     revokedAt: bigint("revoked_at", { mode: "number" }),
+    // Null for sessions held by the Unkey CLI.
+    clientId: id("client_id"),
   },
   (table) => [
     index("cli_sessions_workspace_user_created_idx").on(

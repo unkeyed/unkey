@@ -36,6 +36,8 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 		ApproverRoles:  roles,
 		Permissions:    permissions,
 		ApprovedAt:     sql.NullInt64{Int64: now, Valid: true},
+		ExpiresAt:      row.ExpiresAt,
+		CodeHash:       sql.NullString{},
 		ID:             row.ID,
 	})
 	require.NoError(t, err)
@@ -60,6 +62,7 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 		DeviceName:       sql.NullString{String: "laptop", Valid: true},
 		RefreshTokenHash: refreshHash,
 		RefreshFamily:    uid.New(uid.TestPrefix, 20),
+		ClientID:         sql.NullString{},
 		CreatedAt:        now,
 		LastUsedAt:       now,
 		ExpiresAt:        now + time.Hour.Milliseconds(),
@@ -372,6 +375,8 @@ func approvePendingAuthorization(t *testing.T, ctx context.Context, database *da
 		ApproverRoles:  roles,
 		Permissions:    permissions,
 		ApprovedAt:     sql.NullInt64{Int64: approvedAt, Valid: true},
+		ExpiresAt:      approvedAt + time.Hour.Milliseconds(),
+		CodeHash:       sql.NullString{},
 		ID:             id,
 	})
 	require.NoError(t, err)
@@ -403,6 +408,7 @@ func insertActiveCLISession(t *testing.T, ctx context.Context, database *databas
 		DeviceName:       sql.NullString{String: "laptop", Valid: true},
 		RefreshTokenHash: uid.New(uid.TestPrefix, 32),
 		RefreshFamily:    family,
+		ClientID:         sql.NullString{},
 		CreatedAt:        fixture.CreatedAt,
 		LastUsedAt:       fixture.CreatedAt,
 		ExpiresAt:        fixture.ExpiresAt,

@@ -8,6 +8,7 @@ INSERT INTO cli_sessions (
     device_name,
     refresh_token_hash,
     refresh_family,
+    client_id,
     created_at,
     last_used_at,
     expires_at
@@ -20,6 +21,7 @@ INSERT INTO cli_sessions (
     sqlc.arg(device_name),
     sqlc.arg(refresh_token_hash),
     sqlc.arg(refresh_family),
+    sqlc.arg(client_id),
     sqlc.arg(created_at),
     sqlc.arg(last_used_at),
     sqlc.arg(expires_at)

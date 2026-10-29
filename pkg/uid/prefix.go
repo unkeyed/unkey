@@ -52,4 +52,8 @@ const (
 	// is the non-secret handle shown in the dashboard.
 	DeviceAuthorizationPrefix Prefix = "daz"
 	CLISessionPrefix          Prefix = "clis"
+
+	// OAuthClientPrefix identifies a dynamically registered OAuth client. The
+	// client_id is public: it appears in every authorization URL.
+	OAuthClientPrefix Prefix = "oac"
 )

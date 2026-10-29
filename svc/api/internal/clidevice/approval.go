@@ -107,7 +107,9 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 				Int64: s.Clock.Now().UnixMilli(),
 				Valid: true,
 			},
-			ID: row.ID,
+			ExpiresAt: row.ExpiresAt,
+			CodeHash:  sql.NullString{},
+			ID:        row.ID,
 		})
 		if err != nil {
 			return err

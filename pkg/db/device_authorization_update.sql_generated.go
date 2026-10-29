@@ -20,7 +20,9 @@ SET
     approver_name = ?,
     approver_roles = CAST(? AS JSON),
     permissions = CAST(? AS JSON),
-    approved_at = ?
+    approved_at = ?,
+    expires_at = ?,
+    code_hash = ?
 WHERE id = ?
   AND status IN ('pending', 'approved')
   AND (
@@ -36,6 +38,8 @@ type ApproveDeviceAuthorizationParams struct {
 	ApproverRoles  json.RawMessage `db:"approver_roles"`
 	Permissions    json.RawMessage `db:"permissions"`
 	ApprovedAt     sql.NullInt64   `db:"approved_at"`
+	ExpiresAt      int64           `db:"expires_at"`
+	CodeHash       sql.NullString  `db:"code_hash"`
 	ID             string          `db:"id"`
 }
 
@@ -49,7 +53,9 @@ type ApproveDeviceAuthorizationParams struct {
 //	    approver_name = ?,
 //	    approver_roles = CAST(? AS JSON),
 //	    permissions = CAST(? AS JSON),
-//	    approved_at = ?
+//	    approved_at = ?,
+//	    expires_at = ?,
+//	    code_hash = ?
 //	WHERE id = ?
 //	  AND status IN ('pending', 'approved')
 //	  AND (
@@ -64,6 +70,8 @@ func (q *Queries) ApproveDeviceAuthorization(ctx context.Context, db DBTX, arg A
 		arg.ApproverRoles,
 		arg.Permissions,
 		arg.ApprovedAt,
+		arg.ExpiresAt,
+		arg.CodeHash,
 		arg.ID,
 		arg.ApproverUserID,
 	)

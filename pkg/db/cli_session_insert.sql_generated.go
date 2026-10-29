@@ -21,6 +21,7 @@ INSERT INTO cli_sessions (
     device_name,
     refresh_token_hash,
     refresh_family,
+    client_id,
     created_at,
     last_used_at,
     expires_at
@@ -30,6 +31,7 @@ INSERT INTO cli_sessions (
     ?,
     ?,
     CAST(? AS JSON),
+    ?,
     ?,
     ?,
     ?,
@@ -48,6 +50,7 @@ type InsertCLISessionParams struct {
 	DeviceName       sql.NullString  `db:"device_name"`
 	RefreshTokenHash string          `db:"refresh_token_hash"`
 	RefreshFamily    string          `db:"refresh_family"`
+	ClientID         sql.NullString  `db:"client_id"`
 	CreatedAt        int64           `db:"created_at"`
 	LastUsedAt       int64           `db:"last_used_at"`
 	ExpiresAt        int64           `db:"expires_at"`
@@ -64,6 +67,7 @@ type InsertCLISessionParams struct {
 //	    device_name,
 //	    refresh_token_hash,
 //	    refresh_family,
+//	    client_id,
 //	    created_at,
 //	    last_used_at,
 //	    expires_at
@@ -73,6 +77,7 @@ type InsertCLISessionParams struct {
 //	    ?,
 //	    ?,
 //	    CAST(? AS JSON),
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -90,6 +95,7 @@ func (q *Queries) InsertCLISession(ctx context.Context, db DBTX, arg InsertCLISe
 		arg.DeviceName,
 		arg.RefreshTokenHash,
 		arg.RefreshFamily,
+		arg.ClientID,
 		arg.CreatedAt,
 		arg.LastUsedAt,
 		arg.ExpiresAt,

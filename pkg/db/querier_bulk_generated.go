@@ -23,6 +23,7 @@ type BulkQuerier interface {
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertDeviceAuthorizations(ctx context.Context, db DBTX, args []InsertDeviceAuthorizationParams) error
+	InsertRedirectAuthorizations(ctx context.Context, db DBTX, args []InsertRedirectAuthorizationParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
 	UpsertFlag(ctx context.Context, db DBTX, args []UpsertFlagParams) error
 	InsertGithubAppInstallations(ctx context.Context, db DBTX, args []InsertGithubAppInstallationParams) error
@@ -43,6 +44,7 @@ type BulkQuerier interface {
 	UpsertKeySpace(ctx context.Context, db DBTX, args []UpsertKeySpaceParams) error
 	UpsertLimit(ctx context.Context, db DBTX, args []UpsertLimitParams) error
 	InsertLogdrains(ctx context.Context, db DBTX, args []InsertLogdrainParams) error
+	InsertOAuthClients(ctx context.Context, db DBTX, args []InsertOAuthClientParams) error
 	InsertPermissions(ctx context.Context, db DBTX, args []InsertPermissionParams) error
 	UpsertPermission(ctx context.Context, db DBTX, args []UpsertPermissionParams) error
 	InsertPortalDomains(ctx context.Context, db DBTX, args []InsertPortalDomainParams) error

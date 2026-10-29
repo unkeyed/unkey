@@ -972,6 +972,7 @@ type CliSession struct {
 	LastUsedAt               int64           `db:"last_used_at"`
 	ExpiresAt                int64           `db:"expires_at"`
 	RevokedAt                sql.NullInt64   `db:"revoked_at"`
+	ClientID                 sql.NullString  `db:"client_id"`
 }
 
 type Deployment struct {
@@ -1031,22 +1032,28 @@ type DeploymentStep struct {
 }
 
 type DeviceAuthorization struct {
-	Pk                 uint64                     `db:"pk"`
-	ID                 string                     `db:"id"`
-	UserCode           string                     `db:"user_code"`
-	ExpiresAt          int64                      `db:"expires_at"`
-	Status             DeviceAuthorizationsStatus `db:"status"`
-	DeviceName         sql.NullString             `db:"device_name"`
-	RequesterIp        sql.NullString             `db:"requester_ip"`
-	RequesterUserAgent sql.NullString             `db:"requester_user_agent"`
-	WorkspaceID        sql.NullString             `db:"workspace_id"`
-	ApproverUserID     sql.NullString             `db:"approver_user_id"`
-	ApproverName       sql.NullString             `db:"approver_name"`
-	ApproverRoles      []byte                     `db:"approver_roles"`
-	Permissions        []byte                     `db:"permissions"`
-	SessionID          sql.NullString             `db:"session_id"`
-	CreatedAt          int64                      `db:"created_at"`
-	ApprovedAt         sql.NullInt64              `db:"approved_at"`
+	Pk                   uint64                     `db:"pk"`
+	ID                   string                     `db:"id"`
+	UserCode             string                     `db:"user_code"`
+	ExpiresAt            int64                      `db:"expires_at"`
+	Status               DeviceAuthorizationsStatus `db:"status"`
+	DeviceName           sql.NullString             `db:"device_name"`
+	RequesterIp          sql.NullString             `db:"requester_ip"`
+	RequesterUserAgent   sql.NullString             `db:"requester_user_agent"`
+	WorkspaceID          sql.NullString             `db:"workspace_id"`
+	ApproverUserID       sql.NullString             `db:"approver_user_id"`
+	ApproverName         sql.NullString             `db:"approver_name"`
+	ApproverRoles        []byte                     `db:"approver_roles"`
+	Permissions          []byte                     `db:"permissions"`
+	SessionID            sql.NullString             `db:"session_id"`
+	CreatedAt            int64                      `db:"created_at"`
+	ApprovedAt           sql.NullInt64              `db:"approved_at"`
+	ClientID             sql.NullString             `db:"client_id"`
+	RedirectUri          sql.NullString             `db:"redirect_uri"`
+	RedirectUriPresented sql.NullBool               `db:"redirect_uri_presented"`
+	State                sql.NullString             `db:"state"`
+	CodeChallenge        sql.NullString             `db:"code_challenge"`
+	CodeHash             sql.NullString             `db:"code_hash"`
 }
 
 type EncryptedKey struct {
@@ -1162,6 +1169,17 @@ type KeysRole struct {
 	WorkspaceID string        `db:"workspace_id"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
+}
+
+type OauthClient struct {
+	Pk                 uint64          `db:"pk"`
+	ID                 string          `db:"id"`
+	Name               string          `db:"name"`
+	RedirectUris       json.RawMessage `db:"redirect_uris"`
+	MetadataHash       string          `db:"metadata_hash"`
+	RegistrarIp        sql.NullString  `db:"registrar_ip"`
+	RegistrarUserAgent sql.NullString  `db:"registrar_user_agent"`
+	CreatedAt          int64           `db:"created_at"`
 }
 
 type Permission struct {

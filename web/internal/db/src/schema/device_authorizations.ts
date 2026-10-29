@@ -1,4 +1,12 @@
-import { bigint, index, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import {
+  bigint,
+  boolean,
+  index,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  varchar,
+} from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
@@ -22,6 +30,14 @@ export const deviceAuthorizations = mysqlTable(
     sessionId: id("session_id").unique(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     approvedAt: bigint("approved_at", { mode: "number" }),
+    // A non-null client_id marks an OAuth authorization request. The redirect
+    // columns are null for CLI device logins.
+    clientId: id("client_id"),
+    redirectUri: caseSensitiveVarchar("redirect_uri", { length: 2048 }),
+    redirectUriPresented: boolean("redirect_uri_presented"),
+    state: caseSensitiveVarchar("state", { length: 1024 }),
+    codeChallenge: caseSensitiveVarchar("code_challenge", { length: 128 }),
+    codeHash: caseSensitiveVarchar("code_hash", { length: 64 }).unique(),
   },
   (table) => [index("device_authorizations_expires_at_idx").on(table.expiresAt)],
 );

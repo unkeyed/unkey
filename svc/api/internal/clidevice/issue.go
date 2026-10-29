@@ -147,6 +147,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			DeviceName:       locked.DeviceName,
 			RefreshTokenHash: hashRefreshToken(refreshToken),
 			RefreshFamily:    family,
+			ClientID:         sql.NullString{},
 			CreatedAt:        now,
 			LastUsedAt:       now,
 			ExpiresAt:        sessionExpiry(now, now),

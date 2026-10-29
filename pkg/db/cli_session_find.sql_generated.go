@@ -26,7 +26,8 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    client_id
 FROM cli_sessions
 WHERE id = ?
 `
@@ -48,7 +49,8 @@ WHERE id = ?
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    client_id
 //	FROM cli_sessions
 //	WHERE id = ?
 func (q *Queries) FindCLISessionByID(ctx context.Context, db DBTX, id string) (CliSession, error) {
@@ -70,6 +72,7 @@ func (q *Queries) FindCLISessionByID(ctx context.Context, db DBTX, id string) (C
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.ClientID,
 	)
 	return i, err
 }
@@ -90,7 +93,8 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    client_id
 FROM cli_sessions
 WHERE previous_refresh_token_hash = ?
 `
@@ -112,7 +116,8 @@ WHERE previous_refresh_token_hash = ?
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    client_id
 //	FROM cli_sessions
 //	WHERE previous_refresh_token_hash = ?
 func (q *Queries) FindCLISessionByPreviousRefreshTokenHash(ctx context.Context, db DBTX, previousRefreshTokenHash sql.NullString) (CliSession, error) {
@@ -134,6 +139,7 @@ func (q *Queries) FindCLISessionByPreviousRefreshTokenHash(ctx context.Context, 
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.ClientID,
 	)
 	return i, err
 }
@@ -154,7 +160,8 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    client_id
 FROM cli_sessions
 WHERE refresh_token_hash = ?
 `
@@ -176,7 +183,8 @@ WHERE refresh_token_hash = ?
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    client_id
 //	FROM cli_sessions
 //	WHERE refresh_token_hash = ?
 func (q *Queries) FindCLISessionByRefreshTokenHash(ctx context.Context, db DBTX, refreshTokenHash string) (CliSession, error) {
@@ -198,6 +206,7 @@ func (q *Queries) FindCLISessionByRefreshTokenHash(ctx context.Context, db DBTX,
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.ClientID,
 	)
 	return i, err
 }
@@ -218,7 +227,8 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    client_id
 FROM cli_sessions
 WHERE refresh_family = ?
   AND revoked_at IS NULL
@@ -242,7 +252,8 @@ LIMIT 1
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    client_id
 //	FROM cli_sessions
 //	WHERE refresh_family = ?
 //	  AND revoked_at IS NULL
@@ -266,6 +277,7 @@ func (q *Queries) FindUnrevokedCLISessionByRefreshFamily(ctx context.Context, db
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.ClientID,
 	)
 	return i, err
 }
@@ -286,7 +298,8 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    client_id
 FROM cli_sessions
 WHERE workspace_id = ?
   AND user_id = ?
@@ -319,7 +332,8 @@ type ListCLISessionsByUserParams struct {
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    client_id
 //	FROM cli_sessions
 //	WHERE workspace_id = ?
 //	  AND user_id = ?
@@ -352,6 +366,7 @@ func (q *Queries) ListCLISessionsByUser(ctx context.Context, db DBTX, arg ListCL
 			&i.LastUsedAt,
 			&i.ExpiresAt,
 			&i.RevokedAt,
+			&i.ClientID,
 		); err != nil {
 			return nil, err
 		}
@@ -382,7 +397,8 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    client_id
 FROM cli_sessions
 WHERE workspace_id = ?
   AND revoked_at IS NULL
@@ -413,7 +429,8 @@ type ListCLISessionsByWorkspaceParams struct {
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    client_id
 //	FROM cli_sessions
 //	WHERE workspace_id = ?
 //	  AND revoked_at IS NULL
@@ -445,6 +462,7 @@ func (q *Queries) ListCLISessionsByWorkspace(ctx context.Context, db DBTX, arg L
 			&i.LastUsedAt,
 			&i.ExpiresAt,
 			&i.RevokedAt,
+			&i.ClientID,
 		); err != nil {
 			return nil, err
 		}

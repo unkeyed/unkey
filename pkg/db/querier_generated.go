@@ -20,7 +20,9 @@ type Querier interface {
 	//      approver_name = ?,
 	//      approver_roles = CAST(? AS JSON),
 	//      permissions = CAST(? AS JSON),
-	//      approved_at = ?
+	//      approved_at = ?,
+	//      expires_at = ?,
+	//      code_hash = ?
 	//  WHERE id = ?
 	//    AND status IN ('pending', 'approved')
 	//    AND (
@@ -513,7 +515,8 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      client_id
 	//  FROM cli_sessions
 	//  WHERE id = ?
 	FindCLISessionByID(ctx context.Context, db DBTX, id string) (CliSession, error)
@@ -534,7 +537,8 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      client_id
 	//  FROM cli_sessions
 	//  WHERE previous_refresh_token_hash = ?
 	FindCLISessionByPreviousRefreshTokenHash(ctx context.Context, db DBTX, previousRefreshTokenHash sql.NullString) (CliSession, error)
@@ -555,7 +559,8 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      client_id
 	//  FROM cli_sessions
 	//  WHERE refresh_token_hash = ?
 	FindCLISessionByRefreshTokenHash(ctx context.Context, db DBTX, refreshTokenHash string) (CliSession, error)
@@ -694,6 +699,34 @@ type Querier interface {
 	//    AND a.deleted_at IS NULL
 	//    AND p.deleted_at IS NULL
 	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
+	//FindDeviceAuthorizationByCodeHash
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      user_code,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      requester_ip,
+	//      requester_user_agent,
+	//      workspace_id,
+	//      approver_user_id,
+	//      approver_name,
+	//      approver_roles,
+	//      permissions,
+	//      session_id,
+	//      created_at,
+	//      approved_at,
+	//      client_id,
+	//      redirect_uri,
+	//      redirect_uri_presented,
+	//      state,
+	//      code_challenge,
+	//      code_hash
+	//  FROM device_authorizations
+	//  WHERE code_hash = ?
+	FindDeviceAuthorizationByCodeHash(ctx context.Context, db DBTX, codeHash sql.NullString) (DeviceAuthorization, error)
 	//FindDeviceAuthorizationByID
 	//
 	//  SELECT
@@ -712,7 +745,13 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      client_id,
+	//      redirect_uri,
+	//      redirect_uri_presented,
+	//      state,
+	//      code_challenge,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE id = ?
 	FindDeviceAuthorizationByID(ctx context.Context, db DBTX, id string) (DeviceAuthorization, error)
@@ -734,7 +773,13 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      client_id,
+	//      redirect_uri,
+	//      redirect_uri_presented,
+	//      state,
+	//      code_challenge,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE id = ?
 	//  FOR UPDATE
@@ -757,7 +802,13 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      client_id,
+	//      redirect_uri,
+	//      redirect_uri_presented,
+	//      state,
+	//      code_challenge,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE user_code = ?
 	FindDeviceAuthorizationByUserCode(ctx context.Context, db DBTX, userCode string) (DeviceAuthorization, error)
@@ -779,7 +830,13 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      client_id,
+	//      redirect_uri,
+	//      redirect_uri_presented,
+	//      state,
+	//      code_challenge,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE user_code = ?
 	//  FOR UPDATE
@@ -1324,6 +1381,34 @@ type Querier interface {
 	//    AND r.project_id = ?
 	//    AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
+	//FindOAuthClientByID
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      name,
+	//      redirect_uris,
+	//      metadata_hash,
+	//      registrar_ip,
+	//      registrar_user_agent,
+	//      created_at
+	//  FROM oauth_clients
+	//  WHERE id = ?
+	FindOAuthClientByID(ctx context.Context, db DBTX, id string) (OauthClient, error)
+	//FindOAuthClientByMetadataHash
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      name,
+	//      redirect_uris,
+	//      metadata_hash,
+	//      registrar_ip,
+	//      registrar_user_agent,
+	//      created_at
+	//  FROM oauth_clients
+	//  WHERE metadata_hash = ?
+	FindOAuthClientByMetadataHash(ctx context.Context, db DBTX, metadataHash string) (OauthClient, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
 	//
@@ -1701,7 +1786,8 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      client_id
 	//  FROM cli_sessions
 	//  WHERE refresh_family = ?
 	//    AND revoked_at IS NULL
@@ -1839,6 +1925,7 @@ type Querier interface {
 	//      device_name,
 	//      refresh_token_hash,
 	//      refresh_family,
+	//      client_id,
 	//      created_at,
 	//      last_used_at,
 	//      expires_at
@@ -1848,6 +1935,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      CAST(? AS JSON),
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2397,6 +2485,26 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrainParams) error
+	//InsertOAuthClient
+	//
+	//  INSERT INTO oauth_clients (
+	//      id,
+	//      name,
+	//      redirect_uris,
+	//      metadata_hash,
+	//      registrar_ip,
+	//      registrar_user_agent,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON),
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertOAuthClient(ctx context.Context, db DBTX, arg InsertOAuthClientParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (
@@ -2560,6 +2668,38 @@ type Querier interface {
 	//      updated_at_m = ?,
 	//      deleted_at_m = NULL
 	InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error
+	//InsertRedirectAuthorization
+	//
+	//  INSERT INTO device_authorizations (
+	//      id,
+	//      user_code,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      requester_ip,
+	//      requester_user_agent,
+	//      client_id,
+	//      redirect_uri,
+	//      redirect_uri_presented,
+	//      state,
+	//      code_challenge,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      'pending',
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertRedirectAuthorization(ctx context.Context, db DBTX, arg InsertRedirectAuthorizationParams) error
 	//InsertRole
 	//
 	//  INSERT INTO roles (
@@ -2781,7 +2921,8 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      client_id
 	//  FROM cli_sessions
 	//  WHERE workspace_id = ?
 	//    AND user_id = ?
@@ -2807,7 +2948,8 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      client_id
 	//  FROM cli_sessions
 	//  WHERE workspace_id = ?
 	//    AND revoked_at IS NULL
