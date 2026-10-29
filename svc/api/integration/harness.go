@@ -212,10 +212,12 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				PrivateKeyPEM: "test-private-key-pem",
 			},
 			CLIAuth: api.CLIAuthConfig{
-				WorkOSAPIKey:     "",
-				WorkOSAPIBaseURL: "",
-				DashboardBaseURL: "",
-				SigningSecrets:   nil,
+				WorkOSAPIKey:         "",
+				WorkOSAPIBaseURL:     "",
+				DashboardBaseURL:     "",
+				SigningSecrets:       nil,
+				OAuthIssuer:          "",
+				OAuthRedirectOrigins: nil,
 			},
 		}
 

@@ -173,3 +173,14 @@ func OAuthSession(t *testing.T, svc *grant.Service, req OAuthRequest, approver *
 	require.NoError(t, err)
 	return tokens
 }
+
+// SessionMiddleware is the protected stack that also accepts the session
+// access tokens svc issues, the way production appends the session resolver
+// after the root key resolver.
+func SessionMiddleware(h *testutil.Harness, svc *grant.Service) []zen.Middleware {
+	resolver, err := clisession.NewResolver(svc, h.Clock, []byte(signingSecret))
+	if err != nil {
+		panic(err)
+	}
+	return h.ProtectedMiddleware(resolver)
+}

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
+	"github.com/unkeyed/unkey/svc/api/internal/oauth"
 	openapi "github.com/unkeyed/unkey/svc/api/routes/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
@@ -58,6 +59,10 @@ import (
 	v2PermissionsUpdatePermission "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_update_permission"
 	v2PermissionsUpdateRole "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_update_role"
 
+	oauthMetadata "github.com/unkeyed/unkey/svc/api/routes/oauth_authorization_server_metadata"
+	oauthAuthorize "github.com/unkeyed/unkey/svc/api/routes/oauth_authorize"
+	oauthRegister "github.com/unkeyed/unkey/svc/api/routes/oauth_register"
+	oauthToken "github.com/unkeyed/unkey/svc/api/routes/oauth_token"
 	v2CliDecideDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_decide_device_login"
 	v2CliExchangeToken "github.com/unkeyed/unkey/svc/api/routes/v2_cli_exchange_token"
 	v2CliGetDeviceLogin "github.com/unkeyed/unkey/svc/api/routes/v2_cli_get_device_login"
@@ -664,6 +669,25 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(protectedMiddlewares, &v2CliDecideDeviceLogin.Handler{Grants: svc.Grants})
 	srv.RegisterRoute(protectedMiddlewares, &v2CliListSessions.Handler{Grants: svc.Grants})
 	srv.RegisterRoute(protectedMiddlewares, &v2CliRevokeSession.Handler{Grants: svc.Grants})
+
+	// OAuth endpoints are RFC protocol endpoints, not API operations. They are
+	// not in the OpenAPI spec, answer with RFC 6749 error bodies, and carry
+	// codes, verifiers, and refresh tokens in form bodies the JSON redactor
+	// cannot see. So this stack has no validation and no request metrics.
+	if svc.Grants.OAuthEnabled() {
+		oauthMiddlewares := []zen.Middleware{
+			withPanicRecovery,
+			withObservability,
+			zen.WithSQLComment(),
+			withLogging,
+			withErrorHandling,
+			withTimeout,
+		}
+		srv.RegisterRoute(oauthMiddlewares, &oauthMetadata.Handler{Metadata: oauth.NewMetadata(svc.Grants.Issuer)})
+		srv.RegisterRoute(oauthMiddlewares, &oauthRegister.Handler{Grants: svc.Grants})
+		srv.RegisterRoute(oauthMiddlewares, &oauthAuthorize.Handler{Grants: svc.Grants})
+		srv.RegisterRoute(oauthMiddlewares, &oauthToken.Handler{Grants: svc.Grants})
+	}
 
 	// ---------------------------------------------------------------------------
 	// v2/keys

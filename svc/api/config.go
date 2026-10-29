@@ -58,6 +58,16 @@ type CLIAuthConfig struct {
 	WorkOSAPIBaseURL string   `toml:"workos_api_base_url" config:"default=https://api.workos.com"`
 	DashboardBaseURL string   `toml:"dashboard_base_url" config:"default=https://app.unkey.com"`
 	SigningSecrets   []string `toml:"signing_secrets"`
+
+	// OAuthIssuer is the API's public origin, such as https://api.unkey.com.
+	// Setting it serves the OAuth 2.1 authorization server endpoints, which
+	// issue the same sessions as CLI login. Empty leaves them unregistered.
+	OAuthIssuer string `toml:"oauth_issuer"`
+
+	// OAuthRedirectOrigins, when set, are the only origins OAuth clients may
+	// register redirect URIs under. Production should list only the MCP
+	// gateway's callback origin.
+	OAuthRedirectOrigins []string `toml:"oauth_redirect_origins"`
 }
 
 // RestateConfig configures the Restate ingress used to submit durable
@@ -521,6 +531,47 @@ func (c CLIAuthConfig) validate() error {
 	hasSigningSecrets := len(c.SigningSecrets) > 0
 	if hasWorkOSAPIKey != hasSigningSecrets {
 		return fmt.Errorf("cli_auth requires both workos_api_key and signing_secrets, or neither")
+	}
+	return c.validateOAuth()
+}
+
+func (c CLIAuthConfig) validateOAuth() error {
+	if c.OAuthIssuer == "" {
+		if len(c.OAuthRedirectOrigins) > 0 {
+			return fmt.Errorf("cli_auth.oauth_redirect_origins requires cli_auth.oauth_issuer")
+		}
+		return nil
+	}
+	if len(c.SigningSecrets) == 0 {
+		return fmt.Errorf("cli_auth.oauth_issuer requires cli_auth.signing_secrets and cli_auth.workos_api_key")
+	}
+	if err := validateOrigin(c.OAuthIssuer, true); err != nil {
+		return fmt.Errorf("cli_auth.oauth_issuer %w", err)
+	}
+	for i, origin := range c.OAuthRedirectOrigins {
+		if err := validateOrigin(origin, false); err != nil {
+			return fmt.Errorf("cli_auth.oauth_redirect_origins[%d] %w", i, err)
+		}
+	}
+	return nil
+}
+
+// validateOrigin accepts scheme://host[:port] with nothing after it. https is
+// required except on loopback hosts. An issuer may use localhost for local
+// development; a redirect origin may not, because clients cannot register
+// localhost redirect URIs.
+func validateOrigin(raw string, issuer bool) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" || u.User != nil || u.Opaque != "" {
+		return fmt.Errorf("must be an origin such as https://api.unkey.com")
+	}
+	if u.Path != "" || strings.ContainsAny(raw, "?#") {
+		return fmt.Errorf("must not include a path, query, fragment, or trailing slash")
+	}
+	host := u.Hostname()
+	loopback := host == "127.0.0.1" || host == "::1" || (issuer && host == "localhost")
+	if u.Scheme != "https" && (u.Scheme != "http" || !loopback) {
+		return fmt.Errorf("must use https, or http on a loopback host")
 	}
 	return nil
 }

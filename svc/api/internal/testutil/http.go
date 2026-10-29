@@ -65,9 +65,10 @@ type Harness struct {
 	srv       *zen.Server
 	validator *validation.Validator
 
-	middleware       []zen.Middleware
-	publicMiddleware []zen.Middleware
-	portalMiddleware []zen.Middleware
+	middleware          []zen.Middleware
+	publicMiddleware    []zen.Middleware
+	portalMiddleware    []zen.Middleware
+	rateLimitExemptions openapi.WorkspaceRateLimitExemptions
 
 	// DB provides direct database access for verifying side effects or setting up
 	// test data that the seeder methods don't cover.
@@ -347,6 +348,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Flags:                      flagSvc,
 		middleware:                 nil,
 		portalMiddleware:           nil,
+		rateLimitExemptions:        rateLimitExemptions,
 		publicMiddleware: []zen.Middleware{
 			zen.WithObservability(),
 			zen.WithLogging(),
@@ -407,6 +409,37 @@ func (h *Harness) Register(route zen.Route, middlewares ...zen.Middleware) {
 // inside the handler or intentionally do not require an authenticated principal.
 func (h *Harness) PublicMiddleware() []zen.Middleware {
 	return h.publicMiddleware
+}
+
+// ProtectedMiddleware returns the protected stack authenticating with root
+// keys and then with each of resolvers, in order, the way production appends
+// the CLI session resolver after the root key resolver.
+func (h *Harness) ProtectedMiddleware(resolvers ...auth.Resolver) []zen.Middleware {
+	return []zen.Middleware{
+		zen.WithObservability(),
+		zen.WithLogging(),
+		middleware.WithErrorHandling(),
+		zen.WithValidation(h.validator),
+		middleware.WithAuthentication(middleware.AuthenticationConfig{
+			Auth:                auth.New(append([]auth.Resolver{rootkey.NewResolver(h.Keys)}, resolvers...)...),
+			KeyVerifications:    h.KeyVerifications,
+			Region:              "test",
+			Database:            h.DB,
+			LimitsCache:         h.Caches.WorkspaceLimits,
+			Ratelimit:           h.Ratelimit,
+			RateLimitExemptions: h.rateLimitExemptions,
+		}),
+	}
+}
+
+// OAuthMiddleware mirrors production's OAuth endpoint stack: no OpenAPI
+// validation and no request metrics.
+func (h *Harness) OAuthMiddleware() []zen.Middleware {
+	return []zen.Middleware{
+		zen.WithObservability(),
+		zen.WithLogging(),
+		middleware.WithErrorHandling(),
+	}
 }
 
 // PortalMiddleware returns the middleware stack for portal routes. It matches

@@ -494,3 +494,57 @@ func TestConfig_ValidateCLIAuthRequiresBothHalves(t *testing.T) {
 		})
 	}
 }
+
+// TestConfig_ValidateOAuthIssuer guarantees that the OAuth endpoints only
+// start with an issuer clients can match exactly (an origin with nothing
+// after it) and the session signing the endpoints need, and that redirect
+// origins are origins.
+func TestConfig_ValidateOAuthIssuer(t *testing.T) {
+	t.Parallel()
+
+	secret := strings.Repeat("s", 32)
+	configured := func(issuer string, origins ...string) CLIAuthConfig {
+		return CLIAuthConfig{
+			WorkOSAPIKey:         "sk_test",
+			SigningSecrets:       []string{secret},
+			OAuthIssuer:          issuer,
+			OAuthRedirectOrigins: origins,
+		}
+	}
+	tests := []struct {
+		name    string
+		cliAuth CLIAuthConfig
+		wantErr string
+	}{
+		{name: "https issuer", cliAuth: configured("https://api.unkey.com"), wantErr: ""},
+		{name: "https issuer with port", cliAuth: configured("https://api.unkey.com:8443"), wantErr: ""},
+		{name: "local issuer", cliAuth: configured("http://localhost:7070"), wantErr: ""},
+		{name: "loopback issuer", cliAuth: configured("http://127.0.0.1:7070"), wantErr: ""},
+		{name: "allowed origins", cliAuth: configured("https://api.unkey.com", "https://gateway.speakeasy.test", "http://127.0.0.1:8080"), wantErr: ""},
+		{name: "plain http issuer", cliAuth: configured("http://api.unkey.com"), wantErr: "oauth_issuer"},
+		{name: "issuer with path", cliAuth: configured("https://api.unkey.com/v2"), wantErr: "oauth_issuer"},
+		{name: "issuer with trailing slash", cliAuth: configured("https://api.unkey.com/"), wantErr: "oauth_issuer"},
+		{name: "issuer with query", cliAuth: configured("https://api.unkey.com?x=1"), wantErr: "oauth_issuer"},
+		{name: "relative issuer", cliAuth: configured("api.unkey.com"), wantErr: "oauth_issuer"},
+		{name: "issuer without signing secrets", cliAuth: CLIAuthConfig{OAuthIssuer: "https://api.unkey.com"}, wantErr: "oauth_issuer requires"},
+		{name: "origins without issuer", cliAuth: CLIAuthConfig{OAuthRedirectOrigins: []string{"https://gateway.speakeasy.test"}}, wantErr: "oauth_redirect_origins requires"},
+		{name: "origin with path", cliAuth: configured("https://api.unkey.com", "https://gateway.speakeasy.test/callback"), wantErr: "oauth_redirect_origins[0]"},
+		{name: "plain http origin", cliAuth: configured("https://api.unkey.com", "http://gateway.speakeasy.test"), wantErr: "oauth_redirect_origins[0]"},
+		{name: "localhost origin", cliAuth: configured("https://api.unkey.com", "http://localhost:8080"), wantErr: "oauth_redirect_origins[0]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := configWithAuth(RootKeyAuthConfig{})
+			cfg.CLIAuth = tt.cliAuth
+			err := cfg.Validate()
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, tt.wantErr)
+		})
+	}
+}

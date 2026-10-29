@@ -547,6 +547,7 @@ for resource in api_resources:
 workos_api_key = "${WORKOS_API_KEY}"
 dashboard_base_url = "http://localhost:3000"
 signing_secrets = ["local-dev-cli-signing-secret-32bytes"]
+oauth_issuer = "http://localhost:7070"
 '''
         resource['data']['unkey.toml'] = api_config
 k8s_yaml(encode_yaml_stream(api_resources))
