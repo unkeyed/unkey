@@ -169,14 +169,16 @@ func formatHeader(key, value string) string {
 	return b.String()
 }
 
-// formatHeaders serializes headers for logging. The Authorization header is
-// always redacted; values of any header whose lowercased name is in secret
-// (configured KeyAuth header locations) are redacted too.
+// formatHeaders serializes headers for logging. Authorization, Cookie, and
+// Set-Cookie are always redacted; values of any header whose lowercased name is
+// in secret (configured KeyAuth header locations) are redacted too.
 func formatHeaders(headers http.Header, secret map[string]struct{}) []string {
 	result := make([]string, 0, len(headers))
 	for key, values := range headers {
 		lk := strings.ToLower(key)
-		if _, isSecret := secret[lk]; lk == "authorization" || isSecret {
+		_, isSecret := secret[lk]
+		switch {
+		case isSecret, lk == "authorization", lk == "cookie", lk == "set-cookie":
 			result = append(result, formatHeader(key, "[REDACTED]"))
 			continue
 		}
