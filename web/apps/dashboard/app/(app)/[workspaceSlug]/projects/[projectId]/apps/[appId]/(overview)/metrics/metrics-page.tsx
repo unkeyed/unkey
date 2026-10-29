@@ -144,8 +144,8 @@ function ReadyMetrics({ model, page }: { model: ReadyModel; page: MetricsPageCon
 function chartMarkers(model: ReadyModel, page: MetricsPageController): ChartMarkers {
   return {
     items: model.markers,
-    activeId: page.activeDeployId,
-    onActiveChange: page.setActiveDeployId,
+    active: page.activeMarker,
+    onActiveChange: page.setActiveMarker,
     renderPopover: (id) => {
       const deploy = model.deploys.get(id);
       return deploy ? <DeployMarkerPopover deploy={deploy} /> : null;

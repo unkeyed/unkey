@@ -21,3 +21,10 @@ export function formatBucketInterval(
   );
   return `${startStr} – ${endStr}`;
 }
+
+export function formatSpan(fromMs: number, toMs: number | "now", withDate: boolean): string {
+  if (toMs === "now") {
+    return `${formatBucketInterval(fromMs, undefined, withDate)} – now`;
+  }
+  return formatBucketInterval(fromMs, toMs > fromMs ? toMs : undefined, withDate);
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ActiveMarker } from "@/components/charts/use-hover-owner";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   type InstanceRow,
@@ -56,7 +57,7 @@ export function useMetricsPage() {
     },
     { history: "replace" },
   );
-  const [activeDeployId, setActiveDeployId] = useState<string | null>(null);
+  const [activeMarker, setActiveMarker] = useState<ActiveMarker>(null);
   const [openReplica, setOpenReplica] = useState<OpenReplica | null>(null);
 
   const environment = resolveEnvironment(environments, query.env, isEnvironmentsLoading);
@@ -95,8 +96,9 @@ export function useMetricsPage() {
     routes.projects.logs({
       workspaceSlug: workspace.slug,
       projectId,
-      deploymentId: target.deploymentId,
-      instanceId: target.instanceId ?? undefined,
+      appId,
+      deploymentId: target.deploymentIds,
+      instanceId: target.instanceIds,
       startTime: target.window?.startMs,
       endTime: target.window?.endMs,
     });
@@ -119,8 +121,8 @@ export function useMetricsPage() {
     },
     expand: (metric: MetricId) => setQuery({ expand: metric }),
     collapse: () => setQuery({ expand: null }),
-    activeDeployId,
-    setActiveDeployId,
+    activeMarker,
+    setActiveMarker,
     setFilter: (key: FilterKey, values: string[]) =>
       setQuery({ [FILTER_PARAM[key]]: values.length > 0 ? values : null }),
     sheet: replicaSheetModel({
