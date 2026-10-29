@@ -59,33 +59,63 @@ func TestCandidates(t *testing.T) {
 	}
 }
 
-func TestHasEncodedSeparator(t *testing.T) {
+func TestEncodedSeparators(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name     string
 		escaped  string
-		expected bool
+		found    bool
+		multiple bool
 	}{
-		{"plain path", "/admin/users", false},
-		{"encoded dots", "/public/%2e%2e/admin", false},
-		{"other escapes", "/files/a%20b", false},
-		{"encoded slash", "/files/a%2Fb", true},
-		{"lowercase encoded slash", "/files/a%2fb", true},
-		{"encoded backslash", "/files/a%5Cb", true},
-		{"lowercase encoded backslash", "/files/a%5cb", true},
-		{"double encoded slash", "/admin%252fevil", true},
-		{"double encoded backslash", "/admin%255Cevil", true},
-		{"triple encoded slash", "/admin%25252Fevil", true},
-		{"encoded percent", "/files/100%25", false},
-		{"encoded percent before other escape", "/files/a%2520b", false},
-		{"trailing percent", "/files/a%", false},
+		{"plain path", "/admin/users", false, false},
+		{"encoded dots", "/public/%2e%2e/admin", false, false},
+		{"other escapes", "/files/a%20b", false, false},
+		{"encoded slash", "/files/a%2Fb", true, false},
+		{"lowercase encoded slash", "/files/a%2fb", true, false},
+		{"encoded backslash", "/files/a%5Cb", true, false},
+		{"lowercase encoded backslash", "/files/a%5cb", true, false},
+		{"double encoded slash", "/admin%252fevil", true, true},
+		{"double encoded backslash", "/admin%255Cevil", true, true},
+		{"triple encoded slash", "/admin%25252Fevil", true, true},
+		{"single and double encoded", "/a%2Fb%252Fc", true, true},
+		{"encoded percent", "/files/100%25", false, false},
+		{"encoded percent before other escape", "/files/a%2520b", false, false},
+		{"trailing percent", "/files/a%", false, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.expected, HasEncodedSeparator(tt.escaped))
+			found, multiple := EncodedSeparators(tt.escaped)
+			require.Equal(t, tt.found, found)
+			require.Equal(t, tt.multiple, multiple)
+		})
+	}
+}
+
+func TestHasDotSegment(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		decoded  string
+		expected bool
+	}{
+		{"plain path", "/admin/users", false},
+		{"parent segment", "/internal/../public", true},
+		{"current segment", "/./admin", true},
+		{"trailing parent segment", "/admin/..", true},
+		{"parent behind a parameter", "/public/..;/admin", true},
+		{"dots inside a name", "/files/..x/a.b", false},
+		{"three dots", "/files/...", false},
+		{"root", "/", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.expected, HasDotSegment(tt.decoded))
 		})
 	}
 }

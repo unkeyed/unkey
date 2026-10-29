@@ -361,10 +361,10 @@ const (
 
 	// Request
 
-	// EncodedPathSeparator represents a 400 error - the path contains an encoded
-	// slash or backslash, which upstream frameworks disagree on, so policies
-	// cannot match it reliably.
-	UnkeyFrontlineErrorsRequestEncodedPathSeparator URN = "err:frontline:client:encoded_path_separator"
+	// AmbiguousPath represents a 400 error - the path contains an encoded
+	// slash, backslash, or dot segment, which upstream frameworks disagree on,
+	// so policies cannot match it reliably.
+	UnkeyFrontlineErrorsRequestAmbiguousPath URN = "err:frontline:client:ambiguous_path"
 
 	// ----------------
 	// UnkeyPortalErrors

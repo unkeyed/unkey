@@ -324,38 +324,61 @@ func TestEvaluate_KeyAuthSkipCannotBypassStricterPolicyThroughPathVariant(t *tes
 			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
 
 			_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), policies)
-			require.ErrorIs(t, err, denied)
+			code, ok := fault.GetCode(err)
+			require.True(t, ok)
+			require.Equal(t, codes.Frontline.Request.AmbiguousPath.URN(), code)
 		})
 	}
 }
 
-func TestEvaluate_RejectsEncodedPathSeparator(t *testing.T) {
+func TestEvaluate_RejectsAmbiguousPath(t *testing.T) {
 	t.Parallel()
 
-	policies := []*frontlinev1.Policy{{
-		Id:      uid.New(uid.PolicyPrefix),
-		Enabled: new(true),
-		Match: []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
-			Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/internal/"}},
-		}}}},
-		Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY}},
-	}}
+	pathPolicy := func(enabled, logging bool, path *frontlinev1.StringMatch) []*frontlinev1.Policy {
+		policy := &frontlinev1.Policy{
+			Id:      uid.New(uid.PolicyPrefix),
+			Enabled: new(enabled),
+			Match:   []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{Path: path}}}},
+			Config:  &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY}},
+		}
+		if logging {
+			policy.Config = &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}}
+		}
+		return []*frontlinev1.Policy{policy}
+	}
+	prefix := &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/internal/"}}
+	regex := &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Regex{Regex: "^/files/[^/]+/download$"}}
+
+	prefixPolicies := pathPolicy(true, false, prefix)
+	regexPolicies := pathPolicy(true, false, regex)
+	disabledPolicies := pathPolicy(false, false, prefix)
+	loggingPolicies := pathPolicy(true, true, regex)
 
 	for _, tt := range []struct {
+		name     string
 		target   string
 		policies []*frontlinev1.Policy
 		rejected bool
 	}{
-		{target: "/files/a%2Fb", policies: policies, rejected: true},
-		{target: "/files/a%2fb", policies: policies, rejected: true},
-		{target: "/public/x%2F..%2F..%2Finternal/x", policies: policies, rejected: true},
-		{target: "/files/a%5Cb", policies: policies, rejected: true},
-		{target: "/admin%252fevil", policies: policies, rejected: true},
-		{target: "/files/100%25", policies: policies, rejected: false},
-		{target: "/files/a%20b", policies: policies, rejected: false},
-		{target: "/files/a%2Fb", policies: nil, rejected: false},
+		{"encoded dots under a prefix policy", "/internal/%2e%2e/public", prefixPolicies, true},
+		{"encoded separator with dots under a prefix policy", "/internal/a%2F..%2F..%2Fpublic", prefixPolicies, true},
+		{"dots behind a segment parameter", "/public/..;/internal/x", prefixPolicies, true},
+		{"single encoded dot", "/x/%2e/internal/y", prefixPolicies, true},
+		{"double encoded slash", "/admin%252fevil", prefixPolicies, true},
+		{"encoded slash without a regex policy", "/files/a%2Fb", prefixPolicies, false},
+		{"encoded backslash without a regex policy", "/files/a%5Cb", prefixPolicies, false},
+		{"dots inside a segment name", "/files/..x", prefixPolicies, false},
+		{"encoded percent", "/files/100%25", prefixPolicies, false},
+		{"other escapes", "/files/a%20b", prefixPolicies, false},
+		{"encoded slash with a regex policy", "/files/a%2Fb/download", regexPolicies, true},
+		{"lowercase encoded slash with a regex policy", "/files/a%2fb/download", regexPolicies, true},
+		{"encoded backslash with a regex policy", "/files/a%5Cb/download", regexPolicies, true},
+		{"plain path with a regex policy", "/files/a/download", regexPolicies, false},
+		{"no policies", "/internal/%2e%2e/public", nil, false},
+		{"only disabled policies", "/internal/%2e%2e/public", disabledPolicies, false},
+		{"only logging policies", "/files/a%252Fb/download", loggingPolicies, false},
 	} {
-		t.Run(tt.target, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			req := httptest.NewRequest(http.MethodGet, tt.target, nil)
@@ -364,15 +387,12 @@ func TestEvaluate_RejectsEncodedPathSeparator(t *testing.T) {
 			engine := &Engine{firewall: firewallExec.New(), regexCache: newRegexCache()}
 
 			_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), tt.policies)
-			if !tt.rejected {
-				require.NoError(t, err)
+			code, _ := fault.GetCode(err)
+			if tt.rejected {
+				require.Equal(t, codes.Frontline.Request.AmbiguousPath.URN(), code)
 				return
 			}
-
-			require.Error(t, err)
-			code, ok := fault.GetCode(err)
-			require.True(t, ok)
-			require.Equal(t, codes.Frontline.Request.EncodedPathSeparator.URN(), code)
+			require.NotEqual(t, codes.Frontline.Request.AmbiguousPath.URN(), code)
 		})
 	}
 }

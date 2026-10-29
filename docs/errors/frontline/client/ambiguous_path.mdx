@@ -1,0 +1,58 @@
+---
+title: "ambiguous_path"
+sidebarTitle: "ambiguous_path"
+description: "The request path contains an encoded slash, backslash, or dot segment, so the gateway rejected it."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/internal/policies/canonicalpath/canonicalpath.go
+---
+
+<Danger>`err:frontline:client:ambiguous_path`</Danger>
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey and uses gateway policies. Its path could reach different handlers depending on how the <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip> reads it, so the gateway rejected it before it reached the app. You get `400 Bad Request`. The gateway rejects:
+
+- Encoded dot segments, such as `%2e%2e` or `..;`.
+- Double-encoded slashes or backslashes, such as `%252F` or `%255C`.
+- `%2F` (an encoded `/`) or `%5C` (an encoded `\`), when a policy matches paths with a regex.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:ambiguous_path",
+    "message": "The request path contains an encoded slash, backslash, or dot segment, which this API does not accept."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Send the path without encoded dot segments or double encoding. If a value such as an ID contains `/` and the API still rejects it, send it in a query parameter, a header, or the request body instead of the path.
+
+## If you own this API
+
+Frameworks disagree on these paths. Some resolve `%2e%2e` as `..` and others treat it as a literal name. Some treat `%2F` as a path separator and others keep it inside the segment. An app that decodes the path twice turns `%252F` into `/`. The gateway can't tell which handler your app will pick, so it rejects these paths instead of risking a policy being skipped.
+
+A single `%2F` or `%5C` is only rejected when an enabled policy matches paths with a regex, because only a regex like `[^/]+` can be bypassed by changing how many segments a path has. Prefix and exact policies accept it. The check runs only for apps with enabled policies other than logging.
+
+### How to fix
+
+1. If you need `/` in path values, use `prefix` or `exact` path matches instead of `regex`.
+2. Otherwise, move values that can contain `/` or `\` out of the path, into a query parameter, header, or body, and update your clients.
+
+<ProductLink product="compute" href="/compute/gateway/policies" title="Gateway policies">
+  Gateway policies are a Compute feature. The Compute docs explain how the gateway matches paths.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:client:firewall_denied`](/errors/frontline/client/firewall_denied): a firewall policy matched the request and denied it.
+- [`err:frontline:client:openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed): the request didn't match the OpenAPI spec.

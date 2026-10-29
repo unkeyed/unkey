@@ -93,10 +93,10 @@ type frontlineOpenApi struct {
 // frontlineRequest defines errors for requests frontline refuses before running
 // any policy.
 type frontlineRequest struct {
-	// EncodedPathSeparator represents a 400 error - the path contains an encoded
-	// slash or backslash, which upstream frameworks disagree on, so policies
-	// cannot match it reliably.
-	EncodedPathSeparator Code
+	// AmbiguousPath represents a 400 error - the path contains an encoded
+	// slash, backslash, or dot segment, which upstream frameworks disagree on,
+	// so policies cannot match it reliably.
+	AmbiguousPath Code
 }
 
 // UnkeyFrontlineErrors defines all frontline-related errors in the Unkey system.
@@ -165,6 +165,6 @@ var Frontline = UnkeyFrontlineErrors{
 		ValidationBusy: Code{SystemFrontline, CategoryCapacity, "openapi_validation_busy"},
 	},
 	Request: frontlineRequest{
-		EncodedPathSeparator: Code{SystemFrontline, CategoryClient, "encoded_path_separator"},
+		AmbiguousPath: Code{SystemFrontline, CategoryClient, "ambiguous_path"},
 	},
 }
