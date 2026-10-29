@@ -142,10 +142,11 @@ export const StringMatchSchema: GenMessage<StringMatch> = /*@__PURE__*/
  *
  * Matching ignores case and tests the canonical path, not the raw one: ";"
  * segment parameters are stripped, "//", "." and ".." are resolved, and a
- * trailing slash is optional. Both the decoded and the escaped path are tested,
- * because the upstream receives the escaped form. App frameworks route these
- * variants to the same handler, so matching the raw path would let them bypass
- * the policy. The upstream still receives the original path.
+ * trailing slash is optional. App frameworks route these variants to the same
+ * handler, so matching the raw path would let them bypass the policy. Paths
+ * frameworks read in different ways, with encoded dot segments or encoded
+ * slashes, are rejected before matching. The upstream still receives the
+ * original path.
  *
  * @generated from message frontline.v1.PathMatch
  */

@@ -37,12 +37,11 @@ func Candidates(decoded string) []string {
 	return []string{cleaned, cleaned + "/"}
 }
 
-// HasEncodedSeparator reports whether an escaped path contains an encoded
-// slash or backslash, including multiply encoded forms such as "%252f".
-// Frameworks disagree on whether these split segments, and an app that decodes
-// twice turns "%252f" into "/", so the gateway cannot know which handler the
-// app will pick and rejects them.
-func HasEncodedSeparator(escaped string) bool {
+// EncodedSeparators reports whether an escaped path contains an encoded slash
+// or backslash, and whether any of them is encoded more than once, such as
+// "%252f". Frameworks disagree on whether "%2f" splits a segment, and an app
+// that decodes twice turns "%252f" into "/".
+func EncodedSeparators(escaped string) (found, multiple bool) {
 	for i := 0; i < len(escaped); i++ {
 		if escaped[i] != '%' {
 			continue
@@ -56,6 +55,21 @@ func HasEncodedSeparator(escaped string) bool {
 		}
 		switch strings.ToLower(escaped[j : j+2]) {
 		case "2f", "5c":
+			found = true
+			multiple = multiple || j > i+1
+		}
+	}
+	return found, multiple
+}
+
+// HasDotSegment reports whether a decoded path has a "." or ".." segment,
+// including one hidden behind ";" parameters such as "..;". ServeMux redirects
+// plain literal dot segments, so any that reach the policy engine arrived
+// encoded or hidden, and frameworks disagree on whether to resolve them.
+func HasDotSegment(decoded string) bool {
+	for segment := range strings.SplitSeq(decoded, "/") {
+		segment, _, _ = strings.Cut(segment, ";")
+		if segment == "." || segment == ".." {
 			return true
 		}
 	}
