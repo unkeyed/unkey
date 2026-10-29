@@ -107,6 +107,11 @@ const (
 	// could not verify the credential, but another might, so it is the weakest
 	// real signal.
 	severityAuthentication
+	// severityRejectedCredential is a credential the resolver verified as its
+	// own and then refused because it ended, such as an expired or revoked
+	// session token. It outranks a sibling that merely did not recognize the
+	// credential, so the client hears why its token stopped working.
+	severityRejectedCredential
 	// severityAuthorization is a post-verification denial (403): the resolver
 	// verified the credential and then refused it, so it is authoritative about
 	// the credential in a way an authentication rejection is not.
@@ -137,6 +142,9 @@ func errorSeverity(err error) int {
 	}
 	if code.Category == codes.CategoryUnkeyAuthorization {
 		return severityAuthorization
+	}
+	if urn == codes.Auth.Authentication.CredentialRejected.URN() {
+		return severityRejectedCredential
 	}
 	if code.Category == codes.CategoryUnkeyAuthentication {
 		return severityAuthentication

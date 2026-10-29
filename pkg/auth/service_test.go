@@ -217,6 +217,33 @@ func TestServiceAuthenticate_PrefersAuthorizationOverAuthentication(t *testing.T
 	})
 }
 
+// TestServiceAuthenticate_PrefersRejectedCredentialOverUnrecognized verifies
+// that when a resolver recognizes a credential as its own, verifies it, and
+// rejects it because it ended, that reason reaches the client instead of a
+// sibling's "not found". A root key resolver tries every bearer, so without
+// this an expired session token would be reported as an invalid root key.
+func TestServiceAuthenticate_PrefersRejectedCredentialOverUnrecognized(t *testing.T) {
+	t.Parallel()
+
+	unrecognized := fault.New("unknown root key",
+		fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+		fault.Public("The provided root key is invalid."),
+	)
+	ended := fault.New("session ended",
+		fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
+		fault.Public("This session is no longer valid."),
+	)
+
+	for _, order := range [][]Resolver{
+		{&stubResolver{err: unrecognized}, &stubResolver{err: ended}},
+		{&stubResolver{err: ended}, &stubResolver{err: unrecognized}},
+	} {
+		got, err := New(order...).Authenticate(context.Background(), &zen.Session{})
+		require.Nil(t, got)
+		require.Equal(t, "This session is no longer valid.", fault.UserFacingMessage(err))
+	}
+}
+
 // TestServiceAuthenticate_InfrastructureFailureDoesNotMaskSuccess verifies a
 // resolver that errors for infrastructure reasons never blocks a later resolver
 // that can actually authenticate the request, so a degraded resolver entry
