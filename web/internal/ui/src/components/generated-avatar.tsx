@@ -7,22 +7,21 @@ const MARBLE_SIZE = 80;
 type GeneratedAvatarProps = {
   name: string;
   variant: "beam" | "marble";
-  square?: boolean;
 } & Omit<React.SVGProps<SVGSVGElement>, "name">;
 
-export function GeneratedAvatar({ name, variant, square = false, ...props }: GeneratedAvatarProps) {
+export function GeneratedAvatar({ name, variant, ...props }: GeneratedAvatarProps) {
   const id = React.useId();
   const hash = hashName(name);
   return variant === "beam" ? (
-    <BeamAvatar hash={hash} id={id} square={square} {...props} />
+    <BeamAvatar hash={hash} id={id} {...props} />
   ) : (
-    <MarbleAvatar hash={hash} id={id} square={square} {...props} />
+    <MarbleAvatar hash={hash} id={id} {...props} />
   );
 }
 
-type ShapeProps = { hash: number; id: string; square: boolean } & React.SVGProps<SVGSVGElement>;
+type ShapeProps = { hash: number; id: string } & React.SVGProps<SVGSVGElement>;
 
-function BeamAvatar({ hash, id, square, ...props }: ShapeProps) {
+function BeamAvatar({ hash, id, ...props }: ShapeProps) {
   const half = BEAM_SIZE / 2;
   const wrapperColor = pickColor(hash);
   const faceColor = contrastColor(wrapperColor);
@@ -38,7 +37,7 @@ function BeamAvatar({ hash, id, square, ...props }: ShapeProps) {
   const eyeSpread = signedModulus(hash, 5);
 
   return (
-    <AvatarFrame size={BEAM_SIZE} id={id} square={square} {...props}>
+    <AvatarFrame size={BEAM_SIZE} id={id} {...props}>
       <g mask={`url(#${id})`}>
         <rect width={BEAM_SIZE} height={BEAM_SIZE} fill={pickColor(hash + 13)} />
         <rect
@@ -87,7 +86,7 @@ function BeamAvatar({ hash, id, square, ...props }: ShapeProps) {
   );
 }
 
-function MarbleAvatar({ hash, id, square, ...props }: ShapeProps) {
+function MarbleAvatar({ hash, id, ...props }: ShapeProps) {
   const half = MARBLE_SIZE / 2;
   const layers = [0, 1, 2].map((index) => {
     const seed = hash * (index + 1);
@@ -103,7 +102,7 @@ function MarbleAvatar({ hash, id, square, ...props }: ShapeProps) {
   const scale = layers[2].scale;
 
   return (
-    <AvatarFrame size={MARBLE_SIZE} id={id} square={square} {...props}>
+    <AvatarFrame size={MARBLE_SIZE} id={id} {...props}>
       <g mask={`url(#${id})`}>
         <rect width={MARBLE_SIZE} height={MARBLE_SIZE} fill={layers[0].color} />
         <path
@@ -134,10 +133,9 @@ function MarbleAvatar({ hash, id, square, ...props }: ShapeProps) {
 function AvatarFrame({
   size,
   id,
-  square,
   children,
   ...props
-}: { size: number; id: string; square: boolean } & React.SVGProps<SVGSVGElement>) {
+}: { size: number; id: string } & React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox={`0 0 ${size} ${size}`}
@@ -149,7 +147,7 @@ function AvatarFrame({
       {...props}
     >
       <mask id={id} maskUnits="userSpaceOnUse" x={0} y={0} width={size} height={size}>
-        <rect width={size} height={size} rx={square ? undefined : size * 2} fill="#FFFFFF" />
+        <rect width={size} height={size} rx={size * 2} fill="#FFFFFF" />
       </mask>
       {children}
     </svg>
