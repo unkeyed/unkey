@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -17,14 +17,14 @@ import (
 func TestMatchesRequest_EmptyList(t *testing.T) {
 	t.Parallel()
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api"}, Header: http.Header{}}
-	matched, err := matchesRequest(req, netip.Addr{}, nil, newRegexCache())
+	matched, err := matchesRequest(req, netip.Addr{}, nil, testRegexCache(t))
 	require.NoError(t, err)
 	require.True(t, matched)
 }
 
 func TestMatchesRequest_PathExact(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api/v1"}, Header: http.Header{}}
 
 	//nolint:exhaustruct
@@ -41,7 +41,7 @@ func TestMatchesRequest_PathExact(t *testing.T) {
 
 func TestMatchesRequest_PathExactMismatch(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api/v2"}, Header: http.Header{}}
 
 	//nolint:exhaustruct
@@ -58,7 +58,7 @@ func TestMatchesRequest_PathExactMismatch(t *testing.T) {
 
 func TestMatchesRequest_PathPrefix(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api/v1/users"}, Header: http.Header{}}
 
 	//nolint:exhaustruct
@@ -75,7 +75,7 @@ func TestMatchesRequest_PathPrefix(t *testing.T) {
 
 func TestMatchesRequest_PathRegex(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api/v2/users/123"}, Header: http.Header{}}
 
 	//nolint:exhaustruct
@@ -92,7 +92,7 @@ func TestMatchesRequest_PathRegex(t *testing.T) {
 
 func TestMatchesRequest_PathCaseInsensitive(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/API/V1"}, Header: http.Header{}}
 
 	//nolint:exhaustruct
@@ -154,7 +154,7 @@ func TestMatchesRequest_PathVariants(t *testing.T) {
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{Path: tt.match}}},
 			}
 
-			matched, err := matchesRequest(req, netip.Addr{}, exprs, newRegexCache())
+			matched, err := matchesRequest(req, netip.Addr{}, exprs, testRegexCache(t))
 			require.NoError(t, err)
 			require.Equal(t, tt.expected, matched)
 		})
@@ -176,14 +176,14 @@ func TestMatchesRequest_HeaderValueKeepsCaseSensitivity(t *testing.T) {
 		}}},
 	}
 
-	matched, err := matchesRequest(req, netip.Addr{}, exprs, newRegexCache())
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, testRegexCache(t))
 	require.NoError(t, err)
 	require.False(t, matched)
 }
 
 func TestMatchesRequest_MethodMatch(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	tests := []struct {
 		name     string
@@ -221,7 +221,7 @@ func TestMatchesRequest_MethodMatch(t *testing.T) {
 
 func TestMatchesRequest_HeaderPresent(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/"}, Header: http.Header{}}
 	req.Header.Set("Authorization", "Bearer token")
@@ -241,7 +241,7 @@ func TestMatchesRequest_HeaderPresent(t *testing.T) {
 
 func TestMatchesRequest_HeaderNotPresent(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/"}, Header: http.Header{}}
 
@@ -260,7 +260,7 @@ func TestMatchesRequest_HeaderNotPresent(t *testing.T) {
 
 func TestMatchesRequest_HeaderValue(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/"}, Header: http.Header{}}
 	req.Header.Set("Content-Type", "application/json")
@@ -282,7 +282,7 @@ func TestMatchesRequest_HeaderValue(t *testing.T) {
 
 func TestMatchesRequest_QueryParamPresent(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	req := &http.Request{
 		Method: "GET",
@@ -305,7 +305,7 @@ func TestMatchesRequest_QueryParamPresent(t *testing.T) {
 
 func TestMatchesRequest_QueryParamValue(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	req := &http.Request{
 		Method: "GET",
@@ -330,7 +330,7 @@ func TestMatchesRequest_QueryParamValue(t *testing.T) {
 
 func TestMatchesRequest_ANDSemantics(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	// Path matches but method doesn't
 	req := &http.Request{Method: "DELETE", URL: &url.URL{Path: "/api/v1"}, Header: http.Header{}}
@@ -350,7 +350,7 @@ func TestMatchesRequest_ANDSemantics(t *testing.T) {
 
 func TestMatchesRequest_ANDSemanticsAllMatch(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	req := &http.Request{Method: "POST", URL: &url.URL{Path: "/api/v1"}, Header: http.Header{}}
 
@@ -369,7 +369,7 @@ func TestMatchesRequest_ANDSemanticsAllMatch(t *testing.T) {
 
 func TestRegexCache(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	re1, err := rc.get(`^/api/v\d+$`)
 	require.NoError(t, err)
@@ -383,7 +383,7 @@ func TestRegexCache(t *testing.T) {
 
 func TestRegexCache_InvalidPattern(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
 	_, err := rc.get(`[invalid`)
 	require.Error(t, err)
@@ -416,7 +416,7 @@ func TestMatchesRequest_RemoteIp(t *testing.T) {
 			req := &http.Request{Method: "GET", URL: &url.URL{Path: "/admin"}, Header: http.Header{}}
 			exprs := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: tt.match}}}
 
-			matched, err := matchesRequest(req, netip.MustParseAddr(tt.remoteIP), exprs, newRegexCache())
+			matched, err := matchesRequest(req, netip.MustParseAddr(tt.remoteIP), exprs, testRegexCache(t))
 			require.NoError(t, err)
 			require.Equal(t, tt.matched, matched)
 		})
@@ -450,7 +450,7 @@ func TestMatchesRequest_InvalidConfiguration(t *testing.T) {
 
 			req := &http.Request{Method: "GET", URL: &url.URL{Path: "/admin"}, Header: http.Header{}}
 
-			_, err := matchesRequest(req, netip.MustParseAddr("198.51.100.10"), []*frontlinev1.MatchExpr{tt.expr}, newRegexCache())
+			_, err := matchesRequest(req, netip.MustParseAddr("198.51.100.10"), []*frontlinev1.MatchExpr{tt.expr}, testRegexCache(t))
 			require.Error(t, err)
 			code, ok := fault.GetCode(err)
 			require.True(t, ok)
@@ -464,20 +464,26 @@ func TestMatchesRequest_RemoteIpMissing(t *testing.T) {
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/admin"}, Header: http.Header{}}
 	exprs := []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}}}}
 
-	matched, err := matchesRequest(req, netip.Addr{}, exprs, newRegexCache())
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, testRegexCache(t))
 	require.Error(t, err)
 	require.False(t, matched)
 }
 
-func TestRegexCache_StaysBounded(t *testing.T) {
+func testRegexCache(t *testing.T) *regexCache {
+	t.Helper()
+	rc, err := newRegexCache(clock.New())
+	require.NoError(t, err)
+	t.Cleanup(rc.Close)
+	return rc
+}
+
+func TestRegexCache_ReusesCompiledPattern(t *testing.T) {
 	t.Parallel()
-	rc := newRegexCache()
+	rc := testRegexCache(t)
 
-	for i := range regexCacheEntriesMax + 10 {
-		re, err := rc.get(fmt.Sprintf("^/p%d$", i))
-		require.NoError(t, err)
-		require.True(t, re.MatchString(fmt.Sprintf("/p%d", i)))
-	}
-
-	require.Len(t, rc.cache, regexCacheEntriesMax)
+	first, err := rc.get("^/p[0-9]+$")
+	require.NoError(t, err)
+	second, err := rc.get("^/p[0-9]+$")
+	require.NoError(t, err)
+	require.Same(t, first, second)
 }

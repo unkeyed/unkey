@@ -1,15 +1,18 @@
 package policies
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/netip"
 	"regexp"
 	"strings"
-	"sync"
+	"time"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/canonicalpath"
@@ -21,22 +24,33 @@ const regexCacheEntriesMax = 1024
 
 // regexCache caches compiled regular expressions to avoid recompilation.
 type regexCache struct {
-	mu    sync.RWMutex
-	cache map[string]*regexp.Regexp
+	cache cache.Cache[string, *regexp.Regexp]
 }
 
-func newRegexCache() *regexCache {
-	return &regexCache{
-		mu:    sync.RWMutex{},
-		cache: make(map[string]*regexp.Regexp),
+func newRegexCache(clk clock.Clock) (*regexCache, error) {
+	c, err := cache.New(cache.Config[string, *regexp.Regexp]{
+		Fresh:     24 * time.Hour,
+		Stale:     24 * time.Hour,
+		MaxSize:   regexCacheEntriesMax,
+		Resource:  "policy_regexes",
+		Clock:     clk,
+		Scheduler: nil,
+	})
+	if err != nil {
+		return nil, err
 	}
+	return &regexCache{cache: c}, nil
 }
 
+// Close releases the cache's background workers.
+func (rc *regexCache) Close() {
+	rc.cache.Close()
+}
+
+// get compiles on a miss instead of using SWR, which only the background
+// refresh needs a context for. Get and Set use theirs only for request timing.
 func (rc *regexCache) get(pattern string) (*regexp.Regexp, error) {
-	rc.mu.RLock()
-	re, ok := rc.cache[pattern]
-	rc.mu.RUnlock()
-	if ok {
+	if re, hit := rc.cache.Get(context.Background(), pattern); hit == cache.Hit {
 		return re, nil
 	}
 
@@ -49,16 +63,7 @@ func (rc *regexCache) get(pattern string) (*regexp.Regexp, error) {
 			fault.Public("Service configuration error."),
 		)
 	}
-
-	rc.mu.Lock()
-	if len(rc.cache) >= regexCacheEntriesMax {
-		for evicted := range rc.cache {
-			delete(rc.cache, evicted)
-			break
-		}
-	}
-	rc.cache[pattern] = re
-	rc.mu.Unlock()
+	rc.cache.Set(context.Background(), pattern, re)
 	return re, nil
 }
 
