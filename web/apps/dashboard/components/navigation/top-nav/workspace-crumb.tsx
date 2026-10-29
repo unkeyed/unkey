@@ -1,6 +1,5 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -28,11 +27,6 @@ export function WorkspaceCrumb({ href }: { href: string }) {
 
   return (
     <Crumb
-      icon={
-        <Avatar className="size-4 rounded-sm border border-input shrink-0">
-          <AvatarFallback name={workspace.name} variant="marble" square />
-        </Avatar>
-      }
       label={workspace.name}
       href={href}
       items={items}
