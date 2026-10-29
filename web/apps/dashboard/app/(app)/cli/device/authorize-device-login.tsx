@@ -437,8 +437,9 @@ function PendingLogin({
       onStale();
     },
   });
-  const approving = approve.isLoading || approve.isSuccess;
-  const denying = deny.isLoading || deny.isSuccess;
+  const leaving = approve.isSuccess ? "approved" : deny.isSuccess ? "denied" : null;
+  const approving = approve.isLoading || leaving === "approved";
+  const denying = deny.isLoading || leaving === "denied";
   const busy = approving || denying;
   const grantable = login.grantablePermissions ?? [];
   const prompt = match(login)
