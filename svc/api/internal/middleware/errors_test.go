@@ -162,6 +162,32 @@ func TestErrorMiddleware_Forbidden_PreservesPermissionDetail(t *testing.T) {
 	require.Equal(t, "Missing permission to decrypt this key.", response.Error.Detail)
 }
 
+// TestErrorMiddleware_RejectedBearerAsksForANewToken guarantees that a 401
+// for a rejected bearer token carries RFC 6750's invalid_token challenge, the
+// signal OAuth clients use to refresh or sign in again. The portal session
+// 401 is not a bearer token rejection and must not carry it.
+func TestErrorMiddleware_RejectedBearerAsksForANewToken(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		code      codes.URN
+		challenge string
+	}{
+		{name: "rejected credential", code: codes.Auth.Authentication.CredentialRejected.URN(), challenge: `Bearer error="invalid_token"`},
+		{name: "unknown root key", code: codes.Auth.Authentication.KeyNotFound.URN(), challenge: `Bearer error="invalid_token"`},
+		{name: "portal session", code: codes.Portal.Session.SessionNotFound.URN(), challenge: ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			sess, rec := newSession(t, http.MethodPost, "/v2/apis.getApi")
+			err := middleware.WithErrorHandling()(func(_ context.Context, _ *zen.Session) error {
+				return fault.New("rejected", fault.Code(tt.code), fault.Public("Rejected."))
+			})(t.Context(), sess)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusUnauthorized, rec.Code)
+			require.Equal(t, tt.challenge, rec.Header().Get("WWW-Authenticate"))
+		})
+	}
+}
+
 // toInt64 normalises slog's int-or-int64 attr representation so tests can
 // assert with a single concrete type.
 func toInt64(v any) int64 {

@@ -266,6 +266,11 @@ func WithErrorHandling() zen.Middleware {
 			case codes.UnkeyAuthErrorsAuthenticationKeyNotFound,
 				codes.UnkeyAuthErrorsAuthenticationCredentialRejected,
 				codes.UnkeyPortalErrorsSessionSessionNotFound:
+				if urn != codes.UnkeyPortalErrorsSessionSessionNotFound {
+					// RFC 6750 section 3.1: OAuth clients refresh or sign in again
+					// only when the 401 says the bearer token was rejected.
+					s.AddHeader("WWW-Authenticate", `Bearer error="invalid_token"`)
+				}
 				return s.ProblemJSON(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

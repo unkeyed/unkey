@@ -149,10 +149,15 @@ func (JWTSource) principalSource() {}
 // label captured when the login started. ExpiresAt is the session row's idle
 // deadline, which never passes the session's absolute maximum. A root key this
 // session mints must not outlive it.
+//
+// OAuth clients hold the same kind of session. ClientID names that client and
+// is empty for the Unkey CLI. Keeping one source type means the root key
+// expiry bound and the session list and revoke rules apply to both holders.
 type CLISessionSource struct {
 	SessionID  string
 	DeviceName string
 	ExpiresAt  time.Time
+	ClientID   string
 }
 
 func (CLISessionSource) principalSource() {}

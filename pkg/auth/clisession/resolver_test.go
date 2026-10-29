@@ -26,10 +26,7 @@ type fakeSessions struct {
 }
 
 func (f fakeSessions) Allow(context.Context, string) (Session, error) {
-	if f.err != nil {
-		return Session{}, f.err
-	}
-	return f.session, nil
+	return f.session, f.err
 }
 
 type tokenFixture struct {
@@ -124,21 +121,60 @@ func TestResolverBuildsPrincipalFromPermissionsClaim(t *testing.T) {
 	require.True(t, stored.ExpiresAt.Equal(source.ExpiresAt))
 }
 
+// TestResolverRejectsRevokedAndExpiredSessions guarantees that an authentic
+// token whose session ended, or which itself expired, is rejected as a
+// credential (401) rather than a malformed request (400). Clients such as an
+// OAuth gateway refresh or re-authenticate only on 401.
 func TestResolverRejectsRevokedAndExpiredSessions(t *testing.T) {
 	clk := clock.NewTestClock()
 	fixture := newTokenFixture()
 	sess := bearerSession(t, sign(t, testSecret, fixture.claims(clk)))
 
-	resolver, err := NewResolver(fakeSessions{session: Session{}, err: ErrInactive}, clk, []byte(testSecret))
+	resolver, err := NewResolver(fakeSessions{session: fixture.session(clk), err: ErrInactive}, clk, []byte(testSecret))
 	require.NoError(t, err)
 	_, err = resolver.Resolve(context.Background(), sess)
-	requireCode(t, err, codes.Auth.Authentication.Malformed.URN())
+	requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
+	require.Equal(t, "This CLI session is no longer valid. Run unkey login again.", fault.UserFacingMessage(err))
 
 	clk.Tick(2 * time.Hour)
 	expiredResolver, err := NewResolver(fakeSessions{session: fixture.session(clk), err: nil}, clk, []byte(testSecret))
 	require.NoError(t, err)
 	_, err = expiredResolver.Resolve(context.Background(), sess)
-	requireCode(t, err, codes.Auth.Authentication.Malformed.URN())
+	requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
+}
+
+// TestResolverTellsOAuthUsersWhereToSignInAgain guarantees that a user whose
+// OAuth session ended is sent back to the app that holds it, not to the CLI.
+func TestResolverTellsOAuthUsersWhereToSignInAgain(t *testing.T) {
+	clk := clock.NewTestClock()
+	fixture := newTokenFixture()
+	held := fixture.session(clk)
+	held.ClientID = uid.New(uid.OAuthClientPrefix, 16)
+	held.DeviceName = "Unkey MCP"
+
+	resolver, err := NewResolver(fakeSessions{session: held, err: ErrInactive}, clk, []byte(testSecret))
+	require.NoError(t, err)
+	_, err = resolver.Resolve(context.Background(), bearerSession(t, sign(t, testSecret, fixture.claims(clk))))
+	requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
+	require.Equal(t, "This session is no longer valid. Sign in to Unkey again from Unkey MCP.", fault.UserFacingMessage(err))
+}
+
+// TestResolverCarriesTheOAuthClient guarantees that requests made with an
+// OAuth session are attributed to the client holding it. The client comes
+// from the session row, never from a token claim.
+func TestResolverCarriesTheOAuthClient(t *testing.T) {
+	clk := clock.NewTestClock()
+	fixture := newTokenFixture()
+	held := fixture.session(clk)
+	held.ClientID = uid.New(uid.OAuthClientPrefix, 16)
+
+	resolver, err := NewResolver(fakeSessions{session: held, err: nil}, clk, []byte(testSecret))
+	require.NoError(t, err)
+	got, err := resolver.Resolve(context.Background(), bearerSession(t, sign(t, testSecret, fixture.claims(clk))))
+	require.NoError(t, err)
+	source, ok := got.Source.(principal.CLISessionSource)
+	require.True(t, ok)
+	require.Equal(t, held.ClientID, source.ClientID)
 }
 
 func TestResolverRejectsTokensThatDoNotMatchTheSession(t *testing.T) {

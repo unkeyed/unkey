@@ -26,13 +26,40 @@ var ErrInactive = errors.New("cli session is not active")
 type Session struct {
 	UserID      string
 	WorkspaceID string
-	DeviceName  string
-	ExpiresAt   time.Time
+	// DeviceName is the holder's label: the CLI's device name, or the OAuth
+	// client's name when the user approved it.
+	DeviceName string
+	ExpiresAt  time.Time
+	// ClientID is the OAuth client holding the session. Empty for the Unkey CLI.
+	ClientID string
+}
+
+// SignInAgain is the next step a user takes when a session ends, worded for
+// whoever holds it. label is the session's DeviceName.
+func SignInAgain(clientID string, label string) string {
+	if clientID == "" {
+		return "Run unkey login again."
+	}
+	label = strings.TrimSpace(label)
+	if label == "" {
+		return "Sign in to Unkey again."
+	}
+	return "Sign in to Unkey again from " + label + "."
+}
+
+// SessionEnded is the rejection for a revoked, expired, or unknown session.
+func SessionEnded(clientID string, label string) string {
+	if clientID == "" {
+		return "This CLI session is no longer valid. " + SignInAgain(clientID, label)
+	}
+	return "This session is no longer valid. " + SignInAgain(clientID, label)
 }
 
 // Sessions loads the live session behind an access token.
 // Implementations should cache for a few seconds. A cache hit must not outlive
-// a revocation by more than that window.
+// a revocation by more than that window. With ErrInactive, the returned
+// Session still carries the row's holder when the row exists, so the
+// rejection can tell the user where to sign in again.
 type Sessions interface {
 	Allow(ctx context.Context, sessionID string) (Session, error)
 }
@@ -85,6 +112,13 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	}
 
 	claims, err := r.verify(token)
+	if errors.Is(err, tokenjwt.ErrTokenExpired) {
+		return nil, fault.Wrap(err,
+			fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
+			fault.Internal("cli access token expired"),
+			fault.Public("This access token expired. Refresh it and try again."),
+		)
+	}
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
@@ -106,9 +140,9 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	if err != nil {
 		if errors.Is(err, ErrInactive) {
 			return nil, fault.Wrap(err,
-				fault.Code(codes.Auth.Authentication.Malformed.URN()),
+				fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
 				fault.Internal("cli session is revoked, expired, or unknown"),
-				fault.Public("This CLI session is no longer valid. Run unkey login again."),
+				fault.Public(SessionEnded(session.ClientID, session.DeviceName)),
 			)
 		}
 
@@ -139,6 +173,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			SessionID:  claims.SessionID,
 			DeviceName: session.DeviceName,
 			ExpiresAt:  session.ExpiresAt,
+			ClientID:   session.ClientID,
 		},
 		AuthorizedWorkspaceID: claims.WorkspaceID,
 		Permissions:           claims.Permissions,
