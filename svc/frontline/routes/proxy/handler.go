@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
@@ -158,21 +159,49 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// here.
 	sawDialFailure := false
 	var forwardErr error
-	for _, instance := range decision.LocalInstances {
-		tracking.InstanceID = instance.ID
-		tracking.Address = instance.Address
-
-		forwardErr = h.ProxyService.ForwardToInstance(ctx, sess, decision.UpstreamProtocol, instance)
-		if forwardErr == nil {
-			if sawDialFailure {
-				localRequestRetriesTotal.WithLabelValues(retryOutcomeRecovered).Inc()
+	tried := make(map[string]bool, len(decision.LocalInstances))
+	tryInstances := func(instances []db.FindInstancesByDeploymentIDRow) bool {
+		for _, instance := range instances {
+			if tried[instance.Address] {
+				continue
 			}
-			return nil
+			tried[instance.Address] = true
+			tracking.InstanceID = instance.ID
+			tracking.Address = instance.Address
+
+			forwardErr = h.ProxyService.ForwardToInstance(ctx, sess, decision.UpstreamProtocol, instance)
+			if forwardErr == nil || !proxy.IsDialError(forwardErr) {
+				return true
+			}
+			if !sawDialFailure {
+				h.RouterService.InvalidateInstances(ctx, decision.DeploymentID)
+			}
+			sawDialFailure = true
 		}
-		if !proxy.IsDialError(forwardErr) {
-			return forwardErr
+		return false
+	}
+
+	done := tryInstances(decision.LocalInstances)
+
+	// Every cached address failed to dial. Pods that restarted on new IPs
+	// may already be in the database, so reload once and try only
+	// addresses that were not tried yet. Policies were evaluated for this
+	// deployment, so a reload that resolves to another one is not used.
+	if !done && sawDialFailure {
+		reloaded, routeErr := h.RouterService.Route(ctx, hostname, excludedRegions...)
+		if routeErr == nil && reloaded.DeploymentID == decision.DeploymentID {
+			if reloaded.Destination == router.DestinationLocalInstance {
+				done = tryInstances(reloaded.LocalInstances)
+			}
+			decision.RemoteRegionAddress = reloaded.RemoteRegionAddress
 		}
-		sawDialFailure = true
+	}
+
+	if done {
+		if forwardErr == nil && sawDialFailure {
+			localRequestRetriesTotal.WithLabelValues(retryOutcomeRecovered).Inc()
+		}
+		return forwardErr
 	}
 	if sawDialFailure {
 		localRequestRetriesTotal.WithLabelValues(retryOutcomeExhausted).Inc()

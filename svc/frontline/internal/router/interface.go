@@ -52,6 +52,11 @@ type Service interface {
 
 	// ValidateHostname checks if a hostname has a configured frontline route.
 	ValidateHostname(ctx context.Context, hostname string) error
+
+	// InvalidateInstances drops the cached instances of a deployment, so
+	// the next Route reads them from the database. Call it when an
+	// instance address from a RouteDecision cannot be dialed.
+	InvalidateInstances(ctx context.Context, deploymentID string)
 }
 
 type Config struct {

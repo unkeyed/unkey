@@ -92,6 +92,8 @@ func (s *fileService) ValidateHostname(ctx context.Context, hostname string) err
 	return err
 }
 
+func (s *fileService) InvalidateInstances(_ context.Context, _ string) {}
+
 func (route FileRoute) loadPolicies(directory string) ([]*frontlinev1.Policy, error) {
 	hostname := normalizeHostname(route.Hostname)
 	var spec []byte

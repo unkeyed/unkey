@@ -98,3 +98,7 @@ func (s *service) ValidateHostname(ctx context.Context, hostname string) error {
 	_, err := s.findRoute(ctx, hostname)
 	return err
 }
+
+func (s *service) InvalidateInstances(ctx context.Context, deploymentID string) {
+	s.instancesByDeploymentCache.Remove(ctx, deploymentID)
+}

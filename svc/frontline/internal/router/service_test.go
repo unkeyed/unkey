@@ -3,6 +3,7 @@ package router_test
 import (
 	"context"
 	"database/sql"
+	"sync"
 	"testing"
 	"time"
 
@@ -174,4 +175,63 @@ func TestRoute_ExcludedRegionsAreRequestScoped(t *testing.T) {
 			require.Contains(t, []string{"us-east-1.aws", "us-west-2.aws"}, decision.RemoteRegionAddress)
 		})
 	}
+}
+
+type addressChangeQuerier struct {
+	stubQuerier
+	mu        sync.Mutex
+	instances []db.FindInstancesByDeploymentIDRow
+}
+
+func (q *addressChangeQuerier) FindInstancesByDeploymentID(_ context.Context, _ string) ([]db.FindInstancesByDeploymentIDRow, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	return q.instances, nil
+}
+
+func (q *addressChangeQuerier) setAddress(address string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	q.instances = []db.FindInstancesByDeploymentIDRow{{
+		ID: "ins_1", Address: address, Status: db.InstancesStatusRunning,
+		RegionName: "test", RegionPlatform: "test",
+	}}
+}
+
+// TestRoute_InvalidateInstancesReadsNewAddress verifies that a pod which
+// came back on a new IP is routed to its new address right after
+// InvalidateInstances, instead of after the instance cache expires.
+func TestRoute_InvalidateInstancesReadsNewAddress(t *testing.T) {
+	querier := &addressChangeQuerier{stubQuerier: stubQuerier{row: db.FindFrontlineRouteByFQDNRow{
+		EnvironmentID:    "env_1",
+		DeploymentID:     "dep_1",
+		SentinelConfig:   []byte("{}"),
+		UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1,
+		DesiredState:     db.DeploymentsDesiredStateRunning,
+	}}}
+	querier.setAddress("10.13.24.129:4000")
+
+	svc, err := router.New(router.Config{
+		Platform:              "test",
+		Region:                "test",
+		DB:                    querier,
+		FrontlineRouteCache:   newCache[db.FindFrontlineRouteByFQDNRow](t, "frontline_routes"),
+		InstancesByDeployment: newCache[[]db.FindInstancesByDeploymentIDRow](t, "instances"),
+		PolicyCache:           newCache[[]*frontlinev1.Policy](t, "policies"),
+	})
+	require.NoError(t, err)
+
+	decision, err := svc.Route(context.Background(), "app.example.com")
+	require.NoError(t, err)
+	require.Equal(t, "10.13.24.129:4000", decision.LocalInstances[0].Address)
+
+	querier.setAddress("10.13.24.133:4000")
+	decision, err = svc.Route(context.Background(), "app.example.com")
+	require.NoError(t, err)
+	require.Equal(t, "10.13.24.129:4000", decision.LocalInstances[0].Address, "the cached address is served until invalidation")
+
+	svc.InvalidateInstances(context.Background(), "dep_1")
+	decision, err = svc.Route(context.Background(), "app.example.com")
+	require.NoError(t, err)
+	require.Equal(t, "10.13.24.133:4000", decision.LocalInstances[0].Address)
 }
