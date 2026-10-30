@@ -225,6 +225,69 @@ func TestResolver_ResolveWorkOSAccessTokenClaims(t *testing.T) {
 	require.Empty(t, principal.Permissions)
 }
 
+// TestResolver_OrgIDClaimFollowsResolverKind guarantees a dashboard resolver
+// reads only the nested org.id and a [Resolver.WithFlatOrgID] resolver reads
+// only the flat org_id that WorkOS AuthKit agent tokens carry. A token carrying
+// the other claim is rejected, so agent tokens cannot authenticate through a
+// dashboard resolver whatever order the resolvers run in.
+func TestResolver_OrgIDClaimFollowsResolverKind(t *testing.T) {
+	t.Parallel()
+
+	secret := []byte("local-test-secret-with-at-least-32-bytes")
+	signer, err := tokenjwt.NewHS256Signer[Claims](secret)
+	require.NoError(t, err)
+
+	for _, tc := range []struct {
+		name    string
+		flat    bool
+		claims  func(orgID string) Claims
+		resolve bool
+	}{
+		{name: "dashboard reads nested", flat: false, claims: func(orgID string) Claims { return Claims{Org: OrganizationClaims{ID: orgID}} }, resolve: true},
+		{name: "dashboard rejects flat", flat: false, claims: func(orgID string) Claims { return Claims{OrgID: orgID} }, resolve: false},
+		{name: "agent reads flat", flat: true, claims: func(orgID string) Claims { return Claims{OrgID: orgID} }, resolve: true},
+		{name: "agent rejects nested", flat: true, claims: func(orgID string) Claims { return Claims{Org: OrganizationClaims{ID: orgID}} }, resolve: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			orgID := uid.New(uid.TestPrefix)
+			now := time.Now()
+			claims := tc.claims(orgID)
+			claims.RegisteredClaims = tokenjwt.RegisteredClaims{
+				Issuer:    jwksIssuer,
+				Subject:   uid.New(uid.TestPrefix),
+				ExpiresAt: now.Add(time.Minute).Unix(),
+				IssuedAt:  now.Unix(),
+			}
+			token, signErr := signer.Sign(claims)
+			require.NoError(t, signErr)
+
+			workspaceID := uid.New(uid.WorkspacePrefix)
+			resolver, resolverErr := NewResolver(testWorkspaceLookupForOrg(t, orgID, workspaceID), jwksIssuer, "", secret)
+			require.NoError(t, resolverErr)
+			if tc.flat {
+				resolver = resolver.WithFlatOrgID()
+			}
+
+			principal, resolveErr := resolver.Resolve(context.Background(), jwtSession(t, token))
+			if !tc.resolve {
+				require.Error(t, resolveErr)
+				require.Nil(t, principal)
+				code, ok := fault.GetCode(resolveErr)
+				require.True(t, ok)
+				require.Equal(t, codes.Auth.Authentication.Malformed.URN(), code)
+				return
+			}
+			require.NoError(t, resolveErr)
+			require.Equal(t, workspaceID, principal.AuthorizedWorkspaceID)
+			source, ok := principal.Source.(authprincipal.JWTSource)
+			require.True(t, ok)
+			require.Equal(t, orgID, source.OrgID)
+		})
+	}
+}
+
 // TestResolver_ResolveJWTWithRotatedSecret guarantees the resolver accepts
 // tokens signed by a retained secret during dashboard JWT secret rotation.
 func TestResolver_ResolveJWTWithRotatedSecret(t *testing.T) {

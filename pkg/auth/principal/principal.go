@@ -133,6 +133,12 @@ type JWTSource struct {
 	// Payload is the decoded token payload with claims preserved by name.
 	Payload map[string]any
 
+	// OrgID is the organization the resolver mapped to the authorized workspace.
+	OrgID string
+
+	// ExpiresAt is the verified exp claim.
+	ExpiresAt time.Time
+
 	// Roles contains the roles claim from the token.
 	Roles []string
 
@@ -156,6 +162,22 @@ type CLISessionSource struct {
 }
 
 func (CLISessionSource) principalSource() {}
+
+// AgentSource is a WorkOS agent access token acting for the user who claimed
+// the agent registration.
+//
+// The principal's subject is that user, and its permissions come from the
+// user's current organization roles, so an agent never holds more access than
+// its user has right now.
+type AgentSource struct {
+	// RegistrationID is the WorkOS agent registration the token was issued to.
+	RegistrationID string
+
+	// ExpiresAt is when the agent access token expires.
+	ExpiresAt time.Time
+}
+
+func (AgentSource) principalSource() {}
 
 // PortalSessionSource carries the portal session detail that authenticated the request.
 //
