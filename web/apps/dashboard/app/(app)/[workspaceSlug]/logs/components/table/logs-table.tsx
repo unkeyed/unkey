@@ -129,7 +129,7 @@ const additionalColumns: Column<Log>[] = [
       className={cn(
         "font-mono overflow-hidden text-ellipsis",
         key === "response_body"
-          ? "whitespace-nowrap truncate min-w-0"
+          ? "w-0 min-w-full truncate"
           : "whitespace-nowrap truncate max-w-[200px]",
       )}
     >
@@ -226,7 +226,11 @@ export const LogsTable = () => {
         key: "path",
         header: "Path",
         width: "20%",
-        render: (log) => <div className="font-mono pr-4 truncate">{log.path}</div>,
+        render: (log) => (
+          <div className="font-mono pr-4 truncate max-w-100" title={log.path}>
+            {log.path}
+          </div>
+        ),
       },
     ],
     [selectedLog?.request_id],
