@@ -2,8 +2,9 @@
 
 import type { App } from "@/lib/collections/deploy/apps";
 import { IconCubeOutline18 } from "@unkey/icons";
-import { SearchInput } from "@unkey/ui";
+import { Button, SearchInput } from "@unkey/ui";
 import { useState } from "react";
+import { useProjectData } from "../../../data-provider";
 
 const SOURCE_LABEL: Record<App["sourceType"], string | null> = {
   git: null,
@@ -15,15 +16,14 @@ type PickerApp = { id: string; name: string; source: string | null };
 
 export function AppPicker({
   apps,
-  projectApps,
   connectedIds,
   onPick,
 }: {
   apps: { id: string; name: string }[];
-  projectApps: Pick<App, "id" | "sourceType" | "repositoryFullName">[];
   connectedIds: ReadonlySet<string>;
   onPick: (appId: string) => void;
 }) {
+  const { apps: projectApps } = useProjectData();
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
   const rows: PickerApp[] = apps
@@ -41,7 +41,7 @@ export function AppPicker({
     <div
       className="flex flex-col gap-2"
       onKeyDown={(event) => {
-        if (event.key === "Enter") {
+        if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
           event.preventDefault();
           const [first] = rows;
           if (first) {
@@ -55,6 +55,7 @@ export function AppPicker({
         placeholder="Search apps"
         value={search}
         onValueChange={setSearch}
+        autoFocus
       />
       <div className="flex max-h-64 flex-col divide-y divide-grayA-4 overflow-y-auto rounded-lg border border-grayA-4 bg-background">
         {rows.length === 0 ? (
@@ -65,16 +66,17 @@ export function AppPicker({
           </p>
         ) : (
           rows.map((row) => (
-            <button
+            <Button
               key={row.id}
               type="button"
+              variant="ghost"
               onClick={() => onPick(row.id)}
-              className="flex items-center gap-2 px-3 py-2.5 text-left text-sm text-gray-12 transition-colors hover:bg-grayA-2 focus-visible:bg-grayA-3 focus-visible:outline-none"
+              className="h-auto w-full justify-start gap-2 rounded-none px-3 py-2.5 text-left text-sm font-normal text-gray-12 focus:border-grayA-4 focus-visible:bg-grayA-3 focus-visible:ring-inset"
             >
               <IconCubeOutline18 className="size-3.5 shrink-0 text-gray-11" />
               <span className="truncate">{row.name}</span>
               <span className="ml-auto shrink-0 truncate text-xs text-gray-9">{row.source}</span>
-            </button>
+            </Button>
           ))
         )}
       </div>

@@ -1,22 +1,47 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type PanelState<P> = { panel: P; session: number; isOpen: boolean };
 
 export function useSlidePanels<P>() {
   const [state, setState] = useState<PanelState<P> | null>(null);
+  const frame = useRef<number | null>(null);
+  const latest = useRef(0);
+  const session = state?.session ?? 0;
+
+  useEffect(
+    () => () => {
+      if (frame.current !== null) {
+        cancelAnimationFrame(frame.current);
+      }
+    },
+    [],
+  );
 
   const open = useCallback((panel: P) => {
-    setState((prev) => ({ panel, session: (prev?.session ?? 0) + 1, isOpen: false }));
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+    }
+    const next = ++latest.current;
+    setState({ panel, session: next, isOpen: false });
     // Base UI only animates an open transition, and `session` remounts the panel.
-    requestAnimationFrame(() => setState((prev) => prev && { ...prev, isOpen: true }));
+    frame.current = requestAnimationFrame(() => {
+      frame.current = null;
+      setState((prev) => (prev?.session === next ? { ...prev, isOpen: true } : prev));
+    });
   }, []);
-  const close = useCallback(() => setState((prev) => prev && { ...prev, isOpen: false }), []);
+  const close = useCallback(() => {
+    if (frame.current !== null && latest.current === session) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
+    setState((prev) => (prev && prev.session === session ? { ...prev, isOpen: false } : prev));
+  }, [session]);
 
   return {
     panel: state?.panel ?? null,
-    session: state?.session ?? 0,
+    session,
     isOpen: state?.isOpen ?? false,
     open,
     close,

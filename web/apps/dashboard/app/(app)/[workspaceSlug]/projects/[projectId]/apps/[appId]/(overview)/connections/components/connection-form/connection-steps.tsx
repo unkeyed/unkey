@@ -2,73 +2,29 @@
 
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useFormContext, useFormState, useWatch } from "react-hook-form";
-import { type ConnectionTargets, connectionHostVariable } from "../../connection-rules";
-import type { AfterSave } from "../../hooks/use-connection-actions";
-import type { TargetDeployments } from "../../hooks/use-connections-data";
+import type { ConnectionFormController } from "../../hooks/use-connection-form";
 import type { ConnectionFormValues } from "../../model/form";
-import type { ConnectionEnvs } from "../../model/merge";
-import {
-  type FormStep,
-  type StepsState,
-  allStepsDone,
-  completeStep,
-  openStep,
-  stepStatus,
-} from "../../model/steps";
+import { FORM_MODES } from "../../model/mode";
+import { connectionHostVariable } from "../../model/name";
+import { type FormStep, STEP_FIELDS, completeStep, openStep, stepStatus } from "../../model/steps";
+import { AppPicker } from "./app-picker";
 import { CodeSnippets } from "./code-snippets";
-import { EnvironmentsCard } from "./environments-card";
 import { StepCard } from "./step-card";
+import { TargetField } from "./target-field";
 import { VariableField, VariableSummary } from "./variable-field";
 
-type Mode = "add" | "edit";
-
-const REDEPLOY_NOTE: Record<Mode, string | null> = {
-  add: null,
-  edit: "Changes take effect after a redeploy.",
-};
-
-const COMMIT_LABELS: Record<Mode, Record<AfterSave, string>> = {
-  add: { prompt: "Add connection", redeploy: "Add and redeploy" },
-  edit: { prompt: "Save changes", redeploy: "Save and redeploy" },
-};
-
-export function ConnectionSteps({
-  mode,
-  steps,
-  onStepsChange,
-  onCommit,
-  committing,
-  app,
-  target,
-  savedName,
-  envs,
-  targets,
-  page,
-  requiresExplicitPreviewTarget,
-}: {
-  mode: Mode;
-  steps: StepsState;
-  onStepsChange: Dispatch<SetStateAction<StepsState>>;
-  onCommit: (after: AfterSave) => void;
-  committing: AfterSave | null;
-  app: { picker: ReactNode; summary: ReactNode; locked: boolean };
-  target: { id: string; name: string } | undefined;
-  savedName?: string;
-  envs: ConnectionEnvs;
-  targets: ConnectionTargets;
-  page: TargetDeployments;
-  requiresExplicitPreviewTarget: boolean;
-}) {
+export function ConnectionSteps({ controller }: { controller: ConnectionFormController }) {
+  const { mode, before, steps, setSteps, target, pending, commit, pickApp } = controller;
+  const { appLocked, commitLabel, commitNeedsChanges, redeployNote } = FORM_MODES[mode];
   const { control, trigger } = useFormContext<ConnectionFormValues>();
   const name = useWatch({ control, name: "name" }).trim();
   const { isDirty } = useFormState({ control });
-  const showCommit = mode === "add" || isDirty;
-  const reopen = (step: FormStep) => () => onStepsChange((state) => openStep(state, step));
+  const showCommit = !commitNeedsChanges || isDirty;
+  const reopen = (step: FormStep) => () => setSteps((state) => openStep(state, step));
   const continueFromConfig = async () => {
-    if (await trigger(["name", "envs"])) {
-      onStepsChange(completeStep);
+    if (await trigger([...STEP_FIELDS.config])) {
+      setSteps(completeStep);
     }
   };
 
@@ -79,10 +35,10 @@ export function ConnectionSteps({
         title="Select an app to connect to"
         label="App"
         status={stepStatus(steps, "app")}
-        summary={app.summary}
-        onOpen={app.locked ? undefined : reopen("app")}
+        summary={target ? <AppName name={target.name} /> : null}
+        onOpen={appLocked ? undefined : reopen("app")}
       >
-        {app.picker}
+        <AppPicker apps={controller.apps} connectedIds={controller.connectedIds} onPick={pickApp} />
       </StepCard>
       <StepCard
         number={2}
@@ -92,24 +48,17 @@ export function ConnectionSteps({
         summary={<VariableSummary />}
         onOpen={reopen("config")}
       >
-        <VariableField savedName={savedName} />
-        {target ? (
-          <EnvironmentsCard
-            envs={envs}
-            targetAppId={target.id}
-            targetAppName={target.name}
-            targets={targets}
-            page={page}
-            requiresExplicitPreviewTarget={requiresExplicitPreviewTarget}
-          />
+        <VariableField savedName={before?.name} />
+        {controller.choices ? (
+          <TargetField choices={controller.choices} deployments={controller.deployments} />
         ) : null}
         <div className="flex items-center justify-between gap-2">
-          {mode === "add" ? (
+          {appLocked ? (
+            <span />
+          ) : (
             <Button type="button" variant="outline" size="sm" onClick={reopen("app")}>
               Back
             </Button>
-          ) : (
-            <span />
           )}
           <Button
             type="button"
@@ -126,38 +75,28 @@ export function ConnectionSteps({
         number={3}
         title="Connect your code"
         label="Code"
-        status={allStepsDone(steps) && target ? "open" : "todo"}
+        status={stepStatus(steps, "code")}
       >
         {target ? (
           <CodeSnippets variable={connectionHostVariable(name)} targetAppName={target.name} />
         ) : null}
         {showCommit ? (
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              loading={committing === "prompt"}
-              disabled={committing !== null}
-              onClick={() => onCommit("prompt")}
-            >
-              {COMMIT_LABELS[mode].prompt}
-            </Button>
+          <div className="flex justify-end">
             <Button
               type="button"
               variant="primary"
               size="sm"
               className="px-3"
-              loading={committing === "redeploy"}
-              disabled={committing !== null}
-              onClick={() => onCommit("redeploy")}
+              loading={pending?.action === mode}
+              disabled={pending !== null}
+              onClick={commit}
             >
-              {COMMIT_LABELS[mode].redeploy}
+              {commitLabel}
             </Button>
           </div>
         ) : null}
       </StepCard>
-      {REDEPLOY_NOTE[mode] ? <p className="text-xs text-gray-10">{REDEPLOY_NOTE[mode]}</p> : null}
+      {redeployNote ? <p className="text-xs text-gray-10">{redeployNote}</p> : null}
     </>
   );
 }
