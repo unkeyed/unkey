@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) certificates(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultCertificates(ctx, db.ListVaultCertificatesParams{
+	rows, err := h.db.ListCertificates(ctx, db.ListCertificatesParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -39,7 +39,7 @@ func (h *Handler) certificates(ctx context.Context, after cursor) (cursor, error
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		_, err := h.db.UpdateVaultCertificate(ctx, db.UpdateVaultCertificateParams{
+		_, err := h.db.UpdateCertificate(ctx, db.UpdateCertificateParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,

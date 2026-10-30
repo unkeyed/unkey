@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) clickhouseSettings(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultClickhouseSettings(ctx, db.ListVaultClickhouseSettingsParams{
+	rows, err := h.db.ListClickhouseSettings(ctx, db.ListClickhouseSettingsParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -39,7 +39,7 @@ func (h *Handler) clickhouseSettings(ctx context.Context, after cursor) (cursor,
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		_, err := h.db.UpdateVaultClickhouseSetting(ctx, db.UpdateVaultClickhouseSettingParams{
+		_, err := h.db.UpdateClickhouseSetting(ctx, db.UpdateClickhouseSettingParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,

@@ -9,7 +9,7 @@ import (
 )
 
 func (h *Handler) logdrains(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultLogdrains(ctx, db.ListVaultLogdrainsParams{
+	rows, err := h.db.ListLogdrains(ctx, db.ListLogdrainsParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -27,7 +27,7 @@ func (h *Handler) logdrains(ctx context.Context, after cursor) (cursor, error) {
 		if bytes.Equal(ciphertext, row.Ciphertext) {
 			continue
 		}
-		_, err = h.db.UpdateVaultLogdrain(ctx, db.UpdateVaultLogdrainParams{
+		_, err = h.db.UpdateLogdrain(ctx, db.UpdateLogdrainParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,

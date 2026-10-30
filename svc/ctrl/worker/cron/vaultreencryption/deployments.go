@@ -9,7 +9,7 @@ import (
 )
 
 func (h *Handler) deployments(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultDeployments(ctx, db.ListVaultDeploymentsParams{
+	rows, err := h.db.ListDeployments(ctx, db.ListDeploymentsParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -27,7 +27,7 @@ func (h *Handler) deployments(ctx context.Context, after cursor) (cursor, error)
 		if bytes.Equal(ciphertext, row.Ciphertext) {
 			continue
 		}
-		_, err = h.db.UpdateVaultDeployment(ctx, db.UpdateVaultDeploymentParams{
+		_, err = h.db.UpdateDeployment(ctx, db.UpdateDeploymentParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,

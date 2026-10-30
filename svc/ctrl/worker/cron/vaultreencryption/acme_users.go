@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) acmeUsers(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultAcmeUsers(ctx, db.ListVaultAcmeUsersParams{
+	rows, err := h.db.ListAcmeUsers(ctx, db.ListAcmeUsersParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -39,7 +39,7 @@ func (h *Handler) acmeUsers(ctx context.Context, after cursor) (cursor, error) {
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		_, err := h.db.UpdateVaultAcmeUser(ctx, db.UpdateVaultAcmeUserParams{
+		_, err := h.db.UpdateAcmeUser(ctx, db.UpdateAcmeUserParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,

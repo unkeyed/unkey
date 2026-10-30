@@ -17,7 +17,7 @@ type Querier interface {
 	//  WHERE pk > ?
 	//  ORDER BY pk
 	//  LIMIT ?
-	ListVaultAcmeUsers(ctx context.Context, arg ListVaultAcmeUsersParams) ([]ListVaultAcmeUsersRow, error)
+	ListAcmeUsers(ctx context.Context, arg ListAcmeUsersParams) ([]ListAcmeUsersRow, error)
 	// Scan private keys without parent joins. The primary-key cursor advances
 	// past unchanged rows without depending on encryption metadata.
 	//
@@ -26,7 +26,7 @@ type Querier interface {
 	//  WHERE pk > ?
 	//  ORDER BY pk
 	//  LIMIT ?
-	ListVaultCertificates(ctx context.Context, arg ListVaultCertificatesParams) ([]ListVaultCertificatesRow, error)
+	ListCertificates(ctx context.Context, arg ListCertificatesParams) ([]ListCertificatesRow, error)
 	// Scan passwords without parent joins. The primary-key cursor advances
 	// past unchanged rows without depending on encryption metadata.
 	//
@@ -35,7 +35,7 @@ type Querier interface {
 	//  WHERE pk > ?
 	//  ORDER BY pk
 	//  LIMIT ?
-	ListVaultClickhouseSettings(ctx context.Context, arg ListVaultClickhouseSettingsParams) ([]ListVaultClickhouseSettingsRow, error)
+	ListClickhouseSettings(ctx context.Context, arg ListClickhouseSettingsParams) ([]ListClickhouseSettingsRow, error)
 	// Scan snapshots without parent or status filters. The primary-key cursor
 	// advances past unchanged rows without depending on encryption metadata.
 	//
@@ -44,7 +44,7 @@ type Querier interface {
 	//  WHERE pk > ?
 	//  ORDER BY pk
 	//  LIMIT ?
-	ListVaultDeployments(ctx context.Context, arg ListVaultDeploymentsParams) ([]ListVaultDeploymentsRow, error)
+	ListDeployments(ctx context.Context, arg ListDeploymentsParams) ([]ListDeploymentsRow, error)
 	// Scan ciphertext without parent joins. The primary-key cursor advances
 	// past unchanged rows without depending on encryption metadata.
 	//
@@ -53,7 +53,7 @@ type Querier interface {
 	//  WHERE pk > ?
 	//  ORDER BY pk
 	//  LIMIT ?
-	ListVaultEncryptedKeys(ctx context.Context, arg ListVaultEncryptedKeysParams) ([]ListVaultEncryptedKeysRow, error)
+	ListEncryptedKeys(ctx context.Context, arg ListEncryptedKeysParams) ([]ListEncryptedKeysRow, error)
 	// Scan ciphertext without parent joins. The primary-key cursor advances
 	// past unchanged rows without depending on encryption metadata.
 	//
@@ -62,7 +62,7 @@ type Querier interface {
 	//  WHERE pk > ?
 	//  ORDER BY pk
 	//  LIMIT ?
-	ListVaultEnvironmentVariables(ctx context.Context, arg ListVaultEnvironmentVariablesParams) ([]ListVaultEnvironmentVariablesRow, error)
+	ListEnvironmentVariables(ctx context.Context, arg ListEnvironmentVariablesParams) ([]ListEnvironmentVariablesRow, error)
 	// Scan credentials without parent or status filters. The primary-key cursor
 	// advances past unchanged rows without depending on encryption metadata.
 	//
@@ -71,7 +71,7 @@ type Querier interface {
 	//  WHERE pk > ?
 	//  ORDER BY pk
 	//  LIMIT ?
-	ListVaultLogdrains(ctx context.Context, arg ListVaultLogdrainsParams) ([]ListVaultLogdrainsRow, error)
+	ListLogdrains(ctx context.Context, arg ListLogdrainsParams) ([]ListLogdrainsRow, error)
 	// Include expired secrets and rows without parents. The primary-key cursor
 	// advances past unchanged rows without depending on encryption metadata.
 	//
@@ -80,8 +80,8 @@ type Querier interface {
 	//  WHERE pk > ?
 	//  ORDER BY pk
 	//  LIMIT ?
-	ListVaultSharedSecrets(ctx context.Context, arg ListVaultSharedSecretsParams) ([]ListVaultSharedSecretsRow, error)
-	// UpdateVaultAcmeUser preserves concurrent changes by matching the keyring and
+	ListSharedSecrets(ctx context.Context, arg ListSharedSecretsParams) ([]ListSharedSecretsRow, error)
+	// UpdateAcmeUser preserves concurrent changes by matching the keyring and
 	// old ciphertext using column collations, without changing ACME registration metadata.
 	//
 	//  UPDATE acme_users
@@ -89,8 +89,8 @@ type Querier interface {
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
 	//    AND encrypted_key = ?
-	UpdateVaultAcmeUser(ctx context.Context, arg UpdateVaultAcmeUserParams) (int64, error)
-	// UpdateVaultCertificate preserves concurrent changes by matching the keyring
+	UpdateAcmeUser(ctx context.Context, arg UpdateAcmeUserParams) (int64, error)
+	// UpdateCertificate preserves concurrent changes by matching the keyring
 	// and old ciphertext using column collations, without changing certificate metadata.
 	//
 	//  UPDATE certificates
@@ -98,8 +98,8 @@ type Querier interface {
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
 	//    AND encrypted_private_key = ?
-	UpdateVaultCertificate(ctx context.Context, arg UpdateVaultCertificateParams) (int64, error)
-	// UpdateVaultClickhouseSetting preserves concurrent changes by matching the
+	UpdateCertificate(ctx context.Context, arg UpdateCertificateParams) (int64, error)
+	// UpdateClickhouseSetting preserves concurrent changes by matching the
 	// keyring and old ciphertext using column collations, without changing query limits.
 	//
 	//  UPDATE clickhouse_workspace_settings
@@ -107,8 +107,8 @@ type Querier interface {
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
 	//    AND password_encrypted = ?
-	UpdateVaultClickhouseSetting(ctx context.Context, arg UpdateVaultClickhouseSettingParams) (int64, error)
-	// UpdateVaultDeployment preserves concurrent changes by matching the keyring
+	UpdateClickhouseSetting(ctx context.Context, arg UpdateClickhouseSettingParams) (int64, error)
+	// UpdateDeployment preserves concurrent changes by matching the keyring
 	// using its column collation and the entire old blob, without changing business metadata.
 	//
 	//  UPDATE deployments
@@ -116,7 +116,7 @@ type Querier interface {
 	//  WHERE pk = ?
 	//    AND environment_id = ?
 	//    AND encrypted_environment_variables = ?
-	UpdateVaultDeployment(ctx context.Context, arg UpdateVaultDeploymentParams) (int64, error)
+	UpdateDeployment(ctx context.Context, arg UpdateDeploymentParams) (int64, error)
 	// API key plaintext is immutable. The cron serializes re-encryption writes.
 	// Keys deleted during re-encryption remain deleted.
 	//
@@ -125,8 +125,8 @@ type Querier interface {
 	//      encryption_key_id = ?
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
-	UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error)
-	// UpdateVaultEnvironmentVariable preserves concurrent changes by matching the
+	UpdateEncryptedKey(ctx context.Context, arg UpdateEncryptedKeyParams) (int64, error)
+	// UpdateEnvironmentVariable preserves concurrent changes by matching the
 	// keyring and old ciphertext using column collations, without changing business metadata.
 	//
 	//  UPDATE app_environment_variables
@@ -134,8 +134,8 @@ type Querier interface {
 	//  WHERE pk = ?
 	//    AND environment_id = ?
 	//    AND value = ?
-	UpdateVaultEnvironmentVariable(ctx context.Context, arg UpdateVaultEnvironmentVariableParams) (int64, error)
-	// UpdateVaultLogdrain preserves concurrent changes by matching the keyring using
+	UpdateEnvironmentVariable(ctx context.Context, arg UpdateEnvironmentVariableParams) (int64, error)
+	// UpdateLogdrain preserves concurrent changes by matching the keyring using
 	// its column collation and the entire old config, without changing lease or delivery metadata.
 	//
 	//  UPDATE logdrains
@@ -143,8 +143,8 @@ type Querier interface {
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
 	//    AND config = ?
-	UpdateVaultLogdrain(ctx context.Context, arg UpdateVaultLogdrainParams) (int64, error)
-	// UpdateVaultSharedSecret atomically replaces ciphertext and encryption-key
+	UpdateLogdrain(ctx context.Context, arg UpdateLogdrainParams) (int64, error)
+	// UpdateSharedSecret atomically replaces ciphertext and encryption-key
 	// metadata only when the keyring and old ciphertext still match using column collations.
 	//
 	//  UPDATE shared_secrets
@@ -152,7 +152,7 @@ type Querier interface {
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
 	//    AND encrypted = ?
-	UpdateVaultSharedSecret(ctx context.Context, arg UpdateVaultSharedSecretParams) (int64, error)
+	UpdateSharedSecret(ctx context.Context, arg UpdateSharedSecretParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

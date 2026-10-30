@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) sharedSecrets(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultSharedSecrets(ctx, db.ListVaultSharedSecretsParams{
+	rows, err := h.db.ListSharedSecrets(ctx, db.ListSharedSecretsParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -39,7 +39,7 @@ func (h *Handler) sharedSecrets(ctx context.Context, after cursor) (cursor, erro
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		_, err := h.db.UpdateVaultSharedSecret(ctx, db.UpdateVaultSharedSecretParams{
+		_, err := h.db.UpdateSharedSecret(ctx, db.UpdateSharedSecretParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,

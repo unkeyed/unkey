@@ -104,7 +104,7 @@ func TestReEncryptionDrainsTablesAndPreservesPlaintext(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, keyID, decrypted.GetPlaintext())
 	}
-	secrets, err := vaultdb.NewQueries(database.RW()).ListVaultSharedSecrets(t.Context(), vaultdb.ListVaultSharedSecretsParams{Limit: 101})
+	secrets, err := vaultdb.NewQueries(database.RW()).ListSharedSecrets(t.Context(), vaultdb.ListSharedSecretsParams{Limit: 101})
 	require.NoError(t, err)
 	require.Len(t, secrets, 100)
 	for _, secret := range secrets {
@@ -379,7 +379,7 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 		check(environmentID, variable.Value, variable.Key)
 	}
 	queries := vaultdb.NewQueries(database.RW())
-	deployments, err := queries.ListVaultDeployments(t.Context(), vaultdb.ListVaultDeploymentsParams{Limit: 10})
+	deployments, err := queries.ListDeployments(t.Context(), vaultdb.ListDeploymentsParams{Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, deployments, 1)
 	var snapshotNew ctrlv1.SecretsConfig
@@ -391,7 +391,7 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 		name := "VALUE_" + strconv.Itoa(i)
 		check(environmentID, snapshotNew.Secrets[name], name)
 	}
-	drains, err := queries.ListVaultLogdrains(t.Context(), vaultdb.ListVaultLogdrainsParams{Limit: 10})
+	drains, err := queries.ListLogdrains(t.Context(), vaultdb.ListLogdrainsParams{Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, drains, 2)
 	for i, drain := range drains {
@@ -414,11 +414,11 @@ func TestReEncryptionCoversStoredFormats(t *testing.T) {
 	acme, err := database.FindAcmeUserByWorkspaceID(t.Context(), "acme")
 	require.NoError(t, err)
 	check("acme", acme.EncryptedKey, "account key")
-	settings, err := queries.ListVaultClickhouseSettings(t.Context(), vaultdb.ListVaultClickhouseSettingsParams{Limit: 10})
+	settings, err := queries.ListClickhouseSettings(t.Context(), vaultdb.ListClickhouseSettingsParams{Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, settings, 1)
 	check(workspaceID, settings[0].Ciphertext, "database password")
-	shared, err := queries.ListVaultSharedSecrets(t.Context(), vaultdb.ListVaultSharedSecretsParams{Limit: 10})
+	shared, err := queries.ListSharedSecrets(t.Context(), vaultdb.ListSharedSecretsParams{Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, shared, 1)
 	check(workspaceID, shared[0].Ciphertext, "one time secret")
@@ -657,7 +657,7 @@ func TestReEncryptionRetriesFailedWriteAndContinuesOtherTables(t *testing.T) {
 				require.Equal(t, encrypted.GetEncrypted(), stored.Encrypted, "the failed row and later rows must remain unchanged")
 			}
 		}
-		secrets, err := vaultdb.NewQueries(database.RW()).ListVaultSharedSecrets(t.Context(), vaultdb.ListVaultSharedSecretsParams{Limit: 100})
+		secrets, err := vaultdb.NewQueries(database.RW()).ListSharedSecrets(t.Context(), vaultdb.ListSharedSecretsParams{Limit: 100})
 		require.NoError(t, err)
 		require.Len(t, secrets, 1)
 		require.NotEqual(t, encrypted.GetEncrypted(), secrets[0].Ciphertext, "a failed table must not block other tables")

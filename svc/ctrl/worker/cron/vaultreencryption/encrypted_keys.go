@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultEncryptedKeys(ctx, db.ListVaultEncryptedKeysParams{
+	rows, err := h.db.ListEncryptedKeys(ctx, db.ListEncryptedKeysParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -39,7 +39,7 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		_, err := h.db.UpdateVaultEncryptedKey(ctx, db.UpdateVaultEncryptedKeyParams{
+		_, err := h.db.UpdateEncryptedKey(ctx, db.UpdateEncryptedKeyParams{
 			Pk:         row.Pk,
 			Keyring:    row.Keyring,
 			Ciphertext: item.GetEncrypted(),

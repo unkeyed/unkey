@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) environmentVariables(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultEnvironmentVariables(ctx, db.ListVaultEnvironmentVariablesParams{
+	rows, err := h.db.ListEnvironmentVariables(ctx, db.ListEnvironmentVariablesParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -39,7 +39,7 @@ func (h *Handler) environmentVariables(ctx context.Context, after cursor) (curso
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
-		_, err := h.db.UpdateVaultEnvironmentVariable(ctx, db.UpdateVaultEnvironmentVariableParams{
+		_, err := h.db.UpdateEnvironmentVariable(ctx, db.UpdateEnvironmentVariableParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,
