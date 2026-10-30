@@ -250,6 +250,9 @@ type HeartbeatConfig struct {
 	// sync. When set, a heartbeat is sent after a run confirms the rule is in
 	// the book. Optional - if empty, no heartbeat is sent
 	BuildLimitSyncURL string `toml:"build_limit_sync_url"`
+
+	// VaultReEncryptionURL is pinged after a successful sweep of all tables.
+	VaultReEncryptionURL string `toml:"vault_re_encryption_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
