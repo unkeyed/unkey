@@ -1,7 +1,7 @@
 ---
 title: "openapi_validation_busy"
 sidebarTitle: "openapi_validation_busy"
-description: "The gateway is checking too many request bodies against an OpenAPI spec right now."
+description: "The gateway is too busy validating requests to check this one right now."
 sources:
   - pkg/codes/frontline.go
   - svc/frontline/middleware/observability.go
@@ -12,7 +12,7 @@ sources:
 
 import { ProductLink } from "/snippets/product-link.jsx";
 
-The request matches an [OpenAPI validation policy](/compute/gateway/openapi-validation), and the gateway is already using as much memory for that check as it allows. It usually rejects the request before it reads the body. You get `503 Service Unavailable`.
+The request matches an [OpenAPI validation policy](/compute/gateway/openapi-validation), and the gateway is too busy validating other requests to check this one. You get `503 Service Unavailable`.
 
 ```json Example response
 {
@@ -30,13 +30,11 @@ Browsers get the same error as an HTML page.
 
 ## If you're calling an API hosted on Unkey
 
-Retry after a short delay, with backoff. Smaller request bodies are less likely to get this error.
+Retry after a short delay, with backoff.
 
 ## If you own this API
 
-To check a body, the gateway holds the whole body in memory and decodes it, which can take many times the body size. Each gateway instance limits the memory it uses for these checks at once, so that many large requests can't use up its memory. Requests with a large body, or with no `Content-Length` header, need the most room and get this error first.
-
-If you see it often without unusual traffic, send smaller bodies, or contact support.
+If you see this often under normal traffic, contact support.
 
 <ProductLink product="compute" href="/compute/gateway/openapi-validation" title="OpenAPI validation">
   OpenAPI validation policies are a Compute gateway feature.

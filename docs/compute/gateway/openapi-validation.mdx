@@ -45,7 +45,7 @@ Each deployment checks requests against the spec it was deployed with. A spec ch
 
 A request that fails the check gets `400` [`openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed). The message describes the first problem and, when there is one, the field that caused it. No later policies run, and the request isn't logged.
 
-A request body larger than 4 MiB gets `413` [`request_body_too_large`](/errors/user/bad_request/request_body_too_large) before the check runs. A body that doesn't arrive within 30 seconds gets `400` [`request_body_unreadable`](/errors/user/bad_request/request_body_unreadable). The gateway reads the whole body to check it, so these limits protect the gateway's memory. Only requests that match this policy are limited. If the gateway is already using all the memory it allows for these checks, the request gets `503` [`openapi_validation_busy`](/errors/frontline/capacity/openapi_validation_busy).
+A request body larger than 4 MiB gets `413` [`request_body_too_large`](/errors/user/bad_request/request_body_too_large) before the check runs. A body that doesn't arrive within 30 seconds gets `400` [`request_body_unreadable`](/errors/user/bad_request/request_body_unreadable). The gateway reads the whole body to check it, so these limits protect the gateway's memory. Only requests that match this policy are limited. If the gateway is too busy validating other requests, the request gets `503` [`openapi_validation_busy`](/errors/frontline/capacity/openapi_validation_busy).
 
 An `Authorization` header with the wrong scheme isn't reported here, because the [API key authentication policy](/compute/gateway/api-key-auth) gives a clearer error. A missing `Authorization` header that the spec requires still fails.
 
