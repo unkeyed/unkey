@@ -14,8 +14,6 @@ import {
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import type { Deployment, DeploymentSummary } from "@/lib/deploy-data";
 import { imageRefTag } from "@/lib/docker-image-ref";
-import { useConnectionsEnabled } from "@/lib/flags/use-connections-enabled";
-import { trpc } from "@/lib/trpc/client";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {
   Github,
@@ -30,16 +28,16 @@ import {
   IconMicrochipOutline18,
   IconShieldKeyOutline18,
   IconTerminalOutline18,
-  IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, Button, InfoTooltip, Skeleton, TimestampInfo } from "@unkey/ui";
+import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import { DeploymentStatusIndicator, StatusDot } from "../../../components/deployment-status-dot";
 import type { DisplayDomain } from "../../../components/display-domain";
 import { Avatar } from "../../../components/git-avatar";
+import { useDeploymentConnections } from "../../connections/hooks/use-deployment-connections";
 import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
 import { POLICY_KINDS } from "../../policies/policy-kinds";
 import {
@@ -48,10 +46,14 @@ import {
   Group,
   HFlow,
   IconRow,
+  LabeledRow,
   MoreRow,
+  NODE_ROW_LIMIT,
   Node,
+  NodeError,
   NodeFooter,
   NodeHeader,
+  NodeSkeleton,
   type NodeTone,
   RowItem,
   Rows,
@@ -65,19 +67,20 @@ import {
   type StatusBadgeVariant,
 } from "./status";
 
-const NODE_ROW_LIMIT = 3;
-
 export function AppCanvas() {
   const { canvas, deployment } = useProductionCard();
-  const { domains, domainsHref, addDomainHref, policiesHref, addPolicyHref, connectionsHref } =
-    canvas;
+  const {
+    domains,
+    domainsHref,
+    addDomainHref,
+    policiesHref,
+    addPolicyHref,
+    connectionsHref,
+    addConnectionHref,
+  } = canvas;
   const { policies, view, retry, isRetrying } = useProductionPolicies();
   const listed = view.type === "list";
-  const connectionsEnabled = useConnectionsEnabled();
-  const connections = trpc.deploy.deployment.listConnections.useQuery(
-    { projectId: deployment.projectId, deploymentId: deployment.id },
-    { enabled: connectionsEnabled },
-  );
+  const connections = useDeploymentConnections(deployment.id);
 
   return (
     <Canvas label="App canvas">
@@ -91,14 +94,21 @@ export function AppCanvas() {
       <Group icon={<IconCubeOutline18 />} label="App">
         <AppNode />
       </Group>
-      <HFlow empty={!listed && !(connectionsEnabled && connections.data?.connections.length)} />
+      <HFlow empty={!listed && connections.view.status !== "ready"} />
       <Group
         icon={<IconGridOutline18 />}
         label={listed ? `Services · ${policies.length}` : "Services"}
       >
         {match(view.type)
-          .with("loading", () => <PoliciesLoadingNode />)
-          .with("error", () => <PoliciesErrorNode onRetry={retry} retrying={isRetrying} />)
+          .with("loading", () => <NodeSkeleton label="Loading policies" />)
+          .with("error", () => (
+            <NodeError
+              icon={<IconShieldKeyOutline18 />}
+              name="Policies"
+              onRetry={retry}
+              retrying={isRetrying}
+            />
+          ))
           .with("empty", () => (
             <GhostNode
               icon={<IconShieldKeyOutline18 />}
@@ -109,7 +119,12 @@ export function AppCanvas() {
           ))
           .with("list", () => <PoliciesNode policies={policies} href={policiesHref} />)
           .exhaustive()}
-        {connectionsEnabled && <ConnectionsNode query={connections} href={connectionsHref} />}
+        <ConnectionsNode
+          view={connections.view}
+          truncated={connections.truncated}
+          href={connectionsHref}
+          addHref={addConnectionHref}
+        />
       </Group>
     </Canvas>
   );
@@ -403,39 +418,21 @@ function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }
         {policies.slice(0, NODE_ROW_LIMIT).map((p) => {
           const kind = POLICY_KINDS[p.type];
           return (
-            <IconRow key={p.id} icon={<kind.Icon />}>
-              <span className={cn("truncate", p.enabled ? "text-gray-12" : "text-gray-10")}>
-                {p.name}
-                {!p.enabled && <span className="sr-only"> (disabled)</span>}
-              </span>
-              <span className="ml-auto shrink-0 text-gray-10">{kind.label}</span>
-            </IconRow>
+            <LabeledRow
+              key={p.id}
+              icon={<kind.Icon />}
+              name={
+                <>
+                  {p.name}
+                  {!p.enabled && <span className="sr-only"> (disabled)</span>}
+                </>
+              }
+              label={kind.label}
+              muted={!p.enabled}
+            />
           );
         })}
         <MoreRow count={policies.length - NODE_ROW_LIMIT} href={href} />
-      </Rows>
-    </Node>
-  );
-}
-
-function PoliciesErrorNode({ onRetry, retrying }: { onRetry: () => void; retrying: boolean }) {
-  return (
-    <Node>
-      <NodeHeader icon={<IconShieldKeyOutline18 />} name="Policies" />
-      <Rows>
-        <span className="flex items-center gap-2">
-          <IconTriangleWarningOutline18 className="size-3 shrink-0 text-error-9" />
-          <span className="text-gray-11">Couldn't load</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto"
-            onClick={onRetry}
-            loading={retrying}
-          >
-            Retry
-          </Button>
-        </span>
       </Rows>
     </Node>
   );
