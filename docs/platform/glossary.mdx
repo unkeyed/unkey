@@ -6,109 +6,432 @@ sources:
   - web/internal/db/src/schema/limits.ts
   - web/internal/db/src/schema/workspaces.ts
   - web/internal/db/src/schema/keyAuth.ts
+  - web/internal/db/src/schema/apis.ts
+  - web/internal/db/src/schema/identity.ts
   - web/apps/dashboard/lib/auth/roles.ts
-  - pkg/hash/sha256.go
+  - web/apps/dashboard/lib/limits.ts
   - web/apps/dashboard/lib/stripe/deployPlan.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/limits/limit-groups.ts
+  - pkg/auth/workos/permissions.go
+  - pkg/hash/sha256.go
+  - pkg/deploy/deploygate/deploygate.go
+  - internal/services/keys/create.go
+  - internal/services/keys/validation.go
+  - svc/api/internal/middleware/authentication.go
+  - svc/api/routes/v2_environments_update_settings/handler.go
+  - svc/api/openapi/spec/common/Policy.yaml
+  - svc/ctrl/worker/deploy/create.go
 ---
 
-Look up a term here. Some terms mean different things in different products, so each entry starts with the product that owns it.
+Look up a term here. Terms that mean different things in different products come first, with each meaning labeled by product. The rest are grouped by the product that owns them.
 
 ## Terms with more than one meaning
 
 ### App
 
-**Compute.** A service you deploy, inside a project. It has a GitHub repository or an image as its source, two environments, build and runtime settings, and a history of deployments. On this site, "app" always means this. When we mean the software you run anywhere, including outside Unkey, we say "your application".
+**Compute.** A service you deploy, inside a project. It has a GitHub repository or a container image as its source, two environments with their own build and runtime settings, and a history of deployments. On this site, "app" always means this. When we mean the software you run anywhere, including outside Unkey, we say "your application". See [Projects, apps, and environments](/compute/concepts/projects-apps-environments).
 
-### Environment
-
-**Compute.** Every app has two environments, production and preview, and each deployment belongs to one. Environment variables, runtime settings, and gateway policies are set per environment. **API Management** uses the same word for an optional label on a key, the key's `environment` field, so you can tag keys as `live` or `test`. The label doesn't change how the key behaves, and it has nothing to do with Compute environments.
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--get-started-deploy-from-github--source.png" alt="Deploy a new app card offering GitHub repository or Container image, next to the steps Select a source, Choose your app, and Configure and deploy" />
+  </Frame>
+</Accordion>
 
 ### Rate limiting
 
-Three different features share this name:
+Four different features share this name:
 
-- **API Management**: the standalone ratelimit API. You call `ratelimit.limit` with your own identifier and namespace and get an allow or deny.
-- **API Management**: key and identity rate limits. They're attached to a key or an identity and checked when the key is verified.
-- **Compute**: the gateway rate limit policy. The gateway applies it to requests before they reach your app.
-
-### Verify
-
-**API Management.** Key verification is `keys.verifyKey`: you send a key, and we tell you whether it's valid and, if not, why. **Compute** uses the word twice more: custom domain verification, where you prove you control a domain before the gateway serves it, and the gateway key-auth policy, which verifies keys on incoming requests so your app only sees verified callers.
-
-## Platform
-
-### Workspace
-
-**Platform.** The top-level container for everything else. It has a slug used in dashboard URLs, a `ws_` ID used in the API, and its own team, billing, and limits. Workspaces are fully separate from each other. See [Workspaces](/platform/workspace/overview).
-
-### Root key
-
-**Platform.** The credential for calling the Unkey API and using the CLI. A root key belongs to one workspace, has a list of permissions, and is stored as a SHA-256 hash like every other key. See [Root keys](/platform/root-keys/overview).
+- **Platform**: the limit on your workspace's requests to the Unkey API. Going over it returns a 429 with `err:user:too_many_requests:workspace_rate_limited`. See [Too many requests](/platform/api/rate-limits).
+- **API Management**: the standalone ratelimit API. You call `ratelimit.limit` or `ratelimit.multiLimit` with a namespace, your own identifier, a limit, and a duration, and get back whether the request is allowed. See [Rate limiting](/api-management/ratelimiting/overview).
+- **API Management**: key and identity rate limits. They're attached to a key or an identity and checked when the key is verified, either automatically or when the verification request names them. The gateway key-auth policy can check them too. See [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).
+- **Compute**: the gateway rate limit policy. The gateway applies it to matching requests and rejects those over the limit before they reach your app. See [Rate limit policy](/compute/gateway/rate-limiting).
 
 ### Role
 
-**Platform.** Admin or developer, given to each dashboard user per workspace. Developers can work with every resource in the workspace. Admins can also manage members, rename the workspace, manage root keys, and change billing. These aren't the roles you attach to API keys in API Management, which group permissions for your own users. See [Team](/platform/workspace/team).
+Two different features share this name:
 
-### Tier and plan
+- **Platform**: a dashboard user's role in a workspace, admin or developer. Developers can work with every resource in the workspace except root keys and portal sessions. Admins can also manage members, rename the workspace, manage root keys and portal sessions, set the spend budget, and change billing. See [Team](/platform/workspace/team).
+- **API Management**: a named group of permissions you attach to keys, so verification can check what a key's holder is allowed to do. See [Roles and permissions](/api-management/authorization/roles-and-permissions).
 
-**Platform.** The billing page says "tier" for API Management (Free by default) and "plan" for Compute (Starter, Pro, or Business). They're billed separately to the same payment method. See [Plans](/platform/billing/plans).
+<Accordion title="Show in dashboard">
+  <Frame caption="Platform: a member's dashboard role">
+    <img src="/images/dashboard/platform--workspace-team--edit-role.png" alt="Edit role dialog for a member with the role dropdown open" />
+  </Frame>
+  <Frame caption="API Management: a role for keys">
+    <img src="/images/dashboard/api-management--authorization-roles-and-permissions--edit-role.png" alt="Edit role dialog showing the keys assigned to the role and its assigned permissions" />
+  </Frame>
+</Accordion>
 
-### Limits
+### Verify
 
-**Platform.** Your workspace's ceilings, shown under **Settings > Limits**: monthly API operations, log and audit log retention, log drains, team members, and Compute resources. Most come from your API tier and Compute plan. See [Limits](/platform/billing/limits).
+Three different features share this name:
+
+- **API Management**: key verification with `keys.verifyKey`. You send a key, and we tell you whether it's valid and, if not, why. See [Verifying keys](/api-management/keys/verifying-keys).
+- **Compute**: custom domain verification, where you prove you control a domain before the gateway serves it. See [Custom domains](/compute/networking/custom-domains).
+- **Compute**: the gateway key-auth policy, which verifies keys on the requests it applies to before they reach your app. See [API key authentication policy](/compute/gateway/api-key-auth).
+
+## Platform
+
+### Audit log
+
+A record of every change made through the API or the dashboard: who made it, what changed, and from which IP. Nobody can edit or delete entries. Reads aren't logged, except key verifications and rate limit checks made with a root key. See [Audit logs](/platform/workspace/audit-logs/overview).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/api-management--audit-logs-overview--audit-log.png" alt="Audit log page listing events with time, actor, action, and event, with one entry open showing its description, actor, and details" />
+  </Frame>
+</Accordion>
+
+### CLI session
+
+What `unkey login` creates. You sign in through your browser and choose which permissions the CLI gets. The session is stored in your system keychain. You can see and revoke sessions under **Settings > CLI sessions**, or end one with `unkey logout`. See [CLI authentication](/platform/cli/authentication).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--glossary--cli-sessions.png" alt="CLI sessions settings page with no sessions yet and a hint to run unkey login" />
+  </Frame>
+</Accordion>
 
 ### Delete protection
 
-**Platform.** A setting on keyspaces, projects, and apps that blocks deletion while it's on. A delete attempt returns `err:unkey:application:protected_resource`. See [Delete protection](/platform/security/delete-protection).
+A setting on keyspaces, projects, and apps that blocks deletion while it's on. Deleting a protected resource through the API returns HTTP 412 with `err:unkey:application:protected_resource`. See [Delete protection](/platform/security/delete-protection).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--security-delete-protection--keyspace-settings.png" alt="Keyspace settings page with the name, API ID, keyspace ID, key defaults, and a Danger Zone holding the Delete Protection card and the Delete Keyspace button" />
+  </Frame>
+</Accordion>
+
+### Limits
+
+Your workspace's ceilings, shown under **Settings > Limits**: monthly API operations, API requests per minute, log and audit log retention, log drains, and Compute resources. Compute limits cover CPU, memory, and disk for the workspace and per instance, concurrent builds, replicas per region, and custom domains. Most come from your API Management and Compute plans. Log drains and API requests per minute aren't set by a plan. See [Limits](/platform/billing/limits).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--configure-limits--limits.png" alt="Settings Limits page with API management rows for monthly API operations and API requests per minute, Logs rows for retention and log drains, and Compute resource rows with usage bars" />
+  </Frame>
+</Accordion>
+
+### Log drain
+
+Forwards one stream of workspace events to your own HTTPS endpoint or Axiom dataset. The streams are audit logs, key verifications, gateway HTTP requests, runtime logs, and rate limits. Every plan starts with a limit of 0 log drains, so ask support to turn them on. See [Log drains](/platform/workspace/log-drains).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--glossary--log-drain.png" alt="New Log Drain panel with HTTP selected, a name field, the Audit logs stream, event type options, the URL and encoding fields, and optional headers" />
+  </Frame>
+</Accordion>
+
+### Plan
+
+What you pay for in each product. API Management starts on the free plan, with paid plans for higher limits. Compute plans are Starter, Pro, and Business. The two are billed separately to the same payment method, and you can have either without the other. See [Plans](/platform/billing/plans).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--billing-plans--billing.png" alt="Billing settings page showing the Compute and API Management plans with Change and Upgrade buttons, and the Compute cost control budget with its email alerts" />
+  </Frame>
+</Accordion>
+
+### Root key
+
+The credential for calling the Unkey API. A root key belongs to one workspace and has a list of permissions. We store it hashed, so it's shown only once, when you create it. The CLI usually signs in through your browser with `unkey login` instead, and uses a root key in CI. See [Root keys](/platform/root-keys/overview).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--glossary--root-keys.png" alt="Root Keys page listing a root key with its masked value, permissions, last used, and created time, and a New Root Key button" />
+  </Frame>
+</Accordion>
+
+### Workspace
+
+The top-level container for everything else. It has a slug used in dashboard URLs, a `ws_` ID used in the API, and its own team, billing, and limits. Workspaces are fully separate from each other. See [Workspaces](/platform/workspace/overview).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--workspace-settings--general.png" alt="General settings page showing the workspace name, the workspace ID with a copy button, and the Unkey GitHub App marked Installed under Integrations" />
+  </Frame>
+</Accordion>
+
+### Workspace rate limit
+
+The limit on your workspace's requests to the Unkey API, shown as **API requests per minute** under **Settings > Limits**. See the Platform meaning under [Rate limiting](#rate-limiting).
 
 ## API Management
 
-### Keyspace
+### Credits and refill
 
-**API Management.** A container for API keys, called an API in endpoint names (`apis.createApi`). Each key belongs to one keyspace. A keyspace sets the default prefix and length for new keys, and has settings for encrypted key storage and delete protection.
+The number of uses a key has left. Each verification deducts a cost, 1 by default, that you can set per request. A key with no credits set has unlimited uses. Credits can refill daily or monthly. When the cost is more than what's left, verification fails with `USAGE_EXCEEDED`. See [Credits and refill](/api-management/keys/credits-and-refill).
 
-### Key
-
-**API Management.** A credential you give to a user of your application and verify on each request. A key has a prefix and can have a name, metadata, an expiry, credits, rate limits, permissions and roles, and an identity. We store only its hash, unless it's a recoverable key.
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--glossary--credits.png" alt="Create key dialog on the Credits step with the credits toggle, number of uses, and refill rate fields" />
+  </Frame>
+</Accordion>
 
 ### Identity
 
-**API Management.** One of your users or tenants, identified by your own `externalId`, that several keys can belong to. Rate limits on an identity are shared by all of its keys.
+One of your users or tenants, identified by your own `externalId`, that several keys can belong to. Rate limits on an identity are shared by all of its keys. If a key has its own limit with the same name, the key's limit is used instead. See [Identities](/api-management/identities/overview).
 
-### Credits
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/api-management--identities-overview--identity.png" alt="Identity page with a requests chart and a verification log table, both empty for an identity with no verifications yet" />
+  </Frame>
+</Accordion>
 
-**API Management.** The number of uses a key has left. Each verification uses one, and credits can refill on a schedule. At zero, verification reports the key as out of usage.
+### Key
 
-### Permission and role (keys)
+A credential you give to a user of your application and verify on each request. A key can have a prefix, a name, metadata, an expiry, credits, rate limits, permissions and roles, and an identity, and can be disabled. We always store its hash, plus a short start and end of the key for display. A recoverable key also has an encrypted copy. See [Creating keys](/api-management/keys/creating-keys).
 
-**API Management.** Permissions are strings you define and attach to keys, directly or through roles. Verification can check that a key has a permission or matches a permission query. These are separate from dashboard roles.
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/api-management--keys-creating-keys--create-key.png" alt="Create key dialog on the General Setup step with Name, Prefix, and External ID fields, and the other steps listed on the left" />
+  </Frame>
+</Accordion>
+
+### Keyspace
+
+A container for API keys, called an API in endpoint names (`apis.createApi`). Each key belongs to one keyspace. A keyspace sets the default prefix and number of random bytes for new keys, and can have delete protection. Encrypted key storage and an IP allow list are also keyspace settings, but only support can turn them on. See [Keyspaces](/api-management/keyspaces/overview).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/api-management--keyspaces-overview--list.png" alt="Keyspaces page showing keyspace cards with their key counts and the Create keyspace button" />
+  </Frame>
+</Accordion>
+
+### Override
+
+A different rate limit for specific identifiers in a rate limit namespace. Your code keeps sending its default limit, and we use the override's numbers when the identifier matches. An override can match an exact identifier or a pattern with `*`. Use it to raise a partner's limit or slow down an abuser without deploying. See [Rate limit overrides](/api-management/ratelimiting/overrides).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/api-management--ratelimiting-overrides--add-override.png" alt="Override Identifier dialog with Identifier, Limit, and Duration fields" />
+  </Frame>
+</Accordion>
+
+### Permission
+
+A string you define and attach to keys, directly or through a [role](#role). Verification can check that a key has a permission or matches a permission query, such as `documents.read AND (documents.write OR admin)`. See [Roles and permissions](/api-management/authorization/roles-and-permissions).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/api-management--authorization-roles-and-permissions--edit-role.png" alt="Edit role dialog showing the keys assigned to the role and its assigned permissions" />
+  </Frame>
+</Accordion>
+
+### Portal and portal session
+
+The developer portal is a hosted page where your users see their API keys, reroll them, and check usage. It's in beta. Your backend signs a user in by creating a portal session for their `externalId`, which returns a one-time URL valid for 15 minutes. The user only sees keys whose identity matches. See [Developer portal](/api-management/portal/overview).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--glossary--portal.png" alt="Customer portal settings page with display name, slug, logo URL, and primary color, next to a preview of the portal" />
+  </Frame>
+</Accordion>
+
+### Rate limit namespace
+
+A name for what you're rate limiting, such as `email.send`, so its counters stay separate from other limits. `ratelimit.limit` creates the namespace the first time you use a name, and overrides belong to a namespace. See [Rate limiting with Unkey](/api-management/ratelimiting/overview).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/api-management--ratelimiting-overrides--list.png" alt="Ratelimit namespace Overrides page listing overrides by identifier with their limits, and an Override Identifier button" />
+  </Frame>
+</Accordion>
 
 ### Recoverable key
 
-**API Management.** A key created with `recoverable: true` in a keyspace with encrypted storage turned on. We keep an encrypted copy, so you can read the key again later. See [Key storage](/platform/security/key-storage).
+A key created with `recoverable: true`, so we keep an encrypted copy you can read again with `keys.getKey` or `apis.listKeys` and `decrypt: true`. The keyspace needs encrypted storage, which support turns on, and the root key needs extra permissions to create and decrypt it. See [Recoverable keys](/api-management/keys/recoverable-keys).
+
+### Reroll
+
+Gives a key a new secret and keeps its settings. We create a new key, and the old key keeps working for a grace period you choose, or stops right away. Use it for scheduled rotation or after a suspected leak. See [Rerolling keys](/api-management/keys/rerolling-keys).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/api-management--keys-rerolling-keys--rotate-key.png" alt="Rotate key dialog with the grace period dropdown open, from Revoke immediately to 24 hours" />
+  </Frame>
+</Accordion>
 
 ## Compute
 
-### Project
+### App
 
-**Compute.** A group of apps, usually one per codebase or product. Compute usage is billed and reported per project, and a project can have delete protection.
+A service you deploy, inside a project. The word means something specific on this site; see [App](#app) under terms with more than one meaning.
+
+### Automatic domain
+
+The `unkey.app` hostnames every deployment gets, so you can reach it with no DNS setup. Commit and deployment hostnames always point at that one deployment. Branch, environment, and live hostnames move to newer deployments. You can't create, rename, or delete them. See [Automatic domains](/compute/networking/automatic-domains).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--glossary--automatic-domains.png" alt="Deployment page with the Show URLs menu open, listing the live, branch, deployment, commit, and environment unkey.app hostnames" />
+  </Frame>
+</Accordion>
+
+### Build and build settings
+
+A build turns a git-connected app's source into the container image a deployment runs. If you don't set a Dockerfile, we detect your language and build it for you. Build settings cover the Dockerfile, root directory, build command, watch paths, and auto deploy. Each environment has its own. Apps deployed from an image have no build. See [Build settings](/compute/configure/build-settings).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--configure-build-settings--build.png" alt="App settings Build page showing the repository, root directory, Dockerfile, build command, and watch paths" />
+  </Frame>
+</Accordion>
+
+### Custom domain
+
+A hostname you own, such as `api.acme.com`, that serves one environment of an app. You add DNS records to prove you own it, and we route it and get a certificate. It always serves the environment's current deployment, and the number you can add depends on your plan. See [Custom domains](/compute/networking/custom-domains).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--networking-custom-domains--add-domain.png" alt="Add custom domain dialog on the app's Domains page, with a Domain field and an Environment select" />
+  </Frame>
+</Accordion>
 
 ### Deployment
 
-**Compute.** One built version of an app, running in one environment. It's created from a git commit, an image, or an existing deployment. You can promote it or roll back to it, and it keeps the gateway policies that were in place when it was created.
+One built version of an app in one environment. It's created from a git commit, an image, or an existing deployment, and keeps the image, runtime settings, environment variables, and gateway policies it started with. You can promote a production deployment or roll back to one, and stop a preview deployment or wake it again. Redeploying picks up the environment's current settings and policies. See [Deployments on Unkey](/compute/concepts/deployments).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--get-started-deploy-from-github--deployment.png" alt="Deployment page for a ready production deployment showing its commit, resources, instances, domains, and network" />
+  </Frame>
+</Accordion>
+
+### Deployment status
+
+Where a deployment is in its lifecycle. While it's in progress, it moves through `pending`, `awaiting_approval` (for pull requests from forks), `starting`, `building`, `deploying`, `network`, and `finalizing`. It ends as `ready`, `failed`, `skipped`, `stopped`, `superseded`, or `cancelled`. See [Deployments on Unkey](/compute/concepts/deployments).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--concepts-deployments--list.png" alt="Deployments list with production and preview deployments and their statuses, and one row menu showing Rollback, Promote, Wake deployment, Stop deployment, and Redeploy" />
+  </Frame>
+</Accordion>
+
+### Environment
+
+Every app has two environments, production and preview, and each deployment belongs to one. Build settings, runtime settings, environment variables, regions, custom domains, and gateway policies are set per environment. See [Projects, apps, and environments](/compute/concepts/projects-apps-environments).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--glossary--environment.png" alt="Production environment page with its runtime region card and its live and environment unkey.app domains" />
+  </Frame>
+</Accordion>
+
+### Environment variable
+
+A key and value your app gets while it builds and while it runs. Each variable belongs to one environment, so production and preview can have different values. Values are encrypted at rest, and you can mark secrets as sensitive. See [Environment variables](/compute/configure/environment-variables).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--configure-environment-variables--add.png" alt="Add environment variables panel with a LOG_LEVEL row and a sensitive STRIPE_SECRET_KEY row, the Add variable and Import .env actions, the Environment select set to All environments, and Cancel and Save buttons" />
+  </Frame>
+</Accordion>
 
 ### Gateway
 
-**Compute.** What sits in front of every deployment and receives its traffic. It handles HTTPS, routes requests by domain, and applies the environment's policies: key authentication, rate limiting, firewall rules, OpenAPI validation, and logging.
+What sits in front of every deployment and receives its traffic. It handles HTTPS, routes requests by domain, and applies the deployment's policies: key authentication, rate limiting, firewall rules, OpenAPI validation, and logging. If no instance is running in the local region, it forwards the request to the nearest region that has one. See [Gateway](/compute/gateway/overview).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--observe-requests--requests.png" alt="Requests page listing requests with time, region, status, method, and host, with one request open showing deployment information and request and response details" />
+  </Frame>
+</Accordion>
 
 ### Gateway policy
 
-**Compute.** A rule the gateway applies to requests for an environment. The key-auth policy uses a keyspace from API Management, which is where the two products connect.
+A rule the gateway applies to requests for an environment. Changes apply from the next deployment. The key-auth policy verifies keys from up to 5 keyspaces in the same workspace, which is where Compute and API Management connect. See [Gateway policies](/compute/gateway/policies).
 
-### Replica
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--gateway-policies--policies.png" alt="Add policy panel with the Name and Type fields, the Rule card with If and Then rows, and the Environment select set to All environments" />
+  </Frame>
+</Accordion>
 
-**Compute.** One running instance of a deployment in a region. Autoscaling can add replicas up to your plan's replicas-per-region limit. See [Limits](/platform/billing/limits).
+### Health check
+
+An optional HTTP request we send to each instance on a schedule. An instance gets no traffic until it passes, and one that fails enough checks in a row is restarted. Set per environment. See [Health checks](/compute/configure/health-checks).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--glossary--health-check.png" alt="Configure runtime panel scrolled to the health check path set to GET /healthz and the health check interval of 10 seconds" />
+  </Frame>
+</Accordion>
+
+### Instance
+
+One running container of a deployment in one region. The replica count sets how many instances run in each region, as a minimum and a maximum that every region shares. The dashboard labels this setting **Instances**, and the API calls it `replicas`. The minimum is at least 1, and the maximum is capped by your plan: 4 on Starter, 8 on Pro, and 16 on Business. When the maximum is above the minimum, autoscaling adds and removes instances based on CPU. See [Instances and autoscaling](/compute/concepts/instances-and-autoscaling).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--concepts-regions--regions.png" alt="Configure runtime panel with two regions selected, size, the Instances field set to Min 1 and Max 2 with up to 4 per region, storage, port, and start command" />
+  </Frame>
+</Accordion>
+
+### Match expression
+
+A condition that limits a gateway policy to some requests, by path, method, header, query parameter, or client IP. A request must match every expression on a policy. With none, the policy applies to every request. See [Gateway policies](/compute/gateway/policies).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--gateway-policies--policies.png" alt="Add policy panel with the Name and Type fields, the Rule card with If and Then rows, and the Environment select set to All environments" />
+  </Frame>
+</Accordion>
+
+### Principal
+
+Who's calling, as identified by the gateway. When a key-auth policy verifies a key, the gateway adds an `X-Unkey-Principal` header with the key's details as JSON, so your app reads one header instead of calling Unkey. See [The principal header](/compute/gateway/principal).
+
+### Project
+
+A group of apps, usually one per codebase or product. Billing is per workspace, but the Usage page breaks Compute usage down by project, and keys verified by a key-auth policy are billed to the project. A project can have delete protection. See [Projects, apps, and environments](/compute/concepts/projects-apps-environments).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--get-started-deploy-from-github--create-project.png" alt="Create New Project dialog with a project name and the slug generated from it" />
+  </Frame>
+</Accordion>
+
+### Promote and rollback
+
+How you choose the live production deployment. Promote makes a `ready` production deployment live. Rollback moves traffic back to an earlier one and marks the app as rolled back, so new pushes build but don't go live until you promote again. Preview deployments can't be promoted or rolled back. See [Production and preview](/compute/concepts/production-and-preview).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--concepts-deployments--list.png" alt="Deployments list with production and preview deployments and their statuses, and one row menu showing Rollback, Promote, Wake deployment, Stop deployment, and Redeploy" />
+  </Frame>
+</Accordion>
+
+### Region
+
+A place we run your instances. Compute currently runs in four AWS regions: `us-west-2`, `us-east-1`, `eu-central-1`, and `ap-southeast-1`. Each environment runs in one or more of them, and every deployment in that environment runs in all of its regions. See [Regions](/compute/concepts/regions).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--observe-metrics--network.png" alt="Deployment page Network view showing two regions and their running instances" />
+  </Frame>
+</Accordion>
+
+### Runtime settings
+
+How big an environment's containers are and how they run: regions, CPU, memory, instances, ephemeral disk, port, start command, and health check. Each environment has its own, and changes apply from the next deployment. See [Runtime settings](/compute/configure/runtime-settings).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/compute--concepts-regions--regions.png" alt="Configure runtime panel with two regions selected, size, the Instances field set to Min 1 and Max 2 with up to 4 per region, storage, port, and start command" />
+  </Frame>
+</Accordion>
 
 ### Spend budget
 
-**Compute.** A monthly dollar cap on Compute usage, set by an admin. It emails you at 50, 75, and 100 percent and can optionally stop your workloads at 100 percent. See [Spend budget](/compute/configure/spend-budget).
+A monthly dollar cap on Compute usage for the whole workspace, set by an admin. We email workspace admins at 50, 75, and 100 percent, and can optionally stop your workloads at 100 percent. See [Spend budget](/compute/configure/spend-budget).
+
+<Accordion title="Show in dashboard">
+  <Frame>
+    <img src="/images/dashboard/platform--billing-plans--billing.png" alt="Billing settings page showing the Compute and API Management plans with Change and Upgrade buttons, and the Compute cost control budget with its email alerts" />
+  </Frame>
+</Accordion>
+
+### Standby
+
+The 30 minutes a production deployment keeps running after it stops being live, so you can roll back to it. After that it stops, and you'd have to redeploy it to use it again. See [Production and preview](/compute/concepts/production-and-preview).
