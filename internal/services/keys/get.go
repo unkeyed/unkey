@@ -150,11 +150,10 @@ func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			Roles:                     roles,
 			Permissions:               permissions,
 			RatelimitConfigs:          ratelimitConfigs,
-			AllowedIPs:                nil,
 		}, nil
 	}, caches.DefaultFindFirstOp)
 
-	return s.newKeyVerifier(sess, key, hit, err, startTime)
+	return s.newKeyVerifier(sess, key, nil, hit, err, startTime)
 }
 
 // getRootKey loads a root key through the dedicated root-key cache.
@@ -171,7 +170,7 @@ func (s *service) getRootKey(ctx context.Context, sess *zen.Session, sha256Hash 
 		return s.loadRootKey(ctx, sha256Hash)
 	}, caches.DefaultFindFirstOp)
 
-	return s.newKeyVerifier(sess, asCachedKey(rootKey), hit, err, startTime)
+	return s.newKeyVerifier(sess, asCachedKey(rootKey), rootKey.AllowedIPs, hit, err, startTime)
 }
 
 // loadRootKey checks the new store first and falls back to the legacy store only
@@ -265,7 +264,6 @@ func asCachedKey(rootKey keysdb.CachedRootKeyData) keysdb.CachedKeyData {
 			WorkspaceEnabled:    rootKey.WorkspaceEnabled,
 			ForWorkspaceEnabled: rootKey.ForWorkspaceEnabled,
 		},
-		AllowedIPs:       rootKey.AllowedIPs,
 		Roles:            []string{},
 		Permissions:      rootKey.Permissions,
 		RatelimitConfigs: map[string]keysdb.KeyFindForVerificationRatelimit{},
@@ -285,7 +283,7 @@ func unmarshalPermissions(value any) ([]string, error) {
 }
 
 // newKeyVerifier applies lifecycle checks shared by API and root keys.
-func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hit cache.CacheHit, loadErr error, startTime time.Time) (kv *KeyVerifier, err error) {
+func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, allowedIPs ipallowlist.Allowlist, hit cache.CacheHit, loadErr error, startTime time.Time) (kv *KeyVerifier, err error) {
 	defer func() {
 		if kv == nil {
 			return
@@ -385,7 +383,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		// By default we assume the key is valid unless proven otherwise
 		Status:           StatusValid,
 		ratelimitConfigs: key.RatelimitConfigs,
-		AllowedIPs:       key.AllowedIPs,
+		AllowedIPs:       allowedIPs,
 		Roles:            key.Roles,
 		Permissions:      key.Permissions,
 		RatelimitResults: nil,

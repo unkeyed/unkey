@@ -10,7 +10,6 @@ import (
 // This struct is stored in the cache to avoid redundant parsing operations.
 type CachedKeyData struct {
 	FindKeyForVerificationRow
-	AllowedIPs       ipallowlist.Allowlist
 	Roles            []string
 	Permissions      []string
 	RatelimitConfigs map[string]KeyFindForVerificationRatelimit
