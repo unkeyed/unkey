@@ -7,6 +7,8 @@ import {
   attemptAfterRejection,
   infiniteListOf,
   listOf,
+  searchedListOf,
+  shownListOf,
 } from "./list";
 import { type QueryResult, fromQuery } from "./loadable";
 
@@ -36,6 +38,7 @@ function infinite(
     isFetching: false,
     refetch: calls.refetch,
     dataUpdatedAt: 100,
+    isPreviousData: false,
     hasNextPage: false,
     isFetchingNextPage: false,
     fetchNextPage: async () => undefined,
@@ -207,6 +210,26 @@ describe("infiniteListOf", () => {
 
   test("zero rows and no more pages is empty", () => {
     expect(view({ data: pages([]) })).toEqual({ status: "empty" });
+  });
+
+  test("a previous key's zero rows are loading, not empty", () => {
+    expect(view({ data: pages([]), isPreviousData: true })).toEqual({ status: "loading" });
+  });
+
+  test("a previous key's rows stay shown while the new key loads", () => {
+    expect(view({ data: pages(["a"]), isPreviousData: true })).toEqual({
+      status: "ready",
+      rows: ["a"],
+      footer: { kind: "hidden" },
+    });
+  });
+
+  test("a previous key's next page is not offered while the new key loads", () => {
+    expect(view({ data: pages(["a"]), isPreviousData: true, hasNextPage: true })).toEqual({
+      status: "ready",
+      rows: ["a"],
+      footer: { kind: "hidden" },
+    });
   });
 
   test("zero rows with a refresh error and no more pages stays ready so the error shows", () => {
@@ -396,6 +419,62 @@ describe("retrying", () => {
         retrying: true,
       },
     });
+  });
+});
+
+describe("searchedListOf", () => {
+  test("empty with no search stays empty", () => {
+    expect(searchedListOf({ status: "empty" }, "")).toEqual({ status: "empty" });
+  });
+
+  test("empty under a search is no match", () => {
+    expect(searchedListOf({ status: "empty" }, "acme")).toEqual({
+      status: "noMatch",
+      search: "acme",
+    });
+  });
+
+  test("loading under a search stays loading", () => {
+    expect(searchedListOf({ status: "loading" }, "acme")).toEqual({ status: "loading" });
+  });
+});
+
+describe("shownListOf", () => {
+  const loadMore = () => {};
+  const startsWithA = (rows: readonly string[]) => rows.filter((row) => row.startsWith("a"));
+
+  test("no rows at all is empty, even under a search", () => {
+    expect(shownListOf({ all: [], matches: startsWithA, search: "a", limit: 2, loadMore })).toEqual(
+      { status: "empty" },
+    );
+  });
+
+  test("rows that match none of the search are no match", () => {
+    expect(
+      shownListOf({ all: ["bee"], matches: startsWithA, search: "a", limit: 2, loadMore }),
+    ).toEqual({ status: "noMatch", search: "a" });
+  });
+
+  test("matches past the limit show the first page and a more footer", () => {
+    expect(
+      shownListOf({
+        all: ["ant", "ape", "bee", "asp"],
+        matches: startsWithA,
+        search: "a",
+        limit: 2,
+        loadMore,
+      }),
+    ).toEqual({
+      status: "ready",
+      rows: ["ant", "ape"],
+      footer: { kind: "more", onLoadMore: loadMore },
+    });
+  });
+
+  test("matches within the limit hide the footer", () => {
+    expect(
+      shownListOf({ all: ["ant", "bee"], matches: startsWithA, search: "a", limit: 2, loadMore }),
+    ).toEqual({ status: "ready", rows: ["ant"], footer: { kind: "hidden" } });
   });
 });
 

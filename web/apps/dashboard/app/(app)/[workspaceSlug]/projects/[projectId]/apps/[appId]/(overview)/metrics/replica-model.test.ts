@@ -46,6 +46,7 @@ describe("replicaUsage", () => {
   };
   const series = (points: ResourcePoint[]): InstanceSeries => ({
     grid,
+    history: { instances: [], truncated: false },
     instances: [{ instance: "pod-a", points }],
   });
 
@@ -116,13 +117,19 @@ describe("replicaUsage", () => {
 
   it("keeps a stopped pod's last points and leaves a gap after it stops", () => {
     const later: Grid = { ...grid, endMs: 300_000 };
-    const stopped = sections({ ...series([live, { ...gap, t: 120_000 }]), grid: later })[0];
+    const stopped = sections({
+      ...series([live]),
+      grid: later,
+    })[0];
     expect(stopped.chart).toEqual({
       status: "ready",
       grid: later,
       chart: [
+        { originalTimestamp: 0, cpu: undefined },
         { originalTimestamp: 60_000, cpu: 0.5 },
         { originalTimestamp: 120_000, cpu: undefined },
+        { originalTimestamp: 180_000, cpu: undefined },
+        { originalTimestamp: 240_000, cpu: undefined },
       ],
     });
   });
@@ -134,7 +141,10 @@ describe("replicaUsage", () => {
       chart: {
         status: "ready",
         grid,
-        chart: [{ originalTimestamp: 60_000, disk: 512 * MIB }],
+        chart: [
+          { originalTimestamp: 0, disk: undefined },
+          { originalTimestamp: 60_000, disk: 512 * MIB },
+        ],
       },
       scale: { unit: "bytes", yMax: null, tickCount: 4 },
       allocation: null,
@@ -156,9 +166,8 @@ describe("replicaUsage", () => {
 
 describe("replicaSheetModel", () => {
   const row = (overrides: Partial<InstanceRow> = {}): InstanceRow => ({
-    instanceId: "ins_a",
+    presence: { kind: "live", instanceId: "ins_a", status: "running" },
     region: { name: "us-east-1" },
-    status: "running",
     role: "current",
     lastExit: null,
     deployment: { id: "d_new", source: null },
@@ -171,6 +180,7 @@ describe("replicaSheetModel", () => {
     environmentId: "env_prod",
     instances: ready([opened]),
     usage: loading,
+    markersOutdated: false,
   };
 
   it("is closed when nothing is open", () => {
@@ -182,35 +192,41 @@ describe("replicaSheetModel", () => {
   });
 
   it("prefers the live row over the row it was opened with", () => {
-    const live = row({ status: "failed", region: { name: "eu-central-1" } });
+    const live = row({
+      presence: { kind: "live", instanceId: "ins_a", status: "failed" },
+      region: { name: "eu-central-1" },
+    });
     expect(replicaSheetModel({ ...base, instances: ready([live]) })).toEqual({
       name: "pod-a",
       region: "eu-central-1",
       status: "unhealthy",
       deployment: { id: "d_new", source: null },
       lastExit: null,
-      stopped: false,
       usage: loading,
+      outdated: false,
     });
   });
 
   it("holds the opened row and marks it stopped once the instance is gone", () => {
-    const sheet = replicaSheetModel({ ...base, instances: ready([]) });
-    expect(sheet?.status).toBe("running");
-    expect(sheet?.stopped).toBe(true);
+    expect(replicaSheetModel({ ...base, instances: ready([]) })?.status).toBe("stopped");
   });
 
-  it("does not call an instance stopped while the list is loading or failed", () => {
-    expect(replicaSheetModel({ ...base, instances: loading })?.stopped).toBe(false);
-    expect(replicaSheetModel({ ...base, instances: failed() })?.stopped).toBe(false);
+  it("does not call a live instance stopped while the list is loading or failed", () => {
+    expect(replicaSheetModel({ ...base, instances: loading })?.status).toBe("running");
+    expect(replicaSheetModel({ ...base, instances: failed() })?.status).toBe("running");
+  });
+
+  it("calls a pod opened from history stopped before the list loads", () => {
+    const history = row({ presence: { kind: "stopped", lastSeenMs: 60_000 } });
+    const open = { environmentId: "env_prod", row: history };
+    expect(replicaSheetModel({ ...base, open, instances: loading })?.status).toBe("stopped");
   });
 });
 
 describe("openInstanceOf and podSetOf", () => {
   const row = (k8sName: string): InstanceRow => ({
-    instanceId: k8sName,
+    presence: { kind: "live", instanceId: k8sName, status: "running" },
     region: { name: "us-east-1" },
-    status: "running",
     role: "current",
     lastExit: null,
     deployment: { id: "d_new", source: null },

@@ -72,8 +72,7 @@ describe("getAuditLogs", () => {
     expect(json).not.toContain("ORDER BY");
     expect(json).not.toContain("OFFSET");
 
-    const count = queryBy(ch.queries, "count()");
-    expect(count).not.toContain("toJSONString");
+    expect(ch.queries.join("\n")).not.toContain("count()");
   });
 
   it("adds event and actor predicates only to the window scans", () => {
@@ -91,11 +90,8 @@ describe("getAuditLogs", () => {
       actorIds: ["user_123"],
     });
     const page = queryBy(filtered.queries, "ORDER BY time DESC");
-    const count = queryBy(filtered.queries, "count()");
-    for (const query of [page, count]) {
-      expect(query).toContain("event IN {events: Array(String)}");
-      expect(query).toContain("actor_id IN {actorIds: Array(String)}");
-    }
+    expect(page).toContain("event IN {events: Array(String)}");
+    expect(page).toContain("actor_id IN {actorIds: Array(String)}");
     const json = queryBy(filtered.queries, "toJSONString");
     expect(json).not.toContain("event IN");
     expect(json).not.toContain("actor_id IN");

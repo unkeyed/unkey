@@ -1,10 +1,12 @@
 "use client";
 
 import { PlansScreen } from "@/app/(app)/[workspaceSlug]/settings/billing/components/plans-screen";
+import { ListPager } from "@/components/list-pager";
 import { LoadError } from "@/components/load-error";
 import { ResourceSearchInput } from "@/components/resource-search-input";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
+import { moreFooterOf } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
 import { IconEarthOutline18, IconMagnifierOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -29,7 +31,6 @@ import {
   ResourceList,
   ResourceListBody,
   ResourceListContent,
-  ResourceListFooter,
   ResourceListHeader,
   ResourceListItem,
   Skeleton,
@@ -117,13 +118,7 @@ export function DomainsPage() {
                       />
                     ))}
                   </ResourceListBody>
-                  {hasMore ? (
-                    <ResourceListFooter>
-                      <Button size="md" variant="outline" onClick={loadMore}>
-                        Load more
-                      </Button>
-                    </ResourceListFooter>
-                  ) : null}
+                  <ListPager state={moreFooterOf({ hasMore, loadMore })} noun="domains" />
                 </>
               ))
               .with({ state: "empty" }, () => (

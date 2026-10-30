@@ -3,18 +3,20 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { LogsDateTime } from "./components/logs-datetime";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
+import { useFilters } from "../../hooks/use-filters";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsRefresh } from "./components/logs-refresh";
 import { LogsSearch } from "./components/logs-search";
 
 export function RatelimitOverviewLogsControls() {
+  const { filters, updateFilters } = useFilters();
   return (
     <ControlsContainer>
       <ControlsLeft>
         <LogsSearch />
         <LogsFilters />
-        <LogsDateTime />
+        <TimeRangeFilter filters={filters} updateFilters={updateFilters} look="logs" />
       </ControlsLeft>
       <ControlsRight>
         <LogsRefresh />

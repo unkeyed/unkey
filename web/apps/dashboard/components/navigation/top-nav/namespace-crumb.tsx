@@ -7,13 +7,15 @@ import { IconGaugeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
+const CRUMB_PAGE_SIZE = 50;
+
 export function NamespaceCrumb({
   namespaceId,
   projectId,
 }: { namespaceId: string; projectId?: string }) {
   const workspace = useWorkspaceNavigation();
   const currentQuery = useNamespace(namespaceId);
-  const { namespaces } = useNamespaces({ search: "" });
+  const { namespaces } = useNamespaces({ search: "", pageSize: CRUMB_PAGE_SIZE });
   const current = currentQuery.data;
   const loading = currentQuery.isLoading;
 

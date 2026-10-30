@@ -1,7 +1,7 @@
 ---
 title: The Unkey platform
 sidebarTitle: "Overview"
-description: "Unkey hosts API Management and Compute, and you can self-host the source."
+description: "Explore Unkey's main products, how they fit together, and the underlying features they share across the platform."
 sources:
   - docs/docs.json
   - README.md
@@ -10,9 +10,20 @@ sources:
 boost: 3
 ---
 
-Hosted Unkey is the dashboard at `app.unkey.com` and the API at `api.unkey.com`. API Management (keys and rate limits) and Compute (deploying and running APIs) share the workspace, billing, root keys, and CLI on this page, and both run on Unkey's infrastructure. You can fork the public source and run it yourself: code outside `packages` and `internal/icons` is FSL-1.1-ALv2, these docs have no self-hosting guide, and security fixes aren't backported, so run a current build of `main` or the latest release.
+Unkey is a platform for running and protecting APIs. It has two products. Use either one on its own, or both together.
 
-Set up what Compute and API Management share: your workspace and team, billing, security, root keys, the CLI, and the HTTP API.
+<Columns cols={2}>
+  <Card title="Compute" icon="server" href="/compute">
+    Deploy an app from a GitHub repository or a container image. Unkey builds and runs it in production and preview environments, with automatic domains and a gateway in front of every deployment.
+  </Card>
+  <Card title="API Management" icon="key" href="/api-management">
+    Issue API keys for your public API and verify them on every request, with rate limits, permissions, and usage credits in the same check. Your app runs wherever it runs today.
+  </Card>
+</Columns>
+
+With both, the Compute gateway can check API keys from your keyspaces and rate limit callers before a request reaches your app, so your code doesn't need to call `keys.verifyKey`. See [API key authentication](/compute/gateway/api-key-auth).
+
+Both products live in a [workspace](/platform/workspace/overview), the top-level container for everything you create. The workspace holds your team and their roles, and one billing account where each product has its own plan. You work with it through the dashboard at `app.unkey.com`, the HTTP API at `api.unkey.com`, the SDKs, and the `unkey` CLI. Root keys authenticate the API and SDKs, and the CLI accepts a root key or a session from `unkey login`. This section covers those shared pieces in detail.
 
 ## Workspace
 
@@ -28,6 +39,12 @@ Set up what Compute and API Management share: your workspace and team, billing, 
   </Card>
   <Card title="Two-factor authentication" icon="mobile-screen" href="/platform/workspace/two-factor-auth">
     Enroll a second factor on your own account.
+  </Card>
+  <Card title="Audit logs" icon="clock-rotate-left" href="/platform/workspace/audit-logs/overview">
+    Who changed what, and how long the record is kept.
+  </Card>
+  <Card title="Log drains" icon="faucet" href="/platform/workspace/log-drains">
+    Forward logs and events to HTTP or Axiom.
   </Card>
 </Columns>
 
@@ -45,37 +62,20 @@ Set up what Compute and API Management share: your workspace and team, billing, 
   </Card>
 </Columns>
 
-## Security
+## Root keys
 
 <Columns cols={2}>
-  <Card title="Security" icon="shield-halved" href="/platform/security/overview">
-    How we protect your keys and what you can turn on.
+  <Card title="Root keys" icon="key-skeleton" href="/platform/root-keys/overview">
+    The credential for the API: create, rotate, and delete.
   </Card>
-  <Card title="Key storage" icon="lock" href="/platform/security/key-storage">
-    Why a key is shown once, and recoverable keys.
+  <Card title="Root key permissions" icon="shield-halved" href="/platform/root-keys/permissions">
+    Least-privilege permissions for deployments, agents, and API Management.
   </Card>
-  <Card title="GitHub secret scanning" icon="github" href="/platform/security/github-secret-scanning">
-    What happens when a key leaks to a public repository.
+  <Card title="Configure root keys" icon="sliders" href="/platform/root-keys/configure">
+    Assign permissions in the dashboard or through the API.
   </Card>
-  <Card title="Delete protection" icon="trash-can-slash" href="/platform/security/delete-protection">
-    Block deletion of keyspaces, apps, and <Tooltip tip="Groups of apps, usually one per codebase or product.">projects</Tooltip>.
-  </Card>
-</Columns>
-
-## CLI
-
-<Columns cols={2}>
-  <Card title="The unkey CLI" icon="terminal" href="/platform/cli/overview">
-    What the command groups are and which product owns each.
-  </Card>
-  <Card title="Install the CLI" icon="download" href="/platform/cli/install">
-    npm package or GitHub release.
-  </Card>
-  <Card title="CLI authentication" icon="key" href="/platform/cli/authentication">
-    Flag, environment variable, or `unkey auth login`, in that order.
-  </Card>
-  <Card title="CLI output and shared flags" icon="sliders" href="/platform/cli/output-and-flags">
-    `--output json`, `--body`, `--api-url`, `--config`.
+  <Card title="Permission reference" icon="list" href="/platform/root-keys/permission-reference">
+    Resource paths, actions, and what each operation requires.
   </Card>
 </Columns>
 
@@ -89,51 +89,64 @@ Set up what Compute and API Management share: your workspace and team, billing, 
     Bearer root keys and the errors they can produce.
   </Card>
   <Card title="RPC naming convention" icon="code" href="/platform/api/rpc-convention">
-    POST /v2/{service}.{procedure}, services, verbs.
+    `POST /v2/{service}.{procedure}`, services, verbs.
   </Card>
-  <Card title="API error envelope" icon="triangle-exclamation" href="/platform/api/errors">
+  <Card title="API errors" icon="triangle-exclamation" href="/platform/api/errors">
     RFC 7807 fields, validation errors, status codes.
   </Card>
-</Columns>
-
-## Root keys
-
-<Columns cols={2}>
-  <Card title="Root keys" icon="key-skeleton" href="/platform/root-keys/overview">
-    Create, edit, rotate, and delete the credential for the API.
-  </Card>
-  <Card title="Root key permissions" icon="shield-halved" href="/platform/root-keys/permissions">
-    Choose least-privilege permissions for deployments, agents, and API Management.
-  </Card>
-  <Card title="Permission reference" icon="list" href="/platform/root-keys/permission-reference">
-    Resource paths, supported actions, and operation requirements.
+  <Card title="Too many requests" icon="hourglass-half" href="/platform/api/rate-limits">
+    What a 429 from `api.unkey.com` means.
   </Card>
 </Columns>
 
-## Self-host Unkey
-
-These docs cover hosted Unkey: the dashboard at `app.unkey.com` and the API at `api.unkey.com`. Compute and API Management both run on Unkey's infrastructure, and there's no self-hosting guide in these docs.
-
-The [Unkey source code](https://github.com/unkeyed/unkey) is public. Code outside the `packages` and `internal/icons` directories is licensed under FSL-1.1-ALv2, so you can fork it and run it yourself under those terms. If you self-host, run a current build of `main` or the latest release. Unkey applies security fixes there and doesn't backport them to older tags.
-
-Hosted Unkey and a fork you run are different setups.
-
-| | Hosted Unkey | A fork you run |
-| --- | --- | --- |
-| Where it runs | Unkey's infrastructure, at `app.unkey.com` and `api.unkey.com` | A host you operate. These docs have no self-hosting guide |
-| Source you run | Unkey operates the service | The public repo. FSL-1.1-ALv2 outside `packages` and `internal/icons` |
-| Which build | The hosted service | A current build of `main` or the latest release. Security fixes aren't backported to older tags |
-
-## Reference
+## CLI
 
 <Columns cols={2}>
+  <Card title="The unkey CLI" icon="terminal" href="/platform/cli/overview">
+    The command groups and which product owns each.
+  </Card>
+  <Card title="Install the CLI" icon="download" href="/platform/cli/install">
+    npm package or GitHub release.
+  </Card>
+  <Card title="CLI authentication" icon="key" href="/platform/cli/authentication">
+    Flag, environment variable, or `unkey login`, in that order.
+  </Card>
+  <Card title="Output and shared flags" icon="sliders" href="/platform/cli/output-and-flags">
+    `--output json`, `--body`, `--api-url`, `--config`.
+  </Card>
+</Columns>
+
+## Security
+
+<Columns cols={2}>
+  <Card title="Security" icon="shield-halved" href="/platform/security/overview">
+    How Unkey protects your keys and what you can turn on.
+  </Card>
+  <Card title="Key storage" icon="lock" href="/platform/security/key-storage">
+    Why a key is shown once, and recoverable keys.
+  </Card>
+  <Card title="GitHub secret scanning" icon="github" href="/platform/security/github-secret-scanning">
+    What happens when a key leaks to a public repository.
+  </Card>
+  <Card title="Delete protection" icon="trash-can-slash" href="/platform/security/delete-protection">
+    Block deletion of keyspaces, apps, and <Tooltip tip="Groups of apps, usually one per codebase or product.">projects</Tooltip>.
+  </Card>
+</Columns>
+
+## More
+
+<Columns cols={2}>
+  <Card title="AI coding" icon="robot" href="/platform/ai-coding/overview">
+    Connect your coding assistant to Unkey over MCP.
+  </Card>
+  <Card title="Error codes" icon="circle-exclamation" href="/errors/overview">
+    What every Unkey error code means and how to fix it.
+  </Card>
   <Card title="Glossary" icon="book" href="/platform/glossary">
     Every term, tagged with the product that owns it.
   </Card>
-  <Card title="Compute" icon="server" href="/compute">
-    Build, deploy, and run your app.
-  </Card>
-  <Card title="API Management" icon="key" href="/api-management">
-    Keys, rate limits, identities, analytics.
-  </Card>
 </Columns>
+
+## Self-hosting
+
+These docs cover hosted Unkey: the dashboard at `app.unkey.com` and the API at `api.unkey.com`. The [source](https://github.com/unkeyed/unkey) is public, and most of it is licensed under FSL-1.1-ALv2 (see [`LICENSE`](https://github.com/unkeyed/unkey/blob/main/LICENSE) for the exceptions), so you can fork and run it under those terms. There's no self-hosting guide. Security fixes land on `main` and the latest release but they aren't backported, so you will want to run one of those for the most up-to-date security features.

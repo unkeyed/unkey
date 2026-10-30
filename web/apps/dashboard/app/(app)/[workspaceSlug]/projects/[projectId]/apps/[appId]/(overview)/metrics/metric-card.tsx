@@ -50,6 +50,7 @@ export function MetricCard({ card, markers, height, syncId, onExpand }: CardProp
         height={height}
         syncId={syncId}
         connectNulls={view.gaps === "bridge"}
+        outdated={card.outdated}
       />
     </Card>
   );

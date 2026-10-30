@@ -52,17 +52,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 
 	hostname := proxy.ExtractHostname(req.Host)
 	decision, err := h.RouterService.Route(ctx, hostname, excludedRegions...)
-	if err != nil {
-		return err
-	}
-	if decision.Destination != router.DestinationLocalInstance {
-		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress, hops)
-	}
 
-	// The ClickHouse logging middleware seeds an empty tracking record
-	// before this handler runs. Populate it now that the route resolved;
-	// the retry loop and proxy callbacks fill in the per-attempt instance,
-	// timing, and status as the request progresses.
 	tracking, ok := proxy.RequestTrackingFromContext(ctx)
 	if !ok {
 		// Defensive: register.go always wires the ClickHouse logging
@@ -79,6 +69,13 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	tracking.ProjectID = decision.ProjectID
 	tracking.AppID = decision.AppID
 	tracking.EnvironmentID = decision.EnvironmentID
+
+	if err != nil {
+		return err
+	}
+	if decision.Destination != router.DestinationLocalInstance {
+		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress, hops)
+	}
 
 	// Tell the ClickHouse logging middleware which header and query-parameter
 	// names carry an API key so it can redact them. KeyAuth supports custom

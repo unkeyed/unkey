@@ -379,11 +379,11 @@ func Run(ctx context.Context, cfg Config) error {
 		httpSrv, httpErr := zen.New(zen.Config{
 			TLS:                nil,
 			EnableH2C:          false,
-			MaxRequestBodySize: 0,
-			StreamRequestBody:  false,
+			MaxRequestBodySize: 1 << 10,
+			StreamRequestBody:  true,
 			TrustedProxyCIDRs:  nil,
-			ReadTimeout:        -1,
-			WriteTimeout:       -1,
+			ReadTimeout:        10 * time.Second,
+			WriteTimeout:       20 * time.Second,
 			IdleTimeout:        0,
 		})
 		if httpErr != nil {

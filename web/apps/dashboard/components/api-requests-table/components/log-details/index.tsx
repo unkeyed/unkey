@@ -101,8 +101,18 @@ export const KeysOverviewLogDetails = ({ log, setSelectedLog, apiId }: Props) =>
     ),
     <LogSection key="limits" title="Limits" details={limits} />,
     <LogSection key="identifiers" title="Identifiers" details={identifiers} />,
-    <LogSection key="identity" title="Identity" details={identity} />,
-    <LogSection key="tags" title="Tags" details={tags} />,
+    <LogSection
+      key="identity"
+      title="Identity"
+      details={identity}
+      copyValue={log.key_details.identity?.external_id || undefined}
+    />,
+    <LogSection
+      key="tags"
+      title="Tags"
+      details={tags}
+      copyValue={log.tags?.length ? log.tags.join(", ") : undefined}
+    />,
     <RolesSection key="roles" roles={log.key_details.roles || []} />,
     <PermissionsSection key="permissions" permissions={log.key_details.permissions || []} />,
   ].filter(Boolean);

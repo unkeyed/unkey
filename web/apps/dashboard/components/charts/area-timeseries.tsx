@@ -24,12 +24,16 @@ import {
   MarkerLayer,
   activeMarkerSpan,
   placeMarkers,
-  stackGapPct,
-  stackHeightPx,
 } from "./chart-markers";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
 import { formatBucketInterval } from "./format-interval";
+import {
+  type ChartIncidents,
+  IncidentLayer,
+  IncidentOverlay,
+  placeIncidents,
+} from "./incident-markers";
 import { tooltipRows } from "./tooltip-rows";
 
 export type AreaChartPoint = { originalTimestamp: number } & {
@@ -71,6 +75,7 @@ function activePointFromState(state: unknown, data: AreaChartPoint[]): AreaChart
 const Y_LABEL_GAP_PX = 8;
 const Y_TICK_FONT_PX = 10;
 const MUTED_STROKE = "var(--color-gray-6)";
+const X_AXIS_HEIGHT_PX = 30;
 
 export type ValueParts = { value: string; unit?: string; hint?: string };
 
@@ -115,6 +120,7 @@ type Props = {
   showZeroLine?: boolean;
   syncId?: string;
   markers?: ChartMarkers;
+  incidents?: ChartIncidents;
   focusKey?: string | null;
   connectNulls?: boolean;
 };
@@ -143,6 +149,7 @@ export function AreaTimeseriesChart({
   showZeroLine,
   syncId,
   markers,
+  incidents,
   focusKey = null,
   connectNulls = false,
 }: Props) {
@@ -221,17 +228,22 @@ export function AreaTimeseriesChart({
     nowMs: Date.now(),
   });
 
-  const placed = markers
-    ? placeMarkers(markers.items, xDomain, stackGapPct((widthPx ?? 0) - yGutterPx))
-    : [];
+  const placed = markers ? placeMarkers(markers.items, xDomain) : [];
   const margin = {
-    top: (showAxes || markers ? 16 : 4) + stackHeightPx(placed),
+    top: showAxes || markers ? 16 : 4,
     right: 0,
     bottom: 0,
     left: 0,
   };
-  const markerSpan = markers ? activeMarkerSpan(markers.items, markers.activeId, xDomain) : null;
+  const markerSpan = markers
+    ? activeMarkerSpan(markers.items, markers.active?.id ?? null, xDomain)
+    : null;
   const insetLeft = margin.left + yGutterPx;
+  const plotWidthPx = (widthPx ?? 0) - insetLeft - margin.right;
+  const placedIncidents = incidents
+    ? placeIncidents(incidents, incidents.active?.id ?? null, xDomain, plotWidthPx)
+    : [];
+  const xAxisHeight = showAxes ? X_AXIS_HEIGHT_PX : 0;
 
   const style = FILL_STYLES[fill];
   const focused = focusKey !== null && configKeys.includes(focusKey) ? focusKey : null;
@@ -281,6 +293,7 @@ export function AreaTimeseriesChart({
           axisLine={false}
           ticks={xDomain}
           interval={0}
+          height={X_AXIS_HEIGHT_PX}
           hide={!showAxes}
         />
         <YAxis
@@ -307,6 +320,7 @@ export function AreaTimeseriesChart({
           domain={yDomain}
           hide={!showAxes}
         />
+        <IncidentLayer placed={placedIncidents} />
         {markers && <MarkerLayer markers={markers} span={markerSpan} placed={placed} />}
         <ChartTooltip
           allowEscapeViewBox={{ x: false, y: true }}
@@ -383,19 +397,31 @@ export function AreaTimeseriesChart({
     </ChartContainer>
   );
 
-  if (!markers) {
+  if (!markers && !incidents) {
     return chart;
   }
   return (
     <div ref={measureRef} className={cn("relative w-full", widthPx === undefined && "invisible")}>
       {chart}
-      <ChartMarkerOverlay
-        markers={markers}
-        placed={placed}
-        insetLeft={insetLeft}
-        insetRight={margin.right}
-        bandHeight={margin.top}
-      />
+      {incidents && (
+        <IncidentOverlay
+          incidents={incidents}
+          placed={placedIncidents}
+          insetLeft={insetLeft}
+          insetRight={margin.right}
+          insetTop={margin.top}
+          insetBottom={margin.bottom + xAxisHeight}
+        />
+      )}
+      {markers && (
+        <ChartMarkerOverlay
+          markers={markers}
+          placed={placed}
+          insetLeft={insetLeft}
+          insetRight={margin.right}
+          bandHeight={margin.top}
+        />
+      )}
     </div>
   );
 }

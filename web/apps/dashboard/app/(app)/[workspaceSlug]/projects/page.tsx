@@ -2,7 +2,6 @@
 
 import { ComputeUpgradeCelebration } from "@/components/billing/upgrade-success/upgrade-success-dialog";
 import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
-import { useVisibleProjects } from "@/hooks/use-visible-projects";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { DEPLOY_CHECKOUT_ORIGINS, routes } from "@/lib/navigation/routes";
 import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";
@@ -21,17 +20,13 @@ import { useEffect, useRef, useState } from "react";
 import { CreateProjectButton } from "./_components/create-project-button";
 import { CreateProjectDialog } from "./_components/create-project-dialog";
 import { ProjectsList } from "./_components/list";
-import { EmptyProjects } from "./_components/list/empty-projects";
 
 export default function ProjectsPage() {
   const workspace = useWorkspaceNavigation();
   const searchParams = useSearchParams();
   const isNewProject = searchParams.get("new") === "true";
-  const projects = useVisibleProjects();
 
   const { createDialogOpen, setCreateDialogOpen, welcome, closeWelcome } = usePendingSubscribe();
-
-  const isEmpty = !projects.isLoading && projects.data.length === 0;
 
   return (
     <>
@@ -44,7 +39,9 @@ export default function ProjectsPage() {
             <CreateProjectButton defaultOpen={isNewProject} workspaceSlug={workspace.slug} />
           </PageHeaderActions>
         </PageHeader>
-        <PageBody>{isEmpty ? <EmptyProjects /> : <ProjectsList />}</PageBody>
+        <PageBody>
+          <ProjectsList />
+        </PageBody>
       </PageContainer>
       {welcome ? <ComputeUpgradeCelebration plan={welcome.plan} onClose={closeWelcome} /> : null}
       <CreateProjectDialog

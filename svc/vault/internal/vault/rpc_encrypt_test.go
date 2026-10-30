@@ -4,11 +4,43 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+func TestEncrypt_RefreshesStaleKeyAfterRotation(t *testing.T) {
+	clk := clock.NewTestClock()
+	service := setupTestServiceWithClock(t, clk)
+	keyring := uid.New(uid.WorkspacePrefix)
+	req := connect.NewRequest(&vaultv1.EncryptRequest{Keyring: keyring, Data: "secret"})
+	req.Header().Set("Authorization", "Bearer "+service.bearer)
+	original, err := service.Encrypt(t.Context(), req)
+	require.NoError(t, err)
+	keyIDNew, err := service.CreateDEK(t.Context(), keyring)
+	require.NoError(t, err)
+	require.NotEqual(t, original.Msg.GetKeyId(), keyIDNew)
+
+	fresh, err := service.Encrypt(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, original.Msg.GetKeyId(), fresh.Msg.GetKeyId())
+
+	clk.Tick(time.Hour)
+	stale, err := service.Encrypt(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, original.Msg.GetKeyId(), stale.Msg.GetKeyId())
+
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		refreshed, err := service.Encrypt(t.Context(), req)
+		require.NoError(collect, err)
+		require.Equal(collect, keyIDNew, refreshed.Msg.GetKeyId())
+	}, 5*time.Second, 10*time.Millisecond)
+}
 
 func TestEncrypt_WithValidAuth(t *testing.T) {
 	service := setupTestService(t)

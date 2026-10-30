@@ -8,9 +8,10 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-func TestReEncrypt_WithValidAuth(t *testing.T) {
+func TestReEncryptBulk_WithValidAuth(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 
@@ -25,74 +26,83 @@ func TestReEncrypt_WithValidAuth(t *testing.T) {
 	require.NoError(t, err)
 
 	// Then re-encrypt it
-	reencryptReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   "test-keyring",
-		Encrypted: encryptRes.Msg.GetEncrypted(),
+	id := uid.New(uid.TestPrefix)
+	reencryptReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			id: {Keyring: "test-keyring", Encrypted: encryptRes.Msg.GetEncrypted()},
+		},
 	})
 	reencryptReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-	reencryptRes, err := service.ReEncrypt(ctx, reencryptReq)
+	reencryptRes, err := service.ReEncryptBulk(ctx, reencryptReq)
 	require.NoError(t, err)
-	require.NotEmpty(t, reencryptRes.Msg.GetEncrypted())
-	require.NotEmpty(t, reencryptRes.Msg.GetKeyId())
+	result := reencryptRes.Msg.GetItems()[id]
+	require.Empty(t, result.GetError())
+	require.NotNil(t, result.GetSuccess())
+	require.NotEmpty(t, result.GetSuccess().GetEncrypted())
+	require.NotEmpty(t, result.GetSuccess().GetKeyId())
 	// Re-encryption might use the same key if it's already the latest
 }
 
-func TestReEncrypt_WithoutAuth(t *testing.T) {
+func TestReEncryptBulk_WithoutAuth(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 
-	req := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   "test-keyring",
-		Encrypted: "some-encrypted-data",
+	req := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			uid.New(uid.TestPrefix): {Keyring: "test-keyring", Encrypted: "some-encrypted-data"},
+		},
 	})
 
-	_, err := service.ReEncrypt(ctx, req)
+	_, err := service.ReEncryptBulk(ctx, req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
 
-func TestReEncrypt_WithInvalidAuth(t *testing.T) {
+func TestReEncryptBulk_WithInvalidAuth(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 
-	req := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   "test-keyring",
-		Encrypted: "some-encrypted-data",
+	req := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			uid.New(uid.TestPrefix): {Keyring: "test-keyring", Encrypted: "some-encrypted-data"},
+		},
 	})
 	req.Header().Set("Authorization", "Bearer wrong-token")
 
-	_, err := service.ReEncrypt(ctx, req)
+	_, err := service.ReEncryptBulk(ctx, req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
 
-func TestReEncrypt_WithEmptyAuth(t *testing.T) {
+func TestReEncryptBulk_WithEmptyAuth(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 
-	req := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   "test-keyring",
-		Encrypted: "some-encrypted-data",
+	req := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			uid.New(uid.TestPrefix): {Keyring: "test-keyring", Encrypted: "some-encrypted-data"},
+		},
 	})
 	req.Header().Set("Authorization", "Bearer ")
 
-	_, err := service.ReEncrypt(ctx, req)
+	_, err := service.ReEncryptBulk(ctx, req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
 
-func TestReEncrypt_WithInvalidScheme(t *testing.T) {
+func TestReEncryptBulk_WithInvalidScheme(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 
-	req := connect.NewRequest(&vaultv1.ReEncryptRequest{
-		Keyring:   "test-keyring",
-		Encrypted: "some-encrypted-data",
+	req := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+		Items: map[string]*vaultv1.DecryptRequest{
+			uid.New(uid.TestPrefix): {Keyring: "test-keyring", Encrypted: "some-encrypted-data"},
+		},
 	})
 	req.Header().Set("Authorization", "Basic test-token")
 
-	_, err := service.ReEncrypt(ctx, req)
+	_, err := service.ReEncryptBulk(ctx, req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }

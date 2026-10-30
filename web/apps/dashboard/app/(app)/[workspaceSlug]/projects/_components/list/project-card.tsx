@@ -2,31 +2,32 @@ import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
+import { plural } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip, Skeleton } from "@unkey/ui";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { useWarmAppPage } from "../../[projectId]/apps/[appId]/(overview)/hooks/use-warm-app-page";
+import type { Ref } from "react";
+import {
+  type WarmHandlers,
+  useWarmAppPage,
+} from "../../[projectId]/apps/[appId]/(overview)/hooks/use-warm-app-page";
 import { AppDetailHoverCard, AppRow } from "../apps/app-row";
+import { ProjectActionsButton } from "./project-actions";
+import { projectSummaryOf } from "./project-summary";
 
 type ProjectCardProps = {
+  ref: Ref<HTMLDivElement>;
+  warm: WarmHandlers;
   name: string;
   projectId: string;
   apps: ProjectApp[];
   isLoading: boolean;
-  actions: ReactNode;
 };
 
 const MAX_VISIBLE_APPS = 2;
 
-function byRecency(apps: ProjectApp[]): ProjectApp[] {
-  return apps.toSorted(
-    (a, b) => (b.headlineDeployment?.deployedAt ?? 0) - (a.headlineDeployment?.deployedAt ?? 0),
-  );
-}
-
-export function ProjectCard({ name, projectId, apps, isLoading, actions }: ProjectCardProps) {
+export function ProjectCard({ ref, warm, name, projectId, apps, isLoading }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
   const { warmApp, cancelWarm } = useWarmAppPage();
@@ -34,15 +35,19 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
   const hrefFor = (app: ProjectApp) =>
     appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id });
 
-  const ordered = byRecency(apps);
-  const visible = ordered.slice(0, MAX_VISIBLE_APPS);
-  const rest = ordered.slice(MAX_VISIBLE_APPS);
-  const restLabel = `+${rest.length} more ${rest.length === 1 ? "app" : "apps"}`;
+  const { appsByRecency, appsLabel } = projectSummaryOf(apps);
+  const visible = appsByRecency.slice(0, MAX_VISIBLE_APPS);
+  const rest = appsByRecency.slice(MAX_VISIBLE_APPS);
+  const restLabel = `+${plural(rest.length, "more app")}`;
 
   const { width, measureRef } = useMeasuredWidth<HTMLDivElement>();
 
   return (
-    <div className="relative p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full h-full min-h-[124px] gap-4 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <div
+      ref={ref}
+      className="relative p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full h-full min-h-[124px] gap-4 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10"
+      {...warm}
+    >
       <Link
         href={projectPath}
         className="absolute inset-0 z-0"
@@ -61,7 +66,9 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
             {name}
           </Link>
         </InfoTooltip>
-        <div className="relative shrink-0">{actions}</div>
+        <div className="relative shrink-0">
+          <ProjectActionsButton projectId={projectId} />
+        </div>
       </div>
 
       {isLoading ? (
@@ -76,7 +83,7 @@ export function ProjectCard({ name, projectId, apps, isLoading, actions }: Proje
           </div>
         </div>
       ) : apps.length === 0 ? (
-        <span className="text-sm text-gray-9">No apps yet</span>
+        <span className="text-sm text-gray-9">{appsLabel}</span>
       ) : (
         <div ref={measureRef} className="relative z-10 flex flex-col gap-1.5">
           {visible.map((app) => (

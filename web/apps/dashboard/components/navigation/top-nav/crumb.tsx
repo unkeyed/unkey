@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { CrumbPopover, type CrumbPopoverFooter, type CrumbPopoverItem } from "./crumb-popover";
 
 type CrumbProps = {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   href: string;
   items: CrumbPopoverItem[];
@@ -62,7 +62,7 @@ export function CrumbLink({
   loading = false,
   current = false,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   href: string;
   loading?: boolean;

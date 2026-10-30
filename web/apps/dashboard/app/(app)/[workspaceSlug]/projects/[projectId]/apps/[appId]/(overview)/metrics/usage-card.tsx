@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChartMarkers } from "@/components/charts/chart-markers";
+import { type ChartIncidents, INCIDENT_FILL } from "@/components/charts/incident-markers";
 import { METRIC_VIEWS } from "@/lib/metrics/views";
 import { IconCircleInfoOutline18 } from "@unkey/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
@@ -17,9 +18,49 @@ import { LegendCell, SeriesChart } from "./series-chart";
 
 const USAGE_HEIGHT = 180;
 
-const DEPLOY_KEYS: { tone: Exclude<LineTone, "unhealthy">; label: string }[] = [
-  { tone: "current", label: "Current" },
-  { tone: "previous", label: "Previous" },
+type LegendKey = {
+  key: LineTone | "crashes";
+  color: string;
+  show: (legend: UsageLegend) => boolean;
+  label: (legend: UsageLegend) => ReactNode;
+};
+
+const LEGEND_KEYS: LegendKey[] = [
+  {
+    key: "current",
+    color: LINE_COLOR.current,
+    show: (legend) => legend.current.length > 0,
+    label: (legend) => <DeployKey label="Current" deploys={legend.current} />,
+  },
+  {
+    key: "previous",
+    color: LINE_COLOR.previous,
+    show: (legend) => legend.previous.length > 0,
+    label: (legend) => <DeployKey label="Previous" deploys={legend.previous} />,
+  },
+  {
+    key: "unhealthy",
+    color: LINE_COLOR.unhealthy,
+    show: (legend) => legend.unhealthy,
+    label: () => "Unhealthy",
+  },
+  {
+    key: "stopped",
+    color: LINE_COLOR.stopped,
+    show: (legend) => legend.stopped,
+    label: () => "Stopped",
+  },
+  {
+    key: "crashes",
+    color: INCIDENT_FILL,
+    show: (legend) => legend.crashes > 0,
+    label: (legend) => (
+      <span className="flex items-baseline gap-1.5">
+        Crashes
+        <span className="tabular-nums text-gray-10">{legend.crashes}</span>
+      </span>
+    ),
+  },
 ];
 
 export function UsageCardView({
@@ -27,12 +68,14 @@ export function UsageCardView({
   legend,
   focusKey,
   markers,
+  incidents,
   syncId,
 }: {
   card: UsageCard;
   legend: UsageLegend;
   focusKey: string | null;
   markers: ChartMarkers;
+  incidents: ChartIncidents;
   syncId: string;
 }) {
   const view = METRIC_VIEWS[card.metric];
@@ -48,6 +91,7 @@ export function UsageCardView({
         series={card.series}
         scale={card.scale}
         markers={markers}
+        incidents={incidents}
         height={USAGE_HEIGHT}
         syncId={syncId}
         legend={<Legend legend={legend} />}
@@ -59,17 +103,9 @@ export function UsageCardView({
 }
 
 function Legend({ legend }: { legend: UsageLegend }) {
-  const keys: { key: string; color: string; label: ReactNode }[] = [
-    ...DEPLOY_KEYS.filter(({ tone }) => legend[tone].length > 0).map(({ tone, label }) => ({
-      key: tone,
-      color: LINE_COLOR[tone],
-      label: <DeployKey label={label} deploys={legend[tone]} />,
-    })),
-    ...(legend.unhealthy
-      ? [{ key: "unhealthy", color: LINE_COLOR.unhealthy, label: "Unhealthy" }]
-      : []),
-  ];
-  return keys.map(({ key, color, label }) => <LegendCell key={key} color={color} label={label} />);
+  return LEGEND_KEYS.filter(({ show }) => show(legend)).map(({ key, color, label }) => (
+    <LegendCell key={key} color={color} label={label(legend)} />
+  ));
 }
 
 function DeployKey({ label, deploys }: { label: string; deploys: DeployRef[] }) {

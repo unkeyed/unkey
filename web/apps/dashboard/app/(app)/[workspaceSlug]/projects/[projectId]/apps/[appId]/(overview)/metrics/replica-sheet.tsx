@@ -3,7 +3,6 @@
 import type { ChartMarkers } from "@/components/charts/chart-markers";
 import { RegionFlag } from "@/components/region-flag";
 import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
-import { instanceLabel } from "@/lib/collections/deploy/instance-status";
 import { plural } from "@/lib/fmt";
 import { METRIC_VIEWS } from "@/lib/metrics/views";
 import { regionInfo } from "@/lib/regions";
@@ -27,6 +26,8 @@ import { LastExitText } from "../../components/last-exit";
 import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { DeployIdentity } from "./deploy-identity";
+import { PHASE, isStopped } from "./instances-model";
+import { outdatedProps } from "./outdated";
 import {
   REPLICA_METRICS,
   type ReplicaSection,
@@ -61,7 +62,7 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
           <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6">
             <dl className="flex flex-col divide-y divide-grayA-4 rounded-lg border border-grayA-4">
               <DetailRow label="Status">
-                <span className="text-gray-12">{instanceLabel[sheet.status]}</span>
+                <span className="text-gray-12">{PHASE[sheet.status].label}</span>
               </DetailRow>
               <DetailRow label="Region">
                 <span className="flex items-center gap-1.5 text-gray-12">
@@ -79,13 +80,15 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
               </DetailRow>
               {sheet.lastExit && <LastExitRow lastExit={sheet.lastExit} />}
             </dl>
-            {sheet.stopped && sheet.usage.status === "ready" && (
-              <p className="text-xs text-gray-11">
+            {isStopped(sheet.status) && sheet.usage.status === "ready" && (
+              <p {...outdatedProps(sheet.outdated, "text-xs text-gray-11")}>
                 This instance has stopped. Its last recorded usage is below.
               </p>
             )}
             <ChartHoverProvider>
-              <ReplicaUsageBody usage={sheet.usage} markers={markers} />
+              <div {...outdatedProps(sheet.outdated, "flex flex-1 flex-col gap-6")}>
+                <ReplicaUsageBody usage={sheet.usage} markers={markers} />
+              </div>
             </ChartHoverProvider>
           </SlidePanelContent>
         </>

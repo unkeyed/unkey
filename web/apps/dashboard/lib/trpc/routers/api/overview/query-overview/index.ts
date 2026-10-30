@@ -14,6 +14,7 @@ export const queryApisOverview = workspaceProcedure
         workspaceId: ctx.workspace.id,
         limit: input.limit,
         cursor: input.cursor,
+        search: input.search,
       });
 
       return result;

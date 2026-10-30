@@ -11,7 +11,6 @@ import (
 // Register registers all frontline routes for the HTTPS server
 func Register(srv *zen.Server, svc *Services) {
 	withSanitizeHeaders := middleware.WithReservedHeaderStrip()
-	withLogging := zen.WithLogging(zen.SkipPaths("/_unkey/internal/"))
 	withPanicRecovery := zen.WithPanicRecovery()
 	withObservability := middleware.WithObservability(svc.ErrorPageRenderer)
 	withClickHouseLogging := middleware.WithClickHouseLogging(svc.FrontlineRequests, svc.Clock, svc.FrontlineID, svc.Region, svc.Platform)
@@ -22,7 +21,6 @@ func Register(srv *zen.Server, svc *Services) {
 	defaultMiddlewares := []zen.Middleware{
 		withPanicRecovery,
 		withSanitizeHeaders,
-		withLogging,
 		withClickHouseLogging,
 		withObservability,
 		zen.WithSQLComment(),

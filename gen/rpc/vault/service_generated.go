@@ -19,7 +19,7 @@ type VaultServiceClient interface {
 	Decrypt(ctx context.Context, req *v1.DecryptRequest) (*v1.DecryptResponse, error)
 	EncryptBulk(ctx context.Context, req *v1.EncryptBulkRequest) (*v1.EncryptBulkResponse, error)
 	DecryptBulk(ctx context.Context, req *v1.DecryptBulkRequest) (*v1.DecryptBulkResponse, error)
-	ReEncrypt(ctx context.Context, req *v1.ReEncryptRequest) (*v1.ReEncryptResponse, error)
+	ReEncryptBulk(ctx context.Context, req *v1.ReEncryptBulkRequest) (*v1.ReEncryptBulkResponse, error)
 }
 
 var _ VaultServiceClient = (*ConnectVaultServiceClient)(nil)
@@ -99,10 +99,10 @@ func (c *ConnectVaultServiceClient) DecryptBulk(ctx context.Context, req *v1.Dec
 	return resp.Msg, nil
 }
 
-func (c *ConnectVaultServiceClient) ReEncrypt(ctx context.Context, req *v1.ReEncryptRequest) (*v1.ReEncryptResponse, error) {
-	ctx, span := tracing.Start(ctx, "VaultService.ReEncrypt")
+func (c *ConnectVaultServiceClient) ReEncryptBulk(ctx context.Context, req *v1.ReEncryptBulkRequest) (*v1.ReEncryptBulkResponse, error) {
+	ctx, span := tracing.Start(ctx, "VaultService.ReEncryptBulk")
 	defer span.End()
-	resp, err := c.inner.ReEncrypt(ctx, connect.NewRequest(req))
+	resp, err := c.inner.ReEncryptBulk(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

@@ -1,5 +1,4 @@
 -- Seed the root workspace and API for local development
--- This matches what the tools/local CLI creates
 
 USE unkey;
 

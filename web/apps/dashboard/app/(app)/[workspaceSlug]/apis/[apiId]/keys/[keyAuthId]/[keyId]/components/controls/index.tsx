@@ -5,6 +5,8 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
+import { HOUR_PLUS_OPTIONS } from "@/components/logs/datetime/constants";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
 import { MotionProvider } from "@/components/motion-provider";
 import { formatNumber } from "@/lib/fmt";
 import { queryKeys } from "@/lib/query-keys";
@@ -13,7 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { IconCoinsOutline18 } from "@unkey/icons";
 import { Separator } from "@unkey/ui";
 import { AnimatePresence, m } from "framer-motion";
-import { LogsDateTime } from "./components/logs-datetime";
+import { useFilters } from "../../hooks/use-filters";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
 import { LogsRefresh } from "./components/logs-refresh";
@@ -31,6 +33,7 @@ export function KeysDetailsLogsControls({
     queryFn: () => getUnkeyClient().keys.getKey({ keyId }),
   });
   const remainingCredit = data?.data.credits?.remaining;
+  const { filters, updateFilters } = useFilters();
   const hasRemainingCredit = remainingCredit !== null && remainingCredit !== undefined;
 
   return (
@@ -39,7 +42,12 @@ export function KeysDetailsLogsControls({
         <ControlsLeft>
           <LogsSearch apiId={apiId} />
           <LogsFilters />
-          <LogsDateTime />
+          <TimeRangeFilter
+            filters={filters}
+            updateFilters={updateFilters}
+            look="logs"
+            customOptions={HOUR_PLUS_OPTIONS}
+          />
           <AnimatePresence mode="wait">
             {hasRemainingCredit ? (
               <m.div

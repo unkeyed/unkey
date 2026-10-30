@@ -9,11 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/fuzz"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 // FuzzReEncryptRoundtrip verifies that re-encryption preserves data integrity.
 //
-// The ReEncrypt endpoint decrypts and re-encrypts data, typically used for key
+// The ReEncryptBulk endpoint decrypts and re-encrypts data, typically used for key
 // rotation. This fuzz test ensures:
 //   - Data is preserved exactly through the re-encryption process
 //   - The new ciphertext can be decrypted to the original data
@@ -48,21 +49,26 @@ func FuzzReEncryptRoundtrip(f *testing.F) {
 		require.NoError(t, err)
 
 		// Re-encrypt
-		reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-			Keyring:   keyring,
-			Encrypted: encRes.Msg.GetEncrypted(),
+		id := uid.New(uid.TestPrefix)
+		reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+			Items: map[string]*vaultv1.DecryptRequest{
+				id: {Keyring: keyring, Encrypted: encRes.Msg.GetEncrypted()},
+			},
 		})
 		reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-		reencRes, err := service.ReEncrypt(ctx, reencReq)
+		reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 		require.NoError(t, err, "re-encryption should succeed for valid ciphertext")
-		require.NotEmpty(t, reencRes.Msg.GetEncrypted())
-		require.NotEmpty(t, reencRes.Msg.GetKeyId())
+		result := reencRes.Msg.GetItems()[id]
+		require.Empty(t, result.GetError())
+		require.NotNil(t, result.GetSuccess())
+		require.NotEmpty(t, result.GetSuccess().GetEncrypted())
+		require.NotEmpty(t, result.GetSuccess().GetKeyId())
 
 		// Verify the re-encrypted data decrypts to the original
 		decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   keyring,
-			Encrypted: reencRes.Msg.GetEncrypted(),
+			Encrypted: result.GetSuccess().GetEncrypted(),
 		})
 		decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
@@ -109,15 +115,20 @@ func FuzzReEncryptProducesDifferentCiphertext(f *testing.F) {
 		originalCiphertext := encRes.Msg.GetEncrypted()
 
 		// Re-encrypt
-		reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-			Keyring:   keyring,
-			Encrypted: originalCiphertext,
+		id := uid.New(uid.TestPrefix)
+		reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+			Items: map[string]*vaultv1.DecryptRequest{
+				id: {Keyring: keyring, Encrypted: originalCiphertext},
+			},
 		})
 		reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-		reencRes, err := service.ReEncrypt(ctx, reencReq)
+		reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 		require.NoError(t, err)
-		reencryptedCiphertext := reencRes.Msg.GetEncrypted()
+		result := reencRes.Msg.GetItems()[id]
+		require.Empty(t, result.GetError())
+		require.NotNil(t, result.GetSuccess())
+		reencryptedCiphertext := result.GetSuccess().GetEncrypted()
 
 		// Ciphertexts should be different (different nonces)
 		require.NotEqual(t, originalCiphertext, reencryptedCiphertext,
@@ -141,11 +152,11 @@ func FuzzReEncryptProducesDifferentCiphertext(f *testing.F) {
 	})
 }
 
-// FuzzReEncryptWithMalformedInput verifies that ReEncrypt handles invalid
+// FuzzReEncryptWithMalformedInput verifies that ReEncryptBulk handles invalid
 // ciphertext gracefully.
 //
-// The ReEncrypt endpoint first decrypts, so it should reject malformed input
-// the same way Decrypt does.
+// Each item must pass decryption before re-encryption. Malformed input produces
+// an item error without failing the RPC.
 func FuzzReEncryptWithMalformedInput(f *testing.F) {
 	fuzz.Seed(f)
 
@@ -162,15 +173,19 @@ func FuzzReEncryptWithMalformedInput(f *testing.F) {
 		service := setupTestService(t)
 		ctx := context.Background()
 
-		req := connect.NewRequest(&vaultv1.ReEncryptRequest{
-			Keyring:   keyring,
-			Encrypted: malformedEncrypted,
+		id := uid.New(uid.TestPrefix)
+		req := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+			Items: map[string]*vaultv1.DecryptRequest{
+				id: {Keyring: keyring, Encrypted: malformedEncrypted},
+			},
 		})
 		req.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-		// Malformed input must return an error
-		_, err := service.ReEncrypt(ctx, req)
-		require.Error(t, err, "malformed input must return an error")
+		res, err := service.ReEncryptBulk(ctx, req)
+		require.NoError(t, err)
+		result := res.Msg.GetItems()[id]
+		require.NotEmpty(t, result.GetError(), "malformed input must return an item error")
+		require.Nil(t, result.GetSuccess())
 	})
 }
 
@@ -212,16 +227,21 @@ func FuzzReEncryptMultipleTimes(f *testing.F) {
 
 		// Re-encrypt multiple times
 		for i := 0; i < iterations; i++ {
-			reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-				Keyring:   keyring,
-				Encrypted: currentCiphertext,
+			id := uid.New(uid.TestPrefix)
+			reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+				Items: map[string]*vaultv1.DecryptRequest{
+					id: {Keyring: keyring, Encrypted: currentCiphertext},
+				},
 			})
 			reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-			reencRes, err := service.ReEncrypt(ctx, reencReq)
+			reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 			require.NoError(t, err, "re-encryption iteration %d should succeed", i+1)
+			result := reencRes.Msg.GetItems()[id]
+			require.Empty(t, result.GetError(), "re-encryption iteration %d should succeed", i+1)
+			require.NotNil(t, result.GetSuccess())
 
-			currentCiphertext = reencRes.Msg.GetEncrypted()
+			currentCiphertext = result.GetSuccess().GetEncrypted()
 		}
 
 		// Final decryption should still return original data
@@ -240,7 +260,7 @@ func FuzzReEncryptMultipleTimes(f *testing.F) {
 
 // FuzzReEncryptWrongKeyring verifies that re-encryption fails with wrong keyring.
 //
-// This is similar to FuzzDecryptWithWrongKeyring but for the ReEncrypt endpoint.
+// This is similar to FuzzDecryptWithWrongKeyring but for the ReEncryptBulk endpoint.
 func FuzzReEncryptWrongKeyring(f *testing.F) {
 	fuzz.Seed(f)
 
@@ -278,15 +298,18 @@ func FuzzReEncryptWrongKeyring(f *testing.F) {
 		require.NoError(t, err)
 
 		// Try to re-encrypt with keyring B - should fail
-		reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
-			Keyring:   keyringB,
-			Encrypted: encRes.Msg.GetEncrypted(),
+		id := uid.New(uid.TestPrefix)
+		reencReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
+			Items: map[string]*vaultv1.DecryptRequest{
+				id: {Keyring: keyringB, Encrypted: encRes.Msg.GetEncrypted()},
+			},
 		})
 		reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
-		_, err = service.ReEncrypt(ctx, reencReq)
-
-		// Using wrong keyring must return an error
-		require.Error(t, err, "re-encrypting with wrong keyring must fail")
+		reencRes, err := service.ReEncryptBulk(ctx, reencReq)
+		require.NoError(t, err)
+		result := reencRes.Msg.GetItems()[id]
+		require.NotEmpty(t, result.GetError(), "re-encrypting with wrong keyring must fail")
+		require.Nil(t, result.GetSuccess())
 	})
 }

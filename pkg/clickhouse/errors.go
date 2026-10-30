@@ -2,7 +2,10 @@ package clickhouse
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
+	"io"
+	"net"
 	"strings"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
@@ -249,6 +252,9 @@ func WrapClickHouseError(err error) error {
 	if err == nil {
 		return nil
 	}
+	if _, ok := fault.GetCode(err); ok {
+		return err
+	}
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
 		return fault.Wrap(
 			err,
@@ -259,6 +265,16 @@ func WrapClickHouseError(err error) error {
 
 	chErr, isException := errors.AsType[*ch.Exception](err)
 	if !isException {
+		if _, ok := errors.AsType[net.Error](err); ok ||
+			errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
+			errors.Is(err, net.ErrClosed) || errors.Is(err, driver.ErrBadConn) ||
+			errors.Is(err, ch.ErrAcquireConnTimeout) || errors.Is(err, ch.ErrConnectionClosed) {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.Data.Analytics.ConnectionFailed.URN()),
+				fault.Public("We couldn't complete your analytics query because the database connection failed. Retry your request."),
+			)
+		}
 		if opErr, ok := errors.AsType[*ch.OpError](err); ok {
 			// OpError does not implement Unwrap.
 			if conversionErr, ok := errors.AsType[*column.ColumnConverterError](opErr.Err); ok && conversionErr.Op == "ScanRow" {

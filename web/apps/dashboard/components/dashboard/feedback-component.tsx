@@ -14,6 +14,7 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
+import { usePathname } from "next/navigation";
 import { parseAsBoolean, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -58,6 +59,7 @@ const DEFAULT_FORM_VALUES: FormValues = {
 export const Feedback: React.FC = () => {
   const { open, openFeedback, feedbackType } = useFeedback();
   const [internalOpen, setInternalOpen] = useState(false);
+  const pathname = usePathname();
 
   const {
     handleSubmit,
@@ -91,7 +93,7 @@ export const Feedback: React.FC = () => {
 
   const onSubmitForm = async (values: FormValues) => {
     try {
-      await create.mutateAsync(values);
+      await create.mutateAsync({ ...values, pathname });
     } catch (error) {
       console.error("Form submission error:", error);
     }

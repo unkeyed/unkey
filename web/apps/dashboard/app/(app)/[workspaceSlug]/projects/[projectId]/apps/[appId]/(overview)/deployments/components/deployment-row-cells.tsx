@@ -91,7 +91,7 @@ const ORIGINS: Record<DeploymentSummary["trigger"], Origin | "git"> = {
   },
 };
 
-function nonGitOrigin(deployment: DeploymentSummary): Origin | undefined {
+export function nonGitOrigin(deployment: DeploymentSummary): Origin | undefined {
   const origin = ORIGINS[deployment.trigger];
   return origin === "git" ? undefined : origin;
 }

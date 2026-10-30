@@ -1,7 +1,9 @@
 "use client";
 
+import { ListPager } from "@/components/list-pager";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
+import { moreFooterOf } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
 import { IconBookBookmarkOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
 import {
@@ -14,7 +16,6 @@ import {
   EmptyStateTitle,
   ResourceListBody,
   ResourceListContent,
-  ResourceListFooter,
 } from "@unkey/ui";
 import { useMemo } from "react";
 import { useProjectData } from "../../data-provider";
@@ -155,19 +156,14 @@ function DeploymentsCardListResults({
           />
         ))}
       </ResourceListBody>
-      {hasNextPage && (
-        <ResourceListFooter>
-          <Button
-            size="md"
-            variant="outline"
-            disabled={isFetchingNextPage}
-            loading={isFetchingNextPage}
-            onClick={() => fetchNextPage()}
-          >
-            Load more
-          </Button>
-        </ResourceListFooter>
-      )}
+      <ListPager
+        state={moreFooterOf({
+          hasMore: hasNextPage,
+          isLoadingMore: isFetchingNextPage,
+          loadMore: () => fetchNextPage(),
+        })}
+        noun="deployments"
+      />
     </ResourceListContent>
   );
 }

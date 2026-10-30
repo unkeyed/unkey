@@ -30,3 +30,15 @@ export function useWarmAppPage() {
 
   return { warmApp, cancelWarm };
 }
+
+export type WarmHandlers = {
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+  onFocusCapture: () => void;
+};
+
+export function useWarmAppHandlers(projectId: string, appId: string): WarmHandlers {
+  const { warmApp, cancelWarm } = useWarmAppPage();
+  const warm = () => warmApp(projectId, appId);
+  return { onPointerEnter: warm, onPointerLeave: cancelWarm, onFocusCapture: warm };
+}

@@ -16,7 +16,9 @@ import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { commitSubject, sourceLabel } from "./deploy-identity";
 import { EffectChips } from "./effect-chips";
+import { HistoryNotice } from "./history-notice";
 import type { DeployView, PanelModel, PanelStats } from "./model";
+import { outdatedProps } from "./outdated";
 import { SeriesChart } from "./series-chart";
 
 const PANEL_SYNC_ID = "app-metrics-panel";
@@ -76,7 +78,7 @@ function PanelBody({
         <SlidePanelCloseButton />
       </SlidePanelHeader>
       <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6">
-        <Card>
+        <Card {...outdatedProps(panel.outdated)}>
           <dl className="grid grid-cols-4 border-b border-grayA-4">
             {STATS.map(({ key, label }) => (
               <div
@@ -109,8 +111,9 @@ function PanelBody({
           </div>
         </Card>
         {panel.byInstance && (
-          <Card className="flex flex-col gap-1.5 px-4 pt-3 pb-3">
+          <Card {...outdatedProps(panel.outdated, "flex flex-col gap-1.5 px-4 pt-3 pb-3")}>
             <h3 className="text-sm font-medium text-gray-12">By instance</h3>
+            {panel.historyTruncated && <HistoryNotice />}
             <SeriesChart
               title={`${view.title} by instance`}
               state={panel.byInstance.chart}
@@ -122,7 +125,7 @@ function PanelBody({
           </Card>
         )}
         {panel.deploys.length > 0 && (
-          <section className="flex flex-col gap-2">
+          <section {...outdatedProps(panel.outdated, "flex flex-col gap-2")}>
             <h3 className="text-sm font-medium text-gray-12">Deploys in range</h3>
             <ul className="flex flex-col">
               {panel.deploys.map((deploy) => (

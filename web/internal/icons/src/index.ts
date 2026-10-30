@@ -96,6 +96,7 @@ export * from "./icons/dots-outline-18";
 export * from "./icons/double-chevron-down-outline-12";
 export * from "./icons/double-chevron-right-outline-18";
 export * from "./icons/earth-outline-18";
+export * from "./icons/earth-plus-outline-18";
 export * from "./icons/envelope-outline-18";
 export * from "./icons/eye-outline-12";
 export * from "./icons/eye-outline-18";
