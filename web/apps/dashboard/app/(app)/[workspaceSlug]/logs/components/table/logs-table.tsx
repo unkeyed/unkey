@@ -129,7 +129,7 @@ const additionalColumns: Column<Log>[] = [
       className={cn(
         "font-mono overflow-hidden text-ellipsis",
         key === "response_body"
-          ? "whitespace-nowrap truncate min-w-0"
+          ? "w-0 min-w-full truncate"
           : "whitespace-nowrap truncate max-w-[200px]",
       )}
     >
