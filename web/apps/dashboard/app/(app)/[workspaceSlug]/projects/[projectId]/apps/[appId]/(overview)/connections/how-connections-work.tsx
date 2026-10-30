@@ -27,8 +27,7 @@ const steps = [
     label: "Target",
     Icon: IconCubeOutline18,
     title: "Choose which version to call",
-    text: "By default, production follows the target app’s live deployment. Git previews use the same branch. You can choose an environment or pin a specific deployment instead.",
-    note: "No matching preview? Deploy the target app on that branch or choose another target.",
+    text: "By default, production follows the target app’s live deployment. You can choose an environment or pin a specific deployment instead.",
   },
   {
     label: "Deploy",

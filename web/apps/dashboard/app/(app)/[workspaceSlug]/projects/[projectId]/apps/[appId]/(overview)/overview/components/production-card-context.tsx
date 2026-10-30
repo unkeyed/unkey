@@ -17,6 +17,7 @@ export type CanvasModel = {
   policiesHref: Route;
   addPolicyHref: Route;
   connectionsHref: Route;
+  addConnectionHref: Route;
 };
 
 export type ProductionCardContextValue = {

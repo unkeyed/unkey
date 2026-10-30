@@ -21,6 +21,7 @@ import {
 } from "@unkey/ui";
 import { useCallback } from "react";
 import { useAppId, useProjectData } from "../data-provider";
+import { useSlidePanels } from "../hooks/use-slide-panels";
 import { HowPoliciesWorkPanel } from "./components/how-policies-work";
 import { PoliciesList } from "./components/list";
 import { PoliciesListSkeleton } from "./components/list/skeleton";
@@ -28,8 +29,9 @@ import { AddPolicyPanel } from "./components/policy-form/add-policy-panel";
 import { EditPolicyPanel } from "./components/policy-form/edit-policy-panel";
 import { usePoliciesData } from "./hooks/use-policies-data";
 import { usePolicyActions } from "./hooks/use-policy-actions";
-import { usePolicyPanels } from "./hooks/use-policy-panels";
 import { otherMatchKeys } from "./model/duplicate-name";
+
+type PolicyPanel = { type: "add" } | { type: "edit"; key: string } | { type: "guide" };
 
 export default function PoliciesPage() {
   const { projectId } = useProjectData();
@@ -37,7 +39,7 @@ export default function PoliciesPage() {
   const data = usePoliciesData();
   const { envs, merged, canWrite } = data;
   const actions = usePolicyActions({ envs, projectId, appId });
-  const panels = usePolicyPanels();
+  const panels = useSlidePanels<PolicyPanel>();
   const openAdd = useCallback(() => panels.open({ type: "add" }), [panels.open]);
   useConsumeSearchFlag("add", data.view.type !== "loading", canWrite ? openAdd : null);
 

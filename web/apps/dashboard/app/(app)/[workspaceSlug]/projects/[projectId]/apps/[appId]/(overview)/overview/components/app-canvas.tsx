@@ -13,10 +13,7 @@ import {
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
-import { queryKeys } from "@/lib/query-keys";
-import { getUnkeyClient } from "@/lib/unkey-client";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
-import { useQuery } from "@tanstack/react-query";
 import {
   IconCodeBranchOutline18,
   IconCodeCommitOutline18,
@@ -30,15 +27,14 @@ import {
   IconPlusOutline12,
   IconShieldKeyOutline18,
   IconTerminalOutline18,
-  IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, InfoTooltip, Skeleton, useElapsed } from "@unkey/ui";
-import { cn } from "cn";
+import { InfoTooltip, useElapsed } from "@unkey/ui";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import { DeploymentStatusIndicator, StatusDot } from "../../../components/deployment-status-dot";
 import type { DisplayDomain } from "../../../components/display-domain";
+import { useDeploymentConnections } from "../../connections/hooks/use-deployment-connections";
 import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
 import { POLICY_KINDS } from "../../policies/policy-kinds";
 import {
@@ -47,10 +43,14 @@ import {
   Group,
   HFlow,
   IconRow,
+  LabeledRow,
   LinkRow,
   MoreRow,
+  NODE_ROW_LIMIT,
   Node,
+  NodeError,
   NodeHeader,
+  NodeSkeleton,
   type NodeTone,
   RowItem,
   Rows,
@@ -60,23 +60,20 @@ import { ConnectionsNode } from "./connections-node";
 import { useProductionCard } from "./production-card-context";
 import { type DeploymentDisplayStatus, STATUS_META } from "./status";
 
-const NODE_ROW_LIMIT = 5;
-
 export function AppCanvas() {
   const { canvas, deployment } = useProductionCard();
-  const { domains, domainsHref, addDomainHref, policiesHref, addPolicyHref, connectionsHref } =
-    canvas;
+  const {
+    domains,
+    domainsHref,
+    addDomainHref,
+    policiesHref,
+    addPolicyHref,
+    connectionsHref,
+    addConnectionHref,
+  } = canvas;
   const { policies, view, retry, isRetrying } = useProductionPolicies();
   const listed = view.type === "list";
-  const connections = useQuery({
-    queryKey: queryKeys.deployments.connections(deployment.id),
-    queryFn: async () => {
-      const response = await getUnkeyClient().deployments.listConnections({
-        deploymentId: deployment.id,
-      });
-      return response.data;
-    },
-  });
+  const connections = useDeploymentConnections(deployment.id);
 
   return (
     <Canvas label="App canvas">
@@ -90,11 +87,18 @@ export function AppCanvas() {
       <Group icon={<IconCubeOutline18 />} label="App">
         <AppNode />
       </Group>
-      <HFlow empty={!listed && !connections.data?.connections.length} />
+      <HFlow empty={!listed && connections.view.status !== "ready"} />
       <Group icon={<IconGridOutline18 />} label="Services">
         {match(view.type)
-          .with("loading", () => <PoliciesLoadingNode />)
-          .with("error", () => <PoliciesErrorNode onRetry={retry} retrying={isRetrying} />)
+          .with("loading", () => <NodeSkeleton label="Loading policies" />)
+          .with("error", () => (
+            <NodeError
+              icon={<IconShieldKeyOutline18 />}
+              name="Policies"
+              onRetry={retry}
+              retrying={isRetrying}
+            />
+          ))
           .with("empty", () => (
             <GhostNode
               icon={<IconShieldKeyOutline18 />}
@@ -105,7 +109,12 @@ export function AppCanvas() {
           ))
           .with("list", () => <PoliciesNode policies={policies} href={policiesHref} />)
           .exhaustive()}
-        <ConnectionsNode query={connections} href={connectionsHref} />
+        <ConnectionsNode
+          view={connections.view}
+          truncated={connections.truncated}
+          href={connectionsHref}
+          addHref={addConnectionHref}
+        />
       </Group>
     </Canvas>
   );
@@ -293,54 +302,25 @@ function AppNode() {
 function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }) {
   return (
     <Node link={{ href, label: "Policies" }}>
-      <NodeHeader
-        icon={<IconShieldKeyOutline18 />}
-        name="Policies"
-        right={<span className="text-2xs tabular-nums text-gray-10">{policies.length}</span>}
-      />
+      <NodeHeader icon={<IconShieldKeyOutline18 />} name="Policies" count={policies.length} />
       <Rows>
         {policies.slice(0, NODE_ROW_LIMIT).map((p) => (
-          <span key={p.id} className="flex min-w-0 items-center gap-2">
-            <span className={cn("truncate", p.enabled ? "text-gray-12" : "text-gray-10")}>
-              {p.name}
-              {!p.enabled && <span className="sr-only"> (disabled)</span>}
-            </span>
-            <span className="ml-auto shrink-0 font-mono text-3xs text-gray-10">
-              {POLICY_KINDS[p.type].label}
-            </span>
-          </span>
+          <LabeledRow
+            key={p.id}
+            name={
+              <>
+                {p.name}
+                {!p.enabled && <span className="sr-only"> (disabled)</span>}
+              </>
+            }
+            label={POLICY_KINDS[p.type].label}
+            muted={!p.enabled}
+          />
         ))}
         <MoreRow count={policies.length - NODE_ROW_LIMIT} href={href} />
       </Rows>
     </Node>
   );
-}
-
-function PoliciesErrorNode({ onRetry, retrying }: { onRetry: () => void; retrying: boolean }) {
-  return (
-    <Node>
-      <NodeHeader icon={<IconShieldKeyOutline18 />} name="Policies" />
-      <Rows>
-        <span className="flex items-center gap-2">
-          <IconTriangleWarningOutline18 className="size-3 shrink-0 text-error-9" />
-          <span className="text-gray-11">Couldn't load</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto"
-            onClick={onRetry}
-            loading={retrying}
-          >
-            Retry
-          </Button>
-        </span>
-      </Rows>
-    </Node>
-  );
-}
-
-function PoliciesLoadingNode() {
-  return <Skeleton className="h-28 w-full rounded-lg" />;
 }
 
 type AppStatus = { label: string; indicator: ReactNode; tone: NodeTone };

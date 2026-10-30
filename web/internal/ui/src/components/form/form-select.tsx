@@ -5,7 +5,11 @@ import { FormField } from "./form-field";
 import type { Requirement } from "./form-helpers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 
-export type FormSelectOption<T extends string = string> = { value: T; label: React.ReactNode };
+export type FormSelectOption<T extends string = string> = {
+  value: T;
+  label: React.ReactNode;
+  disabled?: boolean;
+};
 
 // Hack to populate fumadocs' AutoTypeTable
 type DocumentedFormSelectProps = {
@@ -93,7 +97,12 @@ function FormSelect<T extends string>(props: FormSelectProps<T>) {
             </SelectTrigger>
             <SelectContent className={contentClassName}>
               {options.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value} className={itemClassName}>
+                <SelectItem
+                  key={opt.value}
+                  value={opt.value}
+                  disabled={opt.disabled}
+                  className={itemClassName}
+                >
                   {opt.label}
                 </SelectItem>
               ))}

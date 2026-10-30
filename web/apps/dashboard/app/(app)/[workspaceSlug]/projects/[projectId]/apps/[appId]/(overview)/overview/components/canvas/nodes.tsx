@@ -5,14 +5,17 @@ import {
   IconCloneOutline18,
   IconDotsOutline18,
   IconPlusOutline12,
+  IconTriangleWarningOutline18,
 } from "@unkey/icons";
-import { InfoTooltip, useCopyToClipboard } from "@unkey/ui";
+import { Button, InfoTooltip, Skeleton, useCopyToClipboard } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 export type NodeTone = "default" | "error";
+
+export const NODE_ROW_LIMIT = 5;
 
 const NODE_TONE: Record<NodeTone, { base: string; linkHover: string }> = {
   default: {
@@ -59,17 +62,83 @@ export function Node({
 export function NodeHeader({
   icon,
   name,
+  count,
   right,
 }: {
   icon: ReactNode;
   name: ReactNode;
+  count?: number | string;
   right?: ReactNode;
 }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5 px-3 py-2">
       <span className="shrink-0 text-gray-11 [&_svg]:size-3.5">{icon}</span>
       <span className="min-w-0 truncate text-xs font-medium text-gray-12">{name}</span>
-      {right != null && <span className="ml-auto flex shrink-0 items-center gap-1">{right}</span>}
+      {(count != null || right != null) && (
+        <span className="ml-auto flex shrink-0 items-center gap-1">
+          {count != null && <span className="text-2xs tabular-nums text-gray-10">{count}</span>}
+          {right}
+        </span>
+      )}
+    </span>
+  );
+}
+
+export function NodeSkeleton({ label }: { label: string }) {
+  return <Skeleton aria-label={label} className="h-28 w-full rounded-lg" />;
+}
+
+export function NodeError({
+  icon,
+  name,
+  link,
+  onRetry,
+  retrying,
+  children,
+}: {
+  icon: ReactNode;
+  name: string;
+  link?: { href: Route; label: string };
+  onRetry: () => void;
+  retrying: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <Node link={link}>
+      <NodeHeader icon={icon} name={name} />
+      <Rows>
+        <span className="flex items-center gap-2">
+          <IconTriangleWarningOutline18 className="size-3 shrink-0 text-error-9" />
+          <span className="text-gray-11">Couldn't load</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="relative z-10 ml-auto"
+            onClick={onRetry}
+            loading={retrying}
+          >
+            Retry
+          </Button>
+        </span>
+        {children}
+      </Rows>
+    </Node>
+  );
+}
+
+export function LabeledRow({
+  name,
+  label,
+  muted = false,
+}: {
+  name: ReactNode;
+  label: string;
+  muted?: boolean;
+}) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className={cn("truncate", muted ? "text-gray-10" : "text-gray-12")}>{name}</span>
+      <span className="ml-auto shrink-0 font-mono text-3xs text-gray-10">{label}</span>
     </span>
   );
 }
@@ -199,13 +268,22 @@ export function LinkRow({
   );
 }
 
-export function MoreRow({ count, href }: { count: number; href: Route }) {
-  if (count <= 0) {
+export function MoreRow({
+  count,
+  href,
+  truncated = false,
+}: {
+  count: number;
+  href: Route;
+  truncated?: boolean;
+}) {
+  if (count <= 0 && !truncated) {
     return null;
   }
   return (
     <LinkRow href={href} icon={<IconDotsOutline18 className="size-3" />}>
-      {count} more
+      {Math.max(count, 0)}
+      {truncated && "+"} more
     </LinkRow>
   );
 }

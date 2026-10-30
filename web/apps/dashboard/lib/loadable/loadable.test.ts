@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { type QueryResult, fromQuery } from "./loadable";
+import { type QueryResult, fromQuery, mapLoadable } from "./loadable";
 
 function query<T>(overrides: Partial<QueryResult<T>>, refetches: string[] = []): QueryResult<T> {
   return {
@@ -28,11 +28,22 @@ describe("fromQuery", () => {
       status: "failed",
       error,
       retry: expect.any(Function),
+      retrying: false,
     });
     if (result.status === "failed") {
       result.retry();
     }
     expect(refetches).toEqual(["refetch"]);
+  });
+
+  test("no data with an error and a refetch in flight fails retrying", () => {
+    const error = new Error("boom");
+    expect(fromQuery(query({ isError: true, isFetching: true, error }))).toEqual({
+      status: "failed",
+      error,
+      retry: expect.any(Function),
+      retrying: true,
+    });
   });
 
   test("data without an error is ready and fresh", () => {
@@ -65,6 +76,19 @@ describe("fromQuery", () => {
       status: "ready",
       data: ["a"],
       stale: { error, retry: expect.any(Function), retrying: true },
+    });
+  });
+});
+
+describe("mapLoadable", () => {
+  test("maps ready data and passes other states through", () => {
+    expect(mapLoadable({ status: "ready", data: 2, stale: null }, (n) => n * 2)).toEqual({
+      status: "ready",
+      data: 4,
+      stale: null,
+    });
+    expect(mapLoadable({ status: "loading" }, (n: number) => n * 2)).toEqual({
+      status: "loading",
     });
   });
 });
