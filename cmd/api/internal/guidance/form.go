@@ -121,7 +121,16 @@ func (f *form) field(ctx context.Context, schema *Schema, values map[string]any,
 		}
 	}
 	defaultValue := ""
-	if name == "slug" {
+	if previous, present := values[name]; present && previous != nil && !schema.Secret && !strings.HasSuffix(path, ".value") {
+		switch previous.(type) {
+		case string, bool, json.Number, int, int64, float64:
+			text := fmt.Sprint(previous)
+			if terminalSafe(text) == text && !strings.ContainsAny(text, "\r\n") {
+				defaultValue = text
+			}
+		}
+	}
+	if name == "slug" && defaultValue == "" {
 		for _, source := range []string{"name", "displayName"} {
 			if value, ok := values[source].(string); ok {
 				defaultValue = slug(value)
