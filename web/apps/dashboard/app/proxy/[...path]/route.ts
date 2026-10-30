@@ -2,7 +2,6 @@ import { type GetAuthResult, getAuth } from "@/lib/auth/get-auth";
 import { mintProxyJWT } from "@/lib/auth/mint-proxy-jwt";
 import { env } from "@/lib/env";
 import type { BadRequestErrorDetails, BaseError } from "@unkey/api/models/components";
-import { newId } from "@unkey/id";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -138,7 +137,7 @@ const proxyErrors = {
 function proxyError(kind: keyof typeof proxyErrors, detail: string): NextResponse {
   const error = { ...proxyErrors[kind], detail };
   return NextResponse.json(
-    { meta: { requestId: newId("request") }, error },
+    { meta: { requestId: "req_proxyonly" }, error },
     { status: error.status },
   );
 }
