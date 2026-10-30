@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Restoring Docker access..."
-if [[ -x /opt/orb-worker/docker-start.sh ]]; then
-  sudo bash /opt/orb-worker/docker-start.sh
-else
-  sudo systemctl start docker
-fi
-sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+
 printf '1024\n' | sudo tee /proc/sys/fs/inotify/max_user_instances >/dev/null
 
 echo "Syncing the pinned mise binary..."
-"$(dirname "${BASH_SOURCE[0]}")/../dev/install-mise"
+"$root/dev/install-mise"
 
-if [[ -x /opt/orb-worker/docker-start.sh ]]; then
-  bash "$(dirname "${BASH_SOURCE[0]}")/../dev/orb/resume.sh"
-fi
+# Amp holds the agent until this hook exits. Depot orbs format a fresh Docker
+# disk and start dockerd on every resume, so Docker starts in the background and
+# the first docker command after a resume can wait a few seconds for it.
+log=$HOME/.cache/amp/logs/resume-docker.log
+mkdir -p -- "$(dirname -- "$log")"
+setsid -f bash -c '
+  set -euo pipefail
+  if [[ -x /opt/orb-worker/docker-start.sh ]]; then
+    sudo bash /opt/orb-worker/docker-start.sh
+  else
+    sudo systemctl start docker
+  fi
+  sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
+  if [[ -x /opt/orb-worker/docker-start.sh ]]; then
+    bash "$1/dev/orb/resume.sh"
+  fi
+  echo "Docker ready."
+' bash "$root" >"$log" 2>&1 </dev/null
+echo "Docker is starting in the background. Log: $log"
 
 echo "Orb resume complete."
