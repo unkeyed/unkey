@@ -190,10 +190,14 @@ func (q *addressChangeQuerier) FindInstancesByDeploymentID(_ context.Context, _ 
 }
 
 func (q *addressChangeQuerier) setAddress(address string) {
+	q.setStatus(address, db.InstancesStatusRunning)
+}
+
+func (q *addressChangeQuerier) setStatus(address string, status db.InstancesStatus) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	q.instances = []db.FindInstancesByDeploymentIDRow{{
-		ID: "ins_1", Address: address, Status: db.InstancesStatusRunning,
+		ID: "ins_1", Address: address, Status: status,
 		RegionName: "test", RegionPlatform: "test",
 	}}
 }
@@ -232,6 +236,51 @@ func TestRoute_InvalidateInstancesReadsNewAddress(t *testing.T) {
 
 	svc.InvalidateInstances(context.Background(), "dep_1")
 	decision, err = svc.Route(context.Background(), "app.example.com")
+	require.NoError(t, err)
+	require.Equal(t, "10.13.24.133:4000", decision.LocalInstances[0].Address)
+}
+
+// TestRoute_ReloadsInstancesWithoutRunningOncePerInterval verifies that a
+// deployment whose replicas all restarted is routed again about a second
+// after its pods are running in the database, not after the instance cache
+// expires, and that requests in between do not reload.
+func TestRoute_ReloadsInstancesWithoutRunningOncePerInterval(t *testing.T) {
+	querier := &addressChangeQuerier{stubQuerier: stubQuerier{row: db.FindFrontlineRouteByFQDNRow{
+		EnvironmentID:    "env_1",
+		DeploymentID:     "dep_1",
+		SentinelConfig:   []byte("{}"),
+		UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1,
+		DesiredState:     db.DeploymentsDesiredStateRunning,
+	}}}
+	querier.setStatus("10.13.24.133:4000", db.InstancesStatusPending)
+
+	clk := clock.NewTestClock()
+	svc, err := router.New(router.Config{
+		Platform:              "test",
+		Region:                "test",
+		DB:                    querier,
+		FrontlineRouteCache:   newCache[db.FindFrontlineRouteByFQDNRow](t, "frontline_routes"),
+		InstancesByDeployment: newCache[[]db.FindInstancesByDeploymentIDRow](t, "instances"),
+		PolicyCache:           newCache[[]*frontlinev1.Policy](t, "policies"),
+		Clock:                 clk,
+	})
+	require.NoError(t, err)
+
+	requireNoRunning := func() {
+		t.Helper()
+		_, routeErr := svc.Route(context.Background(), "app.example.com")
+		urn, ok := fault.GetCode(routeErr)
+		require.True(t, ok)
+		require.Equal(t, codes.Frontline.Routing.NoRunningInstances.URN(), urn)
+	}
+
+	requireNoRunning()
+	querier.setStatus("10.13.24.133:4000", db.InstancesStatusRunning)
+	clk.Tick(500 * time.Millisecond)
+	requireNoRunning()
+
+	clk.Tick(500 * time.Millisecond)
+	decision, err := svc.Route(context.Background(), "app.example.com")
 	require.NoError(t, err)
 	require.Equal(t, "10.13.24.133:4000", decision.LocalInstances[0].Address)
 }

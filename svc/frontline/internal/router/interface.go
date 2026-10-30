@@ -5,6 +5,7 @@ import (
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 )
 
@@ -66,4 +67,6 @@ type Config struct {
 	FrontlineRouteCache   cache.Cache[string, db.FindFrontlineRouteByFQDNRow]
 	InstancesByDeployment cache.Cache[string, []db.FindInstancesByDeploymentIDRow]
 	PolicyCache           cache.Cache[string, []*frontlinev1.Policy]
+	// Clock defaults to the real clock when nil.
+	Clock clock.Clock
 }
