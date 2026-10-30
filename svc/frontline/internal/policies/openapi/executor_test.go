@@ -266,6 +266,41 @@ func TestLimitBody_BudgetExhausted(t *testing.T) {
 	}, time.Second, 5*time.Millisecond)
 }
 
+func TestLimitBody_ChunkedBodyHoldsOnlyItsSize(t *testing.T) {
+	t.Parallel()
+
+	e, err := New(clock.New(), testBodyBytesMax, 2*testBodyBytesMax)
+	require.NoError(t, err)
+	t.Cleanup(e.Close)
+
+	body := []byte("KEBAP")
+	for range 10 {
+		req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(&countingReader{data: body, remaining: len(body)}))
+		req.ContentLength = -1
+		require.NoError(t, e.limitBody(req))
+	}
+}
+
+func TestLimitBody_FailedChunkedBodyReleasesBudget(t *testing.T) {
+	t.Parallel()
+
+	e, err := New(clock.New(), testBodyBytesMax, testBodyBytesMax)
+	require.NoError(t, err)
+	t.Cleanup(e.Close)
+
+	body := bytes.Repeat([]byte("K"), testBodyBytesMax+1)
+	tooLarge := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(&countingReader{data: body, remaining: len(body)}))
+	tooLarge.ContentLength = -1
+	err = e.limitBody(tooLarge)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.User.BadRequest.RequestBodyTooLarge.URN(), urn)
+
+	atLimit := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(&countingReader{}))
+	atLimit.ContentLength = testBodyBytesMax
+	require.NoError(t, e.limitBody(atLimit))
+}
+
 func TestNew_BudgetSmallerThanLimit(t *testing.T) {
 	t.Parallel()
 

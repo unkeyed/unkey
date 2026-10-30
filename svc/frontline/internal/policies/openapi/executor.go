@@ -106,14 +106,15 @@ func (e *Executor) Execute(
 //     Content-Length (chunked, HTTP/2 without the header). Budget full: return 503.
 //  3. No Content-Length: read up to bodyBytesMax into memory here, return 413 if
 //     the body is longer. The validator reads with no limit, so it must get this
-//     buffered copy.
+//     buffered copy. Then shrink the reservation to the buffer size, so small
+//     chunked bodies do not hold bodyBytesMax each.
 //  4. Content-Length set: leave the body alone. Go's server stops at
 //     Content-Length, so the validator can't read past it.
 //
 // The budget is released when the request context ends, not when validation
 // ends, because the validator puts the body back on the request and it stays in
-// memory until the proxy forwards it.
-func (e *Executor) limitBody(req *http.Request) error {
+// memory until the proxy forwards it. On error the budget is released at once.
+func (e *Executor) limitBody(req *http.Request) (err error) {
 	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody {
 		return nil
 	}
@@ -125,6 +126,7 @@ func (e *Executor) limitBody(req *http.Request) error {
 	if bytesReserved < 0 {
 		bytesReserved = e.bodyBytesMax
 	}
+	bytesHeld := bytesReserved
 	if e.bodyBudget != nil && bytesReserved > 0 {
 		if !e.bodyBudget.TryAcquire(bytesReserved) {
 			return fault.New("openapi body budget exhausted",
@@ -133,7 +135,15 @@ func (e *Executor) limitBody(req *http.Request) error {
 				fault.Public("The gateway is validating too many request bodies right now. Retry shortly."),
 			)
 		}
-		context.AfterFunc(req.Context(), func() { e.bodyBudget.Release(bytesReserved) })
+		defer func() {
+			if err != nil {
+				bytesHeld = 0
+			}
+			e.bodyBudget.Release(bytesReserved - bytesHeld)
+			if bytesHeld > 0 {
+				context.AfterFunc(req.Context(), func() { e.bodyBudget.Release(bytesHeld) })
+			}
+		}()
 	}
 
 	if req.ContentLength >= 0 {
@@ -159,6 +169,7 @@ func (e *Executor) limitBody(req *http.Request) error {
 	if int64(len(body)) > e.bodyBytesMax {
 		return bodyTooLarge(e.bodyBytesMax)
 	}
+	bytesHeld = min(int64(cap(body)), bytesReserved)
 
 	req.Body = io.NopCloser(bytes.NewReader(body))
 	req.GetBody = func() (io.ReadCloser, error) {
