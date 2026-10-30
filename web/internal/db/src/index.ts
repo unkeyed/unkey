@@ -11,7 +11,6 @@ export { schema };
 export * from "drizzle-orm";
 export { withReplicas } from "drizzle-orm/mysql-core";
 export { drizzle } from "drizzle-orm/mysql2";
-export { insertApiQuery } from "./api";
 export { annotateSql, staticTagsFromEnv } from "./sqlcomment";
 export type { SqlCommentDynamicTags, SqlCommentStaticTags } from "./sqlcomment";
 export { createCommentedPool, dynamicTagsFromStore, runWithSqlCommentTags } from "./commented-pool";
