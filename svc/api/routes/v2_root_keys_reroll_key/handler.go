@@ -73,12 +73,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	now := h.Clock.Now()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		current, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, req.KeyId)
-		if db.IsNotFound(err) || err == nil && current.WorkspaceID != p.AuthorizedWorkspaceID {
-			return rootKeyNotFound()
+		ids := []string{req.KeyId}
+		callerSource, rootKeyCaller := p.Source.(authprincipal.KeySource)
+		rootKeyCaller = rootKeyCaller && callerSource.KeySpaceID == ""
+		if rootKeyCaller {
+			ids = append(ids, callerSource.KeyID)
 		}
+		locked, err := db.LockUnkeyRootKeys(ctx, tx, ids...)
 		if err != nil {
 			return err
+		}
+		current, found := locked[req.KeyId]
+		if !found || current.WorkspaceID != p.AuthorizedWorkspaceID {
+			return rootKeyNotFound()
+		}
+		if rootKeyCaller {
+			caller, found := locked[callerSource.KeyID]
+			if !found || caller.WorkspaceID != p.AuthorizedWorkspaceID {
+				return fault.New("calling root key not found",
+					fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("The calling root key is no longer available."))
+			}
 		}
 		source = current
 		if caller, ok := p.Source.(authprincipal.KeySource); ok && caller.ExpiresAt != nil {
