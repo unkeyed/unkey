@@ -79,9 +79,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if rootKeyCaller {
 			ids = append(ids, callerSource.KeyID)
 		}
-		locked, err := db.LockUnkeyRootKeys(ctx, tx, ids...)
-		if err != nil {
-			return err
+		slices.Sort(ids)
+		locked := make(map[string]db.UnkeyRootKey, len(ids))
+		for _, id := range slices.Compact(ids) {
+			row, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, id)
+			if db.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			locked[id] = row
 		}
 		current, found := locked[req.KeyId]
 		if !found || current.WorkspaceID != p.AuthorizedWorkspaceID {

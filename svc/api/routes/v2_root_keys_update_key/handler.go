@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"slices"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
@@ -70,9 +71,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if rootKeyCaller {
 			ids = append(ids, source.KeyID)
 		}
-		locked, err := db.LockUnkeyRootKeys(ctx, tx, ids...)
-		if err != nil {
-			return err
+		slices.Sort(ids)
+		locked := make(map[string]db.UnkeyRootKey, len(ids))
+		for _, id := range slices.Compact(ids) {
+			row, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, id)
+			if db.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			locked[id] = row
 		}
 		var found bool
 		key, found = locked[req.KeyId]
