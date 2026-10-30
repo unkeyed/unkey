@@ -7,6 +7,7 @@ CREATE TABLE `limits` (
 	`logs_audit_retention_days_max` smallint unsigned NOT NULL,
 	`logdrains_max` int unsigned NOT NULL DEFAULT 0,
 	`team_enabled` boolean NOT NULL,
+	`root_key_ip_allowlist_enabled` boolean NOT NULL DEFAULT false,
 	`cpu_cores_max` int unsigned NOT NULL,
 	`cpu_cores_max_per_instance` int unsigned NOT NULL,
 	`memory_mib_max` int unsigned NOT NULL,

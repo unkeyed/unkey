@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -99,6 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if !found || current.WorkspaceID != p.AuthorizedWorkspaceID {
 			return rootKeyNotFound()
 		}
+		callerAllowlist := callerSource.AllowedIPs
 		if callerIsRootKey {
 			caller, found := rootKeysByID[callerSource.KeyID]
 			if !found || caller.WorkspaceID != p.AuthorizedWorkspaceID {
@@ -106,8 +108,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 					fault.Public("The calling root key is no longer available."))
 			}
+			callerAllowlist, err = ipallowlist.Parse(caller.IpAllowlist)
+			if err != nil {
+				return fault.Wrap(err, fault.Internal("invalid caller IP allowlist"))
+			}
 		}
 		source = current
+		allowedIPs, err := ipallowlist.Parse(source.IpAllowlist)
+		if err != nil {
+			return fault.Wrap(err, fault.Internal("invalid root key IP allowlist"))
+		}
+		if err := principal.ValidateRootKeyIPAllowlist(callerAllowlist, allowedIPs, nil); err != nil {
+			return err
+		}
 		if caller, ok := p.Source.(authprincipal.KeySource); ok && caller.ExpiresAt != nil {
 			if !source.Expires.Valid || source.Expires.Int64 > caller.ExpiresAt.UnixMilli() {
 				return fault.New("target root key outlives caller",
@@ -144,6 +157,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			End:         generated.End,
 			Enabled:     source.Enabled,
 			Expires:     source.Expires,
+			IpAllowlist: source.IpAllowlist,
 			CreatedAt:   now.UnixMilli(),
 		}); err != nil {
 			return err

@@ -4,6 +4,14 @@ required:
   - keyId
 minProperties: 2
 properties:
+  ipAllowlist:
+    type: array
+    maxItems: 100
+    description: Replacement IPv4 or IPv6 addresses and CIDR ranges. Omit to keep the current list. Use an empty list for unrestricted access. Restricted root-key callers cannot widen their own or the target key's allowed networks.
+    items:
+      type: string
+      minLength: 1
+      maxLength: 49
   keyId:
     type: string
     minLength: 3

@@ -10,6 +10,7 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -54,6 +55,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err := p.Authorize(rbac.U(urn.New().Workspace(p.AuthorizedWorkspaceID).RootKey(req.KeyId), permissions.Write)); err != nil {
 		return err
 	}
+	if req.IpAllowlist != nil {
+		allowedIPs, err := ipallowlist.Parse(*req.IpAllowlist)
+		if err != nil {
+			return fault.Wrap(err, fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Public("Allowed IPs must contain valid IPv4 or IPv6 addresses or CIDR ranges."))
+		}
+		req.IpAllowlist = new(allowedIPs.Strings())
+	}
 	var validatedPermissions []string
 	if req.Permissions != nil {
 		validatedPermissions, err = principalpermissions.ValidateDelegatedPermissions(ctx, p, *req.Permissions)
@@ -95,6 +104,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("The specified root key was not found."),
 			)
 		}
+		callerAllowlist := source.AllowedIPs
 		if callerIsRootKey {
 			caller, found := rootKeysByID[source.KeyID]
 			if !found || caller.WorkspaceID != p.AuthorizedWorkspaceID {
@@ -102,6 +112,29 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 					fault.Public("The calling root key is no longer available."))
 			}
+			callerAllowlist, err = ipallowlist.Parse(caller.IpAllowlist)
+			if err != nil {
+				return fault.Wrap(err, fault.Internal("invalid caller IP allowlist"))
+			}
+		}
+		if req.IpAllowlist != nil {
+			if err := principalpermissions.RequireRootKeyIPAllowlistEnabled(ctx, tx, p.AuthorizedWorkspaceID); err != nil {
+				return err
+			}
+		}
+		previous, err := ipallowlist.Parse(key.IpAllowlist)
+		if err != nil {
+			return fault.Wrap(err, fault.Internal("invalid root key IP allowlist"))
+		}
+		next := previous
+		if req.IpAllowlist != nil {
+			next, err = ipallowlist.Parse(*req.IpAllowlist)
+			if err != nil {
+				return err
+			}
+		}
+		if err := principalpermissions.ValidateRootKeyIPAllowlist(callerAllowlist, next, &previous); err != nil {
+			return err
 		}
 		if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
 			if !key.Expires.Valid || key.Expires.Int64 > source.ExpiresAt.UnixMilli() {
@@ -118,7 +151,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		return h.Auditlogs.Insert(ctx, tx, updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, key, permissionRows, removedPermissions))
+		logs := updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, key, permissionRows, removedPermissions)
+		if req.IpAllowlist != nil {
+			logs[0].Targets[0].Meta = map[string]any{
+				"ipAllowlistBefore": previous.Strings(),
+				"ipAllowlistAfter":  next.Strings(),
+			}
+		}
+		return h.Auditlogs.Insert(ctx, tx, logs)
 	})
 	if err != nil {
 		return err
@@ -145,12 +185,24 @@ func (h *Handler) updateFields(ctx context.Context, tx db.DBTX, workspaceID stri
 		enabledSpecified = 1
 		enabled = sql.NullBool{Bool: *req.Enabled, Valid: true}
 	}
-	if nameSpecified == 0 && enabledSpecified == 0 {
+	var allowedIPsSpecified int64
+	var allowedIPs []string
+	if req.IpAllowlist != nil {
+		allowedIPsSpecified = 1
+		allowedIPs = *req.IpAllowlist
+	}
+	if nameSpecified == 0 && enabledSpecified == 0 && allowedIPsSpecified == 0 {
 		return nil
 	}
 	return db.Query.UpdateUnkeyRootKey(ctx, tx, db.UpdateUnkeyRootKeyParams{
-		NameSpecified: nameSpecified, Name: name, EnabledSpecified: enabledSpecified, Enabled: enabled,
-		ID: req.KeyId, WorkspaceID: workspaceID,
+		NameSpecified:        nameSpecified,
+		Name:                 name,
+		EnabledSpecified:     enabledSpecified,
+		Enabled:              enabled,
+		IpAllowlistSpecified: allowedIPsSpecified,
+		IpAllowlist:          allowedIPs,
+		ID:                   req.KeyId,
+		WorkspaceID:          workspaceID,
 	})
 }
 

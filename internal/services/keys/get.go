@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -149,6 +150,7 @@ func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			Roles:                     roles,
 			Permissions:               permissions,
 			RatelimitConfigs:          ratelimitConfigs,
+			AllowedIPs:                nil,
 		}, nil
 	}, caches.DefaultFindFirstOp)
 
@@ -201,6 +203,10 @@ func cacheUnkeyRootKey(row keysdb.FindUnkeyRootKeyForAuthenticationRow) (keysdb.
 	if err != nil {
 		return keysdb.CachedRootKeyData{}, err
 	}
+	allowedIPs, err := ipallowlist.Parse(row.IpAllowlist)
+	if err != nil {
+		return keysdb.CachedRootKeyData{}, fault.Wrap(err, fault.Internal("invalid root key allowed IPs"))
+	}
 	expires := sql.NullTime{}
 	if row.Expires.Valid {
 		expires = sql.NullTime{Time: time.UnixMilli(row.Expires.Int64), Valid: true}
@@ -217,6 +223,7 @@ func cacheUnkeyRootKey(row keysdb.FindUnkeyRootKeyForAuthenticationRow) (keysdb.
 		WorkspaceEnabled:    true,
 		ForWorkspaceEnabled: row.WorkspaceEnabled,
 		Permissions:         permissions,
+		AllowedIPs:          allowedIPs,
 	}, nil
 }
 
@@ -238,6 +245,7 @@ func cacheLegacyRootKey(row keysdb.FindLegacyRootKeyForAuthenticationRow) (keysd
 		WorkspaceEnabled:    row.WorkspaceEnabled,
 		ForWorkspaceEnabled: row.ForWorkspaceEnabled,
 		Permissions:         permissions,
+		AllowedIPs:          nil,
 	}, nil
 }
 
@@ -257,6 +265,7 @@ func asCachedKey(rootKey keysdb.CachedRootKeyData) keysdb.CachedKeyData {
 			WorkspaceEnabled:    rootKey.WorkspaceEnabled,
 			ForWorkspaceEnabled: rootKey.ForWorkspaceEnabled,
 		},
+		AllowedIPs:       rootKey.AllowedIPs,
 		Roles:            []string{},
 		Permissions:      rootKey.Permissions,
 		RatelimitConfigs: map[string]keysdb.KeyFindForVerificationRatelimit{},
@@ -376,6 +385,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		// By default we assume the key is valid unless proven otherwise
 		Status:           StatusValid,
 		ratelimitConfigs: key.RatelimitConfigs,
+		AllowedIPs:       key.AllowedIPs,
 		Roles:            key.Roles,
 		Permissions:      key.Permissions,
 		RatelimitResults: nil,
@@ -398,6 +408,11 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 
 	if key.Expires.Valid && startTime.After(key.Expires.Time) {
 		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
+		return kv, nil
+	}
+
+	if kv.isRootKey && !kv.AllowedIPs.Allows(sess.ClientIP()) {
+		kv.setInvalid(StatusForbidden, "This IP address is not allowed to use the root key.")
 		return kv, nil
 	}
 

@@ -3,6 +3,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { rootKeysV2QueryKeys } from "@/lib/root-keys-api";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { V2RootKeysUpdateKeyRequestBody } from "@unkey/api/models/components";
 import {
@@ -40,6 +41,7 @@ import { useRootKeyPolicyForm } from "./hooks/use-root-key-policy-form";
 import { KeyFields } from "./key-fields";
 import { buildUrns } from "./lib/urn";
 import { PolicyList } from "./policy-list";
+import { changedIpAllowlist } from "./schema";
 
 type EditKeyAsideProps = {
   keyId: string;
@@ -139,6 +141,9 @@ function EditablePolicyForm({
   onSaved,
 }: { draft: EditableRootKeyDraft; onSaved: () => void } & ActionProps) {
   const workspace = useWorkspaceNavigation();
+  const { limits } = useWorkspace();
+  const ipAllowlistInitial = useRef(draft.ipAllowlist);
+  const ipAllowlistEnabled = limits?.rootKeyIpAllowlistEnabled ?? false;
   const queryClient = useQueryClient();
   const update = useMutation({
     mutationFn: (request: V2RootKeysUpdateKeyRequestBody) =>
@@ -146,12 +151,15 @@ function EditablePolicyForm({
   });
 
   const { form, bodyRef, submit } = useRootKeyPolicyForm(
-    { name: draft.name, policies: draft.policies },
+    { name: draft.name, policies: draft.policies, ipAllowlist: draft.ipAllowlist.join("\n") },
     async (values) => {
       try {
         await update.mutateAsync({
           keyId: draft.keyId,
           name: values.name.trim() || null,
+          ipAllowlist: ipAllowlistEnabled
+            ? changedIpAllowlist(values.ipAllowlist, ipAllowlistInitial.current)
+            : undefined,
           permissions: buildUrns(workspace.id, values.policies),
         });
       } catch (error) {
@@ -174,7 +182,7 @@ function EditablePolicyForm({
     <FormProvider {...form}>
       <form onSubmit={submit} className="flex h-full flex-col">
         <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-3">
-          <KeyFields>
+          <KeyFields ipAllowlistEnabled={ipAllowlistEnabled}>
             <PolicyList />
           </KeyFields>
         </div>

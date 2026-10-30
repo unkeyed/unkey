@@ -6,6 +6,10 @@ import * as z from "zod/v3";
 
 export type V2RootKeysUpdateKeyRequestBody = {
   /**
+   * Replacement IPv4 or IPv6 addresses and CIDR ranges. Omit to keep the current list. Use an empty list for unrestricted access. Restricted root-key callers cannot widen their own or the target key's allowed networks.
+   */
+  ipAllowlist?: Array<string> | undefined;
+  /**
    * Root key identifier returned by rootKeys.createKey or rootKeys.listKeys.
    */
   keyId: string;
@@ -28,6 +32,7 @@ export type V2RootKeysUpdateKeyRequestBody = {
 
 /** @internal */
 export type V2RootKeysUpdateKeyRequestBody$Outbound = {
+  ipAllowlist?: Array<string> | undefined;
   keyId: string;
   name?: string | null | undefined;
   enabled?: boolean | undefined;
@@ -40,6 +45,7 @@ export const V2RootKeysUpdateKeyRequestBody$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2RootKeysUpdateKeyRequestBody
 > = z.object({
+  ipAllowlist: z.array(z.string()).optional(),
   keyId: z.string(),
   name: z.nullable(z.string()).optional(),
   enabled: z.boolean().optional(),
@@ -50,8 +56,6 @@ export function v2RootKeysUpdateKeyRequestBodyToJSON(
   v2RootKeysUpdateKeyRequestBody: V2RootKeysUpdateKeyRequestBody,
 ): string {
   return JSON.stringify(
-    V2RootKeysUpdateKeyRequestBody$outboundSchema.parse(
-      v2RootKeysUpdateKeyRequestBody,
-    ),
+    V2RootKeysUpdateKeyRequestBody$outboundSchema.parse(v2RootKeysUpdateKeyRequestBody),
   );
 }

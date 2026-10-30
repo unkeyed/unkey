@@ -342,11 +342,11 @@ type Querier interface {
 	//FindApiByID
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
-	FindApiByID(ctx context.Context, db DBTX, id string) (FindApiByIDRow, error)
+	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	// FindApiByIDForUpdate locks the API so mutation checks remain valid until commit.
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
-	FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) (FindApiByIDForUpdateRow, error)
+	FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) (Api, error)
 	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
 	// apis.key_auth_id is unique, so each keyspace resolves to at most one api and project.
 	//
@@ -1644,6 +1644,10 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
+	// FindRootKeyIPAllowlistEnabled checks whether a workspace can configure root-key IP restrictions.
+	//
+	//  SELECT root_key_ip_allowlist_enabled FROM limits WHERE workspace_id = ?
+	FindRootKeyIPAllowlistEnabled(ctx context.Context, db DBTX, workspaceID string) (bool, error)
 	// FindUnkeyRootKeyByID reads a new-format root key, excluding soft-deleted keys.
 	// It does not fall back to the legacy keys table.
 	//
@@ -1658,6 +1662,7 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
+	//      ip_allowlist,
 	//      created_at,
 	//      last_used_at,
 	//      deleted_at
@@ -1677,6 +1682,7 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
+	//      ip_allowlist,
 	//      created_at,
 	//      last_used_at,
 	//      deleted_at
@@ -2624,8 +2630,10 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
+	//      ip_allowlist,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3506,6 +3514,7 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
+	//      ip_allowlist,
 	//      created_at,
 	//      last_used_at,
 	//      COALESCE(
@@ -4348,6 +4357,11 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateRole(ctx context.Context, db DBTX, arg UpdateRoleParams) error
+	// UpdateRootKeyIPAllowlistEnabled changes workspace access to IP allowlist configuration.
+	// Existing key restrictions remain enforced when configuration is disabled.
+	//
+	//  UPDATE limits SET root_key_ip_allowlist_enabled = ? WHERE workspace_id = ?
+	UpdateRootKeyIPAllowlistEnabled(ctx context.Context, db DBTX, arg UpdateRootKeyIPAllowlistEnabledParams) error
 	// UpdateUnkeyRootKey changes mutable fields on a live new-format root key.
 	//
 	//  UPDATE unkey_root_keys SET
@@ -4358,6 +4372,10 @@ type Querier interface {
 	//      enabled = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE enabled
+	//      END,
+	//      ip_allowlist = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE ip_allowlist
 	//      END
 	//  WHERE id = ?
 	//      AND workspace_id = ?

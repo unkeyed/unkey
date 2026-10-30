@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 )
@@ -120,7 +121,8 @@ type KeySource struct {
 	Permissions []string
 
 	// ExpiresAt is the authenticated key's expiry. Nil means the key does not expire.
-	ExpiresAt *time.Time
+	ExpiresAt  *time.Time
+	AllowedIPs ipallowlist.Allowlist
 }
 
 func (KeySource) principalSource() {}

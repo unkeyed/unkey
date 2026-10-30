@@ -9,6 +9,7 @@ CREATE TABLE `unkey_root_keys` (
 	`end` varchar(4) NOT NULL,
 	`enabled` boolean NOT NULL,
 	`expires` bigint,
+	`ip_allowlist` json,
 	`created_at` bigint NOT NULL,
 	`last_used_at` bigint unsigned NOT NULL DEFAULT 0,
 	`deleted_at` bigint,

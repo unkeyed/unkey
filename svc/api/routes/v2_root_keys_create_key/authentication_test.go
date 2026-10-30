@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -17,6 +19,63 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
+
+func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
+	h, route, p := newHarness(t)
+	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: []string{}, IpAllowlist: &[]string{"198.51.100.128/25"}})
+	require.Equal(t, http.StatusForbidden, denied.Status, "%s", denied.RawBody)
+	require.NoError(t, db.Query.UpdateRootKeyIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateRootKeyIPAllowlistEnabledParams{WorkspaceID: p.AuthorizedWorkspaceID, Enabled: true}))
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: []string{}, IpAllowlist: &[]string{"198.51.100.128/25", "2001:db8:1234::/48"}})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.NoError(t, db.Query.UpdateRootKeyIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateRootKeyIPAllowlistEnabledParams{WorkspaceID: p.AuthorizedWorkspaceID, Enabled: false}))
+	for _, test := range []struct {
+		address string
+		allowed bool
+	}{
+		{"198.51.100.127:1234", false},
+		{"198.51.100.128:1234", true},
+		{"198.51.100.255:1234", true},
+		{"198.51.101.1:1234", false},
+		{"[2001:db8:1234::42]:1234", true},
+		{"[2001:db8:1235::42]:1234", false},
+		{"", false},
+	} {
+		t.Run(test.address, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", nil)
+			req.RemoteAddr = test.address
+			req.Header.Set("Authorization", "Bearer "+res.Body.Data.Key)
+			req.Header.Set("X-Forwarded-For", "198.51.100.128")
+			session := &zen.Session{}
+			require.NoError(t, session.Init(httptest.NewRecorder(), req, 0))
+			validBefore := rootKeyVerificationCount(t, "VALID")
+			forbiddenBefore := rootKeyVerificationCount(t, "FORBIDDEN")
+			_, err := h.Keys.GetRootKey(t.Context(), session)
+			if test.allowed {
+				require.NoError(t, err)
+				require.Equal(t, validBefore+1, rootKeyVerificationCount(t, "VALID"))
+				require.Equal(t, forbiddenBefore, rootKeyVerificationCount(t, "FORBIDDEN"))
+			} else {
+				require.Error(t, err)
+				code, ok := fault.GetCode(err)
+				require.True(t, ok)
+				require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), code)
+				require.Equal(t, forbiddenBefore+1, rootKeyVerificationCount(t, "FORBIDDEN"))
+				require.Equal(t, validBefore, rootKeyVerificationCount(t, "VALID"))
+			}
+		})
+	}
+}
+
+func rootKeyVerificationCount(t *testing.T, code string) float64 {
+	t.Helper()
+	var metric dto.Metric
+	require.NoError(t, metrics.KeyVerificationsTotal.WithLabelValues("root_key", code).Write(&metric))
+	return metric.GetCounter().GetValue()
+}
 
 // TestRootKeyAuthenticationPrefersNewStore guarantees migration overlap resolves
 // to the new root-key row before the legacy fallback is queried.
