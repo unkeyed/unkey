@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,12 +10,40 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_reroll_key"
 )
+
+func TestRerollRootKeyRejectsMissingCallerWithExistingTarget(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})
+	caller := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+		WorkspaceID: workspace.ID,
+		Permissions: []string{"unkey:v1:" + workspace.ID + ":rootKeys/*#write"},
+	})
+	_, err := h.Keys.GetRootKey(t.Context(), rootKeySession(t, caller.Key))
+	require.NoError(t, err)
+	_, err = db.Query.SoftDeleteUnkeyRootKey(t.Context(), h.DB.RW(), db.SoftDeleteUnkeyRootKeyParams{
+		ID:          caller.KeyID,
+		WorkspaceID: workspace.ID,
+		Now:         sql.NullInt64{Int64: h.Clock.Now().UnixMilli(), Valid: true},
+	})
+	require.NoError(t, err)
+	before := liveRootKeyIDs(t, h, workspace.ID)
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers(caller.Key),
+		handler.Request{KeyId: target.KeyID, Expiration: nullable.NewNullNullable[int64]()})
+	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
+	require.Equal(t, codes.Auth.Authorization.Forbidden.DocsURL(), res.Body.Error.Type)
+	require.Equal(t, "The calling root key is no longer available.", res.Body.Error.Detail)
+	require.Equal(t, before, liveRootKeyIDs(t, h, workspace.ID))
+}
 
 // TestRerollRootKeyCopiesPermissionsAndRevokesOriginal guarantees rotation keeps
 // access while expiration 0 revokes the original even when its cache is warm.

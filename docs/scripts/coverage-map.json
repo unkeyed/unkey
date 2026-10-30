@@ -351,7 +351,7 @@
     {
       "id": "apim.keyspaces-settings",
       "product": "api-management",
-      "capability": "keyspaces: defaults, encrypted key storage, IP whitelist, delete protection",
+      "capability": "keyspaces: defaults, encrypted key storage, delete protection",
       "pages": [
         "api-management/keyspaces/settings"
       ]

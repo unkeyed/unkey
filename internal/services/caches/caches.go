@@ -18,7 +18,7 @@ type Caches struct {
 	RatelimitNamespace cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 
 	// VerificationKeyByHash caches verification key lookups by their hash with pre-parsed data.
-	// Keys are string (hash) and values are keysdb.CachedKeyData (includes pre-parsed IP whitelist).
+	// Keys are string (hash) and values are keysdb.CachedKeyData.
 	VerificationKeyByHash cache.Cache[string, keysdb.CachedKeyData]
 
 	// RootKeyByHash caches root-key authentication lookups by hash.

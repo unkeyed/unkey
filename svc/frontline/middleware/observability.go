@@ -256,7 +256,7 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 		return errorPageInfo{
 			Status:  http.StatusBadRequest,
 			Title:   http.StatusText(http.StatusBadRequest),
-			Message: "The request body could not be read.",
+			Message: "",
 		}
 	case codes.Auth.Authentication.Missing.URN():
 		return errorPageInfo{
@@ -346,6 +346,12 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 			Status:  http.StatusBadRequest,
 			Title:   http.StatusText(http.StatusBadRequest),
 			Message: "",
+		}
+	case codes.Frontline.OpenApi.ValidationBusy.URN():
+		return errorPageInfo{
+			Status:  http.StatusServiceUnavailable,
+			Title:   http.StatusText(http.StatusServiceUnavailable),
+			Message: "The gateway is busy. Retry shortly.",
 		}
 
 	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,

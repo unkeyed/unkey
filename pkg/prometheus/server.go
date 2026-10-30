@@ -33,6 +33,7 @@ func New() (*zen.Server, error) {
 		EnableH2C:          false,
 		StreamRequestBody:  false,
 		ReadTimeout:        0,
+		ReadHeaderTimeout:  0,
 		WriteTimeout:       0,
 		IdleTimeout:        0,
 	})

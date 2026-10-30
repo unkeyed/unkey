@@ -27,8 +27,7 @@ import (
 
 const responseSizeBytesMax = 1 << 20
 
-// APIExecutor inherits the public API's authorization and IP-allowlist checks.
-// For IP-restricted keys, the API sees the gateway's outbound IP.
+// APIExecutor verifies keys through the public API with the configured root key.
 type APIExecutor struct {
 	endpoint string
 	rootKey  string

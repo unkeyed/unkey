@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/caches"
@@ -108,18 +107,6 @@ func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			return keysdb.CachedKeyData{}, err
 		}
 
-		// Parse IP whitelist once during cache population for performance
-		parsedIPWhitelist := make(map[string]struct{})
-		if row.IpWhitelist.Valid && row.IpWhitelist.String != "" {
-			ips := strings.Split(row.IpWhitelist.String, ",")
-			for _, ip := range ips {
-				trimmed := strings.TrimSpace(ip)
-				if trimmed != "" {
-					parsedIPWhitelist[trimmed] = struct{}{}
-				}
-			}
-		}
-
 		// Decode roles / permissions / ratelimits once during cache population so
 		// that cache hits don't re-parse these JSON columns on every verify call.
 		roles, err := db.UnmarshalNullableJSONTo[[]string](row.Roles)
@@ -159,7 +146,6 @@ func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 		return keysdb.CachedKeyData{
 			FindKeyForVerificationRow: row,
-			ParsedIPWhitelist:         parsedIPWhitelist,
 			Roles:                     roles,
 			Permissions:               permissions,
 			RatelimitConfigs:          ratelimitConfigs,
@@ -271,10 +257,9 @@ func asCachedKey(rootKey keysdb.CachedRootKeyData) keysdb.CachedKeyData {
 			WorkspaceEnabled:    rootKey.WorkspaceEnabled,
 			ForWorkspaceEnabled: rootKey.ForWorkspaceEnabled,
 		},
-		ParsedIPWhitelist: map[string]struct{}{},
-		Roles:             []string{},
-		Permissions:       rootKey.Permissions,
-		RatelimitConfigs:  map[string]keysdb.KeyFindForVerificationRatelimit{},
+		Roles:            []string{},
+		Permissions:      rootKey.Permissions,
+		RatelimitConfigs: map[string]keysdb.KeyFindForVerificationRatelimit{},
 	}
 }
 
@@ -389,12 +374,11 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		spentCredits:          0,
 
 		// By default we assume the key is valid unless proven otherwise
-		Status:            StatusValid,
-		ratelimitConfigs:  key.RatelimitConfigs,
-		parsedIPWhitelist: key.ParsedIPWhitelist, // Use pre-parsed IPs from cache
-		Roles:             key.Roles,
-		Permissions:       key.Permissions,
-		RatelimitResults:  nil,
+		Status:           StatusValid,
+		ratelimitConfigs: key.RatelimitConfigs,
+		Roles:            key.Roles,
+		Permissions:      key.Permissions,
+		RatelimitResults: nil,
 	}
 
 	if key.DeletedAtM.Valid {

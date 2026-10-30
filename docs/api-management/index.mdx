@@ -14,7 +14,7 @@ import { ProductLink } from "/snippets/product-link.jsx";
 
 API Management issues API keys for your public API and checks them on every request. Your app stays wherever it runs today. API Management can be used alone or alongside [Compute](/compute).
 
-Issue a key with `keys.createKey`. On each request, your server calls `keys.verifyKey`, which checks expiry, any IP allow list, permissions, rate limits, and credits in one call and returns a single verdict. Unkey stores only a hash of each key. To bring keys you already issued, see [Migrating keys](/api-management/keys/migrating-keys).
+Issue a key with `keys.createKey`. On each request, your server calls `keys.verifyKey`, which checks expiry, permissions, rate limits, and credits in one call and returns a single verdict. Unkey stores only a hash of each key. To bring keys you already issued, see [Migrating keys](/api-management/keys/migrating-keys).
 
 ## Get started
 

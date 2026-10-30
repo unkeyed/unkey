@@ -53,6 +53,7 @@ func TestGetErrorPageInfoFrontline_StatusMapping(t *testing.T) {
 		{codes.Frontline.Auth.UsageExceeded.URN(), http.StatusTooManyRequests},
 		{codes.Frontline.Firewall.Denied.URN(), http.StatusForbidden},
 		{codes.Frontline.OpenApi.InvalidRequest.URN(), http.StatusBadRequest},
+		{codes.Frontline.OpenApi.ValidationBusy.URN(), http.StatusServiceUnavailable},
 
 		// Deployment's own config is invalid — caller-side (422), not a 5xx
 		// frontline fault.
@@ -143,6 +144,29 @@ func TestWithObservability_JSONErrorIncludesMetaRequestID(t *testing.T) {
 			require.NotEmpty(t, body.Error.Code)
 		})
 	}
+}
+
+func TestWithObservability_UnreadableBodyKeepsPublicMessage(t *testing.T) {
+	t.Parallel()
+
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("Accept", "application/json")
+	w := httptest.NewRecorder()
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(w, req, 0))
+
+	handler := WithObservability(stubRenderer{})(func(_ context.Context, _ *zen.Session) error {
+		return fault.New("body read deadline exceeded",
+			fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
+			fault.Public("The request body did not arrive within 30s."),
+		)
+	})
+	require.NoError(t, handler(context.Background(), sess))
+
+	var body ErrorResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, "The request body did not arrive within 30s.", body.Error.Message)
 }
 
 func TestWithObservability_HTMLFallbackIncludesMetaRequestID(t *testing.T) {

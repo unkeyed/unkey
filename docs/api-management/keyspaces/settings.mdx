@@ -11,7 +11,6 @@ sources:
   - internal/services/keys/get.go
   - internal/services/keys/validation.go
   - svc/api/openapi/spec/paths/v2/apis/getApi/V2ApisGetApiResponseData.yaml
-  - web/apps/dashboard/lib/trpc/routers/api/create.ts
   - web/apps/dashboard/lib/trpc/routers/api/query-api-key-details.ts
   - svc/api/routes/v2_apis_create_api/handler.go
   - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/default-prefix.tsx
@@ -19,7 +18,7 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/delete-protection.tsx
 ---
 
-These settings apply to every key in a keyspace. Change them on the keyspace's **Settings** page in the dashboard. There's no API for this. For encrypted key storage and the IP allow list, contact support.
+These settings apply to every key in a keyspace. Change them on the keyspace's **Settings** page in the dashboard. There's no API for this. For encrypted key storage, contact support.
 
 <Frame>
   <img src="/images/dashboard/platform--security-delete-protection--keyspace-settings.png" alt="Keyspace settings page with the name, API ID, keyspace ID, key defaults, and a Danger Zone holding the Delete Protection card and the Delete Keyspace button" />
@@ -56,16 +55,6 @@ These apply when a `keys.createKey` request leaves out `prefix` or `byteLength`.
 <ParamField path="Store encrypted keys" type="boolean" default="false">
   When on, you can create recoverable keys and read them back with `decrypt: true`. When off, `keys.createKey` with `recoverable: true` fails with HTTP 412 "This API does not support key encryption." There's no dashboard toggle. Contact support to turn it on. See [Recoverable keys](/api-management/keys/recoverable-keys).
 </ParamField>
-
-## IP allow list
-
-<ParamField path="IP allow list" type="string" default="none">
-  A comma-separated list of IP addresses, up to 512 characters. When set, a verification of any key in this keyspace fails with `code: FORBIDDEN` unless it comes from an IP on the list.
-</ParamField>
-
-Matching is exact, for IPv4 and IPv6. CIDR ranges such as `10.0.0.0/8` don't work. A request with no client IP is also rejected with `FORBIDDEN`.
-
-New keyspaces have no allow list. Contact support to set or change one. You can't see the list in the dashboard or the API, so if verifications return `FORBIDDEN` and you don't know why, ask support whether an allow list is set.
 
 ## Delete protection
 

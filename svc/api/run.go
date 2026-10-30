@@ -233,6 +233,7 @@ func Run(ctx context.Context, cfg Config) error {
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
 		TrustedProxyCIDRs:  cfg.TrustedProxyCIDRs,
 		ReadTimeout:        0,
+		ReadHeaderTimeout:  0,
 		WriteTimeout:       0,
 		// The idle timeout must exceed the ALB idle timeout (60s by default), or the
 		// ALB can reuse a connection the server has already closed and return a 502.

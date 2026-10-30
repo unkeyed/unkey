@@ -12600,11 +12600,12 @@ paths:
     /v2/deployments.stopDeployment:
         post:
             description: |
-                Stop a running preview deployment. Stopped deployments keep their
-                configuration and can be resumed later with `startDeployment`.
+                Stop a running deployment that is not the app's live production deployment.
+                Stopped deployments keep their configuration. Preview deployments can be
+                resumed later with `startDeployment`.
 
-                The deployment must be ready and running, and must belong to a
-                non-production environment; production deployments cannot be stopped.
+                The deployment must be ready and running. Previous production deployments
+                can be stopped, but stopping one removes instant rollback to it.
                 A deployment that is already draining from a previous stop is rejected
                 with a precondition error.
 
@@ -12679,7 +12680,7 @@ paths:
                                 $ref: '#/components/schemas/PreconditionFailedErrorResponse'
                     description: |
                         Precondition failed - The deployment is not running, a stop is already
-                        in progress, or it belongs to a production environment.
+                        in progress, or it is the app's live production deployment.
                 "429":
                     content:
                         application/problem+json:

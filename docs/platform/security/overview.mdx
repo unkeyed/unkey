@@ -28,7 +28,7 @@ If a keyspace must show a key again, you opt in to an encrypted copy beside the 
 
 ## Should you build your own API key system?
 
-You can. What moves to Unkey is generating the random key, storing only the hash, and checking it on each request. `keys.createKey` issues the key. `keys.verifyKey` checks enabled, expiry, credits, rate limits, permissions, and the IP allow list. If you already have hashes and the format matches, [Migrating keys](/api-management/keys/migrating-keys) covers importing them.
+You can. What moves to Unkey is generating the random key, storing only the hash, and checking it on each request. `keys.createKey` issues the key. `keys.verifyKey` checks enabled, expiry, credits, rate limits, and permissions. If you already have hashes and the format matches, [Migrating keys](/api-management/keys/migrating-keys) covers importing them.
 
 You still run your API, unless you deploy it on Compute. You still decide the HTTP status you return to your users. You stop maintaining the keys table, the hash comparison, and, if you use Unkey for them, the rate-limit counters and the monthly credit balance.
 

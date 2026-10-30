@@ -1,17 +1,22 @@
 ---
 title: "request_body_too_large"
 sidebarTitle: "request_body_too_large"
-description: "The request body is larger than the 10 MiB the API accepts."
+description: "The request body is larger than the size limit."
 sources:
   - pkg/codes/user_request.go
   - svc/api/internal/middleware/errors.go
   - pkg/zen/session.go
   - svc/api/config.go
+  - svc/frontline/config.go
+  - svc/frontline/internal/policies/openapi/executor.go
 ---
 
 <Danger>`err:user:bad_request:request_body_too_large`</Danger>
 
-Your request body is larger than the 10 MiB (10485760 bytes) the API accepts. You get HTTP 413 on any endpoint.
+Your request body is larger than the size limit. You get HTTP 413.
+
+- **Unkey API:** every endpoint accepts at most 10 MiB (10485760 bytes).
+- **Compute gateway:** a request that matches an [OpenAPI validation policy](/compute/gateway/openapi-validation) can have at most 4 MiB (4194304 bytes). Requests without that policy stream to your app and are not limited.
 
 ```json Example response
 {
@@ -32,11 +37,13 @@ Your request body is larger than the 10 MiB (10485760 bytes) the API accepts. Yo
 
 - Large `meta` objects on keys or identities.
 - A `keys.migrateKeys` batch that's too big.
+- A body over 4 MiB sent to a Compute route with an OpenAPI validation policy.
 
 ## How to fix
 
 1. Send less in one request. Keep bulky data on your side and store a reference in `meta`.
 2. Split `keys.migrateKeys` batches into smaller requests.
+3. For a Compute app, send bodies over 4 MiB to a route that has no OpenAPI validation policy.
 
 Each endpoint also has much smaller per-field limits, so a trimmed body can still fail field validation.
 

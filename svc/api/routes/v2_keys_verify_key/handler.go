@@ -137,7 +137,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	opts := []keys.VerifyOption{
 		keys.WithTags(ptr.SafeDeref(req.Tags)),
-		keys.WithIPWhitelist(),
 	}
 
 	if req.Keyspaces != nil {

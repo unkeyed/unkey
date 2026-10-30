@@ -28,10 +28,6 @@ If your product must show a key more than once, we can turn on encrypted storage
 
 `keys.verifyKey` returns `NOT_FOUND` for several failures, including a root key without permission for the keyspace, so nobody can use it to find out which keys exist. Every verification is recorded in [analytics](/api-management/analytics/overview), and verifications made with a root key are also in the [audit log](/platform/workspace/audit-logs/overview).
 
-## IP allow lists
-
-A keyspace can have a list of IP addresses its keys can be verified from. Verification from anywhere else fails with `FORBIDDEN`. Use it for keys that should only be used from your own servers. See [Keyspace settings](/api-management/keyspaces/settings).
-
 ## Delete protection
 
 With delete protection on, you can't delete a keyspace until you turn protection off, so one wrong call can't wipe out a production keyspace and all its keys. See [Delete protection](/platform/security/delete-protection).

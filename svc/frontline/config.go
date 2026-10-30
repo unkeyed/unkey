@@ -109,6 +109,17 @@ type Config struct {
 	// context is cancelled and a 504 is returned.
 	RequestTimeout time.Duration `toml:"request_timeout" config:"default=15m"`
 
+	// OpenapiBodyBytesMax is the max body size the OpenAPI policy reads.
+	// Bigger bodies get 413. Negative means no limit
+	OpenapiBodyBytesMax int64 `toml:"openapi_body_bytes_max" config:"default=4194304"`
+
+	// OpenapiBodyBytesBudget is how many bytes one pod holds for OpenAPI checks
+	// at the same time, counting the bodies and the memory to decode them, up
+	// to 64 times the body size. When it's full, new requests get 503 instead of
+	// the pod running out of memory. Must be >= 64 * OpenapiBodyBytesMax.
+	// Negative means no limit. Ignored when OpenapiBodyBytesMax is negative
+	OpenapiBodyBytesBudget int64 `toml:"openapi_body_bytes_budget" config:"default=536870912"`
+
 	Observability config.Observability `toml:"observability"`
 
 	// Vault configures the encryption/decryption service. See [config.VaultConfig].

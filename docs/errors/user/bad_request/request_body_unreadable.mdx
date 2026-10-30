@@ -6,6 +6,7 @@ sources:
   - pkg/codes/user_request.go
   - svc/api/internal/middleware/errors.go
   - pkg/zen/session.go
+  - svc/frontline/internal/policies/openapi/executor.go
 ---
 
 <Danger>`err:user:bad_request:request_body_unreadable`</Danger>
@@ -32,6 +33,7 @@ The API couldn't read your request body to the end, for a reason other than size
 - Your client disconnected mid-upload.
 - The `Content-Length` header doesn't match the bytes sent.
 - A proxy between you and `api.unkey.com` cut the body short.
+- On a Compute route with an [OpenAPI validation policy](/compute/gateway/openapi-validation), the body didn't arrive within 30 seconds.
 
 ## How to fix
 
