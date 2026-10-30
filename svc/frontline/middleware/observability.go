@@ -222,7 +222,7 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 		return errorPageInfo{
 			Status:  http.StatusBadRequest,
 			Title:   http.StatusText(http.StatusBadRequest),
-			Message: "The request body could not be read.",
+			Message: "",
 		}
 	case codes.Auth.Authentication.Missing.URN():
 		return errorPageInfo{

@@ -146,6 +146,29 @@ func TestWithObservability_JSONErrorIncludesMetaRequestID(t *testing.T) {
 	}
 }
 
+func TestWithObservability_UnreadableBodyKeepsPublicMessage(t *testing.T) {
+	t.Parallel()
+
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("Accept", "application/json")
+	w := httptest.NewRecorder()
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(w, req, 0))
+
+	handler := WithObservability(stubRenderer{})(func(_ context.Context, _ *zen.Session) error {
+		return fault.New("body read deadline exceeded",
+			fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
+			fault.Public("The request body did not arrive within 30s."),
+		)
+	})
+	require.NoError(t, handler(context.Background(), sess))
+
+	var body ErrorResponse
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	require.Equal(t, "The request body did not arrive within 30s.", body.Error.Message)
+}
+
 func TestWithObservability_HTMLFallbackIncludesMetaRequestID(t *testing.T) {
 	t.Parallel()
 
