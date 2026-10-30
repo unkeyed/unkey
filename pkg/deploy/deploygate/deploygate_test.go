@@ -172,7 +172,7 @@ func TestCheckStopTarget(t *testing.T) {
 	prod.CurrentDeploymentID = uid.New(uid.DeploymentPrefix)
 	require.NoError(t, CheckStopTarget(prod))
 	prod.CurrentDeploymentID = prod.DeploymentID
-	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStopTarget(prod))
+	requireCode(t, codes.App.Precondition.DeploymentIsCurrent, CheckStopTarget(prod))
 }
 
 func TestCheckStartTarget(t *testing.T) {

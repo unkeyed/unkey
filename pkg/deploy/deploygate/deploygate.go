@@ -222,7 +222,7 @@ const (
 	StopOK StopFailureReason = iota
 	StopNotRunning
 	StopIsStopping
-	StopIsProduction
+	StopIsCurrent
 )
 
 // Message returns a caller-facing explanation.
@@ -234,7 +234,7 @@ func (r StopFailureReason) Message() string {
 		return "The deployment is not running."
 	case StopIsStopping:
 		return "The deployment is already stopping."
-	case StopIsProduction:
+	case StopIsCurrent:
 		return "The live production deployment cannot be stopped."
 	default:
 		return ""
@@ -250,8 +250,8 @@ func stopFault(r StopFailureReason) error {
 		code = codes.App.Precondition.DeploymentNotRunning
 	case StopIsStopping:
 		code = codes.App.Precondition.DeploymentIsStopping
-	case StopIsProduction:
-		code = codes.App.Precondition.DeploymentIsProduction
+	case StopIsCurrent:
+		code = codes.App.Precondition.DeploymentIsCurrent
 	case StopOK:
 		return nil
 	default:
@@ -275,7 +275,7 @@ func CheckStopTarget(in StopInput) error {
 	case in.DesiredState != dbtype.DeploymentsDesiredStateRunning:
 		return stopFault(StopIsStopping)
 	case isCurrent(in.CurrentDeploymentID, in.DeploymentID):
-		return stopFault(StopIsProduction)
+		return stopFault(StopIsCurrent)
 	default:
 		return nil
 	}

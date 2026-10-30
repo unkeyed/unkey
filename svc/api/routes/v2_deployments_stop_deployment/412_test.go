@@ -105,5 +105,5 @@ func TestStopDeploymentLiveProduction(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "The live production deployment cannot be stopped.")
-	require.Contains(t, res.Body.Error.Type, "deployment_is_production")
+	require.Contains(t, res.Body.Error.Type, "deployment_is_current")
 }
