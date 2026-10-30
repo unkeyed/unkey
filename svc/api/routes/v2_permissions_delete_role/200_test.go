@@ -87,7 +87,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("delete role with permissions", func(t *testing.T) {
 		// Create a role to delete
 		roleID := uid.New(uid.TestPrefix)
-		roleName := "test.delete.role"
+		roleName := uid.DNS1035()
 		roleDesc := "Test role for deletion"
 
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
@@ -106,8 +106,8 @@ func TestSuccess(t *testing.T) {
 				PermissionID: permID,
 				WorkspaceID:  workspace.ID,
 				ProjectID:    projectID,
-				Name:         fmt.Sprintf("test.perm.%d", i),
-				Slug:         fmt.Sprintf("test-perm-%d", i),
+				Name:         uid.DNS1035(),
+				Slug:         uid.DNS1035(),
 				Description:  dbtype.NullString{Valid: true, String: fmt.Sprintf("Test permission %d", i)},
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
@@ -127,7 +127,7 @@ func TestSuccess(t *testing.T) {
 		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      unrelatedRoleID,
 			WorkspaceID: workspace.ID,
-			Name:        "unrelated.delete.role",
+			Name:        uid.DNS1035(),
 			Description: sql.NullString{},
 		})
 		require.NoError(t, err)
@@ -237,7 +237,7 @@ func TestSuccess(t *testing.T) {
 	t.Run("delete role without relationships", func(t *testing.T) {
 		// Create a role with no permissions or key assignments
 		roleID := uid.New(uid.TestPrefix)
-		roleName := "test.delete.role.no.rels"
+		roleName := uid.DNS1035()
 		roleDesc := "Test role with no relationships for deletion"
 
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
