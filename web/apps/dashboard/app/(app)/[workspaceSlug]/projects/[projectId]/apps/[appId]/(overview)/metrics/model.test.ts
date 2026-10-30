@@ -1,11 +1,13 @@
-import { failed, loading, ready } from "@/lib/loadable/fixtures";
+import { failed, held, loading, ready } from "@/lib/loadable/fixtures";
 import type {
   DeployMarker,
   Grid,
+  HeldLoadable,
   InstanceRow,
   InstanceSeries,
   ResourcePoint,
   SourceResult,
+  TrafficPoint,
 } from "@/lib/metrics/app-metrics";
 import { describe, expect, it } from "vitest";
 import {
@@ -29,6 +31,10 @@ const grid: Grid = {
 
 function resource(t: number, cpu: number | null, memory: number | null): ResourcePoint {
   return { t, cpu, memory, disk: 0, ingress: 1, egress: 2, instances: cpu === null ? null : 1 };
+}
+
+function traffic(t: number, requests: number, errors: number, p95: number): TrafficPoint {
+  return { t, requests, errors, errorRate: null, p50: null, p95, p99: null };
 }
 
 const resources: SourceResult<"resources"> = {
@@ -79,12 +85,12 @@ const base = {
   expanded: null,
   sources: {
     traffic: loading,
-    resources: ready(resources),
+    resources: held(resources, false),
   },
-  byInstance: ready(byInstance),
-  deploys: ready([servingBefore, deployedInRange]),
+  byInstance: held(byInstance, false),
+  deploys: held([servingBefore, deployedInRange], false),
   instances: ready([podB]),
-  events: ready([]),
+  events: held([], false),
   filter: { regions: [], statuses: [], instances: [] },
 };
 
@@ -130,10 +136,10 @@ describe("metricsPageModel", () => {
     const { view } = readyModel(metricsPageModel(base));
     expect(view).toEqual({
       kind: "metrics",
-      hero: { metric: "requests", state: { status: "loading" }, pending: false },
+      hero: { metric: "requests", state: { status: "loading" }, outdated: false },
       grid: [
-        { metric: "errors", state: { status: "loading" }, pending: false },
-        { metric: "latency", state: { status: "loading" }, pending: false },
+        { metric: "errors", state: { status: "loading" }, outdated: false },
+        { metric: "latency", state: { status: "loading" }, outdated: false },
       ],
     });
   });
@@ -218,46 +224,117 @@ describe("metricsPageModel", () => {
 
   it("has no per-instance chart for a traffic panel and no panel when nothing is expanded", () => {
     expect(readyModel(metricsPageModel({ ...base, expanded: "requests" })).panel).toEqual({
-      card: { metric: "requests", state: { status: "loading" }, pending: false },
+      card: { metric: "requests", state: { status: "loading" }, outdated: false },
       stats: null,
       byInstance: null,
       historyTruncated: false,
       deploys: [{ marker: deployedInRange, effects: [] }],
-      pending: false,
+      outdated: false,
     });
     expect(readyModel(metricsPageModel(base)).panel).toBeNull();
   });
 
-  it("marks a card pending while it draws another range", () => {
-    const { view } = readyModel(
-      metricsPageModel({ ...base, tab: "resources", grid: { ...grid, range: "6h" } }),
-    );
+  function heroOf(input: Parameters<typeof metricsPageModel>[0]) {
+    const { view } = readyModel(metricsPageModel(input));
     if (view.kind !== "metrics") {
       throw new Error("expected a metrics tab");
     }
-    expect([view.hero.metric, view.hero.pending]).toEqual(["cpu", true]);
+    return view.hero;
+  }
+
+  it("marks a card outdated while its source holds another range", () => {
+    const sources = { ...base.sources, resources: held(resources) };
+    expect(heroOf({ ...base, tab: "resources", sources }).outdated).toBe(true);
+    expect(heroOf({ ...base, tab: "resources" }).outdated).toBe(false);
   });
 
-  it("does not mark a card pending on a tick within the same range", () => {
-    const { view } = readyModel(
-      metricsPageModel({ ...base, tab: "resources", grid: { ...grid, endMs: 180_000 } }),
-    );
-    if (view.kind !== "metrics") {
-      throw new Error("expected a metrics tab");
+  it("does not mark a card outdated while only another source holds another range", () => {
+    const sources = { traffic: held({ grid, points: [] }), resources: held(resources, false) };
+    expect(heroOf({ ...base, tab: "resources", sources }).outdated).toBe(false);
+  });
+
+  it("does not mark the instances tab outdated while only traffic holds another range", () => {
+    const sources = { ...base.sources, traffic: held({ grid, points: [] }) };
+    const { view } = readyModel(metricsPageModel({ ...base, tab: "instances", sources }));
+    if (view.kind !== "instances" || view.instances.status !== "ready") {
+      throw new Error("expected a ready instances tab");
     }
-    expect([view.hero.metric, view.hero.pending]).toEqual(["cpu", false]);
+    expect(view.instances.outdated).toBe(false);
   });
 
-  it("marks the panel pending while its per-instance chart draws another range", () => {
+  it("keeps a card outdated while deploys still hold another range", () => {
+    const deploys = held([servingBefore, deployedInRange]);
+    expect(heroOf({ ...base, tab: "resources", deploys }).outdated).toBe(true);
+    expect(readyModel(metricsPageModel({ ...base, deploys })).markersOutdated).toBe(true);
+    expect(readyModel(metricsPageModel(base)).markersOutdated).toBe(false);
+  });
+
+  it("leaves out effect chips from a source that holds another range", () => {
+    const wide = { ...grid, endMs: 180_000 };
+    const spanning: SourceResult<"resources"> = {
+      grid: wide,
+      points: [resource(0, 250, 0), resource(60_000, 350, 0), resource(120_000, 500, 0)],
+    };
+    const effectsOf = (resources: HeldLoadable<SourceResult<"resources">>) =>
+      readyModel(
+        metricsPageModel({ ...base, grid: wide, sources: { ...base.sources, resources } }),
+      ).deploys.get("d_two")?.effects;
+    expect(effectsOf(held(spanning, false))).toEqual([
+      { metric: "cpu", label: "CPU", change: { kind: "percent", percent: 100 }, tone: "worse" },
+    ]);
+    expect(effectsOf(held(spanning))).toEqual([]);
+  });
+
+  it("leaves out 5xx and p95 chips while traffic holds another range", () => {
+    const wide = { ...grid, endMs: 180_000 };
+    const spanning: SourceResult<"traffic"> = {
+      grid: wide,
+      points: [traffic(0, 10, 0, 100), traffic(60_000, 10, 0, 100), traffic(120_000, 10, 6, 200)],
+    };
+    const effectsOf = (traffic: HeldLoadable<SourceResult<"traffic">>) =>
+      readyModel(
+        metricsPageModel({ ...base, grid: wide, sources: { traffic, resources: loading } }),
+      ).deploys.get("d_two")?.effects;
+    expect(effectsOf(held(spanning, false))).toEqual([
+      { metric: "errors", label: "5xx", change: { kind: "from-zero" }, tone: "worse" },
+      { metric: "p95", label: "p95", change: { kind: "percent", percent: 100 }, tone: "worse" },
+    ]);
+    expect(effectsOf(held(spanning))).toEqual([]);
+  });
+
+  it("does not mark a card outdated by held deploys when it draws no chart", () => {
+    const deploys = held([servingBefore, deployedInRange]);
+    const sources = { ...base.sources, resources: held({ grid, points: [] }, false) };
+    const hero = heroOf({ ...base, tab: "resources", sources, deploys });
+    expect([hero.state.status, hero.outdated]).toEqual(["empty", false]);
+  });
+
+  it("does not mark a panel with a failed card outdated by held deploys", () => {
+    const deploys = held([servingBefore, deployedInRange]);
     const { panel } = readyModel(
       metricsPageModel({
         ...base,
-        grid: { ...grid, range: "6h" },
-        sources: { ...base.sources, resources: loading },
+        sources: { ...base.sources, resources: failed() },
+        byInstance: failed(),
+        deploys,
         expanded: "cpu",
       }),
     );
-    expect([panel?.card.pending, panel?.pending]).toEqual([false, true]);
+    expect([panel?.card.state.status, panel?.outdated]).toEqual(["failed", false]);
+  });
+
+  it("marks the panel outdated while its per-instance chart holds another range", () => {
+    const { panel } = readyModel(
+      metricsPageModel({ ...base, byInstance: held(byInstance), expanded: "cpu" }),
+    );
+    expect([panel?.card.outdated, panel?.outdated]).toEqual([false, true]);
+  });
+
+  it("does not mark a traffic panel outdated by a held per-instance chart it does not show", () => {
+    const { panel } = readyModel(
+      metricsPageModel({ ...base, byInstance: held(byInstance), expanded: "requests" }),
+    );
+    expect(panel?.outdated).toBe(false);
   });
 
   it("turns ready deploys into chart markers", () => {
@@ -272,7 +349,10 @@ describe("metricsPageModel", () => {
       metricsPageModel({
         ...base,
         environment: { kind: "found", environment: preview },
-        deploys: ready([servingBefore, deployedInRange].map((d) => ({ ...d, serving: null }))),
+        deploys: held(
+          [servingBefore, deployedInRange].map((d) => ({ ...d, serving: null })),
+          false,
+        ),
       }),
     );
     expect(model.markers).toEqual([

@@ -9,3 +9,10 @@ export function ready<T>(data: T): Extract<Loadable<T>, { status: "ready" }> {
 export function failed(): Extract<Loadable<never>, { status: "failed" }> {
   return { status: "failed", error: new Error("boom"), retry: () => {} };
 }
+
+export function held<T>(
+  data: T,
+  outdated = true,
+): Extract<Loadable<T>, { status: "ready" }> & { outdated: boolean } {
+  return { ...ready(data), outdated };
+}

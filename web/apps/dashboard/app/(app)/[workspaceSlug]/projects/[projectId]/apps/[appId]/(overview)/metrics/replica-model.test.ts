@@ -1,4 +1,4 @@
-import { failed, loading, ready } from "@/lib/loadable/fixtures";
+import { failed, held, loading, ready } from "@/lib/loadable/fixtures";
 import type {
   Grid,
   InstanceRow,
@@ -51,7 +51,7 @@ describe("replicaUsage", () => {
   });
 
   function sections(usage: InstanceSeries, replica: ReplicaTarget = pod) {
-    const result = replicaUsage(ready(usage), replica, grid);
+    const result = replicaUsage(ready(usage), replica);
     if (result.status !== "ready") {
       throw new Error(`expected ready, got ${result.status}`);
     }
@@ -152,15 +152,15 @@ describe("replicaUsage", () => {
   });
 
   it("reports none when the pod has no series in the range", () => {
-    expect(replicaUsage(ready(series([live])), { ...pod, k8sName: "pod-b" }, grid)).toEqual({
+    expect(replicaUsage(ready(series([live])), { ...pod, k8sName: "pod-b" })).toEqual({
       status: "none",
     });
   });
 
   it("passes loading and failure through", () => {
     const failure = failed();
-    expect(replicaUsage(loading, pod, grid)).toBe(loading);
-    expect(replicaUsage(failure, pod, grid)).toBe(failure);
+    expect(replicaUsage(loading, pod)).toBe(loading);
+    expect(replicaUsage(failure, pod)).toBe(failure);
   });
 });
 
@@ -180,7 +180,7 @@ describe("replicaSheetModel", () => {
     environmentId: "env_prod",
     instances: ready([opened]),
     usage: loading,
-    grid,
+    markersOutdated: false,
   };
 
   it("is closed when nothing is open", () => {
@@ -203,7 +203,56 @@ describe("replicaSheetModel", () => {
       deployment: { id: "d_new", source: null },
       lastExit: null,
       usage: loading,
+      outdated: false,
     });
+  });
+
+  const noSeries: InstanceSeries = {
+    grid,
+    history: { instances: [], truncated: false },
+    instances: [],
+  };
+
+  it("marks the sheet outdated while its usage holds another range", () => {
+    expect(replicaSheetModel({ ...base, usage: held(noSeries) })).toEqual({
+      name: "pod-a",
+      region: "us-east-1",
+      status: "running",
+      deployment: { id: "d_new", source: null },
+      lastExit: null,
+      usage: { status: "none" },
+      outdated: true,
+    });
+  });
+
+  it("does not mark the sheet outdated when its usage and markers are in the range", () => {
+    expect(replicaSheetModel({ ...base, usage: held(noSeries, false) })?.outdated).toBe(false);
+  });
+
+  it("marks a sheet with ready usage outdated while chart markers hold another range", () => {
+    const podSeries: InstanceSeries = {
+      grid,
+      history: { instances: [], truncated: false },
+      instances: [
+        {
+          instance: "pod-a",
+          points: [{ t: 0, cpu: 250, memory: 1024, disk: 0, ingress: 1, egress: 2, instances: 1 }],
+        },
+      ],
+    };
+    const sheet = replicaSheetModel({
+      ...base,
+      usage: held(podSeries, false),
+      markersOutdated: true,
+    });
+    expect([sheet?.usage.status, sheet?.outdated]).toEqual(["ready", true]);
+  });
+
+  it("does not mark a loading or empty sheet outdated by chart markers alone", () => {
+    expect(replicaSheetModel({ ...base, markersOutdated: true })?.outdated).toBe(false);
+    expect(
+      replicaSheetModel({ ...base, usage: held(noSeries, false), markersOutdated: true })?.outdated,
+    ).toBe(false);
   });
 
   it("holds the opened row and marks it stopped once the instance is gone", () => {

@@ -12,13 +12,13 @@ import {
   SlidePanelHeader,
   SlidePanelTitle,
 } from "@unkey/ui";
-import { cn } from "cn";
 import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { commitSubject, sourceLabel } from "./deploy-identity";
 import { EffectChips } from "./effect-chips";
 import { HistoryNotice } from "./history-notice";
 import type { DeployView, PanelModel, PanelStats } from "./model";
+import { outdatedProps } from "./outdated";
 import { SeriesChart } from "./series-chart";
 
 const PANEL_SYNC_ID = "app-metrics-panel";
@@ -77,68 +77,65 @@ function PanelBody({
         </div>
         <SlidePanelCloseButton />
       </SlidePanelHeader>
-      <SlidePanelContent
-        className={cn(
-          "flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6 transition-opacity duration-150 ease-out",
-          panel.pending && "opacity-35 pointer-events-none",
-        )}
-      >
-        <Card>
-          <dl className="grid grid-cols-4 border-b border-grayA-4">
-            {STATS.map(({ key, label }) => (
-              <div
-                key={key}
-                className="flex flex-col gap-1 border-l border-grayA-4 px-4 py-2.5 first:border-l-0"
-              >
-                <dt className="text-xs font-medium text-gray-10">
-                  {label}
-                  {hasManySeries && (
-                    <span className="font-normal text-gray-9"> · {primary.label}</span>
-                  )}
-                </dt>
-                <dd className="font-mono text-sm tabular-nums text-gray-12">
-                  {panel.stats ? formatValue(view.unit, panel.stats[key]) : "—"}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <div className="px-4 pt-3 pb-3">
-            <SeriesChart
-              title={view.title}
-              state={panel.card.state}
-              series={view.series}
-              scale={absoluteScale(view.unit)}
-              markers={markers}
-              height={300}
-              syncId={PANEL_SYNC_ID}
-              connectNulls={view.gaps === "bridge"}
-            />
-          </div>
-        </Card>
-        {panel.byInstance && (
-          <Card className="flex flex-col gap-1.5 px-4 pt-3 pb-3">
-            <h3 className="text-sm font-medium text-gray-12">By instance</h3>
-            {panel.historyTruncated && <HistoryNotice />}
-            <SeriesChart
-              title={`${view.title} by instance`}
-              state={panel.byInstance.chart}
-              series={panel.byInstance.series}
-              scale={absoluteScale(view.unit)}
-              height={160}
-              syncId={PANEL_SYNC_ID}
-            />
-          </Card>
-        )}
-        {panel.deploys.length > 0 && (
-          <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-medium text-gray-12">Deploys in range</h3>
-            <ul className="flex flex-col">
-              {panel.deploys.map((deploy) => (
-                <DeployItem key={deploy.marker.deploymentId} deploy={deploy} />
+      <SlidePanelContent className="overflow-y-auto px-6 pt-2 pb-6">
+        <div {...outdatedProps(panel.outdated, "flex flex-col gap-6")}>
+          <Card>
+            <dl className="grid grid-cols-4 border-b border-grayA-4">
+              {STATS.map(({ key, label }) => (
+                <div
+                  key={key}
+                  className="flex flex-col gap-1 border-l border-grayA-4 px-4 py-2.5 first:border-l-0"
+                >
+                  <dt className="text-xs font-medium text-gray-10">
+                    {label}
+                    {hasManySeries && (
+                      <span className="font-normal text-gray-9"> · {primary.label}</span>
+                    )}
+                  </dt>
+                  <dd className="font-mono text-sm tabular-nums text-gray-12">
+                    {panel.stats ? formatValue(view.unit, panel.stats[key]) : "—"}
+                  </dd>
+                </div>
               ))}
-            </ul>
-          </section>
-        )}
+            </dl>
+            <div className="px-4 pt-3 pb-3">
+              <SeriesChart
+                title={view.title}
+                state={panel.card.state}
+                series={view.series}
+                scale={absoluteScale(view.unit)}
+                markers={markers}
+                height={300}
+                syncId={PANEL_SYNC_ID}
+                connectNulls={view.gaps === "bridge"}
+              />
+            </div>
+          </Card>
+          {panel.byInstance && (
+            <Card className="flex flex-col gap-1.5 px-4 pt-3 pb-3">
+              <h3 className="text-sm font-medium text-gray-12">By instance</h3>
+              {panel.historyTruncated && <HistoryNotice />}
+              <SeriesChart
+                title={`${view.title} by instance`}
+                state={panel.byInstance.chart}
+                series={panel.byInstance.series}
+                scale={absoluteScale(view.unit)}
+                height={160}
+                syncId={PANEL_SYNC_ID}
+              />
+            </Card>
+          )}
+          {panel.deploys.length > 0 && (
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium text-gray-12">Deploys in range</h3>
+              <ul className="flex flex-col">
+                {panel.deploys.map((deploy) => (
+                  <DeployItem key={deploy.marker.deploymentId} deploy={deploy} />
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       </SlidePanelContent>
     </>
   );

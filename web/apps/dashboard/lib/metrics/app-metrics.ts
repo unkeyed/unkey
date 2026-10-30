@@ -1,6 +1,7 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import type { Loadable } from "@/lib/loadable/loadable";
 import type { LastExit } from "@/lib/types/deploy";
+import type { FetchStatus } from "@tanstack/react-query";
 import type { MetricSource, SourcePoint } from "@unkey/clickhouse/src/app-metrics/catalog";
 import { DAY_MS, type Grid, type RangePreset } from "@unkey/clickhouse/src/app-metrics/grid";
 import type { ResourcePoint } from "@unkey/clickhouse/src/app-metrics/resources";
@@ -56,7 +57,17 @@ export function spansDays(grid: Pick<Grid, "startMs" | "endMs">): boolean {
 
 export type SourceResult<S extends MetricSource> = { grid: Grid; points: SourcePoint<S>[] };
 
+export type HeldLoadable<T> =
+  | Exclude<Loadable<never>, { status: "ready" }>
+  | (Extract<Loadable<T>, { status: "ready" }> & { outdated: boolean });
+
+export function isOutdated(loadable: HeldLoadable<unknown>): boolean {
+  return loadable.status === "ready" && loadable.outdated;
+}
+
 export type Sources = { [S in MetricSource]: Loadable<SourceResult<S>> };
+
+export type HeldSources = { [S in MetricSource]: HeldLoadable<SourceResult<S>> };
 
 export type InstanceSeries = {
   grid: Grid;
@@ -162,20 +173,33 @@ export function clampedRetryMs(asked: Grid, served: Grid, fetchCount: number): n
 
 export type Held<T> = { viewKey: string; range: RangePreset; data: T };
 
+export function holdKeyOf(scope: { appId: string; environment: EnvironmentRef }): string {
+  return `${scope.appId}:${environmentKeyOf(scope.environment)}`;
+}
+
 export function resolveHeld<T>(
   held: Held<T> | null,
-  view: { viewKey: string; range: RangePreset; fresh: T | undefined; isError: boolean },
-): { data: T | undefined; held: Held<T> | null } {
+  view: {
+    viewKey: string;
+    range: RangePreset;
+    fresh: T | undefined;
+    isError: boolean;
+    fetchStatus: FetchStatus;
+  },
+): { data: T | undefined; held: Held<T> | null; outdated: boolean } {
   const { viewKey, range, fresh } = view;
   if (fresh !== undefined) {
     const same = held?.data === fresh && held.viewKey === viewKey && held.range === range;
-    return { data: fresh, held: same ? held : { viewKey, range, data: fresh } };
+    return { data: fresh, held: same ? held : { viewKey, range, data: fresh }, outdated: false };
   }
   if (held === null || held.viewKey !== viewKey) {
-    return { data: undefined, held };
+    return { data: undefined, held, outdated: false };
   }
-  if (held.range === range || !view.isError) {
-    return { data: held.data, held };
+  if (held.range === range) {
+    return { data: held.data, held, outdated: false };
   }
-  return { data: undefined, held };
+  if (view.isError) {
+    return { data: undefined, held: null, outdated: false };
+  }
+  return { data: held.data, held, outdated: view.fetchStatus !== "idle" };
 }

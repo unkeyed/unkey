@@ -21,13 +21,13 @@ import {
   SlidePanelTitle,
   TimestampInfo,
 } from "@unkey/ui";
-import { cn } from "cn";
 import type { ReactNode } from "react";
 import { LastExitText } from "../../components/last-exit";
 import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { DeployIdentity } from "./deploy-identity";
 import { PHASE, isStopped } from "./instances-model";
+import { outdatedProps } from "./outdated";
 import {
   REPLICA_METRICS,
   type ReplicaSection,
@@ -80,13 +80,15 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
               </DetailRow>
               {sheet.lastExit && <LastExitRow lastExit={sheet.lastExit} />}
             </dl>
-            {isStopped(sheet.status) && sheet.usage.status === "ready" && (
-              <p className="text-xs text-gray-11">
-                This instance has stopped. Its last recorded usage is below.
-              </p>
-            )}
             <ChartHoverProvider>
-              <ReplicaUsageBody usage={sheet.usage} markers={markers} />
+              <div {...outdatedProps(sheet.outdated, "flex flex-1 flex-col gap-6")}>
+                {isStopped(sheet.status) && sheet.usage.status === "ready" && (
+                  <p className="text-xs text-gray-11">
+                    This instance has stopped. Its last recorded usage is below.
+                  </p>
+                )}
+                <ReplicaUsageBody usage={sheet.usage} markers={markers} />
+              </div>
             </ChartHoverProvider>
           </SlidePanelContent>
         </>
@@ -158,7 +160,6 @@ function ReplicaUsageBody({ usage, markers }: { usage: ReplicaUsage; markers: Ch
             allocation: null,
           }}
           markers={markers}
-          pending={false}
         />
       )),
     )
@@ -175,23 +176,15 @@ function ReplicaUsageBody({ usage, markers }: { usage: ReplicaUsage; markers: Ch
         </EmptyStateHeader>
       </EmptyState>
     ))
-    .with({ status: "ready" }, ({ sections, pending }) =>
+    .with({ status: "ready" }, ({ sections }) =>
       sections.map((section) => (
-        <UsageSection key={section.metric} section={section} markers={markers} pending={pending} />
+        <UsageSection key={section.metric} section={section} markers={markers} />
       )),
     )
     .exhaustive();
 }
 
-function UsageSection({
-  section,
-  markers,
-  pending,
-}: {
-  section: ReplicaSection;
-  markers: ChartMarkers;
-  pending: boolean;
-}) {
+function UsageSection({ section, markers }: { section: ReplicaSection; markers: ChartMarkers }) {
   const view = METRIC_VIEWS[section.metric];
   return (
     <Section heading={view.title} detail={section.allocation}>
@@ -203,10 +196,6 @@ function UsageSection({
         markers={markers}
         height={CHART_HEIGHT}
         syncId={SYNC_ID}
-        className={cn(
-          "transition-opacity duration-150 ease-out",
-          pending && "opacity-35 pointer-events-none",
-        )}
       />
     </Section>
   );

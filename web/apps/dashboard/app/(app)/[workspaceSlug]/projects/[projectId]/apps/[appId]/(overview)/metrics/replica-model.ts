@@ -1,11 +1,13 @@
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
-import type {
-  Grid,
-  InstanceRow,
-  InstanceSeries,
-  MetricId,
-  ReplicaTarget,
-  ResourcePoint,
+import {
+  type Grid,
+  type HeldLoadable,
+  type InstanceRow,
+  type InstanceSeries,
+  type MetricId,
+  type ReplicaTarget,
+  type ResourcePoint,
+  isOutdated,
 } from "@/lib/metrics/app-metrics";
 import { type ChartState, METRIC_VIEWS, chartStateOf, seriesChart } from "@/lib/metrics/views";
 import {
@@ -33,7 +35,7 @@ export type ReplicaUsage =
   | { status: "loading" }
   | ({ status: "failed" } & Failure)
   | { status: "none" }
-  | { status: "ready"; sections: ReplicaSection[]; pending: boolean };
+  | { status: "ready"; sections: ReplicaSection[] };
 
 function isLimited(metric: ReplicaMetric): metric is LimitedMetric {
   return metric in ALLOCATION;
@@ -69,7 +71,6 @@ function replicaSection(
 export function replicaUsage(
   usage: Loadable<InstanceSeries>,
   replica: ReplicaTarget,
-  wanted: Grid,
 ): ReplicaUsage {
   if (usage.status !== "ready") {
     return usage;
@@ -97,7 +98,6 @@ export function replicaUsage(
   return {
     status: "ready",
     sections: REPLICA_METRICS.map((metric) => replicaSection(metric, replica, grid, points)),
-    pending: grid.range !== wanted.range,
   };
 }
 
@@ -110,6 +110,7 @@ export type ReplicaSheetModel = {
   deployment: InstanceRow["deployment"];
   lastExit: InstanceRow["lastExit"];
   usage: ReplicaUsage;
+  outdated: boolean;
 };
 
 export function openInstanceOf(
@@ -138,13 +139,13 @@ export function replicaSheetModel({
   environmentId,
   instances,
   usage,
-  grid,
+  markersOutdated,
 }: {
   open: OpenReplica | null;
   environmentId: string | null;
   instances: Loadable<InstanceRow[]>;
-  usage: Loadable<InstanceSeries>;
-  grid: Grid;
+  usage: HeldLoadable<InstanceSeries>;
+  markersOutdated: boolean;
 }): ReplicaSheetModel | null {
   if (!open || open.environmentId !== environmentId) {
     return null;
@@ -155,12 +156,14 @@ export function replicaSheetModel({
       : undefined;
   const row = live ?? open.row;
   const gone = instances.status === "ready" && !live;
+  const drawn = replicaUsage(usage, row.replica);
   return {
     name: row.replica.k8sName,
     region: row.region.name,
     status: gone ? "stopped" : phaseOf(row),
     deployment: row.deployment,
     lastExit: row.lastExit,
-    usage: replicaUsage(usage, row.replica, grid),
+    usage: drawn,
+    outdated: isOutdated(usage) || (drawn.status === "ready" && markersOutdated),
   };
 }

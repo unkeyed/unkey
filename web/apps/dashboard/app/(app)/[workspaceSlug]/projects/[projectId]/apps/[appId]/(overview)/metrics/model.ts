@@ -2,16 +2,19 @@ import type { AreaChartPoint } from "@/components/charts/area-timeseries";
 import type { ChartMarker } from "@/components/charts/chart-markers";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Loadable } from "@/lib/loadable/loadable";
-import type {
-  DeployMarker,
-  Grid,
-  InstanceEvent,
-  InstanceRow,
-  InstanceSeries,
-  MetricId,
-  Sources,
+import {
+  type DeployMarker,
+  type Grid,
+  type HeldLoadable,
+  type HeldSources,
+  type InstanceEvent,
+  type InstanceRow,
+  type InstanceSeries,
+  METRIC_CATALOG,
+  type MetricId,
+  isOutdated,
 } from "@/lib/metrics/app-metrics";
-import { type ChartState, METRIC_VIEWS, cardState, isPending } from "@/lib/metrics/views";
+import { type ChartState, METRIC_VIEWS, cardState } from "@/lib/metrics/views";
 import { match } from "@unkey/match";
 import { type DeployEffect, type EffectSamples, deployEffects } from "./deploy-effects";
 import {
@@ -72,7 +75,7 @@ export function needsInstanceSeries(tab: MetricsTab, expanded: MetricId | null):
   return tab === "instances" || (expanded !== null && isInstanceMetric(expanded));
 }
 
-export type MetricCardModel = { metric: MetricId; state: ChartState; pending: boolean };
+export type MetricCardModel = { metric: MetricId; state: ChartState; outdated: boolean };
 
 export function legendReadout(
   chart: ReadonlyArray<AreaChartPoint>,
@@ -117,7 +120,7 @@ export type PanelModel = {
   byInstance: InstanceChart | null;
   historyTruncated: boolean;
   deploys: DeployView[];
-  pending: boolean;
+  outdated: boolean;
 };
 
 export type MetricsPageModel =
@@ -129,6 +132,7 @@ export type MetricsPageModel =
       tab: MetricsTab;
       view: TabView;
       markers: ChartMarker[];
+      markersOutdated: boolean;
       deploys: ReadonlyMap<string, DeployView>;
       panel: PanelModel | null;
     };
@@ -137,13 +141,23 @@ function readyOrNull<T>(loadable: Loadable<T>): T | null {
   return loadable.status === "ready" ? loadable.data : null;
 }
 
-function effectSamples({ traffic, resources }: Sources): EffectSamples {
-  return { traffic: readyOrNull(traffic), resources: readyOrNull(resources) };
+function currentOrNull<T>(loadable: HeldLoadable<T>): T | null {
+  return loadable.status === "ready" && !loadable.outdated ? loadable.data : null;
 }
 
-function cardOf(sources: Sources, metric: MetricId, wanted: Grid): MetricCardModel {
+function effectSamples({ traffic, resources }: HeldSources): EffectSamples {
+  return { traffic: currentOrNull(traffic), resources: currentOrNull(resources) };
+}
+
+function cardOf(sources: HeldSources, metric: MetricId, markersOutdated: boolean): MetricCardModel {
   const state = cardState(sources, metric);
-  return { metric, state, pending: isPending(state, wanted) };
+  return {
+    metric,
+    state,
+    outdated:
+      isOutdated(sources[METRIC_CATALOG[metric].source]) ||
+      (state.status === "ready" && markersOutdated),
+  };
 }
 
 type MetricsPageInput = {
@@ -151,11 +165,11 @@ type MetricsPageInput = {
   grid: Grid;
   tab: MetricsTab;
   expanded: MetricId | null;
-  sources: Sources;
-  byInstance: Loadable<InstanceSeries>;
-  deploys: Loadable<DeployMarker[]>;
+  sources: HeldSources;
+  byInstance: HeldLoadable<InstanceSeries>;
+  deploys: HeldLoadable<DeployMarker[]>;
   instances: Loadable<InstanceRow[]>;
-  events: Loadable<InstanceEvent[]>;
+  events: HeldLoadable<InstanceEvent[]>;
   filter: FilterSelection;
 };
 
@@ -170,6 +184,7 @@ export function metricsPageModel(input: MetricsPageInput): MetricsPageModel {
 
 function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): MetricsPageModel {
   const { sources } = input;
+  const markersOutdated = isOutdated(input.deploys);
   const markers = readyOrNull(input.deploys) ?? [];
   const effects = deployEffects(markers, effectSamples(sources));
   const deploys = markers.map((marker) => ({
@@ -182,8 +197,8 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
     layout.kind === "metrics"
       ? {
           kind: "metrics",
-          hero: cardOf(sources, layout.hero, input.grid),
-          grid: layout.grid.map((metric) => cardOf(sources, metric, input.grid)),
+          hero: cardOf(sources, layout.hero, markersOutdated),
+          grid: layout.grid.map((metric) => cardOf(sources, metric, markersOutdated)),
         }
       : {
           kind: "instances",
@@ -193,6 +208,7 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
             usage: input.byInstance,
             events: input.events,
             filter: input.filter,
+            markersOutdated,
           }),
         };
 
@@ -206,8 +222,9 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
       atMs: d.readyAtMs,
       span: d.serving && { endMs: d.serving.untilMs },
     })),
+    markersOutdated,
     deploys: new Map(deploys.map((d) => [d.marker.deploymentId, d])),
-    panel: input.expanded ? panelOf(input.expanded, input, deploys) : null,
+    panel: input.expanded ? panelOf(input.expanded, input, deploys, markersOutdated) : null,
   };
 }
 
@@ -215,13 +232,14 @@ function panelOf(
   metric: MetricId,
   input: {
     grid: Grid;
-    sources: Sources;
-    byInstance: Loadable<InstanceSeries>;
+    sources: HeldSources;
+    byInstance: HeldLoadable<InstanceSeries>;
     instances: Loadable<InstanceRow[]>;
   },
   deploys: DeployView[],
+  markersOutdated: boolean,
 ): PanelModel {
-  const card = cardOf(input.sources, metric, input.grid);
+  const card = cardOf(input.sources, metric, markersOutdated);
   const ready = card.state.status === "ready" ? card.state : null;
   const grid = ready?.grid ?? input.grid;
   const byInstance = isInstanceMetric(metric)
@@ -234,6 +252,9 @@ function panelOf(
     stats: ready ? panelStats(ready.chart, METRIC_VIEWS[metric].primary) : null,
     byInstance,
     deploys: deploys.filter((d) => d.marker.readyAtMs >= grid.startMs).reverse(),
-    pending: card.pending || (byInstance !== null && isPending(byInstance.chart, input.grid)),
+    outdated:
+      card.outdated ||
+      (byInstance !== null &&
+        (isOutdated(input.byInstance) || (byInstance.chart.status === "ready" && markersOutdated))),
   };
 }

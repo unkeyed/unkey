@@ -6,11 +6,12 @@ import {
 } from "@/lib/collections/deploy/instance-status";
 import { exitSummary } from "@/lib/collections/deploy/last-exit";
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
-import { instancesInRange } from "@/lib/metrics/app-metrics";
+import { instancesInRange, isOutdated } from "@/lib/metrics/app-metrics";
 import type {
   DeployRole,
   DeploySource,
   Grid,
+  HeldLoadable,
   InstanceEvent,
   InstanceRow,
   InstanceSeries,
@@ -398,11 +399,11 @@ function scopeOf(
 export type InstancesTabView =
   | { status: "loading" }
   | ({ status: "failed" } & Failure)
-  | { status: "empty" }
+  | { status: "empty"; outdated: boolean }
   | {
       status: "ready";
       grid: Grid;
-      pending: boolean;
+      outdated: boolean;
       filters: InstanceFilters;
       episodes: CrashEpisode[];
       crashEventsFailed: boolean;
@@ -415,16 +416,17 @@ export type InstancesTabView =
 export function instancesTabView(input: {
   grid: Grid;
   instances: Loadable<InstanceRow[]>;
-  usage: Loadable<InstanceSeries>;
-  events: Loadable<InstanceEvent[]>;
+  usage: HeldLoadable<InstanceSeries>;
+  events: HeldLoadable<InstanceEvent[]>;
   filter: FilterSelection;
+  markersOutdated: boolean;
 }): InstancesTabView {
   const instances = instancesInRange(input.instances, input.usage);
   if (instances.status !== "ready") {
     return instances;
   }
   if (instances.data.length === 0) {
-    return { status: "empty" };
+    return { status: "empty", outdated: isOutdated(input.usage) };
   }
   const { filters, inScope } = scopeOf(instanceViews(instances.data), input.filter);
   const usage = usageOf(input.usage);
@@ -449,7 +451,7 @@ export function instancesTabView(input: {
     status: "ready",
     historyTruncated: input.usage.status === "ready" && input.usage.data.history.truncated,
     grid,
-    pending: grid.range !== input.grid.range,
+    outdated: isOutdated(input.usage) || isOutdated(input.events) || input.markersOutdated,
     filters,
     episodes: crashes.episodes,
     crashEventsFailed: crashes.failed,
