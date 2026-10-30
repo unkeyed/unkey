@@ -14,7 +14,7 @@ import (
 	"golang.org/x/term"
 )
 
-// Attach enables guided input only on canonical resource commands.
+// Attach enables interactive prompts only on canonical resource commands.
 func Attach(command *cli.Command, legacy string) {
 	exclusive := []string{"no-input"}
 	for _, flag := range command.Flags {
@@ -32,7 +32,7 @@ func Attach(command *cli.Command, legacy string) {
 		}
 		schema, ok := Lookup(legacy)
 		if !ok {
-			return fmt.Errorf("guided input is not declared for %s", legacy)
+			return fmt.Errorf("prompts are not declared for %s", legacy)
 		}
 		if !term.IsTerminal(int(os.Stdin.Fd())) || !term.IsTerminal(int(os.Stderr.Fd())) {
 			if cmd.Bool("interactive") {
@@ -78,33 +78,39 @@ func Attach(command *cli.Command, legacy string) {
 				conflicts[rule] = rules
 			}
 		}
-		screen := newTerminalForm()
-		defer func() { err = errors.Join(err, screen.finish()) }()
 		form := form{
-			prompt:    screen,
-			out:       screen,
-			screen:    screen,
+			prompt:    nil,
+			out:       os.Stderr,
+			screen:    nil,
 			pick:      resourcePicker(ctx, cmd, legacy),
 			conflicts: conflicts,
 		}
-		if _, err := fmt.Fprintln(form.out, "Ctrl+C to cancel"); err != nil {
-			return err
+		if os.Getenv("TERM") == "dumb" {
+			form.prompt = newLineForm()
+			if _, err := fmt.Fprintln(form.out, cancelHint); err != nil {
+				return err
+			}
+		} else {
+			screen := newTerminalForm()
+			defer func() { err = errors.Join(err, screen.finish()) }()
+			form.prompt, form.out, form.screen = screen, screen, screen
+			form.show(schema, values, "")
 		}
 		if err := form.object(ctx, schema, values, "", needsChanges); err != nil {
-			return fmt.Errorf("guided input cancelled: %w", err)
+			return cancelled(err, "cancelled; no request was sent")
 		}
 		_, operation, _ := strings.Cut(legacy, " ")
 		read := strings.HasPrefix(operation, "get-") || strings.HasPrefix(operation, "list-") || legacy == "keys whoami"
 		if !read {
 			if err := form.confirm(ctx, schema, values, cmd.Usage, needsChanges); err != nil {
-				return fmt.Errorf("guided input cancelled: %w", err)
+				return cancelled(err, "cancelled; no request was sent")
 			}
 		}
 		body, err := requestJSON(values, array)
 		if err != nil {
 			return err
 		}
-		bodyFlag := cli.String("body", "Guided request body")
+		bodyFlag := cli.String("body", "Request body from prompts")
 		if err := bodyFlag.Parse(string(body)); err != nil {
 			return err
 		}
@@ -119,6 +125,14 @@ func Attach(command *cli.Command, legacy string) {
 		cmd.Action = form.recoverValidation(cmd.Action, bodyFlag, schema, values, array, needsChanges)
 		return nil
 	}
+}
+
+// cancelled replaces interruption causes with message so the user sees what was not sent.
+func cancelled(err error, message string) error {
+	if errors.Is(err, errInterrupted) || errors.Is(err, io.EOF) || errors.Is(err, context.Canceled) {
+		return errors.New(message)
+	}
+	return err
 }
 
 func requestJSON(values map[string]any, array bool) ([]byte, error) {
@@ -162,7 +176,7 @@ func flagValues(cmd *cli.Command, schema *Schema, legacy string) (map[string]any
 		}
 		name, field := fieldForFlag(schema, flag.Name())
 		if field == nil {
-			return nil, fmt.Errorf("no guided request field for --%s", flag.Name())
+			return nil, fmt.Errorf("no prompt field for --%s", flag.Name())
 		}
 		var value any
 		switch flag := flag.(type) {
@@ -192,7 +206,7 @@ func flagValues(cmd *cli.Command, schema *Schema, legacy string) (map[string]any
 			}
 			value = items
 		default:
-			return nil, fmt.Errorf("unsupported guided flag --%s", flag.Name())
+			return nil, fmt.Errorf("unsupported prompt flag --%s", flag.Name())
 		}
 		values[name] = value
 	}
