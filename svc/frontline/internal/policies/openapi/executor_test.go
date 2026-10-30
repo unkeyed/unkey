@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/zen"
 )
 
 var minimalSpec = []byte(`
@@ -53,6 +54,23 @@ func newTestExecutor(t *testing.T) *Executor {
 	return e
 }
 
+func newTestSession(t *testing.T) *zen.Session {
+	t.Helper()
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(&deadlineWriter{ResponseRecorder: httptest.NewRecorder()}, httptest.NewRequest("GET", "/", nil), 0))
+	return sess
+}
+
+type deadlineWriter struct {
+	*httptest.ResponseRecorder
+	deadlines []time.Time
+}
+
+func (w *deadlineWriter) SetReadDeadline(deadline time.Time) error {
+	w.deadlines = append(w.deadlines, deadline)
+	return nil
+}
+
 func jsonBody(t *testing.T, value any) []byte {
 	t.Helper()
 	body, err := json.Marshal(value)
@@ -67,7 +85,7 @@ func TestExecute_EmptySpec(t *testing.T) {
 	req := httptest.NewRequest("GET", "/anything", nil)
 
 	//nolint:exhaustruct
-	redactor, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{})
+	redactor, err := e.Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{})
 	require.NoError(t, err)
 	require.Nil(t, redactor)
 }
@@ -80,7 +98,7 @@ func TestExecute_ValidRequest(t *testing.T) {
 	req := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err := e.Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.NoError(t, err)
@@ -98,7 +116,7 @@ func TestExecute_InvalidRequest(t *testing.T) {
 	req := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err := e.Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.Error(t, err)
@@ -129,7 +147,7 @@ func TestExecute_BodyExceedsLimit(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			req.ContentLength = tt.contentLength
 
-			_, err := newTestExecutor(t).Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+			_, err := newTestExecutor(t).Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{
 				SpecYaml: minimalSpec,
 			})
 			require.Error(t, err)
@@ -151,7 +169,7 @@ func TestExecute_BodyExceedsLimitDoesNotReadBody(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.ContentLength = int64(reader.remaining)
 
-	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err := e.Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.Error(t, err)
@@ -169,7 +187,7 @@ func TestExecute_BodyAtLimitPasses(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.ContentLength = -1
 
-	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err := e.Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.NoError(t, err)
@@ -198,7 +216,7 @@ func TestExecute_LimitDisabled(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.ContentLength = -1
 
-	_, err = e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err = e.Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: minimalSpec,
 	})
 	require.NoError(t, err)
@@ -214,7 +232,7 @@ func TestLimitBody_BodyIsBuffered(t *testing.T) {
 		req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
 		req.ContentLength = contentLength
 
-		require.NoError(t, e.limitBody(req))
+		require.NoError(t, e.limitBody(newTestSession(t).ResponseWriter(), req))
 		require.Zero(t, reader.remaining)
 		require.NotNil(t, req.GetBody)
 		require.EqualValues(t, len(body), req.ContentLength)
@@ -236,13 +254,13 @@ func TestLimitBody_BudgetExhausted(t *testing.T) {
 	t.Cleanup(endHolder)
 	holder := httptest.NewRequestWithContext(holderCtx, "POST", "/users", io.NopCloser(&countingReader{data: body, remaining: len(body)}))
 	holder.ContentLength = int64(len(body))
-	require.NoError(t, e.limitBody(holder))
+	require.NoError(t, e.limitBody(newTestSession(t).ResponseWriter(), holder))
 
 	reader := &countingReader{data: body, remaining: len(body)}
 	req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(reader))
 	req.ContentLength = int64(len(body))
 
-	err := e.limitBody(req)
+	err := e.limitBody(newTestSession(t).ResponseWriter(), req)
 	require.Error(t, err)
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)
@@ -251,7 +269,7 @@ func TestLimitBody_BudgetExhausted(t *testing.T) {
 
 	endHolder()
 	require.Eventually(t, func() bool {
-		return e.limitBody(req) == nil
+		return e.limitBody(newTestSession(t).ResponseWriter(), req) == nil
 	}, time.Second, 5*time.Millisecond)
 }
 
@@ -264,7 +282,7 @@ func TestLimitBody_ChunkedBodyHoldsOnlyItsSize(t *testing.T) {
 	for range 2 * decodeExpansionMax {
 		req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(&countingReader{data: body, remaining: len(body)}))
 		req.ContentLength = -1
-		require.NoError(t, e.limitBody(req))
+		require.NoError(t, e.limitBody(newTestSession(t).ResponseWriter(), req))
 	}
 }
 
@@ -276,7 +294,7 @@ func TestLimitBody_FailedChunkedBodyReleasesBudget(t *testing.T) {
 	body := bytes.Repeat([]byte("K"), testBodyBytesMax+1)
 	tooLarge := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(&countingReader{data: body, remaining: len(body)}))
 	tooLarge.ContentLength = -1
-	err := e.limitBody(tooLarge)
+	err := e.limitBody(newTestSession(t).ResponseWriter(), tooLarge)
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)
 	require.Equal(t, codes.User.BadRequest.RequestBodyTooLarge.URN(), urn)
@@ -296,7 +314,7 @@ func TestExecute_DecodeBudgetExhausted(t *testing.T) {
 	t.Cleanup(endBusy)
 	req := httptest.NewRequestWithContext(busyCtx, "POST", "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	_, err := e.Execute(busyCtx, nil, req, &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec})
+	_, err := e.Execute(busyCtx, newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec})
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)
 	require.Equal(t, codes.Frontline.OpenApi.ValidationBusy.URN(), urn)
@@ -313,9 +331,39 @@ func TestExecute_DecodeBudgetExhausted(t *testing.T) {
 
 	req = httptest.NewRequestWithContext(t.Context(), "POST", "/users", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	_, err = e.Execute(t.Context(), nil, req, &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec})
+	_, err = e.Execute(t.Context(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec})
 	require.NoError(t, err)
 	require.True(t, e.bodyBudget.TryAcquire(bytesFree+1-int64(len(body))))
+}
+
+func TestLimitBody_ClearsReadDeadline(t *testing.T) {
+	t.Parallel()
+
+	e := newTestExecutor(t)
+	body := []byte("KEBAP")
+	w := &deadlineWriter{ResponseRecorder: httptest.NewRecorder()}
+	req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", bytes.NewReader(body))
+
+	require.NoError(t, e.limitBody(w, req))
+	require.Len(t, w.deadlines, 2)
+	require.False(t, w.deadlines[0].IsZero())
+	require.True(t, w.deadlines[1].IsZero())
+}
+
+func TestExecute_TwoPoliciesReserveBodyOnce(t *testing.T) {
+	t.Parallel()
+
+	e := newTestExecutor(t)
+	body := jsonBody(t, map[string]string{"name": "KEBAP"})
+	req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	cfg := &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec}
+
+	for range 2 {
+		_, err := e.Execute(t.Context(), newTestSession(t), req, cfg)
+		require.NoError(t, err)
+	}
+	require.True(t, e.bodyBudget.TryAcquire(testBodyBytesBudget-int64(len(body))))
 }
 
 func TestNew_BudgetSmallerThanLimit(t *testing.T) {
@@ -349,7 +397,7 @@ func TestExecute_InvalidSpec(t *testing.T) {
 	e := newTestExecutor(t)
 	req := httptest.NewRequest("GET", "/anything", nil)
 
-	_, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	_, err := e.Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: []byte("not valid yaml: [[["),
 	})
 	require.Error(t, err)
@@ -368,12 +416,12 @@ func TestExecute_CachesCompiledValidator(t *testing.T) {
 	body := jsonBody(t, map[string]string{"name": "alice"})
 	req1 := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
 	req1.Header.Set("Content-Type", "application/json")
-	_, err := e.Execute(context.Background(), nil, req1, cfg)
+	_, err := e.Execute(context.Background(), newTestSession(t), req1, cfg)
 	require.NoError(t, err)
 
 	req2 := httptest.NewRequest("POST", "/users", bytes.NewReader(body))
 	req2.Header.Set("Content-Type", "application/json")
-	_, err = e.Execute(context.Background(), nil, req2, cfg)
+	_, err = e.Execute(context.Background(), newTestSession(t), req2, cfg)
 	require.NoError(t, err)
 
 	_, hit := e.cache.Get(context.Background(), string(minimalSpec))
@@ -411,7 +459,7 @@ paths:
 	req := httptest.NewRequest("POST", "/secrets", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	redactor, err := newTestExecutor(t).Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{
+	redactor, err := newTestExecutor(t).Execute(context.Background(), newTestSession(t), req, &frontlinev1.OpenApiRequestValidation{
 		SpecYaml: spec,
 	})
 	require.NoError(t, err)

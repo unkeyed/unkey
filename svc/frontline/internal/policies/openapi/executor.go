@@ -3,6 +3,7 @@ package openapi
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,6 +28,10 @@ type compiledSpec struct {
 // decodeExpansionMax is the worst-case heap the validator uses per body byte.
 // Peak heap while validating arrays of {} or 0 reached ~60x the body size
 const decodeExpansionMax = 64
+
+// bodyReadTimeout bounds how long a slow client holds its body reservation.
+// 30s fits a 4MiB body at ~1.1 Mbit/s
+const bodyReadTimeout = 30 * time.Second
 
 type Executor struct {
 	cache        cache.Cache[string, *compiledSpec]
@@ -64,7 +69,7 @@ func (e *Executor) Close() {
 
 func (e *Executor) Execute(
 	ctx context.Context,
-	_ *zen.Session,
+	sess *zen.Session,
 	req *http.Request,
 	cfg *frontlinev1.OpenApiRequestValidation,
 ) (*redaction.Redactor, error) {
@@ -73,7 +78,7 @@ func (e *Executor) Execute(
 		return nil, nil
 	}
 
-	if err := e.limitBody(req); err != nil {
+	if err := e.limitBody(sess.ResponseWriter(), req); err != nil {
 		return nil, err
 	}
 
@@ -117,9 +122,11 @@ func (e *Executor) Execute(
 // holding that reservation while it trickles bytes.
 //
 // The body stays reserved until the request context ends, because the validator
-// puts it back on the request and it stays in memory until the proxy forwards it
-func (e *Executor) limitBody(req *http.Request) (err error) {
-	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody {
+// puts it back on the request and it stays in memory until the proxy forwards it.
+// A set GetBody means the body is already in memory, buffered by an earlier
+// OpenAPI policy on this request, so it is not reserved twice
+func (e *Executor) limitBody(w http.ResponseWriter, req *http.Request) (err error) {
+	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody || req.GetBody != nil {
 		return nil
 	}
 	if req.ContentLength > e.bodyBytesMax {
@@ -145,6 +152,22 @@ func (e *Executor) limitBody(req *http.Request) (err error) {
 			}
 		}()
 	}
+
+	rc := http.NewResponseController(w)
+	if err := rc.SetReadDeadline(time.Now().Add(bodyReadTimeout)); err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+			fault.Internal("unable to set request body read deadline"),
+		)
+	}
+	defer func() {
+		if clearErr := rc.SetReadDeadline(time.Time{}); clearErr != nil {
+			err = errors.Join(err, fault.Wrap(clearErr,
+				fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+				fault.Internal("unable to clear request body read deadline"),
+			))
+		}
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(req.Body, e.bodyBytesMax+1))
 	closeErr := req.Body.Close()
