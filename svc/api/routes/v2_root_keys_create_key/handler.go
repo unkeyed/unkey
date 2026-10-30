@@ -84,6 +84,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyID := uid.New(uid.KeyPrefix)
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		if source, ok := p.Source.(principal.KeySource); ok && source.KeySpaceID == "" {
+			// Prevent concurrent deletion or policy changes to the calling root key
+			// while this transaction creates a new key.
+			caller, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, source.KeyID)
+			if db.IsNotFound(err) || err == nil && caller.WorkspaceID != p.AuthorizedWorkspaceID {
+				return fault.New("calling root key not found",
+					fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("The calling root key is no longer available."))
+			}
+			if err != nil {
+				return err
+			}
+		}
 		err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
 			ID:          keyID,
 			WorkspaceID: p.AuthorizedWorkspaceID,

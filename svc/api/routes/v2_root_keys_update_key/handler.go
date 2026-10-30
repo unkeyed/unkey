@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"slices"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
@@ -64,15 +65,43 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var key db.UnkeyRootKey
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		key, err = db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, req.KeyId)
-		if db.IsNotFound(err) || err == nil && key.WorkspaceID != p.AuthorizedWorkspaceID {
+		rootKeyIDs := []string{req.KeyId}
+		source, callerIsRootKey := p.Source.(principal.KeySource)
+		callerIsRootKey = callerIsRootKey && source.KeySpaceID == ""
+		if callerIsRootKey {
+			// Keep caller data stable for policy checks until the target write commits.
+			rootKeyIDs = append(rootKeyIDs, source.KeyID)
+		}
+		// Lock in ID order to prevent deadlocks when key A mutates key B
+		// while key B concurrently mutates key A.
+		slices.Sort(rootKeyIDs)
+		rootKeysByID := make(map[string]db.UnkeyRootKey, len(rootKeyIDs))
+		for _, id := range slices.Compact(rootKeyIDs) {
+			row, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, id)
+			// Classify missing callers and targets separately below.
+			if db.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			rootKeysByID[id] = row
+		}
+		var found bool
+		key, found = rootKeysByID[req.KeyId]
+		if !found || key.WorkspaceID != p.AuthorizedWorkspaceID {
 			return fault.New("root key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
 				fault.Public("The specified root key was not found."),
 			)
 		}
-		if err != nil {
-			return err
+		if callerIsRootKey {
+			caller, found := rootKeysByID[source.KeyID]
+			if !found || caller.WorkspaceID != p.AuthorizedWorkspaceID {
+				return fault.New("calling root key not found",
+					fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("The calling root key is no longer available."))
+			}
 		}
 		if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
 			if !key.Expires.Valid || key.Expires.Int64 > source.ExpiresAt.UnixMilli() {

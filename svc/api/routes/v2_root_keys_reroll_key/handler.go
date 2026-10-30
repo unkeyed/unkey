@@ -73,12 +73,39 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	now := h.Clock.Now()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		current, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, req.KeyId)
-		if db.IsNotFound(err) || err == nil && current.WorkspaceID != p.AuthorizedWorkspaceID {
+		rootKeyIDs := []string{req.KeyId}
+		callerSource, callerIsRootKey := p.Source.(authprincipal.KeySource)
+		callerIsRootKey = callerIsRootKey && callerSource.KeySpaceID == ""
+		if callerIsRootKey {
+			// Keep caller data stable for policy checks until the target write commits.
+			rootKeyIDs = append(rootKeyIDs, callerSource.KeyID)
+		}
+		// Lock in ID order to prevent deadlocks when key A mutates key B
+		// while key B concurrently mutates key A.
+		slices.Sort(rootKeyIDs)
+		rootKeysByID := make(map[string]db.UnkeyRootKey, len(rootKeyIDs))
+		for _, id := range slices.Compact(rootKeyIDs) {
+			row, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, id)
+			// Classify missing callers and targets separately below.
+			if db.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			rootKeysByID[id] = row
+		}
+		current, found := rootKeysByID[req.KeyId]
+		if !found || current.WorkspaceID != p.AuthorizedWorkspaceID {
 			return rootKeyNotFound()
 		}
-		if err != nil {
-			return err
+		if callerIsRootKey {
+			caller, found := rootKeysByID[callerSource.KeyID]
+			if !found || caller.WorkspaceID != p.AuthorizedWorkspaceID {
+				return fault.New("calling root key not found",
+					fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("The calling root key is no longer available."))
+			}
 		}
 		source = current
 		if caller, ok := p.Source.(authprincipal.KeySource); ok && caller.ExpiresAt != nil {
