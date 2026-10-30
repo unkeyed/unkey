@@ -33,6 +33,7 @@ func New(cfg *config.PprofConfig, prefix string) (*zen.Server, error) {
 		MaxRequestBodySize: 0,
 		TrustedProxyCIDRs:  nil,
 		ReadTimeout:        -1,
+		ReadHeaderTimeout:  0,
 		WriteTimeout:       -1,
 		IdleTimeout:        0,
 	})

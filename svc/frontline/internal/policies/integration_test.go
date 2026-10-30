@@ -169,9 +169,11 @@ func newTestHarness(t *testing.T) *testHarness {
 	t.Cleanup(keyVerifications.Close)
 
 	eng, err := policies.New(policies.Config{
-		KeyAuth:     keyauth.New(keyService, clk, keyVerifications),
-		RateLimiter: rateLimiter,
-		Clock:       clk,
+		KeyAuth:                keyauth.New(keyService, clk, keyVerifications),
+		RateLimiter:            rateLimiter,
+		Clock:                  clk,
+		OpenapiBodyBytesMax:    4 << 20,
+		OpenapiBodyBytesBudget: 512 << 20,
 	})
 	require.NoError(t, err)
 

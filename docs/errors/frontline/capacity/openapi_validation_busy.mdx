@@ -1,0 +1,46 @@
+---
+title: "openapi_validation_busy"
+sidebarTitle: "openapi_validation_busy"
+description: "The gateway is too busy validating requests to check this one right now."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/openapi/executor.go
+---
+
+<Danger>`err:frontline:capacity:openapi_validation_busy`</Danger>
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The request matches an [OpenAPI validation policy](/compute/gateway/openapi-validation), and the gateway is too busy validating other requests to check this one. You get `503 Service Unavailable`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:capacity:openapi_validation_busy",
+    "message": "The gateway is busy. Retry shortly."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Retry after a short delay, with backoff.
+
+## If you own this API
+
+If you see this often under normal traffic, contact support.
+
+<ProductLink product="compute" href="/compute/gateway/openapi-validation" title="OpenAPI validation">
+  OpenAPI validation policies are a Compute gateway feature.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:client:openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed): the request doesn't match the OpenAPI spec.
+- [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large): the body is over the 4 MiB limit.
