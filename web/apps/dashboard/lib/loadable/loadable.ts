@@ -1,11 +1,9 @@
-export type Failure = { error: unknown; retry: () => void };
-
-export type Stale = Failure & { retrying: boolean };
+export type Failure = { error: unknown; retry: () => void; retrying: boolean };
 
 export type Loadable<T> =
   | { status: "loading" }
   | ({ status: "failed" } & Failure)
-  | { status: "ready"; data: T; stale: Stale | null };
+  | { status: "ready"; data: T; stale: Failure | null };
 
 export type QueryResult<T> = {
   data: T | undefined;
@@ -19,7 +17,7 @@ export function fromQuery<Q extends QueryResult<T>, T = Exclude<Q["data"], undef
   query: Q,
 ): Loadable<T> {
   const retry = () => {
-    query.refetch().catch(() => {});
+    void query.refetch();
   };
   if (query.data !== undefined) {
     return {
@@ -29,30 +27,13 @@ export function fromQuery<Q extends QueryResult<T>, T = Exclude<Q["data"], undef
     };
   }
   if (query.isError) {
-    return { status: "failed", error: query.error, retry };
+    return { status: "failed", error: query.error, retry, retrying: query.isFetching };
   }
   return { status: "loading" };
 }
 
-export function readyOr<T>(view: Loadable<T>, fallback: T): T {
-  return view.status === "ready" ? view.data : fallback;
-}
-
-export type Blocker = { status: "loading" } | ({ status: "failed" } & Failure);
-
-export function blockerOf(views: ReadonlyArray<Loadable<unknown>>): Blocker | null {
-  const failed = views.flatMap((view) => (view.status === "failed" ? [view] : []));
-  const first = failed.at(0);
-  if (first) {
-    return {
-      status: "failed",
-      error: first.error,
-      retry: () => {
-        for (const view of failed) {
-          view.retry();
-        }
-      },
-    };
-  }
-  return views.some((view) => view.status === "loading") ? { status: "loading" } : null;
+export function mapLoadable<T, U>(loadable: Loadable<T>, map: (data: T) => U): Loadable<U> {
+  return loadable.status === "ready"
+    ? { status: "ready", data: map(loadable.data), stale: loadable.stale }
+    : loadable;
 }

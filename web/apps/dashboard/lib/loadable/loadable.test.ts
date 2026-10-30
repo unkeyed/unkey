@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { type Loadable, type QueryResult, blockerOf, fromQuery } from "./loadable";
+import { type QueryResult, fromQuery, mapLoadable } from "./loadable";
 
 function query<T>(overrides: Partial<QueryResult<T>>, refetches: string[] = []): QueryResult<T> {
   return {
@@ -28,11 +28,22 @@ describe("fromQuery", () => {
       status: "failed",
       error,
       retry: expect.any(Function),
+      retrying: false,
     });
     if (result.status === "failed") {
       result.retry();
     }
     expect(refetches).toEqual(["refetch"]);
+  });
+
+  test("no data with an error and a refetch in flight fails retrying", () => {
+    const error = new Error("boom");
+    expect(fromQuery(query({ isError: true, isFetching: true, error }))).toEqual({
+      status: "failed",
+      error,
+      retry: expect.any(Function),
+      retrying: true,
+    });
   });
 
   test("data without an error is ready and fresh", () => {
@@ -69,40 +80,15 @@ describe("fromQuery", () => {
   });
 });
 
-describe("blockerOf", () => {
-  const ready: Loadable<string[]> = { status: "ready", data: ["a"], stale: null };
-
-  test("every view ready is nothing pending", () => {
-    expect(blockerOf([ready, ready])).toBeNull();
-  });
-
-  test("no views is nothing pending", () => {
-    expect(blockerOf([])).toBeNull();
-  });
-
-  test("a ready view with a failed refresh does not block", () => {
-    const stale = { error: new Error("refresh"), retry: () => {}, retrying: false };
-    expect(blockerOf([{ status: "ready", data: ["a"], stale }])).toBeNull();
-  });
-
-  test("one view loading is loading", () => {
-    expect(blockerOf([ready, { status: "loading" }])).toEqual({ status: "loading" });
-  });
-
-  test("a failed view outranks a loading one and retries every failed view", () => {
-    const retries: string[] = [];
-    const first = new Error("domains");
-    const result = blockerOf([
-      { status: "loading" },
-      { status: "failed", error: first, retry: () => retries.push("domains") },
-      ready,
-      { status: "failed", error: new Error("custom"), retry: () => retries.push("custom") },
-    ]);
-
-    expect(result).toEqual({ status: "failed", error: first, retry: expect.any(Function) });
-    if (result?.status === "failed") {
-      result.retry();
-    }
-    expect(retries).toEqual(["domains", "custom"]);
+describe("mapLoadable", () => {
+  test("maps ready data and passes other states through", () => {
+    expect(mapLoadable({ status: "ready", data: 2, stale: null }, (n) => n * 2)).toEqual({
+      status: "ready",
+      data: 4,
+      stale: null,
+    });
+    expect(mapLoadable({ status: "loading" }, (n: number) => n * 2)).toEqual({
+      status: "loading",
+    });
   });
 });
