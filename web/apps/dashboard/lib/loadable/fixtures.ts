@@ -7,5 +7,5 @@ export function ready<T>(data: T): Extract<Loadable<T>, { status: "ready" }> {
 }
 
 export function failed(): Extract<Loadable<never>, { status: "failed" }> {
-  return { status: "failed", error: new Error("boom"), retry: () => {} };
+  return { status: "failed", error: new Error("boom"), retry: () => {}, retrying: false };
 }
