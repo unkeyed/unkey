@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"time"
 
 	"connectrpc.com/connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -59,8 +58,6 @@ func (s *Service) decrypt(
 	cacheKey := fmt.Sprintf("%s-%s", keyring, keyID)
 
 	dek, _, err := s.keyCache.SWR(ctx, cacheKey, func(ctx context.Context) (*vaultv1.DataEncryptionKey, error) {
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
 		return s.keyring.GetKey(ctx, keyring, keyID)
 	}, func(err error) cache.Op {
 		if err != nil {

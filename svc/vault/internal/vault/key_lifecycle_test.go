@@ -95,13 +95,12 @@ func TestKeyLifecycle_ReEncryptPreservesData(t *testing.T) {
 	reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 	require.NoError(t, err)
 	result := reencRes.Msg.GetItems()[id]
-	require.Empty(t, result.GetError())
-	require.NotNil(t, result.GetSuccess())
+	require.NotNil(t, result)
 
 	// Decrypt the re-encrypted data
 	decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 		Keyring:   keyring,
-		Encrypted: result.GetSuccess().GetEncrypted(),
+		Encrypted: result.GetEncrypted(),
 	})
 	decReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
@@ -141,11 +140,10 @@ func TestKeyLifecycle_ReEncryptProducesDifferentCiphertext(t *testing.T) {
 	reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 	require.NoError(t, err)
 	result := reencRes.Msg.GetItems()[id]
-	require.Empty(t, result.GetError())
-	require.NotNil(t, result.GetSuccess())
+	require.NotNil(t, result)
 
 	// Ciphertexts should be different (different nonce)
-	require.NotEqual(t, originalEncrypted, result.GetSuccess().GetEncrypted(),
+	require.NotEqual(t, originalEncrypted, result.GetEncrypted(),
 		"re-encrypted data should have different ciphertext")
 }
 
@@ -180,8 +178,7 @@ func TestKeyLifecycle_OldCiphertextStillDecryptable(t *testing.T) {
 	reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 	require.NoError(t, err)
 	result := reencRes.Msg.GetItems()[id]
-	require.Empty(t, result.GetError())
-	require.NotNil(t, result.GetSuccess())
+	require.NotNil(t, result)
 
 	// Original ciphertext should still be decryptable
 	decReq := connect.NewRequest(&vaultv1.DecryptRequest{
@@ -227,9 +224,8 @@ func TestKeyLifecycle_MultipleReEncryptions(t *testing.T) {
 		reencRes, err := service.ReEncryptBulk(ctx, reencReq)
 		require.NoError(t, err, "re-encryption %d failed", i)
 		result := reencRes.Msg.GetItems()[id]
-		require.Empty(t, result.GetError(), "re-encryption %d failed", i)
-		require.NotNil(t, result.GetSuccess())
-		encrypted = result.GetSuccess().GetEncrypted()
+		require.NotNil(t, result)
+		encrypted = result.GetEncrypted()
 	}
 
 	// Decrypt final result
@@ -297,8 +293,7 @@ func TestKeyLifecycle_CrossKeyringReEncryptFails(t *testing.T) {
 	reencReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
 
 	reencRes, err := service.ReEncryptBulk(ctx, reencReq)
-	require.NoError(t, err)
-	result := reencRes.Msg.GetItems()[id]
-	require.NotEmpty(t, result.GetError(), "re-encryption with wrong keyring should fail")
-	require.Nil(t, result.GetSuccess())
+	require.Error(t, err, "re-encryption with wrong keyring should fail")
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	require.Nil(t, reencRes)
 }

@@ -54,12 +54,11 @@ func TestReEncryptBulk_UsesCachedKeysUntilExpiry(t *testing.T) {
 			require.Len(t, res.Msg.GetItems(), len(items))
 			for id, item := range items {
 				result := res.Msg.GetItems()[id]
-				require.Empty(t, result.GetError())
-				require.NotNil(t, result.GetSuccess())
-				require.Equal(t, phase.keyIDs[id], result.GetSuccess().GetKeyId())
-				require.NotEqual(t, item.GetEncrypted(), result.GetSuccess().GetEncrypted())
+				require.NotNil(t, result)
+				require.Equal(t, phase.keyIDs[id], result.GetKeyId())
+				require.NotEqual(t, item.GetEncrypted(), result.GetEncrypted())
 				decryptReq := connect.NewRequest(&vaultv1.DecryptRequest{
-					Keyring: item.GetKeyring(), Encrypted: result.GetSuccess().GetEncrypted(),
+					Keyring: item.GetKeyring(), Encrypted: result.GetEncrypted(),
 				})
 				decryptReq.Header().Set("Authorization", "Bearer "+service.bearer)
 				decrypted, err := service.Decrypt(t.Context(), decryptReq)
@@ -70,7 +69,7 @@ func TestReEncryptBulk_UsesCachedKeysUntilExpiry(t *testing.T) {
 	}
 }
 
-func TestReEncryptBulk_IsolatesItemFailuresOverRPC(t *testing.T) {
+func TestReEncryptBulk_ItemFailureFailsRequestOverRPC(t *testing.T) {
 	service := setupTestService(t)
 	mux := http.NewServeMux()
 	mux.Handle(vaultv1connect.NewVaultServiceHandler(service))
@@ -94,22 +93,10 @@ func TestReEncryptBulk_IsolatesItemFailuresOverRPC(t *testing.T) {
 	})
 	req.Header().Set("Authorization", "Bearer "+service.bearer)
 	res, err := client.ReEncryptBulk(t.Context(), req)
-	require.NoError(t, err)
-	require.Len(t, res.Msg.GetItems(), 3)
-	for _, id := range []string{idCorrupt, idWrongKeyring} {
-		require.NotEmpty(t, res.Msg.GetItems()[id].GetError())
-		require.Nil(t, res.Msg.GetItems()[id].GetSuccess())
-		require.NotContains(t, res.Msg.GetItems()[id].GetError(), "preserved secret")
-	}
-	result := res.Msg.GetItems()[idValid]
-	require.Empty(t, result.GetError())
-	require.Equal(t, encrypted.Msg.GetKeyId(), result.GetSuccess().GetKeyId())
-	require.NotEqual(t, encrypted.Msg.GetEncrypted(), result.GetSuccess().GetEncrypted())
-	decryptReq := connect.NewRequest(&vaultv1.DecryptRequest{Keyring: keyring, Encrypted: result.GetSuccess().GetEncrypted()})
-	decryptReq.Header().Set("Authorization", "Bearer "+service.bearer)
-	decrypted, err := client.Decrypt(t.Context(), decryptReq)
-	require.NoError(t, err)
-	require.Equal(t, "preserved secret", decrypted.Msg.GetPlaintext())
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	require.Nil(t, res)
+	require.NotContains(t, err.Error(), "preserved secret")
 }
 
 func TestReEncryptBulk_BatchSizeLimit(t *testing.T) {
@@ -136,7 +123,7 @@ func TestReEncryptBulk_BatchSizeLimit(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, res.Msg.GetItems(), size)
 			for id := range items {
-				require.NotNil(t, res.Msg.GetItems()[id].GetSuccess())
+				require.NotNil(t, res.Msg.GetItems()[id])
 			}
 		})
 	}

@@ -66,7 +66,6 @@ func (g *Generator) Generate(req *plugin.GenerateRequest) (*plugin.GenerateRespo
 	// Collect all bulk functions for interface generation
 	var bulkFunctions []BulkFunction
 
-	// Generate bulk insert functions for each existing insert function
 	for _, query := range req.GetQueries() {
 		if !g.isInsertQuery(query) {
 			continue

@@ -2594,6 +2594,25 @@ type Querier interface {
 	//    ?
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
+	// InsertSharedSecret creates a fixture with caller-controlled expiry and
+	// encryption metadata, allowing tests to cover retained and rotated secrets.
+	//
+	//  INSERT INTO shared_secrets (
+	//      id,
+	//      workspace_id,
+	//      expires_at,
+	//      created_at,
+	//      encrypted,
+	//      encryption_key_id
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertSharedSecret(ctx context.Context, db DBTX, arg InsertSharedSecretParams) error
 	// InsertUnkeyPermission assigns a permission directly to a principal in the
 	// customer workspace that owns it. Duplicate permissions for that principal are rejected.
 	//

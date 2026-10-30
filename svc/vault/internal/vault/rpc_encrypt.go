@@ -42,8 +42,6 @@ func (s *Service) encrypt(
 	cacheKey := fmt.Sprintf("%s-%s", keyring, LATEST)
 
 	dek, _, err := s.keyCache.SWR(ctx, cacheKey, func(ctx context.Context) (*vaultv1.DataEncryptionKey, error) {
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
 		return s.keyring.GetOrCreateKey(ctx, keyring, LATEST)
 	}, func(err error) cache.Op {
 		if err != nil {

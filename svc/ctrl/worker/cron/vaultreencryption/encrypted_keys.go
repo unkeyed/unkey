@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption/internal/db"
 )
 
 func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, error) {
@@ -35,16 +35,15 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 		if err := ctx.Err(); err != nil {
 			return after, err
 		}
-		item := res.GetItems()[strconv.FormatUint(row.Pk, 10)].GetSuccess()
+		item := res.GetItems()[strconv.FormatUint(row.Pk, 10)]
 		if item == nil {
 			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
 		}
 		_, err := h.db.UpdateVaultEncryptedKey(ctx, db.UpdateVaultEncryptedKeyParams{
-			Pk:            row.Pk,
-			Keyring:       row.Keyring,
-			CiphertextOld: row.Ciphertext,
-			Ciphertext:    item.GetEncrypted(),
-			KeyID:         item.GetKeyId(),
+			Pk:         row.Pk,
+			Keyring:    row.Keyring,
+			Ciphertext: item.GetEncrypted(),
+			KeyID:      item.GetKeyId(),
 		})
 		if err != nil {
 			return after, fmt.Errorf("failed to update pk %d", row.Pk)

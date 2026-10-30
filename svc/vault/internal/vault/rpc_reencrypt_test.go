@@ -37,10 +37,9 @@ func TestReEncryptBulk_WithValidAuth(t *testing.T) {
 	reencryptRes, err := service.ReEncryptBulk(ctx, reencryptReq)
 	require.NoError(t, err)
 	result := reencryptRes.Msg.GetItems()[id]
-	require.Empty(t, result.GetError())
-	require.NotNil(t, result.GetSuccess())
-	require.NotEmpty(t, result.GetSuccess().GetEncrypted())
-	require.NotEmpty(t, result.GetSuccess().GetKeyId())
+	require.NotNil(t, result)
+	require.NotEmpty(t, result.GetEncrypted())
+	require.NotEmpty(t, result.GetKeyId())
 	// Re-encryption might use the same key if it's already the latest
 }
 

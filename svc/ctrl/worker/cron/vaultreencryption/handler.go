@@ -13,20 +13,21 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/pkg/mysql"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption/internal/db"
 )
 
 const batchSize = 100
 
 type Config struct {
-	DB db.Database
+	DB mysql.DBTX
 	// Vault may be nil so workers without Vault can still run other cron jobs.
 	Vault     vault.VaultServiceClient
 	Heartbeat healthcheck.Heartbeat
 }
 
 type Handler struct {
-	db        db.Database
+	db        *db.Queries
 	vault     vault.VaultServiceClient
 	heartbeat healthcheck.Heartbeat
 }
@@ -43,7 +44,7 @@ func New(cfg Config) (*Handler, error) {
 		return nil, err
 	}
 	return &Handler{
-		db:        cfg.DB,
+		db:        db.NewQueries(cfg.DB),
 		vault:     cfg.Vault,
 		heartbeat: cfg.Heartbeat,
 	}, nil
@@ -55,7 +56,14 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 		return nil, restate.ToTerminalError(fmt.Errorf("Vault is not configured"))
 	}
 	tables := map[string]func(context.Context, cursor) (cursor, error){
-		"encrypted_keys": h.encryptedKeys,
+		"encrypted_keys":                h.encryptedKeys,
+		"app_environment_variables":     h.environmentVariables,
+		"deployments":                   h.deployments,
+		"logdrains":                     h.logdrains,
+		"certificates":                  h.certificates,
+		"shared_secrets":                h.sharedSecrets,
+		"clickhouse_workspace_settings": h.clickhouseSettings,
+		"acme_users":                    h.acmeUsers,
 	}
 	var failures []error
 	for _, table := range slices.Sorted(maps.Keys(tables)) {

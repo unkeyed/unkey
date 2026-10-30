@@ -11,35 +11,33 @@ import (
 
 const updateVaultEncryptedKey = `-- name: UpdateVaultEncryptedKey :execrows
 UPDATE encrypted_keys
-SET encrypted = ?, encryption_key_id = ?
+SET encrypted = ?,
+    encryption_key_id = ?
 WHERE pk = ?
-  AND BINARY workspace_id = BINARY ?
-  AND BINARY encrypted = BINARY ?
+  AND workspace_id = ?
 `
 
 type UpdateVaultEncryptedKeyParams struct {
-	Ciphertext    string `db:"ciphertext"`
-	KeyID         string `db:"key_id"`
-	Pk            uint64 `db:"pk"`
-	Keyring       string `db:"keyring"`
-	CiphertextOld string `db:"ciphertext_old"`
+	Ciphertext string `db:"ciphertext"`
+	KeyID      string `db:"key_id"`
+	Pk         uint64 `db:"pk"`
+	Keyring    string `db:"keyring"`
 }
 
-// Replace only the version that was read. Binary comparison protects
-// concurrent writes even on case-insensitive database collations.
+// API key plaintext is immutable. The cron serializes re-encryption writes.
+// Keys deleted during re-encryption remain deleted.
 //
 //	UPDATE encrypted_keys
-//	SET encrypted = ?, encryption_key_id = ?
+//	SET encrypted = ?,
+//	    encryption_key_id = ?
 //	WHERE pk = ?
-//	  AND BINARY workspace_id = BINARY ?
-//	  AND BINARY encrypted = BINARY ?
+//	  AND workspace_id = ?
 func (q *Queries) UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateVaultEncryptedKey,
 		arg.Ciphertext,
 		arg.KeyID,
 		arg.Pk,
 		arg.Keyring,
-		arg.CiphertextOld,
 	)
 	if err != nil {
 		return 0, err

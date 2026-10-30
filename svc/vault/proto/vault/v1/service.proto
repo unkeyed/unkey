@@ -58,15 +58,8 @@ message ReEncryptBulkRequest {
   // Up to 100 ciphertexts, keyed by caller-provided IDs. Keyrings may differ.
   map<string, DecryptRequest> items = 1;
 }
-message ReEncryptBulkResponseItem {
-  // Item failures do not discard successful results from the same request.
-  oneof result {
-    EncryptResponse success = 1;
-    string error = 2;
-  }
-}
 message ReEncryptBulkResponse {
-  map<string, ReEncryptBulkResponseItem> items = 1;
+  map<string, EncryptResponse> items = 1;
 }
 
 service VaultService {
