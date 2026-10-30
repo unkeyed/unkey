@@ -25,7 +25,7 @@ type compiledSpec struct {
 }
 
 // decodeExpansionMax is the worst-case heap the validator uses per body byte.
-// Measured peak heap while validating arrays of {} or 0 reached ~60x the body size.
+// Peak heap while validating arrays of {} or 0 reached ~60x the body size
 const decodeExpansionMax = 64
 
 type Executor struct {
@@ -86,12 +86,12 @@ func (e *Executor) Execute(
 		)
 	}
 
-	bytesDecoded := (decodeExpansionMax - 1) * req.ContentLength
-	if e.bodyBudget != nil && e.bodyBytesMax > 0 && bytesDecoded > 0 {
-		if !e.bodyBudget.TryAcquire(bytesDecoded) {
-			return nil, validationBusy(bytesDecoded)
+	decodeBytesReserved := (decodeExpansionMax - 1) * req.ContentLength
+	if e.bodyBudget != nil && e.bodyBytesMax > 0 && decodeBytesReserved > 0 {
+		if !e.bodyBudget.TryAcquire(decodeBytesReserved) {
+			return nil, validationBusy(decodeBytesReserved)
 		}
-		defer e.bodyBudget.Release(bytesDecoded)
+		defer e.bodyBudget.Release(decodeBytesReserved)
 	}
 
 	result := compiled.validator.Validate(req)
@@ -111,23 +111,13 @@ func (e *Executor) Execute(
 	)
 }
 
-// limitBody runs before the validator reads the body:
+// limitBody buffers the body under bodyBytesMax, because the validator reads with
+// no limit. A body without Content-Length reserves bodyBytesMax until it is read.
+// Reading here, before Execute reserves decode memory, stops a slow client from
+// holding that reservation while it trickles bytes.
 //
-//  1. Content-Length > bodyBytesMax: return 413, the body is never read.
-//  2. Reserve budget: Content-Length bytes, or bodyBytesMax when there is no
-//     Content-Length (chunked, HTTP/2 without the header). Budget full: return 503.
-//  3. Read up to bodyBytesMax into memory here, return 413 if the body is
-//     longer. The validator reads with no limit, so it must get this buffered
-//     copy. Then shrink the reservation to the buffer size, so small chunked
-//     bodies do not hold bodyBytesMax each.
-//
-// Execute then reserves the decode memory the validator needs on top of the
-// body, and releases it when Validate returns. The body is read first so a slow
-// client can't hold the decode reservation while it trickles bytes.
-//
-// The budget is released when the request context ends, not when validation
-// ends, because the validator puts the body back on the request and it stays in
-// memory until the proxy forwards it. On error the budget is released at once.
+// The body stays reserved until the request context ends, because the validator
+// puts it back on the request and it stays in memory until the proxy forwards it
 func (e *Executor) limitBody(req *http.Request) (err error) {
 	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody {
 		return nil

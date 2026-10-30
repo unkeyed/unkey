@@ -68,8 +68,8 @@ type Config struct {
 	ReadTimeout time.Duration
 
 	// ReadHeaderTimeout is the maximum duration for reading request headers.
-	// If 0, defaults to 10 seconds. Set it even when ReadTimeout is disabled,
-	// so a client cannot hold a connection open by sending headers slowly.
+	// If 0, defaults to 10 seconds. It applies even when ReadTimeout is disabled,
+	// so a client cannot hold a connection open by sending headers slowly
 	ReadHeaderTimeout time.Duration
 
 	// WriteTimeout is the maximum duration before timing out writes of the response.

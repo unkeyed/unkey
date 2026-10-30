@@ -59,7 +59,7 @@ Codes are grouped by who needs to act.
 | --- | --- | --- |
 | [`err:frontline:config:invalid_configuration`](/errors/frontline/config/invalid_configuration) | 422 | A policy on the deployment is invalid: a `permissionQuery` can't be parsed, a `credits` value is negative, or the OpenAPI spec is invalid. Fix it and redeploy. |
 | [`err:frontline:capacity:no_running_instances`](/errors/frontline/capacity/no_running_instances) | 503 | No instance in any region is running to take the request. |
-| [`err:frontline:capacity:openapi_validation_busy`](/errors/frontline/capacity/openapi_validation_busy) | 503 | The gateway is holding too many request bodies for an [OpenAPI validation policy](/compute/gateway/openapi-validation). Retry shortly. |
+| [`err:frontline:capacity:openapi_validation_busy`](/errors/frontline/capacity/openapi_validation_busy) | 503 | The gateway is using all the memory it allows for [OpenAPI validation](/compute/gateway/openapi-validation) checks. Retry shortly. |
 | [`err:frontline:capacity:deployment_offline`](/errors/frontline/capacity/deployment_offline) | 503 | The deployment was stopped, or its <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> was cancelled. |
 | [`err:frontline:capacity:spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached) | 402 | Compute for the workspace is paused because it reached its [spend budget](/compute/configure/spend-budget). Raise or remove the budget to resume. |
 | [`err:frontline:routing:config_not_found`](/errors/frontline/routing/config_not_found) | 404 | No deployment is routed for this hostname. |
