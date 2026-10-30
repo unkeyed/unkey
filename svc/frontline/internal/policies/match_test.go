@@ -2,6 +2,7 @@ package policies
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/netip"
 	"net/url"
 	"testing"
@@ -108,6 +109,77 @@ func TestMatchesRequest_PathCaseInsensitive(t *testing.T) {
 	require.True(t, matched)
 }
 
+func TestMatchesRequest_PathVariants(t *testing.T) {
+	t.Parallel()
+
+	exact := func(v string) *frontlinev1.StringMatch {
+		return &frontlinev1.StringMatch{IgnoreCase: false, Match: &frontlinev1.StringMatch_Exact{Exact: v}}
+	}
+	prefix := func(v string) *frontlinev1.StringMatch {
+		return &frontlinev1.StringMatch{IgnoreCase: false, Match: &frontlinev1.StringMatch_Prefix{Prefix: v}}
+	}
+	regex := func(v string) *frontlinev1.StringMatch {
+		return &frontlinev1.StringMatch{IgnoreCase: false, Match: &frontlinev1.StringMatch_Regex{Regex: v}}
+	}
+
+	tests := []struct {
+		name     string
+		target   string
+		match    *frontlinev1.StringMatch
+		expected bool
+	}{
+		{"exact ignores case", "/ADMIN", exact("/admin"), true},
+		{"exact ignores trailing slash", "/admin/", exact("/admin"), true},
+		{"exact ignores segment parameter", "/admin;x", exact("/admin"), true},
+		{"exact ignores duplicate slash", "//admin", exact("/admin"), true},
+		{"exact resolves encoded parent segment", "/public/%2e%2e/admin", exact("/admin"), true},
+		{"exact with trailing slash matches path without one", "/admin", exact("/admin/"), true},
+		{"exact does not match longer path", "/admin2", exact("/admin"), false},
+		{"exact does not match other path", "/public", exact("/admin"), false},
+		{"prefix with slash matches bare path", "/ADMIN", prefix("/admin/"), true},
+		{"prefix matches child", "/admin/users", prefix("/admin/"), true},
+		{"prefix does not match sibling", "/administrator", prefix("/admin/"), false},
+		{"prefix ignores case", "/Admin/x", prefix("/admin"), true},
+		{"regex ignores case and trailing slash", "/ADMIN/", regex("^/admin$"), true},
+		{"raw path is not matched", "/public/..;/admin", prefix("/public/"), false},
+		{"escaped dots are not matched", "/public/%2e%2e/admin", prefix("/public/"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			req := httptest.NewRequest(http.MethodGet, tt.target, nil)
+			exprs := []*frontlinev1.MatchExpr{
+				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{Path: tt.match}}},
+			}
+
+			matched, err := matchesRequest(req, netip.Addr{}, exprs, newRegexCache())
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, matched)
+		})
+	}
+}
+
+func TestMatchesRequest_HeaderValueKeepsCaseSensitivity(t *testing.T) {
+	t.Parallel()
+
+	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/"}, Header: http.Header{}}
+	req.Header.Set("X-Tenant", "ABC")
+	exprs := []*frontlinev1.MatchExpr{
+		{Expr: &frontlinev1.MatchExpr_Header{Header: &frontlinev1.HeaderMatch{
+			Name: "X-Tenant",
+			Match: &frontlinev1.HeaderMatch_Value{Value: &frontlinev1.StringMatch{
+				IgnoreCase: false,
+				Match:      &frontlinev1.StringMatch_Exact{Exact: "abc"},
+			}},
+		}}},
+	}
+
+	matched, err := matchesRequest(req, netip.Addr{}, exprs, newRegexCache())
+	require.NoError(t, err)
+	require.False(t, matched)
+}
+
 func TestMatchesRequest_MethodMatch(t *testing.T) {
 	t.Parallel()
 	rc := newRegexCache()
@@ -123,6 +195,10 @@ func TestMatchesRequest_MethodMatch(t *testing.T) {
 		{"multiple methods", "POST", []string{"GET", "POST"}, true},
 		{"no match", "DELETE", []string{"GET", "POST"}, false},
 		{"empty methods matches all", "DELETE", nil, true},
+		{"get covers head", "HEAD", []string{"GET"}, true},
+		{"get covers head ignoring case", "head", []string{"get"}, true},
+		{"head does not cover get", "GET", []string{"HEAD"}, false},
+		{"post does not cover head", "HEAD", []string{"POST"}, false},
 	}
 
 	for _, tt := range tests {

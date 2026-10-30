@@ -174,6 +174,8 @@ func (*MatchExpr_RemoteIp) isMatchExpr_Expr() {}
 type StringMatch struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// When true, matching is case-insensitive. Applied to all match modes.
+	// Path matching always ignores case, so this has no effect inside a
+	// [PathMatch].
 	IgnoreCase bool `protobuf:"varint,1,opt,name=ignore_case,json=ignoreCase,proto3" json:"ignore_case,omitempty"`
 	// Types that are valid to be assigned to Match:
 	//
@@ -288,6 +290,14 @@ func (*StringMatch_Regex) isStringMatch_Match() {}
 // without the query string — use [QueryParamMatch] to match query parameters
 // separately. Leading slashes are preserved, so patterns should include them
 // (e.g., prefix "/api/v1" not "api/v1").
+//
+// Matching ignores case and tests the canonical path, not the raw one: ";"
+// segment parameters are stripped, "//", "." and ".." are resolved, and a
+// trailing slash is optional. App frameworks route these variants to the same
+// handler, so matching the raw path would let them bypass the policy. Paths
+// frameworks read in different ways, with encoded dot segments or encoded
+// slashes, are rejected before matching. The upstream still receives the
+// original path.
 type PathMatch struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Path          *StringMatch           `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
@@ -335,7 +345,8 @@ func (x *PathMatch) GetPath() *StringMatch {
 // MethodMatch tests the HTTP method of the incoming request. Comparison is
 // always case-insensitive per the HTTP specification, regardless of the
 // StringMatch ignore_case setting. The methods list is an OR — the request
-// matches if its method equals any entry.
+// matches if its method equals any entry. GET also matches HEAD, because most
+// frameworks answer HEAD with the GET handler.
 type MethodMatch struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// HTTP methods to match against, e.g. ["GET", "POST"]. The match succeeds

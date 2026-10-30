@@ -87,6 +87,8 @@ export const MatchExprSchema: GenMessage<MatchExpr> = /*@__PURE__*/
 export type StringMatch = Message<"frontline.v1.StringMatch"> & {
   /**
    * When true, matching is case-insensitive. Applied to all match modes.
+   * Path matching always ignores case, so this has no effect inside a
+   * [PathMatch].
    *
    * @generated from field: bool ignore_case = 1;
    */
@@ -138,6 +140,14 @@ export const StringMatchSchema: GenMessage<StringMatch> = /*@__PURE__*/
  * separately. Leading slashes are preserved, so patterns should include them
  * (e.g., prefix "/api/v1" not "api/v1").
  *
+ * Matching ignores case and tests the canonical path, not the raw one: ";"
+ * segment parameters are stripped, "//", "." and ".." are resolved, and a
+ * trailing slash is optional. App frameworks route these variants to the same
+ * handler, so matching the raw path would let them bypass the policy. Paths
+ * frameworks read in different ways, with encoded dot segments or encoded
+ * slashes, are rejected before matching. The upstream still receives the
+ * original path.
+ *
  * @generated from message frontline.v1.PathMatch
  */
 export type PathMatch = Message<"frontline.v1.PathMatch"> & {
@@ -158,7 +168,8 @@ export const PathMatchSchema: GenMessage<PathMatch> = /*@__PURE__*/
  * MethodMatch tests the HTTP method of the incoming request. Comparison is
  * always case-insensitive per the HTTP specification, regardless of the
  * StringMatch ignore_case setting. The methods list is an OR — the request
- * matches if its method equals any entry.
+ * matches if its method equals any entry. GET also matches HEAD, because most
+ * frameworks answer HEAD with the GET handler.
  *
  * @generated from message frontline.v1.MethodMatch
  */

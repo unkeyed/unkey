@@ -22,3 +22,4 @@ CREATE TABLE `device_authorizations` (
 );
 
 CREATE INDEX `device_authorizations_expires_at_idx` ON `device_authorizations` (`expires_at`);
+

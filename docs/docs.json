@@ -390,6 +390,7 @@
                       {
                         "group": "Client",
                         "pages": [
+                          "errors/frontline/client/ambiguous_path",
                           "errors/frontline/client/firewall_denied",
                           "errors/frontline/client/insufficient_permissions",
                           "errors/frontline/client/invalid_key",

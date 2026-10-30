@@ -41,6 +41,7 @@ func TestFrontlineURNsEncodeAttributionDomain(t *testing.T) {
 		{codes.Frontline.Auth.UsageExceeded, "err:frontline:client:usage_exceeded"},
 		{codes.Frontline.Firewall.Denied, "err:frontline:client:firewall_denied"},
 		{codes.Frontline.OpenApi.InvalidRequest, "err:frontline:client:openapi_validation_failed"},
+		{codes.Frontline.Request.AmbiguousPath, "err:frontline:client:ambiguous_path"},
 	}
 
 	for _, tt := range tests {

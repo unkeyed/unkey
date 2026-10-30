@@ -46,6 +46,30 @@ func TestExtractIdentifier(t *testing.T) {
 		require.Equal(t, "/v1/search", extractIdentifier(nil, req, cfg, nil))
 	})
 
+	t.Run("path variants of one route share a bucket", func(t *testing.T) {
+		cfg := &frontlinev1.RateLimit{Identifier: pathSource()}
+		for _, path := range []string{"/API/users/", "/api/users;x", "/%2Fapi/users", "/v1/%2e%2e/api/users"} {
+			require.Equal(t, "/api/users", extractIdentifier(nil, newRequest(t, path, nil), cfg, nil), path)
+		}
+	})
+
+	t.Run("different routes keep separate buckets", func(t *testing.T) {
+		cfg := &frontlinev1.RateLimit{Identifier: pathSource()}
+		require.NotEqual(t,
+			extractIdentifier(nil, newRequest(t, "/api/users", nil), cfg, nil),
+			extractIdentifier(nil, newRequest(t, "/api/orders", nil), cfg, nil),
+		)
+	})
+
+	t.Run("compound key uses the canonical path", func(t *testing.T) {
+		req := newRequest(t, "/V1/Search/", nil)
+		cfg := &frontlinev1.RateLimit{
+			Identifiers: []*frontlinev1.RateLimitIdentifier{subjectSource(), pathSource()},
+		}
+		p := &principal.Principal{Subject: "key_123"}
+		require.Equal(t, "key_123:/v1/search", extractIdentifier(nil, req, cfg, p))
+	})
+
 	t.Run("compound identifiers join in order", func(t *testing.T) {
 		req := newRequest(t, "/v1/search", nil)
 		cfg := &frontlinev1.RateLimit{

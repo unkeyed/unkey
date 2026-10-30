@@ -359,6 +359,13 @@ const (
 	// ValidationBusy represents a 503 error - the pod's openapi body byte budget is full
 	UnkeyFrontlineErrorsOpenApiValidationBusy URN = "err:frontline:capacity:openapi_validation_busy"
 
+	// Request
+
+	// AmbiguousPath represents a 400 error - the path contains an encoded
+	// slash, backslash, or dot segment, which upstream frameworks disagree on,
+	// so policies cannot match it reliably.
+	UnkeyFrontlineErrorsRequestAmbiguousPath URN = "err:frontline:client:ambiguous_path"
+
 	// ----------------
 	// UnkeyPortalErrors
 	// ----------------

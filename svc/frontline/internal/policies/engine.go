@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/policies/canonicalpath"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
 	openapiExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
@@ -142,6 +143,43 @@ func (e *Engine) Evaluate(ctx context.Context, sess *zen.Session, req *http.Requ
 	return result, evalErr
 }
 
+// rejectAmbiguousPath fails a request whose path app frameworks read in
+// different ways, when an enforcing policy could be bypassed through that.
+// Dot segments and multiply encoded separators can move a request out of a
+// prefix policy's scope. A single encoded separator only changes how many
+// segments the path has, which matters only to regex path policies.
+func rejectAmbiguousPath(req *http.Request, policies []*frontlinev1.Policy) error {
+	enforcing, regexPath := false, false
+	for _, policy := range policies {
+		if !policy.GetEnabled() || policy.GetLogging() != nil {
+			continue
+		}
+		enforcing = true
+		for _, expr := range policy.GetMatch() {
+			regexPath = regexPath || expr.GetPath().GetPath().GetRegex() != ""
+		}
+	}
+	if !enforcing {
+		return nil
+	}
+
+	escaped := req.URL.EscapedPath()
+	reason := ""
+	if canonicalpath.HasDotSegment(req.URL.Path) {
+		reason = "a dot segment"
+	} else if found, multiple := canonicalpath.EncodedSeparators(escaped); multiple || (found && regexPath) {
+		reason = "an encoded slash or backslash"
+	}
+	if reason == "" {
+		return nil
+	}
+	return fault.New("ambiguous path",
+		fault.Code(codes.Frontline.Request.AmbiguousPath.URN()),
+		fault.Internal(fmt.Sprintf("path %q contains %s", escaped, reason)),
+		fault.Public("The request path contains an encoded slash, backslash, or dot segment, which this API does not accept."),
+	)
+}
+
 func (e *Engine) evaluatePolicies(
 	ctx context.Context,
 	sess *zen.Session,
@@ -151,6 +189,10 @@ func (e *Engine) evaluatePolicies(
 	policies []*frontlinev1.Policy,
 ) (Result, error) {
 	var result Result
+
+	if err := rejectAmbiguousPath(req, policies); err != nil {
+		return result, err
+	}
 
 	for _, policy := range policies {
 		if !policy.GetEnabled() || policy.GetLogging() != nil {
