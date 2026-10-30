@@ -515,3 +515,49 @@ func TestParser_RequireOneOf(t *testing.T) {
 		require.False(t, ran)
 	})
 }
+
+func TestPrepareResolvesInputBeforeRequiredValidation(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		args    []string
+		prepare bool
+		send    bool
+	}{
+		{name: "missing input", prepare: true, send: true},
+		{name: "help", args: []string{"--help"}},
+		{name: "unknown flag", args: []string{"--unknown"}},
+		{name: "conflict", args: []string{"--name=demo", "--body=input"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			prepared, sent := false, false
+			cmd := &Command{
+				Name:  "create",
+				Flags: []Flag{String("name", "Name", Required(), MutuallyExclusive("body")), String("body", "Body")},
+				Prepare: func(_ context.Context, command *Command) error {
+					prepared = true
+					body := String("body", "Resolved input")
+					if err := body.Parse("resolved"); err != nil {
+						return err
+					}
+					command.Flags = []Flag{body}
+					return nil
+				},
+				Action: func(_ context.Context, command *Command) error {
+					sent = true
+					require.Equal(t, "resolved", command.String("body"))
+					return nil
+				},
+			}
+			captureCommandOutput(t, func() {
+				err := cmd.Run(t.Context(), append([]string{"create"}, tc.args...))
+				if tc.name == "unknown flag" || tc.name == "conflict" {
+					require.Error(t, err)
+				} else {
+					require.NoError(t, err)
+				}
+			})
+			require.Equal(t, tc.prepare, prepared)
+			require.Equal(t, tc.send, sent)
+		})
+	}
+}

@@ -297,6 +297,7 @@ type EnumFlag struct {
 	baseFlag
 	value   string   // Current value
 	allowed []string // Permitted values
+	envErr  *InputError
 }
 
 // Parse sets the flag value, rejecting anything outside the allowed set.
@@ -315,6 +316,7 @@ func (f *EnumFlag) Parse(value string) error {
 
 	f.value = value
 	f.set = true
+	f.envErr = nil
 	return nil
 }
 
@@ -767,12 +769,21 @@ func Enum(name, usage string, allowed []string, opts ...FlagOption) *EnumFlag {
 	if flag.envVar != "" {
 		if envValue := os.Getenv(flag.envVar); envValue != "" {
 			if !slices.Contains(flag.allowed, envValue) {
-				_ = Exit(fmt.Sprintf("Environment variable error: %s must be one of: %s",
-					flag.envVar, strings.Join(flag.allowed, ", ")), 1)
+				flag.envErr = &InputError{
+					Kind: InputErrorInvalidFlagValue, Flags: []string{name},
+					message: fmt.Sprintf("Environment variable error: %s must be one of: %s", flag.envVar, strings.Join(flag.allowed, ", ")),
+					cause:   ErrInvalidEnumValue,
+				}
+				return flag
 			}
 			if flag.validate != nil {
 				if err := flag.validate(envValue); err != nil {
-					_ = Exit(fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar), 1)
+					flag.envErr = &InputError{
+						Kind: InputErrorInvalidFlagValue, Flags: []string{name},
+						message: fmt.Sprintf("Environment variable error: validation failed for %s", flag.envVar),
+						cause:   newValidationError(name, err),
+					}
+					return flag
 				}
 			}
 			flag.value = envValue
