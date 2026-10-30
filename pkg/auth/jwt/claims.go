@@ -14,6 +14,10 @@ type Claims struct {
 	// Org scopes JWT principals to one organization.
 	Org OrganizationClaims `json:"org"`
 
+	// OrgID is the flat org_id claim WorkOS AuthKit agent tokens carry. Only
+	// resolvers built with [Resolver.WithFlatOrgID] read it.
+	OrgID string `json:"org_id"`
+
 	// User supports providers that put user identity in a nested object.
 	User UserClaims `json:"user"`
 

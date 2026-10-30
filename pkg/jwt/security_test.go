@@ -922,7 +922,7 @@ func TestEdgeCases_MultipleAudiences(t *testing.T) {
 
 	decoded, err := verifier.Verify(token)
 	require.NoError(t, err)
-	require.Equal(t, []string{"aud1", "aud2", "aud3"}, decoded.Audience)
+	require.Equal(t, Audience{"aud1", "aud2", "aud3"}, decoded.Audience)
 }
 
 // TestEdgeCases_EmptyAudiences tests handling of empty audience array.
@@ -1079,6 +1079,37 @@ func TestWithAudience_AcceptsMatchingAudience(t *testing.T) {
 	decoded, err := verifier.Verify(token)
 	require.NoError(t, err)
 	require.Contains(t, decoded.Audience, "my-service")
+}
+
+// TestWithAudience_AcceptsStringAudience verifies that a token whose aud is a
+// bare string, as RFC 7519 allows and WorkOS agent tokens send, verifies
+// against a matching audience and is rejected by a different one.
+func TestWithAudience_AcceptsStringAudience(t *testing.T) {
+	type stringAudienceClaims struct {
+		Issuer    string `json:"iss"`
+		Audience  string `json:"aud"`
+		ExpiresAt int64  `json:"exp"`
+	}
+	secret := []byte("test-secret-key-at-least-32-bytes-long")
+	signer, err := NewHS256Signer[stringAudienceClaims](secret)
+	require.NoError(t, err)
+	token, err := signer.Sign(stringAudienceClaims{
+		Issuer:    "test",
+		Audience:  "my-service",
+		ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	})
+	require.NoError(t, err)
+
+	matching, err := NewHS256Verifier[RegisteredClaims](secret, WithAudience("my-service"))
+	require.NoError(t, err)
+	decoded, err := matching.Verify(token)
+	require.NoError(t, err)
+	require.Equal(t, Audience{"my-service"}, decoded.Audience)
+
+	other, err := NewHS256Verifier[RegisteredClaims](secret, WithAudience("other-service"))
+	require.NoError(t, err)
+	_, err = other.Verify(token)
+	require.ErrorIs(t, err, ErrInvalidAudience)
 }
 
 // TestWithAudience_RejectsEmptyAudience verifies that tokens with empty

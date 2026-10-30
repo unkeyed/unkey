@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"encoding/json"
 	"slices"
 	"time"
 
@@ -63,10 +64,7 @@ type RegisteredClaims struct {
 	// Audience identifies the recipients that the JWT is intended for. Each entry
 	// is typically a service name or URL. A token should only be accepted if the
 	// verifying service is in this list.
-	//
-	// This field serializes as a JSON array. Tokens from libraries that serialize
-	// single audiences as a bare string (without array brackets) will fail to parse.
-	Audience []string `json:"aud,omitempty"`
+	Audience Audience `json:"aud,omitempty"`
 
 	// ExpiresAt is the Unix timestamp (seconds since epoch) after which the JWT
 	// must not be accepted for processing. The current implementation considers
@@ -85,6 +83,26 @@ type RegisteredClaims struct {
 	// token replay by tracking which token IDs have been used. Not validated
 	// by this package; applications must implement their own tracking.
 	ID string `json:"jti,omitempty"`
+}
+
+// Audience is the aud claim. RFC 7519 Section 4.1.3 allows a single audience
+// as a bare string, which WorkOS AuthKit agent tokens use, so it decodes from
+// either a string or an array. It always encodes as an array.
+type Audience []string
+
+// UnmarshalJSON decodes aud from a JSON string or an array of strings.
+func (a *Audience) UnmarshalJSON(data []byte) error {
+	var single string
+	if err := json.Unmarshal(data, &single); err == nil {
+		*a = Audience{single}
+		return nil
+	}
+	var many []string
+	if err := json.Unmarshal(data, &many); err != nil {
+		return err
+	}
+	*a = many
+	return nil
 }
 
 // validate checks the registered claims against the given time and verifier config.

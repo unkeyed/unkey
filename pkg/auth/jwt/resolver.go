@@ -60,6 +60,17 @@ type claimsVerifier interface {
 type Resolver struct {
 	verifier        claimsVerifier
 	workspaceLookup WorkspaceLookup
+	orgIDFlat       bool
+}
+
+// WithFlatOrgID returns a copy of r that reads the organization from the flat
+// org_id claim WorkOS AuthKit agent tokens carry, instead of the nested org.id.
+// Reading one claim per resolver keeps agent tokens out of resolvers configured
+// for dashboard tokens, whatever order the resolvers run in.
+func (r *Resolver) WithFlatOrgID() *Resolver {
+	flat := *r
+	flat.orgIDFlat = true
+	return &flat
 }
 
 // NewResolver creates a resolver that verifies HS256 JWTs with any configured secret.
@@ -88,6 +99,7 @@ func NewResolver(workspaceLookup WorkspaceLookup, issuer string, audience string
 	return &Resolver{
 		verifier:        &secretsVerifier{verifiers: verifiers},
 		workspaceLookup: workspaceLookup,
+		orgIDFlat:       false,
 	}, nil
 }
 
@@ -127,6 +139,7 @@ func NewResolverWithJWKSURL(workspaceLookup WorkspaceLookup, issuer string, audi
 			fetched:     false,
 		},
 		workspaceLookup: workspaceLookup,
+		orgIDFlat:       false,
 	}, nil
 }
 
@@ -146,6 +159,9 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		return nil, err
 	}
 	orgID := claims.Org.ID
+	if r.orgIDFlat {
+		orgID = claims.OrgID
+	}
 	subjectID := claims.subjectID()
 	if subjectID == "" || orgID == "" || claims.ExpiresAt == 0 || claims.IssuedAt == 0 {
 		return nil, fault.New("invalid JWT claims",
@@ -211,6 +227,8 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		Source: principal.JWTSource{
 			Header:    header,
 			Payload:   payload,
+			OrgID:     orgID,
+			ExpiresAt: time.Unix(claims.ExpiresAt, 0),
 			Roles:     claims.Roles,
 			Signature: segments[2],
 		},
