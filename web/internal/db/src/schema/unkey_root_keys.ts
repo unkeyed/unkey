@@ -18,8 +18,8 @@ export const unkeyRootKeys = mysqlTable(
     expires: bigint("expires", { mode: "number" }),
     // IPv4 or IPv6 addresses and CIDR ranges, such as "192.0.2.1",
     // "2001:db8::1", "192.0.2.0/24", or "2001:db8::/32".
-    // Null or an empty array allows any source IP address.
-    ipAllowlist: json("ip_allowlist").$type<string[]>(),
+    // An empty array allows any source IP address.
+    ipAllowlist: json("ip_allowlist").$type<string[]>().notNull().default([]),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     lastUsedAt: bigint("last_used_at", { mode: "number", unsigned: true }).notNull().default(0),
     deletedAt: bigint("deleted_at", { mode: "number" }),

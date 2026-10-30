@@ -10,7 +10,7 @@ UPDATE unkey_root_keys SET
         ELSE enabled
     END,
     ip_allowlist = CASE
-        WHEN CAST(sqlc.arg(ip_allowlist_specified) AS UNSIGNED) = 1 THEN sqlc.narg(ip_allowlist)
+        WHEN CAST(sqlc.arg(ip_allowlist_specified) AS UNSIGNED) = 1 THEN sqlc.arg(ip_allowlist)
         ELSE ip_allowlist
     END
 WHERE id = sqlc.arg(id)

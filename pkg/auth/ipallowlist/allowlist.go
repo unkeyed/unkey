@@ -71,18 +71,22 @@ func (a Allowlist) Allows(address netip.Addr) bool {
 	return false
 }
 
-// IsSubsetOf reports whether a permits no addresses outside parent. It compares
-// the union of the parent networks, so adjacent ranges can cover a larger prefix.
+// IsSubsetOf reports whether each prefix in a is covered by the parent networks.
+// It merges adjacent sibling networks before checking CIDR containment.
 // An empty parent allows any list. An empty a is unrestricted and is rejected
 // when parent is nonempty. Neither list is modified.
+//
+// This is conservative around mapped IPv6 space: ::fffe:0:0/95 is not contained
+// in ::fffe:0:0/96, even though [Allowlist.Allows] permits the same requests for
+// both. No special coverage is added for addresses that cannot match as IPv6.
 //
 // Examples use lists constructed with [Parse], with the child on the left:
 //
 //	[192.0.2.0/25].IsSubsetOf([192.0.2.0/24])                 -> true
 //	[192.0.2.0/24].IsSubsetOf([192.0.2.0/25])                 -> false
 //	[192.0.2.0/24].IsSubsetOf([192.0.2.0/25, 192.0.2.128/25]) -> true
-//	[].IsSubsetOf([0.0.0.0/0, ::/0])                         -> false
-//	[192.0.2.0/24].IsSubsetOf([])                            -> true
+//	[].IsSubsetOf([0.0.0.0/0, ::/0])                          -> false
+//	[192.0.2.0/24].IsSubsetOf([])                             -> true
 func (a Allowlist) IsSubsetOf(parent Allowlist) bool {
 	if len(parent) == 0 {
 		return true
@@ -127,19 +131,15 @@ func (a Allowlist) Strings() []string {
 }
 
 // union removes contained prefixes and merges adjacent sibling prefixes without
-// modifying a. This lets subset checks recognize equivalent network partitions.
-// It includes mapped IPv6 space as coverage because Allows unmaps those addresses
-// before comparison, so no IPv6 prefix can grant access to that space.
+// modifying a. [Allowlist.IsSubsetOf] uses the result only for comparison;
+// stored entries and request authentication do not change.
 //
 // For example, [192.0.2.128/25, 192.0.2.0/25, 192.0.2.7/32] becomes
-// [192.0.2.0/24, ::ffff:0:0/96]. The /32 is redundant; the two /25 ranges
-// cover the /24. The extra mapped prefix contributes no allowed addresses.
-// [::fffe:0:0/96] becomes [::fffe:0:0/95] for the same reason: its added
-// mapped half cannot match any address after Allows unmaps the query.
+// [192.0.2.0/24]. The /32 is redundant; the two /25 ranges cover the /24.
 func (a Allowlist) union() Allowlist {
-	prefixes := make(Allowlist, 0, len(a)+1)
-	prefixes = append(prefixes, a...)
-	prefixes = append(prefixes, netip.MustParsePrefix("::ffff:0:0/96"))
+	prefixes := slices.Clone(a)
+	// Put wider prefixes first when their start addresses match. This lets
+	// the scan discard contained ranges regardless of their original order.
 	slices.SortFunc(prefixes, func(a, b netip.Prefix) int {
 		if order := a.Addr().Compare(b.Addr()); order != 0 {
 			return order
@@ -148,6 +148,8 @@ func (a Allowlist) union() Allowlist {
 	})
 	merged := prefixes[:0]
 	for _, prefix := range prefixes {
+		// Sorted CIDR ranges are either disjoint or nested. Only the last
+		// retained range can contain this one; earlier ranges end before it.
 		if len(merged) > 0 {
 			last := merged[len(merged)-1]
 			if last.Bits() <= prefix.Bits() && last.Contains(prefix.Addr()) {
@@ -155,6 +157,9 @@ func (a Allowlist) union() Allowlist {
 			}
 		}
 		merged = append(merged, prefix)
+		// Equal-sized ranges merge only when they share a parent. For example,
+		// 192.0.2.0/25 and 192.0.2.128/25 merge into 192.0.2.0/24.
+		// Repeat because the result may merge with the preceding range too.
 		for len(merged) >= 2 {
 			left, right := merged[len(merged)-2], merged[len(merged)-1]
 			if left.Bits() == 0 || left.Bits() != right.Bits() {

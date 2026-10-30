@@ -23,6 +23,6 @@ INSERT INTO unkey_root_keys (
     sqlc.arg(end),
     sqlc.arg(enabled),
     sqlc.arg(expires),
-    sqlc.narg(ip_allowlist),
+    sqlc.arg(ip_allowlist),
     sqlc.arg(created_at)
 );

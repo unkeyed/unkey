@@ -67,7 +67,7 @@ func TestSubsetUsesNetworkUnion(t *testing.T) {
 		{"different families", []string{"::/0"}, []string{"192.0.2.1"}, false},
 		{"empty child is unrestricted", []string{"192.0.2.0/24"}, nil, false},
 		{"empty parent is unrestricted", nil, []string{"192.0.2.1"}, true},
-		{"mapped space cannot grant IPv4 through IPv6", []string{"::fffe:0:0/96"}, []string{"::fffe:0:0/95"}, true},
+		{"broader IPv6 prefix is conservatively rejected", []string{"::fffe:0:0/96"}, []string{"::fffe:0:0/95"}, false},
 		{"explicit mapped network adds IPv4 access", []string{"::fffe:0:0/95"}, []string{"::ffff:0:0/96", "::fffe:0:0/96"}, false},
 		{"deep partitions", []string{"192.0.2.224/27", "192.0.2.0/25", "192.0.2.208/28", "192.0.2.192/28", "192.0.2.128/26"}, []string{"192.0.2.0/24"}, true},
 		{"duplicates cannot fill gaps", []string{"192.0.2.0/25", "192.0.2.0/25"}, []string{"192.0.2.0/24"}, false},

@@ -96,8 +96,8 @@ func addressSetEntry(i int) string {
 }
 
 // FuzzAllowlistPartitions checks both sides of every possible prefix boundary,
-// including /0 and host prefixes. Only the mapped IPv6 half has no native IPv6
-// members: Parse converts it to IPv4, whereas Allows unmaps query addresses.
+// including /0 and host prefixes. A mapped IPv6 half becomes IPv4 in [ipallowlist.Parse],
+// so the resulting halves no longer cover the original IPv6 CIDR.
 func FuzzAllowlistPartitions(f *testing.F) {
 	fuzz.Seed(f)
 	for _, width := range []int{32, 128} {
@@ -136,12 +136,13 @@ func FuzzAllowlistPartitions(f *testing.F) {
 		require.NoError(t, err)
 		half, err := ipallowlist.Parse([]string{left.String()})
 		require.NoError(t, err)
-		require.True(t, whole.IsSubsetOf(parts))
 		if rightAddress.Is4In6() {
-			require.True(t, whole.IsSubsetOf(half))
+			require.False(t, whole.IsSubsetOf(parts))
+			require.False(t, whole.IsSubsetOf(half))
 			require.False(t, parts.IsSubsetOf(whole))
 			return
 		}
+		require.True(t, whole.IsSubsetOf(parts))
 		require.True(t, parts.IsSubsetOf(whole))
 		require.False(t, whole.IsSubsetOf(half))
 		require.True(t, half.Allows(left.Addr()))
