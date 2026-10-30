@@ -344,8 +344,9 @@ func (w *Workflow) buildRailpackSolverOptions(
 		LocalMounts: map[string]fsutil.FS{
 			"dockerfile": planFS,
 		},
-		Session: sessionAttachables,
-		Exports: w.imageExports(imageName),
+		Session:      sessionAttachables,
+		Exports:      w.imageExports(imageName),
+		SourcePolicy: w.buildSourcePolicy(),
 	}, nil
 }
 

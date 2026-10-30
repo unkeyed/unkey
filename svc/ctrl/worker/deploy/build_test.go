@@ -1,9 +1,14 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/moby/buildkit/solver/pb"
+	"github.com/moby/buildkit/sourcepolicy"
+	spb "github.com/moby/buildkit/sourcepolicy/pb"
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
@@ -472,4 +477,39 @@ func (s *stubGitHub) IsRepoPublic(repo string) (bool, error) {
 func (s *stubGitHub) GetScopedInstallationToken(_ int64, repos []string, _ map[string]string) (githubclient.InstallationToken, error) {
 	s.scopedTo = append(s.scopedTo, repos)
 	return githubclient.InstallationToken{Token: "scoped"}, nil
+}
+
+// TestBuildSourcePolicy proves a build cannot pull any image from the build
+// registry's host, the host BuildKit holds Unkey's credentials for.
+func TestBuildSourcePolicy(t *testing.T) {
+	//nolint: exhaustruct
+	w := &Workflow{registryConfig: RegistryConfig{Repository: "registry.depot.dev/kebap"}}
+	engine := sourcepolicy.NewEngine([]*spb.Policy{w.buildSourcePolicy()})
+
+	for image, denied := range map[string]bool{
+		"registry.depot.dev/kebap:proj_other-d_other":                true,
+		"registry.depot.dev/kebap:proj_mine-d_mine":                  true,
+		"registry.depot.dev/kebap@sha256:" + strings.Repeat("a", 64): true,
+		"registry.depot.dev/another:v1":                              true,
+		"Registry.Depot.dev/kebap:v1":                                true,
+		"registry.depot.dev:443/kebap:v1":                            true,
+		"docker.io/library/golang:1.25":                              false,
+		"ghcr.io/unkeyed/railpack-builder:v1":                        false,
+		"registry.depot.dev.example.com/kebap:v1":                    false,
+	} {
+		t.Run(image, func(t *testing.T) {
+			//nolint: exhaustruct
+			_, err := engine.Evaluate(context.Background(), &pb.SourceOp{Identifier: "docker-image://" + image})
+			if denied {
+				require.ErrorIs(t, err, sourcepolicy.ErrSourceDenied)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+
+	t.Run("no build registry sets no policy", func(t *testing.T) {
+		//nolint: exhaustruct
+		require.Nil(t, (&Workflow{}).buildSourcePolicy())
+	})
 }

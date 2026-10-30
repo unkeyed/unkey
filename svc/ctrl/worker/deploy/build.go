@@ -24,6 +24,7 @@ import (
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/session/secrets/secretsprovider"
+	spb "github.com/moby/buildkit/sourcepolicy/pb"
 	"github.com/opencontainers/go-digest"
 	restate "github.com/restatedev/sdk-go"
 
@@ -94,6 +95,7 @@ var knownBuildErrors = []knownBuildError{
 	{substr: "dockerfile parse error on line", message: "Dockerfile has a syntax error. Please check the Dockerfile for typos."},
 	{substr: "no build stage in current context", message: "Dockerfile has no valid build stage. Please add a FROM instruction."},
 	{substr: "circular dependency detected on stage", message: "Dockerfile contains a circular dependency between stages. Please review the stage references."},
+	{substr: "denied by policy", message: "Images in the Unkey build registry cannot be used in a build. Please change the FROM line."},
 	{substr: "invalid reference format", message: "A Docker image reference is invalid. Please check your FROM lines."},
 	{substr: "no match for platform in manifest", message: "The base image does not support the target platform. Please use a multi-platform image or change the platform."},
 	{substr: "no matching manifest", message: "The base image does not support the target platform. Please use a multi-platform image or change the platform."},
@@ -611,6 +613,33 @@ func (w *Workflow) registryAuthProvider() session.Attachable {
 	})
 }
 
+// buildSourcePolicy makes BuildKit refuse every image on the build registry's
+// host, for example any FROM registry.depot.dev/... in a customer Dockerfile.
+// BuildKit sends Unkey's registry credentials to that host, and every project
+// pushes its builds to one repository there, so without this rule a Dockerfile
+// could FROM another project's build. Builds only push to that host and never
+// need to pull from it. The rule is the same for every project, so a project
+// cannot FROM its own earlier builds either
+func (w *Workflow) buildSourcePolicy() *spb.Policy {
+	if w.registryConfig.Repository == "" {
+		return nil
+	}
+	host, _, _ := strings.Cut(w.registryConfig.Repository, "/")
+	host = strings.TrimSuffix(host, ":443")
+	pattern := "(?i)^docker-image://" + regexp.QuoteMeta(host) + "(:443)?/"
+	//nolint: exhaustruct
+	return &spb.Policy{
+		Version: 1,
+		Rules: []*spb.Rule{{
+			Action: spb.PolicyAction_DENY,
+			Selector: &spb.Selector{
+				Identifier: pattern,
+				MatchType:  spb.MatchType_REGEX,
+			},
+		}},
+	}
+}
+
 // cloneRepoFor returns the repository BuildKit actually clones. A live fork PR
 // (prNumber > 0) clones the BASE repo via refs/pull/<n>/head; a fork ref
 // deployed by concrete SHA (prNumber == 0) clones the fork itself. Token
@@ -667,6 +696,7 @@ func (w *Workflow) buildSolverOptions(
 		FrontendAttrs: frontendAttrs,
 		Session:       sessionAttachables,
 		Exports:       w.imageExports(imageName),
+		SourcePolicy:  w.buildSourcePolicy(),
 	}
 }
 
@@ -706,7 +736,8 @@ func (w *Workflow) buildGitSolverOptions(
 			w.registryAuthProvider(),
 			secretsprovider.FromMap(secrets),
 		},
-		Exports: w.imageExports(imageName),
+		Exports:      w.imageExports(imageName),
+		SourcePolicy: w.buildSourcePolicy(),
 	}
 }
 
