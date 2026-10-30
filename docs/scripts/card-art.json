@@ -6477,7 +6477,7 @@
     "id": "platform--index--15",
     "source": "platform/index.mdx",
     "href": "/platform/cli/output-and-flags",
-    "title": "CLI output and shared flags",
+    "title": "Output and shared flags",
     "evidence": "platform/cli/output-and-flags.mdx",
     "scene": {
       "kind": "code",
@@ -6589,7 +6589,7 @@
     "id": "platform--index--19",
     "source": "platform/index.mdx",
     "href": "/platform/api/errors",
-    "title": "API error envelope",
+    "title": "API errors",
     "evidence": "platform/api/errors.mdx",
     "scene": {
       "kind": "error",
@@ -7491,6 +7491,142 @@
         ]
       ],
       "note": "Query the signals your app produces"
+    }
+  },
+  {
+    "id": "platform--index--28",
+    "source": "platform/index.mdx",
+    "href": "/platform/workspace/audit-logs/overview",
+    "title": "Audit logs",
+    "evidence": "platform/workspace/audit-logs/overview.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Workspace audit trail",
+      "fields": [
+        [
+          "Actor",
+          "who"
+        ],
+        [
+          "Event",
+          "what changed"
+        ],
+        [
+          "Retention",
+          "per plan"
+        ]
+      ],
+      "note": "Audit logs"
+    }
+  },
+  {
+    "id": "platform--index--29",
+    "source": "platform/index.mdx",
+    "href": "/platform/workspace/log-drains",
+    "title": "Log drains",
+    "evidence": "platform/workspace/log-drains.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Log forwarding",
+      "fields": [
+        [
+          "Source",
+          "audit logs"
+        ],
+        [
+          "Destination",
+          "HTTP or Axiom"
+        ]
+      ],
+      "note": "Log drains"
+    }
+  },
+  {
+    "id": "platform--index--30",
+    "source": "platform/index.mdx",
+    "href": "/platform/root-keys/configure",
+    "title": "Configure root keys",
+    "evidence": "platform/root-keys/configure.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Root key setup",
+      "fields": [
+        [
+          "Dashboard",
+          "permission builder"
+        ],
+        [
+          "API",
+          "create and update"
+        ]
+      ],
+      "note": "Configure root keys"
+    }
+  },
+  {
+    "id": "platform--index--31",
+    "source": "platform/index.mdx",
+    "href": "/platform/api/rate-limits",
+    "title": "Too many requests",
+    "evidence": "platform/api/rate-limits.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "API rate limits",
+      "fields": [
+        [
+          "Status",
+          "429"
+        ],
+        [
+          "Host",
+          "api.unkey.com"
+        ]
+      ],
+      "note": "Too many requests"
+    }
+  },
+  {
+    "id": "platform--index--32",
+    "source": "platform/index.mdx",
+    "href": "/platform/ai-coding/overview",
+    "title": "AI coding",
+    "evidence": "platform/ai-coding/overview.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "AI coding assistants",
+      "fields": [
+        [
+          "Client",
+          "your assistant"
+        ],
+        [
+          "Server",
+          "Unkey MCP"
+        ]
+      ],
+      "note": "AI coding"
+    }
+  },
+  {
+    "id": "platform--index--33",
+    "source": "platform/index.mdx",
+    "href": "/errors/overview",
+    "title": "Error codes",
+    "evidence": "errors/overview.mdx",
+    "scene": {
+      "kind": "tree",
+      "heading": "Error code reference",
+      "fields": [
+        [
+          "Code",
+          "err:unkey:..."
+        ],
+        [
+          "Fix",
+          "per code"
+        ]
+      ],
+      "note": "Error codes"
     }
   }
 ]
