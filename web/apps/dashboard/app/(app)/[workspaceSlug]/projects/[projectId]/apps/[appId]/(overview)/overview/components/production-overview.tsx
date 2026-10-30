@@ -5,12 +5,14 @@ import { appSource } from "@/components/deploy/app-source";
 import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Deployment, type DeploymentSummary, collection } from "@/lib/collections";
-import { gitAuthorOf } from "@/lib/collections/deploy/deployment-origin";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import { previousRollbackTarget, rollbackCandidates } from "@/lib/collections/deploy/rollback";
+import {
+  findRolledBackFrom,
+  previousRollbackTarget,
+  rollbackCandidates,
+} from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
-import { fromQuery } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -19,10 +21,11 @@ import { Card, PageBody } from "@unkey/ui";
 import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { appDeploymentQueryFor } from "../../data-provider-queries";
+import { nonGitOrigin } from "../../deployments/components/deployment-row-cells";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
@@ -31,10 +34,13 @@ import { AppCanvas } from "./app-canvas";
 import { AppCanvasSkeleton } from "./app-canvas-skeleton";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
-import { type LiveState, liveFactsOf } from "./deploy-stamp";
 import { OverviewHeader, ProductionActions, ProductionActionsSkeleton } from "./overview-header";
-import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
-import { STATUS_META, deriveProductionStatus } from "./status";
+import {
+  type DeployStamp,
+  type ProductionCardContextValue,
+  ProductionCardProvider,
+} from "./production-card-context";
+import { type DeploymentDisplayStatus, STATUS_META, deriveProductionStatus } from "./status";
 
 const RollbackDialog = dynamic(
   () =>
@@ -50,7 +56,7 @@ const UndoRollbackDialog = dynamic(
 );
 
 const AUDIT_EXPORT_POLL_MS = 5_000;
-const AUDIT_EXPORT_POLL_WINDOW_MS = 3 * 60_000;
+const AUDIT_EXPORT_POLL_LIMIT = 36;
 
 type ProductionOverviewModel =
   | { kind: "loading" }
@@ -127,26 +133,15 @@ function useProductionOverview({
     ? { deployment: shown, status: deriveProductionStatus(shown, { rolledBack: isRolledBack }) }
     : null;
   const rolledBackId = production?.status === "rolled-back" ? production.deployment.id : null;
-  const pollStart = useRef<{ deploymentId: string; at: number } | null>(null);
-  if (!rolledBackId) {
-    pollStart.current = null;
-  }
   const rollbackQuery = trpc.deploy.deployment.latestRollback.useQuery(
     { appId, deploymentId: rolledBackId ?? "" },
     {
       enabled: rolledBackId !== null,
       staleTime: 0,
-      refetchInterval: (data, query) => {
-        if (!rolledBackId || data !== null || query.state.status === "error") {
-          return false;
-        }
-        if (pollStart.current?.deploymentId !== rolledBackId) {
-          pollStart.current = { deploymentId: rolledBackId, at: Date.now() };
-        }
-        return Date.now() - pollStart.current.at < AUDIT_EXPORT_POLL_WINDOW_MS
+      refetchInterval: (data, query) =>
+        data === null && query.state.dataUpdateCount < AUDIT_EXPORT_POLL_LIMIT
           ? AUDIT_EXPORT_POLL_MS
-          : false;
-      },
+          : false,
     },
   );
   const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
@@ -209,14 +204,14 @@ function useProductionOverview({
       )
     : [];
 
-  const liveState: LiveState = match(status)
-    .returnType<LiveState>()
-    .with("rolled-back", () => ({ kind: "rolled-back", event: fromQuery(rollbackQuery) }))
-    .with("live", () =>
-      isCurrent ? { kind: "live", author: gitAuthorOf(deployment) } : { kind: "not-live" },
-    )
-    .otherwise(() => ({ kind: "not-live" }));
-  const { stamp, replaced } = liveFactsOf(liveState, deployment, deployments);
+  const rollback = rollbackQuery.data;
+  const stamp = stampOf({ deployment, status, isCurrent, rollback });
+  const replaced =
+    status === "rolled-back" && !rollbackQuery.isLoading
+      ? (deployments.find((d) => d.id === rollback?.fromDeploymentId) ??
+        findRolledBackFrom(deployments, deployment) ??
+        null)
+      : null;
 
   const deploymentHref = routes.projects.apps.deployment({
     workspaceSlug: workspace.slug,
@@ -408,4 +403,30 @@ function ProductionCardSlot({ model }: { model: ProductionOverviewModel }) {
       </div>
     ))
     .exhaustive();
+}
+
+function stampOf({
+  deployment,
+  status,
+  isCurrent,
+  rollback,
+}: {
+  deployment: Deployment;
+  status: DeploymentDisplayStatus;
+  isCurrent: boolean;
+  rollback: { at: number; actor: DeployStamp["actor"] } | null | undefined;
+}): DeployStamp | null {
+  if (status === "rolled-back") {
+    return rollback ? { verb: "Rolled back", at: rollback.at, actor: rollback.actor } : null;
+  }
+  if (status !== "live" || !isCurrent) {
+    return null;
+  }
+  const isGitAuthored = deployment.source === "git" && !nonGitOrigin(deployment);
+  const handle = isGitAuthored ? deployment.gitCommitAuthorHandle : null;
+  return {
+    verb: "Deployed",
+    at: deployment.createdAt,
+    actor: handle ? { name: handle, avatarUrl: deployment.gitCommitAuthorAvatarUrl } : null,
+  };
 }

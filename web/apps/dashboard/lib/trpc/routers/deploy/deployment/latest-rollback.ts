@@ -1,17 +1,16 @@
-import { getCachedUser } from "@/lib/auth/cached-user";
+import type { User } from "@/lib/auth/types";
 import { clickhouse } from "@/lib/clickhouse";
-import type { RollbackEvent } from "@/lib/collections/deploy/rollback";
 import { db } from "@/lib/db";
+import { getCachedUser } from "@/lib/trpc/routers/audit/fetch";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { AUDIT_LOG_BUCKET_UNKEY_MUTATIONS, unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { z } from "zod";
-import { toRollbackEvent } from "./rollback-event";
 
 export const getLatestRollback = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(z.object({ appId: z.string(), deploymentId: z.string() }))
-  .query(async ({ ctx, input }): Promise<RollbackEvent | null> => {
+  .query(async ({ ctx, input }) => {
     const app = await db.query.apps.findFirst({
       where: (table, { and, eq, isNull }) =>
         and(
@@ -41,10 +40,29 @@ export const getLatestRollback = workspaceProcedure
       });
     }
     const row = result.val[0];
-    if (!row) {
+    // Target order is set by svc/ctrl rollback_handler.go: rolled-back-to, app, replaced.
+    const [to, from] = (row?.targets ?? []).filter(([type]) => type === "deployment");
+    if (!row || to?.[1] !== input.deploymentId) {
       return null;
     }
-
     const user = row.actorType === "user" ? await getCachedUser(row.actorId) : null;
-    return toRollbackEvent(row, user, input.deploymentId);
+    return {
+      at: row.time,
+      actor: actorOf(user, row.actorName),
+      fromDeploymentId: from?.[1] ?? null,
+    };
   });
+
+function actorOf(
+  user: User | null,
+  actorName: string,
+): { name: string; avatarUrl: string | null } | null {
+  if (user) {
+    const name = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
+    return { name, avatarUrl: user.avatarUrl ?? null };
+  }
+  if (actorName) {
+    return { name: actorName, avatarUrl: null };
+  }
+  return null;
+}

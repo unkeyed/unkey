@@ -14,18 +14,16 @@ import type { ReactNode } from "react";
 
 export type NodeTone = "default" | "error";
 
-const NODE_TONE: Record<NodeTone, { base: string; body: string; linkHover: string }> = {
+const NODE_TONE: Record<NodeTone, { base: string; linkHover: string }> = {
   default: {
     base: "bg-raised shadow-xs ring-1 ring-grayA-4",
-    body: "bg-raised",
     linkHover:
       "outline-2 outline-offset-1 outline-transparent hover:ring-gray-10 hover:outline-grayA-3 has-[[data-node-footer]:hover]:ring-grayA-4 has-[[data-node-footer]:hover]:outline-transparent",
   },
   error: {
     base: "bg-error-2 shadow-xs ring-1 ring-error-6",
-    body: "bg-error-2",
     linkHover:
-      "outline-2 outline-offset-1 outline-transparent hover:ring-error-9 hover:outline-errorA-3 has-[[data-node-footer]:hover]:ring-error-6 has-[[data-node-footer]:hover]:outline-transparent",
+      "outline-2 outline-offset-1 outline-transparent hover:ring-error-9 hover:outline-errorA-3",
   },
 };
 
@@ -57,11 +55,7 @@ export function Node({
       )}
       {footer ? (
         <div className="flex flex-col bg-grayA-2">
-          <div
-            className={cn("flex flex-col rounded-b-lg ring-1 ring-grayA-5", NODE_TONE[tone].body)}
-          >
-            {children}
-          </div>
+          <div className="flex flex-col rounded-b-lg bg-raised ring-1 ring-grayA-5">{children}</div>
           {footer}
         </div>
       ) : (

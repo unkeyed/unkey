@@ -53,8 +53,7 @@ import {
   RowItem,
   Rows,
 } from "./canvas/nodes";
-import type { DeployStamp } from "./deploy-stamp";
-import { useProductionCard } from "./production-card-context";
+import { type DeployStamp, useProductionCard } from "./production-card-context";
 import {
   type DeploymentDisplayStatus,
   GROUP_BADGE_VARIANT,

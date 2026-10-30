@@ -5,8 +5,13 @@ import type { Deployment, DeploymentSummary } from "@/lib/collections";
 import type { Route } from "next";
 import { createContext, use } from "react";
 import type { DisplayDomain } from "../../../components/display-domain";
-import type { DeployStamp } from "./deploy-stamp";
 import type { DeploymentDisplayStatus } from "./status";
+
+export type DeployStamp = {
+  verb: "Deployed" | "Rolled back";
+  at: number;
+  actor: { name: string; avatarUrl: string | null } | null;
+};
 
 export type CanvasModel = {
   appName: string;

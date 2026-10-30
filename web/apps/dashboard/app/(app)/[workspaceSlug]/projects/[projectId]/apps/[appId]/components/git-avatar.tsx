@@ -9,20 +9,15 @@ type AvatarProps = {
 };
 
 export function Avatar({ src, alt, className }: AvatarProps) {
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
 
-  if (!src || failedSrc === src) {
-    const labelled = alt !== "";
+  if (!src || hasError) {
     return (
-      <span
-        role={labelled ? "img" : undefined}
-        aria-label={labelled ? alt : undefined}
-        aria-hidden={labelled ? undefined : true}
-        data-sentry-mask={labelled || undefined}
-        className={cn("size-5 border rounded-full items-center flex justify-center", className)}
+      <div
+        className={cn("size-5  border rounded-full items-center flex justify-center", className)}
       >
         <IconUserOutline18 className="size-3.5" />
-      </span>
+      </div>
     );
   }
 
@@ -31,7 +26,7 @@ export function Avatar({ src, alt, className }: AvatarProps) {
       src={src}
       alt={alt}
       className={cn("size-5 rounded-full object-cover", className)}
-      onError={() => setFailedSrc(src)}
+      onError={() => setHasError(true)}
     />
   );
 }

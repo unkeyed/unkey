@@ -1,4 +1,3 @@
-import { displayNameOf } from "@/lib/auth/display-name";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { IconKeyOutline18, IconMathFunctionOutline18 } from "@unkey/icons";
 
@@ -16,7 +15,9 @@ export const ActorCell = ({ log }: ActorCellProps) => {
       <div className="flex items-center w-full gap-2 max-sm:m-0 max-sm:gap-1 max-sm:text-xs">
         {isUser ? (
           <span className="text-xs whitespace-nowrap secret truncate">
-            {displayNameOf(user) || user.username || log.auditLog.actor.id}
+            {`${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+              user.username ||
+              log.auditLog.actor.id}
           </span>
         ) : (
           <>
