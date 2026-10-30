@@ -1,7 +1,3 @@
-// Both functions in this file are pure server-side helpers consumed only by
-// tRPC routers (api/overview/query-overview, api/overview-api-search), which
-// pass `ctx.workspace.id` from an authenticated workspaceProcedure context.
-//
 // We deliberately do NOT mark this file `"use server"`. With that directive,
 // Next.js registers every async export as a publicly callable Server Action
 // whose action id is a deterministic hash of the file path + export name.
@@ -11,33 +7,35 @@
 // key counts (a cross-tenant info-disclosure).
 import { and, count, db, eq, inArray, isNull, schema, sql } from "@/lib/db";
 import type { ApisOverviewResponse } from "@/lib/trpc/routers/api/overview/query-overview/schemas";
+import { escapeLike } from "@/lib/trpc/routers/utils/sql";
 
 export type ApiOverviewOptions = {
   workspaceId: string;
   limit: number;
   cursor?: { id: string } | undefined;
+  search?: string | undefined;
 };
 
 export async function fetchApiOverview({
   workspaceId,
   limit,
   cursor,
+  search,
 }: ApiOverviewOptions): Promise<ApisOverviewResponse> {
-  const totalResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.apis)
-    .where(and(eq(schema.apis.workspaceId, workspaceId), isNull(schema.apis.deletedAtM)));
-  const total = Number(totalResult[0]?.count || 0);
-
-  // Updated query to include keyAuth and fetch actual keys
+  const pattern = search ? `%${escapeLike(search)}%` : undefined;
   const query = db.query.apis.findMany({
-    where: (table, { and, eq, isNull, gt }) => {
-      const conditions = [eq(table.workspaceId, workspaceId), isNull(table.deletedAtM)];
-      if (cursor) {
-        conditions.push(gt(table.id, cursor.id));
-      }
-      return and(...conditions);
-    },
+    where: (table, { and, eq, isNull, gt, or }) =>
+      and(
+        eq(table.workspaceId, workspaceId),
+        isNull(table.deletedAtM),
+        cursor ? gt(table.id, cursor.id) : undefined,
+        pattern
+          ? or(
+              sql`LOWER(${table.name}) LIKE LOWER(${pattern})`,
+              sql`LOWER(${table.id}) LIKE LOWER(${pattern})`,
+            )
+          : undefined,
+      ),
     with: {
       keyAuth: {
         columns: {
@@ -68,7 +66,6 @@ export async function fetchApiOverview({
     apiList,
     hasMore,
     nextCursor,
-    total,
   };
 }
 
@@ -85,7 +82,7 @@ type ApiWithKeyCount = {
   keyCount: number;
 };
 
-export async function attachKeyCounts(
+async function attachKeyCounts(
   workspaceId: string,
   apiItems: Array<ApiItem>,
 ): Promise<Array<ApiWithKeyCount>> {

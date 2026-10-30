@@ -7,4 +7,6 @@ description: Use this pattern when a centered dashboard page is primarily a sear
 
 ## Structure
 
-Put the resource name and primary creation action in `PageHeader`. Put search, filters, and sorting in `ResourceListHeader`. If more results are available, put a right-aligned Load more button in `ResourceListFooter`. Do not add a result count.
+Put the resource name and primary creation action in `PageHeader`. Put search, filters, and sorting in `ResourceListHeader`, in this order from left to right: search, filters, then the view toggle on the right edge. Show 18 items first. If more results are available, put `ResourceListShowMore` in `ResourceListFooter`. Do not add a result count.
+
+A list that offers both cards and rows uses `ResourceListViewToggle`. Both views show the same items and the same Show more footer.

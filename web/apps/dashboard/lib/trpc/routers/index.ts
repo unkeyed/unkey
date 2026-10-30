@@ -6,7 +6,6 @@ import { queryKeysList } from "./api/keys/query-api-keys";
 import { keyUsageTimeseries } from "./api/keys/query-key-usage-timeseries";
 import { queryKeysOverviewLogs } from "./api/keys/query-overview-logs";
 import { keyVerificationsTimeseries } from "./api/keys/query-overview-timeseries";
-import { overviewApiSearch } from "./api/overview-api-search";
 import { queryApisOverview } from "./api/overview/query-overview";
 import { queryVerificationTimeseries } from "./api/overview/query-timeseries";
 import { queryApiKeyDetails } from "./api/query-api-key-details";
@@ -158,7 +157,6 @@ export const router = t.router({
     overview: t.router({
       timeseries: queryVerificationTimeseries,
       query: queryApisOverview,
-      search: overviewApiSearch,
     }),
   }),
   workspace: t.router({
