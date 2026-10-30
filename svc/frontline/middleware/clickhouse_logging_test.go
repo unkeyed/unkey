@@ -227,17 +227,24 @@ func TestClickHouseLogging_ResponseBodyCaptureIsOptIn(t *testing.T) {
 	require.Empty(t, rows[0].ResponseHeaders)
 }
 
-func TestFormatHeaders_RedactsAuthorization(t *testing.T) {
+func TestFormatHeaders_RedactsCredentialHeaders(t *testing.T) {
 	h := http.Header{
-		"Authorization": []string{"Bearer sk_live_secret"},
-		"Content-Type":  []string{"application/json"},
+		"Authorization":       []string{"Bearer sk_live_secret"},
+		"Proxy-Authorization": []string{"Basic proxy_secret"},
+		"Cookie":              []string{"session=cookie_secret"},
+		"Set-Cookie":          []string{"session=set_secret; HttpOnly", "refresh=refresh_secret"},
+		"Content-Type":        []string{"application/json"},
 	}
 
 	got := formatHeaders(h, nil)
 
-	require.Contains(t, got, "Authorization: [REDACTED]")
-	require.Contains(t, got, "Content-Type: application/json")
-	require.NotContains(t, got, "sk_live_secret")
+	require.ElementsMatch(t, []string{
+		"Authorization: [REDACTED]",
+		"Proxy-Authorization: [REDACTED]",
+		"Cookie: [REDACTED]",
+		"Set-Cookie: [REDACTED]",
+		"Content-Type: application/json",
+	}, got)
 }
 
 func TestFormatHeaders_RedactsConfiguredSecretHeaders(t *testing.T) {
