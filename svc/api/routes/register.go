@@ -1318,6 +1318,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	srv.RegisterRoute(
 		miscMiddlewares,
-		&openapi.Handler{},
+		&openapi.Handler{Format: "yaml"},
+	)
+	srv.RegisterRoute(
+		miscMiddlewares,
+		&openapi.Handler{Format: "json"},
 	)
 }
