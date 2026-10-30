@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Lock in ID order to prevent deadlocks when key A mutates key B
 		// while key B concurrently mutates key A.
 		slices.Sort(rootKeyIDs)
-		locked := make(map[string]db.UnkeyRootKey, len(rootKeyIDs))
+		rootKeysByID := make(map[string]db.UnkeyRootKey, len(rootKeyIDs))
 		for _, id := range slices.Compact(rootKeyIDs) {
 			row, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, id)
 			// Classify missing callers and targets separately below.
@@ -85,10 +85,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if err != nil {
 				return err
 			}
-			locked[id] = row
+			rootKeysByID[id] = row
 		}
 		var found bool
-		key, found = locked[req.KeyId]
+		key, found = rootKeysByID[req.KeyId]
 		if !found || key.WorkspaceID != p.AuthorizedWorkspaceID {
 			return fault.New("root key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
@@ -96,7 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		if rootKeyCaller {
-			caller, found := locked[source.KeyID]
+			caller, found := rootKeysByID[source.KeyID]
 			if !found || caller.WorkspaceID != p.AuthorizedWorkspaceID {
 				return fault.New("calling root key not found",
 					fault.Code(codes.Auth.Authorization.Forbidden.URN()),
