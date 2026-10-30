@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
@@ -17,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
+	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -50,7 +52,8 @@ func TestWatch_RetriesFailedDeliveryAndResetsUnusableToken(t *testing.T) {
 			defer cancel()
 			done := make(chan error, 1)
 			go func() { done <- w.Watch(ctx) }()
-			for _, want := range [][]byte{nil, []byte("committed"), nil} {
+			// The failed event moves to retries, so the checkpoint after it holds.
+			for _, want := range [][]byte{nil, []byte("after-failure"), nil} {
 				select {
 				case got := <-server.tokens:
 					require.Equal(t, want, got)
@@ -78,7 +81,7 @@ func (s *watchServer) WatchDeploymentChanges(ctx context.Context, req *connect.R
 		for _, event := range []*ctrlv1.DeploymentChangeEvent{
 			{ResumeToken: []byte("committed")},
 			{Event: &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: &ctrlv1.DeploymentState{}}},
-			{ResumeToken: []byte("must-not-acknowledge")},
+			{ResumeToken: []byte("after-failure")},
 		} {
 			if err := stream.Send(event); err != nil {
 				return err
@@ -221,4 +224,140 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("watch did not join drained dispatch")
 	}
+}
+
+// One workload that fails on every apply must not hold back later changes in
+// the region, and its own change must apply once the failure clears.
+func TestWatchAppliesLaterEventsWhileFailedEventRetries(t *testing.T) {
+	deleteEvent := func(name string) *ctrlv1.DeploymentChangeEvent {
+		return &ctrlv1.DeploymentChangeEvent{
+			Event: &ctrlv1.DeploymentChangeEvent_Deployment{
+				Deployment: &ctrlv1.DeploymentState{
+					State: &ctrlv1.DeploymentState_Delete{
+						Delete: &ctrlv1.DeleteDeployment{K8SNamespace: "workloads", K8SName: name},
+					},
+				},
+			},
+		}
+	}
+	server := httptest.NewServer(connect.NewServerStreamHandler("/watch", func(ctx context.Context, _ *connect.Request[ctrlv1.WatchDeploymentChangesRequest], stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent]) error {
+		for _, event := range []*ctrlv1.DeploymentChangeEvent{deleteEvent("broken"), deleteEvent("healthy")} {
+			if err := stream.Send(event); err != nil {
+				return err
+			}
+		}
+		<-ctx.Done()
+		return ctx.Err()
+	}))
+	t.Cleanup(server.Close)
+	watchClient := connect.NewClient[ctrlv1.WatchDeploymentChangesRequest, ctrlv1.DeploymentChangeEvent](server.Client(), server.URL+"/watch")
+
+	var brokenAttempts atomic.Int32
+	reported := make(chan string, 2)
+	client := &testutil.MockClusterClient{
+		WatchDeploymentChangesFunc: func(ctx context.Context, req *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
+			return watchClient.CallServerStream(ctx, connect.NewRequest(req))
+		},
+		SyncDesiredStateFunc: func(ctx context.Context, _ *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
+			return nil, errors.New("full sync unavailable")
+		},
+		ReportDeploymentStatusFunc: func(_ context.Context, req *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error) {
+			name := req.GetDelete().GetK8SName()
+			if name == "broken" && brokenAttempts.Add(1) == 1 {
+				return nil, errors.New("rejected")
+			}
+			reported <- name
+			return &ctrlv1.ReportDeploymentStatusResponse{}, nil
+		},
+	}
+
+	w := New(Config{
+		Cluster: client,
+		Deployments: deployment.New(deployment.Config{
+			ClientSet:    fake.NewClientset(),
+			Cluster:      client,
+			Fingerprints: cache.NewNoopCache[string, string](),
+		}),
+	})
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	result := make(chan error, 1)
+	go func() { result <- w.Watch(ctx) }()
+
+	for _, want := range []string{"healthy", "broken"} {
+		select {
+		case got := <-reported:
+			require.Equal(t, want, got)
+		case <-ctx.Done():
+			t.Fatalf("%s was never applied", want)
+		}
+	}
+	require.Equal(t, int32(2), brokenAttempts.Load())
+
+	cancel()
+	require.NoError(t, <-result)
+}
+
+// A deleted deployment produces no stream event, so a pending apply must not
+// outlive it and recreate the workload once the failure clears.
+func TestWatchDropsPendingApplyForDeletedDeployment(t *testing.T) {
+	server := httptest.NewServer(connect.NewServerStreamHandler("/watch", func(ctx context.Context, _ *connect.Request[ctrlv1.WatchDeploymentChangesRequest], stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent]) error {
+		if err := stream.Send(&ctrlv1.DeploymentChangeEvent{
+			Event: &ctrlv1.DeploymentChangeEvent_Deployment{
+				Deployment: &ctrlv1.DeploymentState{
+					State: &ctrlv1.DeploymentState_Apply{
+						Apply: &ctrlv1.ApplyDeployment{DeploymentId: "deployment_gone", K8SNamespace: "workloads", K8SName: "gone"},
+					},
+				},
+			},
+		}); err != nil {
+			return err
+		}
+		<-ctx.Done()
+		return ctx.Err()
+	}))
+	t.Cleanup(server.Close)
+	watchClient := connect.NewClient[ctrlv1.WatchDeploymentChangesRequest, ctrlv1.DeploymentChangeEvent](server.Client(), server.URL+"/watch")
+
+	lookups := make(chan string, 4)
+	client := &testutil.MockClusterClient{
+		WatchDeploymentChangesFunc: func(ctx context.Context, req *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
+			return watchClient.CallServerStream(ctx, connect.NewRequest(req))
+		},
+		SyncDesiredStateFunc: func(ctx context.Context, _ *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
+			return nil, errors.New("full sync unavailable")
+		},
+		GetDesiredDeploymentStateFunc: func(_ context.Context, req *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error) {
+			lookups <- req.GetDeploymentId()
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("deployment not found"))
+		},
+	}
+
+	w := New(Config{
+		Cluster: client,
+		Deployments: deployment.New(deployment.Config{
+			ClientSet:    fake.NewClientset(),
+			Cluster:      client,
+			Fingerprints: cache.NewNoopCache[string, string](),
+		}),
+	})
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	result := make(chan error, 1)
+	go func() { result <- w.Watch(ctx) }()
+
+	select {
+	case id := <-lookups:
+		require.Equal(t, "deployment_gone", id)
+	case <-ctx.Done():
+		t.Fatal("pending apply was never retried")
+	}
+	require.Eventually(t, func() bool {
+		var pending dto.Metric
+		require.NoError(t, metrics.StreamRetriesPending.Write(&pending))
+		return pending.GetGauge().GetValue() == 0
+	}, 5*time.Second, 50*time.Millisecond)
+
+	cancel()
+	require.NoError(t, <-result)
 }

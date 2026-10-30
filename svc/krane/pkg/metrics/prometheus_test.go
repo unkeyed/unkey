@@ -23,7 +23,7 @@ func TestSeriesExportedBeforeFirstUse(t *testing.T) {
 		"unkey_krane_leader":                                  1,
 		"unkey_krane_stream_connections_total":                2,
 		"unkey_krane_report_status_duration_seconds":          2,
-		"unkey_krane_dispatch_total":                          4,
+		"unkey_krane_dispatch_total":                          6,
 		"unkey_krane_reconcile_operations_total":              4,
 		"unkey_krane_rollout_gate_workloads":                  3,
 		"unkey_krane_pod_watch_reconnects_total":              2,
