@@ -11,10 +11,7 @@ export function environmentName(slug: string): string {
   return slug.charAt(0).toUpperCase() + slug.slice(1);
 }
 
-export function EnvironmentIcon({
-  kind,
-  className,
-}: { kind: EnvironmentKind; className?: string }) {
+function EnvironmentIcon({ kind, className }: { kind: EnvironmentKind; className?: string }) {
   const Icon = ENVIRONMENT_ICONS[kind];
   return <Icon className={cn("size-3.5 shrink-0", className)} />;
 }

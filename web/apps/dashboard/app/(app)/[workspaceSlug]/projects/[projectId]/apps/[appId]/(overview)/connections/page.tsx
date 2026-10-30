@@ -1,6 +1,8 @@
 "use client";
 
+import { ListPager } from "@/components/list-pager";
 import { LoadError } from "@/components/load-error";
+import { useConsumeSearchFlag } from "@/hooks/use-consume-search-flag";
 import { IconLinkOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -19,24 +21,71 @@ import {
   PageHeaderTitle,
   ResourceListContent,
 } from "@unkey/ui";
+import { useCallback } from "react";
+import { useAppId, useProjectData } from "../data-provider";
 import { useSlidePanels } from "../hooks/use-slide-panels";
-import { AddConnectionPanel } from "./components/connection-form/add-connection-panel";
-import { EditConnectionPanel } from "./components/connection-form/edit-connection-panel";
+import { ConnectionPanel } from "./components/connection-form/connection-panel";
 import { ConnectionsList } from "./components/list";
 import { RetainedConnections } from "./components/list/retained";
 import { ConnectionsListSkeleton } from "./components/list/skeleton";
-import { useConnectionActions } from "./hooks/use-connection-actions";
+import { removalOf, useConnectionMutation } from "./hooks/use-connection-actions";
 import { useConnectionsData } from "./hooks/use-connections-data";
 import { HowConnectionsWorkPanel } from "./how-connections-work";
+import { type Environment, type ListedConnection, isProduction } from "./model/target";
 
-type ConnectionPanel = { type: "add" } | { type: "edit"; targetAppId: string } | { type: "guide" };
+type PanelState = { type: "connection"; before: ListedConnection | null } | { type: "guide" };
 
 export default function ConnectionsPage() {
-  const data = useConnectionsData();
-  const { envs, merged, targets, canWrite } = data;
-  const actions = useConnectionActions(data);
-  const panels = useSlidePanels<ConnectionPanel>();
-  const openAdd = () => panels.open({ type: "add" });
+  const { projectId, environments, isEnvironmentsLoading } = useProjectData();
+  const appId = useAppId();
+  const environment = environments.find(isProduction);
+
+  if (!environment) {
+    return (
+      <PageContainer>
+        <PageHeader>
+          <PageHeaderContent>
+            <PageHeaderTitle>Connections</PageHeaderTitle>
+          </PageHeaderContent>
+        </PageHeader>
+        <PageBody>
+          {isEnvironmentsLoading ? (
+            <ConnectionsListSkeleton />
+          ) : (
+            <p className="text-sm text-gray-9">
+              Create a production environment before adding connections.
+            </p>
+          )}
+        </PageBody>
+      </PageContainer>
+    );
+  }
+
+  return <ProductionConnections projectId={projectId} appId={appId} environment={environment} />;
+}
+
+function ProductionConnections({
+  projectId,
+  appId,
+  environment,
+}: {
+  projectId: string;
+  appId: string;
+  environment: Environment;
+}) {
+  const environmentId = environment.id;
+  const data = useConnectionsData(projectId, appId, environmentId);
+  const mutation = useConnectionMutation({ projectId, appId, environmentId });
+  const panels = useSlidePanels<PanelState>();
+  const openAdd = useCallback(
+    () => panels.open({ type: "connection", before: null }),
+    [panels.open],
+  );
+  useConsumeSearchFlag(
+    "add",
+    data.snapshot.status !== "loading",
+    data.snapshot.status === "ready" ? openAdd : null,
+  );
 
   return (
     <PageContainer>
@@ -48,7 +97,12 @@ export default function ConnectionsPage() {
           <Button size="md" variant="outline" onClick={() => panels.open({ type: "guide" })}>
             How connections work
           </Button>
-          <Button size="md" variant="primary" disabled={!canWrite} onClick={openAdd}>
+          <Button
+            size="md"
+            variant="primary"
+            disabled={data.snapshot.status !== "ready"}
+            onClick={openAdd}
+          >
             <IconPlusOutline18 />
             Add connection
           </Button>
@@ -56,11 +110,11 @@ export default function ConnectionsPage() {
       </PageHeader>
       <PageBody>
         {match(data.view)
-          .with({ type: "error" }, () => (
-            <LoadError title="Could not load connections" onRetry={data.retry} />
+          .with({ status: "failed" }, ({ error, retry }) => (
+            <LoadError title="Could not load connections" error={error} onRetry={retry} />
           ))
-          .with({ type: "loading" }, () => <ConnectionsListSkeleton />)
-          .with({ type: "empty" }, () => (
+          .with({ status: "loading" }, () => <ConnectionsListSkeleton />)
+          .with({ status: "empty" }, () => (
             <EmptyState>
               <EmptyStateIcon>
                 <IconLinkOutline18 />
@@ -72,53 +126,47 @@ export default function ConnectionsPage() {
                 </EmptyStateDescription>
               </EmptyStateHeader>
               <EmptyStateActions>
-                <Button variant="primary" size="md" disabled={!canWrite} onClick={openAdd}>
+                <Button variant="primary" size="md" onClick={openAdd}>
                   <IconPlusOutline18 />
                   Add connection
                 </Button>
               </EmptyStateActions>
             </EmptyState>
           ))
-          .with({ type: "list" }, () => (
+          .with({ status: "ready" }, ({ rows, footer }) => (
             <ResourceListContent>
               <ConnectionsList
-                envs={envs}
-                merged={merged}
-                targets={targets}
-                onEdit={(targetAppId) => panels.open({ type: "edit", targetAppId })}
-                onRemove={(connection) => void actions.remove(connection)}
+                rows={rows}
+                onEdit={(connection) => panels.open({ type: "connection", before: connection })}
+                onRemove={(connection) => mutation.run(removalOf(connection))}
+                removing={mutation.pending !== null}
               />
+              <ListPager state={footer} noun="connections" />
             </ResourceListContent>
           ))
           .exhaustive()}
-        <RetainedConnections retained={data.retained} envs={envs} />
+        <RetainedConnections retained={data.retained} />
         {panels.panel &&
           match(panels.panel)
             .with({ type: "guide" }, () => (
               <HowConnectionsWorkPanel isOpen={panels.isOpen} onClose={panels.close} />
             ))
-            .with({ type: "add" }, () => (
-              <AddConnectionPanel
-                key={panels.session}
-                data={data}
-                isOpen={panels.isOpen}
-                onClose={panels.close}
-                onSave={(values, after) => actions.save(null, values, after)}
-              />
-            ))
-            .with({ type: "edit" }, ({ targetAppId }) => (
-              <EditConnectionPanel
-                key={panels.session}
-                data={data}
-                row={merged.find((connection) => connection.targetAppId === targetAppId)}
-                isOpen={panels.isOpen}
-                onClose={panels.close}
-                onSave={actions.save}
-                onRemove={actions.remove}
-              />
-            ))
+            .with({ type: "connection" }, ({ before }) =>
+              data.snapshot.status === "ready" ? (
+                <ConnectionPanel
+                  key={panels.session}
+                  projectId={projectId}
+                  appId={appId}
+                  environmentId={environmentId}
+                  snapshot={data.snapshot.data}
+                  before={before}
+                  mutation={mutation}
+                  isOpen={panels.isOpen}
+                  onClose={panels.close}
+                />
+              ) : null,
+            )
             .exhaustive()}
-        {actions.planGate}
       </PageBody>
     </PageContainer>
   );

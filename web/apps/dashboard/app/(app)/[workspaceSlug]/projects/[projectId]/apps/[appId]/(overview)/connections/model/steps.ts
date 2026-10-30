@@ -1,4 +1,6 @@
-export const FORM_STEPS = ["app", "config"] as const;
+import type { ConnectionFormValues } from "./form";
+
+export const FORM_STEPS = ["app", "config", "code"] as const;
 
 export type FormStep = (typeof FORM_STEPS)[number];
 
@@ -6,8 +8,11 @@ export type StepStatus = "open" | "done" | "todo";
 
 export type StepsState = { open: FormStep | null; done: ReadonlySet<FormStep> };
 
-export const ADD_STEPS: StepsState = { open: "app", done: new Set() };
-export const EDIT_STEPS: StepsState = { open: null, done: new Set(FORM_STEPS) };
+export const STEP_FIELDS: Record<FormStep, readonly (keyof ConnectionFormValues)[]> = {
+  app: ["targetAppId"],
+  config: ["name", "target"],
+  code: [],
+};
 
 export function stepStatus(state: StepsState, step: FormStep): StepStatus {
   if (state.open === step) {
@@ -30,6 +35,16 @@ export function openStep(state: StepsState, step: FormStep): StepsState {
   return { open: step, done };
 }
 
-export function allStepsDone(state: StepsState): boolean {
-  return FORM_STEPS.every((step) => state.done.has(step));
+export function pickedApp(state: StepsState, appChanged: boolean): StepsState {
+  const next = completeStep(state);
+  return appChanged ? openStep(next, "config") : next;
+}
+
+export function firstStepWithError(
+  errors: Partial<Record<keyof ConnectionFormValues, unknown>>,
+): FormStep | null {
+  return (
+    FORM_STEPS.find((step) => STEP_FIELDS[step].some((field) => errors[field] !== undefined)) ??
+    null
+  );
 }

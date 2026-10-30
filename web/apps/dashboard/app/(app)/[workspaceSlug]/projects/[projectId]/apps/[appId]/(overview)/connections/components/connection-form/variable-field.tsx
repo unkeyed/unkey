@@ -2,11 +2,11 @@
 
 import { FormInput } from "@unkey/ui";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
-import { connectionHostVariable } from "../../connection-rules";
 import type { ConnectionFormValues } from "../../model/form";
+import { connectionHostVariable } from "../../model/name";
 
 export function VariableField({ savedName }: { savedName?: string }) {
-  const { control } = useFormContext<ConnectionFormValues>();
+  const { control, trigger } = useFormContext<ConnectionFormValues>();
   const name = useWatch({ control, name: "name" }).trim();
   const renamed = savedName !== undefined && name !== "" && name !== savedName;
 
@@ -19,7 +19,12 @@ export function VariableField({ savedName }: { savedName?: string }) {
           <FormInput
             label="Name"
             value={field.value}
-            onChange={field.onChange}
+            onChange={(event) => {
+              field.onChange(event);
+              if (fieldState.invalid) {
+                void trigger("name");
+              }
+            }}
             onBlur={field.onBlur}
             error={fieldState.error?.message}
             description={

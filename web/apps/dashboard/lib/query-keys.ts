@@ -31,6 +31,7 @@ export const queryKeys = {
   deployments: {
     buildLogs: (deploymentId: string) => ["deployments", "buildLogs", deploymentId] as const,
     connections: (deploymentId: string) => ["deployments", "connections", deploymentId] as const,
+    connectionPinsAll: ["deployments", "connectionPins"] as const,
     connectionPins: (deploymentId: string) =>
       ["deployments", "connectionPins", deploymentId] as const,
   },

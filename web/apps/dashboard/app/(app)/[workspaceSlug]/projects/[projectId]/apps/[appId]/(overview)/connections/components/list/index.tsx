@@ -1,35 +1,32 @@
 "use client";
 
 import { ResourceListBody } from "@unkey/ui";
-import type { ConnectionTargets } from "../../connection-rules";
-import type { ConnectionEnvs, MergedConnection } from "../../model/merge";
+import type { ConnectionRowModel } from "../../hooks/use-connections-data";
+import type { ListedConnection } from "../../model/target";
 import { ConnectionRow, ConnectionsListHeader } from "./row";
 
 export function ConnectionsList({
-  envs,
-  merged,
-  targets,
+  rows,
   onEdit,
   onRemove,
+  removing,
 }: {
-  envs: ConnectionEnvs;
-  merged: MergedConnection[];
-  targets: ConnectionTargets;
-  onEdit: (targetAppId: string) => void;
-  onRemove: (connection: MergedConnection) => void;
+  rows: readonly ConnectionRowModel[];
+  onEdit: (connection: ListedConnection) => void;
+  onRemove: (connection: ListedConnection) => void;
+  removing: boolean;
 }) {
   return (
     <div>
       <ConnectionsListHeader />
       <ResourceListBody>
-        {merged.map((connection) => (
+        {rows.map((row) => (
           <ConnectionRow
-            key={connection.targetAppId}
-            connection={connection}
-            envs={envs}
-            targets={targets}
+            key={row.connection.id}
+            row={row}
             onEdit={onEdit}
             onRemove={onRemove}
+            removing={removing}
           />
         ))}
       </ResourceListBody>
