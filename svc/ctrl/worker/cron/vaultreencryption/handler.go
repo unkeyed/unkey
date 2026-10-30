@@ -2,7 +2,10 @@ package vaultreencryption
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -28,11 +31,6 @@ type Handler struct {
 	heartbeat healthcheck.Heartbeat
 }
 
-type batchResult struct {
-	Cursor cursor
-	Failed int32
-}
-
 type cursor struct {
 	Pk uint64
 }
@@ -44,46 +42,47 @@ func New(cfg Config) (*Handler, error) {
 	); err != nil {
 		return nil, err
 	}
-	return &Handler{db: cfg.DB, vault: cfg.Vault, heartbeat: cfg.Heartbeat}, nil
+	return &Handler{
+		db:        cfg.DB,
+		vault:     cfg.Vault,
+		heartbeat: cfg.Heartbeat,
+	}, nil
 }
 
-// Only counters and cursors enter the journal, never plaintext or ciphertext.
+// Re-encryption errors must not contain plaintext or ciphertext: Restate journals them.
 func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncryptionRequest) (*hydrav1.RunVaultReEncryptionResponse, error) {
 	if h.vault == nil {
 		return nil, restate.ToTerminalError(fmt.Errorf("Vault is not configured"))
 	}
-	var failed int32
-	for _, table := range []struct {
-		name string
-		scan func(context.Context, *batch)
-	}{
-		{name: "encrypted_keys", scan: h.encryptedKeys},
-	} {
-		after, err := restate.Get[cursor](ctx, table.name)
+	tables := map[string]func(context.Context, cursor) (cursor, error){
+		"encrypted_keys": h.encryptedKeys,
+	}
+	var failures []error
+	for _, table := range slices.Sorted(maps.Keys(tables)) {
+		after, err := restate.Get[cursor](ctx, table)
 		if err != nil {
 			return nil, err
 		}
 		for {
-			page, err := restate.Run(ctx, func(rc restate.RunContext) (batchResult, error) {
-				batchCtx, cancel := context.WithTimeout(rc, 30*time.Second)
+			next, err := restate.Run(ctx, func(rc restate.RunContext) (cursor, error) {
+				pageCtx, cancel := context.WithTimeout(rc, 30*time.Second)
 				defer cancel()
-				batch := batch{table: table.name, result: batchResult{Cursor: after, Failed: 0}}
-				table.scan(batchCtx, &batch)
-				return batch.result, nil
-			}, restate.WithName(fmt.Sprintf("re-encrypt %s after %d", table.name, after.Pk)))
+				next, err := tables[table](pageCtx, after)
+				return next, restate.ToTerminalError(err)
+			}, restate.WithName(fmt.Sprintf("re-encrypt %s after %d", table, after.Pk)))
 			if err != nil {
-				return nil, err
-			}
-			restate.Set(ctx, table.name, page.Cursor)
-			failed += page.Failed
-			if page.Cursor.Pk == 0 || page.Cursor == after {
+				failures = append(failures, fmt.Errorf("%s: %s", table, err))
 				break
 			}
-			after = page.Cursor
+			restate.Set(ctx, table, next)
+			if next.Pk == 0 {
+				break
+			}
+			after = next
 		}
 	}
-	if failed > 0 {
-		return nil, restate.ToTerminalError(fmt.Errorf("ciphertext re-encryption had %d failures; see table and pk in worker logs", failed))
+	if err := errors.Join(failures...); err != nil {
+		return nil, restate.ToTerminalError(err)
 	}
 	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error { return h.heartbeat.Ping(rc) }, restate.WithName("send heartbeat")); err != nil {
 		return nil, err
