@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"io"
 	"net/http/httptest"
+	"os"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/stretchr/testify/require"
@@ -348,6 +350,20 @@ func TestLimitBody_ClearsReadDeadline(t *testing.T) {
 	require.Len(t, w.deadlines, 2)
 	require.False(t, w.deadlines[0].IsZero())
 	require.True(t, w.deadlines[1].IsZero())
+}
+
+func TestLimitBody_SlowBodySaysWhy(t *testing.T) {
+	t.Parallel()
+
+	e := newTestExecutor(t)
+	req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(iotest.ErrReader(os.ErrDeadlineExceeded)))
+	req.ContentLength = 5
+
+	err := e.limitBody(newTestSession(t).ResponseWriter(), req)
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.User.BadRequest.RequestBodyUnreadable.URN(), urn)
+	require.Equal(t, "The request body did not arrive within 30s.", fault.UserFacingMessage(err))
 }
 
 func TestExecute_TwoPoliciesReserveBodyOnce(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
@@ -26,11 +27,11 @@ type compiledSpec struct {
 }
 
 // decodeExpansionMax is the worst-case heap the validator uses per body byte.
-// Peak heap while validating arrays of {} or 0 reached ~60x the body size
+// Measured peak heap for bodies like [0,0,...] or [{},{},...] was ~60x the body size
 const decodeExpansionMax = 64
 
-// bodyReadTimeout bounds how long a slow client holds its body reservation.
-// 30s fits a 4MiB body at ~1.1 Mbit/s
+// bodyReadTimeout limits how long a slow client can hold its body reservation.
+// A body at the default 4MiB max needs an upload of at least ~1.1 Mbit/s
 const bodyReadTimeout = 30 * time.Second
 
 type Executor struct {
@@ -91,6 +92,7 @@ func (e *Executor) Execute(
 		)
 	}
 
+	// limitBody already reserved the body itself, so reserve one byte per body byte less
 	decodeBytesReserved := (decodeExpansionMax - 1) * req.ContentLength
 	if e.bodyBudget != nil && e.bodyBytesMax > 0 && decodeBytesReserved > 0 {
 		if !e.bodyBudget.TryAcquire(decodeBytesReserved) {
@@ -116,15 +118,14 @@ func (e *Executor) Execute(
 	)
 }
 
-// limitBody buffers the body under bodyBytesMax, because the validator reads with
-// no limit. A body without Content-Length reserves bodyBytesMax until it is read.
-// Reading here, before Execute reserves decode memory, stops a slow client from
-// holding that reservation while it trickles bytes.
+// limitBody reads the body into memory, up to bodyBytesMax, because the validator
+// reads it with no limit. The body stays reserved until the request ends, because
+// it stays in memory until the proxy forwards it. A body without Content-Length
+// reserves bodyBytesMax, then gives back what it did not use.
 //
-// The body stays reserved until the request context ends, because the validator
-// puts it back on the request and it stays in memory until the proxy forwards it.
-// A set GetBody means the body is already in memory, buffered by an earlier
-// OpenAPI policy on this request, so it is not reserved twice
+// It runs before Execute reserves decode memory, so a slow client cannot hold
+// that reservation while it sends bytes. A set GetBody means an earlier OpenAPI
+// policy on this request already read and reserved the body
 func (e *Executor) limitBody(w http.ResponseWriter, req *http.Request) (err error) {
 	if e.bodyBytesMax <= 0 || req.Body == nil || req.Body == http.NoBody || req.GetBody != nil {
 		return nil
@@ -171,6 +172,13 @@ func (e *Executor) limitBody(w http.ResponseWriter, req *http.Request) (err erro
 
 	body, err := io.ReadAll(io.LimitReader(req.Body, e.bodyBytesMax+1))
 	closeErr := req.Body.Close()
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		return fault.Wrap(err,
+			fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
+			fault.Internal("request body read deadline exceeded"),
+			fault.Public(fmt.Sprintf("The request body did not arrive within %s.", bodyReadTimeout)),
+		)
+	}
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.User.BadRequest.RequestBodyUnreadable.URN()),
