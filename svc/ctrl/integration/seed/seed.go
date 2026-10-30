@@ -23,7 +23,7 @@ import (
 type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeySpace  db.KeyAuth
-	RootApi       db.Api
+	RootApi       db.FindApiByIDRow
 	UserWorkspace db.Workspace
 }
 
@@ -156,7 +156,7 @@ type CreateApiRequest struct {
 	DefaultBytes  *int32
 }
 
-func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
+func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.FindApiByIDRow {
 	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := s.DB.InsertKeySpace(ctx, db.InsertKeySpaceParams{

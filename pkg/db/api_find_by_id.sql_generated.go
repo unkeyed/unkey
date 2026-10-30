@@ -7,18 +7,33 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findApiByID = `-- name: FindApiByID :one
 SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 `
 
+type FindApiByIDRow struct {
+	Pk               uint64           `db:"pk"`
+	ID               string           `db:"id"`
+	Name             string           `db:"name"`
+	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
+	AuthType         NullApisAuthType `db:"auth_type"`
+	KeyAuthID        sql.NullString   `db:"key_auth_id"`
+	CreatedAtM       int64            `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64    `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64    `db:"deleted_at_m"`
+	DeleteProtection sql.NullBool     `db:"delete_protection"`
+}
+
 // FindApiByID
 //
 //	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
-func (q *Queries) FindApiByID(ctx context.Context, db DBTX, id string) (Api, error) {
+func (q *Queries) FindApiByID(ctx context.Context, db DBTX, id string) (FindApiByIDRow, error) {
 	row := db.QueryRowContext(ctx, findApiByID, id)
-	var i Api
+	var i FindApiByIDRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -39,12 +54,26 @@ const findApiByIDForUpdate = `-- name: FindApiByIDForUpdate :one
 SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
 `
 
+type FindApiByIDForUpdateRow struct {
+	Pk               uint64           `db:"pk"`
+	ID               string           `db:"id"`
+	Name             string           `db:"name"`
+	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
+	AuthType         NullApisAuthType `db:"auth_type"`
+	KeyAuthID        sql.NullString   `db:"key_auth_id"`
+	CreatedAtM       int64            `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64    `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64    `db:"deleted_at_m"`
+	DeleteProtection sql.NullBool     `db:"delete_protection"`
+}
+
 // FindApiByIDForUpdate locks the API so mutation checks remain valid until commit.
 //
 //	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
-func (q *Queries) FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) (Api, error) {
+func (q *Queries) FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) (FindApiByIDForUpdateRow, error) {
 	row := db.QueryRowContext(ctx, findApiByIDForUpdate, id)
-	var i Api
+	var i FindApiByIDForUpdateRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,

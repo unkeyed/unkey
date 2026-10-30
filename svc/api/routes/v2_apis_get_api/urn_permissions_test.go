@@ -182,7 +182,7 @@ func insertKeySpace(t *testing.T, h *testutil.Harness, workspaceID, projectID st
 	return keySpaceID
 }
 
-func insertAPI(t *testing.T, h *testutil.Harness, workspaceID, projectID, keySpaceID string) db.Api {
+func insertAPI(t *testing.T, h *testutil.Harness, workspaceID, projectID, keySpaceID string) db.FindApiByIDRow {
 	t.Helper()
 	apiID := uid.New(uid.APIPrefix)
 	err := db.Query.InsertApi(context.Background(), h.DB.RW(), db.InsertApiParams{

@@ -519,7 +519,7 @@ func (h *Harness) CreateWorkspace() db.Workspace {
 
 // CreateApi creates an API with the specified configuration. The API's key space
 // is created automatically. See [seed.CreateApiRequest] for available options.
-func (h *Harness) CreateApi(req seed.CreateApiRequest) db.Api {
+func (h *Harness) CreateApi(req seed.CreateApiRequest) db.FindApiByIDRow {
 	return h.seeder.CreateAPI(context.Background(), req)
 }
 

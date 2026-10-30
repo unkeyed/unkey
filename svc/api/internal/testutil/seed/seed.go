@@ -29,7 +29,7 @@ import (
 type Resources struct {
 	RootWorkspace db.Workspace
 	RootKeySpace  db.KeyAuth
-	RootApi       db.Api
+	RootApi       db.FindApiByIDRow
 	UserWorkspace db.Workspace
 }
 
@@ -133,7 +133,7 @@ type CreateApiRequest struct {
 // first since the API references it. An empty ProjectID uses the workspace's
 // default project. The returned API includes the KeyAuthID that links to the key
 // space.
-func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
+func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.FindApiByIDRow {
 	projectID := req.ProjectID
 	if projectID == "" {
 		projectID = s.defaultProjectID(ctx, req.WorkspaceID)

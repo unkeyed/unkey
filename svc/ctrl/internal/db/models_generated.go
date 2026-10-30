@@ -985,20 +985,6 @@ type AcmeUser struct {
 	UpdatedAt       sql.NullInt64  `db:"updated_at"`
 }
 
-type Api struct {
-	Pk               uint64           `db:"pk"`
-	ID               string           `db:"id"`
-	Name             string           `db:"name"`
-	WorkspaceID      string           `db:"workspace_id"`
-	ProjectID        string           `db:"project_id"`
-	AuthType         NullApisAuthType `db:"auth_type"`
-	KeyAuthID        sql.NullString   `db:"key_auth_id"`
-	CreatedAtM       int64            `db:"created_at_m"`
-	UpdatedAtM       sql.NullInt64    `db:"updated_at_m"`
-	DeletedAtM       sql.NullInt64    `db:"deleted_at_m"`
-	DeleteProtection sql.NullBool     `db:"delete_protection"`
-}
-
 type App struct {
 	Pk                  uint64         `db:"pk"`
 	ID                  string         `db:"id"`
