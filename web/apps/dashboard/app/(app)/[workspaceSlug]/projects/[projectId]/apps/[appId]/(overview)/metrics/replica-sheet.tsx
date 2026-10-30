@@ -27,6 +27,7 @@ import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { DeployIdentity } from "./deploy-identity";
 import { PHASE, isStopped } from "./instances-model";
+import { outdatedProps } from "./outdated";
 import {
   REPLICA_METRICS,
   type ReplicaSection,
@@ -80,12 +81,14 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
               {sheet.lastExit && <LastExitRow lastExit={sheet.lastExit} />}
             </dl>
             {isStopped(sheet.status) && sheet.usage.status === "ready" && (
-              <p className="text-xs text-gray-11">
+              <p {...outdatedProps(sheet.outdated, "text-xs text-gray-11")}>
                 This instance has stopped. Its last recorded usage is below.
               </p>
             )}
             <ChartHoverProvider>
-              <ReplicaUsageBody usage={sheet.usage} markers={markers} />
+              <div {...outdatedProps(sheet.outdated, "flex flex-1 flex-col gap-6")}>
+                <ReplicaUsageBody usage={sheet.usage} markers={markers} />
+              </div>
             </ChartHoverProvider>
           </SlidePanelContent>
         </>

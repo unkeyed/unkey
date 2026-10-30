@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import type { ChartScale } from "./allocation";
 import { useHoveredBucket, useSetHoveredBucket } from "./chart-hover";
 import { legendReadout } from "./model";
+import { outdatedProps } from "./outdated";
 
 const LEGEND_HEIGHT = 33;
 
@@ -33,6 +34,7 @@ type SeriesChartProps = {
   focusKey?: string | null;
   connectNulls?: boolean;
   unavailableCopy?: string;
+  outdated?: boolean;
 };
 
 export function SeriesChart({
@@ -48,10 +50,13 @@ export function SeriesChart({
   focusKey,
   connectNulls,
   unavailableCopy = `${title} metrics are unavailable right now`,
+  outdated = false,
 }: SeriesChartProps) {
   const frame = { legend, series, unit: scale.unit };
   return match(state)
-    .with({ status: "empty" }, () => <NoDataPlaceholder height={height + LEGEND_HEIGHT} />)
+    .with({ status: "empty" }, () => (
+      <NoDataPlaceholder height={height + LEGEND_HEIGHT} {...outdatedProps(outdated)} />
+    ))
     .with({ status: "failed" }, () => (
       <ChartFrame {...frame} chart={null}>
         <div className="flex items-center justify-center text-xs text-gray-10" style={{ height }}>
@@ -72,7 +77,7 @@ export function SeriesChart({
       </ChartFrame>
     ))
     .with({ status: "ready" }, (ready) => (
-      <ChartFrame {...frame} chart={ready.chart}>
+      <ChartFrame {...frame} chart={ready.chart} outdated={outdated}>
         <GridChart
           chart={ready.chart}
           grid={ready.grid}
@@ -95,16 +100,18 @@ function ChartFrame({
   chart,
   series,
   unit,
+  outdated = false,
   children,
 }: {
   legend: ReactNode;
   chart: AreaChartPoint[] | null;
   series: Record<string, SeriesView>;
   unit: MetricUnit;
+  outdated?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div {...outdatedProps(outdated, "flex flex-col gap-3")}>
       {children}
       <div className="-mx-4 -mb-3 flex flex-wrap border-t border-grayA-4 text-xs">
         {legend ?? <SeriesLegendCells chart={chart} series={series} unit={unit} />}

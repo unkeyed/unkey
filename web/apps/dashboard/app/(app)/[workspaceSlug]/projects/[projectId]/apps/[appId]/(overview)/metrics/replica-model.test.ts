@@ -180,6 +180,7 @@ describe("replicaSheetModel", () => {
     environmentId: "env_prod",
     instances: ready([opened]),
     usage: loading,
+    markersOutdated: false,
   };
 
   it("is closed when nothing is open", () => {
@@ -202,6 +203,7 @@ describe("replicaSheetModel", () => {
       deployment: { id: "d_new", source: null },
       lastExit: null,
       usage: loading,
+      outdated: false,
     });
   });
 

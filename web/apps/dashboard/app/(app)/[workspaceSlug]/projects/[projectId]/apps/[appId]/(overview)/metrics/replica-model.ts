@@ -1,6 +1,8 @@
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
+import { isOutdated } from "@/lib/metrics/app-metrics";
 import type {
   Grid,
+  HeldLoadable,
   InstanceRow,
   InstanceSeries,
   MetricId,
@@ -108,6 +110,7 @@ export type ReplicaSheetModel = {
   deployment: InstanceRow["deployment"];
   lastExit: InstanceRow["lastExit"];
   usage: ReplicaUsage;
+  outdated: boolean;
 };
 
 export function openInstanceOf(
@@ -136,11 +139,13 @@ export function replicaSheetModel({
   environmentId,
   instances,
   usage,
+  markersOutdated,
 }: {
   open: OpenReplica | null;
   environmentId: string | null;
   instances: Loadable<InstanceRow[]>;
-  usage: Loadable<InstanceSeries>;
+  usage: HeldLoadable<InstanceSeries>;
+  markersOutdated: boolean;
 }): ReplicaSheetModel | null {
   if (!open || open.environmentId !== environmentId) {
     return null;
@@ -151,12 +156,14 @@ export function replicaSheetModel({
       : undefined;
   const row = live ?? open.row;
   const gone = instances.status === "ready" && !live;
+  const drawn = replicaUsage(usage, row.replica);
   return {
     name: row.replica.k8sName,
     region: row.region.name,
     status: gone ? "stopped" : phaseOf(row),
     deployment: row.deployment,
     lastExit: row.lastExit,
-    usage: replicaUsage(usage, row.replica),
+    usage: drawn,
+    outdated: isOutdated(usage) || (drawn.status === "ready" && markersOutdated),
   };
 }

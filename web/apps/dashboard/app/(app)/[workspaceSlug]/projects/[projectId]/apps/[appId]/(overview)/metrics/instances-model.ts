@@ -6,11 +6,12 @@ import {
 } from "@/lib/collections/deploy/instance-status";
 import { exitSummary } from "@/lib/collections/deploy/last-exit";
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
-import { instancesInRange } from "@/lib/metrics/app-metrics";
+import { instancesInRange, isOutdated } from "@/lib/metrics/app-metrics";
 import type {
   DeployRole,
   DeploySource,
   Grid,
+  HeldLoadable,
   InstanceEvent,
   InstanceRow,
   InstanceSeries,
@@ -398,10 +399,11 @@ function scopeOf(
 export type InstancesTabView =
   | { status: "loading" }
   | ({ status: "failed" } & Failure)
-  | { status: "empty" }
+  | { status: "empty"; outdated: boolean }
   | {
       status: "ready";
       grid: Grid;
+      outdated: boolean;
       filters: InstanceFilters;
       episodes: CrashEpisode[];
       crashEventsFailed: boolean;
@@ -414,19 +416,21 @@ export type InstancesTabView =
 export function instancesTabView(input: {
   grid: Grid;
   instances: Loadable<InstanceRow[]>;
-  usage: Loadable<InstanceSeries>;
-  events: Loadable<InstanceEvent[]>;
+  usage: HeldLoadable<InstanceSeries>;
+  events: HeldLoadable<InstanceEvent[]>;
   filter: FilterSelection;
+  markersOutdated: boolean;
 }): InstancesTabView {
   const instances = instancesInRange(input.instances, input.usage);
   if (instances.status !== "ready") {
     return instances;
   }
   if (instances.data.length === 0) {
-    return { status: "empty" };
+    return { status: "empty", outdated: isOutdated(input.usage) };
   }
   const { filters, inScope } = scopeOf(instanceViews(instances.data), input.filter);
   const usage = usageOf(input.usage);
+  const grid = usage.status === "ready" ? usage.grid : input.grid;
   const scope = {
     regions: filters.regions.selected,
     instances:
@@ -436,7 +440,7 @@ export function instancesTabView(input: {
   };
   const crashes = match(input.events)
     .with({ status: "ready" }, ({ data }) => ({
-      episodes: crashEpisodes(eventsInScope(data, scope), input.grid.endMs),
+      episodes: crashEpisodes(eventsInScope(data, scope), grid.endMs),
       failed: false,
     }))
     .with({ status: "failed" }, () => ({ episodes: [], failed: true }))
@@ -445,7 +449,8 @@ export function instancesTabView(input: {
   return {
     status: "ready",
     historyTruncated: input.usage.status === "ready" && input.usage.data.history.truncated,
-    grid: input.grid,
+    grid,
+    outdated: isOutdated(input.usage) || isOutdated(input.events) || input.markersOutdated,
     filters,
     episodes: crashes.episodes,
     crashEventsFailed: crashes.failed,

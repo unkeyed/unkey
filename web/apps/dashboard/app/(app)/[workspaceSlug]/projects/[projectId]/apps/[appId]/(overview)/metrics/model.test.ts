@@ -130,10 +130,10 @@ describe("metricsPageModel", () => {
     const { view } = readyModel(metricsPageModel(base));
     expect(view).toEqual({
       kind: "metrics",
-      hero: { metric: "requests", state: { status: "loading" } },
+      hero: { metric: "requests", state: { status: "loading" }, outdated: false },
       grid: [
-        { metric: "errors", state: { status: "loading" } },
-        { metric: "latency", state: { status: "loading" } },
+        { metric: "errors", state: { status: "loading" }, outdated: false },
+        { metric: "latency", state: { status: "loading" }, outdated: false },
       ],
     });
   });
@@ -205,15 +205,53 @@ describe("metricsPageModel", () => {
     expect(panel?.deploys.map((d) => d.marker.deploymentId)).toEqual(["d_two"]);
   });
 
+  it("lists panel deploys by the grid the panel chart draws, not the newer clock grid", () => {
+    const { panel } = readyModel(
+      metricsPageModel({
+        ...base,
+        grid: { ...grid, startMs: 90_000, endMs: 210_000 },
+        expanded: "cpu",
+      }),
+    );
+    expect(panel?.deploys.map((d) => d.marker.deploymentId)).toEqual(["d_two"]);
+  });
+
   it("has no per-instance chart for a traffic panel and no panel when nothing is expanded", () => {
     expect(readyModel(metricsPageModel({ ...base, expanded: "requests" })).panel).toEqual({
-      card: { metric: "requests", state: { status: "loading" } },
+      card: { metric: "requests", state: { status: "loading" }, outdated: false },
       stats: null,
       byInstance: null,
       historyTruncated: false,
       deploys: [{ marker: deployedInRange, effects: [] }],
+      outdated: false,
     });
     expect(readyModel(metricsPageModel(base)).panel).toBeNull();
+  });
+
+  it("marks a card outdated while its source holds another range", () => {
+    const sources = { ...base.sources, resources: { ...ready(resources), outdated: true } };
+    const { view } = readyModel(metricsPageModel({ ...base, tab: "resources", sources }));
+    expect(view.kind === "metrics" && view.hero.outdated).toBe(true);
+  });
+
+  it("leaves out effect chips from a source that holds another range", () => {
+    const wide = { ...grid, endMs: 180_000 };
+    const spanning: SourceResult<"resources"> = {
+      grid: wide,
+      points: [resource(0, 250, 0), resource(60_000, 350, 0), resource(120_000, 500, 0)],
+    };
+    const effectsOf = (outdated: boolean) =>
+      readyModel(
+        metricsPageModel({
+          ...base,
+          grid: wide,
+          sources: { ...base.sources, resources: { ...ready(spanning), outdated } },
+        }),
+      ).deploys.get("d_two")?.effects;
+    expect(effectsOf(false)).toEqual([
+      { metric: "cpu", label: "CPU", change: { kind: "percent", percent: 100 }, tone: "worse" },
+    ]);
+    expect(effectsOf(true)).toEqual([]);
   });
 
   it("turns ready deploys into chart markers", () => {

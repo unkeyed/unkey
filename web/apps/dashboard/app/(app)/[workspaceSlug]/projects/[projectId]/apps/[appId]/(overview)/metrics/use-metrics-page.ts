@@ -130,6 +130,7 @@ export function useMetricsPage() {
       environmentId,
       instances,
       usage: byInstance,
+      markersOutdated: model.kind === "ready" && model.markersOutdated,
     }),
     logsHref,
     openReplica: (row: InstanceRow) => setOpenReplica({ environmentId, row }),

@@ -11,6 +11,7 @@ import { HistoryNotice } from "./history-notice";
 import { InstanceFilterBar } from "./instance-filters";
 import { InstanceTable } from "./instance-table";
 import type { FilterKey, InstancesTabView, LogsTarget } from "./instances-model";
+import { outdatedProps } from "./outdated";
 import { UsageCardView } from "./usage-card";
 
 const PAGE_SIZE = 10;
@@ -47,7 +48,7 @@ export function InstancesLayout({
     withDate: spansDays(view.grid),
   });
   return (
-    <Card className="overflow-hidden">
+    <Card {...outdatedProps(view.outdated, "overflow-hidden")}>
       {view.historyTruncated && (
         <div className="border-b border-grayA-4 px-4 py-2">
           <HistoryNotice />
