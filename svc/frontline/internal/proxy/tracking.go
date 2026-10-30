@@ -8,7 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-// RequestTracking holds data collected during a local-instance request for
+// RequestTracking holds data collected during a resolved deployment request for
 // ClickHouse logging. The handler initializes the deployment-scoped fields
 // once; InstanceID and Address are (re)written for each instance attempted
 // in the retry loop, so on success they reflect the instance that served
@@ -18,8 +18,8 @@ import (
 // for failed dial attempts (no bytes flow) and fills from the successful
 // attempt's drain.
 //
-// Cross-region requests do not populate tracking — the peer frontline writes
-// its own ClickHouse row.
+// A peer response suppresses the local row; failures before a peer response
+// retain the resolved ownership for local logging.
 type RequestTracking struct {
 	// Set by the handler before proxying.
 	RequestID     string

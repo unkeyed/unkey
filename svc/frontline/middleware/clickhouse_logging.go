@@ -32,7 +32,7 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 
 			err := next(ctx, s)
 
-			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" {
+			if !s.ShouldLogRequestToClickHouse() || tracking.WorkspaceID == "" || tracking.DeploymentID == "" {
 				return err
 			}
 
