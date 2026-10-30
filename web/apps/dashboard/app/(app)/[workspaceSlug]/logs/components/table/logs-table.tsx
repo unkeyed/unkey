@@ -226,7 +226,11 @@ export const LogsTable = () => {
         key: "path",
         header: "Path",
         width: "20%",
-        render: (log) => <div className="font-mono pr-4 truncate">{log.path}</div>,
+        render: (log) => (
+          <div className="font-mono pr-4 truncate max-w-100" title={log.path}>
+            {log.path}
+          </div>
+        ),
       },
     ],
     [selectedLog?.request_id],
