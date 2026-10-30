@@ -7,6 +7,7 @@ import {
   ResourceListFooter,
   ResourceListHeader,
   ResourceListItem,
+  ResourceListShowMore,
 } from "@unkey/ui";
 import { useState } from "react";
 
@@ -65,9 +66,7 @@ export default function BasicResourceList() {
         </ResourceListBody>
         {visibleKeys.length < filteredKeys.length ? (
           <ResourceListFooter>
-            <Button variant="outline" onClick={() => setVisibleCount(filteredKeys.length)}>
-              Load more
-            </Button>
+            <ResourceListShowMore onClick={() => setVisibleCount(filteredKeys.length)} />
           </ResourceListFooter>
         ) : null}
       </ResourceListContent>

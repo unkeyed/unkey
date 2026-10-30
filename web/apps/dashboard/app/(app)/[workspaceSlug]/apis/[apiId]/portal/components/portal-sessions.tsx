@@ -1,13 +1,15 @@
 "use client";
 
+import { ListPager } from "@/components/list-pager";
+import { LoadError } from "@/components/load-error";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { useInfiniteList } from "@/lib/loadable/list";
 import {
   type SessionGroup,
   sessionGroupScopes,
   summarizeSessionGroup,
 } from "@/lib/portal/sessions";
 import { usePortalSessions } from "@/lib/portal/use-portal-sessions";
-import { getErrorMessage } from "@/lib/unkey-client";
 import type { Scope, V2PortalListSessionsSession } from "@unkey/api/models/components";
 import {
   IconBanOutline18,
@@ -19,6 +21,7 @@ import {
   IconShieldKeyOutline18,
   IconUserOutline12,
 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Button,
   EmptyState,
@@ -28,9 +31,9 @@ import {
   ResourceList,
   ResourceListBody,
   ResourceListContent,
-  ResourceListFooter,
   ResourceListHeader,
   ResourceListItem,
+  ResourceListSearch,
   SearchInput,
   Skeleton,
   SlidePanel,
@@ -85,15 +88,15 @@ export function PortalSessions({ portalId, canRevoke }: { portalId: string; canR
 
   return (
     <ResourceList>
-      <ResourceListHeader className="md:items-center">
-        <div className="flex h-8 w-full items-center md:w-80">
+      <ResourceListHeader>
+        <ResourceListSearch>
           <SearchInput
             value={searchInput}
             onValueChange={setSearchInput}
             label="Search sessions by external ID"
             placeholder="Search by external ID"
           />
-        </div>
+        </ResourceListSearch>
       </ResourceListHeader>
 
       <SessionsBody
@@ -142,79 +145,53 @@ function SessionsBody({
   onOpen: (group: SessionGroup) => void;
   onRevoke: (group: SessionGroup) => void;
 }) {
-  if (query.isLoading || (query.isPreviousData && query.groups.length === 0)) {
-    return <SessionsTableSkeleton />;
-  }
+  const list = useInfiniteList(query, (page) => page.groups);
 
-  if (query.isError && query.groups.length === 0) {
-    return (
+  return match(list)
+    .with({ status: "loading" }, () => <SessionsTableSkeleton />)
+    .with({ status: "failed" }, ({ error, retry }) => (
       <ResourceListContent>
-        <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-          <span role="alert" className="text-sm text-gray-11">
-            {getErrorMessage(query.error, "We couldn't load sessions.")}
-          </span>
-          <Button variant="outline" onClick={() => query.refetch()}>
-            Retry
-          </Button>
-        </div>
+        <LoadError title="Could not load sessions" error={error} frame="none" onRetry={retry} />
       </ResourceListContent>
-    );
-  }
-
-  // Groups can lapse between the API's two reads, so a page can come back empty
-  // while more remain.
-  if (query.groups.length === 0 && !query.hasNextPage) {
-    return (
-      <EmptyState>
-        <EmptyStateHeader>
-          <EmptyStateTitle>{search ? "No matching users" : "No active sessions"}</EmptyStateTitle>
-          <EmptyStateDescription>
-            {search
-              ? `No user with an active session has an external ID starting with "${search}".`
-              : "Users appear here once your app creates a portal session for them."}
-          </EmptyStateDescription>
-        </EmptyStateHeader>
-      </EmptyState>
-    );
-  }
-
-  return (
-    <ResourceListContent aria-live="polite" className={cn(query.isPreviousData && "opacity-60")}>
-      <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
-          <SessionsTableHeader />
-          <ResourceListBody aria-label="Portal sessions">
-            {query.groups.map((group) => (
-              <SessionGroupRow
-                key={group.externalId}
-                group={group}
-                selected={group.externalId === selectedId}
-                canRevoke={canRevoke}
-                onOpen={() => onOpen(group)}
-                onRevoke={() => onRevoke(group)}
-              />
-            ))}
-          </ResourceListBody>
+    ))
+    .with({ status: "empty" }, () => <SessionsEmpty search={search} />)
+    .with({ status: "ready" }, ({ rows, footer }) => (
+      <ResourceListContent aria-live="polite" className={cn(query.isPreviousData && "opacity-60")}>
+        <div className="overflow-x-auto">
+          <div className="min-w-[640px]">
+            <SessionsTableHeader />
+            <ResourceListBody aria-label="Portal sessions">
+              {rows.map((group) => (
+                <SessionGroupRow
+                  key={group.externalId}
+                  group={group}
+                  selected={group.externalId === selectedId}
+                  canRevoke={canRevoke}
+                  onOpen={() => onOpen(group)}
+                  onRevoke={() => onRevoke(group)}
+                />
+              ))}
+            </ResourceListBody>
+          </div>
         </div>
-      </div>
-      {query.hasNextPage || (query.isError && query.groups.length > 0) ? (
-        <ResourceListFooter className="justify-center gap-3">
-          {query.isError ? (
-            <span role="alert" className="text-sm text-gray-11">
-              We couldn't load sessions.
-            </span>
-          ) : null}
-          <Button
-            variant="outline"
-            loading={query.isFetchingNextPage}
-            disabled={query.isFetchingNextPage}
-            onClick={() => (query.hasNextPage ? query.fetchNextPage() : query.refetch())}
-          >
-            {query.isError ? "Retry" : "Load more"}
-          </Button>
-        </ResourceListFooter>
-      ) : null}
-    </ResourceListContent>
+        <ListPager state={footer} noun="sessions" />
+      </ResourceListContent>
+    ))
+    .exhaustive();
+}
+
+function SessionsEmpty({ search }: { search: string }) {
+  return (
+    <EmptyState>
+      <EmptyStateHeader>
+        <EmptyStateTitle>{search ? "No matching users" : "No active sessions"}</EmptyStateTitle>
+        <EmptyStateDescription>
+          {search
+            ? `No user with an active session has an external ID starting with "${search}".`
+            : "Users appear here once your app creates a portal session for them."}
+        </EmptyStateDescription>
+      </EmptyStateHeader>
+    </EmptyState>
   );
 }
 
@@ -423,7 +400,7 @@ function SessionGroupPanel({
 export function PortalSessionsSkeleton() {
   return (
     <ResourceList>
-      <ResourceListHeader className="md:items-center">
+      <ResourceListHeader>
         <Skeleton className="h-8 w-full rounded-lg md:w-80" />
       </ResourceListHeader>
       <SessionsTableSkeleton />

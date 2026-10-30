@@ -6,7 +6,7 @@ import { IconChevronLeftOutline12, IconChevronRightOutline12 } from "@unkey/icon
 import { Button, Card } from "@unkey/ui";
 import type { Route } from "next";
 import { useState } from "react";
-import { withEpisodeMarkers } from "./event-markers";
+import { withCrashIncidents } from "./event-markers";
 import { HistoryNotice } from "./history-notice";
 import { InstanceFilterBar } from "./instance-filters";
 import { InstanceTable } from "./instance-table";
@@ -42,7 +42,7 @@ export function InstancesLayout({
   const current = Math.min(page, pages - 1);
   const first = current * PAGE_SIZE;
   const rows = all.slice(first, first + PAGE_SIZE);
-  const chartMarkers = withEpisodeMarkers(markers, view.episodes, {
+  const incidents = withCrashIncidents(markers, view.episodes, {
     logsHref,
     withDate: spansDays(view.grid),
   });
@@ -60,7 +60,8 @@ export function InstancesLayout({
             card={card}
             legend={view.legend}
             focusKey={hoveredKey}
-            markers={chartMarkers}
+            markers={markers}
+            incidents={incidents}
             syncId={syncId}
           />
         ))}

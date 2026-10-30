@@ -2,6 +2,7 @@
 
 import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
 import type { ChartMarkers } from "@/components/charts/chart-markers";
+import type { ChartIncidents } from "@/components/charts/incident-markers";
 import { NoDataPlaceholder } from "@/components/charts/no-data-placeholder";
 import { type Grid, spansDays } from "@/lib/metrics/app-metrics";
 import {
@@ -25,6 +26,7 @@ type SeriesChartProps = {
   series: Record<string, SeriesView>;
   scale: ChartScale;
   markers?: ChartMarkers;
+  incidents?: ChartIncidents;
   height: number;
   syncId: string;
   legend?: ReactNode;
@@ -39,6 +41,7 @@ export function SeriesChart({
   series,
   scale,
   markers,
+  incidents,
   height,
   syncId,
   legend,
@@ -76,6 +79,7 @@ export function SeriesChart({
           series={series}
           scale={scale}
           markers={markers}
+          incidents={incidents}
           height={height}
           syncId={syncId}
           focusKey={focusKey}
@@ -115,6 +119,7 @@ type GridChartProps = {
   series: Record<string, SeriesView>;
   scale: ChartScale;
   markers?: ChartMarkers;
+  incidents?: ChartIncidents;
   height: number;
   syncId: string;
   focusKey?: string | null;
@@ -127,6 +132,7 @@ function GridChart({
   series,
   scale,
   markers,
+  incidents,
   height,
   syncId,
   focusKey,
@@ -145,6 +151,7 @@ function GridChart({
       formatTooltipValue={format.format}
       syncId={syncId}
       markers={markers}
+      incidents={incidents}
       focusKey={focusKey}
       connectNulls={connectNulls}
       onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}

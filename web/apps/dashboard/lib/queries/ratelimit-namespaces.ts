@@ -3,15 +3,13 @@ import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 
-const NAMESPACE_PAGE_SIZE = 50;
-
-export function useNamespaces({ search }: { search: string }) {
+export function useNamespaces({ search, pageSize }: { search: string; pageSize: number }) {
   const query = useInfiniteQuery({
-    queryKey: queryKeys.ratelimit.namespaces.list(search),
+    queryKey: queryKeys.ratelimit.namespaces.list({ search, pageSize }),
     queryFn: async ({ pageParam, signal }) => {
       const cursor = typeof pageParam === "string" ? pageParam : undefined;
       const response = await getUnkeyClient().ratelimit.listNamespaces(
-        { limit: NAMESPACE_PAGE_SIZE, cursor, search: search || undefined },
+        { limit: pageSize, cursor, search: search || undefined },
         { signal },
       );
       const { data, pagination } = response.result;

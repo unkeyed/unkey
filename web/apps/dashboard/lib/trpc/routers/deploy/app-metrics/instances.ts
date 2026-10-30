@@ -58,9 +58,8 @@ export const appMetricsInstances = workspaceProcedure
     });
 
     return instances.map((instance) => ({
-      instanceId: instance.id,
+      presence: { kind: "live", instanceId: instance.id, status: instance.status },
       region: { name: instance.region.name },
-      status: instance.status,
       role: deployRole(
         { id: instance.deploymentId, status: instance.deployment.status },
         currentId,

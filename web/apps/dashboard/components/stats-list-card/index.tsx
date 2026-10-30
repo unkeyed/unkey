@@ -1,7 +1,9 @@
 "use client";
 
 import { formatNumber } from "@/lib/fmt";
-import { InfoTooltip } from "@unkey/ui";
+import { match } from "@unkey/match";
+import { InfoTooltip, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import type { Route } from "next";
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -24,7 +26,7 @@ export type StatsListCardLabels = {
   error: string;
 };
 
-type ChartState =
+export type StatsChartState =
   | { type: "loading" }
   | { type: "error" }
   | { type: "empty"; buckets: number }
@@ -42,6 +44,33 @@ export type StatsListCardProps = {
   footerLeft: ReactNode;
 };
 
+export function statsSummaryOf({
+  buckets,
+  isLoading,
+  isError,
+}: Pick<StatsListCardProps, "buckets" | "isLoading" | "isError">): {
+  success: number;
+  error: number;
+  chart: StatsChartState;
+} {
+  const success = buckets?.reduce((acc, point) => acc + point.success, 0) ?? 0;
+  const error = buckets?.reduce((acc, point) => acc + point.error, 0) ?? 0;
+  if (isError) {
+    return { success, error, chart: { type: "error" } };
+  }
+  if (isLoading || !buckets) {
+    return { success, error, chart: { type: "loading" } };
+  }
+  if (success + error === 0) {
+    return {
+      success,
+      error,
+      chart: { type: "empty", buckets: buckets.length || EMPTY_TICK_COUNT },
+    };
+  }
+  return { success, error, chart: { type: "data", points: buckets } };
+}
+
 export function StatsListCard({
   href,
   ariaLabel,
@@ -53,16 +82,7 @@ export function StatsListCard({
   labels,
   footerLeft,
 }: StatsListCardProps) {
-  const success = buckets?.reduce((acc, point) => acc + point.success, 0) ?? 0;
-  const error = buckets?.reduce((acc, point) => acc + point.error, 0) ?? 0;
-
-  const chart: ChartState = isError
-    ? { type: "error" }
-    : isLoading || !buckets
-      ? { type: "loading" }
-      : success + error > 0
-        ? { type: "data", points: buckets }
-        : { type: "empty", buckets: buckets.length || EMPTY_TICK_COUNT };
+  const { success, error, chart } = statsSummaryOf({ buckets, isLoading, isError });
 
   return (
     <Link
@@ -109,29 +129,38 @@ export function StatsListCard({
   );
 }
 
-function ChartWell({ chart, labels }: { chart: ChartState; labels: StatsListCardLabels }) {
+export function ChartWell({
+  chart,
+  labels,
+  className,
+}: {
+  chart: StatsChartState;
+  labels: StatsListCardLabels;
+  className?: string;
+}) {
   return (
-    <div className="relative h-12 w-full">
-      {chart.type === "loading" ? (
-        <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
-          Loading...
-        </div>
-      ) : chart.type === "error" ? (
-        <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
-          Activity unavailable
-        </div>
-      ) : chart.type === "empty" ? (
-        <>
-          <BaselineTicks buckets={chart.buckets} />
-          <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
-            No activity
-          </div>
-        </>
-      ) : (
-        <StatsSparkline data={chart.points} labels={labels} />
-      )}
+    <div className={cn("relative h-12 w-full", className)}>
+      {match(chart)
+        .with({ type: "loading" }, () => <Skeleton className="absolute inset-0" />)
+        .with({ type: "error" }, () => <ChartNote>Activity unavailable</ChartNote>)
+        .with({ type: "empty" }, ({ buckets }) => (
+          <>
+            <BaselineTicks buckets={buckets} />
+            <ChartNote>No activity</ChartNote>
+          </>
+        ))
+        .with({ type: "data" }, ({ points }) => <StatsSparkline data={points} labels={labels} />)
+        .exhaustive()}
       {/* Painted last so the dashed baseline reads in front of the bar bases. */}
       <div className="absolute inset-x-0 bottom-0 border-t border-dashed border-gray-5 pointer-events-none" />
+    </div>
+  );
+}
+
+function ChartNote({ children }: { children: ReactNode }) {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center text-2xs text-gray-9 pointer-events-none">
+      {children}
     </div>
   );
 }

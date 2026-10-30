@@ -11,6 +11,7 @@ function row(overrides: Partial<RawRow>): RawRow {
     event_kind: "terminated",
     reason: "Error",
     exit_code: 1,
+    message: "",
     ...overrides,
   };
 }
@@ -59,11 +60,11 @@ describe("toInstanceEvents", () => {
     ).toEqual([["started", null]]);
   });
 
-  it("keeps the exit code only for terminations and resolves the instance id", () => {
+  it("keeps the exit code only for terminations, trims the message, and resolves the instance id", () => {
     expect(
       toInstanceEvents(
         [
-          row({ reason: "OOMKilled", exit_code: 137 }),
+          row({ reason: "OOMKilled", exit_code: 137, message: "  OOM killed\n" }),
           row({
             event_fingerprint: "fp_2",
             pod_name: "checkout-gone",
@@ -85,6 +86,7 @@ describe("toInstanceEvents", () => {
         kind: "oom",
         reason: "OOMKilled",
         exitCode: 137,
+        message: "OOM killed",
       },
       {
         id: "1000:checkout-gone:fp_2",
@@ -96,6 +98,7 @@ describe("toInstanceEvents", () => {
         kind: "crashloop",
         reason: "CrashLoopBackOff",
         exitCode: null,
+        message: null,
       },
     ]);
   });

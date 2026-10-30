@@ -93,10 +93,13 @@ export type ReplicaTarget = {
 
 export type DeployRole = "current" | "rolling-out" | "previous";
 
+export type InstancePresence =
+  | { kind: "live"; instanceId: string; status: InstanceStatus }
+  | { kind: "stopped"; lastSeenMs: number };
+
 export type InstanceRow = {
-  instanceId: string | null;
+  presence: InstancePresence;
   region: { name: string };
-  status: InstanceStatus;
   role: DeployRole;
   lastExit: LastExit | null;
   deployment: { id: string; source: DeploySource | null };
@@ -122,6 +125,7 @@ export type InstanceEvent = {
   kind: InstanceEventKind;
   reason: string;
   exitCode: number | null;
+  message: string | null;
 };
 
 export function instancesInRange(
