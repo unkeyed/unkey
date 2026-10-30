@@ -2,13 +2,19 @@ package analytics
 
 import (
 	"context"
+	"errors"
+	"io"
 	"math"
+	"math/rand/v2"
+	"syscall"
+	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	queryparser "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/retry"
 )
 
 // ExecuteRequest describes one constrained analytics query execution.
@@ -50,7 +56,18 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 	logger.Debug("executing query", "original", req.Query, "parsed", parsedQuery)
 	queryCtx, cancel := context.WithTimeout(ctx, clickhouse.AnalyticsQueryTimeout)
 	defer cancel()
-	rows, err := conn.QueryToMaps(queryCtx, parsedQuery)
+	rows, err := retry.New(
+		retry.Attempts(2),
+		retry.Backoff(func(int) time.Duration {
+			return time.Duration(50+rand.IntN(50)) * time.Millisecond
+		}),
+		retry.ShouldRetry(func(err error) bool {
+			return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
+				errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.EPIPE)
+		}),
+	).DoWithResultContext(queryCtx, func() ([]map[string]any, error) {
+		return conn.QueryToMaps(queryCtx, parsedQuery)
+	})
 	if err != nil {
 		return nil, clickhouse.WrapClickHouseError(err)
 	}
