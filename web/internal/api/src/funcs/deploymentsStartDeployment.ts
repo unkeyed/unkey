@@ -34,9 +34,7 @@ import { Result } from "../types/fp.js";
  * serves traffic again. The deployment keeps the configuration it had when it
  * was stopped; nothing is rebuilt or redeployed.
  *
- * The deployment must currently be stopped, and must belong to a
- * non-production environment. Production deployments are never stopped, so
- * they cannot be started.
+ * The deployment must currently be stopped.
  *
  * Starting is asynchronous: this endpoint only enqueues the start and returns
  * immediately. Poll `getDeployment` until the status reaches `ready`.

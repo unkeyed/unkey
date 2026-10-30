@@ -48,8 +48,8 @@ export type Environment = {
    *
    * @remarks
    *
-   * - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
-   * - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+   * - `production`: Deployments serve production traffic, and support promotion and rollback.
+   * - `preview`: Deployments are eligible for preview lifecycle automation.
    */
   kind: EnvironmentKind;
   /**

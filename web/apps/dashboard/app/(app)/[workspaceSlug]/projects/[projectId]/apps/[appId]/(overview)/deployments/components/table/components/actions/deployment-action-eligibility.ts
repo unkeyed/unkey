@@ -57,7 +57,7 @@ export function getDeploymentActionEligibility(
 ): DeploymentActionEligibility {
   const status = ctx.selectedDeployment.status;
   const isProduction = ctx.environmentKind === "production";
-  const isPreview = ctx.environmentKind === "preview";
+  const isKnownEnvironment = ctx.environmentKind !== null;
   const hasCurrent = ctx.currentDeploymentId !== null;
   const isCurrent = hasCurrent && ctx.currentDeploymentId === ctx.selectedDeployment.id;
 
@@ -68,8 +68,9 @@ export function getDeploymentActionEligibility(
   const canRedeploy = isRedeployableDeploymentStatus(status);
   // Cancel: available for any in-flight deployment.
   const canCancel = isCancellableDeploymentStatus(status);
-  const canStop = isPreview && status === "ready";
-  const canWake = isPreview && status === "stopped";
+  const canStop =
+    isKnownEnvironment && status === "ready" && ctx.selectedDeployment.desiredState === "running";
+  const canWake = isKnownEnvironment && status === "stopped";
 
   return { canRollback, canPromote, canRedeploy, canCancel, canStop, canWake };
 }

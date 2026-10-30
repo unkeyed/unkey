@@ -5,7 +5,7 @@
 import * as z from "zod/v3";
 
 /**
- * Start a stopped preview deployment so it serves traffic again.
+ * Start a stopped deployment so it serves traffic again.
  */
 export type V2DeploymentsStartDeploymentRequestBody = {
   /**

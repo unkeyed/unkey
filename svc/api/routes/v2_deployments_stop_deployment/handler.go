@@ -73,9 +73,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// A draining deployment keeps status ready until krane removes its last
 	// instance, so desired_state is the signal that a stop is already in flight.
 	if err := deploygate.CheckStopTarget(deploygate.StopInput{
-		Status:          dep.Status,
-		DesiredState:    dep.DesiredState,
-		EnvironmentKind: dep.EnvironmentKind,
+		Status:       dep.Status,
+		DesiredState: dep.DesiredState,
 	}); err != nil {
 		return err
 	}

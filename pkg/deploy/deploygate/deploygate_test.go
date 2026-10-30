@@ -165,10 +165,6 @@ func TestCheckStopTarget(t *testing.T) {
 	draining := running
 	draining.DesiredState = dbtype.DeploymentsDesiredStateStopped
 	requireCode(t, codes.App.Precondition.DeploymentIsStopping, CheckStopTarget(draining))
-
-	prod := running
-	prod.EnvironmentKind = dbtype.EnvironmentKindProduction
-	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStopTarget(prod))
 }
 
 func TestCheckStartTarget(t *testing.T) {
@@ -181,10 +177,6 @@ func TestCheckStartTarget(t *testing.T) {
 	notStopped := stopped
 	notStopped.DesiredState = dbtype.DeploymentsDesiredStateRunning
 	requireCode(t, codes.App.Precondition.DeploymentNotStopped, CheckStartTarget(notStopped))
-
-	prod := stopped
-	prod.EnvironmentKind = dbtype.EnvironmentKindProduction
-	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStartTarget(prod))
 
 	suspended := stopped
 	suspended.SpendSuspended = true

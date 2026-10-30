@@ -24,7 +24,7 @@ sources:
   - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/actions/deployment-action-eligibility.ts
 ---
 
-Every <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> has a production <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and a preview environment. Production has one live <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> that you promote and roll back. Preview has many short-lived deployments that you can stop and start, and we stop them for you when they go quiet.
+Every <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> has a production <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and a preview environment. Production has one live <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> that you promote and roll back. Preview has many short-lived deployments, and we stop them for you when they go quiet. You can stop and start deployments in both environments.
 
 ## Where a push lands
 
@@ -50,26 +50,22 @@ While an app is rolled back, new production deployments still build and reach `r
 
 You can roll back to a deployment that's `ready`, not stopped, and not the live one. A stopped deployment, including an old live one after its 30 minute standby, can't be a rollback target. To get back to it, click **Redeploy** on it, wait for `ready`, and promote it if the app is rolled back. Or roll forward with a fixed commit.
 
-You can't stop or start production deployments by hand, because stopping the live one would take your app offline.
+## Stop and start
 
-## Preview
+**Stop deployment** in the dashboard, or `deployments.stopDeployment` in the API, stops a `ready` deployment and frees its resources. It shows `stopped` once no instance is left. If you stop the live production deployment, its domains go offline until you start it again or promote another deployment.
 
-### Stop and start
-
-**Stop deployment** in the dashboard, or `deployments.stopDeployment` in the API, stops a `ready` preview deployment and frees its resources. It shows `stopped` once no instance is left.
-
-**Wake deployment** in the dashboard, or `deployments.startDeployment` in the API, starts a stopped preview deployment again. It goes through `deploying` and back to `ready`. You can't start one while the workspace is suspended by its Compute spend budget.
+**Wake deployment** in the dashboard, or `deployments.startDeployment` in the API, starts a stopped deployment again. It goes through `deploying` and back to `ready`. You can't start one while the workspace is suspended by its Compute spend budget.
 
 ### Automatic stops
 
-We stop deployments for you in these cases. A stopped preview deployment can be started again at any time.
+We stop deployments for you in these cases. A stopped deployment can be started again at any time.
 
 | Trigger | What stops | When |
 | --- | --- | --- |
 | New live production deployment, promote, or rollback | The previous live deployment | 30 minutes later |
 | New preview deployment on a branch | The deployment that was on that branch domain | 1 minute later |
 | Preview deployment gets no requests | That deployment | After 1 hour idle |
-| You stop it | A `ready` preview deployment | Right away |
+| You stop it | A `ready` deployment | Right away |
 
 ## What callers see during a switch
 

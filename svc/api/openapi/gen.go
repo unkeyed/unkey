@@ -1691,8 +1691,8 @@ type Environment struct {
 
 	// Kind The deployment lifecycle role of an environment.
 	//
-	// - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
-	// - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+	// - `production`: Deployments serve production traffic, and support promotion and rollback.
+	// - `preview`: Deployments are eligible for preview lifecycle automation.
 	//
 	//
 	// Example: production
@@ -1802,8 +1802,8 @@ type EnvironmentHealthcheckMethod string
 
 // EnvironmentKind The deployment lifecycle role of an environment.
 //
-// - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
-// - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+// - `production`: Deployments serve production traffic, and support promotion and rollback.
+// - `preview`: Deployments are eligible for preview lifecycle automation.
 //
 // Example: production
 type EnvironmentKind string
@@ -4272,7 +4272,7 @@ type V2DeploymentsRollbackDeploymentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2DeploymentsStartDeploymentRequestBody Start a stopped preview deployment so it serves traffic again.
+// V2DeploymentsStartDeploymentRequestBody Start a stopped deployment so it serves traffic again.
 type V2DeploymentsStartDeploymentRequestBody struct {
 	// DeploymentId Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
@@ -4291,7 +4291,7 @@ type V2DeploymentsStartDeploymentResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2DeploymentsStopDeploymentRequestBody Stop a running preview deployment to free up resources.
+// V2DeploymentsStopDeploymentRequestBody Stop a running deployment to free up resources.
 type V2DeploymentsStopDeploymentRequestBody struct {
 	// DeploymentId Identifies a resource by either its unique ID or its slug.
 	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.

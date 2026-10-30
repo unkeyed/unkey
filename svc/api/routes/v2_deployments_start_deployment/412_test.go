@@ -41,32 +41,6 @@ func TestStartDeploymentNotStopped(t *testing.T) {
 	require.Contains(t, res.Body.Error.Type, "deployment_not_stopped")
 }
 
-// Production deployments are never stopped, so starting one is rejected before
-// Restate is called.
-func TestStartDeploymentProduction(t *testing.T) {
-	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
-	h.Register(route)
-
-	setup := h.CreateTestDeploymentSetup()
-	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, writeDeployments(setup.Workspace.ID))
-
-	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
-		ID:            uid.New(uid.DeploymentPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     setup.Project.ID,
-		AppID:         setup.App.ID,
-		EnvironmentID: setup.Environment.ID,
-		Status:        mysqltype.DeploymentsStatusStopped,
-		DesiredState:  mysqltype.DeploymentsDesiredStateStopped,
-	})
-
-	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: dep.ID})
-	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "Production deployments cannot be started.")
-	require.Contains(t, res.Body.Error.Type, "deployment_is_production")
-}
-
 // Starting resumes compute spend, so a workspace suspended by its Compute
 // spend cap is rejected before Restate is called, with the billing reason rather
 // than a misleading lifecycle message.

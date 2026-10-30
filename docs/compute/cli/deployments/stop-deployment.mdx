@@ -1,7 +1,7 @@
 ---
 title: unkey deployments stop
 sidebarTitle: "stop"
-description: "Stop a running preview deployment and release its compute."
+description: "Stop a running deployment and release its compute."
 sources:
   - cmd/api/deployments/stop_deployment.go
   - svc/api/routes/v2_deployments_stop_deployment/handler.go
@@ -16,7 +16,7 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 <RootKeyPrereq />
 
-Stop a running preview deployment and free its compute resources. It keeps its configuration, and you can bring it back with `unkey deployments start`. It must be `ready` and in a preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. Production deployments can't be stopped. Stopping a deployment that's still shutting down from an earlier stop returns a precondition error. The command returns before the instances are gone. Poll `unkey deployments get` until the status is `stopped`.
+Stop a running deployment and free its compute resources. It keeps its configuration, and you can bring it back with `unkey deployments start`. It must be `ready`. Stopping the live production deployment takes its domains offline until you start it again. Stopping a deployment that's still shutting down from an earlier stop returns a precondition error. The command returns before the instances are gone. Poll `unkey deployments get` until the status is `stopped`.
 
 ## Usage
 
@@ -72,7 +72,7 @@ If the deployment doesn't exist or your key doesn't have the permission, you get
 
 ## Examples
 
-Stop a preview deployment:
+Stop a deployment:
 
 ```bash
 unkey deployments stop --deployment-id=d_1234abcd
@@ -92,6 +92,6 @@ The command calls [`POST /v2/deployments.stopDeployment`](/compute/api-reference
 
 <Columns cols={1}>
   <Card title="Production and preview" href="/compute/concepts/production-and-preview#stop-and-start">
-    Stop and start in preview environments and the automatic stop timers.
+    Stop and start deployments and the automatic stop timers.
   </Card>
 </Columns>

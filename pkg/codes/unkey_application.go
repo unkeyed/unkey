@@ -59,10 +59,6 @@ type appPrecondition struct {
 	// DeploymentNotStopped indicates the target deployment is not stopped.
 	DeploymentNotStopped Code
 
-	// DeploymentIsProduction indicates the action does not apply to production
-	// deployments, which cannot be stopped or started directly.
-	DeploymentIsProduction Code
-
 	// DeploymentNotAwaitingApproval indicates the target deployment is not
 	// waiting for approval, so there is nothing to authorize.
 	DeploymentNotAwaitingApproval Code
@@ -117,7 +113,6 @@ var App = UnkeyAppErrors{
 		DeploymentNotRunning:          Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_running"},
 		DeploymentIsStopping:          Code{SystemUnkey, CategoryUnkeyApplication, "deployment_is_stopping"},
 		DeploymentNotStopped:          Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_stopped"},
-		DeploymentIsProduction:        Code{SystemUnkey, CategoryUnkeyApplication, "deployment_is_production"},
 		DeploymentNotAwaitingApproval: Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_awaiting_approval"},
 		DeploymentNotInProgress:       Code{SystemUnkey, CategoryUnkeyApplication, "deployment_not_in_progress"},
 	},

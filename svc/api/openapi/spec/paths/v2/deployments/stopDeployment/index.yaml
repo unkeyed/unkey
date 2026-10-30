@@ -3,13 +3,13 @@ post:
     - deployments
   summary: Stop deployment
   description: |
-    Stop a running preview deployment. Stopped deployments keep their
+    Stop a running deployment. Stopped deployments keep their
     configuration and can be resumed later with `startDeployment`.
 
-    The deployment must be ready and running, and must belong to a
-    non-production environment; production deployments cannot be stopped.
-    A deployment that is already draining from a previous stop is rejected
-    with a precondition error.
+    The deployment must be ready and running. A deployment that is already
+    draining from a previous stop is rejected with a precondition error.
+    Stopping the current production deployment takes its domains offline
+    until you start it again.
 
     Stopping is asynchronous: this endpoint only enqueues the stop and returns
     immediately. Poll `getDeployment` until the status reaches `stopped`.
@@ -30,8 +30,8 @@ post:
           "$ref": "./V2DeploymentsStopDeploymentRequestBody.yaml"
         examples:
           stop:
-            summary: Stop a running preview deployment
-            description: Spin down a preview deployment that is currently serving
+            summary: Stop a running deployment
+            description: Spin down a deployment that is currently serving
             value:
               deploymentId: d_1234abcd
   responses:
@@ -80,8 +80,8 @@ post:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
     "412":
       description: |
-        Precondition failed - The deployment is not running, a stop is already
-        in progress, or it belongs to a production environment.
+        Precondition failed - The deployment is not running, or a stop is
+        already in progress.
       content:
         application/json:
           schema:

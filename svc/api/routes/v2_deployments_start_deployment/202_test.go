@@ -29,21 +29,12 @@ func TestStartDeployment(t *testing.T) {
 
 	setup := h.CreateTestDeploymentSetup()
 
-	preview := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:          uid.New(uid.EnvironmentPrefix),
-		WorkspaceID: setup.Workspace.ID,
-		ProjectID:   setup.Project.ID,
-		AppID:       setup.App.ID,
-		Slug:        "preview",
-		Description: "preview environment",
-	})
-
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
 		WorkspaceID:   setup.Workspace.ID,
 		ProjectID:     setup.Project.ID,
 		AppID:         setup.App.ID,
-		EnvironmentID: preview.ID,
+		EnvironmentID: setup.Environment.ID,
 		Status:        mysqltype.DeploymentsStatusStopped,
 		DesiredState:  mysqltype.DeploymentsDesiredStateStopped,
 		GitBranch:     "KEBAP",

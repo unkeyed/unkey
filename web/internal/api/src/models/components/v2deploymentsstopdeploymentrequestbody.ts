@@ -5,7 +5,7 @@
 import * as z from "zod/v3";
 
 /**
- * Stop a running preview deployment to free up resources.
+ * Stop a running deployment to free up resources.
  */
 export type V2DeploymentsStopDeploymentRequestBody = {
   /**

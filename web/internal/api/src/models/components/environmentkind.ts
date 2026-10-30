@@ -10,8 +10,8 @@ import { ClosedEnum } from "../../types/enums.js";
  *
  * @remarks
  *
- * - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
- * - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+ * - `production`: Deployments serve production traffic, and support promotion and rollback.
+ * - `preview`: Deployments are eligible for preview lifecycle automation.
  */
 export const EnvironmentKind = {
   Production: "production",
@@ -22,8 +22,8 @@ export const EnvironmentKind = {
  *
  * @remarks
  *
- * - `production`: Deployments serve production traffic, support promotion and rollback, and cannot be stopped.
- * - `preview`: Deployments can be stopped and started and are eligible for preview lifecycle automation.
+ * - `production`: Deployments serve production traffic, and support promotion and rollback.
+ * - `preview`: Deployments are eligible for preview lifecycle automation.
  */
 export type EnvironmentKind = ClosedEnum<typeof EnvironmentKind>;
 

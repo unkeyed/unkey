@@ -30,13 +30,13 @@ import { Result } from "../types/fp.js";
  * Stop deployment
  *
  * @remarks
- * Stop a running preview deployment. Stopped deployments keep their
+ * Stop a running deployment. Stopped deployments keep their
  * configuration and can be resumed later with `startDeployment`.
  *
- * The deployment must be ready and running, and must belong to a
- * non-production environment; production deployments cannot be stopped.
- * A deployment that is already draining from a previous stop is rejected
- * with a precondition error.
+ * The deployment must be ready and running. A deployment that is already
+ * draining from a previous stop is rejected with a precondition error.
+ * Stopping the current production deployment takes its domains offline
+ * until you start it again.
  *
  * Stopping is asynchronous: this endpoint only enqueues the stop and returns
  * immediately. Poll `getDeployment` until the status reaches `stopped`.

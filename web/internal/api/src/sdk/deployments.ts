@@ -302,9 +302,7 @@ export class Deployments extends ClientSDK {
    * serves traffic again. The deployment keeps the configuration it had when it
    * was stopped; nothing is rebuilt or redeployed.
    *
-   * The deployment must currently be stopped, and must belong to a
-   * non-production environment. Production deployments are never stopped, so
-   * they cannot be started.
+   * The deployment must currently be stopped.
    *
    * Starting is asynchronous: this endpoint only enqueues the start and returns
    * immediately. Poll `getDeployment` until the status reaches `ready`.
@@ -329,13 +327,13 @@ export class Deployments extends ClientSDK {
    * Stop deployment
    *
    * @remarks
-   * Stop a running preview deployment. Stopped deployments keep their
+   * Stop a running deployment. Stopped deployments keep their
    * configuration and can be resumed later with `startDeployment`.
    *
-   * The deployment must be ready and running, and must belong to a
-   * non-production environment; production deployments cannot be stopped.
-   * A deployment that is already draining from a previous stop is rejected
-   * with a precondition error.
+   * The deployment must be ready and running. A deployment that is already
+   * draining from a previous stop is rejected with a precondition error.
+   * Stopping the current production deployment takes its domains offline
+   * until you start it again.
    *
    * Stopping is asynchronous: this endpoint only enqueues the stop and returns
    * immediately. Poll `getDeployment` until the status reaches `stopped`.

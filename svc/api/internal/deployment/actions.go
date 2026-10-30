@@ -33,10 +33,7 @@ func availableActions(in Input) []openapi.DeploymentAction {
 
 	environment := urn.New().Workspace(in.WorkspaceID).Project(d.ProjectID).App(d.AppID).Environment(d.EnvironmentID)
 
-	if in.State.EnvironmentKind.IsProduction() {
-		if rbac.Check(rbac.U(environment, permissions.Write), in.Permissions) != nil {
-			return actions
-		}
+	if in.State.EnvironmentKind.IsProduction() && rbac.Check(rbac.U(environment, permissions.Write), in.Permissions) == nil {
 		currentDeploymentID := in.State.AppCurrentDeploymentID.String
 		hasLiveDeployment := currentDeploymentID != ""
 		isCurrentDeployment := currentDeploymentID == d.ID
@@ -52,7 +49,6 @@ func availableActions(in Input) []openapi.DeploymentAction {
 				actions = append(actions, openapi.DeploymentActionRollback)
 			}
 		}
-		return actions
 	}
 
 	if rbac.Check(rbac.U(environment.Deployment(d.ID), permissions.Write), in.Permissions) != nil {

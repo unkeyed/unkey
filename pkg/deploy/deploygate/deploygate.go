@@ -85,16 +85,14 @@ type RollbackInput struct {
 
 // StopInput is the state CheckStopTarget needs.
 type StopInput struct {
-	Status          dbtype.DeploymentsStatus
-	DesiredState    dbtype.DeploymentsDesiredState
-	EnvironmentKind dbtype.EnvironmentKind
+	Status       dbtype.DeploymentsStatus
+	DesiredState dbtype.DeploymentsDesiredState
 }
 
 // StartInput is the state CheckStartTarget needs.
 type StartInput struct {
-	DesiredState    dbtype.DeploymentsDesiredState
-	EnvironmentKind dbtype.EnvironmentKind
-	SpendSuspended  bool
+	DesiredState   dbtype.DeploymentsDesiredState
+	SpendSuspended bool
 }
 
 // isCurrent reports whether the target is the app's current (live) deployment.
@@ -221,7 +219,6 @@ const (
 	StopOK StopFailureReason = iota
 	StopNotRunning
 	StopIsStopping
-	StopIsProduction
 )
 
 // Message returns a caller-facing explanation.
@@ -233,8 +230,6 @@ func (r StopFailureReason) Message() string {
 		return "The deployment is not running."
 	case StopIsStopping:
 		return "The deployment is already stopping."
-	case StopIsProduction:
-		return "Production deployments cannot be stopped."
 	default:
 		return ""
 	}
@@ -249,8 +244,6 @@ func stopFault(r StopFailureReason) error {
 		code = codes.App.Precondition.DeploymentNotRunning
 	case StopIsStopping:
 		code = codes.App.Precondition.DeploymentIsStopping
-	case StopIsProduction:
-		code = codes.App.Precondition.DeploymentIsProduction
 	case StopOK:
 		return nil
 	default:
@@ -265,16 +258,14 @@ func stopFault(r StopFailureReason) error {
 }
 
 // CheckStopTarget validates a deployment may be stopped: it must be running
-// (ready with a running desired state) and not in production. Order matches the
-// order every layer reports failures in.
+// (ready with a running desired state). Order matches the order every layer
+// reports failures in.
 func CheckStopTarget(in StopInput) error {
 	switch {
 	case in.Status != dbtype.DeploymentsStatusReady:
 		return stopFault(StopNotRunning)
 	case in.DesiredState != dbtype.DeploymentsDesiredStateRunning:
 		return stopFault(StopIsStopping)
-	case in.EnvironmentKind.IsProduction():
-		return stopFault(StopIsProduction)
 	default:
 		return nil
 	}
@@ -287,7 +278,6 @@ type StartFailureReason int
 const (
 	StartOK StartFailureReason = iota
 	StartNotStopped
-	StartIsProduction
 	StartSpendSuspended
 )
 
@@ -298,8 +288,6 @@ func (r StartFailureReason) Message() string {
 		return ""
 	case StartNotStopped:
 		return "The deployment is not stopped."
-	case StartIsProduction:
-		return "Production deployments cannot be started."
 	case StartSpendSuspended:
 		return "The workspace is suspended by its Compute spend cap. Raise the spend limit to resume."
 	default:
@@ -315,8 +303,6 @@ func startFault(r StartFailureReason) error {
 	switch r {
 	case StartNotStopped:
 		code = codes.App.Precondition.DeploymentNotStopped
-	case StartIsProduction:
-		code = codes.App.Precondition.DeploymentIsProduction
 	case StartSpendSuspended:
 		code = codes.App.Precondition.PreconditionFailed
 	case StartOK:
@@ -343,8 +329,6 @@ func CheckStartTarget(in StartInput) error {
 	switch {
 	case in.DesiredState != dbtype.DeploymentsDesiredStateStopped:
 		return startFault(StartNotStopped)
-	case in.EnvironmentKind.IsProduction():
-		return startFault(StartIsProduction)
 	default:
 		return CheckWorkspaceSpend(in.SpendSuspended)
 	}

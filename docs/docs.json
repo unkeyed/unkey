@@ -253,7 +253,6 @@
                         "pages": [
                           "errors/unkey/application/assertion_failed",
                           "errors/unkey/application/deployment_is_current",
-                          "errors/unkey/application/deployment_is_production",
                           "errors/unkey/application/deployment_is_stopping",
                           "errors/unkey/application/deployment_no_current",
                           "errors/unkey/application/deployment_not_awaiting_approval",

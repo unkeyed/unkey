@@ -1,7 +1,7 @@
 ---
 title: unkey deployments start
 sidebarTitle: "start"
-description: "Resume a stopped preview deployment."
+description: "Resume a stopped deployment."
 sources:
   - cmd/api/deployments/start_deployment.go
   - svc/api/routes/v2_deployments_start_deployment/handler.go
@@ -17,7 +17,7 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 <RootKeyPrereq />
 
-Start a preview deployment that was stopped with `unkey deployments stop`, so it serves traffic again. Nothing is rebuilt, and it keeps the configuration it had. It must be in a preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>, because production deployments can't be stopped. You don't need to wait for `stopped`: a deployment that's still shutting down can be started right away. The command returns before the deployment is back. Poll `unkey deployments get` until the status is `ready`.
+Start a deployment that was stopped with `unkey deployments stop`, so it serves traffic again. Nothing is rebuilt, and it keeps the configuration it had. You don't need to wait for `stopped`: a deployment that's still shutting down can be started right away. The command returns before the deployment is back. Poll `unkey deployments get` until the status is `ready`.
 
 Starting a deployment needs an active Compute plan. Without one the API answers 412 with `The workspace has no active Compute plan.` A workspace over its Compute spend cap gets `The workspace is suspended by its Compute spend cap. Raise the spend limit to resume.` See [Compute plans](/compute/get-started/plans).
 
@@ -95,6 +95,6 @@ The command calls [`POST /v2/deployments.startDeployment`](/compute/api-referenc
 
 <Columns cols={1}>
   <Card title="Production and preview" href="/compute/concepts/production-and-preview#stop-and-start">
-    Stop and start in preview environments and the automatic stop timers.
+    Stop and start deployments and the automatic stop timers.
   </Card>
 </Columns>

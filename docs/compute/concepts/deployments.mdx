@@ -81,7 +81,7 @@ stateDiagram-v2
     awaiting_approval --> cancelled : cancel
     inflight --> cancelled : cancel
     ready --> stopped : stop, idle preview, or spend cap
-    stopped --> deploying : start a stopped preview deployment
+    stopped --> deploying : start
 ```
 
 | Status | What's happening |
@@ -140,7 +140,7 @@ For the quota codes, we add what your running deployments already use to this de
 
 ## What you can do with a deployment
 
-You can promote and roll back production deployments, and stop and start preview deployments. See [Production and preview](/compute/concepts/production-and-preview). The dashboard also offers **Redeploy** for any deployment that's `ready`, `stopped`, `failed`, `superseded`, or `cancelled`, and **Cancel deployment** for anything in progress.
+You can promote and roll back production deployments, and stop and start any deployment. See [Production and preview](/compute/concepts/production-and-preview). The dashboard also offers **Redeploy** for any deployment that's `ready`, `stopped`, `failed`, `superseded`, or `cancelled`, and **Cancel deployment** for anything in progress.
 
 In the API, a deployment's `availableActions` field lists the actions that will work right now, so you can check before you call.
 

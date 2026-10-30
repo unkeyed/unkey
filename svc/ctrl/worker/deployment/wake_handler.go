@@ -31,9 +31,8 @@ func (v *VirtualObject) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.W
 	}
 
 	if err := deploygate.CheckStartTarget(deploygate.StartInput{
-		DesiredState:    deployment.DesiredState,
-		EnvironmentKind: deployment.EnvironmentKind,
-		SpendSuspended:  false,
+		DesiredState:   deployment.DesiredState,
+		SpendSuspended: false,
 	}); err != nil {
 		return nil, gatefault.Terminal(err)
 	}
