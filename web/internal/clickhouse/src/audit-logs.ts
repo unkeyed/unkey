@@ -144,6 +144,43 @@ export function getAuditLogs(ch: Querier) {
   };
 }
 
+export const latestAuditLogByTargetRequestSchema = z.object({
+  workspaceId: z.string(),
+  bucket: z.string(),
+  event: z.string(),
+  targetId: z.string(),
+});
+
+export type LatestAuditLogByTargetRequest = z.infer<typeof latestAuditLogByTargetRequestSchema>;
+
+export const latestAuditLogByTargetRow = auditLogRow
+  .pick({ time: true, actorType: true, actorId: true, actorName: true })
+  .extend({ targets: z.array(z.tuple([z.string(), z.string()])) });
+
+export type LatestAuditLogByTargetRow = z.infer<typeof latestAuditLogByTargetRow>;
+
+export function getLatestAuditLogByTarget(ch: Querier) {
+  return ch.query({
+    query: `
+      SELECT
+        time,
+        actor_type AS actorType,
+        actor_id AS actorId,
+        actor_name AS actorName,
+        arrayZip(\`targets.type\`, \`targets.id\`) AS targets
+      FROM ${TABLE}
+      WHERE workspace_id = {workspaceId: String}
+        AND bucket = {bucket: String}
+        AND event = {event: String}
+        AND has(\`targets.id\`, {targetId: String})
+      ORDER BY time DESC, event_id DESC
+      LIMIT 1
+      SETTINGS optimize_read_in_order = 1`,
+    params: latestAuditLogByTargetRequestSchema,
+    schema: latestAuditLogByTargetRow,
+  });
+}
+
 async function loadAuditLogPage(
   pageQuery: (args: AuditLogsRequest) => Promise<Result<AuditLogPageRow[], QueryError>>,
   jsonQuery: (args: {

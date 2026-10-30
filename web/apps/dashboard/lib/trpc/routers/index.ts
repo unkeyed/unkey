@@ -33,6 +33,7 @@ import { appMetricsResources, appMetricsTraffic } from "./deploy/app-metrics/sou
 import { appMetricsSourceByInstance } from "./deploy/app-metrics/source-by-instance";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
+import { getLatestRollback } from "./deploy/deployment/latest-rollback";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
 import { listDeploymentDetails } from "./deploy/deployment/list-details";
@@ -299,6 +300,7 @@ export const router = t.router({
       runtimeLogs: getDeploymentRuntimeLogs,
       steps: getDeploymentSteps,
       getOpenApiDiff: getOpenApiDiff,
+      latestRollback: getLatestRollback,
     }),
     requestLogs: t.router({
       query: queryRequestLogs,

@@ -1,10 +1,16 @@
 import type { DeploymentStatus } from "./deployment-status";
 
-type RollbackSibling = {
+export type RollbackSibling = {
   id: string;
   environmentId: string;
   status: DeploymentStatus;
   createdAt: number;
+};
+
+export type RollbackEvent = {
+  at: number;
+  actor: { name: string; avatarUrl: string | null } | null;
+  fromDeploymentId: string | null;
 };
 
 type TrafficState = {
@@ -37,8 +43,6 @@ export function previousRollbackTarget<T extends RollbackCandidate>(
   return rollbackCandidates(deployments, current).find((d) => d.createdAt < current.createdAt);
 }
 
-// Nothing records which deployment a rollback replaced, so it is inferred as the
-// newest ready deployment in the same environment that came after the live one.
 export function findRolledBackFrom<T extends RollbackSibling>(
   deployments: readonly T[],
   current: RollbackSibling,
@@ -51,4 +55,15 @@ export function findRolledBackFrom<T extends RollbackSibling>(
         d.createdAt > current.createdAt,
     )
     .sort((a, b) => b.createdAt - a.createdAt)[0];
+}
+
+export function findReplacedDeployment<T extends RollbackSibling>(
+  deployments: readonly T[],
+  current: RollbackSibling,
+  fromDeploymentId: string | null,
+): T | undefined {
+  if (fromDeploymentId) {
+    return deployments.find((d) => d.id === fromDeploymentId);
+  }
+  return findRolledBackFrom(deployments, current);
 }

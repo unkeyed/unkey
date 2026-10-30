@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { previousRollbackTarget, rollbackCandidates } from "./rollback";
+import { findReplacedDeployment, previousRollbackTarget, rollbackCandidates } from "./rollback";
 
 type Row = {
   id: string;
@@ -62,5 +62,24 @@ describe("previousRollbackTarget", () => {
       current,
     );
     expect(result).toBeUndefined();
+  });
+});
+
+describe("findReplacedDeployment", () => {
+  const newest = row("d_newest", 300);
+  const replaced = row("d_replaced", 200);
+
+  test("uses the deployment the rollback event names", () => {
+    expect(findReplacedDeployment([newest, replaced, current], current, "d_replaced")?.id).toBe(
+      "d_replaced",
+    );
+  });
+
+  test("returns nothing when the named deployment is not loaded", () => {
+    expect(findReplacedDeployment([newest, current], current, "d_replaced")).toBeUndefined();
+  });
+
+  test("infers the newest later ready deployment without an event", () => {
+    expect(findReplacedDeployment([replaced, newest, current], current, null)?.id).toBe("d_newest");
   });
 });
