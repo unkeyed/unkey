@@ -1072,7 +1072,7 @@ type Querier interface {
 	FindLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeysByHashesParams) ([]FindLeakedKeysByHashesRow, error)
 	//FindLimitsByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, root_key_ip_allowlist_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
+	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, ip_allowlist_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)

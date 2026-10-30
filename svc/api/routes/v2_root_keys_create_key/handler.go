@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 		if len(allowedIPs) > 0 {
-			if err := principalpermissions.RequireRootKeyIPAllowlistEnabled(ctx, tx, p.AuthorizedWorkspaceID); err != nil {
+			if err := principalpermissions.RequireIPAllowlistEnabled(ctx, tx, p.AuthorizedWorkspaceID); err != nil {
 				return err
 			}
 		}

@@ -54,7 +54,7 @@ func TestCachedRootKeyCannotRemoveNewRestriction(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	workspace := h.Resources().UserWorkspace
-	require.NoError(t, db.Query.UpdateRootKeyIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateRootKeyIPAllowlistEnabledParams{
+	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{
 		WorkspaceID: workspace.ID,
 		Enabled:     true,
 	}))
@@ -83,7 +83,7 @@ func TestRestrictedRootKeyCannotWidenNetworksOnUpdate(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	workspace := h.Resources().UserWorkspace
-	require.NoError(t, db.Query.UpdateRootKeyIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateRootKeyIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
+	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
 	permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#write"
 	admin := h.CreateRootKey(workspace.ID, permission)
 	caller := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, Permissions: []string{permission}})
@@ -135,10 +135,10 @@ func TestUpdateRootKeyRestrictsWarmAuthentication(t *testing.T) {
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write")
 	res := call(h, route, caller, handler.Request{KeyId: target.KeyID, IpAllowlist: &[]string{"203.0.113.129/25"}})
 	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
-	require.NoError(t, db.Query.UpdateRootKeyIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateRootKeyIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
+	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
 	res = call(h, route, caller, handler.Request{KeyId: target.KeyID, IpAllowlist: &[]string{"203.0.113.129/25"}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	require.NoError(t, db.Query.UpdateRootKeyIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateRootKeyIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: false}))
+	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: false}))
 	_, err = h.Keys.GetRootKey(t.Context(), session)
 	require.Error(t, err)
 	session.SetClientIP(netip.MustParseAddr("203.0.113.200"))
@@ -153,7 +153,7 @@ func TestUpdateRootKeyRestrictsWarmAuthentication(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
 	_, err = h.Keys.GetRootKey(t.Context(), session)
 	require.Error(t, err)
-	require.NoError(t, db.Query.UpdateRootKeyIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateRootKeyIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
+	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
 	res = call(h, route, caller, handler.Request{KeyId: target.KeyID, IpAllowlist: &[]string{}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	_, err = h.Keys.GetRootKey(t.Context(), session)

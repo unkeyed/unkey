@@ -9,8 +9,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-func RequireRootKeyIPAllowlistEnabled(ctx context.Context, database db.DBTX, workspaceID string) error {
-	enabled, err := db.Query.FindRootKeyIPAllowlistEnabled(ctx, database, workspaceID)
+func RequireIPAllowlistEnabled(ctx context.Context, database db.DBTX, workspaceID string) error {
+	enabled, err := db.Query.FindIPAllowlistEnabled(ctx, database, workspaceID)
 	if err != nil && !db.IsNotFound(err) {
 		return err
 	}

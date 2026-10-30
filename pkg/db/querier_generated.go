@@ -852,6 +852,10 @@ type Querier interface {
 	//  FROM github_repo_connections
 	//  WHERE app_id = ?
 	FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, appID string) (GithubRepoConnection, error)
+	// FindIPAllowlistEnabled checks whether a workspace can configure IP restrictions.
+	//
+	//  SELECT ip_allowlist_enabled FROM limits WHERE workspace_id = ?
+	FindIPAllowlistEnabled(ctx context.Context, db DBTX, workspaceID string) (bool, error)
 	//FindIdentitiesByExternalId
 	//
 	//  SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at
@@ -1644,10 +1648,6 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
-	// FindRootKeyIPAllowlistEnabled checks whether a workspace can configure root-key IP restrictions.
-	//
-	//  SELECT root_key_ip_allowlist_enabled FROM limits WHERE workspace_id = ?
-	FindRootKeyIPAllowlistEnabled(ctx context.Context, db DBTX, workspaceID string) (bool, error)
 	// FindUnkeyRootKeyByID reads a new-format root key, excluding soft-deleted keys.
 	// It does not fall back to the legacy keys table.
 	//
@@ -4156,6 +4156,11 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND workspace_id = ?
 	UpdateHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg UpdateHorizontalAutoscalingPolicyParams) error
+	// UpdateIPAllowlistEnabled changes workspace access to IP allowlist configuration.
+	// Existing key restrictions remain enforced when configuration is disabled.
+	//
+	//  UPDATE limits SET ip_allowlist_enabled = ? WHERE workspace_id = ?
+	UpdateIPAllowlistEnabled(ctx context.Context, db DBTX, arg UpdateIPAllowlistEnabledParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -4357,11 +4362,6 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND id = ?
 	UpdateRole(ctx context.Context, db DBTX, arg UpdateRoleParams) error
-	// UpdateRootKeyIPAllowlistEnabled changes workspace access to IP allowlist configuration.
-	// Existing key restrictions remain enforced when configuration is disabled.
-	//
-	//  UPDATE limits SET root_key_ip_allowlist_enabled = ? WHERE workspace_id = ?
-	UpdateRootKeyIPAllowlistEnabled(ctx context.Context, db DBTX, arg UpdateRootKeyIPAllowlistEnabledParams) error
 	// UpdateUnkeyRootKey changes mutable fields on a live new-format root key.
 	//
 	//  UPDATE unkey_root_keys SET

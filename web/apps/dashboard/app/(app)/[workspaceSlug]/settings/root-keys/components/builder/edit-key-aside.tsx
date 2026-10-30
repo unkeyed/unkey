@@ -143,7 +143,7 @@ function EditablePolicyForm({
   const workspace = useWorkspaceNavigation();
   const { limits } = useWorkspace();
   const ipAllowlistInitial = useRef(draft.ipAllowlist);
-  const ipAllowlistEnabled = limits?.rootKeyIpAllowlistEnabled ?? false;
+  const ipAllowlistEnabled = limits?.ipAllowlistEnabled ?? false;
   const queryClient = useQueryClient();
   const update = useMutation({
     mutationFn: (request: V2RootKeysUpdateKeyRequestBody) =>
