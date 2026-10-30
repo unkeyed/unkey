@@ -17,6 +17,7 @@ sources:
   - svc/api/routes/v2_gateway_set_policies/handler.go
   - svc/api/routes/v2_gateway_update_policy/handler.go
   - svc/api/routes/v2_gateway_list_policies/handler.go
+  - svc/api/internal/policyconfig/to_proto.go
   - svc/frontline/internal/policies/engine.go
   - svc/frontline/internal/policies/match.go
   - svc/frontline/internal/policies/canonicalpath/canonicalpath.go
@@ -188,7 +189,7 @@ The gateway runs matching, enabled authentication, rate limit, firewall, and Ope
 
 - **IP blocks before authentication.** Put a firewall policy that blocks by `remoteIp` above your API key policies, so blocked clients can't try keys.
 - **Authentication first.** The first API key policy that succeeds decides who the caller is. Later API key policies are skipped.
-- **Rate limits by caller go after authentication.** A rate limit that counts by `authenticatedSubject` or `principalField` needs to know the caller. If it runs first, every request counts as `unknown`.
+- **Rate limits by caller go after authentication.** A rate limit that counts by `authenticatedSubject` or `principalField` needs to know the caller, so it needs an enabled API key policy above it. Saving one without that policy fails with a validation error.
 - A rejection stops enforcement. After a firewall block, a failed key check, a used-up rate limit, or an OpenAPI error, no later authentication, rate limit, firewall, or validation check runs.
 
 Logging policies apply to accepted and rejected requests, regardless of their position. If several match, their settings combine. Body redaction from matching, enabled OpenAPI policies also applies when a request is rejected before validation.

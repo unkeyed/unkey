@@ -6,6 +6,7 @@ sources:
   - pkg/codes/frontline.go
   - svc/frontline/middleware/observability.go
   - svc/frontline/internal/policies/keyauth/executor.go
+  - svc/frontline/internal/policies/keyauth/keyextract.go
   - internal/services/keys/verifier.go
   - internal/services/keys/status.go
 ---
@@ -14,7 +15,7 @@ sources:
 
 import { ProductLink } from "/snippets/product-link.jsx";
 
-The API you called runs on Unkey, and it checks API keys. You sent a key, but it isn't valid for this API. You get `401 Unauthorized`, and the message is the same whatever the reason.
+The API you called runs on Unkey, and it checks API keys. You sent a key, but it isn't valid for this API. You get `401 Unauthorized`. The message is the same for every reason except a repeated key, which says to send the key only once.
 
 ```json Example response
 {
@@ -32,12 +33,13 @@ Browsers get the same error as an HTML page.
 
 ## If you're calling an API hosted on Unkey
 
-Check that you're sending the whole key, with no extra whitespace or quotes, and that it's the key for this API rather than another service. If the key used to work, the API owner may have disabled, expired, rolled, or deleted it. Only they can tell you which, so contact them with the request ID.
+Send the key once: don't repeat the `Authorization` header, the key header, or the key query parameter. Check that you're sending the whole key, with no extra whitespace or quotes, and that it's the key for this API rather than another service. If the key used to work, the API owner may have disabled, expired, rolled, or deleted it. Only they can tell you which, so contact them with the request ID.
 
 ## If you own this API
 
 The gateway returns this code for any key that isn't valid for this API, unless another code fits better (missing permissions, rate limited, or out of credits). Common causes:
 
+- The request sent the key more than once, such as `?api_key=a&api_key=b`. The gateway would check only one value, and your app could read the other.
 - The key doesn't exist or was deleted.
 - The key is disabled or expired.
 - The key is from a keyspace your key-auth policy doesn't list.
