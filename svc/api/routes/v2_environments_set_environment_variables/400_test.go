@@ -57,4 +57,21 @@ func TestSetEnvironmentVariablesBadRequest(t *testing.T) {
 		}))
 		require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	})
+
+	t.Run("variables over the total size cap are rejected across requests", func(t *testing.T) {
+		sizedEnv := seedEnvironment(t, h)
+		value := strings.Repeat("a", 16384)
+		vars := make([]openapi.EnvironmentVariableInput, 31)
+		for i := range vars {
+			vars[i] = openapi.EnvironmentVariableInput{Key: fmt.Sprintf("BIG_%02d", i), Value: value}
+		}
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, makeRequest(sizedEnv, vars))
+		require.Equal(t, http.StatusOK, res.Status, "31 x 16 KiB fits under 512 KiB, received: %s", res.RawBody)
+
+		res2 := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, makeRequest(sizedEnv, []openapi.EnvironmentVariableInput{
+			{Key: "BIG_31", Value: value},
+		}))
+		require.Equal(t, http.StatusBadRequest, res2.Status, "32 x 16 KiB exceeds 512 KiB, received: %s", res2.RawBody)
+		require.Len(t, listRawVars(t, h, sizedEnv), 31)
+	})
 }
