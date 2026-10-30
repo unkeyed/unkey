@@ -9,20 +9,6 @@ import (
 	"context"
 )
 
-const findIPAllowlistEnabled = `-- name: FindIPAllowlistEnabled :one
-SELECT ip_allowlist_enabled FROM limits WHERE workspace_id = ?
-`
-
-// FindIPAllowlistEnabled checks whether a workspace can configure IP restrictions.
-//
-//	SELECT ip_allowlist_enabled FROM limits WHERE workspace_id = ?
-func (q *Queries) FindIPAllowlistEnabled(ctx context.Context, db DBTX, workspaceID string) (bool, error) {
-	row := db.QueryRowContext(ctx, findIPAllowlistEnabled, workspaceID)
-	var ip_allowlist_enabled bool
-	err := row.Scan(&ip_allowlist_enabled)
-	return ip_allowlist_enabled, err
-}
-
 const updateIPAllowlistEnabled = `-- name: UpdateIPAllowlistEnabled :exec
 UPDATE limits SET ip_allowlist_enabled = ? WHERE workspace_id = ?
 `

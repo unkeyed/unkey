@@ -27,11 +27,22 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 	}, handler.Request{Permissions: []string{}, IpAllowlist: &[]string{"198.51.100.128/25"}})
 	require.Equal(t, http.StatusForbidden, denied.Status, "%s", denied.RawBody)
 	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: p.AuthorizedWorkspaceID, Enabled: true}))
+	h.Caches.WorkspaceLimits.Remove(t.Context(), p.AuthorizedWorkspaceID)
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 	}, handler.Request{Permissions: []string{}, IpAllowlist: &[]string{"198.51.100.128/25", "2001:db8:1234::/48"}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: p.AuthorizedWorkspaceID, Enabled: false}))
+	// Disablement takes effect after the shared limits cache refreshes.
+	cached := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: []string{}, IpAllowlist: &[]string{"198.51.100.128/25"}})
+	require.Equal(t, http.StatusOK, cached.Status, "%s", cached.RawBody)
+	h.Caches.WorkspaceLimits.Remove(t.Context(), p.AuthorizedWorkspaceID)
+	denied = testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: []string{}, IpAllowlist: &[]string{"198.51.100.128/25"}})
+	require.Equal(t, http.StatusForbidden, denied.Status, "%s", denied.RawBody)
 	for _, test := range []struct {
 		address string
 		allowed bool

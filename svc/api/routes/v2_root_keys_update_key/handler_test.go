@@ -140,9 +140,13 @@ func TestUpdateRootKeyRestrictsWarmAuthentication(t *testing.T) {
 	res := call(h, route, caller, handler.Request{KeyId: target.KeyID, IpAllowlist: &[]string{"203.0.113.129/25"}})
 	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
 	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
+	h.Caches.WorkspaceLimits.Remove(t.Context(), workspace.ID)
 	res = call(h, route, caller, handler.Request{KeyId: target.KeyID, IpAllowlist: &[]string{"203.0.113.129/25"}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: false}))
+	res = call(h, route, caller, handler.Request{KeyId: target.KeyID, IpAllowlist: &[]string{"203.0.113.128/25"}})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	h.Caches.WorkspaceLimits.Remove(t.Context(), workspace.ID)
 	_, err = h.Keys.GetRootKey(t.Context(), session)
 	require.Error(t, err)
 	session.SetClientIP(netip.MustParseAddr("203.0.113.200"))
@@ -158,6 +162,7 @@ func TestUpdateRootKeyRestrictsWarmAuthentication(t *testing.T) {
 	_, err = h.Keys.GetRootKey(t.Context(), session)
 	require.Error(t, err)
 	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
+	h.Caches.WorkspaceLimits.Remove(t.Context(), workspace.ID)
 	res = call(h, route, caller, handler.Request{KeyId: target.KeyID, IpAllowlist: &[]string{}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	_, err = h.Keys.GetRootKey(t.Context(), session)
@@ -292,7 +297,7 @@ func TestUpdateRootKeyIgnoresLegacyKeys(t *testing.T) {
 }
 
 func newRoute(h *testutil.Harness) *handler.Handler {
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, RootKeyCache: h.Caches.RootKeyByHash, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, RootKeyCache: h.Caches.RootKeyByHash, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 	return route
 }

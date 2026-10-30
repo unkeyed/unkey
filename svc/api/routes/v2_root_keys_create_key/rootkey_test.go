@@ -20,7 +20,7 @@ func TestRestrictedRootKeyCannotDelegateBroaderNetworks(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
 	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
-	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 	permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#write"
 	admin := h.CreateRootKey(workspace.ID, permission)

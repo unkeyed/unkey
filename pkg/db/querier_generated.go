@@ -852,10 +852,6 @@ type Querier interface {
 	//  FROM github_repo_connections
 	//  WHERE app_id = ?
 	FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, appID string) (GithubRepoConnection, error)
-	// FindIPAllowlistEnabled checks whether a workspace can configure IP restrictions.
-	//
-	//  SELECT ip_allowlist_enabled FROM limits WHERE workspace_id = ?
-	FindIPAllowlistEnabled(ctx context.Context, db DBTX, workspaceID string) (bool, error)
 	//FindIdentitiesByExternalId
 	//
 	//  SELECT identities.pk, identities.id, identities.external_id, identities.workspace_id, identities.project_id, identities.environment, identities.meta, identities.deleted, identities.created_at, identities.updated_at

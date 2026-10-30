@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -35,6 +36,7 @@ type Handler struct {
 	DB           db.Database
 	Auditlogs    auditlogs.AuditLogService
 	RootKeyCache cache.Cache[string, keysdb.CachedRootKeyData]
+	LimitsCache  cache.Cache[string, keysdb.Limit]
 	Clock        clock.Clock
 }
 
@@ -118,23 +120,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 		if req.IpAllowlist != nil {
-			if err := principalpermissions.RequireIPAllowlistEnabled(ctx, tx, p.AuthorizedWorkspaceID); err != nil {
+			limits, hit, err := h.LimitsCache.SWR(ctx, p.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+				return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), p.AuthorizedWorkspaceID)
+			}, caches.DefaultFindFirstOp)
+			if err != nil && !db.IsNotFound(err) {
 				return err
 			}
+			if db.IsNotFound(err) || hit == cache.Null || !limits.IpAllowlistEnabled {
+				return fault.New("IP allowlist is not enabled", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("IP allowlists are not enabled for this workspace. Contact support to enable them."))
+			}
 		}
-		previous, err := ipallowlist.Parse(key.IpAllowlist)
+		allowlistBefore, err := ipallowlist.Parse(key.IpAllowlist)
 		if err != nil {
 			return fault.Wrap(err, fault.Internal("invalid root key IP allowlist"))
 		}
-		next := previous
+		allowlistAfter := allowlistBefore
 		if req.IpAllowlist != nil {
-			next, err = ipallowlist.Parse(*req.IpAllowlist)
+			allowlistAfter, err = ipallowlist.Parse(*req.IpAllowlist)
 			if err != nil {
 				return err
 			}
 		}
-		if err := principalpermissions.ValidateRootKeyIPAllowlist(callerAllowlist, next); err != nil {
-			return err
+		if !allowlistAfter.IsSubsetOf(callerAllowlist) {
+			return fault.New("root key operation widens network access", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Public("The IP allowlist must stay within the calling root key's allowed networks."))
 		}
 		if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
 			if !key.Expires.Valid || key.Expires.Int64 > source.ExpiresAt.UnixMilli() {
@@ -154,8 +164,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		logs := updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, key, permissionRows, removedPermissions)
 		if req.IpAllowlist != nil {
 			logs[0].Targets[0].Meta = map[string]any{
-				"ipAllowlistBefore": previous.Strings(),
-				"ipAllowlistAfter":  next.Strings(),
+				"ipAllowlistBefore": allowlistBefore.Strings(),
+				"ipAllowlistAfter":  allowlistAfter.Strings(),
 			}
 		}
 		return h.Auditlogs.Insert(ctx, tx, logs)

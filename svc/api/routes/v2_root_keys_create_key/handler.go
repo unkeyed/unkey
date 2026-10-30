@@ -6,11 +6,14 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -30,10 +33,11 @@ type Request = openapi.V2RootKeysCreateKeyRequestBody
 type Response = openapi.V2RootKeysCreateKeyResponseBody
 
 type Handler struct {
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
-	Clock     clock.Clock
+	DB          db.Database
+	Keys        keys.KeyService
+	Auditlogs   auditlogs.AuditLogService
+	Clock       clock.Clock
+	LimitsCache cache.Cache[string, keysdb.Limit]
 }
 
 func (h *Handler) Method() string { return "POST" }
@@ -114,12 +118,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.IpAllowlist == nil {
 			allowedIPs = callerAllowlist
 		}
-		if err := principalpermissions.ValidateRootKeyIPAllowlist(callerAllowlist, allowedIPs); err != nil {
-			return err
+		if !allowedIPs.IsSubsetOf(callerAllowlist) {
+			return fault.New("root key operation widens network access", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Public("The IP allowlist must stay within the calling root key's allowed networks."))
 		}
 		if len(allowedIPs) > 0 {
-			if err := principalpermissions.RequireIPAllowlistEnabled(ctx, tx, p.AuthorizedWorkspaceID); err != nil {
+			limits, hit, err := h.LimitsCache.SWR(ctx, p.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+				return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), p.AuthorizedWorkspaceID)
+			}, caches.DefaultFindFirstOp)
+			if err != nil && !db.IsNotFound(err) {
 				return err
+			}
+			if db.IsNotFound(err) || hit == cache.Null || !limits.IpAllowlistEnabled {
+				return fault.New("IP allowlist is not enabled", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("IP allowlists are not enabled for this workspace. Contact support to enable them."))
 			}
 		}
 		err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
