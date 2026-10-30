@@ -14,6 +14,11 @@ sources:
   - svc/api/openapi/spec/paths/v2/rootKeys/createKey/V2RootKeysCreateKeyRequestBody.yaml
   - svc/api/openapi/spec/paths/v2/rootKeys/createKey/V2RootKeysCreateKeyResponseData.yaml
   - svc/api/openapi/spec/paths/v2/rootKeys/updateKey/V2RootKeysUpdateKeyRequestBody.yaml
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/key-fields.tsx
+  - svc/api/internal/principal/ip_allowlist.go
+  - pkg/auth/ipallowlist/allowlist.go
+  - internal/services/keys/get.go
+  - internal/services/caches/caches.go
 ---
 
 import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
@@ -267,6 +272,57 @@ curl --fail-with-body https://api.unkey.com/v2/rootKeys.updateKey \
 Replace `key_xxx` with `data.keyId` from creation and `d_xxx` with the deployment's ID. This request removes the environment-wide deployment permissions and replaces them with permissions on that deployment. It doesn't append to the existing list.
 
 Omitting `permissions` leaves the existing permissions unchanged. Sending `"permissions": []` removes all permissions. An expiring root key can only update keys that expire no later than itself.
+
+## Restrict a root key by IP address
+
+An IP allowlist limits the source addresses that can authenticate with a root key. It accepts IPv4 addresses, IPv6 addresses, and CIDR ranges. It restricts your service's calls to Unkey, not the end users whose API keys your service verifies. For applications hosted on Compute, use a [firewall policy](/compute/gateway/firewall) to restrict incoming client addresses.
+
+Contact [support@unkey.com](mailto:support@unkey.com) to enable IP allowlist configuration for your workspace. Without enablement, the dashboard shows the field disabled with a **Contact support** link. Existing restrictions still apply. Disabling configuration does not remove them, and the API rejects all explicit allowlist updates, including clearing the list.
+
+### Configure the allowlist in the dashboard
+
+The allowlist is available when editing a key, not in the creation form.
+
+1. Open **Root Keys** and choose **Edit root key** from the key's row menu.
+2. In **IP allowlist**, enter one IP address or CIDR range per line.
+3. Include every outbound address your service uses to call Unkey, including NAT or proxy addresses.
+4. Click **Save**.
+
+Leave the field empty for unrestricted IP access. Other authentication and permission checks still apply.
+
+<Warning>
+  Before restricting a key, keep a separate management key or dashboard admin session available. An allowlist that excludes your service's outbound IP prevents that service from using the key.
+</Warning>
+
+### Configure the allowlist through the API
+
+Send `ipAllowlist` to `rootKeys.updateKey` with the complete replacement list. The caller needs `write` on the target root key. The array accepts up to 100 entries. Use addresses and CIDR ranges, not hostnames or addresses with ports.
+
+```bash wrap
+curl --fail-with-body https://api.unkey.com/v2/rootKeys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  --data '{
+    "keyId": "key_xxx",
+    "ipAllowlist": ["203.0.113.10", "198.51.100.0/24", "2001:db8::/32"]
+  }'
+```
+
+Replace `key_xxx` with the target key's ID and the example networks with your service's outbound addresses. Omit `ipAllowlist` to leave it unchanged. Send `"ipAllowlist": []` to remove the IP restriction, subject to workspace enablement and the delegation rules below. An empty array is valid; an empty string inside the array is not.
+
+You can also set `ipAllowlist` in `rootKeys.createKey`. Omitting it creates an unrestricted key, not a copy of the caller's allowlist. A restricted caller must supply a nonempty list within its own allowed networks. `rootKeys.listKeys` returns each key's allowlist. Rotation preserves the existing list.
+
+### Delegation cannot widen network access
+
+A restricted root key can create another key only within its own allowed networks. When it updates a key, the resulting list must stay within both the caller's networks and the target's existing networks. Clearing a restricted list would widen access and is rejected. These checks also apply when the caller updates itself.
+
+For example, a caller restricted to `198.51.100.0/24` can create a key restricted to `198.51.100.10`. It cannot create an unrestricted key or one that permits `203.0.113.10`. Widening an existing restriction requires a caller without an IP restriction, or a dashboard admin, with workspace configuration enabled.
+
+### Verify the restriction
+
+Call an operation permitted by the root key from an allowed address and from an address outside the list. The first request must pass authentication. The second must fail with HTTP 403. A root-key IP denial is an authentication failure, not a `data.code: FORBIDDEN` result from verifying an end-user API key.
+
+Root-key authentication uses a cache. Allowlist changes propagate as cached entries refresh, so a saved change is not an immediate revocation across every server.
 
 ## Verify the resulting access
 
