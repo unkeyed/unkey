@@ -14,7 +14,11 @@ type StopDialogProps = {
 };
 
 export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => {
-  const { awaitDeploymentStatus } = useProjectData();
+  const { awaitDeploymentStatus, environments } = useProjectData();
+  const isProduction = environments.some(
+    (environment) =>
+      environment.id === deployment.environmentId && environment.kind === "production",
+  );
   const stop = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.stopDeployment({ deploymentId }),
@@ -40,7 +44,11 @@ export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => 
       isOpen={isOpen}
       onOpenChange={onClose}
       title="Stop deployment"
-      subTitle="Scale this deployment down. You can wake it again without creating a new deployment."
+      subTitle={
+        isProduction
+          ? "Your current production deployment will keep running. Stopping this deployment removes instant rollback to it."
+          : "Scale this deployment down. You can wake it again without creating a new deployment."
+      }
       footer={
         <Button
           variant="destructive"

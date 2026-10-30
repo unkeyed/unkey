@@ -19,6 +19,11 @@ const RollbackDialog = dynamic(
   { ssr: false },
 );
 
+const StopDialog = dynamic(
+  () => import("../components/table/components/actions/stop-dialog").then((m) => m.StopDialog),
+  { ssr: false },
+);
+
 export function InstantRollbackRow() {
   const { deployment } = useDeployment();
   const { environments } = useProjectData();
@@ -26,6 +31,7 @@ export function InstantRollbackRow() {
   const { app, isRolledBack } = useAppCurrentDeployment();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const [rollbackOpen, setRollbackOpen] = useState(false);
+  const [stopTarget, setStopTarget] = useState<DeploymentSummary>();
   const [dialogTarget, setDialogTarget] = useState<DeploymentSummary>();
 
   const environment = environments.find((e) => e.id === deployment.environmentId);
@@ -59,6 +65,16 @@ export function InstantRollbackRow() {
               Your previous deployment is still running at full scale. Switch traffic back instantly
               without cold starts.
             </p>
+            <p className="text-xs leading-5 text-gray-9">
+              If you don’t need this, you can{" "}
+              <button
+                type="button"
+                onClick={() => setStopTarget(target)}
+                className="cursor-pointer rounded-sm text-info-11 underline underline-offset-2 hover:text-info-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-info-8"
+              >
+                Stop the previous deployment
+              </button>
+            </p>
           </div>
           <div className="w-full shrink-0 self-center sm:w-auto">
             <Button
@@ -79,6 +95,9 @@ export function InstantRollbackRow() {
           targetDeployment={dialogTarget}
           currentDeployment={deployment}
         />
+      )}
+      {stopTarget && (
+        <StopDialog isOpen onClose={() => setStopTarget(undefined)} deployment={stopTarget} />
       )}
       {planGate}
     </>
