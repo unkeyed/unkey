@@ -1,8 +1,15 @@
 "use client";
 
 import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
-import { IconKey2Outline12, IconPlusOutline18 } from "@unkey/icons";
 import {
+  IconBanOutline12,
+  IconCircleCheckOutline12,
+  IconCircleHalfDottedClockOutline12,
+  IconKey2Outline12,
+  IconPlusOutline18,
+} from "@unkey/icons";
+import {
+  Badge,
   Button,
   EmptyState,
   EmptyStateActions,
@@ -13,11 +20,13 @@ import {
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
+  STATUS_STYLES,
   Skeleton,
   TimestampInfo,
 } from "@unkey/ui";
 import { cn } from "cn";
 import dynamic from "next/dynamic";
+import { useRef, useState } from "react";
 import { PermissionsCell } from "./permissions-cell";
 import type { RootKey } from "./root-keys-v2";
 
@@ -161,9 +170,10 @@ function RootKeysTableBody({ selectedKeyId, onEditKey, onCreate, list }: RootKey
 
 function RootKeysTableHeader() {
   return (
-    <div className="grid grid-cols-[minmax(0,1.1fr)_160px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12">
+    <div className="grid grid-cols-[minmax(0,1.1fr)_160px_88px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12">
       <span>Name</span>
       <span>Value</span>
+      <span>Status</span>
       <span>Permissions</span>
       <span>Last used</span>
       <span>Created</span>
@@ -182,11 +192,37 @@ function RootKeyRow({
   onEditKey: (rootKey: RootKey) => void;
 }) {
   const name = rootKey.name ?? "Unnamed Root Key";
+  const statusRef = useRef<HTMLButtonElement>(null);
+  const [showExpiration, setShowExpiration] = useState(false);
+  const status = rootKey.enabled
+    ? rootKey.expires !== null && rootKey.expires <= Date.now()
+      ? "Expired"
+      : "Enabled"
+    : "Disabled";
+  const statusBadge = (
+    <Badge
+      variant={status === "Enabled" ? "success" : "primary"}
+      className={cn(
+        "h-5.5 gap-2 border-none px-1.5 justify-self-start",
+        status !== "Enabled" &&
+          (selected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default),
+      )}
+    >
+      {status === "Enabled" ? (
+        <IconCircleCheckOutline12 />
+      ) : status === "Disabled" ? (
+        <IconBanOutline12 />
+      ) : (
+        <IconCircleHalfDottedClockOutline12 />
+      )}
+      {status}
+    </Badge>
+  );
 
   return (
     <ResourceListItem
       className={cn(
-        "grid h-12 grid-cols-[minmax(0,1.1fr)_160px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 px-4 text-xs text-gray-12 transition-colors hover:bg-grayA-2",
+        "grid h-12 grid-cols-[minmax(0,1.1fr)_160px_88px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 px-4 text-xs text-gray-12 transition-colors hover:bg-grayA-2",
         selected && "bg-grayA-2",
       )}
     >
@@ -212,6 +248,35 @@ function RootKeyRow({
       <span className="min-w-0 truncate font-mono text-xs text-gray-11">
         {rootKey.start}••••{rootKey.end}
       </span>
+      {status === "Expired" && rootKey.expires !== null ? (
+        <span
+          className="relative z-10 justify-self-start"
+          onMouseEnter={() => setShowExpiration(true)}
+          onMouseLeave={() => setShowExpiration(false)}
+        >
+          <button
+            ref={statusRef}
+            type="button"
+            aria-expanded={showExpiration}
+            aria-haspopup="dialog"
+            className="cursor-help rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
+            onClick={() => setShowExpiration(true)}
+          >
+            {statusBadge}
+          </button>
+          <TimestampInfo
+            value={rootKey.expires}
+            side="top"
+            align="center"
+            className="sr-only"
+            triggerRef={statusRef}
+            open={showExpiration}
+            onOpenChange={setShowExpiration}
+          />
+        </span>
+      ) : (
+        statusBadge
+      )}
       <span className="min-w-0">
         <PermissionsCell permissions={rootKey.permissions} />
       </span>
@@ -243,13 +308,14 @@ function RootKeysTableSkeleton() {
             {SKELETON_KEYS.map((key) => (
               <ResourceListItem
                 key={key}
-                className="grid h-12 grid-cols-[minmax(0,1.1fr)_160px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 px-4"
+                className="grid h-12 grid-cols-[minmax(0,1.1fr)_160px_88px_minmax(0,1.3fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_32px] items-center gap-4 px-4"
               >
                 <span className="flex items-center gap-2.5">
                   <Skeleton className="size-6 shrink-0 rounded-md" />
                   <Skeleton className="h-3 w-28" />
                 </span>
                 <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-5 w-16 rounded-md" />
                 <Skeleton className="h-3 w-36" />
                 <Skeleton className="h-5 w-24 rounded-md" />
                 <Skeleton className="h-3 w-24" />
