@@ -37,9 +37,13 @@ type Config struct {
 	MasterKey         string
 	PreviousMasterKey *string
 	BearerToken       string
+	Clock             clock.Clock
 }
 
 func New(cfg Config) (*Service, error) {
+	if cfg.Clock == nil {
+		cfg.Clock = clock.New()
+	}
 
 	encryptionKey, decryptionKeys, err := loadMasterKeys(cfg.MasterKey, cfg.PreviousMasterKey)
 	if err != nil {
@@ -61,7 +65,7 @@ func New(cfg Config) (*Service, error) {
 		Stale:     24 * time.Hour,
 		MaxSize:   10000,
 		Resource:  "data_encryption_key",
-		Clock:     clock.New(),
+		Clock:     cfg.Clock,
 		Scheduler: nil,
 	})
 	if err != nil {
