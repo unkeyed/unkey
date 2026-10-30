@@ -7,6 +7,8 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/email"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 )
 
@@ -20,6 +22,8 @@ type slackSender interface {
 
 type Service struct {
 	hydrav1.UnimplementedKeyLeakServiceServer
+	db              db.Database
+	auditlogs       auditlogs.AuditLogService
 	members         memberResolver
 	email           email.Sender
 	slack           slackSender
@@ -27,6 +31,8 @@ type Service struct {
 }
 
 type Config struct {
+	DB              db.Database
+	Auditlogs       auditlogs.AuditLogService
 	Members         memberResolver
 	Email           email.Sender
 	SlackWebhookURL string
@@ -40,6 +46,8 @@ func New(cfg Config) *Service {
 
 	return &Service{
 		UnimplementedKeyLeakServiceServer: hydrav1.UnimplementedKeyLeakServiceServer{},
+		db:                                cfg.DB,
+		auditlogs:                         cfg.Auditlogs,
 		members:                           cfg.Members,
 		email:                             cfg.Email,
 		slack:                             slackClient,

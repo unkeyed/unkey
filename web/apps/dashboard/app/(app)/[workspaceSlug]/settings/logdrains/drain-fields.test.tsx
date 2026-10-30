@@ -608,13 +608,13 @@ it("selects the full audit category during search and submits individual actions
   const onValid = vi.fn();
   render(<SubmitForm onValid={onValid} eventTypes={["key.delete", "api.update"]} />);
 
-  expect(screen.getByRole("checkbox", { name: "key 5 actions" }).getAttribute("aria-checked")).toBe(
+  expect(screen.getByRole("checkbox", { name: "key 6 actions" }).getAttribute("aria-checked")).toBe(
     "mixed",
   );
   fireEvent.change(screen.getByLabelText("Search event types"), {
     target: { value: "key.create" },
   });
-  fireEvent.click(screen.getByRole("checkbox", { name: "key 5 actions" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "key 6 actions" }));
   fireEvent.change(screen.getByLabelText("Search event types"), { target: { value: "" } });
   fireEvent.click(screen.getByRole("button", { name: "Expand key" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "key.reroll" }));
@@ -626,6 +626,7 @@ it("selects the full audit category during search and submits individual actions
     "api.update",
     "key.create",
     "key.delete",
+    "key.leaked",
     "key.update",
     "key.verify",
   ]);

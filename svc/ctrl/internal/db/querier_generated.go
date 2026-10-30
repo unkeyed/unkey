@@ -512,6 +512,22 @@ type Querier interface {
 	//        AND image_resolved = ?
 	//  ) AS owns_image
 	DeploymentProjectOwnsImage(ctx context.Context, arg DeploymentProjectOwnsImageParams) (bool, error)
+	//DisableLeakedKeys
+	//
+	//  UPDATE `keys`
+	//  SET enabled = FALSE, updated_at_m = ?
+	//  WHERE id IN (/*SLICE:ids*/?)
+	//    AND enabled = TRUE
+	//    AND deleted_at_m IS NULL
+	DisableLeakedKeys(ctx context.Context, arg DisableLeakedKeysParams) error
+	//DisableLeakedRootKeys
+	//
+	//  UPDATE unkey_root_keys
+	//  SET enabled = FALSE
+	//  WHERE id IN (/*SLICE:ids*/?)
+	//    AND enabled = TRUE
+	//    AND deleted_at IS NULL
+	DisableLeakedRootKeys(ctx context.Context, ids []string) error
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -934,6 +950,26 @@ type Querier interface {
 	//  JOIN apps a ON a.id = d.app_id
 	//  WHERE d.id = ?
 	FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error)
+	//FindEnabledKeysByHashesForUpdate
+	//
+	//  SELECT id, hash, workspace_id, for_workspace_id
+	//  FROM `keys`
+	//  WHERE hash IN (/*SLICE:hashes*/?)
+	//    AND enabled = TRUE
+	//    AND deleted_at_m IS NULL
+	//  ORDER BY hash
+	//  FOR UPDATE
+	FindEnabledKeysByHashesForUpdate(ctx context.Context, hashes []string) ([]FindEnabledKeysByHashesForUpdateRow, error)
+	//FindEnabledRootKeysByHashesForUpdate
+	//
+	//  SELECT id, hash, workspace_id
+	//  FROM unkey_root_keys
+	//  WHERE hash IN (/*SLICE:hashes*/?)
+	//    AND enabled = TRUE
+	//    AND deleted_at IS NULL
+	//  ORDER BY hash
+	//  FOR UPDATE
+	FindEnabledRootKeysByHashesForUpdate(ctx context.Context, hashes []string) ([]FindEnabledRootKeysByHashesForUpdateRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
 	//  SELECT
@@ -1055,14 +1091,15 @@ type Querier interface {
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
 	//FindLeakedKeysByHashes
 	//
-	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name, 'rootKey' AS key_type
 	//  FROM unkey_root_keys k
 	//  JOIN workspaces w ON w.id = k.workspace_id
 	//  WHERE k.hash IN (/*SLICE:hashes*/?)
 	//    AND k.deleted_at IS NULL
 	//    AND w.deleted_at_m IS NULL
 	//  UNION ALL
-	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name,
+	//         IF(k.for_workspace_id IS NULL, 'key', 'rootKey') AS key_type
 	//  FROM `keys` k
 	//  JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
 	//  WHERE k.hash IN (/*SLICE:hashes*/?)
