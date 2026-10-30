@@ -205,6 +205,17 @@ describe("metricsPageModel", () => {
     expect(panel?.deploys.map((d) => d.marker.deploymentId)).toEqual(["d_two"]);
   });
 
+  it("lists panel deploys by the grid the panel chart draws, not the newer clock grid", () => {
+    const { panel } = readyModel(
+      metricsPageModel({
+        ...base,
+        grid: { ...grid, startMs: 90_000, endMs: 210_000 },
+        expanded: "cpu",
+      }),
+    );
+    expect(panel?.deploys.map((d) => d.marker.deploymentId)).toEqual(["d_two"]);
+  });
+
   it("has no per-instance chart for a traffic panel and no panel when nothing is expanded", () => {
     expect(readyModel(metricsPageModel({ ...base, expanded: "requests" })).panel).toEqual({
       card: { metric: "requests", state: { status: "loading" } },

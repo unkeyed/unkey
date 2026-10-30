@@ -5,6 +5,8 @@ import { type Loadable, type QueryResult, fromQuery } from "@/lib/loadable/loada
 import {
   type EnvironmentRef,
   type Grid,
+  type Held,
+  type Hold,
   type InstanceEvent,
   type InstanceRow,
   type InstanceSeries,
@@ -12,6 +14,7 @@ import {
   type Sources,
   clampedRetryMs,
   environmentKeyOf,
+  resolveHeld,
 } from "@/lib/metrics/app-metrics";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useRef, useState } from "react";
@@ -28,20 +31,28 @@ function inputOf(scope: AppMetricsScope | null) {
 }
 
 function viewKeyOf(scope: AppMetricsScope | null): string | null {
-  return scope && `${scope.appId}:${environmentKeyOf(scope.environment)}:${scope.grid.range}`;
+  return scope ? `${scope.appId}:${environmentKeyOf(scope.environment)}` : null;
 }
 
-// Holds the last result while only endMs or the open pod moved, so charts do not
-// flash to loading every bucket or rollout. A new app, environment or range
-// shows loading instead of the previous view's data.
-function useHeldAcrossTicks<T>(scope: AppMetricsScope | null, query: QueryResult<T>): Loadable<T> {
-  const viewKey = viewKeyOf(scope);
-  const [held, setHeld] = useState<{ viewKey: string | null; data: T } | null>(null);
-  if (query.data !== undefined && (held?.data !== query.data || held.viewKey !== viewKey)) {
-    setHeld({ viewKey, data: query.data });
+// Holding across ranges keeps the old chart mounted, dimmed, instead of flashing
+// a skeleton. Sources without a grid hold within a range, or they mislabel it.
+function useHeldAcrossTicks<T>(
+  scope: AppMetricsScope | null,
+  query: QueryResult<T>,
+  hold: Hold,
+): Loadable<T> {
+  const [held, setHeld] = useState<Held<T, Grid["range"] | undefined> | null>(null);
+  const next = resolveHeld(held, {
+    viewKey: viewKeyOf(scope),
+    range: scope?.grid.range,
+    hold,
+    fresh: query.data,
+    isError: query.isError,
+  });
+  if (next.held !== held) {
+    setHeld(next.held);
   }
-  const data = query.data ?? (held && held.viewKey === viewKey ? held.data : undefined);
-  return fromQuery({ ...query, data });
+  return fromQuery({ ...query, data: next.data });
 }
 
 const CLOCK_DRIVEN = {
@@ -77,8 +88,8 @@ export function useMetricSources(scope: AppMetricsScope | null): Sources {
     gridDriven<SourceResult<"resources">>(scope),
   );
   return {
-    traffic: useHeldAcrossTicks(scope, traffic),
-    resources: useHeldAcrossTicks(scope, resources),
+    traffic: useHeldAcrossTicks(scope, traffic, "across-ranges"),
+    resources: useHeldAcrossTicks(scope, resources, "across-ranges"),
   };
 }
 
@@ -87,7 +98,7 @@ export function useDeployMarkers(scope: AppMetricsScope | null) {
     ...CLOCK_DRIVEN,
     enabled: scope !== null,
   });
-  return useHeldAcrossTicks(scope, query);
+  return useHeldAcrossTicks(scope, query, "within-range");
 }
 
 export function useInstanceEvents(
@@ -98,7 +109,7 @@ export function useInstanceEvents(
     ...CLOCK_DRIVEN,
     enabled: enabled && scope !== null,
   });
-  return useHeldAcrossTicks(scope, query);
+  return useHeldAcrossTicks(scope, query, "within-range");
 }
 
 export function useMetricSourceByInstance(
@@ -128,7 +139,7 @@ export function useMetricSourceByInstance(
       utils.deploy.appMetrics.sourceByInstance.invalidate({ appId, environment });
     }
   }, [podSet, appId, environment, utils]);
-  return useHeldAcrossTicks(scope, query);
+  return useHeldAcrossTicks(scope, query, "across-ranges");
 }
 
 export function useMetricInstances(

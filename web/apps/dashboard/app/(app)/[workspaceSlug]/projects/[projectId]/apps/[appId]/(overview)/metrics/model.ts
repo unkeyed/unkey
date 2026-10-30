@@ -220,17 +220,16 @@ function panelOf(
   deploys: DeployView[],
 ): PanelModel {
   const card = cardOf(input.sources, metric);
+  const ready = card.state.status === "ready" ? card.state : null;
+  const grid = ready?.grid ?? input.grid;
   return {
     card,
     historyTruncated:
       input.byInstance.status === "ready" && input.byInstance.data.history.truncated,
-    stats:
-      card.state.status === "ready"
-        ? panelStats(card.state.chart, METRIC_VIEWS[metric].primary)
-        : null,
+    stats: ready ? panelStats(ready.chart, METRIC_VIEWS[metric].primary) : null,
     byInstance: isInstanceMetric(metric)
       ? instanceChart(input.byInstance, input.instances, metric)
       : null,
-    deploys: deploys.filter((d) => d.marker.readyAtMs >= input.grid.startMs).reverse(),
+    deploys: deploys.filter((d) => d.marker.readyAtMs >= grid.startMs).reverse(),
   };
 }

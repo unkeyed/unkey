@@ -13,9 +13,11 @@ import {
   formatValue,
 } from "@/lib/metrics/views";
 import { match } from "@unkey/match";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import type { ChartScale } from "./allocation";
 import { useHoveredBucket, useSetHoveredBucket } from "./chart-hover";
+import { useIsRangePending } from "./chart-range";
 import { legendReadout } from "./model";
 
 const LEGEND_HEIGHT = 33;
@@ -139,32 +141,35 @@ function GridChart({
   connectNulls,
 }: GridChartProps) {
   const setHovered = useSetHoveredBucket();
+  const pending = useIsRangePending(grid.range);
   const format = UNITS[scale.unit];
   return (
-    <AreaTimeseriesChart
-      data={chart}
-      config={series}
-      height={height}
-      fill="flat"
-      showZeroLine
-      showDateInTooltip={spansDays(grid)}
-      formatTooltipValue={format.format}
-      syncId={syncId}
-      markers={markers}
-      incidents={incidents}
-      focusKey={focusKey}
-      connectNulls={connectNulls}
-      onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}
-      axis={{
-        x: { domain: [grid.startMs, grid.endMs - grid.bucketMs] },
-        y: {
-          floor: format.yFloor,
-          max: scale.yMax ?? undefined,
-          tickCount: scale.tickCount,
-          formatTick: format.tick,
-        },
-      }}
-    />
+    <div className={cn("transition-opacity duration-150 ease-out", pending && "opacity-35")}>
+      <AreaTimeseriesChart
+        data={chart}
+        config={series}
+        height={height}
+        fill="flat"
+        showZeroLine
+        showDateInTooltip={spansDays(grid)}
+        formatTooltipValue={format.format}
+        syncId={syncId}
+        markers={markers}
+        incidents={incidents}
+        focusKey={focusKey}
+        connectNulls={connectNulls}
+        onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}
+        axis={{
+          x: { domain: [grid.startMs, grid.endMs - grid.bucketMs] },
+          y: {
+            floor: format.yFloor,
+            max: scale.yMax ?? undefined,
+            tickCount: scale.tickCount,
+            formatTick: format.tick,
+          },
+        }}
+      />
+    </div>
   );
 }
 

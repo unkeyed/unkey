@@ -159,3 +159,44 @@ export function clampedRetryMs(asked: Grid, served: Grid, fetchCount: number): n
   const clamped = behindMs > 0 && behindMs <= asked.bucketMs;
   return clamped && fetchCount <= MAX_CLAMPED_RETRIES ? CLAMPED_RETRY_MS : false;
 }
+
+export type Hold = "across-ranges" | "within-range";
+
+export type Held<T, R> = { viewKey: string | null; range: R; data: T; failedRange: R | null };
+
+// A range that failed stays latched until it loads, so a later tick or retry that
+// resets isError cannot bring back the previous range's data under the new label.
+export function resolveHeld<T, R>(
+  held: Held<T, R> | null,
+  view: { viewKey: string | null; range: R; hold: Hold; fresh: T | undefined; isError: boolean },
+): { data: T | undefined; held: Held<T, R> | null } {
+  const { viewKey, range, fresh } = view;
+  if (fresh !== undefined) {
+    if (
+      held !== null &&
+      held.data === fresh &&
+      held.viewKey === viewKey &&
+      held.range === range &&
+      held.failedRange === null
+    ) {
+      return { data: fresh, held };
+    }
+    return { data: fresh, held: { viewKey, range, data: fresh, failedRange: null } };
+  }
+  if (held === null || held.viewKey !== viewKey) {
+    return { data: undefined, held };
+  }
+  if (held.range === range) {
+    return {
+      data: held.data,
+      held: held.failedRange === null ? held : { ...held, failedRange: null },
+    };
+  }
+  if (view.hold === "within-range" || held.failedRange === range) {
+    return { data: undefined, held };
+  }
+  if (view.isError) {
+    return { data: undefined, held: { ...held, failedRange: range } };
+  }
+  return { data: held.data, held };
+}

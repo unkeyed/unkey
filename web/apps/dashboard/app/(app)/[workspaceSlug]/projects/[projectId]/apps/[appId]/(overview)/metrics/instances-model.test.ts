@@ -475,6 +475,28 @@ describe("instancesTabView", () => {
     expect(view({ events }).legend.crashes).toBe(2);
   });
 
+  it("ends crash episodes on the grid the usage charts draw, not the newer clock grid", () => {
+    const events = ready([
+      {
+        id: "e1",
+        atMs: 1,
+        instance: "eu-1",
+        instanceId: "ins_eu-1",
+        region: "eu-central-1",
+        deploymentId: "d_new",
+        kind: "crashloop" as const,
+        reason: "CrashLoopBackOff",
+        exitCode: null,
+        message: null,
+      },
+    ]);
+    const clock: Grid = { ...grid, startMs: 0, endMs: 86_400_000 };
+    const result = view({ grid: clock, events });
+    expect(result.grid.endMs).toBe(120_000);
+    expect(result.episodes.map((e) => [e.endMs, e.ongoing])).toEqual([[120_000, true]]);
+    expect(view({ grid: clock, events, usage: loading }).grid.endMs).toBe(86_400_000);
+  });
+
   it("reports a failed events query and shows no episodes", () => {
     const result = view({ events: failed() });
     expect([result.episodes, result.crashEventsFailed]).toEqual([[], true]);
