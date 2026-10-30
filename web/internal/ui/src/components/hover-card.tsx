@@ -14,10 +14,14 @@ function HoverCardContent({
   alignOffset,
   side,
   sideOffset = 4,
+  collisionAvoidance,
   ref,
   ...props
 }: HoverCardPrimitive.Popup.Props &
-  Pick<HoverCardPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset"> & {
+  Pick<
+    HoverCardPrimitive.Positioner.Props,
+    "align" | "alignOffset" | "side" | "sideOffset" | "collisionAvoidance"
+  > & {
     ref?: React.Ref<React.ComponentRef<typeof HoverCardPrimitive.Popup>>;
   }) {
   return (
@@ -28,6 +32,7 @@ function HoverCardContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
+        collisionAvoidance={collisionAvoidance}
       >
         <HoverCardPrimitive.Popup
           ref={ref}

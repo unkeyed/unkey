@@ -46,9 +46,8 @@ const byInstance: InstanceSeries = {
 };
 
 const podB: InstanceRow = {
-  instanceId: "inst_b",
+  presence: { kind: "live", instanceId: "inst_b", status: "running" },
   region: { name: "us-east-1" },
-  status: "running",
   role: "current",
   lastExit: null,
   deployment: { id: "d_two", source: null },
@@ -219,8 +218,8 @@ describe("metricsPageModel", () => {
 
   it("turns ready deploys into chart markers", () => {
     expect(readyModel(metricsPageModel(base)).markers).toEqual([
-      { id: "d_one", atMs: -60_000, span: { endMs: 60_000 }, shape: "dot", label: null },
-      { id: "d_two", atMs: 60_000, span: { endMs: null }, shape: "dot", label: null },
+      { id: "d_one", atMs: -60_000, span: { endMs: 60_000 } },
+      { id: "d_two", atMs: 60_000, span: { endMs: null } },
     ]);
   });
 
@@ -233,8 +232,8 @@ describe("metricsPageModel", () => {
       }),
     );
     expect(model.markers).toEqual([
-      { id: "d_one", atMs: -60_000, span: null, shape: "dot", label: null },
-      { id: "d_two", atMs: 60_000, span: null, shape: "dot", label: null },
+      { id: "d_one", atMs: -60_000, span: null },
+      { id: "d_two", atMs: 60_000, span: null },
     ]);
     expect([...model.deploys.values()].map((d) => d.effects)).toEqual([[], []]);
   });

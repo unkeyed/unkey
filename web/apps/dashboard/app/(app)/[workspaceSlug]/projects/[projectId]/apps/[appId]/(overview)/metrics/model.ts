@@ -203,8 +203,6 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
       id: d.deploymentId,
       atMs: d.readyAtMs,
       span: d.serving && { endMs: d.serving.untilMs },
-      shape: "dot",
-      label: null,
     })),
     deploys: new Map(deploys.map((d) => [d.marker.deploymentId, d])),
     panel: input.expanded ? panelOf(input.expanded, input, deploys) : null,

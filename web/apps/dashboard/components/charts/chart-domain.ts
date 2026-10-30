@@ -10,10 +10,12 @@ export const SPARSE_COVERAGE_THRESHOLD = 0.15;
 // Below this we keep the requested window so the point has a frame to sit in.
 const DEGENERATE_SPAN_MS = 60_000;
 
+export type Domain = [number, number];
+
 export type XAxisDomainResult = {
   // [start, end] the x-axis should span, or undefined to let the chart infer
   // it from the data extent (used when no window was requested).
-  effectiveDomain: [number, number] | undefined;
+  effectiveDomain: Domain | undefined;
   // Width of the rendered span in millis. Drives tick formatting: a sub-2-day
   // span reads as times, a wider one as dates.
   spanMs: number;
@@ -33,7 +35,7 @@ export type XAxisDomainResult = {
 // not the raw data extent: ClickHouse's WITH FILL pads every bucket in the
 // window, so the raw extent would always report 100% coverage.
 export function resolveXAxisDomain(params: {
-  xAxisDomain?: [number, number];
+  xAxisDomain?: Domain;
   contractOnSparseData?: boolean;
   firstNonZeroTs?: number;
   lastNonZeroTs?: number;
@@ -60,7 +62,7 @@ export function resolveXAxisDomain(params: {
   // Contract to the non-zero bounds explicitly rather than letting the chart
   // use the full data extent, which would re-include the zero-filled padding
   // and collapse the sparse data into a right-hand sliver again.
-  const contracted: [number, number] | undefined =
+  const contracted: Domain | undefined =
     firstNonZeroTs !== undefined && lastNonZeroTs !== undefined
       ? [firstNonZeroTs, lastNonZeroTs]
       : undefined;

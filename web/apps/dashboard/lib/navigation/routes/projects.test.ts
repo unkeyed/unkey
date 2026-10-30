@@ -43,6 +43,26 @@ describe("routes.projects.logs", () => {
     ).toBe("/acme/projects/proj_123/logs?deploymentId=is:d_789&instanceId=is:ins_1");
   });
 
+  it("joins several deployment and instance ids into one any-of filter each", () => {
+    expect(
+      routes.projects.logs({
+        workspaceSlug: ws,
+        projectId,
+        appId,
+        deploymentId: ["d_1", "d_2"],
+        instanceId: ["ins_1", "ins_2"],
+      }),
+    ).toBe(
+      "/acme/projects/proj_123/logs?appId=is:app_456&deploymentId=is:d_1,is:d_2&instanceId=is:ins_1,is:ins_2",
+    );
+  });
+
+  it("drops a filter given an empty list", () => {
+    expect(
+      routes.projects.logs({ workspaceSlug: ws, projectId, deploymentId: [], instanceId: [] }),
+    ).toBe("/acme/projects/proj_123/logs");
+  });
+
   it("scopes logs to a time window", () => {
     expect(
       routes.projects.logs({

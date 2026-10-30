@@ -1,0 +1,15 @@
+---
+title: Hover card
+description: A card that opens while the pointer rests on a trigger, for a preview or details.
+---
+
+<Component path="hover-card/basic" />
+
+## Placement
+
+`side` picks where the card opens: `top`, `bottom`, `left` or `right`. By default the card flips to the other side when it does not fit.
+
+<Component path="hover-card/pinned-side" />
+
+- Pass `collisionAvoidance={{ side: "none" }}` to keep the card on its side. It still shifts along that side to stay on screen.
+- Pin the side when one trigger can open at different heights, for example chart markers. A card that flips between above and below as the pointer moves is hard to read.

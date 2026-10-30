@@ -64,9 +64,8 @@ export const appMetricsSourceByInstance = workspaceProcedure
       instances: kept.map((i): InstanceRow => {
         const deployment = byDeployment.get(i.deploymentId);
         return {
-          instanceId: null,
+          presence: { kind: "stopped", lastSeenMs: i.lastSeenMs },
           region: { name: i.region || "Unknown region" },
-          status: "inactive",
           role: deployment ? deployRole(deployment, currentId) : "previous",
           lastExit: null,
           deployment: {
