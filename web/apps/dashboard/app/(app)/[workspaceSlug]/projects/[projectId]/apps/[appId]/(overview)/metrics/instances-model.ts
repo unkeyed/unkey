@@ -430,8 +430,7 @@ export function instancesTabView(input: {
   }
   const { filters, inScope } = scopeOf(instanceViews(instances.data), input.filter);
   const usage = usageOf(input.usage);
-  const readyUsage = usage.status === "ready" ? usage : null;
-  const grid = readyUsage?.grid ?? input.grid;
+  const grid = usage.status === "ready" ? usage.grid : input.grid;
   const scope = {
     regions: filters.regions.selected,
     instances:
@@ -457,6 +456,6 @@ export function instancesTabView(input: {
     crashEventsFailed: crashes.failed,
     legend: legendOf(inScope, crashes.episodes),
     usage: INSTANCE_METRICS.map((metric) => usageCard(inScope, usage, metric)),
-    rows: tableRows(inScope, readyUsage),
+    rows: tableRows(inScope, usage.status === "ready" ? usage : null),
   };
 }

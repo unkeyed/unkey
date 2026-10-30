@@ -80,13 +80,13 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
               </DetailRow>
               {sheet.lastExit && <LastExitRow lastExit={sheet.lastExit} />}
             </dl>
+            {isStopped(sheet.status) && sheet.usage.status === "ready" && (
+              <p {...outdatedProps(sheet.outdated, "text-xs text-gray-11")}>
+                This instance has stopped. Its last recorded usage is below.
+              </p>
+            )}
             <ChartHoverProvider>
               <div {...outdatedProps(sheet.outdated, "flex flex-1 flex-col gap-6")}>
-                {isStopped(sheet.status) && sheet.usage.status === "ready" && (
-                  <p className="text-xs text-gray-11">
-                    This instance has stopped. Its last recorded usage is below.
-                  </p>
-                )}
                 <ReplicaUsageBody usage={sheet.usage} markers={markers} />
               </div>
             </ChartHoverProvider>

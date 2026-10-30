@@ -51,9 +51,7 @@ function useHeld<T>(
     setHeld(next.held);
   }
   const loadable: Loadable<T> = fromQuery(next ? { ...query, data: next.data } : query);
-  return loadable.status === "ready"
-    ? { ...loadable, outdated: next?.outdated ?? false }
-    : loadable;
+  return loadable.status === "ready" && next?.outdated ? { ...loadable, outdated: true } : loadable;
 }
 
 const CLOCK_DRIVEN = {

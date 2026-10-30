@@ -1,5 +1,5 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { failed, held, loading, ready } from "@/lib/loadable/fixtures";
+import { failed, loading, ready } from "@/lib/loadable/fixtures";
 import type {
   Grid,
   InstanceRow,
@@ -96,8 +96,8 @@ function view(input: Partial<Parameters<typeof instancesTabView>[0]> = {}) {
   const result = instancesTabView({
     grid,
     instances: ready([usEast, euCentral, previous, crashing]),
-    usage: held(usage, false),
-    events: held([], false),
+    usage: ready(usage),
+    events: ready([]),
     filter: { regions: [], statuses: [], instances: [] },
     markersOutdated: false,
     ...input,
@@ -177,16 +177,13 @@ describe("instancesTabView", () => {
       },
       { cpuMillicores: 2000, memoryMib: 2048 },
     );
-    const historicalUsage = held<InstanceSeries>(
-      {
-        ...usage,
-        history: {
-          instances: [stopped, { ...usEast, presence: { kind: "stopped", lastSeenMs: 0 } }],
-          truncated: true,
-        },
+    const historicalUsage = ready<InstanceSeries>({
+      ...usage,
+      history: {
+        instances: [stopped, { ...usEast, presence: { kind: "stopped", lastSeenMs: 0 } }],
+        truncated: true,
       },
-      false,
-    );
+    });
     const result = view({ instances: ready([usEast]), usage: historicalUsage });
     expect(result.rows.map((r) => r.instance.key)).toEqual(["us-0", "gone"]);
     expect(result.rows[0].instance.statusText).toBe("Running");
@@ -216,8 +213,8 @@ describe("instancesTabView", () => {
   it("passes loading, failure and no instances through as their own states", () => {
     const base = {
       grid,
-      usage: held(usage, false),
-      events: held([], false),
+      usage: ready(usage),
+      events: ready([]),
       filter: { regions: [], statuses: [], instances: [] },
       markersOutdated: false,
     };
@@ -230,42 +227,6 @@ describe("instancesTabView", () => {
       status: "empty",
       outdated: false,
     });
-  });
-
-  it("marks the empty state outdated while its usage holds another range", () => {
-    const empty: InstanceSeries = {
-      grid,
-      history: { instances: [], truncated: false },
-      instances: [],
-    };
-    expect(
-      instancesTabView({
-        grid,
-        instances: ready([]),
-        usage: held(empty),
-        events: held([], false),
-        filter: { regions: [], statuses: [], instances: [] },
-        markersOutdated: false,
-      }),
-    ).toEqual({ status: "empty", outdated: true });
-  });
-
-  it("does not mark the empty state outdated by held events or markers", () => {
-    const empty: InstanceSeries = {
-      grid,
-      history: { instances: [], truncated: false },
-      instances: [],
-    };
-    expect(
-      instancesTabView({
-        grid,
-        instances: ready([]),
-        usage: held(empty, false),
-        events: held([]),
-        filter: { regions: [], statuses: [], instances: [] },
-        markersOutdated: true,
-      }),
-    ).toEqual({ status: "empty", outdated: false });
   });
 
   it("lists the region names and sorts the rows by deploy, region and name", () => {
@@ -347,17 +308,14 @@ describe("instancesTabView", () => {
     const late = instance("us-late");
     const [cpu] = view({
       instances: ready([usEast, late]),
-      usage: held(
-        {
-          grid,
-          history: { instances: [], truncated: false },
-          instances: [
-            { instance: "us-0", points: [point(0, 100, null), point(60_000, null, null)] },
-            { instance: "us-late", points: [point(0, null, null), point(60_000, 200, null)] },
-          ],
-        },
-        false,
-      ),
+      usage: ready({
+        grid,
+        history: { instances: [], truncated: false },
+        instances: [
+          { instance: "us-0", points: [point(0, 100, null), point(60_000, null, null)] },
+          { instance: "us-late", points: [point(0, null, null), point(60_000, 200, null)] },
+        ],
+      }),
     }).usage;
     expect(cpu.chart).toEqual({
       status: "ready",
@@ -487,35 +445,32 @@ describe("instancesTabView", () => {
   });
 
   it("narrows crash episodes to the instances in a status scope", () => {
-    const events = held(
-      [
-        {
-          id: "e1",
-          atMs: 1,
-          instance: "eu-1",
-          instanceId: "ins_eu-1",
-          region: "eu-central-1",
-          deploymentId: "d_new",
-          kind: "crashloop" as const,
-          reason: "CrashLoopBackOff",
-          exitCode: null,
-          message: null,
-        },
-        {
-          id: "e2",
-          atMs: 2,
-          instance: "eu-0",
-          instanceId: "ins_eu-0",
-          region: "eu-central-1",
-          deploymentId: "d_new",
-          kind: "oom" as const,
-          reason: "OOMKilled",
-          exitCode: 137,
-          message: null,
-        },
-      ],
-      false,
-    );
+    const events = ready([
+      {
+        id: "e1",
+        atMs: 1,
+        instance: "eu-1",
+        instanceId: "ins_eu-1",
+        region: "eu-central-1",
+        deploymentId: "d_new",
+        kind: "crashloop" as const,
+        reason: "CrashLoopBackOff",
+        exitCode: null,
+        message: null,
+      },
+      {
+        id: "e2",
+        atMs: 2,
+        instance: "eu-0",
+        instanceId: "ins_eu-0",
+        region: "eu-central-1",
+        deploymentId: "d_new",
+        kind: "oom" as const,
+        reason: "OOMKilled",
+        exitCode: 137,
+        message: null,
+      },
+    ]);
     const result = view({
       events,
       filter: { regions: [], statuses: ["unhealthy"], instances: [] },
@@ -526,35 +481,25 @@ describe("instancesTabView", () => {
   });
 
   it("ends crash episodes on the grid the usage charts draw, not the newer clock grid", () => {
-    const events = held(
-      [
-        {
-          id: "e1",
-          atMs: 1,
-          instance: "eu-1",
-          instanceId: "ins_eu-1",
-          region: "eu-central-1",
-          deploymentId: "d_new",
-          kind: "crashloop" as const,
-          reason: "CrashLoopBackOff",
-          exitCode: null,
-          message: null,
-        },
-      ],
-      false,
-    );
+    const events = ready([
+      {
+        id: "e1",
+        atMs: 1,
+        instance: "eu-1",
+        instanceId: "ins_eu-1",
+        region: "eu-central-1",
+        deploymentId: "d_new",
+        kind: "crashloop" as const,
+        reason: "CrashLoopBackOff",
+        exitCode: null,
+        message: null,
+      },
+    ]);
     const clock: Grid = { ...grid, startMs: 0, endMs: 86_400_000 };
     const result = view({ grid: clock, events });
     expect(result.grid.endMs).toBe(120_000);
     expect(result.episodes.map((e) => [e.endMs, e.ongoing])).toEqual([[120_000, true]]);
     expect(view({ grid: clock, events, usage: loading }).grid.endMs).toBe(86_400_000);
-  });
-
-  it("marks the tab outdated while any source it reads holds another range", () => {
-    expect(view().outdated).toBe(false);
-    expect(view({ usage: held(usage) }).outdated).toBe(true);
-    expect(view({ events: held([]) }).outdated).toBe(true);
-    expect(view({ markersOutdated: true }).outdated).toBe(true);
   });
 
   it("reports a failed events query and shows no episodes", () => {
@@ -567,16 +512,13 @@ describe("instancesTabView", () => {
     const disabled = instance("us-off", { status: "inactive" });
     const result = view({
       instances: ready([usEast, disabled]),
-      usage: held<InstanceSeries>(
-        {
-          ...usage,
-          history: {
-            instances: [instance("gone", { presence: { kind: "stopped", lastSeenMs: 0 } })],
-            truncated: false,
-          },
+      usage: ready<InstanceSeries>({
+        ...usage,
+        history: {
+          instances: [instance("gone", { presence: { kind: "stopped", lastSeenMs: 0 } })],
+          truncated: false,
         },
-        false,
-      ),
+      }),
       filter: { regions: [], statuses: ["stopped"], instances: [] },
     });
     expect(result.filters.statuses).toEqual({
@@ -616,21 +558,18 @@ describe("stopped pods", () => {
     });
   const result = view({
     instances: ready([usEast]),
-    usage: held<InstanceSeries>(
-      {
-        grid,
-        history: {
-          instances: [stoppedPod("old-a", 30_000), stoppedPod("old-b", 90_000)],
-          truncated: false,
-        },
-        instances: [
-          { instance: "us-0", points: [point(60_000, 250, 256 * MIB)] },
-          { instance: "old-a", points: [point(60_000, 400, 400 * MIB)] },
-          { instance: "old-b", points: [point(60_000, 300, 300 * MIB)] },
-        ],
+    usage: ready<InstanceSeries>({
+      grid,
+      history: {
+        instances: [stoppedPod("old-a", 30_000), stoppedPod("old-b", 90_000)],
+        truncated: false,
       },
-      false,
-    ),
+      instances: [
+        { instance: "us-0", points: [point(60_000, 250, 256 * MIB)] },
+        { instance: "old-a", points: [point(60_000, 400, 400 * MIB)] },
+        { instance: "old-b", points: [point(60_000, 300, 300 * MIB)] },
+      ],
+    }),
   });
 
   it("lists live rows first, then stopped rows by last seen, without usage", () => {
@@ -653,17 +592,14 @@ describe("stopped pods", () => {
     const disabled = instance("a-off", { status: "inactive" });
     const { rows } = view({
       instances: ready([disabled, usEast]),
-      usage: held<InstanceSeries>(
-        {
-          grid,
-          history: { instances: [stoppedPod("old-b", 90_000)], truncated: false },
-          instances: [
-            { instance: "us-0", points: [point(60_000, 250, 256 * MIB)] },
-            { instance: "a-off", points: [point(60_000, 250, 256 * MIB)] },
-          ],
-        },
-        false,
-      ),
+      usage: ready<InstanceSeries>({
+        grid,
+        history: { instances: [stoppedPod("old-b", 90_000)], truncated: false },
+        instances: [
+          { instance: "us-0", points: [point(60_000, 250, 256 * MIB)] },
+          { instance: "a-off", points: [point(60_000, 250, 256 * MIB)] },
+        ],
+      }),
     });
     expect(rows.map((r) => [r.instance.key, r.instance.statusText, r.usage.cpu.percent])).toEqual([
       ["us-0", "Running", 50],

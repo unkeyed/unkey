@@ -1,13 +1,13 @@
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
-import {
-  type Grid,
-  type HeldLoadable,
-  type InstanceRow,
-  type InstanceSeries,
-  type MetricId,
-  type ReplicaTarget,
-  type ResourcePoint,
-  isOutdated,
+import { isOutdated } from "@/lib/metrics/app-metrics";
+import type {
+  Grid,
+  HeldLoadable,
+  InstanceRow,
+  InstanceSeries,
+  MetricId,
+  ReplicaTarget,
+  ResourcePoint,
 } from "@/lib/metrics/app-metrics";
 import { type ChartState, METRIC_VIEWS, chartStateOf, seriesChart } from "@/lib/metrics/views";
 import {

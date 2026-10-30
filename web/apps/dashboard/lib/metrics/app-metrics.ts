@@ -59,10 +59,10 @@ export type SourceResult<S extends MetricSource> = { grid: Grid; points: SourceP
 
 export type HeldLoadable<T> =
   | Exclude<Loadable<never>, { status: "ready" }>
-  | (Extract<Loadable<T>, { status: "ready" }> & { outdated: boolean });
+  | (Extract<Loadable<T>, { status: "ready" }> & { outdated?: boolean });
 
 export function isOutdated(loadable: HeldLoadable<unknown>): boolean {
-  return loadable.status === "ready" && loadable.outdated;
+  return loadable.status === "ready" && loadable.outdated === true;
 }
 
 export type Sources = { [S in MetricSource]: Loadable<SourceResult<S>> };

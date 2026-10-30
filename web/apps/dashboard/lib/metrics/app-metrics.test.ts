@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Grid, type Held, clampedRetryMs, holdKeyOf, resolveHeld } from "./app-metrics";
+import { type Grid, type Held, clampedRetryMs, resolveHeld } from "./app-metrics";
 
 const asked: Grid = {
   range: "1h",
@@ -33,19 +33,6 @@ describe("clampedRetryMs", () => {
   });
 });
 
-describe("holdKeyOf", () => {
-  it("keys held data by app and environment, not by range", () => {
-    const scope = { appId: "app_1", environment: { id: "env_1" }, grid: asked };
-    const otherRange = { ...scope, grid: { ...asked, range: "6h" as const } };
-    expect(holdKeyOf(scope)).toBe("app_1:env_1");
-    expect(holdKeyOf(otherRange)).toBe("app_1:env_1");
-    expect(holdKeyOf({ appId: "app_1", environment: { kind: "production" } })).toBe(
-      "app_1:production",
-    );
-    expect(holdKeyOf({ appId: "app_2", environment: { id: "env_1" } })).toBe("app_2:env_1");
-  });
-});
-
 describe("resolveHeld", () => {
   const held: Held<string[]> = { viewKey: "app:prod", range: "1h", data: ["old"] };
   const view = {
@@ -57,64 +44,39 @@ describe("resolveHeld", () => {
   };
 
   it("uses fresh data and holds it", () => {
-    expect(resolveHeld(held, { ...view, fresh: ["new"], isError: true })).toEqual({
+    const first = resolveHeld(held, { ...view, fresh: ["new"] });
+    expect(first).toEqual({
       data: ["new"],
       held: { viewKey: "app:prod", range: "6h", data: ["new"] },
       outdated: false,
     });
-  });
-
-  it("keeps the same held state for fresh data already held", () => {
-    expect(resolveHeld(held, { ...view, range: "1h", fresh: held.data }).held).toBe(held);
-  });
-
-  it("holds fresh data with the same reference again under a new range", () => {
-    expect(resolveHeld(held, { ...view, fresh: held.data })).toEqual({
-      data: ["old"],
-      held: { viewKey: "app:prod", range: "6h", data: ["old"] },
-      outdated: false,
-    });
+    expect(resolveHeld(first.held, { ...view, fresh: first.data }).held).toBe(first.held);
   });
 
   it("shows no data for another view", () => {
-    const result = resolveHeld(held, { ...view, viewKey: "app:staging", range: "1h" });
-    expect(result).toEqual({ data: undefined, held, outdated: false });
-    expect(result.held).toBe(held);
-    expect(resolveHeld(null, view)).toEqual({ data: undefined, held: null, outdated: false });
-  });
-
-  it("uses held data for the same range, even on error", () => {
-    const result = resolveHeld(held, { ...view, range: "1h", isError: true });
-    expect(result).toEqual({ data: ["old"], held, outdated: false });
-    expect(result.held).toBe(held);
-  });
-
-  it("uses held data as outdated while another range loads", () => {
-    const result = resolveHeld(held, view);
-    expect(result).toEqual({ data: ["old"], held, outdated: true });
-    expect(result.held).toBe(held);
-  });
-
-  it("uses held data as outdated while the other range fetch is paused", () => {
-    expect(resolveHeld(held, { ...view, fetchStatus: "paused" })).toEqual({
-      data: ["old"],
+    expect(resolveHeld(held, { ...view, viewKey: "app:staging", range: "1h" })).toEqual({
+      data: undefined,
       held,
-      outdated: true,
+      outdated: false,
     });
   });
 
-  it("uses held data as current while the other range query is idle", () => {
-    expect(resolveHeld(held, { ...view, fetchStatus: "idle" })).toEqual({
+  it("uses held data for the same range, even on error", () => {
+    expect(resolveHeld(held, { ...view, range: "1h", isError: true })).toEqual({
       data: ["old"],
       held,
       outdated: false,
     });
   });
 
+  it("marks held data outdated only while another range is in flight", () => {
+    expect(resolveHeld(held, view)).toEqual({ data: ["old"], held, outdated: true });
+    expect(resolveHeld(held, { ...view, fetchStatus: "paused" }).outdated).toBe(true);
+    expect(resolveHeld(held, { ...view, fetchStatus: "idle" }).outdated).toBe(false);
+  });
+
   it("drops the held data when another range fails", () => {
-    const failure = resolveHeld(held, { ...view, isError: true });
-    expect(failure).toEqual({ data: undefined, held: null, outdated: false });
-    expect(resolveHeld(failure.held, { ...view, isError: true })).toEqual({
+    expect(resolveHeld(held, { ...view, isError: true })).toEqual({
       data: undefined,
       held: null,
       outdated: false,

@@ -2,17 +2,16 @@ import type { AreaChartPoint } from "@/components/charts/area-timeseries";
 import type { ChartMarker } from "@/components/charts/chart-markers";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Loadable } from "@/lib/loadable/loadable";
-import {
-  type DeployMarker,
-  type Grid,
-  type HeldLoadable,
-  type HeldSources,
-  type InstanceEvent,
-  type InstanceRow,
-  type InstanceSeries,
-  METRIC_CATALOG,
-  type MetricId,
-  isOutdated,
+import { METRIC_CATALOG, isOutdated } from "@/lib/metrics/app-metrics";
+import type {
+  DeployMarker,
+  Grid,
+  HeldLoadable,
+  HeldSources,
+  InstanceEvent,
+  InstanceRow,
+  InstanceSeries,
+  MetricId,
 } from "@/lib/metrics/app-metrics";
 import { type ChartState, METRIC_VIEWS, cardState } from "@/lib/metrics/views";
 import { match } from "@unkey/match";
@@ -240,8 +239,7 @@ function panelOf(
   markersOutdated: boolean,
 ): PanelModel {
   const card = cardOf(input.sources, metric, markersOutdated);
-  const ready = card.state.status === "ready" ? card.state : null;
-  const grid = ready?.grid ?? input.grid;
+  const grid = card.state.status === "ready" ? card.state.grid : input.grid;
   const byInstance = isInstanceMetric(metric)
     ? instanceChart(input.byInstance, input.instances, metric)
     : null;
@@ -249,7 +247,10 @@ function panelOf(
     card,
     historyTruncated:
       input.byInstance.status === "ready" && input.byInstance.data.history.truncated,
-    stats: ready ? panelStats(ready.chart, METRIC_VIEWS[metric].primary) : null,
+    stats:
+      card.state.status === "ready"
+        ? panelStats(card.state.chart, METRIC_VIEWS[metric].primary)
+        : null,
     byInstance,
     deploys: deploys.filter((d) => d.marker.readyAtMs >= grid.startMs).reverse(),
     outdated:
