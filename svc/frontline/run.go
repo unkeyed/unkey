@@ -381,7 +381,7 @@ func Run(ctx context.Context, cfg Config) error {
 			TLS:                nil,
 			EnableH2C:          false,
 			MaxRequestBodySize: 0,
-			StreamRequestBody:  true,
+			StreamRequestBody:  false,
 			TrustedProxyCIDRs:  nil,
 			ReadTimeout:        -1,
 			ReadHeaderTimeout:  10 * time.Second,
