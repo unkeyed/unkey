@@ -65,16 +65,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var key db.UnkeyRootKey
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		ids := []string{req.KeyId}
+		rootKeyIDs := []string{req.KeyId}
 		source, rootKeyCaller := p.Source.(principal.KeySource)
 		rootKeyCaller = rootKeyCaller && source.KeySpaceID == ""
 		if rootKeyCaller {
-			ids = append(ids, source.KeyID)
+			// Keep caller data stable for policy checks until the target write commits.
+			rootKeyIDs = append(rootKeyIDs, source.KeyID)
 		}
-		slices.Sort(ids)
-		locked := make(map[string]db.UnkeyRootKey, len(ids))
-		for _, id := range slices.Compact(ids) {
+		// Lock in ID order to prevent deadlocks when key A mutates key B
+		// while key B concurrently mutates key A.
+		slices.Sort(rootKeyIDs)
+		locked := make(map[string]db.UnkeyRootKey, len(rootKeyIDs))
+		for _, id := range slices.Compact(rootKeyIDs) {
 			row, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, id)
+			// Classify missing callers and targets separately below.
 			if db.IsNotFound(err) {
 				continue
 			}

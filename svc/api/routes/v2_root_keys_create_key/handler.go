@@ -85,6 +85,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		if source, ok := p.Source.(principal.KeySource); ok && source.KeySpaceID == "" {
+			// Prevent concurrent deletion or policy changes to the calling root key
+			// while this transaction creates a new key.
 			caller, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, source.KeyID)
 			if db.IsNotFound(err) || err == nil && caller.WorkspaceID != p.AuthorizedWorkspaceID {
 				return fault.New("calling root key not found",
