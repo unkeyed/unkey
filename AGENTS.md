@@ -149,6 +149,10 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Never comment what the code does.
 - Comments should be rare and reserved for essential context that a future reader would otherwise be unable to infer, such as non-obvious constraints, intentional trade-offs, or decisions that cannot be expressed through the code itself.
 - Do not add comments solely to explain changes to the current reviewer, unless explicitly asked.
+- Make comments self-contained. Assume the reader has not seen the chat, PR
+  discussion, or implementation history. Explain the reason or constraint that
+  matters at that location. Mention other code only when it is necessary to
+  understand this code.
 
 ## Go conventions
 
