@@ -144,7 +144,7 @@ const userCache = new Map<string, { user: User | null; timestamp: number }>();
 const USER_CACHE_TTL = 1000 * 60 * 5;
 const USER_CACHE_MAX_ENTRIES = 5_000;
 
-async function getCachedUser(userId: string): Promise<User | null> {
+export async function getCachedUser(userId: string): Promise<User | null> {
   const cached = userCache.get(userId);
   if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL) {
     return cached.user;
