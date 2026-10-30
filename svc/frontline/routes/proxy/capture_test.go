@@ -176,7 +176,7 @@ func TestRequestLogging_KeyAuthRejectionCapture(t *testing.T) {
 			t.Cleanup(func() { require.NoError(t, limiter.Close()) })
 			engine, err := policies.New(policies.Config{
 				KeyAuth: rejectingAuthenticator{code: tc.code}, RateLimiter: limiter, Clock: clk,
-				OpenapiBodyBytesMax: 10 << 20, OpenapiBodyBytesBudget: 512 << 20,
+				OpenapiBodyBytesMax: 4 << 20, OpenapiBodyBytesBudget: 512 << 20,
 			})
 			require.NoError(t, err)
 			t.Cleanup(engine.Close)

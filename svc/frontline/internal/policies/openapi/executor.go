@@ -24,6 +24,10 @@ type compiledSpec struct {
 	redactor  *redaction.Redactor
 }
 
+// decodeExpansionMax is the worst-case heap the validator uses per body byte.
+// Measured peak heap while validating arrays of {} or 0 reached ~60x the body size.
+const decodeExpansionMax = 64
+
 type Executor struct {
 	cache        cache.Cache[string, *compiledSpec]
 	bodyBytesMax int64
@@ -31,8 +35,8 @@ type Executor struct {
 }
 
 func New(clk clock.Clock, bodyBytesMax, bodyBytesBudget int64) (*Executor, error) {
-	if bodyBytesMax > 0 && bodyBytesBudget > 0 && bodyBytesBudget < bodyBytesMax {
-		return nil, fmt.Errorf("openapi body budget %d is smaller than the body limit %d", bodyBytesBudget, bodyBytesMax)
+	if bodyBytesMax > 0 && bodyBytesBudget > 0 && bodyBytesBudget < decodeExpansionMax*bodyBytesMax {
+		return nil, fmt.Errorf("openapi body budget %d is smaller than %d times the body limit %d", bodyBytesBudget, decodeExpansionMax, bodyBytesMax)
 	}
 	var bodyBudget *semaphore.Weighted
 	if bodyBytesBudget > 0 {
@@ -82,6 +86,14 @@ func (e *Executor) Execute(
 		)
 	}
 
+	bytesDecoded := (decodeExpansionMax - 1) * req.ContentLength
+	if e.bodyBudget != nil && e.bodyBytesMax > 0 && bytesDecoded > 0 {
+		if !e.bodyBudget.TryAcquire(bytesDecoded) {
+			return nil, validationBusy(bytesDecoded)
+		}
+		defer e.bodyBudget.Release(bytesDecoded)
+	}
+
 	result := compiled.validator.Validate(req)
 	if result == nil {
 		return compiled.redactor, nil
@@ -104,12 +116,14 @@ func (e *Executor) Execute(
 //  1. Content-Length > bodyBytesMax: return 413, the body is never read.
 //  2. Reserve budget: Content-Length bytes, or bodyBytesMax when there is no
 //     Content-Length (chunked, HTTP/2 without the header). Budget full: return 503.
-//  3. No Content-Length: read up to bodyBytesMax into memory here, return 413 if
-//     the body is longer. The validator reads with no limit, so it must get this
-//     buffered copy. Then shrink the reservation to the buffer size, so small
-//     chunked bodies do not hold bodyBytesMax each.
-//  4. Content-Length set: leave the body alone. Go's server stops at
-//     Content-Length, so the validator can't read past it.
+//  3. Read up to bodyBytesMax into memory here, return 413 if the body is
+//     longer. The validator reads with no limit, so it must get this buffered
+//     copy. Then shrink the reservation to the buffer size, so small chunked
+//     bodies do not hold bodyBytesMax each.
+//
+// Execute then reserves the decode memory the validator needs on top of the
+// body, and releases it when Validate returns. The body is read first so a slow
+// client can't hold the decode reservation while it trickles bytes.
 //
 // The budget is released when the request context ends, not when validation
 // ends, because the validator puts the body back on the request and it stays in
@@ -129,11 +143,7 @@ func (e *Executor) limitBody(req *http.Request) (err error) {
 	bytesHeld := bytesReserved
 	if e.bodyBudget != nil && bytesReserved > 0 {
 		if !e.bodyBudget.TryAcquire(bytesReserved) {
-			return fault.New("openapi body budget exhausted",
-				fault.Code(codes.Frontline.OpenApi.ValidationBusy.URN()),
-				fault.Internal(fmt.Sprintf("no budget left to hold %d body bytes for validation", bytesReserved)),
-				fault.Public("The gateway is validating too many request bodies right now. Retry shortly."),
-			)
+			return validationBusy(bytesReserved)
 		}
 		defer func() {
 			if err != nil {
@@ -144,10 +154,6 @@ func (e *Executor) limitBody(req *http.Request) (err error) {
 				context.AfterFunc(req.Context(), func() { e.bodyBudget.Release(bytesHeld) })
 			}
 		}()
-	}
-
-	if req.ContentLength >= 0 {
-		return nil
 	}
 
 	body, err := io.ReadAll(io.LimitReader(req.Body, e.bodyBytesMax+1))
@@ -177,6 +183,14 @@ func (e *Executor) limitBody(req *http.Request) (err error) {
 	}
 	req.ContentLength = int64(len(body))
 	return nil
+}
+
+func validationBusy(bytesWanted int64) error {
+	return fault.New("openapi body budget exhausted",
+		fault.Code(codes.Frontline.OpenApi.ValidationBusy.URN()),
+		fault.Internal(fmt.Sprintf("no budget left to hold %d bytes for validation", bytesWanted)),
+		fault.Public("The gateway is validating too many request bodies right now. Retry shortly."),
+	)
 }
 
 func bodyTooLarge(bytesMax int64) error {

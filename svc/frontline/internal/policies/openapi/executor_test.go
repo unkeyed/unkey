@@ -40,11 +40,14 @@ paths:
           description: ok
 `)
 
-const testBodyBytesMax = 2 << 20
+const (
+	testBodyBytesMax    = 2 << 20
+	testBodyBytesBudget = decodeExpansionMax * testBodyBytesMax
+)
 
 func newTestExecutor(t *testing.T) *Executor {
 	t.Helper()
-	e, err := New(clock.New(), testBodyBytesMax, 4*testBodyBytesMax)
+	e, err := New(clock.New(), testBodyBytesMax, testBodyBytesBudget)
 	require.NoError(t, err)
 	t.Cleanup(e.Close)
 	return e
@@ -201,59 +204,45 @@ func TestExecute_LimitDisabled(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestLimitBody_KnownLengthBodyStaysStream(t *testing.T) {
+func TestLimitBody_BodyIsBuffered(t *testing.T) {
 	t.Parallel()
 
-	e := newTestExecutor(t)
 	body := jsonBody(t, map[string]string{"name": "alice"})
-	reader := &countingReader{remaining: len(body), data: body}
-	req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
-	req.ContentLength = int64(len(body))
+	for _, contentLength := range []int64{int64(len(body)), -1} {
+		e := newTestExecutor(t)
+		reader := &countingReader{remaining: len(body), data: body}
+		req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
+		req.ContentLength = contentLength
 
-	require.NoError(t, e.limitBody(req))
-	require.Zero(t, reader.reads)
-	require.Nil(t, req.GetBody)
-}
+		require.NoError(t, e.limitBody(req))
+		require.Zero(t, reader.remaining)
+		require.NotNil(t, req.GetBody)
+		require.EqualValues(t, len(body), req.ContentLength)
 
-func TestLimitBody_ChunkedBodyIsBuffered(t *testing.T) {
-	t.Parallel()
-
-	e := newTestExecutor(t)
-	body := jsonBody(t, map[string]string{"name": "alice"})
-	reader := &countingReader{remaining: len(body), data: body}
-	req := httptest.NewRequest("POST", "/users", io.NopCloser(reader))
-	req.ContentLength = -1
-
-	require.NoError(t, e.limitBody(req))
-	require.Positive(t, reader.reads)
-	require.NotNil(t, req.GetBody)
-	require.EqualValues(t, len(body), req.ContentLength)
-
-	forwarded, err := io.ReadAll(req.Body)
-	require.NoError(t, err)
-	require.Equal(t, body, forwarded)
+		forwarded, err := io.ReadAll(req.Body)
+		require.NoError(t, err)
+		require.Equal(t, body, forwarded)
+	}
 }
 
 func TestLimitBody_BudgetExhausted(t *testing.T) {
 	t.Parallel()
 
-	e, err := New(clock.New(), testBodyBytesMax, testBodyBytesMax)
-	require.NoError(t, err)
-	t.Cleanup(e.Close)
+	e := newTestExecutor(t)
+	body := []byte("KEBAP")
+	require.True(t, e.bodyBudget.TryAcquire(testBodyBytesBudget-int64(len(body))))
 
 	holderCtx, endHolder := context.WithCancel(t.Context())
 	t.Cleanup(endHolder)
-	holder := httptest.NewRequestWithContext(holderCtx, "POST", "/users", bytes.NewReader(nil))
-	holder.Body = io.NopCloser(&countingReader{})
-	holder.ContentLength = testBodyBytesMax
+	holder := httptest.NewRequestWithContext(holderCtx, "POST", "/users", io.NopCloser(&countingReader{data: body, remaining: len(body)}))
+	holder.ContentLength = int64(len(body))
 	require.NoError(t, e.limitBody(holder))
 
-	body := []byte("KEBAP")
 	reader := &countingReader{data: body, remaining: len(body)}
 	req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(reader))
 	req.ContentLength = int64(len(body))
 
-	err = e.limitBody(req)
+	err := e.limitBody(req)
 	require.Error(t, err)
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)
@@ -269,12 +258,10 @@ func TestLimitBody_BudgetExhausted(t *testing.T) {
 func TestLimitBody_ChunkedBodyHoldsOnlyItsSize(t *testing.T) {
 	t.Parallel()
 
-	e, err := New(clock.New(), testBodyBytesMax, 2*testBodyBytesMax)
-	require.NoError(t, err)
-	t.Cleanup(e.Close)
+	e := newTestExecutor(t)
 
 	body := []byte("KEBAP")
-	for range 10 {
+	for range 2 * decodeExpansionMax {
 		req := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(&countingReader{data: body, remaining: len(body)}))
 		req.ContentLength = -1
 		require.NoError(t, e.limitBody(req))
@@ -284,27 +271,57 @@ func TestLimitBody_ChunkedBodyHoldsOnlyItsSize(t *testing.T) {
 func TestLimitBody_FailedChunkedBodyReleasesBudget(t *testing.T) {
 	t.Parallel()
 
-	e, err := New(clock.New(), testBodyBytesMax, testBodyBytesMax)
-	require.NoError(t, err)
-	t.Cleanup(e.Close)
+	e := newTestExecutor(t)
 
 	body := bytes.Repeat([]byte("K"), testBodyBytesMax+1)
 	tooLarge := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(&countingReader{data: body, remaining: len(body)}))
 	tooLarge.ContentLength = -1
-	err = e.limitBody(tooLarge)
+	err := e.limitBody(tooLarge)
 	urn, ok := fault.GetCode(err)
 	require.True(t, ok)
 	require.Equal(t, codes.User.BadRequest.RequestBodyTooLarge.URN(), urn)
 
-	atLimit := httptest.NewRequestWithContext(t.Context(), "POST", "/users", io.NopCloser(&countingReader{}))
-	atLimit.ContentLength = testBodyBytesMax
-	require.NoError(t, e.limitBody(atLimit))
+	require.True(t, e.bodyBudget.TryAcquire(testBodyBytesBudget))
+}
+
+func TestExecute_DecodeBudgetExhausted(t *testing.T) {
+	t.Parallel()
+
+	e := newTestExecutor(t)
+	body := jsonBody(t, map[string]string{"name": "KEBAP"})
+	bytesFree := decodeExpansionMax*int64(len(body)) - 1
+	require.True(t, e.bodyBudget.TryAcquire(testBodyBytesBudget-bytesFree))
+
+	busyCtx, endBusy := context.WithCancel(t.Context())
+	t.Cleanup(endBusy)
+	req := httptest.NewRequestWithContext(busyCtx, "POST", "/users", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := e.Execute(busyCtx, nil, req, &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec})
+	urn, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.OpenApi.ValidationBusy.URN(), urn)
+
+	endBusy()
+	e.bodyBudget.Release(1)
+	require.Eventually(t, func() bool {
+		if !e.bodyBudget.TryAcquire(bytesFree + 1) {
+			return false
+		}
+		e.bodyBudget.Release(bytesFree + 1)
+		return true
+	}, time.Second, 5*time.Millisecond)
+
+	req = httptest.NewRequestWithContext(t.Context(), "POST", "/users", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	_, err = e.Execute(t.Context(), nil, req, &frontlinev1.OpenApiRequestValidation{SpecYaml: minimalSpec})
+	require.NoError(t, err)
+	require.True(t, e.bodyBudget.TryAcquire(bytesFree+1-int64(len(body))))
 }
 
 func TestNew_BudgetSmallerThanLimit(t *testing.T) {
 	t.Parallel()
 
-	_, err := New(clock.New(), testBodyBytesMax, testBodyBytesMax-1)
+	_, err := New(clock.New(), testBodyBytesMax, testBodyBytesBudget-1)
 	require.Error(t, err)
 }
 

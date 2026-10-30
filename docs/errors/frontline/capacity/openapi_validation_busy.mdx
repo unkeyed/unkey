@@ -12,7 +12,7 @@ sources:
 
 import { ProductLink } from "/snippets/product-link.jsx";
 
-The request matches an [OpenAPI validation policy](/compute/gateway/openapi-validation), and the gateway is already holding as many request bodies for that check as it allows. It rejects the request before it reads the body. You get `503 Service Unavailable`.
+The request matches an [OpenAPI validation policy](/compute/gateway/openapi-validation), and the gateway is already using as much memory for that check as it allows. It usually rejects the request before it reads the body. You get `503 Service Unavailable`.
 
 ```json Example response
 {
@@ -34,7 +34,7 @@ Retry after a short delay, with backoff. Smaller request bodies are less likely 
 
 ## If you own this API
 
-To check a body, the gateway holds the whole body in memory. Each gateway instance limits the total size of the bodies it holds at once, so that many large requests can't use up its memory. Requests with a large body, or with no `Content-Length` header, need the most room and get this error first.
+To check a body, the gateway holds the whole body in memory and decodes it, which can take many times the body size. Each gateway instance limits the memory it uses for these checks at once, so that many large requests can't use up its memory. Requests with a large body, or with no `Content-Length` header, need the most room and get this error first.
 
 If you see it often without unusual traffic, send smaller bodies, or contact support.
 
@@ -45,4 +45,4 @@ If you see it often without unusual traffic, send smaller bodies, or contact sup
 ## Related errors
 
 - [`err:frontline:client:openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed): the request doesn't match the OpenAPI spec.
-- [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large): the body is over the 10 MiB limit.
+- [`err:user:bad_request:request_body_too_large`](/errors/user/bad_request/request_body_too_large): the body is over the 4 MiB limit.

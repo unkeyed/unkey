@@ -81,7 +81,7 @@ func ServeLocalDev(ctx context.Context, listener net.Listener, cfg LocalDevConfi
 		KeyAuth:                authenticator,
 		RateLimiter:            limiter,
 		Clock:                  clk,
-		OpenapiBodyBytesMax:    10 << 20,
+		OpenapiBodyBytesMax:    4 << 20,
 		OpenapiBodyBytesBudget: 512 << 20,
 	})
 	if err != nil {

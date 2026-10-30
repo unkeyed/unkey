@@ -1,7 +1,7 @@
 ---
 title: "request_body_too_large"
 sidebarTitle: "request_body_too_large"
-description: "The request body is larger than the 10 MiB limit."
+description: "The request body is larger than the 4 MiB limit."
 sources:
   - pkg/codes/user_request.go
   - svc/api/internal/middleware/errors.go
@@ -13,7 +13,7 @@ sources:
 
 <Danger>`err:user:bad_request:request_body_too_large`</Danger>
 
-Your request body is larger than the 10 MiB (10485760 bytes) limit. You get HTTP 413.
+Your request body is larger than the 4 MiB (4194304 bytes) limit. You get HTTP 413.
 
 - **Unkey API:** every endpoint has this limit.
 - **Compute gateway:** this limit applies to a request that matches an [OpenAPI validation policy](/compute/gateway/openapi-validation). Requests without that policy stream to your app and are not limited.
@@ -24,7 +24,7 @@ Your request body is larger than the 10 MiB (10485760 bytes) limit. You get HTTP
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The request body exceeds the maximum allowed size of 10485760 bytes.",
+    "detail": "The request body exceeds the maximum allowed size of 4194304 bytes.",
     "status": 413,
     "title": "Request Entity Too Large",
     "type": "/errors/user/bad_request/request_body_too_large",
