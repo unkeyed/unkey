@@ -1126,18 +1126,20 @@ type DeploymentStep struct {
 }
 
 type Environment struct {
-	Pk               uint64                    `db:"pk"`
-	ID               string                    `db:"id"`
-	WorkspaceID      string                    `db:"workspace_id"`
-	ProjectID        string                    `db:"project_id"`
-	AppID            string                    `db:"app_id"`
-	Slug             string                    `db:"slug"`
-	Description      string                    `db:"description"`
-	Kind             mysqltype.EnvironmentKind `db:"kind"`
-	DeleteProtection sql.NullBool              `db:"delete_protection"`
-	CreatedAt        int64                     `db:"created_at"`
-	UpdatedAt        sql.NullInt64             `db:"updated_at"`
-	DeletedAt        sql.NullInt64             `db:"deleted_at"`
+	Pk                  uint64                    `db:"pk"`
+	ID                  string                    `db:"id"`
+	WorkspaceID         string                    `db:"workspace_id"`
+	ProjectID           string                    `db:"project_id"`
+	AppID               string                    `db:"app_id"`
+	Slug                string                    `db:"slug"`
+	Description         string                    `db:"description"`
+	Kind                mysqltype.EnvironmentKind `db:"kind"`
+	CurrentDeploymentID sql.NullString            `db:"current_deployment_id"`
+	IsRolledBack        bool                      `db:"is_rolled_back"`
+	DeleteProtection    sql.NullBool              `db:"delete_protection"`
+	CreatedAt           int64                     `db:"created_at"`
+	UpdatedAt           sql.NullInt64             `db:"updated_at"`
+	DeletedAt           sql.NullInt64             `db:"deleted_at"`
 }
 
 type FrontlineRoute struct {
