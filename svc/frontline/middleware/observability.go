@@ -317,7 +317,7 @@ func getErrorPageInfoFrontline(urn codes.URN) errorPageInfo {
 		return errorPageInfo{
 			Status:  http.StatusServiceUnavailable,
 			Title:   http.StatusText(http.StatusServiceUnavailable),
-			Message: "The gateway is validating too many request bodies right now. Retry shortly.",
+			Message: "The gateway is busy. Retry shortly.",
 		}
 
 	// Routing failures other than ConfigNotFound (e.g. deployment-by-id miss,

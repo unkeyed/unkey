@@ -26,8 +26,8 @@ type compiledSpec struct {
 	redactor  *redaction.Redactor
 }
 
-// decodeExpansionMax is the worst-case heap the validator uses per body byte.
-// Measured peak heap for bodies like [0,0,...] or [{},{},...] was ~60x the body size
+// decodeExpansionMax is the most heap the validator uses per body byte.
+// JSON made of many small values used up to ~60x its size while being checked
 const decodeExpansionMax = 64
 
 // bodyReadTimeout limits how long a slow client can hold its body reservation.
@@ -210,7 +210,7 @@ func validationBusy(bytesWanted int64) error {
 	return fault.New("openapi body budget exhausted",
 		fault.Code(codes.Frontline.OpenApi.ValidationBusy.URN()),
 		fault.Internal(fmt.Sprintf("no budget left to hold %d bytes for validation", bytesWanted)),
-		fault.Public("The gateway is validating too many request bodies right now. Retry shortly."),
+		fault.Public("The gateway is busy. Retry shortly."),
 	)
 }
 
