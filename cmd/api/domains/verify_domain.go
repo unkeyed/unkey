@@ -2,7 +2,6 @@ package domains
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -49,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 			}
 			res, err := client.Domains.VerifyDomain(ctx, components.V2DomainsVerifyDomainRequestBody{Domain: cmd.String("domain")})
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
 			return util.Output(cmd, res.V2DomainsVerifyDomainResponseBody)
 		},

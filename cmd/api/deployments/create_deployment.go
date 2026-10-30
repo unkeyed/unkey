@@ -109,7 +109,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/deployments
 			}
 			res, err := client.Deployments.CreateDeploymentV3(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
 			return util.Output(cmd, res.V3DeploymentsCreateDeploymentResponseBody)
 		},
