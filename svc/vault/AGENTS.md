@@ -15,7 +15,7 @@
   [get_or_create_key.go](internal/keyring/get_or_create_key.go).
 - Encryption refreshes stale `LATEST` entries, while decryption can use a cached
   immutable DEK. Do not apply the same refresh policy to both without accounting
-  for rotation. `ReEncrypt` refreshes key selection before encrypting again.
+  for rotation. `ReEncryptBulk` refreshes key selection before encrypting again.
 - KEK rotation changes how existing DEKs are wrapped, not the DEKs used by
   ciphertext. Keep the old KEK available until objects wrapped by it have been
   migrated. See [roll_deks.go](internal/vault/roll_deks.go).

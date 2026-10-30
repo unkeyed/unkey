@@ -16,6 +16,7 @@ import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { commitSubject, sourceLabel } from "./deploy-identity";
 import { EffectChips } from "./effect-chips";
+import { HistoryNotice } from "./history-notice";
 import type { DeployView, PanelModel, PanelStats } from "./model";
 import { SeriesChart } from "./series-chart";
 
@@ -111,6 +112,7 @@ function PanelBody({
         {panel.byInstance && (
           <Card className="flex flex-col gap-1.5 px-4 pt-3 pb-3">
             <h3 className="text-sm font-medium text-gray-12">By instance</h3>
+            {panel.historyTruncated && <HistoryNotice />}
             <SeriesChart
               title={`${view.title} by instance`}
               state={panel.byInstance.chart}

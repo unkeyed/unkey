@@ -11,9 +11,10 @@ import (
 )
 
 const deleteWorkspacesWithChildren = `-- name: DeleteWorkspacesWithChildren :exec
-DELETE w, wb, p, a, e, d, b, bt
+DELETE w, wb, l, p, a, e, d, b, bt
 FROM workspaces w
 LEFT JOIN workspace_billing wb ON wb.workspace_id = w.id
+LEFT JOIN ` + "`" + `limits` + "`" + ` l ON l.workspace_id = w.id
 LEFT JOIN projects p ON p.workspace_id = w.id
 LEFT JOIN apps a ON a.workspace_id = w.id
 LEFT JOIN environments e ON e.workspace_id = w.id
@@ -30,9 +31,10 @@ WHERE w.id IN (/*SLICE:ids*/?)
 // Rows a test leaves behind are rescanned by every later run, so the seeder
 // deletes what it created once the test finishes.
 //
-//	DELETE w, wb, p, a, e, d, b, bt
+//	DELETE w, wb, l, p, a, e, d, b, bt
 //	FROM workspaces w
 //	LEFT JOIN workspace_billing wb ON wb.workspace_id = w.id
+//	LEFT JOIN `limits` l ON l.workspace_id = w.id
 //	LEFT JOIN projects p ON p.workspace_id = w.id
 //	LEFT JOIN apps a ON a.workspace_id = w.id
 //	LEFT JOIN environments e ON e.workspace_id = w.id

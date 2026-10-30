@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
@@ -93,6 +94,7 @@ func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, t
 			correlation_id
 		FROM audit_logs_raw_v1
 		WHERE workspace_id = {workspace:String}
+			AND bucket IN {buckets:Array(String)}
 			AND (
 				inserted_at > {from_time:Int64}
 				OR (inserted_at = {from_time:Int64} AND event_id > {from_id:String})
@@ -106,6 +108,7 @@ func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, t
 	// and fails with CANNOT_PARSE_QUOTED_STRING.
 	rows, err := clickhouse.Select[auditRow](ctx, s.client.Conn(), query, map[string]string{
 		"workspace":   workspaceID,
+		"buckets":     clickhouse.StringArrayParam(auditlog.DashboardBuckets),
 		"from_time":   strconv.FormatInt(from.Time, 10),
 		"from_id":     from.EventID,
 		"to":          strconv.FormatInt(toExclusive, 10),

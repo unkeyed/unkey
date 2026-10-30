@@ -55,6 +55,17 @@ const params = z.object({
 
 const instanceParams = params.extend({ instances: z.array(z.string()) });
 
+export const HISTORY_INSTANCES_MAX = 200;
+
+const historicalInstance = z.object({
+  instance: z.string(),
+  deploymentId: z.string(),
+  region: z.string(),
+  cpuMillicores: z.number(),
+  memoryMib: z.number(),
+  storageMib: z.number(),
+});
+
 // The deployment ids come from the day rollup, which every resource MV fills
 // from the same checkpoint insert, so the set is exact and the resource_id
 // sort key still prunes the minute table. app_id is not filtered: older rows
@@ -206,10 +217,54 @@ const INSTANCE_QUERY = `
       AND instance_id IN {instances: Array(String)}`)}
     )
     GROUP BY instance, t
-    ORDER BY instance, t ASC${FILL}
+    ORDER BY instance, t ASC WITH FILL STEP {bucketMs: Int64}
   )
   WHERE instance != ''
   ORDER BY instance, t ASC`;
+
+const HISTORY_QUERY = `
+  WITH observed AS (
+    SELECT
+      instance_id AS instance,
+      any(resource_id) AS deploymentId,
+      argMax(container_uid, time) AS containerUid,
+      toInt64(max(time)) * 1000 AS bucketMs,
+      argMax(cpu_allocated_millicores_max, time) AS cpuMillicores,
+      argMax(memory_allocated_bytes_max, time) / 1048576 AS memoryMib,
+      argMax(disk_allocated_bytes_max, time) / 1048576 AS storageMib
+    ${sourceRows("")}
+      AND time >= toDateTime({startSec: UInt32})
+      AND time < toDateTime({endSec: UInt32})
+      AND instance_id NOT IN {instances: Array(String)}
+      AND instance_id != ''
+    GROUP BY instance_id
+    ORDER BY bucketMs DESC, instance
+    LIMIT {limit: UInt32}
+  )
+  SELECT
+    observed.instance AS instance,
+    deploymentId,
+    regions.region AS region,
+    cpuMillicores,
+    memoryMib,
+    storageMib
+  FROM observed
+  LEFT JOIN (
+    SELECT
+      container_uid,
+      intDiv(ts, {sourceSec: UInt32} * 1000) * {sourceSec: UInt32} * 1000 AS bucketMs,
+      any(region) AS region
+    FROM instance_checkpoints_v1
+    PREWHERE workspace_id = {workspaceId: String}
+      AND container_uid IN (SELECT containerUid FROM observed)
+    WHERE environment_id = {environmentId: String}
+      AND resource_type = 'deployment'
+      AND ts >= {startMs: Int64} AND ts < {endMs: Int64}
+      AND (container_uid, bucketMs) IN (SELECT containerUid, bucketMs FROM observed)
+    GROUP BY container_uid, bucketMs
+  ) AS regions ON observed.containerUid = regions.container_uid
+    AND observed.bucketMs = regions.bucketMs
+  ORDER BY observed.bucketMs DESC, instance`;
 
 function toParams(req: AppResourcesRequest, nowMs: number) {
   const { grid } = req;
@@ -244,10 +299,7 @@ export function getAppResources(ch: Querier) {
   return (req: AppResourcesRequest, nowMs = Date.now()) => query(toParams(req, nowMs));
 }
 
-/**
- * Reads only the named pods. An environment that deploys often has seen far
- * more pods than it runs, and each one would fill to a full grid.
- */
+// Fill gaps within a pod's lifetime, not the entire range for every old pod.
 export function getAppResourcesByInstance(ch: Querier) {
   const query = ch.query({
     query: INSTANCE_QUERY,
@@ -256,4 +308,20 @@ export function getAppResourcesByInstance(ch: Querier) {
   });
   return (req: AppResourcesByInstanceRequest, nowMs = Date.now()) =>
     query({ ...toParams(req, nowMs), instances: req.instances });
+}
+
+// Rollups retain pod identities and allocations after MySQL deletes them.
+// Only the last observed source bucket is needed from raw checkpoints for region.
+export function getAppResourceHistory(ch: Querier) {
+  const query = ch.query({
+    query: HISTORY_QUERY,
+    params: instanceParams.extend({ limit: z.number().int() }),
+    schema: historicalInstance,
+  });
+  return (req: AppResourcesByInstanceRequest, nowMs = Date.now()) =>
+    query({
+      ...toParams(req, nowMs),
+      instances: req.instances,
+      limit: HISTORY_INSTANCES_MAX + 1,
+    });
 }

@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-select_local_context() {
-  kubectl config set-context unkey-dev-local --cluster=unkey --user=unkey
-  kubectl config use-context unkey-dev-local
-}
+export KUBECONFIG="${2:?Use mise run dev to start the cluster with an isolated kubeconfig}"
 
 profiles=$(minikube profile list --light -o json)
 profile_count=$(jq '[.valid[], .invalid[]] | map(select(.Name == "unkey")) | length' <<< "$profiles")
@@ -42,9 +39,7 @@ if [ "$profile_count" -eq 0 ]; then
   docker volume create --name unkey --label dev.unkey.project=unkey \
     --label created_by.minikube.sigs.k8s.io=true --label name.minikube.sigs.k8s.io=unkey >/dev/null
   ctlptl apply -f ./dev/registry.yaml
-  ctlptl apply -f "$1"
-  select_local_context
-  exit 0
+  exec ctlptl apply -f "$1"
 fi
 
 if [ -z "$volume" ]; then
@@ -72,14 +67,13 @@ fi
 
 ctlptl apply -f ./dev/registry.yaml
 docker start unkey-registry >/dev/null
-if ! minikube status -p unkey >/dev/null 2>&1; then
+if ! minikube -p unkey update-context >/dev/null 2>&1 || ! minikube status -p unkey >/dev/null 2>&1; then
   start_flags=("--cni=$expected_cni" "--wait=$expected_wait" --delete-on-failure=false)
   if [ "$expected_cni" = false ]; then
     start_flags+=(--network-plugin=cni --force)
   fi
   minikube start -p unkey "${start_flags[@]}"
 fi
-select_local_context
 
 cluster=$(ctlptl get cluster unkey -o json)
 if ! jq -e '.registry == "unkey-registry" and .status.localRegistryHosting.host != null' <<< "$cluster" >/dev/null; then

@@ -77,7 +77,7 @@ func Select[T any](ctx context.Context, conn ch.Conn, query string, parameters m
 // StringArrayParam renders items as a ClickHouse Array(String) parameter
 // value. Server-side parameters travel as strings, so array parameters need
 // the literal array syntax with each element quoted and escaped.
-func StringArrayParam(items []string) string {
+func StringArrayParam[S ~string](items []S) string {
 	var b strings.Builder
 	b.WriteByte('[')
 	for i, s := range items {
@@ -85,7 +85,7 @@ func StringArrayParam(items []string) string {
 			b.WriteByte(',')
 		}
 		b.WriteByte('\'')
-		b.WriteString(arrayElementEscaper.Replace(s))
+		b.WriteString(arrayElementEscaper.Replace(string(s)))
 		b.WriteByte('\'')
 	}
 	b.WriteByte(']')

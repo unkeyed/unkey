@@ -28,18 +28,6 @@ message DecryptResponse {
   string plaintext = 1;
 }
 
-message ReEncryptRequest {
-  string keyring = 1;
-  string encrypted = 2;
-
-  // Specify the key_id to use for re-encryption. If not provided, the latest will be used
-  optional string key_id = 3;
-}
-message ReEncryptResponse {
-  string encrypted = 1;
-  string key_id = 2;
-}
-
 message ReEncryptDEKsRequest {}
 message ReEncryptDEKsResponse {}
 
@@ -66,13 +54,26 @@ message DecryptBulkResponse {
   map<string, string> items = 1;
 }
 
+message ReEncryptBulkRequest {
+  // Up to 100 ciphertexts, keyed by caller-provided IDs. Keyrings may differ.
+  map<string, DecryptRequest> items = 1;
+}
+message ReEncryptBulkResponseItem {
+  // Item failures do not discard successful results from the same request.
+  oneof result {
+    EncryptResponse success = 1;
+    string error = 2;
+  }
+}
+message ReEncryptBulkResponse {
+  map<string, ReEncryptBulkResponseItem> items = 1;
+}
+
 service VaultService {
   rpc Liveness(LivenessRequest) returns (LivenessResponse) {}
   rpc Encrypt(EncryptRequest) returns (EncryptResponse) {}
   rpc Decrypt(DecryptRequest) returns (DecryptResponse) {}
   rpc EncryptBulk(EncryptBulkRequest) returns (EncryptBulkResponse) {}
   rpc DecryptBulk(DecryptBulkRequest) returns (DecryptBulkResponse) {}
-
-  // ReEncrypt rec
-  rpc ReEncrypt(ReEncryptRequest) returns (ReEncryptResponse) {}
+  rpc ReEncryptBulk(ReEncryptBulkRequest) returns (ReEncryptBulkResponse) {}
 }

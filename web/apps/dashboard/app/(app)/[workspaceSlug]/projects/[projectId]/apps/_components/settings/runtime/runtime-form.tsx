@@ -2,6 +2,7 @@
 
 import { SettingsForm } from "@unkey/ui";
 import { ComputeFields } from "../compute/compute-fields";
+import { AdvancedFields } from "./advanced-fields";
 import { CommandField } from "./command-field";
 import { HealthcheckFields } from "./healthcheck-fields";
 import { PortField } from "./port-field";
@@ -15,6 +16,7 @@ export function RuntimeForm() {
       <PortField form={form} />
       <CommandField form={form} />
       <HealthcheckFields form={form} />
+      <AdvancedFields form={form} />
     </SettingsForm>
   );
 }

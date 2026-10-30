@@ -3,6 +3,8 @@ package schema
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/unkeyed/unkey/pkg/auditlog"
 )
 
 // Source values identify where a [KeyVerification] originated. Billing
@@ -364,11 +366,11 @@ type FrontlineRequest struct {
 //
 //unkey:table default.audit_logs_raw_v1
 type AuditLogV1 struct {
-	EventID     string `ch:"event_id" json:"event_id"`
-	Time        int64  `ch:"time" json:"time"`
-	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
-	Bucket      string `ch:"bucket" json:"bucket"`
-	Source      string `ch:"source" json:"source"`
+	EventID     string          `ch:"event_id" json:"event_id"`
+	Time        int64           `ch:"time" json:"time"`
+	WorkspaceID string          `ch:"workspace_id" json:"workspace_id"`
+	Bucket      auditlog.Bucket `ch:"bucket" json:"bucket"`
+	Source      string          `ch:"source" json:"source"`
 
 	Event       string `ch:"event" json:"event"`
 	Description string `ch:"description" json:"description"`

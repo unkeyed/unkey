@@ -45,8 +45,9 @@ const (
 	// VaultServiceDecryptBulkProcedure is the fully-qualified name of the VaultService's DecryptBulk
 	// RPC.
 	VaultServiceDecryptBulkProcedure = "/vault.v1.VaultService/DecryptBulk"
-	// VaultServiceReEncryptProcedure is the fully-qualified name of the VaultService's ReEncrypt RPC.
-	VaultServiceReEncryptProcedure = "/vault.v1.VaultService/ReEncrypt"
+	// VaultServiceReEncryptBulkProcedure is the fully-qualified name of the VaultService's
+	// ReEncryptBulk RPC.
+	VaultServiceReEncryptBulkProcedure = "/vault.v1.VaultService/ReEncryptBulk"
 )
 
 // VaultServiceClient is a client for the vault.v1.VaultService service.
@@ -56,8 +57,7 @@ type VaultServiceClient interface {
 	Decrypt(context.Context, *connect.Request[v1.DecryptRequest]) (*connect.Response[v1.DecryptResponse], error)
 	EncryptBulk(context.Context, *connect.Request[v1.EncryptBulkRequest]) (*connect.Response[v1.EncryptBulkResponse], error)
 	DecryptBulk(context.Context, *connect.Request[v1.DecryptBulkRequest]) (*connect.Response[v1.DecryptBulkResponse], error)
-	// ReEncrypt rec
-	ReEncrypt(context.Context, *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error)
+	ReEncryptBulk(context.Context, *connect.Request[v1.ReEncryptBulkRequest]) (*connect.Response[v1.ReEncryptBulkResponse], error)
 }
 
 // NewVaultServiceClient constructs a client for the vault.v1.VaultService service. By default, it
@@ -101,10 +101,10 @@ func NewVaultServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(vaultServiceMethods.ByName("DecryptBulk")),
 			connect.WithClientOptions(opts...),
 		),
-		reEncrypt: connect.NewClient[v1.ReEncryptRequest, v1.ReEncryptResponse](
+		reEncryptBulk: connect.NewClient[v1.ReEncryptBulkRequest, v1.ReEncryptBulkResponse](
 			httpClient,
-			baseURL+VaultServiceReEncryptProcedure,
-			connect.WithSchema(vaultServiceMethods.ByName("ReEncrypt")),
+			baseURL+VaultServiceReEncryptBulkProcedure,
+			connect.WithSchema(vaultServiceMethods.ByName("ReEncryptBulk")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -112,12 +112,12 @@ func NewVaultServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 
 // vaultServiceClient implements VaultServiceClient.
 type vaultServiceClient struct {
-	liveness    *connect.Client[v1.LivenessRequest, v1.LivenessResponse]
-	encrypt     *connect.Client[v1.EncryptRequest, v1.EncryptResponse]
-	decrypt     *connect.Client[v1.DecryptRequest, v1.DecryptResponse]
-	encryptBulk *connect.Client[v1.EncryptBulkRequest, v1.EncryptBulkResponse]
-	decryptBulk *connect.Client[v1.DecryptBulkRequest, v1.DecryptBulkResponse]
-	reEncrypt   *connect.Client[v1.ReEncryptRequest, v1.ReEncryptResponse]
+	liveness      *connect.Client[v1.LivenessRequest, v1.LivenessResponse]
+	encrypt       *connect.Client[v1.EncryptRequest, v1.EncryptResponse]
+	decrypt       *connect.Client[v1.DecryptRequest, v1.DecryptResponse]
+	encryptBulk   *connect.Client[v1.EncryptBulkRequest, v1.EncryptBulkResponse]
+	decryptBulk   *connect.Client[v1.DecryptBulkRequest, v1.DecryptBulkResponse]
+	reEncryptBulk *connect.Client[v1.ReEncryptBulkRequest, v1.ReEncryptBulkResponse]
 }
 
 // Liveness calls vault.v1.VaultService.Liveness.
@@ -145,9 +145,9 @@ func (c *vaultServiceClient) DecryptBulk(ctx context.Context, req *connect.Reque
 	return c.decryptBulk.CallUnary(ctx, req)
 }
 
-// ReEncrypt calls vault.v1.VaultService.ReEncrypt.
-func (c *vaultServiceClient) ReEncrypt(ctx context.Context, req *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error) {
-	return c.reEncrypt.CallUnary(ctx, req)
+// ReEncryptBulk calls vault.v1.VaultService.ReEncryptBulk.
+func (c *vaultServiceClient) ReEncryptBulk(ctx context.Context, req *connect.Request[v1.ReEncryptBulkRequest]) (*connect.Response[v1.ReEncryptBulkResponse], error) {
+	return c.reEncryptBulk.CallUnary(ctx, req)
 }
 
 // VaultServiceHandler is an implementation of the vault.v1.VaultService service.
@@ -157,8 +157,7 @@ type VaultServiceHandler interface {
 	Decrypt(context.Context, *connect.Request[v1.DecryptRequest]) (*connect.Response[v1.DecryptResponse], error)
 	EncryptBulk(context.Context, *connect.Request[v1.EncryptBulkRequest]) (*connect.Response[v1.EncryptBulkResponse], error)
 	DecryptBulk(context.Context, *connect.Request[v1.DecryptBulkRequest]) (*connect.Response[v1.DecryptBulkResponse], error)
-	// ReEncrypt rec
-	ReEncrypt(context.Context, *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error)
+	ReEncryptBulk(context.Context, *connect.Request[v1.ReEncryptBulkRequest]) (*connect.Response[v1.ReEncryptBulkResponse], error)
 }
 
 // NewVaultServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -198,10 +197,10 @@ func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(vaultServiceMethods.ByName("DecryptBulk")),
 		connect.WithHandlerOptions(opts...),
 	)
-	vaultServiceReEncryptHandler := connect.NewUnaryHandler(
-		VaultServiceReEncryptProcedure,
-		svc.ReEncrypt,
-		connect.WithSchema(vaultServiceMethods.ByName("ReEncrypt")),
+	vaultServiceReEncryptBulkHandler := connect.NewUnaryHandler(
+		VaultServiceReEncryptBulkProcedure,
+		svc.ReEncryptBulk,
+		connect.WithSchema(vaultServiceMethods.ByName("ReEncryptBulk")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/vault.v1.VaultService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -216,8 +215,8 @@ func NewVaultServiceHandler(svc VaultServiceHandler, opts ...connect.HandlerOpti
 			vaultServiceEncryptBulkHandler.ServeHTTP(w, r)
 		case VaultServiceDecryptBulkProcedure:
 			vaultServiceDecryptBulkHandler.ServeHTTP(w, r)
-		case VaultServiceReEncryptProcedure:
-			vaultServiceReEncryptHandler.ServeHTTP(w, r)
+		case VaultServiceReEncryptBulkProcedure:
+			vaultServiceReEncryptBulkHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -247,6 +246,6 @@ func (UnimplementedVaultServiceHandler) DecryptBulk(context.Context, *connect.Re
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.DecryptBulk is not implemented"))
 }
 
-func (UnimplementedVaultServiceHandler) ReEncrypt(context.Context, *connect.Request[v1.ReEncryptRequest]) (*connect.Response[v1.ReEncryptResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.ReEncrypt is not implemented"))
+func (UnimplementedVaultServiceHandler) ReEncryptBulk(context.Context, *connect.Request[v1.ReEncryptBulkRequest]) (*connect.Response[v1.ReEncryptBulkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("vault.v1.VaultService.ReEncryptBulk is not implemented"))
 }

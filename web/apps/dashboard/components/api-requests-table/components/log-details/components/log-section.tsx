@@ -3,9 +3,11 @@ import { CopyButton } from "@unkey/ui";
 export const LogSection = ({
   details,
   title,
+  copyValue,
 }: {
   details: Record<string, React.ReactNode> | string;
   title: string;
+  copyValue?: string;
 }) => {
   const getTextToCopy = () => {
     if (typeof details === "string") {
@@ -63,7 +65,7 @@ export const LogSection = ({
           </pre>
         </div>
         <CopyButton
-          value={getTextToCopy()}
+          value={copyValue ?? getTextToCopy()}
           shape="square"
           variant="outline"
           className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-md p-4 bg-gray-2 hover:bg-gray-2 size-2"

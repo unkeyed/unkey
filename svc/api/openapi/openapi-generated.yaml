@@ -2937,6 +2937,7 @@ components:
                         - ks_1234abcd
                 ratelimits:
                     type: array
+                    maxItems: 50
                     items:
                         "$ref": "#/components/schemas/KeysVerifyKeyRatelimit"
                     description: |
@@ -7959,17 +7960,20 @@ components:
                 cost:
                     type: integer
                     minimum: 0
+                    maximum: 9223372036854775807
                     default: 1
                     description: Optionally override how expensive this operation is and how many tokens are deducted from the current limit.
                     example: 2
                 limit:
                     type: integer
                     minimum: 0
+                    maximum: 9223372036854775807
                     description: Optionally override the maximum number of requests allowed within the specified interval.
                     example: 50
                 duration:
                     type: integer
                     minimum: 0
+                    maximum: 31536000000
                     description: Optionally override the duration of the rate limit window duration.
                     example: 600000
         V2KeysVerifyKeyResponseData:
