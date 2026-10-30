@@ -1,6 +1,5 @@
 "use client";
 
-import { LoadingState } from "@/components/loading-state";
 import { Suspense } from "react";
 
 interface WorkspaceLayoutProps {
@@ -8,5 +7,5 @@ interface WorkspaceLayoutProps {
 }
 
 export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
-  return <Suspense fallback={<LoadingState message="Loading workspace..." />}>{children}</Suspense>;
+  return <Suspense fallback={null}>{children}</Suspense>;
 }

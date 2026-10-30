@@ -12,8 +12,8 @@ function read(): boolean {
   }
 }
 
-// Reading storage in the initialiser is only safe because the sidebar first
-// renders after hydration — `(app)/layout.tsx` gates on the workspace query.
+// Reading storage in the initialiser is only safe because `UsageCard` first
+// renders after hydration.
 export function useMinimised(): [boolean, (next: boolean) => void] {
   const [minimised, setState] = useState(read);
 

@@ -8,6 +8,7 @@ import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
 import { LoadingState } from "@/components/loading-state";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useWorkspaceLimits } from "@/hooks/use-workspace-limits";
 import { useWorkspaceUsage } from "@/hooks/use-workspace-usage";
 import { redirectToSignIn } from "@/lib/auth/redirect-utils";
@@ -40,8 +41,10 @@ function WorkspaceContent({
   workspace: WorkspaceLike;
   children: React.ReactNode;
 }) {
+  // Pages read live queries that have no server snapshot, so they render only in the browser.
+  const hydrated = useHydrated();
   if (workspace.enabled) {
-    return <QueryTimeProvider>{children}</QueryTimeProvider>;
+    return <QueryTimeProvider>{hydrated ? children : null}</QueryTimeProvider>;
   }
   return (
     <div className="flex flex-1 items-center justify-center p-12">

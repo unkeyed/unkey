@@ -2,7 +2,12 @@
 
 import { Logomark } from "@/components/logomark";
 import { useSidebar } from "@/components/ui/sidebar";
-import { type BreadcrumbDescriptor, useBreadcrumbs } from "@/hooks/use-breadcrumbs";
+import {
+  type BreadcrumbDescriptor,
+  useBreadcrumbs,
+  useWorkspaceCrumbHref,
+} from "@/hooks/use-breadcrumbs";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { IconMenuOutline18 } from "@unkey/icons";
@@ -22,7 +27,8 @@ import { WorkspaceCrumb } from "./workspace-crumb";
 
 export function TopNav() {
   const workspace = useWorkspaceNavigation();
-  const crumbs = useBreadcrumbs();
+  const workspaceCrumbHref = useWorkspaceCrumbHref();
+  const hydrated = useHydrated();
   const { setOpenMobile } = useSidebar();
 
   return (
@@ -36,12 +42,9 @@ export function TopNav() {
       </Link>
       <div className="flex min-w-0 items-center gap-1">
         <CrumbSeparator />
-        {crumbs.map((descriptor, i) => (
-          <Fragment key={crumbKey(descriptor)}>
-            {i > 0 && <CrumbSeparator />}
-            <CrumbForDescriptor descriptor={descriptor} />
-          </Fragment>
-        ))}
+        <WorkspaceCrumb href={workspaceCrumbHref} />
+        {/* The trail resolves resource owners with live queries, which cannot render on the server. */}
+        {hydrated ? <TrailingCrumbs /> : null}
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <TopNavFeedbackButton className="hidden md:flex" />
@@ -58,6 +61,16 @@ export function TopNav() {
       </div>
     </header>
   );
+}
+
+function TrailingCrumbs() {
+  const crumbs = useBreadcrumbs();
+  return crumbs.slice(1).map((descriptor) => (
+    <Fragment key={crumbKey(descriptor)}>
+      <CrumbSeparator />
+      <CrumbForDescriptor descriptor={descriptor} />
+    </Fragment>
+  ));
 }
 
 function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }) {
