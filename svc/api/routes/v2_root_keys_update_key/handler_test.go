@@ -101,6 +101,10 @@ func TestRestrictedRootKeyCannotWidenNetworksOnUpdate(t *testing.T) {
 		{"modify unrestricted target", nil, nil, http.StatusForbidden},
 		{"preserve", []string{"192.0.2.0/25"}, nil, http.StatusOK},
 		{"narrow", []string{"192.0.2.0/25"}, &[]string{"192.0.2.0/26"}, http.StatusOK},
+		{"restrict unrestricted target", nil, &[]string{"192.0.2.0/25"}, http.StatusOK},
+		{"replace disjoint target", []string{"203.0.113.0/24"}, &[]string{"192.0.2.0/25"}, http.StatusOK},
+		{"preserve disjoint target", []string{"203.0.113.0/24"}, nil, http.StatusForbidden},
+		{"replace within caller", []string{"192.0.2.0/25"}, &[]string{"192.0.2.128/25"}, http.StatusOK},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID})

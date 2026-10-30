@@ -69,6 +69,39 @@ func TestRerollRootKeyCannotWidenNetworks(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TestRerollPreservesTargetNetworksAfterDisablement prevents rotation from
+// replacing a target's narrow policy with its caller's broader policy.
+func TestRerollPreservesTargetNetworksAfterDisablement(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{
+		WorkspaceID: workspace.ID,
+		Enabled:     false,
+	}))
+	caller := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+		WorkspaceID: workspace.ID,
+		Permissions: []string{"unkey:v1:" + workspace.ID + ":rootKeys/*#write"},
+		IpAllowlist: []string{"192.0.2.0/24"},
+	})
+	target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+		WorkspaceID: workspace.ID,
+		IpAllowlist: []string{"192.0.2.0/26"},
+	})
+	res := call(h, route, caller.Key, handler.Request{KeyId: target.KeyID, Expiration: nullable.NewNullNullable[int64]()})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	stored, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+	require.NoError(t, err)
+	require.Equal(t, []string{"192.0.2.0/26"}, []string(stored.IpAllowlist))
+	session := rootKeySession(t, res.Body.Data.Key)
+	session.SetClientIP(netip.MustParseAddr("192.0.2.63"))
+	_, err = h.Keys.GetRootKey(t.Context(), session)
+	require.NoError(t, err)
+	session.SetClientIP(netip.MustParseAddr("192.0.2.64"))
+	_, err = h.Keys.GetRootKey(t.Context(), session)
+	require.Error(t, err)
+}
+
 // TestRerollRootKeyCopiesPermissionsAndRevokesOriginal guarantees rotation keeps
 // access while expiration 0 revokes the original even when its cache is warm.
 func TestRerollRootKeyCopiesPermissionsAndRevokesOriginal(t *testing.T) {

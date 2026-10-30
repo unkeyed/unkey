@@ -16,6 +16,14 @@ type Allowlist []netip.Prefix
 // whitespace. It masks host bits and converts IPv4-mapped IPv6 entries to IPv4.
 // It returns nil and an error for invalid entries, zone identifiers, or mapped
 // prefixes shorter than /96. An empty input returns an unrestricted allowlist.
+//
+// Examples, showing the parsed prefixes:
+//
+//	[" 192.0.2.129/24 ", "2001:db8::1"] -> [192.0.2.0/24, 2001:db8::1/128]
+//	["::ffff:192.0.2.1/120"]           -> [192.0.2.0/24]
+//	["::ffff:192.0.2.1/95"]            -> nil, error
+//	["192.0.2.1", "invalid"]           -> nil, error (no partial policy)
+//	[]                                -> [], nil (unrestricted)
 func Parse(entries []string) (Allowlist, error) {
 	prefixes := make(Allowlist, 0, len(entries))
 	for _, entry := range entries {
@@ -43,6 +51,14 @@ func Parse(entries []string) (Allowlist, error) {
 // Allows reports whether address belongs to an allowed network. It treats
 // IPv4-mapped IPv6 addresses as IPv4. An empty list allows any address, including
 // an invalid address; a nonempty list rejects invalid addresses.
+//
+// Examples use lists constructed with [Parse]:
+//
+//	[192.0.2.0/24].Allows(192.0.2.255)       -> true
+//	[192.0.2.0/24].Allows(192.0.3.0)         -> false
+//	[192.0.2.0/24].Allows(::ffff:192.0.2.7)  -> true
+//	[::/0].Allows(::ffff:192.0.2.7)          -> false (the query becomes IPv4)
+//	[].Allows(any address)                 -> true
 func (a Allowlist) Allows(address netip.Addr) bool {
 	if len(a) == 0 {
 		return true
@@ -59,6 +75,14 @@ func (a Allowlist) Allows(address netip.Addr) bool {
 // the union of the parent networks, so adjacent ranges can cover a larger prefix.
 // An empty parent allows any list. An empty a is unrestricted and is rejected
 // when parent is nonempty. Neither list is modified.
+//
+// Examples use lists constructed with [Parse], with the child on the left:
+//
+//	[192.0.2.0/25].IsSubsetOf([192.0.2.0/24])                 -> true
+//	[192.0.2.0/24].IsSubsetOf([192.0.2.0/25])                 -> false
+//	[192.0.2.0/24].IsSubsetOf([192.0.2.0/25, 192.0.2.128/25]) -> true
+//	[].IsSubsetOf([0.0.0.0/0, ::/0])                         -> false
+//	[192.0.2.0/24].IsSubsetOf([])                            -> true
 func (a Allowlist) IsSubsetOf(parent Allowlist) bool {
 	if len(parent) == 0 {
 		return true
@@ -85,6 +109,11 @@ func (a Allowlist) IsSubsetOf(parent Allowlist) bool {
 // Strings formats single-address prefixes as IP addresses and other prefixes
 // as CIDR ranges. It preserves entry order and returns a non-nil empty slice for
 // an unrestricted list, so JSON encoding produces [] rather than null.
+//
+// Examples, showing prefix values on the left and strings on the right:
+//
+//	[192.0.2.7/32, 2001:db8::/64] -> ["192.0.2.7", "2001:db8::/64"]
+//	[]                          -> [] (not nil)
 func (a Allowlist) Strings() []string {
 	entries := make([]string, 0, len(a))
 	for _, prefix := range a {
@@ -99,8 +128,18 @@ func (a Allowlist) Strings() []string {
 
 // union removes contained prefixes and merges adjacent sibling prefixes without
 // modifying a. This lets subset checks recognize equivalent network partitions.
+// It includes mapped IPv6 space as coverage because Allows unmaps those addresses
+// before comparison, so no IPv6 prefix can grant access to that space.
+//
+// For example, [192.0.2.128/25, 192.0.2.0/25, 192.0.2.7/32] becomes
+// [192.0.2.0/24, ::ffff:0:0/96]. The /32 is redundant; the two /25 ranges
+// cover the /24. The extra mapped prefix contributes no allowed addresses.
+// [::fffe:0:0/96] becomes [::fffe:0:0/95] for the same reason: its added
+// mapped half cannot match any address after Allows unmaps the query.
 func (a Allowlist) union() Allowlist {
-	prefixes := slices.Clone(a)
+	prefixes := make(Allowlist, 0, len(a)+1)
+	prefixes = append(prefixes, a...)
+	prefixes = append(prefixes, netip.MustParsePrefix("::ffff:0:0/96"))
 	slices.SortFunc(prefixes, func(a, b netip.Prefix) int {
 		if order := a.Addr().Compare(b.Addr()); order != 0 {
 			return order
