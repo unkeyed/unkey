@@ -78,9 +78,13 @@ func (s *Service) sendDeploymentChange(ctx context.Context, stream *connect.Serv
 		metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "error").Inc()
 		return err
 	}
+	// A row that cannot convert fails on every replay, so ending the stream
+	// here would hold back every later change in the region.
 	state, err := deploymentRowToState(row)
 	if err != nil {
-		return err
+		metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "error").Inc()
+		logger.Error("skipping deployment change that cannot convert", "deployment_id", deploymentID, "error", err)
+		return nil
 	}
 	if err := stream.Send(&ctrlv1.DeploymentChangeEvent{Event: &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: state}}); err != nil {
 		return err
