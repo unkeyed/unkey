@@ -74,9 +74,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		rootKeyIDs := []string{req.KeyId}
-		callerSource, rootKeyCaller := p.Source.(authprincipal.KeySource)
-		rootKeyCaller = rootKeyCaller && callerSource.KeySpaceID == ""
-		if rootKeyCaller {
+		callerSource, callerIsRootKey := p.Source.(authprincipal.KeySource)
+		callerIsRootKey = callerIsRootKey && callerSource.KeySpaceID == ""
+		if callerIsRootKey {
 			// Keep caller data stable for policy checks until the target write commits.
 			rootKeyIDs = append(rootKeyIDs, callerSource.KeyID)
 		}
@@ -99,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if !found || current.WorkspaceID != p.AuthorizedWorkspaceID {
 			return rootKeyNotFound()
 		}
-		if rootKeyCaller {
+		if callerIsRootKey {
 			caller, found := rootKeysByID[callerSource.KeyID]
 			if !found || caller.WorkspaceID != p.AuthorizedWorkspaceID {
 				return fault.New("calling root key not found",
