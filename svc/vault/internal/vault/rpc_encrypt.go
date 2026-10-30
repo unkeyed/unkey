@@ -38,16 +38,21 @@ func (s *Service) encrypt(
 	defer span.End()
 	span.SetAttributes(attribute.String("keyring", req.GetKeyring()))
 
-	cacheKey := fmt.Sprintf("%s-%s", req.GetKeyring(), LATEST)
+	keyring := req.GetKeyring()
+	cacheKey := fmt.Sprintf("%s-%s", keyring, LATEST)
 
-	dek, hit := s.keyCache.Get(ctx, cacheKey)
-	if hit != cache.Hit {
-		var err error
-		dek, err = s.keyring.GetOrCreateKey(ctx, req.GetKeyring(), LATEST)
+	dek, _, err := s.keyCache.SWR(ctx, cacheKey, func(ctx context.Context) (*vaultv1.DataEncryptionKey, error) {
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		return s.keyring.GetOrCreateKey(ctx, keyring, LATEST)
+	}, func(err error) cache.Op {
 		if err != nil {
-			return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", req.GetKeyring(), err)
+			return cache.Noop
 		}
-		s.keyCache.Set(ctx, cacheKey, dek)
+		return cache.WriteValue
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest dek in keyring %s: %w", keyring, err)
 	}
 
 	nonce, ciphertext, err := encryption.Encrypt(dek.GetKey(), []byte(req.GetData()))

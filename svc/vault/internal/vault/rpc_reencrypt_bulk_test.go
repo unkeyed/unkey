@@ -6,19 +6,23 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-func TestReEncryptBulk_RotatesMixedKeyringsAndPreservesPlaintext(t *testing.T) {
-	service := setupTestService(t)
+func TestReEncryptBulk_UsesCachedKeysUntilExpiry(t *testing.T) {
+	clk := clock.NewTestClock()
+	service := setupTestServiceWithClock(t, clk)
 	items := map[string]*vaultv1.DecryptRequest{}
 	plaintexts := map[string]string{}
-	keyIDs := map[string]string{}
+	keyIDsOld := map[string]string{}
+	keyIDsNew := map[string]string{}
 	for _, plaintext := range []string{"first secret", "a different, longer secret", ""} {
 		id := uid.New(uid.KeyPrefix)
 		keyring := uid.New(uid.WorkspacePrefix)
@@ -28,28 +32,41 @@ func TestReEncryptBulk_RotatesMixedKeyringsAndPreservesPlaintext(t *testing.T) {
 		require.NoError(t, err)
 		items[id] = &vaultv1.DecryptRequest{Keyring: keyring, Encrypted: encrypted.Msg.GetEncrypted()}
 		plaintexts[id] = plaintext
-		keyIDs[id], err = service.CreateDEK(t.Context(), keyring)
+		keyIDsOld[id] = encrypted.Msg.GetKeyId()
+		keyIDsNew[id], err = service.CreateDEK(t.Context(), keyring)
 		require.NoError(t, err)
-		require.NotEqual(t, encrypted.Msg.GetKeyId(), keyIDs[id])
+		require.NotEqual(t, keyIDsOld[id], keyIDsNew[id])
 	}
-	req := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{Items: items})
-	req.Header().Set("Authorization", "Bearer "+service.bearer)
-	res, err := service.ReEncryptBulk(t.Context(), req)
-	require.NoError(t, err)
-	require.Len(t, res.Msg.GetItems(), len(items))
-	for id, item := range items {
-		result := res.Msg.GetItems()[id]
-		require.Empty(t, result.GetError())
-		require.NotNil(t, result.GetSuccess())
-		require.Equal(t, keyIDs[id], result.GetSuccess().GetKeyId())
-		require.NotEqual(t, item.GetEncrypted(), result.GetSuccess().GetEncrypted())
-		decryptReq := connect.NewRequest(&vaultv1.DecryptRequest{
-			Keyring: item.GetKeyring(), Encrypted: result.GetSuccess().GetEncrypted(),
+	for _, phase := range []struct {
+		name    string
+		elapsed time.Duration
+		keyIDs  map[string]string
+	}{
+		{name: "fresh", elapsed: 0, keyIDs: keyIDsOld},
+		{name: "expired", elapsed: 25 * time.Hour, keyIDs: keyIDsNew},
+	} {
+		t.Run(phase.name, func(t *testing.T) {
+			clk.Tick(phase.elapsed)
+			req := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{Items: items})
+			req.Header().Set("Authorization", "Bearer "+service.bearer)
+			res, err := service.ReEncryptBulk(t.Context(), req)
+			require.NoError(t, err)
+			require.Len(t, res.Msg.GetItems(), len(items))
+			for id, item := range items {
+				result := res.Msg.GetItems()[id]
+				require.Empty(t, result.GetError())
+				require.NotNil(t, result.GetSuccess())
+				require.Equal(t, phase.keyIDs[id], result.GetSuccess().GetKeyId())
+				require.NotEqual(t, item.GetEncrypted(), result.GetSuccess().GetEncrypted())
+				decryptReq := connect.NewRequest(&vaultv1.DecryptRequest{
+					Keyring: item.GetKeyring(), Encrypted: result.GetSuccess().GetEncrypted(),
+				})
+				decryptReq.Header().Set("Authorization", "Bearer "+service.bearer)
+				decrypted, err := service.Decrypt(t.Context(), decryptReq)
+				require.NoError(t, err)
+				require.Equal(t, plaintexts[id], decrypted.Msg.GetPlaintext())
+			}
 		})
-		decryptReq.Header().Set("Authorization", "Bearer "+service.bearer)
-		decrypted, err := service.Decrypt(t.Context(), decryptReq)
-		require.NoError(t, err)
-		require.Equal(t, plaintexts[id], decrypted.Msg.GetPlaintext())
 	}
 }
 

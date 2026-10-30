@@ -3,10 +3,12 @@ package integration_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
@@ -38,10 +40,12 @@ func Test_ColdStart(t *testing.T) {
 	_, masterKey, err := keys.GenerateMasterKey()
 	require.NoError(t, err)
 
+	clock := clock.NewTestClock()
 	v, err := vault.New(vault.Config{
 		Storage:     storage,
 		MasterKey:   masterKey,
 		BearerToken: "test-bearer-token",
+		Clock:       clock,
 	})
 	require.NoError(t, err)
 
@@ -83,6 +87,7 @@ func Test_ColdStart(t *testing.T) {
 
 	_, err = v.CreateDEK(ctx, bobKeyRing)
 	require.NoError(t, err)
+	clock.Tick(25 * time.Hour)
 	id := uid.New(uid.TestPrefix)
 	bobReencryptReq := connect.NewRequest(&vaultv1.ReEncryptBulkRequest{
 		Items: map[string]*vaultv1.DecryptRequest{
