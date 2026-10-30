@@ -68,31 +68,6 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int64) error {
 	return nil
 }
 
-// withIPWhitelist validates that the client IP address is in the key's IP whitelist.
-// If no whitelist is configured, this validation is skipped.
-func (k *KeyVerifier) withIPWhitelist() error {
-	if k.Status != StatusValid {
-		return nil
-	}
-
-	if len(k.parsedIPWhitelist) == 0 {
-		return nil
-	}
-
-	clientIP := k.session.Location()
-	if clientIP == "" {
-		k.Status = StatusForbidden
-		k.message = "client IP is required for IP whitelist validation"
-		return nil
-	}
-
-	if _, ok := k.parsedIPWhitelist[clientIP]; !ok {
-		k.setInvalid(StatusForbidden, fmt.Sprintf("client IP %s is not in the whitelist", clientIP))
-	}
-
-	return nil
-}
-
 // withPermissions validates that the key has the required RBAC permissions.
 // It uses the configured RBAC system to evaluate the permission query against the key's permissions.
 func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.PermissionQuery) error {

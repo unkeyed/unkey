@@ -13,7 +13,6 @@ type VerifyOption func(*verifyConfig) error
 
 // verifyConfig holds the internal configuration for verification options.
 type verifyConfig struct {
-	ipWhitelist bool
 	credits     *int64
 	tags        []string
 	permissions *rbac.PermissionQuery
@@ -40,15 +39,6 @@ func WithCredits(cost int64) VerifyOption {
 		}
 
 		config.credits = &cost
-		return nil
-	}
-}
-
-// WithIPWhitelist validates that the client IP address is in the key's IP whitelist.
-// The client IP is extracted from the session. If no whitelist is configured, this check is skipped.
-func WithIPWhitelist() VerifyOption {
-	return func(config *verifyConfig) error {
-		config.ipWhitelist = true
 		return nil
 	}
 }

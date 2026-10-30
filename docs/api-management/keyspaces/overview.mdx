@@ -43,7 +43,6 @@ These settings apply to every key in the keyspace. [Keyspace settings](/api-mana
 | Default prefix | Prepended to new keys that do not pass their own `prefix`. |
 | Default bytes | Random bytes used for new keys that do not pass their own `byteLength`; 16 unless changed. |
 | Store encrypted keys | Allows keys to be created as recoverable; opt-in through support. |
-| IP allow list | Verification rejects requests from any other client IP; exact match, not editable in the dashboard. |
 | Delete protection | Blocks `apis.deleteApi` and the dashboard delete button while on. |
 
 ## Create a keyspace
@@ -82,7 +81,7 @@ If delete protection is on, both fail with HTTP 412 `err:unkey:application:prote
 
 <Columns cols={2}>
   <Card title="Keyspace settings" icon="sliders" href="/api-management/keyspaces/settings">
-    Defaults, encrypted storage, IP allow list, and delete protection.
+    Defaults, encrypted storage, and delete protection.
   </Card>
   <Card title="Listing keys" icon="list" href="/api-management/keyspaces/listing-keys">
     Page through the keys in a keyspace and filter by owner.
