@@ -2,6 +2,11 @@
 
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
 import type { Deployment, DeploymentSummary, Environment } from "@/lib/collections";
+import {
+  type GitTrigger,
+  gitAuthorOf,
+  isGitTrigger,
+} from "@/lib/collections/deploy/deployment-origin";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
@@ -66,9 +71,7 @@ export function IdChip({ deployment, href }: { deployment: DeploymentSummary; hr
 
 type Origin = { icon: FC<IconProps>; label: string; tooltip: string };
 
-const ORIGINS: Record<DeploymentSummary["trigger"], Origin | "git"> = {
-  github: "git",
-  unknown: "git",
+const ORIGINS: Record<Exclude<DeploymentSummary["trigger"], GitTrigger>, Origin> = {
   cli: {
     icon: IconSquareTerminalOutline18,
     label: "Unkey CLI",
@@ -92,8 +95,7 @@ const ORIGINS: Record<DeploymentSummary["trigger"], Origin | "git"> = {
 };
 
 function nonGitOrigin(deployment: DeploymentSummary): Origin | undefined {
-  const origin = ORIGINS[deployment.trigger];
-  return origin === "git" ? undefined : origin;
+  return isGitTrigger(deployment.trigger) ? undefined : ORIGINS[deployment.trigger];
 }
 
 export function OriginCell({ deployment }: { deployment: DeploymentSummary }) {
@@ -261,19 +263,17 @@ export function AuthorCell({
   withHandle?: boolean;
   handleClassName?: string;
 }) {
-  if (deployment.source !== "git" || nonGitOrigin(deployment)) {
+  const author = gitAuthorOf(deployment);
+  if (!author) {
     return null;
   }
 
   return (
     <span className="flex shrink-0 items-center gap-2">
-      <Avatar
-        src={deployment.gitCommitAuthorAvatarUrl}
-        alt={deployment.gitCommitAuthorHandle ?? "Author"}
-      />
-      {withHandle && deployment.gitCommitAuthorHandle && (
+      <Avatar src={author.avatarUrl} alt={author.handle ?? "Author"} />
+      {withHandle && author.handle && (
         <span data-sentry-mask className={cn("max-w-28 truncate text-gray-12", handleClassName)}>
-          {deployment.gitCommitAuthorHandle}
+          {author.handle}
         </span>
       )}
     </span>
