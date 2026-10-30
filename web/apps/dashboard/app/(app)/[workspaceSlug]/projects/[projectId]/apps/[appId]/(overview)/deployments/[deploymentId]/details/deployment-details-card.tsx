@@ -5,6 +5,7 @@ import { instancesText } from "@/lib/collections/deploy/instance-status";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { githubUrl } from "@/lib/github-url";
 import { IconArrowUpRightOutline12 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Card,
   TimestampInfo,
@@ -17,6 +18,7 @@ import type { ReactNode } from "react";
 import { StatusDot } from "../../../../components/deployment-status-dot";
 import { DottedLink } from "../../../../components/dotted-link";
 import { EnvironmentBadge, badgeRollout } from "../../../../components/environment-badge";
+import { usePinningApps } from "../../../connections/hooks/use-deployment-connections";
 import { useProjectData } from "../../../data-provider";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
@@ -24,6 +26,7 @@ import { useBuildDuration } from "../../components/deployment-duration";
 import { InstantRollbackRow } from "../instant-rollback-row";
 import type { DeploymentPage } from "../use-deployment-page";
 import { DomainSummary } from "./domain-summary";
+import { PinningApps, PinningAppsError } from "./pinned-by";
 
 type DeploymentDetailsCardProps = {
   page: Pick<
@@ -47,6 +50,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
   const environment = environments.find((e) => e.id === deployment.environmentId);
   const isCurrent = app?.currentDeploymentId === deployment.id;
   const duration = useBuildDuration(status, deployment.createdAt, deployment.buildEndedAt);
+  const pinningApps = usePinningApps(deployment);
 
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -88,6 +92,20 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
             )}
           </Row>
           <Row label="Instances">{instancesText(instances, deployment.desiredState)}</Row>
+          {match(pinningApps.view)
+            .with({ status: "loading" }, () => null)
+            .with({ status: "failed" }, ({ retry, retrying }) => (
+              <Row label="Pinned by">
+                <PinningAppsError retry={retry} retrying={retrying} />
+              </Row>
+            ))
+            .with({ status: "empty" }, () => null)
+            .with({ status: "ready" }, ({ rows }) => (
+              <Row label="Pinned by">
+                <PinningApps apps={rows} truncated={pinningApps.truncated} />
+              </Row>
+            ))
+            .exhaustive()}
         </Column>
         <Column>
           <SourceRows deployment={deployment} repoFullName={repoFullName} />
