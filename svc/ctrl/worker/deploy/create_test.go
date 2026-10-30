@@ -1058,6 +1058,36 @@ func TestCreateRefusesTheBuildRepository(t *testing.T) {
 		require.Equal(t, before, h.countDeployments(t, ctx))
 	})
 
+	t.Run("OCI app configured with another repository on the host", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarnessWithAppSource(t, ctx, db.AppsSourceTypeOci)
+		h.seedOciSource(t, ctx, "registry.unkey.test/other:v1")
+		h.dropBuildSettings(t, ctx)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+		require.Zero(t, h.countDeployments(t, ctx))
+	})
+
+	t.Run("redeploy of a stored image from another repository on the host", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		current := h.commitDeployment(t, ctx, db.DeploymentsSourceGit, "registry.unkey.test/other@sha256:"+strings.Repeat("d", 64))
+		h.setCurrentDeployment(t, ctx, current.ID)
+
+		req := h.imageRequest()
+		req.Source = nil
+
+		before := h.countDeployments(t, ctx)
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+		require.Equal(t, before, h.countDeployments(t, ctx))
+	})
+
 	// The prefix check must compare whole segments: "proj_a-" is not a prefix of
 	// "proj_ab-x", even though "proj_a" is a prefix of "proj_ab".
 	t.Run("another project whose id extends this one", func(t *testing.T) {
