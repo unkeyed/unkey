@@ -25,7 +25,6 @@ select k.id,
        k.enabled,
        k.remaining_requests,
        k.pending_migration_id,
-       a.ip_whitelist,
        a.workspace_id  as api_workspace_id,
        ka.project_id   as project_id,
        a.id            as api_id,
@@ -112,7 +111,6 @@ type FindKeyForVerificationRow struct {
 	Enabled             bool           `db:"enabled"`
 	RemainingRequests   sql.NullInt64  `db:"remaining_requests"`
 	PendingMigrationID  sql.NullString `db:"pending_migration_id"`
-	IpWhitelist         sql.NullString `db:"ip_whitelist"`
 	ApiWorkspaceID      string         `db:"api_workspace_id"`
 	ProjectID           string         `db:"project_id"`
 	ApiID               string         `db:"api_id"`
@@ -149,7 +147,6 @@ type FindKeyForVerificationRow struct {
 //	       k.enabled,
 //	       k.remaining_requests,
 //	       k.pending_migration_id,
-//	       a.ip_whitelist,
 //	       a.workspace_id  as api_workspace_id,
 //	       ka.project_id   as project_id,
 //	       a.id            as api_id,
@@ -237,7 +234,6 @@ func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash stri
 		&i.Enabled,
 		&i.RemainingRequests,
 		&i.PendingMigrationID,
-		&i.IpWhitelist,
 		&i.ApiWorkspaceID,
 		&i.ProjectID,
 		&i.ApiID,

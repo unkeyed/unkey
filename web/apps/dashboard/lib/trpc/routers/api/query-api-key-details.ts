@@ -23,7 +23,6 @@ const apiLayoutResponse = z.object({
       })
       .nullable(),
     deleteProtection: z.boolean().nullable(),
-    ipWhitelist: z.string().nullable(),
   }),
   workspaceApis: z.array(
     z.object({
@@ -83,7 +82,6 @@ export const queryApiKeyDetails = workspaceProcedure
           projectId: true,
           keyAuthId: true,
           deleteProtection: true,
-          ipWhitelist: true,
         },
       });
 
@@ -109,7 +107,6 @@ export const queryApiKeyDetails = workspaceProcedure
           projectId: currentApi.projectId,
           keyAuthId: currentApi.keyAuthId,
           deleteProtection: currentApi.deleteProtection,
-          ipWhitelist: currentApi.ipWhitelist,
           keyspaceDefaults: currentApi.keyAuth
             ? {
                 prefix: currentApi.keyAuth.defaultPrefix || undefined,

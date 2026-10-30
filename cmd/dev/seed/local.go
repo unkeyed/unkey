@@ -390,7 +390,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				WorkspaceID: workspaceID,
 				ProjectID:   userDefaultProjectID,
 				AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-				IpWhitelist: sql.NullString{},
 				KeyAuthID:   sql.NullString{String: userKeySpaceID, Valid: true},
 				CreatedAtM:  now,
 			},

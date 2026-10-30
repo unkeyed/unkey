@@ -207,36 +207,34 @@ func TestSuccess(t *testing.T) {
 		})
 	})
 
-	t.Run("with ip whitelist", func(t *testing.T) {
-		ipWhitelistApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, IpWhitelist: "123.123.123.123"})
+	t.Run("verifies API keys independently of source IP", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
-			KeySpaceID:  ipWhitelistApi.KeyAuthID.String,
+			KeySpaceID:  api.KeyAuthID.String,
 		})
 
 		req := handler.Request{
 			Key: key.Key,
 		}
 
-		// First request with wrong IP - should be forbidden
-		headersWithWrongIP := http.Header{
+		headers := http.Header{
 			"Content-Type":    {"application/json"},
 			"Authorization":   {fmt.Sprintf("Bearer %s", rootKey)},
 			"X-Forwarded-For": {"192.168.1.1"},
 		}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithWrongIP, req)
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
-		require.Equal(t, openapi.FORBIDDEN, res.Body.Data.Code, "Key should be forbidden but got %s", res.Body.Data.Code)
-		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+		require.Equal(t, openapi.VALID, res.Body.Data.Code)
+		require.True(t, res.Body.Data.Valid)
 
-		// Second request with correct IP - should be valid
-		headersWithCorrectIP := http.Header{
+		headers = http.Header{
 			"Content-Type":    {"application/json"},
 			"Authorization":   {fmt.Sprintf("Bearer %s", rootKey)},
 			"X-Forwarded-For": {"123.123.123.123"},
 		}
-		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headersWithCorrectIP, req)
+		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 		require.NotNil(t, res.Body)
 		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)

@@ -97,7 +97,6 @@ func (e *Executor) Execute(
 	}
 	verifyOpts := []keys.VerifyOption{
 		keys.WithKeyspaces(cfg.GetKeySpaceIds()...),
-		keys.WithIPWhitelist(),
 		keys.WithCredits(credits),
 	}
 	if pq := cfg.GetPermissionQuery(); pq != "" {

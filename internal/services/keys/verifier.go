@@ -38,8 +38,7 @@ type KeyVerifier struct {
 	ratelimitConfigs map[string]keysdb.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
 	RatelimitResults map[string]RatelimitConfigAndResult               // Combined config and results for rate limits (name -> config+result)
 
-	parsedIPWhitelist map[string]struct{} // Pre-parsed IP whitelist for O(1) lookup
-	isRootKey         bool                // Whether this is a root key (special handling)
+	isRootKey bool // Whether this is a root key (special handling)
 
 	message string   // Internal message for validation failures
 	tags    []string // Tags associated with this verification
@@ -101,13 +100,6 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	}
 
 	var err error
-	if config.ipWhitelist {
-		err = k.withIPWhitelist()
-		if err != nil {
-			return err
-		}
-	}
-
 	if config.permissions != nil {
 		err = k.withPermissions(ctx, *config.permissions)
 		if err != nil {

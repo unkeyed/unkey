@@ -109,7 +109,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ProjectID:   resolvedProjectID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: keySpaceId},
-			IpWhitelist: sql.NullString{Valid: false, String: ""},
 			CreatedAtM:  time.Now().UnixMilli(),
 		})
 		if err != nil {

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/netip"
 	"testing"
 	"time"
 
@@ -200,11 +199,6 @@ type seedResult struct {
 // seed creates a workspace, key space, API, and key in the database.
 func (h *testHarness) seed(ctx context.Context) seedResult {
 	h.t.Helper()
-	return h.seedWithIPWhitelist(ctx, "")
-}
-
-func (h *testHarness) seedWithIPWhitelist(ctx context.Context, ipWhitelist string) seedResult {
-	h.t.Helper()
 
 	now := time.Now().UnixMilli()
 	wsID := uid.New("test_ws")
@@ -237,7 +231,6 @@ func (h *testHarness) seedWithIPWhitelist(ctx context.Context, ipWhitelist strin
 		Name:        "test-api",
 		WorkspaceID: wsID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		IpWhitelist: sql.NullString{String: ipWhitelist, Valid: ipWhitelist != ""},
 		KeyAuthID:   sql.NullString{Valid: true, String: ksID},
 		CreatedAtM:  now,
 	})
@@ -422,47 +415,48 @@ func rateLimitPolicy(id string, limit int64, windowMs int64, identifier *frontli
 
 // --- KeyAuth integration tests ---
 
-// TestKeyAuth_IPWhitelist prevents gateway authentication from bypassing the
-// stored keyspace allowlist, including when a peer has restored the client IP.
-func TestKeyAuth_IPWhitelist(t *testing.T) {
+func TestFirewallIPAllowlistWithKeyAuth(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := t.Context()
-	s := h.seedWithIPWhitelist(ctx, "198.51.100.42,2001:db8::42")
+	s := h.seed(ctx)
+	configured := []*frontlinev1.Policy{
+		{
+			Id:      "network-access",
+			Enabled: new(true),
+			Match: []*frontlinev1.MatchExpr{{Expr: &frontlinev1.MatchExpr_RemoteIp{
+				RemoteIp: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.128/25", "2001:db8:1234::/48"}},
+			}}},
+			Config: &frontlinev1.Policy_Firewall{
+				Firewall: &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY},
+			},
+		},
+		keyAuthPolicy("auth", []string{s.KeySpaceID}),
+	}
 	for _, test := range []struct {
-		name, remoteAddr, restoredIP string
-		allowed                      bool
+		address string
+		allowed bool
 	}{
-		{name: "unlisted", remoteAddr: "203.0.113.7:1234"},
-		{name: "allowed", remoteAddr: "198.51.100.42:1234", allowed: true},
-		{name: "missing address"},
-		{name: "allowed IPv6", remoteAddr: "[2001:db8::42]:1234", allowed: true},
-		{name: "unlisted IPv6", remoteAddr: "[2001:db8::43]:1234"},
-		{name: "restored allowed client", remoteAddr: "203.0.113.7:1234", restoredIP: "198.51.100.42", allowed: true},
-		{name: "restored unlisted client", remoteAddr: "198.51.100.42:1234", restoredIP: "203.0.113.7"},
+		{"198.51.100.127:1234", false},
+		{"198.51.100.128:1234", true},
+		{"[2001:db8:1234::1]:1234", true},
+		{"[2001:db8:1235::1]:1234", false},
 	} {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.address, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			req.RemoteAddr = test.remoteAddr
+			req.RemoteAddr = test.address
 			req.Header.Set("Authorization", "Bearer "+s.RawKey)
-			req.Header.Set("X-Forwarded-For", "198.51.100.42")
-			sess := newSession(t, req)
-			if test.restoredIP != "" {
-				ip, err := netip.ParseAddr(test.restoredIP)
-				require.NoError(t, err)
-				sess.SetClientIP(ip)
-			}
-			result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID,
-				[]*frontlinev1.Policy{keyAuthPolicy("auth", []string{s.KeySpaceID})})
+			req.Header.Set("X-Forwarded-For", "198.51.100.128")
+			result, err := h.engine.Evaluate(ctx, newSession(t, req), req, s.WorkspaceID, configured)
 			if test.allowed {
 				require.NoError(t, err)
 				require.NotNil(t, result.Principal)
 				require.Equal(t, s.KeyID, result.Principal.Subject)
 			} else {
 				require.Error(t, err)
-				require.Nil(t, result.Principal)
 				code, ok := fault.GetCode(err)
 				require.True(t, ok)
-				require.Equal(t, codes.Frontline.Auth.InvalidKey.URN(), code)
+				require.Equal(t, codes.Frontline.Firewall.Denied.URN(), code)
+				require.Nil(t, result.Principal)
 			}
 		})
 	}

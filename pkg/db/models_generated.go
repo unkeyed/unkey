@@ -889,7 +889,6 @@ type Api struct {
 	Name             string           `db:"name"`
 	WorkspaceID      string           `db:"workspace_id"`
 	ProjectID        string           `db:"project_id"`
-	IpWhitelist      sql.NullString   `db:"ip_whitelist"`
 	AuthType         NullApisAuthType `db:"auth_type"`
 	KeyAuthID        sql.NullString   `db:"key_auth_id"`
 	CreatedAtM       int64            `db:"created_at_m"`
