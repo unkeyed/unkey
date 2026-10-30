@@ -35,6 +35,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/del
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("api-id", "The API ID to delete.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -43,18 +44,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/del
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Apis.DeleteAPI, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2ApisDeleteAPIResponseBody)
+			req, err := util.RequestBody(cmd, components.V2ApisDeleteAPIRequestBody{APIID: cmd.String("api-id")})
+			if err != nil {
+				return err
+			}
+			if err := util.Confirm(cmd, fmt.Sprintf("Delete API %q and invalidate all its keys?", req.APIID)); err != nil {
+				return err
 			}
 
-			res, err := client.Apis.DeleteAPI(ctx, components.V2ApisDeleteAPIRequestBody{
-				APIID: cmd.String("api-id"),
-			})
+			res, err := client.Apis.DeleteAPI(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}

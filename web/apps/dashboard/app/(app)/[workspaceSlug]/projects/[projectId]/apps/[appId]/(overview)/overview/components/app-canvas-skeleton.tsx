@@ -1,9 +1,10 @@
 import {
+  IconClockOutline18,
   IconCodeBranchOutline18,
   IconCubeOutline18,
   IconEarthOutline18,
+  IconEarthPlusOutline18,
   IconGridOutline18,
-  IconLink4Outline18,
   IconMicrochipOutline18,
   IconShieldKeyOutline18,
 } from "@unkey/icons";
@@ -11,11 +12,11 @@ import { Card, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
 import {
   Canvas,
-  GhostNode,
   Group,
   HFlow,
   IconRow,
   Node,
+  NodeFooter,
   NodeHeader,
   RowItem,
   Rows,
@@ -30,7 +31,13 @@ export function AppCanvasSkeleton() {
     <Card className="flex flex-col">
       <Canvas label="App canvas loading" focusable={false}>
         <Group icon={<IconEarthOutline18 />} label="Domains">
-          <Node>
+          <Node
+            footer={
+              <NodeFooter icon={<IconEarthPlusOutline18 />}>
+                <Bar className="w-28" />
+              </NodeFooter>
+            }
+          >
             <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
             <Rows>
               <IconRow icon={<IconEarthOutline18 />}>
@@ -38,11 +45,6 @@ export function AppCanvasSkeleton() {
               </IconRow>
             </Rows>
           </Node>
-          <GhostNode
-            icon={<IconLink4Outline18 />}
-            name={<Bar className="w-28" />}
-            description={<Bar className="w-44" />}
-          />
         </Group>
         <HFlow empty />
         <Group icon={<IconCubeOutline18 />} label="App">
@@ -57,6 +59,11 @@ export function AppCanvasSkeleton() {
                 icon={<IconCodeBranchOutline18 />}
                 label="Branch"
                 value={<Bar className="w-20" />}
+              />
+              <RowItem
+                icon={<IconClockOutline18 />}
+                label="Deployed"
+                value={<Bar className="w-16" />}
               />
               <RowItem
                 icon={<IconEarthOutline18 />}

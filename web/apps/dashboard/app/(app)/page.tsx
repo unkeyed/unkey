@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingState } from "@/components/loading-state";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useRouter } from "next/navigation";
@@ -15,5 +16,5 @@ export default function AppHomePage() {
     }
   }, [workspace, router]);
 
-  return null; // Layout handles loading states
+  return <LoadingState message="Loading workspace..." />;
 }

@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -26,13 +28,213 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 	"github.com/unkeyed/unkey/svc/frontline/middleware"
 	handler "github.com/unkeyed/unkey/svc/frontline/routes/proxy"
+	"google.golang.org/protobuf/encoding/protojson"
 )
+
+func TestRequestLogging_RoutingFailures(t *testing.T) {
+	enabled := true
+	logging, err := protojson.Marshal(&frontlinev1.Config{Policies: []*frontlinev1.Policy{{
+		Enabled: &enabled,
+		Config:  &frontlinev1.Policy_Logging{Logging: allCaptureFlags()},
+	}}})
+	require.NoError(t, err)
+	for _, tc := range []struct {
+		name         string
+		state        db.DeploymentsDesiredState
+		suspended    bool
+		config       []byte
+		routeErr     error
+		instancesErr error
+		code         codes.URN
+		status       int
+	}{
+		{name: "offline", state: db.DeploymentsDesiredStateStopped, config: logging, code: codes.Frontline.Routing.DeploymentOffline.URN(), status: http.StatusServiceUnavailable},
+		{name: "spend_limit", state: db.DeploymentsDesiredStateRunning, suspended: true, config: logging, code: codes.Frontline.Routing.SpendLimitReached.URN(), status: http.StatusPaymentRequired},
+		{name: "no_instances", state: db.DeploymentsDesiredStateRunning, config: logging, code: codes.Frontline.Routing.NoRunningInstances.URN(), status: http.StatusServiceUnavailable},
+		{name: "invalid_policy", state: db.DeploymentsDesiredStateRunning, config: []byte("invalid protojson"), code: codes.Frontline.Internal.InvalidConfiguration.URN(), status: http.StatusUnprocessableEntity},
+		{name: "instance_lookup", state: db.DeploymentsDesiredStateRunning, instancesErr: errors.New("instance lookup unavailable"), code: codes.Frontline.Internal.ConfigLoadFailed.URN(), status: http.StatusInternalServerError},
+		{name: "unknown_host", routeErr: sql.ErrNoRows, code: codes.Frontline.Routing.ConfigNotFound.URN(), status: http.StatusNotFound},
+		{name: "route_lookup", routeErr: errors.New("hostname lookup unavailable"), code: codes.Frontline.Internal.ConfigLoadFailed.URN(), status: http.StatusInternalServerError},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var rows []schema.FrontlineRequest
+			logs := batch.New(batch.Config[schema.FrontlineRequest]{
+				Name: "test", BatchSize: 10, BufferSize: 10, FlushInterval: time.Hour, Consumers: 1,
+				Flush: func(_ context.Context, batch []schema.FrontlineRequest) { rows = append(rows, batch...) },
+			})
+			t.Cleanup(logs.Close)
+			expected := make(map[string]db.FindFrontlineRouteByFQDNRow)
+			for range 2 {
+				route := db.FindFrontlineRouteByFQDNRow{
+					DeploymentID: uid.New(uid.DeploymentPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix),
+					WorkspaceID: uid.New(uid.WorkspacePrefix), ProjectID: uid.New(uid.ProjectPrefix), AppID: uid.New(uid.AppPrefix),
+					DesiredState: tc.state, SpendSuspended: sql.NullBool{Valid: true, Bool: tc.suspended}, SentinelConfig: tc.config,
+				}
+				routes, err := router.New(router.Config{
+					Platform: "aws", Region: "us-east-1", DB: regionQuerier{route: route, routeErr: tc.routeErr, instancesErr: tc.instancesErr},
+					FrontlineRouteCache:   regionCache[db.FindFrontlineRouteByFQDNRow](t, "routes"),
+					InstancesByDeployment: regionCache[[]db.FindInstancesByDeploymentIDRow](t, "instances"),
+					PolicyCache:           regionCache[[]*frontlinev1.Policy](t, "policies"),
+				})
+				require.NoError(t, err)
+				h := handler.Handler{RouterService: routes, Clock: clock.New()}
+				server, err := zen.New(zen.Config{StreamRequestBody: true})
+				require.NoError(t, err)
+				server.RegisterRoute([]zen.Middleware{
+					middleware.WithReservedHeaderStrip(),
+					middleware.WithClickHouseLogging(logs, h.Clock, uid.New(uid.FrontlinePrefix), "us-east-1", "aws"),
+					middleware.WithObservability(errorpage.NewRenderer()),
+				}, &h)
+				body := strings.NewReader("private body")
+				req := httptest.NewRequest(http.MethodPost, "https://"+route.DeploymentID+".example.test/orders?api_key=secret", body)
+				req.Header.Set("Accept", "application/json")
+				req.Header.Set("Authorization", "Bearer secret")
+				req.Header.Set("User-Agent", "private agent")
+				req.Header.Set("X-Unkey-Workspace-Id", uid.New(uid.WorkspacePrefix))
+				req.Header.Set(proxy.HeaderRequestID, uid.New(uid.RequestPrefix))
+				recorder := httptest.NewRecorder()
+				server.Mux().ServeHTTP(recorder, req)
+				require.Equal(t, tc.status, recorder.Code)
+				var response middleware.ErrorResponse
+				require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
+				require.Equal(t, string(tc.code), response.Error.Code)
+				require.NotEmpty(t, response.Meta.RequestID)
+				require.Equal(t, response.Meta.RequestID, recorder.Header().Get(proxy.HeaderRequestID))
+				require.Equal(t, len("private body"), body.Len(), "early errors must not consume bodies")
+				if tc.routeErr == nil {
+					expected[response.Meta.RequestID] = route
+				}
+			}
+			logs.Close()
+			require.Len(t, rows, len(expected))
+			for _, row := range rows {
+				route, ok := expected[row.RequestID]
+				require.True(t, ok, "unexpected or duplicate request log")
+				delete(expected, row.RequestID)
+				require.Equal(t, route.WorkspaceID, row.WorkspaceID)
+				require.Equal(t, route.ProjectID, row.ProjectID)
+				require.Equal(t, route.AppID, row.AppID)
+				require.Equal(t, route.EnvironmentID, row.EnvironmentID)
+				require.Equal(t, route.DeploymentID, row.DeploymentID)
+				require.EqualValues(t, tc.status, row.ResponseStatus)
+				require.Empty(t, row.InstanceID)
+				require.Empty(t, row.InstanceAddress)
+				require.Empty(t, row.RequestHeaders)
+				require.Empty(t, row.ResponseHeaders)
+				require.Empty(t, row.RequestBody)
+				require.Empty(t, row.ResponseBody)
+				require.Empty(t, row.QueryParams)
+				require.Empty(t, row.QueryString)
+				require.Empty(t, row.UserAgent)
+				require.Empty(t, row.IPAddress)
+			}
+		})
+	}
+}
+
+func TestRequestLogging_PeerFailures(t *testing.T) {
+	for _, fallback := range []bool{false, true} {
+		for _, tc := range []struct {
+			name     string
+			status   int
+			respond  bool
+			truncate bool
+		}{
+			{name: "transport_failure", status: http.StatusInternalServerError},
+			{name: "peer_error_response", status: http.StatusServiceUnavailable, respond: true},
+			{name: "peer_truncated_response", status: http.StatusOK, respond: true, truncate: true},
+		} {
+			t.Run(fmt.Sprintf("%s/fallback=%t", tc.name, fallback), func(t *testing.T) {
+				address := unreachableAddr(t)
+				if tc.respond {
+					peer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+						if tc.truncate {
+							w.Header().Set("Content-Length", "100")
+						}
+						w.WriteHeader(tc.status)
+						_, err := io.WriteString(w, "peer response")
+						if err != nil {
+							t.Error(err)
+						}
+					}))
+					t.Cleanup(peer.Close)
+					address = strings.TrimPrefix(peer.URL, "http://")
+				}
+				transport := &http.Transport{}
+				peerTransport := &http.Transport{}
+				t.Cleanup(transport.CloseIdleConnections)
+				t.Cleanup(peerTransport.CloseIdleConnections)
+				transport.RegisterProtocol("https", &regionTransport{addresses: map[string]string{"us-west-2": address}, transport: peerTransport})
+				metadata, err := meta.New(testMetadataSigningKey)
+				require.NoError(t, err)
+				upstreams := proxy.NewTransportRegistry()
+				t.Cleanup(upstreams.CloseIdleConnections)
+				clk := clock.New()
+				service, err := proxy.New(proxy.Config{
+					InstanceID: uid.New(uid.FrontlinePrefix), Platform: "aws", Region: "us-east-1",
+					ApexDomain: "test.local", Clock: clk, Metadata: metadata, Transport: transport, UpstreamTransports: upstreams,
+				})
+				require.NoError(t, err)
+				decision := router.RouteDecision{
+					Destination: router.DestinationRemoteRegion, RemoteRegionAddress: "us-west-2.aws",
+					DeploymentID: uid.New(uid.DeploymentPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix),
+					WorkspaceID: uid.New(uid.WorkspacePrefix), ProjectID: uid.New(uid.ProjectPrefix), AppID: uid.New(uid.AppPrefix),
+					UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1,
+				}
+				if fallback {
+					decision.Destination = router.DestinationLocalInstance
+					decision.LocalInstances = []db.FindInstancesByDeploymentIDRow{{ID: uid.New(uid.InstancePrefix), Address: unreachableAddr(t)}}
+				}
+				var rows []schema.FrontlineRequest
+				logs := batch.New(batch.Config[schema.FrontlineRequest]{
+					Name: "test", BatchSize: 10, BufferSize: 10, FlushInterval: time.Hour, Consumers: 1,
+					Flush: func(_ context.Context, batch []schema.FrontlineRequest) { rows = append(rows, batch...) },
+				})
+				t.Cleanup(logs.Close)
+				h := handler.Handler{RouterService: &stubRouter{decision: decision}, ProxyService: service, Clock: clk, Metadata: metadata}
+				serve := middleware.WithClickHouseLogging(logs, clk, uid.New(uid.FrontlinePrefix), "us-east-1", "aws")(
+					middleware.WithObservability(errorpage.NewRenderer())(h.Handle),
+				)
+				req := httptest.NewRequest(http.MethodGet, "https://example.test/orders?api_key=secret", nil)
+				req.Header.Set("Accept", "application/json")
+				req.Header.Set("Authorization", "Bearer secret")
+				recorder := httptest.NewRecorder()
+				sess := &zen.Session{}
+				require.NoError(t, sess.Init(recorder, req, 0))
+				require.NoError(t, serve(t.Context(), sess))
+				logs.Close()
+				require.Equal(t, tc.status, recorder.Code)
+				require.Equal(t, sess.RequestID(), recorder.Header().Get(proxy.HeaderRequestID))
+				if tc.respond {
+					require.Equal(t, "peer response", recorder.Body.String())
+					require.Empty(t, rows, "a peer response must not be logged again at ingress")
+					return
+				}
+				require.Len(t, rows, 1)
+				row := rows[0]
+				require.Equal(t, sess.RequestID(), row.RequestID)
+				require.EqualValues(t, tc.status, row.ResponseStatus)
+				require.Equal(t, decision.WorkspaceID, row.WorkspaceID)
+				require.Equal(t, decision.DeploymentID, row.DeploymentID)
+				require.Empty(t, row.InstanceID)
+				require.Empty(t, row.InstanceAddress)
+				require.Empty(t, row.RequestHeaders)
+				require.Empty(t, row.ResponseHeaders)
+				require.Empty(t, row.RequestBody)
+				require.Empty(t, row.ResponseBody)
+				require.Empty(t, row.QueryString)
+				require.Empty(t, row.QueryParams)
+			})
+		}
+	}
+}
 
 func TestRequestLogging_PolicyRejections(t *testing.T) {
 	for _, tc := range []struct {

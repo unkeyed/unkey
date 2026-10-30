@@ -34,6 +34,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("namespace", "The id or name of the namespace containing the override.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("identifier", "The exact identifier pattern of the override to delete.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
@@ -43,19 +44,17 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Ratelimit.DeleteOverride, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(cmd, res.V2RatelimitDeleteOverrideResponseBody)
-			}
-
-			res, err := client.Ratelimit.DeleteOverride(ctx, components.V2RatelimitDeleteOverrideRequestBody{
+			req, err := util.RequestBody(cmd, components.V2RatelimitDeleteOverrideRequestBody{
 				Namespace:  cmd.String("namespace"),
 				Identifier: cmd.String("identifier"),
 			})
+			if err != nil {
+				return err
+			}
+			if err := util.Confirm(cmd, fmt.Sprintf("Delete override %q in namespace %q and restore the default limit?", req.Identifier, req.Namespace)); err != nil {
+				return err
+			}
+			res, err := client.Ratelimit.DeleteOverride(ctx, req)
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}

@@ -48,7 +48,7 @@ func TestAuditInsertStoresNestedTargets(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	event := auditlog.Event{
 		EventID: uid.New("evt"), Time: time.Now().UnixMilli(), WorkspaceID: uid.New("ws"),
-		Bucket: "audit", Event: "test.export", Source: auditlog.EventSourcePlatform,
+		Bucket: auditlog.BucketUnkeyMutations, Event: "test.export", Source: auditlog.EventSourcePlatform,
 		Actor:   auditlog.EventActor{Type: "system", ID: "test"},
 		Targets: []auditlog.EventTarget{{Type: "key", ID: "first"}, {Type: "api", ID: "second"}},
 	}

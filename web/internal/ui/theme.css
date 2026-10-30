@@ -11,6 +11,7 @@ When to use certain tokens:
 */
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant pinned (@media (width >= 48rem) and (height >= 40rem));
 
 @theme {
   --text-*: initial;

@@ -108,6 +108,10 @@ const nextConfig = {
     }
     return config;
   },
+  experimental: {
+    // Vercel restores the last production .next/cache, which ships stale CSS.
+    turbopackFileSystemCacheForBuild: process.env.VERCEL_ENV !== "production",
+  },
   transpilePackages: ["@unkey/db", "@unkey/resend", "@unkey/id"],
   async rewrites() {
     return [

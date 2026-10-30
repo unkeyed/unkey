@@ -37,14 +37,14 @@ func Bearer(s *Session) (string, error) {
 	}
 
 	header = strings.TrimSpace(header)
-	if !strings.HasPrefix(header, "Bearer ") {
+	scheme, bearer, ok := strings.Cut(header, " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") {
 		return "", fault.New("invalid format", fault.Code(codes.Auth.Authentication.Malformed.URN()),
 			fault.Internal("missing bearer prefix"), fault.Public("Your authorization header is missing the 'Bearer ' prefix."))
 	}
 
-	bearer := strings.TrimPrefix(header, "Bearer ")
 	bearer = strings.TrimSpace(bearer)
-	if bearer == "" {
+	if bearer == "" || strings.ContainsAny(bearer, " \t") {
 		return "", fault.New("invalid token", fault.Code(codes.Auth.Authentication.Malformed.URN()))
 	}
 

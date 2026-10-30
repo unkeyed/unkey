@@ -39,15 +39,15 @@ var regionProximity = map[string][]string{
 }
 
 func (s *service) selectDestination(
-	route db.FindFrontlineRouteByFQDNRow,
+	decision RouteDecision,
 	instances []db.FindInstancesByDeploymentIDRow,
 	policies []*frontlinev1.Policy,
 	excludedRegions []string,
 ) (RouteDecision, error) {
 	if len(instances) == 0 {
-		return RouteDecision{}, fault.New("no instances",
+		return decision, fault.New("no instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
-			fault.Internal(fmt.Sprintf("no instances for deployment %s", route.DeploymentID)),
+			fault.Internal(fmt.Sprintf("no instances for deployment %s", decision.DeploymentID)),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
@@ -66,9 +66,9 @@ func (s *service) selectDestination(
 	}
 
 	if len(regionsWithInstance) == 0 {
-		return RouteDecision{}, fault.New("no running instances",
+		return decision, fault.New("no running instances",
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
-			fault.Internal(fmt.Sprintf("no running instances for deployment %s", route.DeploymentID)),
+			fault.Internal(fmt.Sprintf("no running instances for deployment %s", decision.DeploymentID)),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
@@ -81,36 +81,25 @@ func (s *service) selectDestination(
 		rand.Shuffle(len(localRunning), func(i int, j int) {
 			localRunning[i], localRunning[j] = localRunning[j], localRunning[i]
 		})
-		return RouteDecision{
-			Destination:         DestinationLocalInstance,
-			DeploymentID:        route.DeploymentID,
-			EnvironmentID:       route.EnvironmentID,
-			WorkspaceID:         localRunning[0].WorkspaceID,
-			ProjectID:           localRunning[0].ProjectID,
-			AppID:               localRunning[0].AppID,
-			UpstreamProtocol:    route.UpstreamProtocol,
-			Policies:            policies,
-			LocalInstances:      localRunning,
-			RemoteRegionAddress: s.findNearestRegionPlatform(regionsWithInstance),
-		}, nil
+		decision.Destination = DestinationLocalInstance
+		decision.Policies = policies
+		decision.LocalInstances = localRunning
+		decision.RemoteRegionAddress = s.findNearestRegionPlatform(regionsWithInstance)
+		return decision, nil
 	}
 
 	nearestRegion := s.findNearestRegionPlatform(regionsWithInstance)
 	if nearestRegion == "" {
-		return RouteDecision{}, fault.New("no reachable region from "+s.regionPlatform,
+		return decision, fault.New("no reachable region from "+s.regionPlatform,
 			fault.Code(codes.Frontline.Routing.NoRunningInstances.URN()),
 			fault.Internal("running instances exist but no region is reachable"),
 			fault.Public("Service temporarily unavailable"),
 		)
 	}
 
-	//nolint:exhaustruct
-	return RouteDecision{
-		Destination:         DestinationRemoteRegion,
-		DeploymentID:        route.DeploymentID,
-		EnvironmentID:       route.EnvironmentID,
-		RemoteRegionAddress: nearestRegion,
-	}, nil
+	decision.Destination = DestinationRemoteRegion
+	decision.RemoteRegionAddress = nearestRegion
+	return decision, nil
 }
 
 // findNearestRegionPlatform returns the peer region (other than the local

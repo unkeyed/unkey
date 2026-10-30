@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CapturingQuerier } from "../test-utils";
 import { DAY_MS, clampedGrid, latestGrid } from "./grid";
-import { getAppResources, getAppResourcesByInstance } from "./resources";
+import { getAppResourceHistory, getAppResources, getAppResourcesByInstance } from "./resources";
 
 const now = Date.parse("2026-10-19T12:45:20Z");
 const scope = { workspaceId: "ws_acme", environmentId: "env_production" };
@@ -141,5 +141,19 @@ describe("getAppResourcesByInstance", () => {
       table: "instance_resources_per_minute_v1",
       bucketSec: 300,
     });
+  });
+});
+
+describe("getAppResourceHistory", () => {
+  it("passes the hourly source width and grid end that cap lastSeenMs", async () => {
+    const ch = new CapturingQuerier();
+    await getAppResourceHistory(ch)({ ...scope, instances: [], grid: latestGrid("7d", now) }, now);
+    expect(ch.params[0]).toMatchObject({
+      sourceSec: 3600,
+      endMs: Date.parse("2026-10-19T12:00:00Z"),
+    });
+    expect(ch.queries[0].replace(/\s+/g, " ")).toContain(
+      "least(observed.bucketMs + toInt64({sourceSec: UInt32}) * 1000, {endMs: Int64}) AS lastSeenMs",
+    );
   });
 });

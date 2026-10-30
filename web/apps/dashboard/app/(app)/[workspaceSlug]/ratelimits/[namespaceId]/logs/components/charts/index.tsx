@@ -5,11 +5,7 @@ import { useRatelimitLogsContext } from "../../context/logs";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchRatelimitTimeseries } from "./hooks/use-fetch-timeseries";
 
-export function RatelimitLogsChart({
-  onMount,
-}: {
-  onMount: (distanceToTop: number) => void;
-}) {
+export function RatelimitLogsChart() {
   const { namespaceId } = useRatelimitLogsContext();
   const { filters, updateFilters } = useFilters();
   const { timeseries, isLoading, isError, granularity } = useFetchRatelimitTimeseries(namespaceId);
@@ -62,7 +58,6 @@ export function RatelimitLogsChart({
           color: "var(--color-warning-9)",
         },
       }}
-      onMount={onMount}
       onSelectionChange={handleSelectionChange}
       isLoading={isLoading}
       isError={isError}

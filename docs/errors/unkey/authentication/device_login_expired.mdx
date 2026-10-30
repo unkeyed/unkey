@@ -1,0 +1,29 @@
+---
+title: "device_login_expired"
+description: "The CLI device login expired before token exchange completed."
+sources:
+  - pkg/codes/unkey_auth.go
+  - svc/api/routes/v2_cli_exchange_token/handler.go
+  - svc/api/internal/clidevice/service.go
+  - svc/api/internal/clidevice/issue.go
+  - svc/api/internal/middleware/errors.go
+  - cmd/auth/login/device.go
+---
+
+<Danger>`err:unkey:authentication:device_login_expired`</Danger>
+
+`cli.exchangeToken` returns HTTP 410 when the device login expires before the
+CLI receives a session. A device login expires after 10 minutes. Retrying the
+same login ID can't extend it.
+
+## How to fix
+
+Start a new device login instead of polling the expired one:
+
+```bash
+unkey login
+```
+
+Open the new verification URL, check that its code matches your terminal, and
+approve the login before it expires. Only approve a login you started yourself.
+See [unkey login](/platform/cli/login) for browser and headless login options.

@@ -1,15 +1,15 @@
 package session
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"strings"
 	"time"
+
+	"github.com/unkeyed/unkey/internal/sdk"
+	"github.com/unkeyed/unkey/internal/sdk/models/apierrors"
+	"github.com/unkeyed/unkey/internal/sdk/models/components"
 )
 
 // The server lets a rotated refresh token be presented again for 10 seconds
@@ -18,73 +18,49 @@ import (
 // revoking the session on the next command.
 var refreshAttemptTimeout = 4 * time.Second
 
-type retryableError struct{ err error }
-
-func (e retryableError) Error() string { return e.err.Error() }
-func (e retryableError) Unwrap() error { return e.err }
-
 // Refresh exchanges a refresh token for a new session pair. A transport
 // failure, timeout, or 5xx response is retried once with the same token.
 func Refresh(ctx context.Context, apiURL string, refreshToken string) (Session, error) {
 	next, err := refreshOnce(ctx, apiURL, refreshToken)
-	var retryable retryableError
-	if err == nil || ctx.Err() != nil || !errors.As(err, &retryable) {
+	if err == nil || ctx.Err() != nil {
 		return next, err
 	}
-	return refreshOnce(ctx, apiURL, refreshToken)
+	var transport *sdk.TransportError
+	var response *sdk.ResponseError
+	if errors.As(err, &transport) || (errors.As(err, &response) && response.StatusCode >= 500) {
+		return refreshOnce(ctx, apiURL, refreshToken)
+	}
+	return next, err
 }
 
 func refreshOnce(ctx context.Context, apiURL string, refreshToken string) (Session, error) {
-	body, err := json.Marshal(map[string]string{"refreshToken": refreshToken})
+	api := sdk.NewClient(apiURL, &http.Client{Timeout: refreshAttemptTimeout})
+	request := components.CreateV2CliExchangeTokenRequestBodyV2CliExchangeTokenRequestBody2(components.V2CliExchangeTokenRequestBody2{RefreshToken: refreshToken, LoginID: nil})
+	res, err := api.Cli.ExchangeToken(ctx, request)
 	if err != nil {
+		var responseError *sdk.ResponseError
+		if errors.As(err, &responseError) {
+			return Session{}, responseError
+		}
+		var response *apierrors.APIError
+		if errors.As(err, &response) {
+			return Session{}, fmt.Errorf("refresh returned %d", response.StatusCode)
+		}
 		return Session{}, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(apiURL, "/")+"/v2/cli.refreshToken", bytes.NewReader(body))
-	if err != nil {
-		return Session{}, err
+	if res.V2CliExchangeTokenResponseBody == nil {
+		return Session{}, fmt.Errorf("refresh returned %d", res.HTTPMeta.Response.StatusCode)
 	}
-	req.Header.Set("content-type", "application/json")
-	res, err := (&http.Client{Timeout: refreshAttemptTimeout}).Do(req)
-	if err != nil {
-		return Session{}, retryableError{err: err}
-	}
-	defer func() { _ = res.Body.Close() }()
-	payload, err := io.ReadAll(io.LimitReader(res.Body, 1<<20))
-	if err != nil {
-		return Session{}, retryableError{err: err}
-	}
-	if res.StatusCode >= 500 {
-		return Session{}, retryableError{err: fmt.Errorf("refresh returned %d", res.StatusCode)}
-	}
-	var envelope struct {
-		Data struct {
-			AccessToken  string `json:"accessToken"`
-			RefreshToken string `json:"refreshToken"`
-			ExpiresIn    int64  `json:"expiresIn"`
-			WorkspaceID  string `json:"workspaceId"`
-			SessionID    string `json:"sessionId"`
-		} `json:"data"`
-		Error struct {
-			Detail string `json:"detail"`
-		} `json:"error"`
-	}
-	if len(payload) > 0 {
-		if err := json.Unmarshal(payload, &envelope); err != nil {
-			return Session{}, fmt.Errorf("refresh returned %d", res.StatusCode)
-		}
-	}
-	if res.StatusCode >= 300 {
-		if envelope.Error.Detail != "" {
-			return Session{}, fmt.Errorf("%s", envelope.Error.Detail)
-		}
-		return Session{}, fmt.Errorf("refresh returned %d", res.StatusCode)
+	credentials := res.V2CliExchangeTokenResponseBody.Data
+	if credentials.AccessToken == "" || credentials.RefreshToken == "" || credentials.WorkspaceID == "" || credentials.SessionID == "" || credentials.ExpiresIn <= 0 {
+		return Session{}, fmt.Errorf("refresh completed without a session")
 	}
 	return Session{
-		WorkspaceID:  envelope.Data.WorkspaceID,
-		SessionID:    envelope.Data.SessionID,
-		AccessToken:  envelope.Data.AccessToken,
-		RefreshToken: envelope.Data.RefreshToken,
-		ExpiresAt:    time.Now().Add(time.Duration(envelope.Data.ExpiresIn) * time.Second).Unix(),
+		WorkspaceID:  credentials.WorkspaceID,
+		SessionID:    credentials.SessionID,
+		AccessToken:  credentials.AccessToken,
+		RefreshToken: credentials.RefreshToken,
+		ExpiresAt:    time.Now().Add(time.Duration(credentials.ExpiresIn) * time.Second).Unix(),
 		APIURL:       NormalizeAPIURL(apiURL),
 	}, nil
 }

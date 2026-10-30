@@ -11,11 +11,14 @@ import (
 	"github.com/unkeyed/unkey/cmd/api/github"
 	"github.com/unkeyed/unkey/cmd/api/identities"
 	"github.com/unkeyed/unkey/cmd/api/keys"
+	"github.com/unkeyed/unkey/cmd/api/logs"
 	"github.com/unkeyed/unkey/cmd/api/permissions"
 	"github.com/unkeyed/unkey/cmd/api/portal"
 	"github.com/unkeyed/unkey/cmd/api/projects"
 	"github.com/unkeyed/unkey/cmd/api/ratelimit"
+	"github.com/unkeyed/unkey/cmd/api/rootkeys"
 	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/workspace"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -23,23 +26,26 @@ import (
 func Cmd() *cli.Command {
 	return &cli.Command{
 		Name:        "api",
-		Usage:       "Interact with the Unkey API",
+		Usage:       "Legacy API command paths",
 		Description: "Manage Unkey resources through the public API." + util.Disclaimer,
-		Commands: []*cli.Command{
-			analytics.Cmd(),
-			apis.Cmd(),
-			apps.Cmd(),
-			deployments.Cmd(),
-			domains.Cmd(),
-			environments.Cmd(),
-			gateway.Cmd(),
-			github.Cmd(),
-			identities.Cmd(),
-			keys.Cmd(),
-			permissions.Cmd(),
-			portal.Cmd(),
-			projects.Cmd(),
-			ratelimit.Cmd(),
-		},
+		Commands:    groups(),
 	}
+}
+
+func groups() []*cli.Command {
+	commands := []*cli.Command{
+		analytics.Cmd(), apis.Cmd(), apps.Cmd(), deployments.Cmd(), domains.Cmd(),
+		environments.Cmd(), gateway.Cmd(), github.Cmd(), identities.Cmd(), keys.Cmd(),
+		logs.Cmd(), permissions.Cmd(), portal.Cmd(), projects.Cmd(), ratelimit.Cmd(),
+		rootkeys.Cmd(), workspace.Cmd(),
+	}
+	for _, group := range commands {
+		for _, command := range group.Commands {
+			command.Flags = append(command.Flags,
+				cli.Bool("json", "Print the full API response as JSON"),
+				cli.Bool("debug", "Print the request ID to stderr"),
+			)
+		}
+	}
+	return commands
 }

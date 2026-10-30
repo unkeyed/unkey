@@ -44,6 +44,10 @@ vi.mock("@/app/(app)/[workspaceSlug]/audit/hooks/use-filters", () => ({
   useFilters: () => ({ filters: [] }),
 }));
 
+vi.mock("@/providers/query-time-provider", () => ({
+  useQueryTime: () => ({ queryTime: Date.now(), refreshQueryTime: vi.fn() }),
+}));
+
 import { useAuditLogsQuery } from "./use-audit-logs-query";
 
 const mockedUseQuery = vi.mocked(trpc.audit.logs.useQuery);

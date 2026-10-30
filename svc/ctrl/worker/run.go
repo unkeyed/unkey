@@ -37,8 +37,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
@@ -422,7 +422,7 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(keyleak.New(keyleak.Config{
-		Members:         workos.New(cfg.WorkOSAPIKey),
+		Members:         workos.New(cfg.WorkOSAPIKey, ""),
 		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
 		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
 	}).Definition(
@@ -764,20 +764,17 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
 		ConfigureHandler("RunBuildLimitSync", cronBuildLimitSyncRetry).
-		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
+		ConfigureHandler("RunKeyLastUsedSync", restate.WithJournalRetention(time.Hour), restate.WithIdempotencyRetention(time.Hour), cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).
-		// 1h journal retention keeps debugging headroom for an oncall to
-		// inspect a recent failure without bloating the journal store with
-		// ~1440 dead invocations/day.
-		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(1*time.Hour), cronAuditLogExportRetry).
+		ConfigureHandler("RunAuditLogExport", restate.WithJournalRetention(time.Hour), restate.WithIdempotencyRetention(time.Hour), cronAuditLogExportRetry).
 		ConfigureHandler("RunQuotaCheck", cronQuotaCheckRetry).
 		ConfigureHandler("EnforceFreeTier", cronQuotaCheckRetry).
 		ConfigureHandler("ThrottleFreeTierWorkspace", cronQuotaCheckRetry).
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
-		ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()).
+		ConfigureHandler("RunDeploySpendCheck", restate.WithJournalRetention(time.Hour), restate.WithIdempotencyRetention(time.Hour), deployspendcheck.RetryPolicy()).
 		ConfigureHandler("RunClickhouseUserReconcile", cronClickhouseUserReconcileRetry))
 	logger.Info("CronService enabled")
 
@@ -790,7 +787,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("create key last used partition service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, cronKeyLastUsedRetry))
+	restateSrv.Bind(hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc, restate.WithJournalRetention(time.Hour), cronKeyLastUsedRetry))
 	logger.Info("KeyLastUsedPartitionService enabled")
 
 	// DeployBillingPushService is the per-workspace push VO fanned out from the
@@ -826,7 +823,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// key, so kill on exhaustion and let the next tick retry from a clean
 	// slate.
 	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
-		ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()))
+		ConfigureHandler("CheckWorkspaceSpend", restate.WithJournalRetention(time.Hour), deployspendcheck.RetryPolicy()))
 	logger.Info("DeploySpendCheckService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint

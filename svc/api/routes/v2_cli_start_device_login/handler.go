@@ -39,12 +39,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.V2CliStartDeviceLoginResponseData{
-			LoginId:                 started.LoginID,
-			UserCode:                started.UserCode,
-			VerificationUri:         started.VerificationURI,
-			VerificationUriComplete: started.VerificationURIComplete,
-			ExpiresIn:               int64(started.ExpiresIn),
-			Interval:                int64(started.Interval),
+			LoginId:         started.LoginID,
+			UserCode:        started.UserCode,
+			VerificationUrl: started.VerificationURL,
+			ExpiresIn:       int64(started.ExpiresIn),
+			Interval:        int64(started.Interval),
 		},
 	})
 }

@@ -1,27 +1,25 @@
+import { STICKY_CHROME_BOTTOM } from "@unkey/ui";
 import type React from "react";
 import { type PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 
-export const MAX_DRAGGABLE_WIDTH = 800;
-export const MIN_DRAGGABLE_WIDTH = 300;
+const MAX_DRAGGABLE_WIDTH = 800;
+const MIN_DRAGGABLE_WIDTH = 300;
+const DEFAULT_DRAGGABLE_WIDTH = 500;
 
 export const ResizablePanel = ({
   children,
   onResize,
   onClose,
-  className,
-  style,
   minW = MIN_DRAGGABLE_WIDTH,
   maxW = MAX_DRAGGABLE_WIDTH,
 }: PropsWithChildren<{
   onResize?: (newWidth: number) => void;
   onClose: () => void;
-  className: string;
-  style: Record<string, unknown>;
   minW?: number;
   maxW?: number;
 }>) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [width, setWidth] = useState<string>(String(style?.width));
+  const [width, setWidth] = useState(DEFAULT_DRAGGABLE_WIDTH);
   const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: panelRef is stable and read when the event fires
@@ -63,7 +61,7 @@ export const ResizablePanel = ({
 
       const containerRect = panelRef.current.getBoundingClientRect();
       const newWidth = Math.min(Math.max(containerRect.right - e.clientX, minW), maxW);
-      setWidth(`${newWidth}px`);
+      setWidth(newWidth);
       onResize?.(newWidth);
     },
     [isDragging, minW, maxW, onResize],
@@ -87,8 +85,8 @@ export const ResizablePanel = ({
   return (
     <div
       ref={panelRef}
-      className={`relative border-l ${className}`}
-      style={{ ...style, width, right: 0, position: "fixed" }}
+      className="fixed right-0 z-20 overflow-y-auto border-l bg-raised pb-4 font-mono shadow-floating"
+      style={{ width, top: STICKY_CHROME_BOTTOM, height: `calc(100dvh - ${STICKY_CHROME_BOTTOM})` }}
     >
       <div
         className="absolute top-0 left-0 w-[3px] h-full cursor-ew-resize hover:bg-gray-6 transition-all z-10"

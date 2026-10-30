@@ -2,10 +2,14 @@ package handler_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -17,9 +21,8 @@ func TestPromoteDeploymentNotFound(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, writeEnvironments(setup.Workspace.ID))
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
 		DeploymentId: uid.New(uid.DeploymentPrefix),
@@ -27,16 +30,15 @@ func TestPromoteDeploymentNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }
 
-// A key without promote_deployment must not learn whether the deployment
-// exists: the handler masks the authorization failure as a 404.
+// A key that can neither write nor read the deployment must not learn whether
+// it exists: the handler masks the authorization failure as a 404.
 func TestPromoteDeploymentInsufficientPermissionsMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.rollback_deployment"},
-	})
+	setup := h.CreateTestDeploymentSetup()
+	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, rbac.U(urn.New().Workspace(setup.Workspace.ID).Project("*").App("*").Environment("*"), permissions.Read).Value)
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
@@ -51,7 +53,7 @@ func TestPromoteDeploymentInsufficientPermissionsMasked(t *testing.T) {
 	require.NotContains(t, res.RawBody, dep.ID)
 }
 
-func TestPromoteDeploymentEnvironmentReaderIsForbidden(t *testing.T) {
+func TestPromoteDeploymentReadVisibility(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
@@ -59,8 +61,6 @@ func TestPromoteDeploymentEnvironmentReaderIsForbidden(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{},
 	})
-	rootKey := h.CreateRootKey(setup.Workspace.ID, environmentRead(setup))
-
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
 		WorkspaceID:   setup.Workspace.ID,
@@ -69,10 +69,26 @@ func TestPromoteDeploymentEnvironmentReaderIsForbidden(t *testing.T) {
 		EnvironmentID: setup.Environment.ID,
 	})
 
-	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
-	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
-	require.Contains(t, res.Body.Error.Detail, "promote_deployment")
-	require.Contains(t, res.Body.Error.Detail, "Log in again")
+	for _, tc := range []struct {
+		name   string
+		grant  string
+		status int
+	}{
+		{"environment read", environmentRead(setup), http.StatusNotFound},
+		{"deployment read", strings.TrimSuffix(environmentRead(setup), "#read") + "/deployments/" + dep.ID + "#read", http.StatusForbidden},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(setup.Workspace.ID, tc.grant)
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
+			require.Equal(t, tc.status, res.Status, "%s", res.RawBody)
+			if tc.status == http.StatusNotFound {
+				missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: uid.New(uid.DeploymentPrefix)})
+				require.Equal(t, missing.Body.Error, res.Body.Error)
+			} else {
+				require.Contains(t, res.Body.Error.Detail, "#write")
+			}
+		})
+	}
 }
 
 // A deployment in another workspace must be indistinguishable from one that does
@@ -82,9 +98,8 @@ func TestPromoteDeploymentInAnotherWorkspace(t *testing.T) {
 	route := newRoute(h, newUncalledRestate(t))
 	h.Register(route)
 
-	caller := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
-		Permissions: []string{"environment.*.promote_deployment"},
-	})
+	caller := h.CreateTestDeploymentSetup()
+	caller.RootKey = h.CreateRootKey(caller.Workspace.ID, writeEnvironments(caller.Workspace.ID))
 	other := h.CreateTestDeploymentSetup()
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{

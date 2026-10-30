@@ -1,8 +1,9 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import type { Loadable } from "@/lib/loadable/loadable";
 import type { LastExit } from "@/lib/types/deploy";
+import type { FetchStatus } from "@tanstack/react-query";
 import type { MetricSource, SourcePoint } from "@unkey/clickhouse/src/app-metrics/catalog";
-import { DAY_MS, type Grid } from "@unkey/clickhouse/src/app-metrics/grid";
+import { DAY_MS, type Grid, type RangePreset } from "@unkey/clickhouse/src/app-metrics/grid";
 import type { ResourcePoint } from "@unkey/clickhouse/src/app-metrics/resources";
 import type { TrafficPoint } from "@unkey/clickhouse/src/app-metrics/traffic";
 import { z } from "zod";
@@ -56,11 +57,22 @@ export function spansDays(grid: Pick<Grid, "startMs" | "endMs">): boolean {
 
 export type SourceResult<S extends MetricSource> = { grid: Grid; points: SourcePoint<S>[] };
 
+export type HeldLoadable<T> =
+  | Exclude<Loadable<never>, { status: "ready" }>
+  | (Extract<Loadable<T>, { status: "ready" }> & { outdated?: boolean });
+
+export function isOutdated(loadable: HeldLoadable<unknown>): boolean {
+  return loadable.status === "ready" && loadable.outdated === true;
+}
+
 export type Sources = { [S in MetricSource]: Loadable<SourceResult<S>> };
+
+export type HeldSources = { [S in MetricSource]: HeldLoadable<SourceResult<S>> };
 
 export type InstanceSeries = {
   grid: Grid;
   instances: Array<{ instance: string; points: ResourcePoint[] }>;
+  history: { instances: InstanceRow[]; truncated: boolean };
 };
 
 export type DeploySource =
@@ -92,10 +104,13 @@ export type ReplicaTarget = {
 
 export type DeployRole = "current" | "rolling-out" | "previous";
 
+export type InstancePresence =
+  | { kind: "live"; instanceId: string; status: InstanceStatus }
+  | { kind: "stopped"; lastSeenMs: number };
+
 export type InstanceRow = {
-  instanceId: string;
+  presence: InstancePresence;
   region: { name: string };
-  status: InstanceStatus;
   role: DeployRole;
   lastExit: LastExit | null;
   deployment: { id: string; source: DeploySource | null };
@@ -121,7 +136,28 @@ export type InstanceEvent = {
   kind: InstanceEventKind;
   reason: string;
   exitCode: number | null;
+  message: string | null;
 };
+
+export function instancesInRange(
+  live: Loadable<InstanceRow[]>,
+  usage: Loadable<InstanceSeries>,
+): Loadable<InstanceRow[]> {
+  if (live.status !== "ready") {
+    return live;
+  }
+  if (usage.status !== "ready") {
+    return live.data.length > 0 ? live : usage;
+  }
+  const rows = new Map(
+    [...usage.data.history.instances, ...live.data].map((row) => [row.replica.k8sName, row]),
+  );
+  return {
+    status: "ready",
+    data: [...rows.values()],
+    stale: live.stale ?? usage.stale,
+  };
+}
 
 const CLAMPED_RETRY_MS = 2_000;
 const MAX_CLAMPED_RETRIES = 2;
@@ -133,4 +169,37 @@ export function clampedRetryMs(asked: Grid, served: Grid, fetchCount: number): n
   const behindMs = asked.endMs - served.endMs;
   const clamped = behindMs > 0 && behindMs <= asked.bucketMs;
   return clamped && fetchCount <= MAX_CLAMPED_RETRIES ? CLAMPED_RETRY_MS : false;
+}
+
+export type Held<T> = { viewKey: string; range: RangePreset; data: T };
+
+export function holdKeyOf(scope: { appId: string; environment: EnvironmentRef }): string {
+  return `${scope.appId}:${environmentKeyOf(scope.environment)}`;
+}
+
+export function resolveHeld<T>(
+  held: Held<T> | null,
+  view: {
+    viewKey: string;
+    range: RangePreset;
+    fresh: T | undefined;
+    isError: boolean;
+    fetchStatus: FetchStatus;
+  },
+): { data: T | undefined; held: Held<T> | null; outdated: boolean } {
+  const { viewKey, range, fresh } = view;
+  if (fresh !== undefined) {
+    const same = held?.data === fresh && held.viewKey === viewKey && held.range === range;
+    return { data: fresh, held: same ? held : { viewKey, range, data: fresh }, outdated: false };
+  }
+  if (held === null || held.viewKey !== viewKey) {
+    return { data: undefined, held, outdated: false };
+  }
+  if (held.range === range) {
+    return { data: held.data, held, outdated: false };
+  }
+  if (view.isError) {
+    return { data: undefined, held: null, outdated: false };
+  }
+  return { data: held.data, held, outdated: view.fetchStatus !== "idle" };
 }

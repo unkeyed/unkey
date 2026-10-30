@@ -44,6 +44,18 @@ func (s *service) Route(ctx context.Context, hostname string, excludedRegions ..
 	if err != nil {
 		return RouteDecision{}, err
 	}
+	decision := RouteDecision{
+		DeploymentID:        route.DeploymentID,
+		EnvironmentID:       route.EnvironmentID,
+		WorkspaceID:         route.WorkspaceID,
+		ProjectID:           route.ProjectID,
+		AppID:               route.AppID,
+		UpstreamProtocol:    route.UpstreamProtocol,
+		Destination:         "",
+		LocalInstances:      nil,
+		RemoteRegionAddress: "",
+		Policies:            nil,
+	}
 
 	// A workspace paused for reaching its Compute spend limit is a billing gate:
 	// refuse traffic with a 402 up front, before the desired-state check and
@@ -52,7 +64,7 @@ func (s *service) Route(ctx context.Context, hostname string, excludedRegions ..
 	// deployment's desired_state has not flipped, or an instance is still
 	// draining). Resumes when the budget is raised or removed.
 	if route.SpendSuspended.Valid && route.SpendSuspended.Bool {
-		return RouteDecision{}, fault.New("workspace spend limit reached",
+		return decision, fault.New("workspace spend limit reached",
 			fault.Code(codes.Frontline.Routing.SpendLimitReached.URN()),
 			fault.Internal(fmt.Sprintf("workspace spend-cap suspended; deployment %s", route.DeploymentID)),
 			fault.Public("Compute for this workspace is paused because it reached its spend limit."),
@@ -63,7 +75,7 @@ func (s *service) Route(ctx context.Context, hostname string, excludedRegions ..
 	// intentionally offline rather than transiently between instances like the
 	// no_running_instances seen mid-deploy or mid-scale.
 	if route.DesiredState != db.DeploymentsDesiredStateRunning {
-		return RouteDecision{}, fault.New("deployment offline",
+		return decision, fault.New("deployment offline",
 			fault.Code(codes.Frontline.Routing.DeploymentOffline.URN()),
 			fault.Internal(fmt.Sprintf("deployment %s desired_state=%s", route.DeploymentID, route.DesiredState)),
 			fault.Public("This deployment is offline."),
@@ -72,17 +84,17 @@ func (s *service) Route(ctx context.Context, hostname string, excludedRegions ..
 
 	instances, err := s.getInstances(ctx, route.DeploymentID)
 	if err != nil {
-		return RouteDecision{}, err
+		return decision, err
 	}
 
 	policies, err := s.getPolicies(ctx, route)
 	if err != nil {
-		return RouteDecision{}, err
+		return decision, err
 	}
 
-	decision, err := s.selectDestination(route, instances, policies, excludedRegions)
+	decision, err = s.selectDestination(decision, instances, policies, excludedRegions)
 	if err != nil {
-		return RouteDecision{}, err
+		return decision, err
 	}
 
 	if decision.Destination == DestinationLocalInstance {

@@ -20,6 +20,7 @@ post:
     Your root key must have the following permission:
     - `unkey:v1:<workspace_id>:limits#read`
   operationId: workspace.getLimits
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getLimits
   x-unkey-idempotency: idempotent
   security:

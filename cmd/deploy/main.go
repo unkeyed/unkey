@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
@@ -11,8 +12,6 @@ import (
 	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/git"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 const (
@@ -87,7 +86,7 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 	credential, err := util.Credential(ctx, cmd)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s", ui.Text(err.Error()))
 	}
 	apiURL := credential.APIURL
 	if apiURL == "" {
@@ -110,9 +109,9 @@ func DeployAction(ctx context.Context, cmd *cli.Command) error {
 
 func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	terminal := ui.NewUI()
+	defer terminal.Close()
 	gitInfo := git.GetInfo()
 
-	// Auto-detect branch and commit from git if not specified
 	if opts.Branch == DefaultBranch && gitInfo.IsRepo && gitInfo.Branch != "" {
 		opts.Branch = gitInfo.Branch
 	}
@@ -120,109 +119,61 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 		opts.Commit = gitInfo.CommitSHA
 	}
 
-	// Print header
-	fmt.Printf("Deployment Progress\n")
-	fmt.Printf("──────────────────────────────────────────────────\n")
-	printSourceInfo(opts, gitInfo)
+	printContext(opts)
 
 	controlPlane := NewControlPlaneClient(opts)
-
-	// Create deployment with pre-built Docker image
 	terminal.StartSpinner("Creating deployment")
 	deploymentID, err := controlPlane.CreateDeployment(ctx, opts.DockerImage)
 	if err != nil {
-		terminal.StopSpinner(errors.FormatError(err), false)
-		return cli.Exit("", 1)
+		return fmt.Errorf("failed to create deployment: %s", errors.FormatError(err))
 	}
-	terminal.StopSpinner(fmt.Sprintf("Deployment created: %s", deploymentID), true)
+	terminal.StopSpinner("Deployment created")
 
-	// Track final deployment for completion info
 	var finalDeployment *components.V2DeployGetDeploymentResponseData
-
-	// Start monitoring spinner
-	terminal.StartSpinner("Deployment in progress")
-
-	// Handle deployment status changes
+	terminal.StartSpinner("Waiting for deployment")
 	onStatusChange := func(event DeploymentStatusEvent) error {
-		// nolint: exhaustive // We just need those two for now
-		switch event.CurrentStatus {
-		case components.V2DeployGetDeploymentResponseDataStatusFailed:
-			return handleDeploymentFailure(controlPlane, event.Deployment, terminal)
-		case components.V2DeployGetDeploymentResponseDataStatusReady:
-			// Store deployment but don't print success, wait for polling to complete
+		if event.CurrentStatus == components.V2DeployGetDeploymentResponseDataStatusFailed {
+			return fmt.Errorf("deployment failed: %s", ui.Text(controlPlane.getFailureMessage(event.Deployment)))
+		}
+		if event.CurrentStatus == components.V2DeployGetDeploymentResponseDataStatusReady {
 			finalDeployment = event.Deployment
 		}
 		return nil
 	}
 
-	// Poll for deployment completion
 	err = controlPlane.PollDeploymentStatus(ctx, deploymentID, onStatusChange)
 	if err != nil {
-		terminal.StopSpinner("Deployment failed", false)
 		return err
 	}
 
-	// Print final success message only after all polling is complete
 	if finalDeployment != nil {
-		terminal.StopSpinner("Deployment completed successfully", true)
-		fmt.Printf("\n")
+		terminal.StopSpinner("Deployment ready.")
 		printCompletionInfo(finalDeployment, opts.Environment)
-		fmt.Printf("\n")
 	}
 
 	return nil
 }
 
-func handleDeploymentFailure(controlPlane *ControlPlaneClient, deployment *components.V2DeployGetDeploymentResponseData, terminal *ui.UI) error {
-	errorMsg := controlPlane.getFailureMessage(deployment)
-	terminal.StopSpinner("Deployment failed", false)
-	terminal.PrintErrorDetails(errorMsg)
-	return fmt.Errorf("deployment failed: %s", errorMsg)
-}
-
-func printSourceInfo(opts DeployOptions, gitInfo git.Info) {
-	fmt.Printf("Source Information:\n")
-	fmt.Printf("    Branch: %s\n", opts.Branch)
-
-	if gitInfo.IsRepo && gitInfo.CommitSHA != "" {
-		commitInfo := gitInfo.ShortSHA
-		if gitInfo.IsDirty {
-			commitInfo += " (dirty)"
-		}
-		fmt.Printf("    Commit: %s\n", commitInfo)
-	}
-
-	fmt.Printf("    Image: %s\n", opts.DockerImage)
-	fmt.Printf("\n")
+func printContext(opts DeployOptions) {
+	fmt.Fprintf(os.Stderr, "Project: %s  App: %s  Environment: %s\n", ui.Text(opts.Project), ui.Text(opts.App), ui.Text(opts.Environment))
+	fmt.Fprintf(os.Stderr, "Image: %s\n", ui.Text(opts.DockerImage))
 }
 
 func printCompletionInfo(deployment *components.V2DeployGetDeploymentResponseData, env string) {
-	if deployment == nil || deployment.GetID() == "" {
-		fmt.Printf("✓ Deployment completed\n")
-		return
-	}
-
-	caser := cases.Title(language.English)
-
-	fmt.Println()
-	fmt.Println("Deployment Complete")
-	fmt.Printf("  Deployment ID: %s\n", deployment.GetID())
-	fmt.Printf("  Status: Ready\n")
-	fmt.Printf("  Environment: %s\n", caser.String(env))
-
-	fmt.Println()
-	fmt.Println("Domains")
+	fmt.Printf("ID: %s\n", ui.Text(deployment.GetID()))
+	fmt.Printf("Status: Ready\n")
+	fmt.Printf("Environment: %s\n", ui.Text(env))
 
 	hostnames := deployment.GetHostnames()
 	if len(hostnames) > 0 {
 		for _, hostname := range hostnames {
 			if strings.HasPrefix(hostname, "localhost:") {
-				fmt.Printf("  http://%s\n", hostname)
+				fmt.Printf("URL: http://%s\n", ui.Text(hostname))
 			} else {
-				fmt.Printf("  https://%s\n", hostname)
+				fmt.Printf("URL: https://%s\n", ui.Text(hostname))
 			}
 		}
 	} else {
-		fmt.Printf("  No hostnames assigned\n")
+		fmt.Println("URLs: none assigned")
 	}
 }

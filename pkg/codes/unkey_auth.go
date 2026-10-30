@@ -14,6 +14,8 @@ type authAuthentication struct {
 	// CredentialRejected indicates a presented credential is not accepted.
 	// CLI refresh uses this when the token is unknown, expired, revoked, or already used.
 	CredentialRejected Code
+
+	DeviceLoginExpired Code
 }
 
 // authAuthorization defines errors related to authorization failures.
@@ -51,6 +53,7 @@ var Auth = UnkeyAuthErrors{
 		Malformed:          Code{SystemUnkey, CategoryUnkeyAuthentication, "malformed"},
 		KeyNotFound:        Code{SystemUnkey, CategoryUnkeyAuthentication, "key_not_found"},
 		CredentialRejected: Code{SystemUnkey, CategoryUnkeyAuthentication, "credential_rejected"},
+		DeviceLoginExpired: Code{SystemUnkey, CategoryUnkeyAuthentication, "device_login_expired"},
 	},
 
 	Authorization: authAuthorization{

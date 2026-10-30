@@ -1,7 +1,8 @@
-import { type InstanceState, instanceStateOf } from "@/lib/collections/deploy/instance-status";
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
+import { isOutdated } from "@/lib/metrics/app-metrics";
 import type {
   Grid,
+  HeldLoadable,
   InstanceRow,
   InstanceSeries,
   MetricId,
@@ -17,6 +18,7 @@ import {
   absoluteScale,
   shareOf,
 } from "./allocation";
+import { type InstancePhase, phaseOf } from "./instances-model";
 
 export type ReplicaMetric = Extract<MetricId, LimitedMetric | "network">;
 
@@ -78,9 +80,24 @@ export function replicaUsage(
   if (!own) {
     return { status: "none" };
   }
+  const byTime = new Map(own.points.map((point) => [point.t, point]));
+  const points: ResourcePoint[] = [];
+  for (let t = grid.startMs; t < grid.endMs; t += grid.bucketMs) {
+    points.push(
+      byTime.get(t) ?? {
+        t,
+        cpu: null,
+        memory: null,
+        disk: null,
+        ingress: null,
+        egress: null,
+        instances: null,
+      },
+    );
+  }
   return {
     status: "ready",
-    sections: REPLICA_METRICS.map((metric) => replicaSection(metric, replica, grid, own.points)),
+    sections: REPLICA_METRICS.map((metric) => replicaSection(metric, replica, grid, points)),
   };
 }
 
@@ -89,11 +106,11 @@ export type OpenReplica = { environmentId: string | null; row: InstanceRow };
 export type ReplicaSheetModel = {
   name: string;
   region: string;
-  status: InstanceState;
+  status: InstancePhase;
   deployment: InstanceRow["deployment"];
   lastExit: InstanceRow["lastExit"];
-  stopped: boolean;
   usage: ReplicaUsage;
+  outdated: boolean;
 };
 
 export function openInstanceOf(
@@ -122,27 +139,31 @@ export function replicaSheetModel({
   environmentId,
   instances,
   usage,
+  markersOutdated,
 }: {
   open: OpenReplica | null;
   environmentId: string | null;
   instances: Loadable<InstanceRow[]>;
-  usage: Loadable<InstanceSeries>;
+  usage: HeldLoadable<InstanceSeries>;
+  markersOutdated: boolean;
 }): ReplicaSheetModel | null {
   if (!open || open.environmentId !== environmentId) {
     return null;
   }
   const live =
     instances.status === "ready"
-      ? instances.data.find((row) => row.instanceId === open.row.instanceId)
+      ? instances.data.find((row) => row.replica.k8sName === open.row.replica.k8sName)
       : undefined;
   const row = live ?? open.row;
+  const gone = instances.status === "ready" && !live;
+  const drawn = replicaUsage(usage, row.replica);
   return {
     name: row.replica.k8sName,
     region: row.region.name,
-    status: instanceStateOf(row),
+    status: gone ? "stopped" : phaseOf(row),
     deployment: row.deployment,
     lastExit: row.lastExit,
-    stopped: instances.status === "ready" && !live,
-    usage: replicaUsage(usage, row.replica),
+    usage: drawn,
+    outdated: isOutdated(usage) || (drawn.status === "ready" && markersOutdated),
   };
 }

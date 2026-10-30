@@ -114,6 +114,16 @@ Unkey uses the Minikube profile `unkey` and registry `unkey-registry`.
 The previous generic `minikube` profile and `ctlptl-registry` are left alone.
 Their data is not moved into the `unkey` cluster.
 
+Dev commands use a temporary kubeconfig with only the local profile's endpoint
+and certificates. They do not change your existing kubeconfig or current
+context. Each command removes its temporary file when it exits.
+
+To run a command against the local cluster, use:
+
+```bash
+mise run local-cluster -- kubectl get pods --all-namespaces
+```
+
 An existing `unkey` profile is reused, not reapplied through `ctlptl`.
 Changes to `dev/cluster.yaml` apply only when creating a cluster, because
 `ctlptl apply` can delete a cluster when its configuration changes.
@@ -132,7 +142,7 @@ using the reduced profile. Metal orbs run the full Cilium release.
 Inspect the installed releases with:
 
 ```bash
-mise exec -- helm list --all-namespaces
+mise run local-cluster -- helm list --all-namespaces
 ```
 
 Startup rejects profiles with a different Kubernetes version or CNI mode.
@@ -316,11 +326,19 @@ the local API after changing its config or environment.
 
 `unkey login` checks the member's current WorkOS role when it issues and
 refreshes a CLI session. Copy `dev/.env.workos.example` to `dev/.env.workos`
-and set `WORKOS_API_KEY` to the same value as the dashboard. The local API
-config already has a CLI signing secret and sends the browser to
-`http://localhost:3000/cli/device`. Sign in, check the code, narrow the
-permissions if you want, and click Allow. Use `AUTH_PROVIDER=workos` so the
-signed-in user id is the WorkOS user stored on the workspace.
+and set `WORKOS_API_KEY` to the same value as the dashboard. Enable CLI login
+when starting Tilt:
+
+```bash
+mise run dev -- --cli_auth=true
+```
+
+CLI login is disabled by default, even when WorkOS credentials are present.
+The flag adds a local signing secret and sends the browser to
+`http://localhost:3000/cli/device`. No tracked config edits are needed. Sign
+in, check the code, narrow the permissions if you want, and click Allow. Use
+`AUTH_PROVIDER=workos` so the signed-in user id is the WorkOS user stored on
+the workspace.
 
 Stripe billing:
 

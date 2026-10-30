@@ -3,7 +3,10 @@
 // The access token and refresh token live in the operating system secret store.
 // When that store is unavailable they are written to ~/.unkey/sessions.json with
 // mode 0600. A file left behind after a failed keychain write is newer than the
-// keychain and replaces it on the next load.
+// keychain and replaces it on the next load. A keychain blob that is not valid
+// session JSON is removed and reported as missing so a truncated item does not
+// block the next login. A corrupt sessions.json is removed and does not hide a
+// keychain session.
 package session
 
 import (
@@ -27,6 +30,7 @@ import (
 type Store interface {
 	Get() (string, error)
 	Set(secret string) error
+	Delete() error
 }
 
 type keychainStore struct{}
@@ -37,6 +41,10 @@ func (keychainStore) Get() (string, error) {
 
 func (keychainStore) Set(secret string) error {
 	return keystore.SetSessions(secret)
+}
+
+func (keychainStore) Delete() error {
+	return keystore.DeleteSessions()
 }
 
 // MemoryStore keeps the session blob in memory.
@@ -76,6 +84,13 @@ func (m *MemoryStore) Set(secret string) error {
 	return nil
 }
 
+func (m *MemoryStore) Delete() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.value = ""
+	return nil
+}
+
 var secrets Store = keychainStore{}
 
 // SetStore replaces the secret store. Passing nil restores the keychain.
@@ -98,6 +113,11 @@ const DefaultAPIURL = "https://api.unkey.com"
 func NormalizeAPIURL(raw string) string {
 	return strings.TrimRight(strings.TrimSpace(raw), "/")
 }
+
+// errCorruptSession marks a stored blob that is not session JSON. It is wrapped
+// with ErrNotFound so a later login can replace it, and the text tells the
+// user to sign in again.
+var errCorruptSession = errors.New("stored CLI session is unreadable")
 
 // Session is one workspace login.
 type Session struct {
@@ -128,7 +148,7 @@ func save(session Session) error {
 	if session.WorkspaceID == "" || session.AccessToken == "" || session.RefreshToken == "" {
 		return fmt.Errorf("cli session is incomplete")
 	}
-	current, err := read()
+	current, err := readLocked()
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return err
 	}
@@ -142,7 +162,16 @@ func save(session Session) error {
 
 // Active returns the session for the active workspace.
 func Active() (Session, error) {
-	current, err := read()
+	unlock, err := lockSessions()
+	if err != nil {
+		return Session{}, err
+	}
+	defer unlock()
+	return active()
+}
+
+func active() (Session, error) {
+	current, err := readLocked()
 	if err != nil {
 		return Session{}, err
 	}
@@ -155,7 +184,12 @@ func Active() (Session, error) {
 
 // List returns every stored session and the active workspace id.
 func List() (active string, sessions []Session, err error) {
-	current, err := read()
+	unlock, err := lockSessions()
+	if err != nil {
+		return "", nil, err
+	}
+	defer unlock()
+	current, err := readLocked()
 	if errors.Is(err, ErrNotFound) {
 		return "", nil, nil
 	}
@@ -176,7 +210,7 @@ func Switch(workspaceID string) error {
 		return err
 	}
 	defer unlock()
-	current, err := read()
+	current, err := readLocked()
 	if err != nil {
 		return err
 	}
@@ -187,15 +221,14 @@ func Switch(workspaceID string) error {
 	return write(current)
 }
 
-// Delete removes one workspace session. It returns the removed session so the
-// caller can revoke it.
-func Delete(workspaceID string) (Session, error) {
+// Delete removes the workspace session only if its ID still matches sessionID.
+func Delete(workspaceID, sessionID string) (Session, error) {
 	unlock, err := lockSessions()
 	if err != nil {
 		return Session{}, err
 	}
 	defer unlock()
-	current, err := read()
+	current, err := readLocked()
 	if err != nil {
 		return Session{}, err
 	}
@@ -208,6 +241,9 @@ func Delete(workspaceID string) (Session, error) {
 		if !ok {
 			return Session{}, ErrNotFound
 		}
+	}
+	if session.SessionID != sessionID {
+		return Session{}, ErrNotFound
 	}
 	delete(current.Sessions, workspaceID)
 	if current.Active == workspaceID {
@@ -238,7 +274,7 @@ func AccessToken(ctx context.Context, refresh func(ctx context.Context, current 
 	}
 	defer unlock()
 
-	session, err := Active()
+	session, err := active()
 	if err != nil {
 		return Session{}, err
 	}
@@ -267,10 +303,14 @@ func AccessToken(ctx context.Context, refresh func(ctx context.Context, current 
 	return next, nil
 }
 
-func read() (state, error) {
-	if file, err := readFile(); err == nil {
+func readLocked() (state, error) {
+	file, err := readFile()
+	if err == nil {
 		return file, nil
-	} else if !errors.Is(err, os.ErrNotExist) && !errors.Is(err, ErrNotFound) {
+	}
+	// readFile already removed a corrupt sessions.json. Fall through so that
+	// file cannot hide a session still stored in the keychain.
+	if !errors.Is(err, os.ErrNotExist) && !errors.Is(err, ErrNotFound) && !errors.Is(err, errCorruptSession) {
 		return state{}, err
 	}
 	raw, err := secrets.Get()
@@ -280,7 +320,12 @@ func read() (state, error) {
 		}
 		return state{}, err
 	}
-	return decode(raw)
+	current, err := decode(raw)
+	if errors.Is(err, errCorruptSession) {
+		_ = secrets.Delete()
+		return state{}, err
+	}
+	return current, err
 }
 
 func write(current state) error {
@@ -289,12 +334,11 @@ func write(current state) error {
 		return err
 	}
 	if err = secrets.Set(string(raw)); err == nil {
-		_ = removeFile()
-		return nil
+		err = removeFile()
+		if err == nil {
+			return nil
+		}
 	}
-	// A failed keychain write must not drop a token that was just rotated.
-	// The file is the fallback for every store error, not only an unavailable
-	// keychain.
 	if fileErr := writeFile(raw); fileErr != nil {
 		return errors.Join(err, fileErr)
 	}
@@ -307,13 +351,10 @@ func decode(raw string) (state, error) {
 		return state{}, ErrNotFound
 	}
 	if err := json.Unmarshal([]byte(raw), &current); err != nil {
-		return state{}, err
+		return state{}, fmt.Errorf("%w: %w; run unkey login again", ErrNotFound, errCorruptSession)
 	}
 	if current.Sessions == nil {
 		current.Sessions = map[string]Session{}
-	}
-	if len(current.Sessions) == 0 {
-		return state{}, ErrNotFound
 	}
 	return current, nil
 }
@@ -336,6 +377,10 @@ func readFile() (state, error) {
 		return state{}, err
 	}
 	current, err := decode(string(raw))
+	if errors.Is(err, errCorruptSession) {
+		_ = os.Remove(path)
+		return state{}, err
+	}
 	if err != nil {
 		return state{}, err
 	}
@@ -350,10 +395,34 @@ func writeFile(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	return os.WriteFile(path, raw, 0o600)
+	tmp, err := os.CreateTemp(dir, ".sessions-*.json")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if _, err := tmp.Write(raw); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	return nil
 }
 
 func removeFile() error {

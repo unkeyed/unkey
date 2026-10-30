@@ -3,11 +3,6 @@ import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
-// device_authorizations is the pending login a device starts and a dashboard
-// user approves. It is not CLI-specific: any device flow that shows a user
-// code and waits for approval can use the same row. No secrets are stored.
-// The poll id is the unguessable handle; user_code is the short code the
-// person compares on the approval page.
 export const deviceAuthorizations = mysqlTable(
   "device_authorizations",
   {

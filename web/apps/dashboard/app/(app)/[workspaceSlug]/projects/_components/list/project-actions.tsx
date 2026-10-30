@@ -6,11 +6,12 @@ import { routes } from "@/lib/navigation/routes";
 import {
   IconArrowsOppositeDirectionYOutline18,
   IconCloneOutline18,
+  IconDotsOutline18,
   IconGearOutline18,
   IconLayers3Outline18,
 } from "@unkey/icons";
 
-import { toast } from "@unkey/ui";
+import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
 
@@ -68,3 +69,13 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
 
   return <TableActionPopover items={menuItems}>{children}</TableActionPopover>;
 };
+
+export function ProjectActionsButton({ projectId }: { projectId: string }) {
+  return (
+    <ProjectActions projectId={projectId}>
+      <Button variant="ghost" size="icon" className="shrink-0" title="Project actions">
+        <IconDotsOutline18 />
+      </Button>
+    </ProjectActions>
+  );
+}

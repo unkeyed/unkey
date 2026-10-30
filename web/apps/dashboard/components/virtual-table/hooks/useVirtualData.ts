@@ -1,5 +1,6 @@
+import { usePageVirtualizer } from "@/hooks/use-page-virtualizer";
 import { throttle } from "@/lib/utils";
-import { type Virtualizer, useVirtualizer } from "@tanstack/react-virtual";
+import type { Virtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo } from "react";
 import type { TableConfig } from "../types";
 
@@ -9,7 +10,6 @@ export const useVirtualData = ({
   config,
   onLoadMore,
   isFetchingNextPage,
-  parentRef,
   getItemSize,
 }: {
   totalDataLength: number;
@@ -17,7 +17,6 @@ export const useVirtualData = ({
   config: TableConfig;
   onLoadMore?: () => void;
   isFetchingNextPage?: boolean;
-  parentRef: React.RefObject<HTMLDivElement>;
   getItemSize?: (index: number) => number;
 }) => {
   const throttledFn = useMemo(
@@ -47,19 +46,15 @@ export const useVirtualData = ({
   }, [throttledFn]);
 
   const handleChange = useCallback(
-    (instance: Virtualizer<HTMLDivElement, Element>) => {
+    (instance: Virtualizer<Window, Element>) => {
       const lastItem = instance.getVirtualItems().at(-1);
-      if (!lastItem || !onLoadMore) {
+      if (!lastItem || !onLoadMore || !instance.scrollRect) {
         return;
       }
 
-      const scrollElement = instance.scrollElement;
-      if (!scrollElement) {
-        return;
-      }
-
-      const scrollOffset = scrollElement.scrollTop + scrollElement.clientHeight;
-      const scrollThreshold = scrollElement.scrollHeight - config.rowHeight * 3;
+      const scrollOffset = (instance.scrollOffset ?? 0) + instance.scrollRect.height;
+      const scrollThreshold =
+        instance.options.scrollMargin + instance.getTotalSize() - config.rowHeight * 3;
 
       if (
         !isLoading &&
@@ -80,15 +75,14 @@ export const useVirtualData = ({
     ],
   );
 
-  return useVirtualizer({
+  return usePageVirtualizer<Element>({
     count: isLoading ? config.loadingRows : totalDataLength,
-    getScrollElement: useCallback(() => parentRef.current, [parentRef]),
     estimateSize: useCallback(
-      (index) => (getItemSize ? getItemSize(index) : config.rowHeight),
+      (index: number) => (getItemSize ? getItemSize(index) : config.rowHeight),
       [config.rowHeight, getItemSize],
     ),
     overscan: config.overscan,
     onChange: handleChange,
-    gap: 4, // Add this line
+    gap: 4,
   });
 };

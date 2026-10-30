@@ -4,17 +4,9 @@ import {
   IconCaretUpOutline12,
   IconCircleCaretRightOutline18,
 } from "@unkey/icons";
-import { Skeleton } from "@unkey/ui";
+import { Skeleton, StickySlot, usePinnedTableHeader } from "@unkey/ui";
 import { cn } from "cn";
-import {
-  Fragment,
-  type Ref,
-  forwardRef,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, useMemo, useState } from "react";
 import { VirtualTableEmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
@@ -40,342 +32,250 @@ const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
   });
 };
 
-export type VirtualTableRef = {
-  parentRef: HTMLDivElement | null;
-  containerRef: HTMLDivElement | null;
-};
+export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
+  const {
+    data: historicData,
+    realtimeData = [],
+    columns,
+    isLoading = false,
+    config: userConfig,
+    onRowClick,
+    onLoadMore,
+    emptyState,
+    keyExtractor,
+    rowClassName,
+    selectedClassName,
+    selectedItem,
+    isFetchingNextPage,
+    loadMoreFooterProps,
+    renderSkeletonRow,
+    onRowMouseEnter,
+    onRowMouseLeave,
+    expandedIds: controlledExpandedIds,
+    onExpandedChange,
+    renderExpanded,
+    isExpandable,
+    expandedRowHeight = 400,
+  } = props;
 
-// biome-ignore lint/suspicious/noExplicitAny: Safe to leave
-export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
-  function VirtualTable<TTableData>(
-    props: VirtualTableProps<TTableData>,
-    ref: Ref<unknown> | undefined,
-  ) {
-    const {
-      data: historicData,
-      realtimeData = [],
-      columns,
-      isLoading = false,
-      config: userConfig,
-      onRowClick,
-      onLoadMore,
-      emptyState,
-      keyExtractor,
-      rowClassName,
-      selectedClassName,
-      selectedItem,
-      isFetchingNextPage,
-      loadMoreFooterProps,
-      renderSkeletonRow,
-      onRowMouseEnter,
-      onRowMouseLeave,
-      fixedHeight,
-      expandedIds: controlledExpandedIds,
-      onExpandedChange,
-      renderExpanded,
-      isExpandable,
-      expandedRowHeight = 400,
-    } = props;
+  // Merge configs, allowing specific overrides
+  const config = { ...DEFAULT_CONFIG, ...userConfig };
+  const isGridLayout = config.layoutMode === "grid";
+  const pinned = usePinnedTableHeader();
 
-    // Merge configs, allowing specific overrides
-    const config = { ...DEFAULT_CONFIG, ...userConfig };
-    const isGridLayout = config.layoutMode === "grid";
-    const parentRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
-    const containerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
-    // Default to false (desktop) to prevent hydration mismatches
+  // Track expansion state internally if not controlled
+  const [internalExpandedIds, setInternalExpandedIds] = useState<Set<string | number>>(new Set());
+  const expandedIds = controlledExpandedIds ?? internalExpandedIds;
 
-    // Track expansion state internally if not controlled
-    const [internalExpandedIds, setInternalExpandedIds] = useState<Set<string | number>>(new Set());
-    const expandedIds = controlledExpandedIds ?? internalExpandedIds;
+  // Toggle expansion
+  const handleToggleExpand = (item: TTableData) => {
+    if (!isExpandable?.(item)) {
+      return;
+    }
+    const id = String(keyExtractor(item));
+    const newExpanded = new Set(expandedIds);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    onExpandedChange?.(newExpanded);
+    setInternalExpandedIds(newExpanded);
+  };
 
-    // Toggle expansion
-    const handleToggleExpand = (item: TTableData) => {
-      if (!isExpandable?.(item)) {
-        return;
+  const hasPadding = config.containerPadding !== "px-0";
+  const hasHeaders = columns.some((col) => col.header);
+
+  const tableData = useTableData<TTableData>(realtimeData, historicData);
+
+  // Dynamic row sizing for expandable rows
+  const getItemSize = useMemo(() => {
+    if (!renderExpanded || !isExpandable) {
+      return undefined;
+    }
+    return (index: number) => {
+      const item = tableData.getItemAt(index);
+      if (!item || (item as SeparatorItem).isSeparator) {
+        return config.rowHeight;
       }
-      const id = String(keyExtractor(item));
-      const newExpanded = new Set(expandedIds);
-      if (newExpanded.has(id)) {
-        newExpanded.delete(id);
-      } else {
-        newExpanded.add(id);
-      }
-      onExpandedChange?.(newExpanded);
-      setInternalExpandedIds(newExpanded);
+      const typedItem = item as TTableData;
+      const id = String(keyExtractor(typedItem));
+      const isExpanded = expandedIds.has(id);
+      return isExpanded ? config.rowHeight + expandedRowHeight : config.rowHeight;
     };
+  }, [
+    renderExpanded,
+    isExpandable,
+    tableData,
+    keyExtractor,
+    expandedIds,
+    config.rowHeight,
+    expandedRowHeight,
+  ]);
 
-    const hasPadding = config.containerPadding !== "px-0";
-    const hasHeaders = columns.some((col) => col.header);
+  const {
+    virtualizer,
+    listRef,
+    items: virtualItems,
+  } = useVirtualData({
+    totalDataLength: tableData.getTotalLength(),
+    isLoading,
+    config,
+    onLoadMore,
+    isFetchingNextPage,
+    getItemSize,
+  });
 
-    const tableData = useTableData<TTableData>(realtimeData, historicData);
+  const tableClassName = cn(
+    "w-full",
+    isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
+    "table-auto xl:table-fixed",
+    config.tableLayout === "fixed" ? "table-fixed!" : "table-auto!",
+  );
 
-    // Dynamic row sizing for expandable rows
-    const getItemSize = useMemo(() => {
-      if (!renderExpanded || !isExpandable) {
-        return undefined;
-      }
-      return (index: number) => {
-        const item = tableData.getItemAt(index);
-        if (!item || (item as SeparatorItem).isSeparator) {
-          return config.rowHeight;
-        }
-        const typedItem = item as TTableData;
-        const id = String(keyExtractor(typedItem));
-        const isExpanded = expandedIds.has(id);
-        return isExpanded ? config.rowHeight + expandedRowHeight : config.rowHeight;
-      };
-    }, [
-      renderExpanded,
-      isExpandable,
-      tableData,
-      keyExtractor,
-      expandedIds,
-      config.rowHeight,
-      expandedRowHeight,
-    ]);
+  const colWidths = useMemo(() => calculateTableLayout(columns), [columns]);
 
-    const virtualizer = useVirtualData({
-      totalDataLength: tableData.getTotalLength(),
-      isLoading,
-      config,
-      onLoadMore,
-      isFetchingNextPage,
-      parentRef,
-      getItemSize,
-    });
+  const isEmpty = !isLoading && historicData.length === 0 && realtimeData.length === 0;
 
-    const tableClassName = cn(
-      "w-full",
-      isGridLayout ? "border-collapse" : "border-separate border-spacing-0",
-      "table-auto xl:table-fixed",
-      config.tableLayout === "fixed" ? "table-fixed!" : "table-auto!",
-    );
-
-    // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable and shouldn't be in deps
-    useImperativeHandle(
-      ref,
-      () => ({
-        parentRef: parentRef.current,
-        containerRef: containerRef.current,
-      }),
-      [],
-    );
-
-    const colWidths = useMemo(() => calculateTableLayout(columns), [columns]);
-
-    const isEmpty = !isLoading && historicData.length === 0 && realtimeData.length === 0;
-    const fillsParent = fixedHeight === undefined;
-
-    return (
+  return (
+    <div className="w-full flex flex-1 flex-col">
       <div
-        className={cn("w-full flex flex-col", fillsParent && "md:flex-1 md:min-h-0")}
-        ref={containerRef}
+        ref={pinned.boxRef}
+        className={cn(
+          "relative flex-1 pb-4",
+          pinned.boxClassName,
+          config.className,
+          config.containerPadding || "px-2",
+          isEmpty && "flex flex-col",
+        )}
       >
-        <div
-          ref={parentRef}
-          className={cn(
-            "overflow-auto relative pb-4",
-            config.className,
-            config.containerPadding || "px-2",
-            "max-md:h-[400px]",
-            fillsParent && "md:flex-1 md:min-h-0",
-            isEmpty && "flex flex-col",
-          )}
-          style={fixedHeight === undefined ? undefined : { height: fixedHeight }}
-        >
-          <table className={tableClassName}>
-            <colgroup>
-              {columns.map((column, idx) => (
-                <col key={column.key} style={{ width: colWidths[idx].width }} />
-              ))}
-            </colgroup>
-            {hasHeaders && (
-              <thead className={cn("sticky top-0 z-10 bg-table-header", config.className)}>
-                <tr>
-                  {columns.map((column) => (
-                    <th
-                      key={column.key}
-                      className={cn(
-                        "text-sm font-medium text-gray-12 py-1 text-left relative",
-                        hasPadding &&
-                          "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
-                        column.headerClassName,
-                        column.cellClassName,
-                      )}
-                    >
-                      <HeaderCell column={column} />
-                    </th>
-                  ))}
-                </tr>
-                <tr>
-                  <th colSpan={columns.length} className="relative p-0">
-                    <div
-                      className={cn(
-                        "absolute bottom-0 border-b",
-                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                      )}
-                    />
+        <table ref={pinned.tableRef} className={tableClassName}>
+          <colgroup>
+            {columns.map((column, idx) => (
+              <col key={column.key} style={{ width: colWidths[idx].width }} />
+            ))}
+          </colgroup>
+          {hasHeaders && (
+            <StickySlot
+              slot="columns"
+              enabled={pinned.headerPinned}
+              render={<thead />}
+              className={cn("bg-table-header", config.className)}
+            >
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    className={cn(
+                      "text-sm font-medium text-gray-12 py-1 text-left relative",
+                      hasPadding &&
+                        "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
+                      column.headerClassName,
+                      column.cellClassName,
+                    )}
+                  >
+                    <HeaderCell column={column} />
                   </th>
-                </tr>
-              </thead>
-            )}
+                ))}
+              </tr>
+              <tr>
+                <th colSpan={columns.length} className="relative p-0">
+                  <div
+                    className={cn(
+                      "absolute bottom-0 border-b",
+                      hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                    )}
+                  />
+                </th>
+              </tr>
+            </StickySlot>
+          )}
 
-            <tbody>
-              <tr
-                style={{
-                  height: `${virtualizer.getVirtualItems()[0]?.start || 0}px`,
-                }}
-              />
+          <tbody ref={listRef} className={pinned.rowsClassName} style={pinned.rowsStyle}>
+            <tr
+              style={{
+                height: `${virtualItems[0]?.start ?? 0}px`,
+              }}
+            />
 
-              {virtualizer.getVirtualItems().map((virtualRow) => {
-                if (isLoading) {
-                  if (renderSkeletonRow) {
-                    return (
-                      <tr
-                        key={`skeleton-${virtualRow.key}`}
-                        className={cn(config.rowBorders && "border-b")}
-                        style={{ height: `${config.rowHeight}px` }}
-                      >
-                        {renderSkeletonRow({
-                          columns,
-                          rowHeight: config.rowHeight,
-                        })}
-                      </tr>
-                    );
-                  }
+            {virtualItems.map((virtualRow) => {
+              if (isLoading) {
+                if (renderSkeletonRow) {
                   return (
                     <tr
                       key={`skeleton-${virtualRow.key}`}
                       className={cn(config.rowBorders && "border-b")}
                       style={{ height: `${config.rowHeight}px` }}
                     >
-                      {columns.map((column) => (
-                        <td key={column.key} className={cn("pr-4", column.cellClassName)}>
-                          <Skeleton className="h-4 bg-gray-3" />
-                        </td>
-                      ))}
+                      {renderSkeletonRow({
+                        columns,
+                        rowHeight: config.rowHeight,
+                      })}
                     </tr>
                   );
                 }
+                return (
+                  <tr
+                    key={`skeleton-${virtualRow.key}`}
+                    className={cn(config.rowBorders && "border-b")}
+                    style={{ height: `${config.rowHeight}px` }}
+                  >
+                    {columns.map((column) => (
+                      <td key={column.key} className={cn("pr-4", column.cellClassName)}>
+                        <Skeleton className="h-4 bg-gray-3" />
+                      </td>
+                    ))}
+                  </tr>
+                );
+              }
 
-                const item = tableData.getItemAt(virtualRow.index);
-                if (!item) {
-                  return null;
-                }
+              const item = tableData.getItemAt(virtualRow.index);
+              if (!item) {
+                return null;
+              }
 
-                const separator = item as SeparatorItem;
-                if (separator.isSeparator) {
-                  // Custom content lets callers (e.g. the runtime-logs
-                  // event timeline) render a per-event banner inline. The
-                  // default branch keeps the legacy "Live" rendering for
-                  // tables that only ever insert one separator at the top.
-                  const defaultContent = (
-                    <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                      <IconCircleCaretRightOutline18 className="size-3" />
-                      Live
-                    </div>
-                  );
-                  return (
-                    <Fragment key={`row-group-${virtualRow.key}`}>
-                      <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
-                      <tr key={`content-${virtualRow.key}`}>
-                        <td colSpan={columns.length} className="p-0">
-                          {separator.content ?? defaultContent}
-                        </td>
-                      </tr>
-                    </Fragment>
-                  );
-                }
-
-                const typedItem = item as TTableData;
-                const isSelected = selectedItem
-                  ? keyExtractor(selectedItem) === keyExtractor(typedItem)
-                  : false;
-                const itemId = String(keyExtractor(typedItem));
-                const isExpanded = expandedIds.has(itemId);
-                const canExpand = isExpandable?.(typedItem) ?? false;
-
-                const handleRowClick = () => {
-                  if (canExpand) {
-                    handleToggleExpand(typedItem);
-                  }
-                  onRowClick?.(typedItem);
-                };
-
-                if (isGridLayout) {
-                  return (
-                    <Fragment key={`row-group-${virtualRow.key}`}>
-                      <tr
-                        key={`content-${virtualRow.key}`}
-                        tabIndex={virtualRow.index}
-                        data-index={virtualRow.index}
-                        aria-selected={isSelected}
-                        onClick={handleRowClick}
-                        onMouseEnter={() => onRowMouseEnter?.(typedItem)}
-                        onMouseLeave={() => onRowMouseLeave?.()}
-                        onKeyDown={(event) => {
-                          if (event.key === "Escape") {
-                            event.preventDefault();
-                            onRowClick?.(null);
-                            const activeElement = document.activeElement as HTMLElement;
-                            activeElement?.blur();
-                          }
-                          if (event.key === "ArrowDown" || event.key === "j") {
-                            event.preventDefault();
-                            const nextElement = document.querySelector(
-                              `[data-index="${virtualRow.index + 1}"]`,
-                            ) as HTMLElement;
-                            if (nextElement) {
-                              nextElement.focus();
-                              nextElement.click();
-                            }
-                          }
-                          if (event.key === "ArrowUp" || event.key === "k") {
-                            event.preventDefault();
-                            const prevElement = document.querySelector(
-                              `[data-index="${virtualRow.index - 1}"]`,
-                            ) as HTMLElement;
-                            if (prevElement) {
-                              prevElement.focus();
-                              prevElement.click();
-                            }
-                          }
-                        }}
-                        className={cn(
-                          "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
-                          config.rowBorders && "border-b",
-                          rowClassName?.(typedItem),
-                          selectedClassName?.(typedItem, isSelected),
-                        )}
-                        style={{ height: `${config.rowHeight}px` }}
-                      >
-                        {columns.map((column, idx) => (
-                          <td
-                            key={column.key}
-                            className={cn(
-                              "text-xs align-middle whitespace-nowrap pr-4",
-                              idx === 0 ? "rounded-l-md" : "",
-                              idx === columns.length - 1 ? "rounded-r-md" : "",
-                              column.cellClassName,
-                            )}
-                          >
-                            {column.render(typedItem)}
-                          </td>
-                        ))}
-                      </tr>
-                      {isExpanded && renderExpanded?.(typedItem)}
-                    </Fragment>
-                  );
-                }
-
+              const separator = item as SeparatorItem;
+              if (separator.isSeparator) {
+                // Custom content lets callers (e.g. the runtime-logs
+                // event timeline) render a per-event banner inline. The
+                // default branch keeps the legacy "Live" rendering for
+                // tables that only ever insert one separator at the top.
+                const defaultContent = (
+                  <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
+                    <IconCircleCaretRightOutline18 className="size-3" />
+                    Live
+                  </div>
+                );
                 return (
                   <Fragment key={`row-group-${virtualRow.key}`}>
-                    {(config.rowSpacing ?? 4) > 0 && (
-                      <tr
-                        key={`spacer-${virtualRow.key}`}
-                        style={{ height: `${config.rowSpacing ?? 4}px` }}
-                      />
-                    )}
+                    <tr key={`spacer-${virtualRow.key}`} style={{ height: "4px" }} />
+                    <tr key={`content-${virtualRow.key}`}>
+                      <td colSpan={columns.length} className="p-0">
+                        {separator.content ?? defaultContent}
+                      </td>
+                    </tr>
+                  </Fragment>
+                );
+              }
+
+              const typedItem = item as TTableData;
+              const isSelected = selectedItem
+                ? keyExtractor(selectedItem) === keyExtractor(typedItem)
+                : false;
+              const itemId = String(keyExtractor(typedItem));
+              const isExpanded = expandedIds.has(itemId);
+              const canExpand = isExpandable?.(typedItem) ?? false;
+
+              const handleRowClick = () => {
+                if (canExpand) {
+                  handleToggleExpand(typedItem);
+                }
+                onRowClick?.(typedItem);
+              };
+
+              if (isGridLayout) {
+                return (
+                  <Fragment key={`row-group-${virtualRow.key}`}>
                     <tr
                       key={`content-${virtualRow.key}`}
                       tabIndex={virtualRow.index}
@@ -437,37 +337,103 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     {isExpanded && renderExpanded?.(typedItem)}
                   </Fragment>
                 );
-              })}
-              <tr
-                style={{
-                  height: `${
-                    virtualizer.getTotalSize() -
-                    (virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]?.end ||
-                      0)
-                  }px`,
-                }}
-              />
-            </tbody>
-          </table>
-          {isEmpty && (
-            <div className="flex-1 flex items-center justify-center">
-              {emptyState ?? <VirtualTableEmptyState />}
-            </div>
-          )}
-          {!isEmpty && loadMoreFooterProps && (
-            <LoadMoreFooter
-              {...loadMoreFooterProps}
-              onLoadMore={onLoadMore}
-              isFetchingNextPage={isFetchingNextPage}
-              totalVisible={virtualizer.getVirtualItems().length}
-              totalCount={tableData.getTotalLength()}
+              }
+
+              return (
+                <Fragment key={`row-group-${virtualRow.key}`}>
+                  {(config.rowSpacing ?? 4) > 0 && (
+                    <tr
+                      key={`spacer-${virtualRow.key}`}
+                      style={{ height: `${config.rowSpacing ?? 4}px` }}
+                    />
+                  )}
+                  <tr
+                    key={`content-${virtualRow.key}`}
+                    tabIndex={virtualRow.index}
+                    data-index={virtualRow.index}
+                    aria-selected={isSelected}
+                    onClick={handleRowClick}
+                    onMouseEnter={() => onRowMouseEnter?.(typedItem)}
+                    onMouseLeave={() => onRowMouseLeave?.()}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        onRowClick?.(null);
+                        const activeElement = document.activeElement as HTMLElement;
+                        activeElement?.blur();
+                      }
+                      if (event.key === "ArrowDown" || event.key === "j") {
+                        event.preventDefault();
+                        const nextElement = document.querySelector(
+                          `[data-index="${virtualRow.index + 1}"]`,
+                        ) as HTMLElement;
+                        if (nextElement) {
+                          nextElement.focus();
+                          nextElement.click();
+                        }
+                      }
+                      if (event.key === "ArrowUp" || event.key === "k") {
+                        event.preventDefault();
+                        const prevElement = document.querySelector(
+                          `[data-index="${virtualRow.index - 1}"]`,
+                        ) as HTMLElement;
+                        if (prevElement) {
+                          prevElement.focus();
+                          prevElement.click();
+                        }
+                      }
+                    }}
+                    className={cn(
+                      "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
+                      config.rowBorders && "border-b",
+                      rowClassName?.(typedItem),
+                      selectedClassName?.(typedItem, isSelected),
+                    )}
+                    style={{ height: `${config.rowHeight}px` }}
+                  >
+                    {columns.map((column, idx) => (
+                      <td
+                        key={column.key}
+                        className={cn(
+                          "text-xs align-middle whitespace-nowrap pr-4",
+                          idx === 0 ? "rounded-l-md" : "",
+                          idx === columns.length - 1 ? "rounded-r-md" : "",
+                          column.cellClassName,
+                        )}
+                      >
+                        {column.render(typedItem)}
+                      </td>
+                    ))}
+                  </tr>
+                  {isExpanded && renderExpanded?.(typedItem)}
+                </Fragment>
+              );
+            })}
+            <tr
+              style={{
+                height: `${virtualizer.getTotalSize() - (virtualItems.at(-1)?.end ?? 0)}px`,
+              }}
             />
-          )}
-        </div>
+          </tbody>
+        </table>
+        {isEmpty && (
+          <div className="flex-1 flex items-center justify-center">
+            {emptyState ?? <VirtualTableEmptyState />}
+          </div>
+        )}
+        {!isEmpty && loadMoreFooterProps && (
+          <LoadMoreFooter
+            {...loadMoreFooterProps}
+            onLoadMore={onLoadMore}
+            isFetchingNextPage={isFetchingNextPage}
+            totalVisible={virtualItems.length}
+            totalCount={tableData.getTotalLength()}
+          />
+        )}
       </div>
-    );
-  },
-);
+    </div>
+  );
+}
 
 function SortIcon({ direction }: { direction?: SortDirection | null }) {
   if (!direction) {

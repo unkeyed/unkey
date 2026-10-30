@@ -21,13 +21,31 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_list_deployments"
 )
 
-func TestListWorkspaceWide(t *testing.T) {
+func TestListWorkspaceWideWithZeroWorkspaceRateLimit(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup()
 	setup.RootKey = h.CreateRootKey(setup.Workspace.ID, readDeployments(setup.Workspace.ID))
+
+	require.NoError(t, db.Query.UpsertLimit(t.Context(), h.DB.RW(), db.UpsertLimitParams{
+		WorkspaceID:                           setup.Workspace.ID,
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{Int32: 0, Valid: true},
+		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
+		LogsRetentionDaysMax:                  30,
+		LogsAuditRetentionDaysMax:             30,
+		TeamEnabled:                           false,
+		CpuCoresMax:                           10,
+		CpuCoresMaxPerInstance:                2,
+		MemoryMibMax:                          20_480,
+		MemoryMibMaxPerInstance:               4_096,
+		StorageMibMax:                         51_200,
+		StorageMibMaxPerInstance:              10_240,
+		BuildsConcurrentMax:                   1,
+		CustomDomainsMax:                      0,
+		AutoscalingReplicasMax:                0,
+	}))
 
 	want := map[string]bool{}
 	for range 3 {

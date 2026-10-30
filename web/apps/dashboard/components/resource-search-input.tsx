@@ -1,11 +1,12 @@
 "use client";
 
-import { SearchInput } from "@unkey/ui";
+import { SEARCH_LENGTH_MAX } from "@/lib/list-limits";
+import { ResourceListSearch, SearchInput } from "@unkey/ui";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useRef, useState } from "react";
 
 const DEBOUNCE_MS = 300;
-const MAX_LENGTH = 256;
+const LIST_SEARCH_KEY = "search";
 
 export function useResourceSearch(key: string) {
   return useQueryState(
@@ -16,6 +17,11 @@ export function useResourceSearch(key: string) {
       clearOnDefault: true,
     }),
   );
+}
+
+export function useListSearch(): string {
+  const [value] = useResourceSearch(LIST_SEARCH_KEY);
+  return value.trim();
 }
 
 function useDebouncedQueryState(key: string, delay: number) {
@@ -73,14 +79,14 @@ function useDebouncedQueryState(key: string, delay: number) {
 }
 
 type ResourceSearchInputProps = {
-  queryKey: string;
+  queryKey?: string;
   label: string;
   placeholder: string;
   debounceMs?: number;
 };
 
 export function ResourceSearchInput({
-  queryKey,
+  queryKey = LIST_SEARCH_KEY,
   label,
   placeholder,
   debounceMs = DEBOUNCE_MS,
@@ -88,14 +94,14 @@ export function ResourceSearchInput({
   const { text, type, clear } = useDebouncedQueryState(queryKey, debounceMs);
 
   return (
-    <div className="flex h-8 w-full items-center md:w-80">
+    <ResourceListSearch>
       <SearchInput
         value={text}
         onValueChange={(value) => (value === "" ? clear() : type(value))}
         label={label}
         placeholder={placeholder}
-        maxLength={MAX_LENGTH}
+        maxLength={SEARCH_LENGTH_MAX}
       />
-    </div>
+    </ResourceListSearch>
   );
 }

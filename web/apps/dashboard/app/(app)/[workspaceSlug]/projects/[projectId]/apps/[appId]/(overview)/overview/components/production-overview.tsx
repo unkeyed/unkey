@@ -7,9 +7,14 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Deployment, type DeploymentSummary, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import { previousRollbackTarget, rollbackCandidates } from "@/lib/collections/deploy/rollback";
+import {
+  findRolledBackFrom,
+  previousRollbackTarget,
+  rollbackCandidates,
+} from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { match } from "@unkey/match";
 import { Card, PageBody } from "@unkey/ui";
@@ -20,6 +25,7 @@ import { type ReactNode, useState } from "react";
 import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { appDeploymentQueryFor } from "../../data-provider-queries";
+import { nonGitOrigin } from "../../deployments/components/deployment-row-cells";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
@@ -29,8 +35,12 @@ import { AppCanvasSkeleton } from "./app-canvas-skeleton";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
 import { OverviewHeader, ProductionActions, ProductionActionsSkeleton } from "./overview-header";
-import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
-import { STATUS_META, deriveProductionStatus } from "./status";
+import {
+  type DeployStamp,
+  type ProductionCardContextValue,
+  ProductionCardProvider,
+} from "./production-card-context";
+import { type DeploymentDisplayStatus, STATUS_META, deriveProductionStatus } from "./status";
 
 const RollbackDialog = dynamic(
   () =>
@@ -44,6 +54,9 @@ const UndoRollbackDialog = dynamic(
   () => import("./undo-rollback-dialog").then((m) => m.UndoRollbackDialog),
   { ssr: false },
 );
+
+const AUDIT_EXPORT_POLL_MS = 5_000;
+const AUDIT_EXPORT_POLL_LIMIT = 36;
 
 type ProductionOverviewModel =
   | { kind: "loading" }
@@ -113,13 +126,29 @@ function useProductionOverview({
     [projectId, appId, fallbackDeploymentId],
   );
 
-  const deployment = currentDeployment ?? fallbackDeploymentQuery.data?.[0];
-  const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
+  const shown = currentDeployment ?? fallbackDeploymentQuery.data?.[0];
   const isCurrent = Boolean(currentDeployment);
+  const isRolledBack = isCurrent && appIsRolledBack;
+  const production = shown
+    ? { deployment: shown, status: deriveProductionStatus(shown, { rolledBack: isRolledBack }) }
+    : null;
+  const rolledBackId = production?.status === "rolled-back" ? production.deployment.id : null;
+  const rollbackQuery = trpc.deploy.deployment.latestRollback.useQuery(
+    { appId, deploymentId: rolledBackId ?? "" },
+    {
+      enabled: rolledBackId !== null,
+      staleTime: 0,
+      refetchInterval: (data, query) =>
+        data === null && query.state.dataUpdateCount < AUDIT_EXPORT_POLL_LIMIT
+          ? AUDIT_EXPORT_POLL_MS
+          : false,
+    },
+  );
+  const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
   const newerDeployment =
-    deployment &&
+    production &&
     latestProductionDeployment &&
-    latestProductionDeployment.id !== deployment.id &&
+    latestProductionDeployment.id !== production.deployment.id &&
     hasVisibleBuildState(latestProductionDeployment)
       ? latestProductionDeployment
       : undefined;
@@ -133,11 +162,10 @@ function useProductionOverview({
     [projectId, appId],
   );
 
-  const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
   useCollectionPolling(() => collection.deployments.utils.refetch(), {
     intervalMs: 10_000,
     enabled:
-      (productionStatus ? STATUS_META[productionStatus].polls : false) ||
+      (production ? STATUS_META[production.status].polls : false) ||
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
@@ -154,12 +182,11 @@ function useProductionOverview({
     return { kind: "loading" };
   }
 
-  if (!deployment) {
+  if (!production) {
     return { kind: "no-production" };
   }
 
-  const status = productionStatus ?? deriveProductionStatus(deployment);
-  const isRolledBack = isCurrent && appIsRolledBack;
+  const { deployment, status } = production;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { all } = getDomainPriority({
@@ -176,6 +203,15 @@ function useProductionOverview({
         (a, b) => b.createdAt - a.createdAt,
       )
     : [];
+
+  const rollback = rollbackQuery.data;
+  const stamp = stampOf({ deployment, status, isCurrent, rollback });
+  const replaced =
+    status === "rolled-back" && !rollbackQuery.isLoading
+      ? (deployments.find((d) => d.id === rollback?.fromDeploymentId) ??
+        findRolledBackFrom(deployments, deployment) ??
+        null)
+      : null;
 
   const deploymentHref = routes.projects.apps.deployment({
     workspaceSlug: workspace.slug,
@@ -205,6 +241,8 @@ function useProductionOverview({
     status,
     isCurrent,
     isRolledBack,
+    stamp,
+    replaced,
     canvas: {
       appName: app?.name ?? "App",
       appSource: app ? appSource(app) : "legacy",
@@ -365,4 +403,30 @@ function ProductionCardSlot({ model }: { model: ProductionOverviewModel }) {
       </div>
     ))
     .exhaustive();
+}
+
+function stampOf({
+  deployment,
+  status,
+  isCurrent,
+  rollback,
+}: {
+  deployment: Deployment;
+  status: DeploymentDisplayStatus;
+  isCurrent: boolean;
+  rollback: { at: number; actor: DeployStamp["actor"] } | null | undefined;
+}): DeployStamp | null {
+  if (status === "rolled-back") {
+    return rollback ? { verb: "Rolled back", at: rollback.at, actor: rollback.actor } : null;
+  }
+  if (status !== "live" || !isCurrent) {
+    return null;
+  }
+  const isGitAuthored = deployment.source === "git" && !nonGitOrigin(deployment);
+  const handle = isGitAuthored ? deployment.gitCommitAuthorHandle : null;
+  return {
+    verb: "Deployed",
+    at: deployment.createdAt,
+    actor: handle ? { name: handle, avatarUrl: deployment.gitCommitAuthorAvatarUrl } : null,
+  };
 }

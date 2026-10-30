@@ -4,7 +4,9 @@ import {
   ControlsLeft,
   ControlsRight,
 } from "@/components/logs/controls-container";
-import { LogsDateTime } from "./components/logs-datetime";
+import { HOUR_PLUS_OPTIONS } from "@/components/logs/datetime/constants";
+import { TimeRangeFilter } from "@/components/logs/datetime/time-range-filter";
+import { useFilters } from "../../hooks/use-filters";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";
 import { LogsRefresh } from "./components/logs-refresh";
@@ -15,12 +17,18 @@ export function IdentityDetailsLogsControls({
 }: {
   identityId: string;
 }) {
+  const { filters, updateFilters } = useFilters();
   return (
     <ControlsContainer>
       <ControlsLeft>
         <LogsSearch identityId={identityId} />
         <LogsFilters />
-        <LogsDateTime />
+        <TimeRangeFilter
+          filters={filters}
+          updateFilters={updateFilters}
+          look="logs"
+          customOptions={HOUR_PLUS_OPTIONS}
+        />
       </ControlsLeft>
       <ControlsRight>
         <LogsLiveSwitch />

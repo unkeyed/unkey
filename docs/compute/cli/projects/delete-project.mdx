@@ -1,6 +1,6 @@
 ---
-title: unkey api projects delete-project
-sidebarTitle: "delete-project"
+title: unkey projects delete
+sidebarTitle: "delete"
 description: "Delete a project and everything in it."
 sources:
   - cmd/api/projects/delete_project.go
@@ -10,21 +10,29 @@ sources:
   - cmd/api/util/flags.go
 ---
 
+import CLIOutput from "/snippets/cli-output.mdx";
+
+import CLIConfirmation from "/snippets/cli-confirmation.mdx";
+
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 <RootKeyPrereq />
 
 Delete a <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> and all of its <Tooltip tip="Compute apps: deployable services inside a project. Not your applications in general.">apps</Tooltip>, <Tooltip tip="Production or preview environments of a Compute app, not the dashboard label on a key.">environments</Tooltip>, deployments, and custom domains.
 
-Deletion runs in the background: a successful response means it has started, not that every resource is gone yet. A project with delete protection enabled is refused until you disable it with `update-project`.
+Deletion runs in the background: a successful response means it has started, not that every resource is gone yet. A project with delete protection enabled is refused until you disable it with `unkey projects update`.
 
 ## Usage
 
 ```bash
-unkey api projects delete-project --project=<project>
+unkey projects delete --project=<project>
 ```
 
 ## Flags
+
+<ParamField body="--yes" type="boolean">
+  <CLIConfirmation />
+</ParamField>
 
 <ParamField body="--project" type="string" required>
   Project ID or slug. Both forms resolve to the same project.
@@ -32,14 +40,14 @@ unkey api projects delete-project --project=<project>
 
 ### Shared flags
 
-Every `unkey api` command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+Every resource command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
 
 <ParamField body="--body" type="string">
   A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
 </ParamField>
 
 <ParamField body="--root-key" type="string">
-  Root key for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file written by `unkey auth login`. See [CLI authentication](/platform/cli/authentication).
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
 </ParamField>
 
 <ParamField body="--api-url" type="string" default="https://api.unkey.com">
@@ -47,11 +55,19 @@ Every `unkey api` command accepts these; [CLI output and shared flags](/platform
 </ParamField>
 
 <ParamField body="--config" type="string" default="~/.unkey/config.toml">
-  Path of the TOML file that `unkey auth login` writes. Falls back to `UNKEY_CONFIG`.
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
 </ParamField>
 
-<ParamField body="--output" type="string">
-  Output format. Falls back to `UNKEY_OUTPUT`. Set `json` to print the full response envelope (`meta` and `data`) for piping; any other value prints the request ID followed by `data`.
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
 </ParamField>
 
 ## Required permissions
@@ -68,13 +84,13 @@ Without a matching permission the API answers 403 and the CLI prints `Permission
 Delete a project:
 
 ```bash
-unkey api projects delete-project --project=proj_1234abcd
+unkey projects delete --project=proj_1234abcd
 ```
 
 Send the request body as JSON:
 
 ```bash
-unkey api projects delete-project --body='{"project":"payments"}'
+unkey projects delete --body='{"project":"payments"}'
 ```
 
 ## API endpoint

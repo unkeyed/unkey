@@ -18,7 +18,7 @@ export async function proxyPost(
 ): Promise<unknown> {
   const response = await fetch(`/proxy/v2/${route}`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: body === undefined ? undefined : { "content-type": "application/json" },
     body: JSON.stringify(body),
     signal,
   });

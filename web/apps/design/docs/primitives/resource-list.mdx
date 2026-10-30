@@ -7,38 +7,37 @@ description: Resource list components provide the shared layout for filterable l
 
 ## Anatomy
 
-- `ResourceList` sets the vertical spacing between controls and content.
-- `ResourceListHeader` lays out search and filter controls.
-- `ResourceListContent` draws the bordered list frame.
-- `ResourceListBody` renders a semantic list and separates its items.
-- `ResourceListItem` renders a semantic list item.
-- `ResourceListRow` makes a whole row clickable. See [Clickable rows](#clickable-rows).
-- `ResourceListFooter` holds a right-aligned Load more button without a result count.
+- `ResourceList` spaces the controls and content.
+- `ResourceListHeader` puts the controls on one line.
+- `ResourceListSearch` sizes the search input.
+- `ResourceListContent` draws the list frame.
+- `ResourceListBody` and `ResourceListItem` render a semantic list.
+- `ResourceListRow` makes a whole row clickable, with `label` as its accessible name. Pass `expanded` while its panel is open.
+- `ResourceListGrid` lays out cards in one, two or three columns.
+- `ResourceListTable` draws a list frame with a column header. Each column has an `id`, a `header` and a grid `width`. Pass the pager as `footer`.
+- `ResourceListTableRow` puts its cells on the table columns. Pass a `link` element to make the whole row a link.
+- `ResourceListFooter` holds the Show more button. Use `variant="bare"` under a grid of cards.
+- `ResourceListShowMore` is the Show more button. Pass `loading` while a page loads.
+- `ResourceListViewToggle` switches between grid and list views. `useListView` stores the choice in the dashboard.
 
 Keep the resource title and primary action in `PageHeader`.
 
-## Usage
+## Examples
 
-```tsx
-<ResourceList>
-  <ResourceListHeader>{controls}</ResourceListHeader>
-  <ResourceListContent>
-    <ResourceListBody>
-      {items.map((item) => (
-        <ResourceListItem key={item.id}>{item.name}</ResourceListItem>
-      ))}
-    </ResourceListBody>
-    <ResourceListFooter>
-      <Button variant="outline">Load more</Button>
-    </ResourceListFooter>
-  </ResourceListContent>
-</ResourceList>
-```
-
-## Clickable rows
+### Clickable rows
 
 <Component path="resource-list/row" />
 
-`ResourceListRow` stretches one button under the row, so a click anywhere on it calls `onActivate`. The button takes `label` as its accessible name. Pass `expanded` when the row opens a panel, so the row stays highlighted while it is open.
+### Grid and list views
 
-Give interactive cells, such as a copy button, the `relative` class. Without it, the stretched button sits on top of them and takes their clicks.
+<Component path="resource-list/view-toggle" />
+
+## Best practices
+
+### Header order
+
+Put search first, then filters, then `ResourceListViewToggle`. Give the toggle `md:ml-auto` to push it to the right edge.
+
+### Interactive cells
+
+Give a copy button or other interactive cell in a clickable row the `relative` class, or the row takes its clicks. In a `ResourceListTableRow`, use `relative z-10`.

@@ -29,11 +29,7 @@ import { Badge, CopyButton, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
 import type React from "react";
 
-type Props = {
-  distanceToTop: number;
-};
-
-export const RequestLogDetails = ({ distanceToTop }: Props) => {
+export const RequestLogDetails = () => {
   const { setSelectedLog, selectedLog: log } = useRequestLogsContext();
   const { projectId, project, environments } = useProjectData();
 
@@ -64,7 +60,7 @@ export const RequestLogDetails = ({ distanceToTop }: Props) => {
   }
 
   return (
-    <LogDetails distanceToTop={distanceToTop} log={log} onClose={handleClose}>
+    <LogDetails log={log} onClose={handleClose}>
       <LogDetails.Header>
         <RequestLogHeader log={log} />
       </LogDetails.Header>

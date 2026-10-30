@@ -13,7 +13,9 @@ export function Avatar({ src, alt, className }: AvatarProps) {
 
   if (!src || hasError) {
     return (
-      <div className="size-5  border rounded-full items-center flex justify-center">
+      <div
+        className={cn("size-5  border rounded-full items-center flex justify-center", className)}
+      >
         <IconUserOutline18 className="size-3.5" />
       </div>
     );

@@ -21,10 +21,15 @@ type Input struct {
 	Regions    []string
 	Domains    []string
 	Instances  []db.ListDeploymentInstanceStatusesByIdsRow
+
+	// WorkspaceID and Permissions describe the caller, and decide which
+	// lifecycle actions the response offers.
+	WorkspaceID string
+	Permissions []string
 }
 
-func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
-	responses, err := ToResponses(ctx, database, workspaceID, []db.ListDeploymentsRow{row})
+func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, permissions []string, row db.ListDeploymentsRow) (openapi.Deployment, error) {
+	responses, err := ToResponses(ctx, database, workspaceID, permissions, []db.ListDeploymentsRow{row})
 	if err != nil {
 		return openapi.Deployment{}, err //nolint:exhaustruct // no response on error
 	}
@@ -33,8 +38,10 @@ func ToResponse(ctx context.Context, database *db.Replica, workspaceID string, r
 
 // ToResponses loads the state, steps, regions, domains, and instances of rows
 // in five parallel queries, whatever the number of rows, and maps each row to
-// its response
-func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, rows []db.ListDeploymentsRow) ([]openapi.Deployment, error) {
+// its response. permissions is the caller's permission list, which decides
+// which available actions are offered: an action the caller cannot call is
+// left out.
+func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, permissions []string, rows []db.ListDeploymentsRow) ([]openapi.Deployment, error) {
 	if len(rows) == 0 {
 		return []openapi.Deployment{}, nil
 	}
@@ -76,7 +83,7 @@ func ToResponses(ctx context.Context, database *db.Replica, workspaceID string, 
 
 	inputs := make(map[string]*Input, len(rows))
 	for _, row := range rows {
-		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil, Instances: nil} //nolint:exhaustruct // zero state when the join misses
+		inputs[row.ID] = &Input{Deployment: row, State: db.ListDeploymentEnvAndAppStateRow{}, Steps: nil, Regions: nil, Domains: nil, Instances: nil, WorkspaceID: workspaceID, Permissions: permissions} //nolint:exhaustruct // zero state when the join misses
 	}
 	for _, s := range states {
 		inputs[s.DeploymentID].State = s

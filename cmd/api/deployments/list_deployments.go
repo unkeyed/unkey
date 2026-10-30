@@ -33,11 +33,26 @@ func validateDeploymentStatuses(value string) error {
 
 func listDeploymentsCmd() *cli.Command {
 	return &cli.Command{
-		Name: "list-deployments", Usage: "List deployments with optional resource and status filters", Description: "List deployments in reverse chronological order. Filter by project, app, environment, or one or more lifecycle statuses. Use the cursor returned by a response to fetch the next page.\n\nFor full documentation, see https://www.unkey.com/docs/api-reference/v2/deployments/list-deployments" + util.Disclaimer,
-		Examples: []string{"unkey api deployments list-deployments --project=payments --app=payments-api --environment=production", "unkey api deployments list-deployments --status=ready,failed --limit=25"},
+		Name:        "list-deployments",
+		Usage:       "List deployments with optional resource and status filters",
+		Description: "List deployments in reverse chronological order. Filter by project, app, environment, or one or more lifecycle statuses. Use the cursor returned by a response to fetch the next page.\n\nFor full documentation, see https://www.unkey.com/docs/api-reference/v2/deployments/list-deployments" + util.Disclaimer,
+		Examples: []string{
+			"unkey api deployments list-deployments --project=payments --app=payments-api --environment=production",
+			"unkey api deployments list-deployments --status=ready,failed --limit=25",
+		},
 		Flags: []cli.Flag{
-			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug to filter by.", cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug to filter by.", cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug to filter by.", cli.MutuallyExclusive("body")),
-			cli.StringSlice("status", "Lifecycle statuses to include. Valid choices: "+strings.Join(deploymentStatuses, ", ")+".", cli.Validate(validateDeploymentStatuses), cli.MutuallyExclusive("body")), cli.Int64("limit", "Maximum deployments to return per page (default 100).", cli.MutuallyExclusive("body")), cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body"))},
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("project", "Project ID or slug to filter by.", cli.MutuallyExclusive("body")),
+			cli.String("app", "App ID or slug to filter by.", cli.MutuallyExclusive("body")),
+			cli.String("environment", "Environment ID or slug to filter by.", cli.MutuallyExclusive("body")),
+			cli.StringSlice("status", "Lifecycle statuses to include. Valid choices: "+strings.Join(deploymentStatuses, ", ")+".", cli.Validate(validateDeploymentStatuses), cli.MutuallyExclusive("body")),
+			cli.Int64("limit", "Maximum deployments to return per page (default 100).", cli.MutuallyExclusive("body")),
+			cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body")),
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
@@ -52,7 +67,17 @@ func listDeploymentsCmd() *cli.Command {
 				}
 				return util.Output(cmd, res.V2DeploymentsListDeploymentsResponseBody)
 			}
-			req := components.V2DeploymentsListDeploymentsRequestBody{Project: nil, App: nil, Environment: nil, Status: nil, Limit: nil, Cursor: nil}
+			req := components.V2DeploymentsListDeploymentsRequestBody{
+				Project:     nil,
+				App:         nil,
+				Environment: nil,
+				Status:      nil,
+				Branch:      nil,
+				StartTime:   nil,
+				EndTime:     nil,
+				Limit:       nil,
+				Cursor:      nil,
+			}
 			if v := cmd.String("project"); v != "" {
 				req.Project = &v
 			}

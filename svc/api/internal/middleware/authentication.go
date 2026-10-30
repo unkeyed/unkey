@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 const workspaceRatelimitNamespace = "workspace.ratelimit"
@@ -43,15 +44,13 @@ type AuthenticationConfig struct {
 
 	// Ratelimit enforces workspace-level API request limits.
 	Ratelimit ratelimit.Service
+
+	RateLimitExemptions openapi.WorkspaceRateLimitExemptions
 }
 
-// WithAuthentication authenticates the request and applies workspace-level rate limiting.
-//
-// Handlers behind this middleware can call [zen.Session.GetPrincipal] and then
-// perform route-specific authorization. Workspace rate limiting lives here so
-// every credential source is checked consistently after authentication resolves
-// the workspace and before business logic runs. Root key usage is recorded at
-// this boundary because later route authorization can have multiple outcomes.
+// WithAuthentication authenticates requests and applies workspace rate limits
+// unless the operation is exempt in OpenAPI. Handlers must still authorize the
+// principal from [zen.Session.GetPrincipal].
 func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, sess *zen.Session) error {
@@ -109,6 +108,10 @@ func WithAuthentication(config AuthenticationConfig) zen.Middleware {
 }
 func checkWorkspaceRateLimit(ctx context.Context, sess *zen.Session, config AuthenticationConfig, workspaceID string) error {
 	if config.LimitsCache == nil || config.Ratelimit == nil {
+		return nil
+	}
+
+	if config.RateLimitExemptions.Contains(sess.Request().Method, sess.Request().URL.Path) {
 		return nil
 	}
 

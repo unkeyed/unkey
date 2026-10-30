@@ -13,6 +13,7 @@ post:
     - `project.*.read_project` (to read any project)
     - `project.<project_id>.read_project` (to read a specific project)
   operationId: projects.getProject
+  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getProject
   security:
     - bearer: []

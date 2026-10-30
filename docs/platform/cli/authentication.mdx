@@ -1,12 +1,13 @@
 ---
 title: CLI authentication
 sidebarTitle: "Authentication"
-description: "Give the CLI a root key by signing in, or by flag, environment variable, or the system keychain."
+description: "Sign in with a CLI session, or provide a root key through a flag, environment variable, or the system keychain."
 sources:
   - cmd/api/util/client.go
   - cmd/api/util/flags.go
   - cmd/api/util/errors.go
   - cmd/auth/login/login.go
+  - cmd/auth/logout/logout.go
   - cmd/auth/main.go
   - cmd/deploy/main.go
   - pkg/cli/config.go
@@ -25,13 +26,13 @@ Every CLI command that calls the API needs a credential. Humans sign in once wit
 unkey login
 ```
 
-The command prints a confirmation code and a URL, and opens that URL in your browser. Sign in, check that the code matches the terminal, and narrow the permissions if you want. Allowing the login finishes it. The CLI stores one session per workspace in the system keychain and does not print the tokens. When the keychain is unavailable, it writes `~/.unkey/sessions.json` (mode `0600`) instead. See [unkey login](/platform/cli/login).
+The command writes a confirmation code and a URL to stderr. In a terminal, it asks whether to open the URL, and defaults to leaving the browser closed. Open the URL yourself or select **Open browser**. Sign in, check that the code matches the terminal, and choose what the CLI can do. Authorizing the login finishes it. The CLI stores one session per workspace in the system keychain and prints `Signed in.` to stdout without printing the tokens. When the keychain is unavailable, it writes `~/.unkey/sessions.json` (mode `0600`) instead. See [unkey login](/platform/cli/login).
 
 `unkey auth login` does the same thing.
 
 You can approve the login with any permission your role includes. The session receives only the permissions you select. See [Root key permissions](/platform/root-keys/permissions).
 
-The file fallback holds the key in plain text, so treat that file like the key. Keep it out of version control and off shared machines.
+The file fallback holds session tokens in plain text, so treat that file like a credential. Keep it out of version control and off shared machines.
 
 To store a key you already have, without a browser, run this and paste the key at the hidden prompt:
 
@@ -39,26 +40,26 @@ To store a key you already have, without a browser, run this and paste the key a
 unkey login --root-key=-
 ```
 
-That flag does not check the key with the API. A wrong key only shows up on your next `unkey api` call.
+That flag does not check the key with the API. A wrong key only shows up on your next resource command.
 
 ## Override the stored key
 
 For one command, pass `--root-key`:
 
 ```bash
-unkey api keys get-key --key-id=key_1234abcd --root-key=unkey_xxx
+unkey keys get --key-id=key_1234abcd --root-key=unkey_xxx
 ```
 
 For a whole shell session, set `UNKEY_ROOT_KEY`:
 
 ```bash
 export UNKEY_ROOT_KEY=unkey_xxx
-unkey api keys get-key --key-id=key_1234abcd
+unkey keys get --key-id=key_1234abcd
 ```
 
-## Which key `unkey api` uses
+## Which key resource commands use
 
-`unkey api` uses the first credential it finds:
+Resource commands, including the legacy `unkey api` paths, use the first credential they find:
 
 1. The `--root-key` flag.
 2. The `UNKEY_ROOT_KEY` environment variable.
@@ -74,6 +75,12 @@ In CI, set `UNKEY_ROOT_KEY` as a secret. See [unkey deploy](/compute/cli/deploy)
 
 ## Point at a different API host
 
-`--api-url` (or `UNKEY_API_BASE_URL`) sets the base URL for `unkey api` commands and for `unkey login`. `unkey deploy` has `--api-base-url`. The default is `https://api.unkey.com`.
+`--api-url` (or `UNKEY_API_BASE_URL`) sets the base URL for resource commands and for `unkey login`. `unkey deploy` has `--api-base-url`. The default is `https://api.unkey.com`.
 
 `unkey login` stores that URL with the session. Later commands send the session to the same URL. If you pass `--api-url` or `--api-base-url` for a different host, the CLI skips the session and uses a root key instead. You don't normally need to change the URL.
+
+## Sign out
+
+`unkey logout` revokes the active CLI session and removes it from this machine. Its success message goes to stdout without a workspace ID. If another stored workspace becomes active, the CLI reports that on stderr. Workspace IDs still identify sessions when you use `unkey workspace switch`.
+
+If server revocation fails, the CLI reports the failure on stderr and exits with a nonzero status instead of claiming success. Removing the local session alone does not prove that the server session has been revoked.

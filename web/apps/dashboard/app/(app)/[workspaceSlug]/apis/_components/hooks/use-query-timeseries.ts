@@ -64,6 +64,7 @@ export const useFetchVerificationTimeseries = (keyspaceId: string | null) => {
   const { data, isLoading, isError } = trpc.api.overview.timeseries.useQuery(queryParams, {
     refetchInterval: queryParams.endTime ? false : 10_000,
     enabled,
+    keepPreviousData: true,
     trpc: {
       context: {
         skipBatch: true,

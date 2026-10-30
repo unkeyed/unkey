@@ -75,6 +75,7 @@ properties:
       - ks_1234abcd
   ratelimits:
     type: array
+    maxItems: 50 # Matches the limit on stored ratelimits per key
     items:
       "$ref": "./KeysVerifyKeyRatelimit.yaml"
     description: |

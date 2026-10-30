@@ -4,28 +4,22 @@ import {
   Fragment,
   type KeyboardEvent,
   type ReactNode,
-  type Ref,
   useCallback,
-  useImperativeHandle,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { cn } from "../../lib/utils";
+import { StickySlot } from "../page/sticky-slot";
 import { LoadMoreFooter } from "./components/footer/load-more-footer";
 import { SkeletonRow } from "./components/rows/skeleton-row";
 import { DataTableEmptyState } from "./components/utils/empty-state";
 import { RealtimeSeparator } from "./components/utils/realtime-separator";
 import { DEFAULT_CONFIG } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
+import { usePinnedTableHeader } from "./hooks/use-pinned-table-header";
 import { useRealtimeData } from "./hooks/use-realtime-data";
 import type { DataTableProps } from "./types";
 import { calculateColumnWidth } from "./utils/column-width";
-
-export type DataTableRef = {
-  parentRef: HTMLDivElement | null;
-  containerRef: HTMLDivElement | null;
-};
 
 function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPadding: boolean }) {
   return (
@@ -42,9 +36,8 @@ function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPa
 /**
  * Main DataTable component with TanStack Table + TanStack Virtual
  */
-export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<DataTableRef> }) {
+export function DataTable<TData>(props: DataTableProps<TData>) {
   const {
-    ref,
     data: historicData,
     realtimeData = [],
     columns,
@@ -62,7 +55,6 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
     loadMoreFooterProps,
     rowClassName,
     selectedClassName,
-    fixedHeight,
     enableKeyboardNav = true,
     enableSorting = true,
     enableRowSelection = false,
@@ -75,9 +67,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
   const config = useMemo(() => ({ ...DEFAULT_CONFIG, ...userConfig }), [userConfig]);
   const isGridLayout = config.layout === "grid";
 
-  // Refs
-  const parentRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const pinned = usePinnedTableHeader();
 
   // Roving tabindex: track which row is the current tab stop
   const [focusedRowIndex, setFocusedRowIndex] = useState(0);
@@ -98,16 +88,6 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
     rowSelection,
     onRowSelectionChange,
   });
-
-  // Expose refs
-  useImperativeHandle(
-    ref,
-    () => ({
-      parentRef: parentRef.current,
-      containerRef: containerRef.current,
-    }),
-    [],
-  );
 
   // Calculate column widths
   const colWidths = useMemo(
@@ -135,7 +115,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
       if (event.key === "ArrowDown" || event.key === "j") {
         event.preventDefault();
         const nextIndex = rowIndex + 1;
-        const nextElement = parentRef.current?.querySelector(
+        const nextElement = pinned.boxRef.current?.querySelector(
           `[data-row-index="${nextIndex}"]`,
         ) as HTMLElement | null;
 
@@ -148,7 +128,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
       if (event.key === "ArrowUp" || event.key === "k") {
         event.preventDefault();
         const prevIndex = rowIndex - 1;
-        const prevElement = parentRef.current?.querySelector(
+        const prevElement = pinned.boxRef.current?.querySelector(
           `[data-row-index="${prevIndex}"]`,
         ) as HTMLElement | null;
         if (prevElement) {
@@ -157,7 +137,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
         }
       }
     },
-    [enableKeyboardNav, onRowClick],
+    [enableKeyboardNav, onRowClick, pinned.boxRef],
   );
 
   // CSS classes
@@ -170,25 +150,19 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
   );
 
   const isEmpty = !isLoading && historicData.length === 0 && realtimeData.length === 0;
-  const fillsParent = fixedHeight === undefined;
 
   return (
-    <div
-      className={cn("w-full flex flex-col", fillsParent && "md:flex-1 md:min-h-0")}
-      ref={containerRef}
-    >
+    <div className="w-full flex flex-1 flex-col">
       <div
-        ref={parentRef}
+        ref={pinned.boxRef}
         className={cn(
-          "overflow-auto relative pb-4 bg-background",
+          "relative flex-1 pb-4 bg-background",
+          pinned.boxClassName,
           config.containerPadding || "px-2",
-          "max-md:h-[400px]",
-          fillsParent && "md:flex-1 md:min-h-0",
           isEmpty && "flex flex-col",
         )}
-        style={fixedHeight === undefined ? undefined : { height: fixedHeight }}
       >
-        <table className={tableClassName}>
+        <table ref={pinned.tableRef} className={tableClassName}>
           <colgroup>
             {columns.map((col, idx) => (
               <col key={col.id ?? idx} style={{ width: colWidths[idx] }} />
@@ -196,7 +170,12 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
           </colgroup>
 
           {/* Header */}
-          <thead className="sticky top-0 z-10 bg-table-header">
+          <StickySlot
+            slot="columns"
+            enabled={pinned.headerPinned}
+            render={<thead />}
+            className="bg-table-header"
+          >
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -218,10 +197,10 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
               </tr>
             ))}
             <StickyHeaderUnderline colSpan={columns.length} hasPadding={hasPadding} />
-          </thead>
+          </StickySlot>
 
           {/* Body */}
-          <tbody>
+          <tbody className={pinned.rowsClassName} style={pinned.rowsStyle}>
             {/* Render all rows directly without virtualization */}
             {isLoading
               ? // Loading skeleton rows

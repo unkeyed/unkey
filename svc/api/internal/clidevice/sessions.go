@@ -14,28 +14,31 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	rbacpermissions "github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
+	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 )
 
 // Allow reports whether a CLI session may authenticate a request.
 func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Session, error) {
-	if s.SessionCache != nil {
-		if verdict, hit := s.SessionCache.Get(ctx, sessionID); hit == cache.Hit {
-			if !verdict.Allowed {
-				return clisession.Session{}, clisession.ErrInactive
-			}
-			return verdict.Session, nil
+	if verdict, hit := s.SessionCache.Get(ctx, sessionID); hit == cache.Hit {
+		if !verdict.Allowed {
+			return clisession.Session{}, clisession.ErrInactive
 		}
+		return verdict.Session, nil
 	}
 
 	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), sessionID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			var inactive clisession.Session
-			s.remember(ctx, sessionID, SessionVerdict{Allowed: false, Session: inactive})
+			s.SessionCache.Set(ctx, sessionID, SessionVerdict{
+				Allowed: false,
+				Session: inactive,
+			})
 			return clisession.Session{}, clisession.ErrInactive
 		}
 		return clisession.Session{}, err
 	}
+
 	session := clisession.Session{
 		UserID:      row.UserID,
 		WorkspaceID: row.WorkspaceID,
@@ -50,25 +53,15 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		}
 		active = err == nil && workspaceUsable(workspace)
 	}
-	s.remember(ctx, sessionID, SessionVerdict{Allowed: active, Session: session})
+
+	s.SessionCache.Set(ctx, sessionID, SessionVerdict{
+		Allowed: active,
+		Session: session,
+	})
 	if !active {
 		return clisession.Session{}, clisession.ErrInactive
 	}
 	return session, nil
-}
-
-func (s *Service) remember(ctx context.Context, sessionID string, verdict SessionVerdict) {
-	if s.SessionCache == nil {
-		return
-	}
-	s.SessionCache.Set(ctx, sessionID, verdict)
-}
-
-func (s *Service) forget(ctx context.Context, sessionID string) {
-	if s.SessionCache == nil {
-		return
-	}
-	s.SessionCache.Remove(ctx, sessionID)
 }
 
 // Revoke ends a session. The owner can revoke their own. An admin can revoke
@@ -80,11 +73,8 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 	if err := RequireUserSession(req.Principal); err != nil {
 		return err
 	}
-	sessionID := strings.TrimSpace(req.SessionID)
-	if sessionID == "" {
-		return invalid("The session id is invalid.")
-	}
-	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), sessionID)
+
+	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), strings.TrimSpace(req.SessionID))
 	if err != nil {
 		if db.IsNotFound(err) {
 			return invalid("This CLI session was not found.")
@@ -98,12 +88,16 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		return forbidden("You can only revoke your own CLI sessions.")
 	}
 	if row.RevokedAt.Valid {
-		s.forget(ctx, row.ID)
+		s.SessionCache.Remove(ctx, row.ID)
 		return nil
 	}
+
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		n, err := db.Query.RevokeCLISession(ctx, tx, db.RevokeCLISessionParams{
-			RevokedAt:   sql.NullInt64{Int64: s.Clock.Now().UnixMilli(), Valid: true},
+			RevokedAt: sql.NullInt64{
+				Int64: s.Clock.Now().UnixMilli(),
+				Valid: true,
+			},
 			ID:          row.ID,
 			WorkspaceID: row.WorkspaceID,
 		})
@@ -113,21 +107,31 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		if n == 0 {
 			return nil
 		}
+
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-		if err := s.writeAudit(ctx, tx, auditEntry{
-			Event:       auditlog.CLISessionRevokeEvent,
-			Display:     "Revoked CLI session " + row.ID,
-			UserID:      req.Principal.Subject.ID,
-			UserName:    req.Principal.Subject.Name,
-			WorkspaceID: row.WorkspaceID,
-			SessionID:   row.ID,
-			DeviceName:  row.DeviceName.String,
-			RemoteIP:    req.RemoteIP,
-			UserAgent:   req.UserAgent,
-		}); err != nil {
+		actor := auditactor.FromPrincipal(req.Principal)
+		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
+			Event:         auditlog.CLISessionRevokeEvent,
+			Display:       "Revoked CLI session " + row.ID,
+			WorkspaceID:   row.WorkspaceID,
+			ActorType:     actor.Type,
+			ActorID:       actor.ID,
+			ActorName:     actor.Name,
+			ActorMeta:     actor.Meta,
+			CorrelationID: "",
+			RemoteIP:      req.RemoteIP,
+			UserAgent:     req.UserAgent,
+			Targets: []auditlog.AuditLogTarget{{
+				Type:        auditlog.CLISessionTargetType,
+				ID:          row.ID,
+				Name:        row.DeviceName.String,
+				DisplayName: row.DeviceName.String,
+				Meta:        map[string]any{},
+			}},
+		}}); err != nil {
 			return err
 		}
-		s.forget(ctx, row.ID)
+		s.SessionCache.Remove(ctx, row.ID)
 		return nil
 	})
 }
@@ -137,6 +141,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 	if err := RequireUserSession(req.Principal); err != nil {
 		return nil, err
 	}
+
 	var rows []db.CliSession
 	var err error
 	now := s.Clock.Now().UnixMilli()
@@ -155,9 +160,10 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 	if err != nil {
 		return nil, err
 	}
+
 	out := make([]SessionInfo, 0, len(rows))
 	for _, row := range rows {
-		permissions, err := decodeStrings(row.Permissions)
+		permissions, err := decodePermissions(row.Permissions)
 		if err != nil {
 			return nil, err
 		}

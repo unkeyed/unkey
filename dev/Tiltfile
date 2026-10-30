@@ -1,5 +1,10 @@
+allow_k8s_contexts('unkey')
+if k8s_context() != 'unkey':
+    fail('Use mise run dev to start the Unkey cluster with an isolated kubeconfig.')
+local(['minikube', '-p', 'unkey', 'status'], quiet=True, echo_off=True)
+
 for key, value in decode_json(local(['mise', 'env', '--json'], dir='..', quiet=True, echo_off=True)).items():
-    if not key.startswith('AWS_'):
+    if key != 'KUBECONFIG' and not key.startswith('AWS_'):
         os.putenv(key, value)
 
 for key in os.environ:
@@ -17,28 +22,10 @@ load('ext://secret', 'secret_create_generic')
 load('ext://helm_resource', standard_helm_resource='helm_resource')
 load('./helm.Tiltfile', metal_helm_resource='helm_resource')
 
-def validate_dev_cluster():
-    context = 'unkey-dev-local'
-    profile = 'unkey'
-    allow_k8s_contexts(context)
-    if k8s_context() != context:
-        fail('Use mise run dev to start the Unkey cluster and select the %s context. Other Kubernetes contexts are not modified.' % context)
-
-    local(['minikube', '-p', profile, 'status'], quiet=True, echo_off=True)
-    kube_config = decode_json(local(['kubectl', 'config', 'view', '-o', 'json'], quiet=True, echo_off=True))
-    clusters = {entry['name']: entry['cluster'] for entry in kube_config.get('clusters', [])}
-    contexts = {entry['name']: entry['context'] for entry in kube_config.get('contexts', [])}
-    # Minikube status verifies the server in the cluster entry named for its profile.
-    profile_server = clusters.get(profile, {}).get('server', '')
-    active_server = clusters.get(contexts.get(context, {}).get('cluster', ''), {}).get('server', '')
-    if kube_config.get('current-context') != context or not profile_server or active_server != profile_server:
-        fail('The active Kubernetes context does not point to the unkey Minikube profile. Use mise run dev to start and select it. Shared clusters are not supported.')
-
-validate_dev_cluster()
-
 config.define_string('topolvm_backing_size')
 config.define_bool('orb')
 config.define_bool('orb-metal')
+config.define_bool('cli_auth')
 config.define_string_list('resources', args=True)
 cfg = config.parse()
 ORB = cfg.get('orb', False)
@@ -548,16 +535,21 @@ k8s_resource(
 
 # ─── API ───────────────────────────────────────────────────────────────────
 go_service_image('unkey/api:dev', 'api')
-if not has_github_credentials:
-    # Kubernetes omits optional secret values rather than setting a typed zero.
-    # Use a valid integer so TOML parsing succeeds while GitHub remains disabled.
-    api_manifest = str(read_file('k8s/manifests/api.yaml')).replace(
-        'app_id = ${UNKEY_GITHUB_APP_ID}',
-        'app_id = 0',
-    )
-    k8s_yaml(blob(api_manifest))
-else:
-    k8s_yaml('k8s/manifests/api.yaml')
+api_resources = read_yaml_stream('k8s/manifests/api.yaml')
+for resource in api_resources:
+    if resource.get('kind') == 'ConfigMap' and resource['metadata']['name'] == 'api-config':
+        api_config = resource['data']['unkey.toml']
+        if not has_github_credentials:
+            api_config = api_config.replace('app_id = ${UNKEY_GITHUB_APP_ID}', 'app_id = 0')
+        if cfg.get('cli_auth', False):
+            api_config += '''
+[cli_auth]
+workos_api_key = "${WORKOS_API_KEY}"
+dashboard_base_url = "http://localhost:3000"
+signing_secrets = ["local-dev-cli-signing-secret-32bytes"]
+'''
+        resource['data']['unkey.toml'] = api_config
+k8s_yaml(encode_yaml_stream(api_resources))
 k8s_resource(
   'api',
   objects=['api-config:configmap'],

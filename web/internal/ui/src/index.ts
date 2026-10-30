@@ -41,6 +41,7 @@ export * from "./components/dialog/popover";
 export * from "./components/hover-card";
 export * from "./components/info-hover-card";
 export * from "./components/segmented-control";
+export { CollapsibleItem } from "./components/collapsible";
 export * from "./components/settings-card";
 export * from "./components/settings-row";
 export * from "./components/settings-skeleton";

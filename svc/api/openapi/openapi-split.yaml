@@ -150,14 +150,10 @@ paths:
     $ref: "./spec/paths/v2/cli/startDeviceLogin/index.yaml"
   /v2/cli.getDeviceLogin:
     $ref: "./spec/paths/v2/cli/getDeviceLogin/index.yaml"
-  /v2/cli.approveDeviceLogin:
-    $ref: "./spec/paths/v2/cli/approveDeviceLogin/index.yaml"
-  /v2/cli.denyDeviceLogin:
-    $ref: "./spec/paths/v2/cli/denyDeviceLogin/index.yaml"
-  /v2/cli.pollDeviceLogin:
-    $ref: "./spec/paths/v2/cli/pollDeviceLogin/index.yaml"
-  /v2/cli.refreshToken:
-    $ref: "./spec/paths/v2/cli/refreshToken/index.yaml"
+  /v2/cli.decideDeviceLogin:
+    $ref: "./spec/paths/v2/cli/decideDeviceLogin/index.yaml"
+  /v2/cli.exchangeToken:
+    $ref: "./spec/paths/v2/cli/exchangeToken/index.yaml"
   /v2/cli.revokeSession:
     $ref: "./spec/paths/v2/cli/revokeSession/index.yaml"
   /v2/cli.listSessions:

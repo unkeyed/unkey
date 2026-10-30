@@ -5,5 +5,5 @@
 set -euo pipefail
 
 source ./dev/disable-aws.sh
-bash ./dev/start-cluster.sh ./dev/cluster.yaml
-exec tilt up -f ./dev/Tiltfile -- "$@"
+source ./dev/local-cluster.sh
+with_local_cluster --start ./dev/cluster.yaml tilt up -f ./dev/Tiltfile -- "$@"

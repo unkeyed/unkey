@@ -9,6 +9,7 @@ export default defineMeta({
     "badge",
     "control-pill",
     "empty-state",
+    "hover-card",
     "item",
     "pagination",
     "resource-list",

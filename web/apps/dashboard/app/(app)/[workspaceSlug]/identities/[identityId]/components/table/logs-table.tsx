@@ -418,7 +418,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
   };
 
   return (
-    <div className="flex flex-col md:flex-1 md:min-h-0">
+    <div className="flex flex-col md:flex-1">
       <VirtualTable
         data={historicalLogs}
         realtimeData={realtimeLogs}

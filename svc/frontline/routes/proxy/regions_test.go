@@ -162,6 +162,7 @@ func startRegions(t *testing.T, names []string, backends map[string]string) map[
 	queries := regionQuerier{
 		route: db.FindFrontlineRouteByFQDNRow{
 			DeploymentID: uid.New(uid.DeploymentPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix),
+			WorkspaceID: workspaceID, ProjectID: projectID, AppID: appID,
 			DesiredState: db.DeploymentsDesiredStateRunning, UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1,
 		},
 		instances: instances,
@@ -201,16 +202,18 @@ func startRegions(t *testing.T, names []string, backends map[string]string) map[
 
 type regionQuerier struct {
 	db.Querier
-	route     db.FindFrontlineRouteByFQDNRow
-	instances []db.FindInstancesByDeploymentIDRow
+	route        db.FindFrontlineRouteByFQDNRow
+	instances    []db.FindInstancesByDeploymentIDRow
+	routeErr     error
+	instancesErr error
 }
 
 func (q regionQuerier) FindFrontlineRouteByFQDN(context.Context, string) (db.FindFrontlineRouteByFQDNRow, error) {
-	return q.route, nil
+	return q.route, q.routeErr
 }
 
 func (q regionQuerier) FindInstancesByDeploymentID(context.Context, string) ([]db.FindInstancesByDeploymentIDRow, error) {
-	return q.instances, nil
+	return q.instances, q.instancesErr
 }
 
 func regionCache[V any](t *testing.T, resource string) cache.Cache[string, V] {

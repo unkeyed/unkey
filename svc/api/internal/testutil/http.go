@@ -44,6 +44,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen/validation"
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	vaulttestutil "github.com/unkeyed/unkey/svc/vault/testutil"
 )
 
@@ -234,6 +235,9 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	validator, err := validation.New()
 	require.NoError(t, err)
 
+	rateLimitExemptions, err := openapi.WorkspaceRateLimitExemptionsFromSpec(openapi.Spec)
+	require.NoError(t, err)
+
 	ctr := counter.NewMemory()
 	if cfg.Redis {
 		var err error
@@ -357,12 +361,13 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		middleware.WithErrorHandling(),
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:             authService,
-			KeyVerifications: keyVerifications,
-			Region:           "test",
-			Database:         database,
-			LimitsCache:      caches.WorkspaceLimits,
-			Ratelimit:        ratelimitService,
+			Auth:                authService,
+			KeyVerifications:    keyVerifications,
+			Region:              "test",
+			Database:            database,
+			LimitsCache:         caches.WorkspaceLimits,
+			Ratelimit:           ratelimitService,
+			RateLimitExemptions: rateLimitExemptions,
 		}),
 	}
 	h.portalMiddleware = []zen.Middleware{
@@ -371,12 +376,13 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		middleware.WithErrorHandling(),
 		zen.WithValidation(validator),
 		middleware.WithAuthentication(middleware.AuthenticationConfig{
-			Auth:             portalAuthService,
-			KeyVerifications: nil,
-			Region:           "",
-			Database:         database,
-			LimitsCache:      caches.WorkspaceLimits,
-			Ratelimit:        ratelimitService,
+			Auth:                portalAuthService,
+			KeyVerifications:    nil,
+			Region:              "",
+			Database:            database,
+			LimitsCache:         caches.WorkspaceLimits,
+			Ratelimit:           ratelimitService,
+			RateLimitExemptions: rateLimitExemptions,
 		}),
 	}
 

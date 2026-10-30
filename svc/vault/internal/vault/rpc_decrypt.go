@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -53,15 +54,22 @@ func (s *Service) decrypt(
 		return nil, fmt.Errorf("invalid encrypted message: %w", err)
 	}
 
-	cacheKey := fmt.Sprintf("%s-%s", req.GetKeyring(), encrypted.GetEncryptionKeyId())
+	keyring := req.GetKeyring()
+	keyID := encrypted.GetEncryptionKeyId()
+	cacheKey := fmt.Sprintf("%s-%s", keyring, keyID)
 
-	dek, hit := s.keyCache.Get(ctx, cacheKey)
-	if hit == cache.Miss {
-		dek, err = s.keyring.GetKey(ctx, req.GetKeyring(), encrypted.GetEncryptionKeyId())
+	dek, _, err := s.keyCache.SWR(ctx, cacheKey, func(ctx context.Context) (*vaultv1.DataEncryptionKey, error) {
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		return s.keyring.GetKey(ctx, keyring, keyID)
+	}, func(err error) cache.Op {
 		if err != nil {
-			return nil, fmt.Errorf("failed to get dek in keyring %s: %w", req.GetKeyring(), err)
+			return cache.Noop
 		}
-		s.keyCache.Set(ctx, cacheKey, dek)
+		return cache.WriteValue
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get dek in keyring %s: %w", keyring, err)
 	}
 
 	plaintext, err := encryption.Decrypt(dek.GetKey(), encrypted.GetNonce(), encrypted.GetCiphertext())

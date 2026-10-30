@@ -523,8 +523,8 @@ func TestOperationDurationCountsEachRead(t *testing.T) {
 			for _, label := range metric.GetLabel() {
 				labels[label.GetName()] = label.GetValue()
 			}
-			if labels["resource"] == t.Name() {
-				counts[labels["operation"]+"/"+labels["status"]] = metric.GetHistogram().GetSampleCount()
+			if n := metric.GetHistogram().GetSampleCount(); labels["resource"] == t.Name() && n > 0 {
+				counts[labels["operation"]+"/"+labels["status"]] = n
 			}
 		}
 	}

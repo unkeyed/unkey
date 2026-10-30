@@ -6,10 +6,12 @@ import { IconChevronLeftOutline12, IconChevronRightOutline12 } from "@unkey/icon
 import { Button, Card } from "@unkey/ui";
 import type { Route } from "next";
 import { useState } from "react";
-import { withEpisodeMarkers } from "./event-markers";
+import { withCrashIncidents } from "./event-markers";
+import { HistoryNotice } from "./history-notice";
 import { InstanceFilterBar } from "./instance-filters";
 import { InstanceTable } from "./instance-table";
 import type { FilterKey, InstancesTabView, LogsTarget } from "./instances-model";
+import { outdatedProps } from "./outdated";
 import { UsageCardView } from "./usage-card";
 
 const PAGE_SIZE = 10;
@@ -41,12 +43,17 @@ export function InstancesLayout({
   const current = Math.min(page, pages - 1);
   const first = current * PAGE_SIZE;
   const rows = all.slice(first, first + PAGE_SIZE);
-  const chartMarkers = withEpisodeMarkers(markers, view.episodes, {
+  const incidents = withCrashIncidents(markers, view.episodes, {
     logsHref,
     withDate: spansDays(view.grid),
   });
   return (
-    <Card className="overflow-hidden">
+    <Card {...outdatedProps(view.outdated, "overflow-hidden")}>
+      {view.historyTruncated && (
+        <div className="border-b border-grayA-4 px-4 py-2">
+          <HistoryNotice />
+        </div>
+      )}
       <div className="relative z-20 grid divide-y divide-grayA-4 md:grid-cols-2 md:divide-x md:divide-y-0">
         {view.usage.map((card) => (
           <UsageCardView
@@ -54,7 +61,8 @@ export function InstancesLayout({
             card={card}
             legend={view.legend}
             focusKey={hoveredKey}
-            markers={chartMarkers}
+            markers={markers}
+            incidents={incidents}
             syncId={syncId}
           />
         ))}

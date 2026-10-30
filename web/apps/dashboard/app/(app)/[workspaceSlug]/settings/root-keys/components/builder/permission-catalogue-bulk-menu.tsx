@@ -19,11 +19,22 @@ const BULK_OPTIONS: { id: string; label: string; actions: readonly Action[] }[] 
 ];
 
 type PermissionCatalogueBulkMenuProps = {
+  offered: readonly Action[];
   onSelect: (actions: readonly Action[]) => void;
 };
 
-export function PermissionCatalogueBulkMenu({ onSelect }: PermissionCatalogueBulkMenuProps) {
+export function PermissionCatalogueBulkMenu({
+  offered,
+  onSelect,
+}: PermissionCatalogueBulkMenuProps) {
   const [open, setOpen] = useState(false);
+  const reach = (actions: readonly Action[]) =>
+    actions.filter((action) => offered.includes(action)).length;
+  const options = BULK_OPTIONS.filter(
+    (option, index) =>
+      option.actions.length === 0 ||
+      reach(option.actions) > reach(BULK_OPTIONS[index - 1]?.actions ?? []),
+  );
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -36,7 +47,7 @@ export function PermissionCatalogueBulkMenu({ onSelect }: PermissionCatalogueBul
         }
       />
       <DropdownMenuContent align="end" className="w-48">
-        {BULK_OPTIONS.map((option) => (
+        {options.map((option) => (
           <DropdownMenuItem
             key={option.id}
             className="cursor-pointer"

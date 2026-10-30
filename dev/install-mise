@@ -54,10 +54,10 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 archive="mise-v${version}-${platform}.tar.gz"
-url="https://github.com/jdx/mise/releases/download/v${version}/${archive}"
+url="https://mise.jdx.dev/v${version}/${archive}"
 
 echo "Downloading $url"
-curl -fsSL "$url" -o "$tmp/$archive"
+curl -fsSL --retry 4 --retry-max-time 120 --connect-timeout 10 --max-time 60 "$url" -o "$tmp/$archive"
 printf '%s  %s\n' "$checksum" "$tmp/$archive" | "${checksum_cmd[@]}"
 
 tar -xzf "$tmp/$archive" -C "$tmp"

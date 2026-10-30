@@ -1,12 +1,14 @@
 ---
-title: unkey api apis create-api
-sidebarTitle: "create-api"
+title: unkey apis create
+sidebarTitle: "create"
 description: "Create a keyspace to hold your API keys."
 sources:
   - cmd/api/apis/create_api.go
   - svc/api/routes/v2_apis_create_api/handler.go
   - docs/scripts/manifest.json
 ---
+
+import CLIOutput from "/snippets/cli-output.mdx";
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
@@ -17,7 +19,7 @@ Create a keyspace (still called an API in the CLI). Every key belongs to one key
 ## Usage
 
 ```bash
-unkey api apis create-api --name=<name> [flags]
+unkey apis create --name=<name> [flags]
 ```
 
 ## Flags
@@ -28,10 +30,10 @@ unkey api apis create-api --name=<name> [flags]
 
 ### Shared flags
 
-Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+Every resource command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
 
 <ParamField body="--root-key" type="string">
-  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then stored credentials, including a CLI session. See [CLI authentication](/platform/cli/authentication) for the full precedence order.
 </ParamField>
 
 <ParamField body="--api-url" type="string" default="https://api.unkey.com">
@@ -39,11 +41,19 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 </ParamField>
 
 <ParamField body="--config" type="string" default="~/.unkey/config.toml">
-  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+  Path of the TOML config file. Falls back to `UNKEY_CONFIG`. An explicit `--config` takes precedence over a stored CLI session. Browser login stores a session, not a root key in this file. See [CLI authentication](/platform/cli/authentication).
 </ParamField>
 
-<ParamField body="--output" type="string">
-  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+<ParamField body="--output" type="enum" default="human">
+  <CLIOutput />
+</ParamField>
+
+<ParamField body="--debug" type="boolean">
+  Print the successful response's request ID to stderr, separate from stdout.
+</ParamField>
+
+<ParamField body="--json" type="boolean">
+  Print the full response as JSON. Takes precedence over a valid `--output` or `UNKEY_OUTPUT` value.
 </ParamField>
 
 <ParamField body="--body" type="string">
@@ -57,11 +67,11 @@ Every `unkey api` command takes these. See [CLI output and shared flags](/platfo
 ## Examples
 
 ```bash Create an API
-unkey api apis create-api --name=payment-service-prod
+unkey apis create --name=payment-service-prod
 ```
 
 Or send the whole request as JSON:
 
 ```bash Raw body
-unkey api apis create-api --body='{"name":"payment-service-prod"}'
+unkey apis create --body='{"name":"payment-service-prod"}'
 ```

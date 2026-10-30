@@ -4,6 +4,10 @@ This private workspace package is generated from
 `svc/api/openapi/openapi-generated.yaml` using the public SDK's Speakeasy
 configuration.
 
+The local `overlay.yaml` includes the CLI endpoints for the dashboard. They stay
+excluded from the public SDK. CLI calls use the dashboard proxy for authentication
+and disable transport retries, including for approval and revocation.
+
 Run `mise run generate` from the repository root after changing the API
 specification. It invokes `generate-api-sdk`; commit the generated `src` changes
 with the specification change.

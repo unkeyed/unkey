@@ -5,6 +5,7 @@ post:
     - bearer: []
   x-speakeasy-name-override: getRatelimits
   operationId: analytics.getRatelimits
+  x-unkey-workspace-rate-limit-exempt: true
   summary: Query rate limit data
   description: |
     Queries may reference only the five public rate limit analytics aliases: `ratelimits_v1`, `ratelimits_per_minute_v1`, `ratelimits_per_hour_v1`, `ratelimits_per_day_v1`, or `ratelimits_per_month_v1`. CTEs, subqueries, UNION, and EXCEPT are supported.

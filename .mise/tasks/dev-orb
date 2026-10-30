@@ -9,8 +9,8 @@ if [[ -x /opt/orb-worker/docker-start.sh ]]; then
   exec bash ./dev/orb/start.sh "$@"
 fi
 
-bash ./dev/start-cluster.sh ./dev/cluster.orb.yaml
-exec tilt up \
+source ./dev/local-cluster.sh
+with_local_cluster --start ./dev/cluster.orb.yaml tilt up \
   --file ./dev/Tiltfile \
   --host 0.0.0.0 \
   --port "${PORT:-10350}" \

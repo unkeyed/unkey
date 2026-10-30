@@ -5,15 +5,20 @@ import { type Loadable, type QueryResult, fromQuery } from "@/lib/loadable/loada
 import {
   type EnvironmentRef,
   type Grid,
+  type Held,
+  type HeldLoadable,
+  type HeldSources,
   type InstanceEvent,
   type InstanceRow,
   type InstanceSeries,
   type SourceResult,
-  type Sources,
   clampedRetryMs,
   environmentKeyOf,
+  holdKeyOf,
+  resolveHeld,
 } from "@/lib/metrics/app-metrics";
 import { trpc } from "@/lib/trpc/client";
+import type { FetchStatus } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 export type AppMetricsScope = { appId: string; environment: EnvironmentRef; grid: Grid };
@@ -27,21 +32,26 @@ function inputOf(scope: AppMetricsScope | null) {
   };
 }
 
-function viewKeyOf(scope: AppMetricsScope | null): string | null {
-  return scope && `${scope.appId}:${environmentKeyOf(scope.environment)}:${scope.grid.range}`;
-}
-
-// Holds the last result while only endMs or the open pod moved, so charts do not
-// flash to loading every bucket or rollout. A new app, environment or range
-// shows loading instead of the previous view's data.
-function useHeldAcrossTicks<T>(scope: AppMetricsScope | null, query: QueryResult<T>): Loadable<T> {
-  const viewKey = viewKeyOf(scope);
-  const [held, setHeld] = useState<{ viewKey: string | null; data: T } | null>(null);
-  if (query.data !== undefined && (held?.data !== query.data || held.viewKey !== viewKey)) {
-    setHeld({ viewKey, data: query.data });
+function useHeld<T>(
+  scope: AppMetricsScope | null,
+  query: QueryResult<T> & { fetchStatus: FetchStatus },
+  keyOf: (scope: AppMetricsScope) => string = holdKeyOf,
+): HeldLoadable<T> {
+  const [held, setHeld] = useState<Held<T> | null>(null);
+  const next = scope
+    ? resolveHeld(held, {
+        viewKey: keyOf(scope),
+        range: scope.grid.range,
+        fresh: query.data,
+        isError: query.isError,
+        fetchStatus: query.fetchStatus,
+      })
+    : null;
+  if (next && next.held !== held) {
+    setHeld(next.held);
   }
-  const data = query.data ?? (held && held.viewKey === viewKey ? held.data : undefined);
-  return fromQuery({ ...query, data });
+  const loadable: Loadable<T> = fromQuery(next ? { ...query, data: next.data } : query);
+  return loadable.status === "ready" && next?.outdated ? { ...loadable, outdated: true } : loadable;
 }
 
 const CLOCK_DRIVEN = {
@@ -67,7 +77,7 @@ function gridDriven<T extends { grid: Grid }>(scope: AppMetricsScope | null, ena
 
 const INSTANCES_POLL_MS = 10_000;
 
-export function useMetricSources(scope: AppMetricsScope | null): Sources {
+export function useMetricSources(scope: AppMetricsScope | null): HeldSources {
   const traffic = trpc.deploy.appMetrics.traffic.useQuery(
     inputOf(scope),
     gridDriven<SourceResult<"traffic">>(scope),
@@ -77,8 +87,8 @@ export function useMetricSources(scope: AppMetricsScope | null): Sources {
     gridDriven<SourceResult<"resources">>(scope),
   );
   return {
-    traffic: useHeldAcrossTicks(scope, traffic),
-    resources: useHeldAcrossTicks(scope, resources),
+    traffic: useHeld(scope, traffic),
+    resources: useHeld(scope, resources),
   };
 }
 
@@ -87,18 +97,18 @@ export function useDeployMarkers(scope: AppMetricsScope | null) {
     ...CLOCK_DRIVEN,
     enabled: scope !== null,
   });
-  return useHeldAcrossTicks(scope, query);
+  return useHeld(scope, query);
 }
 
 export function useInstanceEvents(
   scope: AppMetricsScope | null,
   enabled: boolean,
-): Loadable<InstanceEvent[]> {
+): HeldLoadable<InstanceEvent[]> {
   const query = trpc.deploy.appMetrics.instanceEvents.useQuery(inputOf(scope), {
     ...CLOCK_DRIVEN,
     enabled: enabled && scope !== null,
   });
-  return useHeldAcrossTicks(scope, query);
+  return useHeld(scope, query);
 }
 
 export function useMetricSourceByInstance(
@@ -128,7 +138,7 @@ export function useMetricSourceByInstance(
       utils.deploy.appMetrics.sourceByInstance.invalidate({ appId, environment });
     }
   }, [podSet, appId, environment, utils]);
-  return useHeldAcrossTicks(scope, query);
+  return useHeld(scope, query, (s) => `${holdKeyOf(s)}:${openInstance ?? ""}`);
 }
 
 export function useMetricInstances(

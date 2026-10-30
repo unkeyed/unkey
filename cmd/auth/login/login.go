@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/cli/credentials"
 	"github.com/unkeyed/unkey/pkg/cli/session"
+	"github.com/unkeyed/unkey/pkg/prompt"
 	"golang.org/x/term"
 )
 
@@ -23,8 +24,9 @@ func New() *cli.Command {
 
 func newCommand(keys credentials.RootKeyStore) *cli.Command {
 	return &cli.Command{
-		Name:  "login",
-		Usage: "Sign in and store a CLI session",
+		Name:        "login",
+		RootAliases: []string{"login"},
+		Usage:       "Sign in and store a CLI session",
 		Description: `Start a device login, allow it in the browser, and store the CLI session you authorize.
 
 The session is stored in the system keychain when that store is available, and otherwise in ~/.unkey/sessions.json. One session is kept per workspace.
@@ -50,13 +52,14 @@ Pass --root-key=- to store an existing root key without a browser. The key is re
 				}
 				rootKey = read
 			}
+
 			return run(ctx, options{
 				apiURL:    cmd.String("api-url"),
 				rootKey:   rootKey,
 				noBrowser: cmd.Bool("no-browser"),
 				client:    &http.Client{Timeout: 30 * time.Second},
-				sleep:     sleepContext,
-				open:      cli.OpenBrowser,
+				sleep:     nil,
+				open:      openBrowser,
 				keys:      keys,
 			})
 		},
@@ -80,24 +83,25 @@ func run(ctx context.Context, opts options) error {
 	if opts.client == nil {
 		opts.client = &http.Client{Timeout: 30 * time.Second}
 	}
-	if opts.sleep == nil {
-		opts.sleep = sleepContext
-	}
+
 	deviceName, err := os.Hostname()
 	if err != nil {
 		deviceName = ""
 	}
+
 	started, err := startLogin(ctx, opts.client, opts.apiURL, deviceName)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Your confirmation code:\n\n  %s\n\n", formatUserCode(started.UserCode))
-	fmt.Printf("Open this URL, check the code, and choose permissions:\n  %s\n\n", started.VerificationURIComplete)
+
+	fmt.Fprintf(os.Stderr, "Your confirmation code:\n\n  %s\n\n", formatUserCode(started.UserCode))
+	fmt.Fprintf(os.Stderr, "Open this URL, check the code, and choose permissions:\n  %s\n\n", started.VerificationURL)
 	if !opts.noBrowser && opts.open != nil {
-		if err := opts.open(started.VerificationURIComplete); err != nil {
-			fmt.Printf("Could not open a browser (%s). Use the URL above.\n\n", err.Error())
+		if err := opts.open(started.VerificationURL); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not open a browser (%s). Use the URL above.\n\n", err.Error())
 		}
 	}
+
 	deadline := time.Time{}
 	if started.ExpiresIn > 0 {
 		deadline = time.Now().Add(time.Duration(started.ExpiresIn) * time.Second)
@@ -106,10 +110,12 @@ func run(ctx context.Context, opts options) error {
 	if err != nil {
 		return err
 	}
+
 	apiURL := session.NormalizeAPIURL(opts.apiURL)
 	if apiURL == "" {
 		apiURL = session.DefaultAPIURL
 	}
+
 	if err := session.Save(session.Session{
 		WorkspaceID:  issued.WorkspaceID,
 		SessionID:    issued.SessionID,
@@ -123,8 +129,29 @@ func run(ctx context.Context, opts options) error {
 		}
 		return fmt.Errorf("could not store the CLI session, so it was revoked: %w", err)
 	}
-	fmt.Printf("Authentication successful. Session stored for workspace %s.\n", issued.WorkspaceID)
+
+	fmt.Println("Signed in.")
 	return nil
+}
+
+func openBrowser(url string) error {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return nil
+	}
+
+	selected, err := prompt.New(prompt.WithWriter(os.Stderr)).SelectOrdered(
+		"Open the verification URL in your browser?",
+		[]prompt.SelectOption{
+			{Key: "manual", Label: "Continue without opening a browser"},
+			{Key: "open", Label: "Open browser"},
+		},
+		"manual",
+	)
+	if err != nil || selected != "open" {
+		return err
+	}
+
+	return cli.OpenBrowser(url)
 }
 
 func readRootKey(stdin *os.File) (string, error) {
@@ -145,10 +172,12 @@ func readRootKeyFrom(r io.Reader) (string, error) {
 	if err != nil && err != io.EOF {
 		return "", fmt.Errorf("read root key: %w", err)
 	}
+
 	key := strings.TrimSpace(line)
 	if key == "" {
 		return "", fmt.Errorf("no root key on stdin")
 	}
+
 	return key, nil
 }
 
@@ -156,21 +185,11 @@ func storeRootKey(keys credentials.RootKeyStore, key string) error {
 	if keys == nil {
 		keys = credentials.DefaultRootKeyStore()
 	}
-	location, err := credentials.StoreRootKey(keys, key)
+
+	_, err := credentials.StoreRootKey(keys, key)
 	if err != nil {
 		return fmt.Errorf("failed to store root key: %w", err)
 	}
-	fmt.Printf("Authentication successful. Key stored in %s.\n", location)
+	fmt.Println("Root key saved.")
 	return nil
-}
-
-func sleepContext(ctx context.Context, d time.Duration) error {
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
 }

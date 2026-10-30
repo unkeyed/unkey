@@ -28,8 +28,24 @@ Required Permissions
 Use a root key with the environment.*.read_domain permission. A successful request returns an empty list if no matching domains are readable by your key.
 
 For full documentation, see https://www.unkey.com/docs/networking/domains` + util.Disclaimer,
-		Examples: []string{"unkey api domains list-domains", "unkey api domains list-domains --app=api", "unkey api domains list-domains --project=payments --app=api --environment=production --limit=25 --search=acme.com"},
-		Flags:    []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug filter.", cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug filter.", cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug filter.", cli.MutuallyExclusive("body")), cli.Int64("limit", "Maximum domains to return, from 1 to 100.", cli.Default(int64(100)), cli.MutuallyExclusive("body")), cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body")), cli.String("search", "Case-insensitive domain ID or name filter.", cli.MutuallyExclusive("body"))},
+		Examples: []string{
+			"unkey api domains list-domains",
+			"unkey api domains list-domains --app=api",
+			"unkey api domains list-domains --project=payments --app=api --environment=production --limit=25 --search=acme.com",
+		},
+		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("project", "Project ID or slug filter.", cli.MutuallyExclusive("body")),
+			cli.String("app", "App ID or slug filter.", cli.MutuallyExclusive("body")),
+			cli.String("environment", "Environment ID or slug filter.", cli.MutuallyExclusive("body")),
+			cli.Int64("limit", "Maximum domains to return, from 1 to 100.", cli.Default(int64(100)), cli.MutuallyExclusive("body")),
+			cli.String("cursor", "Pagination cursor from a previous response.", cli.MutuallyExclusive("body")),
+			cli.String("search", "Case-insensitive domain ID or name filter.", cli.MutuallyExclusive("body")),
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(ctx, cmd)
 			if err != nil {
