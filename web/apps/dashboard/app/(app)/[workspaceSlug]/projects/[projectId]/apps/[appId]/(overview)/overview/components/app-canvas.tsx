@@ -6,18 +6,21 @@ import {
   DEPLOYMENT_STATUS_LABELS,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { Deployment, DeploymentSummary } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceSummary,
   groupInstancesByRegion,
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
+import { imageRefTag } from "@/lib/docker-image-ref";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {
+  IconClockOutline18,
   IconCodeBranchOutline18,
   IconCubeOutline18,
   IconEarthOutline18,
+  IconEarthPlusOutline18,
   IconGridOutline18,
   IconLayers2Outline18,
   IconLink4Outline18,
@@ -27,12 +30,13 @@ import {
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, Button, InfoTooltip, Skeleton } from "@unkey/ui";
+import { Badge, Button, InfoTooltip, Skeleton, TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import { DeploymentStatusIndicator, StatusDot } from "../../../components/deployment-status-dot";
 import type { DisplayDomain } from "../../../components/display-domain";
+import { Avatar } from "../../../components/git-avatar";
 import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
 import { POLICY_KINDS } from "../../policies/policy-kinds";
 import {
@@ -43,11 +47,13 @@ import {
   IconRow,
   MoreRow,
   Node,
+  NodeFooter,
   NodeHeader,
   type NodeTone,
   RowItem,
   Rows,
 } from "./canvas/nodes";
+import type { DeployStamp } from "./deploy-stamp";
 import { useProductionCard } from "./production-card-context";
 import {
   type DeploymentDisplayStatus,
@@ -116,32 +122,31 @@ function DomainsNode({
   const hasPlatform = domains.some((d) => d.source === "platform");
   const shown = domains.slice(0, NODE_ROW_LIMIT - Number(!hasPlatform));
   return (
-    <>
-      <Node link={{ href, label: "Domain settings" }}>
-        <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
-        <Rows>
-          {!hasPlatform && (
-            <IconRow icon={DOMAIN_ICON.platform}>
-              <span className="text-gray-10">Unkey domain not assigned yet</span>
-            </IconRow>
-          )}
-          {shown.map((d) => (
-            <IconRow key={d.id} icon={DOMAIN_ICON[d.source]}>
-              <HostnameLink domain={d} />
-            </IconRow>
-          ))}
-          <MoreRow count={domains.length - shown.length} href={href} />
-        </Rows>
-      </Node>
-      {addHref && (
-        <GhostNode
-          icon={<IconLink4Outline18 />}
-          name="Add a custom domain"
-          description="Serve this app from a domain you own."
-          href={addHref}
-        />
-      )}
-    </>
+    <Node
+      link={{ href, label: "Domain settings" }}
+      footer={
+        addHref && (
+          <NodeFooter href={addHref} icon={<IconEarthPlusOutline18 />}>
+            Add a custom domain
+          </NodeFooter>
+        )
+      }
+    >
+      <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
+      <Rows>
+        {!hasPlatform && (
+          <IconRow icon={DOMAIN_ICON.platform}>
+            <span className="text-gray-10">Unkey domain not assigned yet</span>
+          </IconRow>
+        )}
+        {shown.map((d) => (
+          <IconRow key={d.id} icon={DOMAIN_ICON[d.source]}>
+            <HostnameLink domain={d} />
+          </IconRow>
+        ))}
+        <MoreRow count={domains.length - shown.length} href={href} />
+      </Rows>
+    </Node>
   );
 }
 
@@ -153,7 +158,7 @@ function HostnameLink({ domain }: { domain: DisplayDomain }) {
         href={domain.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative z-10 flex min-w-0 font-medium text-gray-12 hover:underline rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+        className="relative z-10 flex min-w-0 text-gray-12 hover:underline rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
       >
         <span className="truncate">{head}</span>
         <span className="max-w-full shrink-0 truncate">{apex}</span>
@@ -169,12 +174,15 @@ function splitApex(hostname: string): { head: string; apex: string } {
 }
 
 function AppNode() {
-  const { deployment, status, isCurrent, isRolledBack, deploymentHref, canvas } =
+  const { deployment, status, isCurrent, stamp, replaced, deploymentHref, canvas } =
     useProductionCard();
   const badge = appStatusOf({ deployment, status, isCurrent });
   const summary = summarizeInstances(deployment);
   const regions = groupInstancesByRegion(deployment).map((r) => r.name);
-  const image = deployment.requestedImage ?? deployment.resolvedImage;
+  const image = imageRefOf(deployment)?.note ?? null;
+  const commit = commitRefOf(deployment);
+  const replacedRef = replaced && REF_OF_SOURCE[replaced.source](replaced);
+  const replacedChip = replacedRef ? <RefChip value={replacedRef} replaced /> : undefined;
 
   return (
     <Node tone={badge.tone} link={{ href: deploymentHref, label: `${canvas.appName} deployment` }}>
@@ -185,7 +193,6 @@ function AppNode() {
           <Badge variant={badge.variant} size="compact" className="-my-0.5 -mr-1.5">
             {badge.indicator}
             {badge.label}
-            {isRolledBack && <span className="text-warning-11">· Rolled back</span>}
           </Badge>
         }
       />
@@ -198,11 +205,8 @@ function AppNode() {
               value={deployment.gitBranch || "—"}
               fullValue={deployment.gitBranch || undefined}
               mono
-              hint={
-                deployment.gitCommitSha ? (
-                  <span className="font-mono">{deployment.gitCommitSha.slice(0, 7)}</span>
-                ) : undefined
-              }
+              hint={commit ? <RefChip value={commit} /> : undefined}
+              detail={replacedChip}
             />
           ))
           .with("oci", () => (
@@ -212,6 +216,7 @@ function AppNode() {
               value={image ?? "Unknown"}
               fullValue={image ?? undefined}
               copy={image ?? undefined}
+              detail={replacedChip}
             />
           ))
           .with("unknown", () => (
@@ -228,11 +233,12 @@ function AppNode() {
             </>
           ))
           .exhaustive()}
+        {stamp && <DeployedRow stamp={stamp} />}
         <RowItem
           icon={<IconEarthOutline18 />}
           label="Regions"
           value={<RegionFlags regions={regions} />}
-          hint={summary && `${instancesValue(summary)} running`}
+          hint={summary ? `${instancesValue(summary)} running` : undefined}
         />
         <RowItem
           icon={<IconMicrochipOutline18 />}
@@ -242,6 +248,103 @@ function AppNode() {
         />
       </Rows>
     </Node>
+  );
+}
+
+type Ref = { shown: string; mono: boolean; code: string; note: string | null };
+
+function commitRefOf(deployment: DeploymentSummary): Ref | null {
+  if (!deployment.gitCommitSha) {
+    return null;
+  }
+  const code = deployment.gitCommitSha.slice(0, 7);
+  const note = deployment.gitCommitMessage || null;
+  return { shown: note ?? code, mono: note === null, code, note };
+}
+
+function imageRefOf(deployment: DeploymentSummary): Ref | null {
+  const image = deployment.requestedImage ?? deployment.resolvedImage;
+  if (!image) {
+    return null;
+  }
+  const code = imageRefTag(image);
+  return { shown: code, mono: true, code, note: image };
+}
+
+const REF_OF_SOURCE: Record<Deployment["source"], (deployment: DeploymentSummary) => Ref | null> = {
+  git: commitRefOf,
+  oci: imageRefOf,
+  unknown: () => null,
+};
+
+function RefChip({ value, replaced = false }: { value: Ref; replaced?: boolean }) {
+  const { shown, mono, code, note } = value;
+  return (
+    <InfoTooltip
+      asChild
+      position={{ side: "top" }}
+      content={
+        <span data-sentry-mask className="flex max-w-80 flex-col gap-0.5">
+          {replaced && <span className="opacity-70">Replaced</span>}
+          <span className={cn("flex min-w-0 gap-1.5", replaced && "line-through")}>
+            <span className="shrink-0 font-mono">{code}</span>
+            {note && <span className="truncate">{note}</span>}
+          </span>
+        </span>
+      }
+    >
+      <button
+        type="button"
+        data-sentry-mask
+        aria-label={[replaced && "Replaced", code, note].filter(Boolean).join(" ")}
+        className={cn(
+          "relative z-10 block min-w-0 max-w-full cursor-default truncate rounded-sm text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7",
+          mono && "font-mono",
+          replaced && "line-through",
+        )}
+      >
+        {shown}
+      </button>
+    </InfoTooltip>
+  );
+}
+
+function DeployedRow({ stamp }: { stamp: DeployStamp }) {
+  const { actor } = stamp;
+  return (
+    <RowItem
+      icon={<IconClockOutline18 />}
+      label={stamp.verb}
+      value={
+        <span className="flex min-w-0 items-center gap-1.5">
+          <TimestampInfo
+            value={stamp.at}
+            displayType="relative"
+            className="relative z-10 shrink-0 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+          />
+          {actor?.avatarUrl && (
+            <InfoTooltip
+              asChild
+              content={
+                <span data-sentry-mask>
+                  {stamp.verb} by {actor.name}
+                </span>
+              }
+              position={{ side: "top" }}
+            >
+              <button
+                type="button"
+                data-sentry-mask
+                aria-label={`${stamp.verb} by ${actor.name}`}
+                className="relative z-10 flex shrink-0 cursor-default rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
+              >
+                <Avatar src={actor.avatarUrl} alt="" className="size-4" />
+              </button>
+            </InfoTooltip>
+          )}
+        </span>
+      }
+    />
   );
 }
 

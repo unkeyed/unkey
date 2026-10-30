@@ -35,6 +35,29 @@ describe("deriveProductionStatus", () => {
     ).toBe("live");
   });
 
+  test("a live deployment the app rolled back to is rolled back", () => {
+    expect(
+      deriveProductionStatus(
+        { status: "ready", desiredState: "running", targetRegions: [], instances: [instance()] },
+        { rolledBack: true },
+      ),
+    ).toBe("rolled-back");
+  });
+
+  test("a crashing rollback stays crashing", () => {
+    expect(
+      deriveProductionStatus(
+        {
+          status: "ready",
+          desiredState: "running",
+          targetRegions: [],
+          instances: [instance({ lastExit: waiting("CrashLoopBackOff") })],
+        },
+        { rolledBack: true },
+      ),
+    ).toBe("crashing");
+  });
+
   test("one crash-looping pod makes the deployment crash", () => {
     expect(
       deriveProductionStatus({

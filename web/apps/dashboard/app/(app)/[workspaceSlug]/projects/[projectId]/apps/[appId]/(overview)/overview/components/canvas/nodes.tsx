@@ -14,26 +14,30 @@ import type { ReactNode } from "react";
 
 export type NodeTone = "default" | "error";
 
-const NODE_TONE: Record<NodeTone, { base: string; linkHover: string }> = {
+const NODE_TONE: Record<NodeTone, { base: string; body: string; linkHover: string }> = {
   default: {
     base: "bg-raised shadow-xs ring-1 ring-grayA-4",
+    body: "bg-raised",
     linkHover:
-      "outline-2 outline-offset-1 outline-transparent hover:ring-gray-10 hover:outline-grayA-3",
+      "outline-2 outline-offset-1 outline-transparent hover:ring-gray-10 hover:outline-grayA-3 has-[[data-node-footer]:hover]:ring-grayA-4 has-[[data-node-footer]:hover]:outline-transparent",
   },
   error: {
     base: "bg-error-2 shadow-xs ring-1 ring-error-6",
+    body: "bg-error-2",
     linkHover:
-      "outline-2 outline-offset-1 outline-transparent hover:ring-error-9 hover:outline-errorA-3",
+      "outline-2 outline-offset-1 outline-transparent hover:ring-error-9 hover:outline-errorA-3 has-[[data-node-footer]:hover]:ring-error-6 has-[[data-node-footer]:hover]:outline-transparent",
   },
 };
 
 export function Node({
   tone = "default",
   link,
+  footer,
   children,
 }: {
   tone?: NodeTone;
   link?: { href: Route; label: string };
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -51,8 +55,48 @@ export function Node({
           className="absolute inset-0 rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-7"
         />
       )}
-      {children}
+      {footer ? (
+        <div className="flex flex-col bg-grayA-2">
+          <div
+            className={cn("flex flex-col rounded-b-lg ring-1 ring-grayA-5", NODE_TONE[tone].body)}
+          >
+            {children}
+          </div>
+          {footer}
+        </div>
+      ) : (
+        children
+      )}
     </div>
+  );
+}
+
+export function NodeFooter({
+  href,
+  icon,
+  children,
+}: {
+  href?: Route;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  const content = (
+    <span className="flex items-center gap-2 px-4 py-2 text-xs text-gray-10 transition-colors group-hover/footer:text-gray-12 [&_svg]:size-3 [&_svg]:shrink-0">
+      {icon}
+      {children}
+    </span>
+  );
+  if (!href) {
+    return content;
+  }
+  return (
+    <Link
+      href={href}
+      data-node-footer
+      className="group/footer relative z-10 block focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-7"
+    >
+      {content}
+    </Link>
   );
 }
 
@@ -66,7 +110,7 @@ export function NodeHeader({
   right?: ReactNode;
 }) {
   return (
-    <span className="flex min-w-0 items-center gap-1.5 px-4 py-2.5">
+    <span className="flex min-w-0 items-center gap-2 px-4 py-2.5">
       <span className="shrink-0 text-gray-11 [&_svg]:size-3">{icon}</span>
       <span className="min-w-0 truncate text-xs font-medium text-gray-12">{name}</span>
       {right != null && <span className="ml-auto flex shrink-0 items-center gap-1">{right}</span>}
@@ -76,9 +120,7 @@ export function NodeHeader({
 
 export function Rows({ children }: { children: ReactNode }) {
   return (
-    <span className="flex flex-col gap-2 border-t border-grayA-4 px-4 py-3 text-xs text-gray-12">
-      {children}
-    </span>
+    <span className="flex flex-col gap-2 px-4 pt-0.5 pb-2.5 text-xs text-gray-12">{children}</span>
   );
 }
 
@@ -88,6 +130,7 @@ export function RowItem({
   value,
   fullValue,
   hint,
+  detail,
   copy,
   mono = false,
 }: {
@@ -96,6 +139,7 @@ export function RowItem({
   value: ReactNode;
   fullValue?: string;
   hint?: ReactNode;
+  detail?: ReactNode;
   copy?: string;
   mono?: boolean;
 }) {
@@ -104,29 +148,58 @@ export function RowItem({
   ) : (
     <span className="min-w-0 truncate">{value}</span>
   );
+  const line = (
+    <span className="flex min-w-0 max-w-full items-center gap-1.5">
+      <span
+        className={cn(
+          "flex min-w-0",
+          hint != null && "max-w-40 shrink-0",
+          mono ? "font-mono" : "tabular-nums",
+        )}
+      >
+        {fullValue ? (
+          <InfoTooltip asChild content={fullValue} position={{ side: "top" }}>
+            <span className="relative z-10 flex min-w-0">{shown}</span>
+          </InfoTooltip>
+        ) : (
+          shown
+        )}
+      </span>
+      {hint != null && <span className="min-w-0 truncate text-gray-10">{hint}</span>}
+    </span>
+  );
   return (
-    <IconRow icon={icon}>
+    <IconRow icon={icon} align={detail != null ? "start" : "center"}>
       <span className="shrink-0 font-medium text-gray-11">{label}</span>
-      <span className="ml-auto flex min-w-0 items-center gap-1.5">
-        <span className={cn("flex min-w-0", mono ? "font-mono" : "tabular-nums")}>
-          {fullValue ? (
-            <InfoTooltip asChild content={fullValue} position={{ side: "top" }}>
-              <span className="relative z-10 flex min-w-0">{shown}</span>
-            </InfoTooltip>
-          ) : (
-            shown
-          )}
-        </span>
-        {hint != null && <span className="shrink-0 text-gray-10">{hint}</span>}
+      <span className="ml-auto flex min-w-0 flex-col items-end gap-0.5">
+        {line}
+        {detail != null && (
+          <span className="flex w-0 min-w-full justify-end text-gray-10">{detail}</span>
+        )}
       </span>
     </IconRow>
   );
 }
 
-export function IconRow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+const ROW_ALIGN = {
+  center: { row: "items-center", icon: "" },
+  start: { row: "items-start", icon: "mt-0.5" },
+} as const;
+
+export function IconRow({
+  icon,
+  align = "center",
+  children,
+}: {
+  icon: ReactNode;
+  align?: keyof typeof ROW_ALIGN;
+  children: ReactNode;
+}) {
   return (
-    <span className="flex min-w-0 items-center gap-2">
-      <span className="shrink-0 text-gray-10 [&_svg]:size-3">{icon}</span>
+    <span className={cn("flex min-w-0 gap-2", ROW_ALIGN[align].row)}>
+      <span className={cn("shrink-0 text-gray-10 [&_svg]:size-3", ROW_ALIGN[align].icon)}>
+        {icon}
+      </span>
       {children}
     </span>
   );

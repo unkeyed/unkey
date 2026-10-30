@@ -5,6 +5,7 @@ import type { Deployment, DeploymentSummary } from "@/lib/collections";
 import type { Route } from "next";
 import { createContext, use } from "react";
 import type { DisplayDomain } from "../../../components/display-domain";
+import type { DeployStamp } from "./deploy-stamp";
 import type { DeploymentDisplayStatus } from "./status";
 
 export type CanvasModel = {
@@ -23,6 +24,8 @@ export type ProductionCardContextValue = {
   status: DeploymentDisplayStatus;
   isCurrent: boolean;
   isRolledBack: boolean;
+  stamp: DeployStamp | null;
+  replaced: DeploymentSummary | null;
   canvas: CanvasModel;
   sourceRepo: string | null;
   diagnostic: { label: string; href: Route } | null;

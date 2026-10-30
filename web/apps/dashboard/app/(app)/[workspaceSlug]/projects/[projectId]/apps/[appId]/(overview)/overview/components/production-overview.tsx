@@ -5,18 +5,21 @@ import { appSource } from "@/components/deploy/app-source";
 import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Deployment, type DeploymentSummary, collection } from "@/lib/collections";
+import { gitAuthorOf } from "@/lib/collections/deploy/deployment-origin";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { previousRollbackTarget, rollbackCandidates } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { fromQuery } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { match } from "@unkey/match";
 import { Card, PageBody } from "@unkey/ui";
 import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { appDeploymentQueryFor } from "../../data-provider-queries";
@@ -28,6 +31,7 @@ import { AppCanvas } from "./app-canvas";
 import { AppCanvasSkeleton } from "./app-canvas-skeleton";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
+import { type LiveState, liveFactsOf } from "./deploy-stamp";
 import { OverviewHeader, ProductionActions, ProductionActionsSkeleton } from "./overview-header";
 import { type ProductionCardContextValue, ProductionCardProvider } from "./production-card-context";
 import { STATUS_META, deriveProductionStatus } from "./status";
@@ -44,6 +48,9 @@ const UndoRollbackDialog = dynamic(
   () => import("./undo-rollback-dialog").then((m) => m.UndoRollbackDialog),
   { ssr: false },
 );
+
+const AUDIT_EXPORT_POLL_MS = 5_000;
+const AUDIT_EXPORT_POLL_WINDOW_MS = 3 * 60_000;
 
 type ProductionOverviewModel =
   | { kind: "loading" }
@@ -113,13 +120,40 @@ function useProductionOverview({
     [projectId, appId, fallbackDeploymentId],
   );
 
-  const deployment = currentDeployment ?? fallbackDeploymentQuery.data?.[0];
-  const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
+  const shown = currentDeployment ?? fallbackDeploymentQuery.data?.[0];
   const isCurrent = Boolean(currentDeployment);
+  const isRolledBack = isCurrent && appIsRolledBack;
+  const production = shown
+    ? { deployment: shown, status: deriveProductionStatus(shown, { rolledBack: isRolledBack }) }
+    : null;
+  const rolledBackId = production?.status === "rolled-back" ? production.deployment.id : null;
+  const pollStart = useRef<{ deploymentId: string; at: number } | null>(null);
+  if (!rolledBackId) {
+    pollStart.current = null;
+  }
+  const rollbackQuery = trpc.deploy.deployment.latestRollback.useQuery(
+    { appId, deploymentId: rolledBackId ?? "" },
+    {
+      enabled: rolledBackId !== null,
+      staleTime: 0,
+      refetchInterval: (data, query) => {
+        if (!rolledBackId || data !== null || query.state.status === "error") {
+          return false;
+        }
+        if (pollStart.current?.deploymentId !== rolledBackId) {
+          pollStart.current = { deploymentId: rolledBackId, at: Date.now() };
+        }
+        return Date.now() - pollStart.current.at < AUDIT_EXPORT_POLL_WINDOW_MS
+          ? AUDIT_EXPORT_POLL_MS
+          : false;
+      },
+    },
+  );
+  const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
   const newerDeployment =
-    deployment &&
+    production &&
     latestProductionDeployment &&
-    latestProductionDeployment.id !== deployment.id &&
+    latestProductionDeployment.id !== production.deployment.id &&
     hasVisibleBuildState(latestProductionDeployment)
       ? latestProductionDeployment
       : undefined;
@@ -133,11 +167,10 @@ function useProductionOverview({
     [projectId, appId],
   );
 
-  const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
   useCollectionPolling(() => collection.deployments.utils.refetch(), {
     intervalMs: 10_000,
     enabled:
-      (productionStatus ? STATUS_META[productionStatus].polls : false) ||
+      (production ? STATUS_META[production.status].polls : false) ||
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
@@ -154,12 +187,11 @@ function useProductionOverview({
     return { kind: "loading" };
   }
 
-  if (!deployment) {
+  if (!production) {
     return { kind: "no-production" };
   }
 
-  const status = productionStatus ?? deriveProductionStatus(deployment);
-  const isRolledBack = isCurrent && appIsRolledBack;
+  const { deployment, status } = production;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { all } = getDomainPriority({
@@ -176,6 +208,15 @@ function useProductionOverview({
         (a, b) => b.createdAt - a.createdAt,
       )
     : [];
+
+  const liveState: LiveState = match(status)
+    .returnType<LiveState>()
+    .with("rolled-back", () => ({ kind: "rolled-back", event: fromQuery(rollbackQuery) }))
+    .with("live", () =>
+      isCurrent ? { kind: "live", author: gitAuthorOf(deployment) } : { kind: "not-live" },
+    )
+    .otherwise(() => ({ kind: "not-live" }));
+  const { stamp, replaced } = liveFactsOf(liveState, deployment, deployments);
 
   const deploymentHref = routes.projects.apps.deployment({
     workspaceSlug: workspace.slug,
@@ -205,6 +246,8 @@ function useProductionOverview({
     status,
     isCurrent,
     isRolledBack,
+    stamp,
+    replaced,
     canvas: {
       appName: app?.name ?? "App",
       appSource: app ? appSource(app) : "legacy",
