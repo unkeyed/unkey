@@ -163,7 +163,7 @@ Protect Express routes with API keys. A middleware reads the bearer token, calls
     | `NOT_FOUND` | No such key, or your root key may not verify this keyspace. | 401 |
     | `DISABLED` | The key was disabled. | 401 |
     | `EXPIRED` | The key's expiry passed. | 401 |
-    | `FORBIDDEN` | Client IP not on the keyspace allow list, or the workspace is disabled. | 403 |
+    | `FORBIDDEN` | The workspace is disabled. | 403 |
     | `INSUFFICIENT_PERMISSIONS` | The `permissions` query was not satisfied. | 403 |
     | `RATE_LIMITED` | A <Tooltip tip="Here: limits enforced by keys.verifyKey on a key or identity, or by the standalone ratelimit API. Not a Compute gateway policy.">rate limit</Tooltip> on the key or its identity was exceeded. | 429 |
     | `USAGE_EXCEEDED` | The key has no credits left. | 402 or 429 |

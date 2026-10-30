@@ -42,14 +42,12 @@ The gateway returns this code for any key that isn't valid for this API, unless 
 - The key is disabled or expired.
 - The key is from a keyspace your key-auth policy doesn't list.
 - The workspace that owns the key is disabled.
-- The client IP is missing or isn't in the keyspace's configured IP allowlist.
 
 ### How to fix
 
 1. Look the key up in the dashboard or with `keys.getKey`. Check that it's enabled, not expired, and in a keyspace the policy accepts.
 2. If callers hold keys from a keyspace you added recently, add that keyspace to the policy and create a new deployment. Policy changes only apply to deployments created after the change.
 3. If the key looks fine, check whether the workspace that owns it is disabled.
-4. If the keyspace has an IP allowlist, check that it includes the caller's IP address.
 
 <ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
   Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.

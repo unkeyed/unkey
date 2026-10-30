@@ -22,7 +22,7 @@ sources:
 
 import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
-Unkey checks the key your user sent by calling `keys.verifyKey` from your own server. One call runs expiry, an IP allow list when the keyspace has one, permissions, rate limits, and credits, then returns `data.valid` and a `code`. The HTTP status stays 200 when the key fails, and your server returns 401 or 429 to the caller. On Compute, the API key authentication policy runs the same checks at the gateway and returns 401, 403 or 429 itself.
+Unkey checks the key your user sent by calling `keys.verifyKey` from your own server. One call runs expiry, permissions, rate limits, and credits, then returns `data.valid` and a `code`. The HTTP status stays 200 when the key fails, and your server returns 401 or 429 to the caller. On Compute, the API key authentication policy runs the same checks at the gateway and returns 401, 403 or 429 itself.
 
 ## What the check tells you
 
@@ -32,7 +32,7 @@ Read `data.code`. These are the outcomes you usually branch on. The full list, i
 | --- | --- |
 | Is the key allowed? | `valid: true` and `code: VALID` |
 | Is it missing, disabled, or expired? | `NOT_FOUND`, `DISABLED`, or `EXPIRED` |
-| Is the caller blocked? | `FORBIDDEN` when the client IP is off the keyspace allow list, or the workspace is disabled |
+| Is the caller blocked? | `FORBIDDEN` when the workspace is disabled |
 | Does it have permission? | `INSUFFICIENT_PERMISSIONS` when the `permissions` query fails |
 | Is it over a rate limit? | `RATE_LIMITED`. That request doesn't spend credits |
 | Has it used its quota? | `USAGE_EXCEEDED` when credits can't cover the cost |
@@ -100,10 +100,9 @@ Checks run in this order and stop at the first failure. The order decides which 
 3. **Workspace.** A disabled workspace produces `FORBIDDEN`.
 4. **Enabled.** A key with `enabled: false` produces `DISABLED`.
 5. **Expiration.** A key whose `expires` is in the past produces `EXPIRED`.
-6. **IP allow list.** If the keyspace has one, the request's client IP must be on it, or the result is `FORBIDDEN`.
-7. **Permissions.** If the request carries a `permissions` query, the key must satisfy it, or the result is `INSUFFICIENT_PERMISSIONS`.
-8. **Rate limits.** Auto-applied limits and limits named in the request are checked together. If any is exceeded, the result is `RATE_LIMITED`, and the other limits aren't used up.
-9. **Credits.** Only if everything above passed, the cost is deducted. Not enough credits gives `USAGE_EXCEEDED` and nothing is deducted.
+6. **Permissions.** If the request carries a `permissions` query, the key must satisfy it, or the result is `INSUFFICIENT_PERMISSIONS`.
+7. **Rate limits.** Auto-applied limits and limits named in the request are checked together. If any is exceeded, the result is `RATE_LIMITED`, and the other limits aren't used up.
+8. **Credits.** Only if everything above passed, the cost is deducted. Not enough credits gives `USAGE_EXCEEDED` and nothing is deducted.
 
 So a rate-limited request doesn't spend credits, but a request that runs out of credits still counts against its rate limits.
 
@@ -169,7 +168,7 @@ So a rate-limited request doesn't spend credits, but a request that runs out of 
 | `NOT_FOUND` | No such key; the key belongs to a deleted keyspace or a workspace your root key cannot verify for; or the request's `keyspaces` list excluded it. | 401 |
 | `DISABLED` | The key has `enabled: false`. | 401 or 403 |
 | `EXPIRED` | The key's `expires` has passed. | 401 |
-| `FORBIDDEN` | Client IP not on the keyspace's allow list, or the workspace is disabled. | 403 |
+| `FORBIDDEN` | The workspace is disabled. | 403 |
 | `INSUFFICIENT_PERMISSIONS` | The `permissions` query was not satisfied. | 403 |
 | `RATE_LIMITED` | At least one checked rate limit is exceeded. | 429 |
 | `USAGE_EXCEEDED` | Not enough credits for the requested cost. | 402 or 429 |

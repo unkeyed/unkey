@@ -19,8 +19,7 @@ The verification system uses a flexible, option-based approach that supports:
  2. Usage limiting: credit-based consumption tracking
  3. Rate limiting: configurable time-window based limits
  4. Permission checking: RBAC-based authorization
- 5. IP whitelisting: network-level access control
- 6. Workspace isolation: multi-tenant security boundaries
+ 5. Workspace isolation: multi-tenant security boundaries
 
 # Usage
 
@@ -66,7 +65,7 @@ The system defines comprehensive status codes for different validation outcomes:
   - NOT_FOUND: Key does not exist in the system
   - DISABLED: Key exists but is disabled
   - EXPIRED: Key has passed its expiration time
-  - FORBIDDEN: Access denied (IP whitelist, etc.)
+  - FORBIDDEN: Access denied
   - INSUFFICIENT_PERMISSIONS: RBAC validation failed
   - RATE_LIMITED: Rate limit exceeded
   - USAGE_EXCEEDED: Usage credit limit exceeded
