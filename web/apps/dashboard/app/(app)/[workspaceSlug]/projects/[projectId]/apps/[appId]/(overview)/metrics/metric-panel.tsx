@@ -12,6 +12,7 @@ import {
   SlidePanelHeader,
   SlidePanelTitle,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { absoluteScale } from "./allocation";
 import { ChartHoverProvider } from "./chart-hover";
 import { commitSubject, sourceLabel } from "./deploy-identity";
@@ -76,7 +77,12 @@ function PanelBody({
         </div>
         <SlidePanelCloseButton />
       </SlidePanelHeader>
-      <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6">
+      <SlidePanelContent
+        className={cn(
+          "flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6 transition-opacity duration-150 ease-out",
+          panel.pending && "opacity-35 pointer-events-none",
+        )}
+      >
         <Card>
           <dl className="grid grid-cols-4 border-b border-grayA-4">
             {STATS.map(({ key, label }) => (

@@ -497,6 +497,11 @@ describe("instancesTabView", () => {
     expect(view({ grid: clock, events, usage: loading }).grid.endMs).toBe(86_400_000);
   });
 
+  it("marks the tab pending while its usage draws another range", () => {
+    expect(view({ grid: { ...grid, range: "6h" } }).pending).toBe(true);
+    expect(view({ grid: { ...grid, endMs: 180_000 } }).pending).toBe(false);
+  });
+
   it("reports a failed events query and shows no episodes", () => {
     const result = view({ events: failed() });
     expect([result.episodes, result.crashEventsFailed]).toEqual([[], true]);

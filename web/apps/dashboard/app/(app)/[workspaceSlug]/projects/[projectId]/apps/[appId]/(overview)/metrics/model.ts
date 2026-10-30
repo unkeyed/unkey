@@ -11,7 +11,7 @@ import type {
   MetricId,
   Sources,
 } from "@/lib/metrics/app-metrics";
-import { type ChartState, METRIC_VIEWS, cardState } from "@/lib/metrics/views";
+import { type ChartState, METRIC_VIEWS, cardState, isPending } from "@/lib/metrics/views";
 import { match } from "@unkey/match";
 import { type DeployEffect, type EffectSamples, deployEffects } from "./deploy-effects";
 import {
@@ -72,7 +72,7 @@ export function needsInstanceSeries(tab: MetricsTab, expanded: MetricId | null):
   return tab === "instances" || (expanded !== null && isInstanceMetric(expanded));
 }
 
-export type MetricCardModel = { metric: MetricId; state: ChartState };
+export type MetricCardModel = { metric: MetricId; state: ChartState; pending: boolean };
 
 export function legendReadout(
   chart: ReadonlyArray<AreaChartPoint>,
@@ -117,6 +117,7 @@ export type PanelModel = {
   byInstance: InstanceChart | null;
   historyTruncated: boolean;
   deploys: DeployView[];
+  pending: boolean;
 };
 
 export type MetricsPageModel =
@@ -140,8 +141,9 @@ function effectSamples({ traffic, resources }: Sources): EffectSamples {
   return { traffic: readyOrNull(traffic), resources: readyOrNull(resources) };
 }
 
-function cardOf(sources: Sources, metric: MetricId): MetricCardModel {
-  return { metric, state: cardState(sources, metric) };
+function cardOf(sources: Sources, metric: MetricId, wanted: Grid): MetricCardModel {
+  const state = cardState(sources, metric);
+  return { metric, state, pending: isPending(state, wanted) };
 }
 
 type MetricsPageInput = {
@@ -180,8 +182,8 @@ function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): M
     layout.kind === "metrics"
       ? {
           kind: "metrics",
-          hero: cardOf(sources, layout.hero),
-          grid: layout.grid.map((metric) => cardOf(sources, metric)),
+          hero: cardOf(sources, layout.hero, input.grid),
+          grid: layout.grid.map((metric) => cardOf(sources, metric, input.grid)),
         }
       : {
           kind: "instances",
@@ -219,17 +221,19 @@ function panelOf(
   },
   deploys: DeployView[],
 ): PanelModel {
-  const card = cardOf(input.sources, metric);
+  const card = cardOf(input.sources, metric, input.grid);
   const ready = card.state.status === "ready" ? card.state : null;
   const grid = ready?.grid ?? input.grid;
+  const byInstance = isInstanceMetric(metric)
+    ? instanceChart(input.byInstance, input.instances, metric)
+    : null;
   return {
     card,
     historyTruncated:
       input.byInstance.status === "ready" && input.byInstance.data.history.truncated,
     stats: ready ? panelStats(ready.chart, METRIC_VIEWS[metric].primary) : null,
-    byInstance: isInstanceMetric(metric)
-      ? instanceChart(input.byInstance, input.instances, metric)
-      : null,
+    byInstance,
     deploys: deploys.filter((d) => d.marker.readyAtMs >= grid.startMs).reverse(),
+    pending: card.pending || (byInstance !== null && isPending(byInstance.chart, input.grid)),
   };
 }

@@ -2,7 +2,7 @@ import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import type { Loadable } from "@/lib/loadable/loadable";
 import type { LastExit } from "@/lib/types/deploy";
 import type { MetricSource, SourcePoint } from "@unkey/clickhouse/src/app-metrics/catalog";
-import { DAY_MS, type Grid } from "@unkey/clickhouse/src/app-metrics/grid";
+import { DAY_MS, type Grid, type RangePreset } from "@unkey/clickhouse/src/app-metrics/grid";
 import type { ResourcePoint } from "@unkey/clickhouse/src/app-metrics/resources";
 import type { TrafficPoint } from "@unkey/clickhouse/src/app-metrics/traffic";
 import { z } from "zod";
@@ -160,43 +160,22 @@ export function clampedRetryMs(asked: Grid, served: Grid, fetchCount: number): n
   return clamped && fetchCount <= MAX_CLAMPED_RETRIES ? CLAMPED_RETRY_MS : false;
 }
 
-export type Hold = "across-ranges" | "within-range";
+export type Held<T> = { viewKey: string; range: RangePreset; data: T };
 
-export type Held<T, R> = { viewKey: string | null; range: R; data: T; failedRange: R | null };
-
-// A range that failed stays latched until it loads, so a later tick or retry that
-// resets isError cannot bring back the previous range's data under the new label.
-export function resolveHeld<T, R>(
-  held: Held<T, R> | null,
-  view: { viewKey: string | null; range: R; hold: Hold; fresh: T | undefined; isError: boolean },
-): { data: T | undefined; held: Held<T, R> | null } {
+export function resolveHeld<T>(
+  held: Held<T> | null,
+  view: { viewKey: string; range: RangePreset; fresh: T | undefined; isError: boolean },
+): { data: T | undefined; held: Held<T> | null } {
   const { viewKey, range, fresh } = view;
   if (fresh !== undefined) {
-    if (
-      held !== null &&
-      held.data === fresh &&
-      held.viewKey === viewKey &&
-      held.range === range &&
-      held.failedRange === null
-    ) {
-      return { data: fresh, held };
-    }
-    return { data: fresh, held: { viewKey, range, data: fresh, failedRange: null } };
+    const same = held?.data === fresh && held.viewKey === viewKey && held.range === range;
+    return { data: fresh, held: same ? held : { viewKey, range, data: fresh } };
   }
   if (held === null || held.viewKey !== viewKey) {
     return { data: undefined, held };
   }
-  if (held.range === range) {
-    return {
-      data: held.data,
-      held: held.failedRange === null ? held : { ...held, failedRange: null },
-    };
+  if (held.range === range || !view.isError) {
+    return { data: held.data, held };
   }
-  if (view.hold === "within-range" || held.failedRange === range) {
-    return { data: undefined, held };
-  }
-  if (view.isError) {
-    return { data: undefined, held: { ...held, failedRange: range } };
-  }
-  return { data: held.data, held };
+  return { data: undefined, held };
 }

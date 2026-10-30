@@ -402,6 +402,7 @@ export type InstancesTabView =
   | {
       status: "ready";
       grid: Grid;
+      pending: boolean;
       filters: InstanceFilters;
       episodes: CrashEpisode[];
       crashEventsFailed: boolean;
@@ -448,6 +449,7 @@ export function instancesTabView(input: {
     status: "ready",
     historyTruncated: input.usage.status === "ready" && input.usage.data.history.truncated,
     grid,
+    pending: grid.range !== input.grid.range,
     filters,
     episodes: crashes.episodes,
     crashEventsFailed: crashes.failed,

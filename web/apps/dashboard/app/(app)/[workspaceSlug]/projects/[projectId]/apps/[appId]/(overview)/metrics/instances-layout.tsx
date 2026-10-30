@@ -4,6 +4,7 @@ import type { ChartMarkers } from "@/components/charts/chart-markers";
 import { type InstanceRow, spansDays } from "@/lib/metrics/app-metrics";
 import { IconChevronLeftOutline12, IconChevronRightOutline12 } from "@unkey/icons";
 import { Button, Card } from "@unkey/ui";
+import { cn } from "cn";
 import type { Route } from "next";
 import { useState } from "react";
 import { withCrashIncidents } from "./event-markers";
@@ -47,7 +48,12 @@ export function InstancesLayout({
     withDate: spansDays(view.grid),
   });
   return (
-    <Card className="overflow-hidden">
+    <Card
+      className={cn(
+        "overflow-hidden transition-opacity duration-150 ease-out",
+        view.pending && "opacity-35 pointer-events-none",
+      )}
+    >
       {view.historyTruncated && (
         <div className="border-b border-grayA-4 px-4 py-2">
           <HistoryNotice />

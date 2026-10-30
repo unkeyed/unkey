@@ -130,10 +130,10 @@ describe("metricsPageModel", () => {
     const { view } = readyModel(metricsPageModel(base));
     expect(view).toEqual({
       kind: "metrics",
-      hero: { metric: "requests", state: { status: "loading" } },
+      hero: { metric: "requests", state: { status: "loading" }, pending: false },
       grid: [
-        { metric: "errors", state: { status: "loading" } },
-        { metric: "latency", state: { status: "loading" } },
+        { metric: "errors", state: { status: "loading" }, pending: false },
+        { metric: "latency", state: { status: "loading" }, pending: false },
       ],
     });
   });
@@ -218,13 +218,46 @@ describe("metricsPageModel", () => {
 
   it("has no per-instance chart for a traffic panel and no panel when nothing is expanded", () => {
     expect(readyModel(metricsPageModel({ ...base, expanded: "requests" })).panel).toEqual({
-      card: { metric: "requests", state: { status: "loading" } },
+      card: { metric: "requests", state: { status: "loading" }, pending: false },
       stats: null,
       byInstance: null,
       historyTruncated: false,
       deploys: [{ marker: deployedInRange, effects: [] }],
+      pending: false,
     });
     expect(readyModel(metricsPageModel(base)).panel).toBeNull();
+  });
+
+  it("marks a card pending while it draws another range", () => {
+    const { view } = readyModel(
+      metricsPageModel({ ...base, tab: "resources", grid: { ...grid, range: "6h" } }),
+    );
+    if (view.kind !== "metrics") {
+      throw new Error("expected a metrics tab");
+    }
+    expect([view.hero.metric, view.hero.pending]).toEqual(["cpu", true]);
+  });
+
+  it("does not mark a card pending on a tick within the same range", () => {
+    const { view } = readyModel(
+      metricsPageModel({ ...base, tab: "resources", grid: { ...grid, endMs: 180_000 } }),
+    );
+    if (view.kind !== "metrics") {
+      throw new Error("expected a metrics tab");
+    }
+    expect([view.hero.metric, view.hero.pending]).toEqual(["cpu", false]);
+  });
+
+  it("marks the panel pending while its per-instance chart draws another range", () => {
+    const { panel } = readyModel(
+      metricsPageModel({
+        ...base,
+        grid: { ...grid, range: "6h" },
+        sources: { ...base.sources, resources: loading },
+        expanded: "cpu",
+      }),
+    );
+    expect([panel?.card.pending, panel?.pending]).toEqual([false, true]);
   });
 
   it("turns ready deploys into chart markers", () => {

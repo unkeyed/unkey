@@ -51,7 +51,7 @@ describe("replicaUsage", () => {
   });
 
   function sections(usage: InstanceSeries, replica: ReplicaTarget = pod) {
-    const result = replicaUsage(ready(usage), replica);
+    const result = replicaUsage(ready(usage), replica, grid);
     if (result.status !== "ready") {
       throw new Error(`expected ready, got ${result.status}`);
     }
@@ -152,15 +152,15 @@ describe("replicaUsage", () => {
   });
 
   it("reports none when the pod has no series in the range", () => {
-    expect(replicaUsage(ready(series([live])), { ...pod, k8sName: "pod-b" })).toEqual({
+    expect(replicaUsage(ready(series([live])), { ...pod, k8sName: "pod-b" }, grid)).toEqual({
       status: "none",
     });
   });
 
   it("passes loading and failure through", () => {
     const failure = failed();
-    expect(replicaUsage(loading, pod)).toBe(loading);
-    expect(replicaUsage(failure, pod)).toBe(failure);
+    expect(replicaUsage(loading, pod, grid)).toBe(loading);
+    expect(replicaUsage(failure, pod, grid)).toBe(failure);
   });
 });
 
@@ -180,6 +180,7 @@ describe("replicaSheetModel", () => {
     environmentId: "env_prod",
     instances: ready([opened]),
     usage: loading,
+    grid,
   };
 
   it("is closed when nothing is open", () => {

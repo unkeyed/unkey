@@ -248,6 +248,10 @@ export function chartStateOf(grid: Grid, chart: AreaChartPoint[]): ChartState {
   return reported ? { status: "ready", grid, chart } : { status: "empty" };
 }
 
+export function isPending(state: ChartState, wanted: Grid): boolean {
+  return state.status === "ready" && state.grid.range !== wanted.range;
+}
+
 export function cardState<M extends MetricId>(sources: Sources, metric: M): ChartState {
   const source: SourceOf<M> = METRIC_CATALOG[metric].source;
   const loaded: Loadable<SourceResult<SourceOf<M>>> = sources[source];

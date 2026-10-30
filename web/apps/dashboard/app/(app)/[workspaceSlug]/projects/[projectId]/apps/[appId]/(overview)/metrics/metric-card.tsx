@@ -4,6 +4,7 @@ import type { ChartMarkers } from "@/components/charts/chart-markers";
 import { type ChartState, METRIC_VIEWS } from "@/lib/metrics/views";
 import { IconArrowsExpandDiagonalOutline18 } from "@unkey/icons";
 import { Button, Card } from "@unkey/ui";
+import { cn } from "cn";
 import { absoluteScale } from "./allocation";
 import type { MetricCardModel } from "./model";
 import { SeriesChart } from "./series-chart";
@@ -50,6 +51,10 @@ export function MetricCard({ card, markers, height, syncId, onExpand }: CardProp
         height={height}
         syncId={syncId}
         connectNulls={view.gaps === "bridge"}
+        className={cn(
+          "transition-opacity duration-150 ease-out",
+          card.pending && "opacity-35 pointer-events-none",
+        )}
       />
     </Card>
   );

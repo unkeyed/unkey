@@ -28,7 +28,6 @@ import {
 } from "@unkey/ui";
 import { EnvironmentSelect } from "../../../_components/environment-select";
 import { ChartHoverProvider } from "./chart-hover";
-import { ChartRangeProvider } from "./chart-range";
 import { DeployMarkerPopover } from "./deploy-marker-popover";
 import { InstancesTab } from "./instances-tab";
 import { MetricCard } from "./metric-card";
@@ -92,7 +91,7 @@ export function MetricsPage() {
 function ReadyMetrics({ model, page }: { model: ReadyModel; page: MetricsPageController }) {
   const markers = chartMarkers(model, page);
   return (
-    <ChartRangeProvider value={page.range}>
+    <>
       <TabsContent value={model.tab} className="mt-0">
         {match(model.view)
           .with({ kind: "metrics" }, ({ hero, grid }) => (
@@ -138,7 +137,7 @@ function ReadyMetrics({ model, page }: { model: ReadyModel; page: MetricsPageCon
         onClose={page.collapse}
       />
       <ReplicaSheet sheet={page.sheet} markers={markers} onClose={page.closeReplica} />
-    </ChartRangeProvider>
+    </>
   );
 }
 

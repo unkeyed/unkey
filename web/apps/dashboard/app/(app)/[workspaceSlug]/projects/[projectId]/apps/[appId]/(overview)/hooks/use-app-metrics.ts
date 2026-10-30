@@ -6,7 +6,6 @@ import {
   type EnvironmentRef,
   type Grid,
   type Held,
-  type Hold,
   type InstanceEvent,
   type InstanceRow,
   type InstanceSeries,
@@ -30,29 +29,20 @@ function inputOf(scope: AppMetricsScope | null) {
   };
 }
 
-function viewKeyOf(scope: AppMetricsScope | null): string | null {
-  return scope ? `${scope.appId}:${environmentKeyOf(scope.environment)}` : null;
-}
-
-// Holding across ranges keeps the old chart mounted, dimmed, instead of flashing
-// a skeleton. Sources without a grid hold within a range, or they mislabel it.
-function useHeldAcrossTicks<T>(
-  scope: AppMetricsScope | null,
-  query: QueryResult<T>,
-  hold: Hold,
-): Loadable<T> {
-  const [held, setHeld] = useState<Held<T, Grid["range"] | undefined> | null>(null);
-  const next = resolveHeld(held, {
-    viewKey: viewKeyOf(scope),
-    range: scope?.grid.range,
-    hold,
-    fresh: query.data,
-    isError: query.isError,
-  });
-  if (next.held !== held) {
+function useHeld<T>(scope: AppMetricsScope | null, query: QueryResult<T>): Loadable<T> {
+  const [held, setHeld] = useState<Held<T> | null>(null);
+  const next = scope
+    ? resolveHeld(held, {
+        viewKey: `${scope.appId}:${environmentKeyOf(scope.environment)}`,
+        range: scope.grid.range,
+        fresh: query.data,
+        isError: query.isError,
+      })
+    : null;
+  if (next && next.held !== held) {
     setHeld(next.held);
   }
-  return fromQuery({ ...query, data: next.data });
+  return fromQuery(next ? { ...query, data: next.data } : query);
 }
 
 const CLOCK_DRIVEN = {
@@ -88,8 +78,8 @@ export function useMetricSources(scope: AppMetricsScope | null): Sources {
     gridDriven<SourceResult<"resources">>(scope),
   );
   return {
-    traffic: useHeldAcrossTicks(scope, traffic, "across-ranges"),
-    resources: useHeldAcrossTicks(scope, resources, "across-ranges"),
+    traffic: useHeld(scope, traffic),
+    resources: useHeld(scope, resources),
   };
 }
 
@@ -98,7 +88,7 @@ export function useDeployMarkers(scope: AppMetricsScope | null) {
     ...CLOCK_DRIVEN,
     enabled: scope !== null,
   });
-  return useHeldAcrossTicks(scope, query, "within-range");
+  return useHeld(scope, query);
 }
 
 export function useInstanceEvents(
@@ -109,7 +99,7 @@ export function useInstanceEvents(
     ...CLOCK_DRIVEN,
     enabled: enabled && scope !== null,
   });
-  return useHeldAcrossTicks(scope, query, "within-range");
+  return useHeld(scope, query);
 }
 
 export function useMetricSourceByInstance(
@@ -139,7 +129,7 @@ export function useMetricSourceByInstance(
       utils.deploy.appMetrics.sourceByInstance.invalidate({ appId, environment });
     }
   }, [podSet, appId, environment, utils]);
-  return useHeldAcrossTicks(scope, query, "across-ranges");
+  return useHeld(scope, query);
 }
 
 export function useMetricInstances(

@@ -17,7 +17,6 @@ import { cn } from "cn";
 import type { ReactNode } from "react";
 import type { ChartScale } from "./allocation";
 import { useHoveredBucket, useSetHoveredBucket } from "./chart-hover";
-import { useIsRangePending } from "./chart-range";
 import { legendReadout } from "./model";
 
 const LEGEND_HEIGHT = 33;
@@ -35,6 +34,7 @@ type SeriesChartProps = {
   focusKey?: string | null;
   connectNulls?: boolean;
   unavailableCopy?: string;
+  className?: string;
 };
 
 export function SeriesChart({
@@ -50,8 +50,9 @@ export function SeriesChart({
   focusKey,
   connectNulls,
   unavailableCopy = `${title} metrics are unavailable right now`,
+  className,
 }: SeriesChartProps) {
-  const frame = { legend, series, unit: scale.unit };
+  const frame = { legend, series, unit: scale.unit, className };
   return match(state)
     .with({ status: "empty" }, () => <NoDataPlaceholder height={height + LEGEND_HEIGHT} />)
     .with({ status: "failed" }, () => (
@@ -97,16 +98,18 @@ function ChartFrame({
   chart,
   series,
   unit,
+  className,
   children,
 }: {
   legend: ReactNode;
   chart: AreaChartPoint[] | null;
   series: Record<string, SeriesView>;
   unit: MetricUnit;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className={cn("flex flex-col gap-3", className)}>
       {children}
       <div className="-mx-4 -mb-3 flex flex-wrap border-t border-grayA-4 text-xs">
         {legend ?? <SeriesLegendCells chart={chart} series={series} unit={unit} />}
@@ -141,35 +144,32 @@ function GridChart({
   connectNulls,
 }: GridChartProps) {
   const setHovered = useSetHoveredBucket();
-  const pending = useIsRangePending(grid.range);
   const format = UNITS[scale.unit];
   return (
-    <div className={cn("transition-opacity duration-150 ease-out", pending && "opacity-35")}>
-      <AreaTimeseriesChart
-        data={chart}
-        config={series}
-        height={height}
-        fill="flat"
-        showZeroLine
-        showDateInTooltip={spansDays(grid)}
-        formatTooltipValue={format.format}
-        syncId={syncId}
-        markers={markers}
-        incidents={incidents}
-        focusKey={focusKey}
-        connectNulls={connectNulls}
-        onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}
-        axis={{
-          x: { domain: [grid.startMs, grid.endMs - grid.bucketMs] },
-          y: {
-            floor: format.yFloor,
-            max: scale.yMax ?? undefined,
-            tickCount: scale.tickCount,
-            formatTick: format.tick,
-          },
-        }}
-      />
-    </div>
+    <AreaTimeseriesChart
+      data={chart}
+      config={series}
+      height={height}
+      fill="flat"
+      showZeroLine
+      showDateInTooltip={spansDays(grid)}
+      formatTooltipValue={format.format}
+      syncId={syncId}
+      markers={markers}
+      incidents={incidents}
+      focusKey={focusKey}
+      connectNulls={connectNulls}
+      onActiveChange={(point) => setHovered(point?.originalTimestamp ?? null)}
+      axis={{
+        x: { domain: [grid.startMs, grid.endMs - grid.bucketMs] },
+        y: {
+          floor: format.yFloor,
+          max: scale.yMax ?? undefined,
+          tickCount: scale.tickCount,
+          formatTick: format.tick,
+        },
+      }}
+    />
   );
 }
 

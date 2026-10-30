@@ -130,6 +130,7 @@ export function useMetricsPage() {
       environmentId,
       instances,
       usage: byInstance,
+      grid,
     }),
     logsHref,
     openReplica: (row: InstanceRow) => setOpenReplica({ environmentId, row }),

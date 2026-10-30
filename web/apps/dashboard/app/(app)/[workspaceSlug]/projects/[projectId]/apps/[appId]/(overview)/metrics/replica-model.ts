@@ -33,7 +33,7 @@ export type ReplicaUsage =
   | { status: "loading" }
   | ({ status: "failed" } & Failure)
   | { status: "none" }
-  | { status: "ready"; sections: ReplicaSection[] };
+  | { status: "ready"; sections: ReplicaSection[]; pending: boolean };
 
 function isLimited(metric: ReplicaMetric): metric is LimitedMetric {
   return metric in ALLOCATION;
@@ -69,6 +69,7 @@ function replicaSection(
 export function replicaUsage(
   usage: Loadable<InstanceSeries>,
   replica: ReplicaTarget,
+  wanted: Grid,
 ): ReplicaUsage {
   if (usage.status !== "ready") {
     return usage;
@@ -96,6 +97,7 @@ export function replicaUsage(
   return {
     status: "ready",
     sections: REPLICA_METRICS.map((metric) => replicaSection(metric, replica, grid, points)),
+    pending: grid.range !== wanted.range,
   };
 }
 
@@ -136,11 +138,13 @@ export function replicaSheetModel({
   environmentId,
   instances,
   usage,
+  grid,
 }: {
   open: OpenReplica | null;
   environmentId: string | null;
   instances: Loadable<InstanceRow[]>;
   usage: Loadable<InstanceSeries>;
+  grid: Grid;
 }): ReplicaSheetModel | null {
   if (!open || open.environmentId !== environmentId) {
     return null;
@@ -157,6 +161,6 @@ export function replicaSheetModel({
     status: gone ? "stopped" : phaseOf(row),
     deployment: row.deployment,
     lastExit: row.lastExit,
-    usage: replicaUsage(usage, row.replica),
+    usage: replicaUsage(usage, row.replica, grid),
   };
 }

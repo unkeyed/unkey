@@ -21,6 +21,7 @@ import {
   SlidePanelTitle,
   TimestampInfo,
 } from "@unkey/ui";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { LastExitText } from "../../components/last-exit";
 import { absoluteScale } from "./allocation";
@@ -157,6 +158,7 @@ function ReplicaUsageBody({ usage, markers }: { usage: ReplicaUsage; markers: Ch
             allocation: null,
           }}
           markers={markers}
+          pending={false}
         />
       )),
     )
@@ -173,15 +175,23 @@ function ReplicaUsageBody({ usage, markers }: { usage: ReplicaUsage; markers: Ch
         </EmptyStateHeader>
       </EmptyState>
     ))
-    .with({ status: "ready" }, ({ sections }) =>
+    .with({ status: "ready" }, ({ sections, pending }) =>
       sections.map((section) => (
-        <UsageSection key={section.metric} section={section} markers={markers} />
+        <UsageSection key={section.metric} section={section} markers={markers} pending={pending} />
       )),
     )
     .exhaustive();
 }
 
-function UsageSection({ section, markers }: { section: ReplicaSection; markers: ChartMarkers }) {
+function UsageSection({
+  section,
+  markers,
+  pending,
+}: {
+  section: ReplicaSection;
+  markers: ChartMarkers;
+  pending: boolean;
+}) {
   const view = METRIC_VIEWS[section.metric];
   return (
     <Section heading={view.title} detail={section.allocation}>
@@ -193,6 +203,10 @@ function UsageSection({ section, markers }: { section: ReplicaSection; markers: 
         markers={markers}
         height={CHART_HEIGHT}
         syncId={SYNC_ID}
+        className={cn(
+          "transition-opacity duration-150 ease-out",
+          pending && "opacity-35 pointer-events-none",
+        )}
       />
     </Section>
   );

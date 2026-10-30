@@ -34,105 +34,41 @@ describe("clampedRetryMs", () => {
 });
 
 describe("resolveHeld", () => {
-  const held: Held<string[], string> = {
-    viewKey: "app:prod",
-    range: "1h",
-    data: ["old"],
-    failedRange: null,
-  };
-  const view = {
-    viewKey: "app:prod",
-    range: "6h",
-    hold: "across-ranges" as const,
-    fresh: undefined,
-    isError: false,
-  };
+  const held: Held<string[]> = { viewKey: "app:prod", range: "1h", data: ["old"] };
+  const view = { viewKey: "app:prod", range: "6h" as const, fresh: undefined, isError: false };
 
-  it("uses fresh data, holds it, and clears a latch", () => {
-    expect(
-      resolveHeld({ ...held, failedRange: "6h" }, { ...view, fresh: ["new"], isError: true }),
-    ).toEqual({
+  it("uses fresh data and holds it", () => {
+    expect(resolveHeld(held, { ...view, fresh: ["new"], isError: true })).toEqual({
       data: ["new"],
-      held: { viewKey: "app:prod", range: "6h", data: ["new"], failedRange: null },
+      held: { viewKey: "app:prod", range: "6h", data: ["new"] },
     });
   });
 
   it("keeps the same held state for fresh data already held", () => {
-    const current = { ...held, range: "6h" };
-    expect(resolveHeld(current, { ...view, fresh: current.data }).held).toBe(current);
+    expect(resolveHeld(held, { ...view, range: "1h", fresh: held.data }).held).toBe(held);
   });
 
-  it("clears a latch when fresh data is already held", () => {
-    const latched = { ...held, failedRange: "6h" };
-    expect(resolveHeld(latched, { ...view, range: "1h", fresh: latched.data })).toEqual({
-      data: ["old"],
-      held: { viewKey: "app:prod", range: "1h", data: ["old"], failedRange: null },
-    });
+  it("shows no data for another view", () => {
+    const result = resolveHeld(held, { ...view, viewKey: "app:staging", range: "1h" });
+    expect(result).toEqual({ data: undefined, held });
+    expect(result.held).toBe(held);
+    expect(resolveHeld(null, view)).toEqual({ data: undefined, held: null });
   });
 
-  it("uses held data for the same view and range, even on error", () => {
+  it("uses held data for the same range, even on error", () => {
     const result = resolveHeld(held, { ...view, range: "1h", isError: true });
     expect(result).toEqual({ data: ["old"], held });
     expect(result.held).toBe(held);
   });
 
-  it("clears a latch on return to the held range, then keeps it stable", () => {
-    const first = resolveHeld({ ...held, failedRange: "6h" }, { ...view, range: "1h" });
-    expect(first).toEqual({
-      data: ["old"],
-      held: { viewKey: "app:prod", range: "1h", data: ["old"], failedRange: null },
-    });
-    expect(resolveHeld(first.held, { ...view, range: "1h" }).held).toBe(first.held);
-  });
-
-  it("uses the old range's data on a new range holding across ranges", () => {
+  it("uses held data while another range loads", () => {
     const result = resolveHeld(held, view);
     expect(result).toEqual({ data: ["old"], held });
     expect(result.held).toBe(held);
   });
 
-  it("uses held data on a range other than the latched one", () => {
-    const latched = { ...held, failedRange: "6h" };
-    const result = resolveHeld(latched, { ...view, range: "24h" });
-    expect(result).toEqual({ data: ["old"], held: latched });
-    expect(result.held).toBe(latched);
-  });
-
-  it("latches a new range that errors as failed with no data", () => {
-    expect(resolveHeld(held, { ...view, isError: true })).toEqual({
-      data: undefined,
-      held: { viewKey: "app:prod", range: "1h", data: ["old"], failedRange: "6h" },
-    });
-  });
-
-  it("shows no data for a latched range pending again", () => {
-    const latched = { ...held, failedRange: "6h" };
-    const result = resolveHeld(latched, view);
-    expect(result).toEqual({ data: undefined, held: latched });
-    expect(result.held).toBe(latched);
-  });
-
-  it("keeps the same latch for a latched range that errors again", () => {
-    const latched = { ...held, failedRange: "6h" };
-    const result = resolveHeld(latched, { ...view, isError: true });
-    expect(result).toEqual({ data: undefined, held: latched });
-    expect(result.held).toBe(latched);
-  });
-
-  it("shows no data on a new range when holding within a range", () => {
-    const result = resolveHeld(held, { ...view, hold: "within-range" });
-    expect(result).toEqual({ data: undefined, held });
-    expect(result.held).toBe(held);
-  });
-
-  it("does not latch an error when holding within a range", () => {
-    const result = resolveHeld(held, { ...view, hold: "within-range", isError: true });
-    expect(result).toEqual({ data: undefined, held });
-    expect(result.held).toBe(held);
-  });
-
-  it("shows no data for a different view", () => {
-    const result = resolveHeld(held, { ...view, viewKey: "app:staging", range: "1h" });
+  it("shows no data when another range fails", () => {
+    const result = resolveHeld(held, { ...view, isError: true });
     expect(result).toEqual({ data: undefined, held });
     expect(result.held).toBe(held);
   });
