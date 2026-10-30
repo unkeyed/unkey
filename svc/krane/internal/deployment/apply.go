@@ -136,17 +136,17 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		return fmt.Errorf("failed to ensure cilium network policy: %w", err)
 	}
 
+	unlock := c.reportLocks.Lock(applied.Name)
 	status, err := c.buildDeploymentStatus(ctx, workload{
 		namespace:    applied.Namespace,
 		k8sName:      applied.Name,
 		deploymentID: req.GetDeploymentId(),
 		selector:     applied.Spec.Selector,
 	})
-	if err != nil {
-		return err
+	if err == nil {
+		err = c.reportDeploymentStatus(ctx, status)
 	}
-
-	err = c.reportDeploymentStatus(ctx, status)
+	unlock()
 	if err != nil {
 		logger.Error("failed to report deployment status", "deployment_id", req.GetDeploymentId(), "error", err)
 		return err

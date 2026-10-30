@@ -12,6 +12,12 @@ import (
 	"golang.org/x/net/http2"
 )
 
+// dialTimeoutInstance bounds a TCP connect to a pod in the local cluster. A
+// pod IP that no longer exists drops SYNs instead of refusing them, so the
+// dial only ends at this timeout; the handler then tries the next instance.
+// Two seconds still allows one SYN retransmit, which Linux sends after 1s.
+const dialTimeoutInstance = 2 * time.Second
+
 // TransportRegistry holds pre-initialized transports for each supported
 // upstream protocol. The correct transport is selected per-request based on
 // the deployment's configured protocol. Connections are pooled per registry,
@@ -27,7 +33,7 @@ func NewTransportRegistry() *TransportRegistry {
 	//nolint:exhaustruct
 	h1 := &http.Transport{
 		DialContext: (&net.Dialer{
-			Timeout:   10 * time.Second,
+			Timeout:   dialTimeoutInstance,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
 		MaxIdleConns:        200,
@@ -40,7 +46,7 @@ func NewTransportRegistry() *TransportRegistry {
 		AllowHTTP: true,
 		DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
 			d := net.Dialer{
-				Timeout:   10 * time.Second,
+				Timeout:   dialTimeoutInstance,
 				KeepAlive: 30 * time.Second,
 			}
 			return d.DialContext(ctx, network, addr)

@@ -174,14 +174,7 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		return
 	}
 
-	status, err := c.buildDeploymentStatus(ctx, w)
-	if err != nil {
-		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "error").Inc()
-		logger.Error("pod watch: unable to build status", "error", err.Error(), "replicaSet", rsName)
-		return
-	}
-
-	reported, err := c.reportIfChanged(ctx, status)
+	status, reported, err := c.reportIfChanged(ctx, w)
 	if err != nil {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "error").Inc()
 		logger.Error("pod watch: unable to report status", "error", err.Error(), "replicaSet", rsName)
