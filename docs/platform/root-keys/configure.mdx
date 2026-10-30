@@ -283,18 +283,12 @@ If the add-on is later disabled, root keys with saved allowlists still reject re
 
 ### Configure the allowlist in the dashboard
 
-The allowlist is available when editing a key, not in the creation form.
-
 1. Open **Root Keys** and choose **Edit root key** from the key's row menu.
 2. In **IP allowlist**, enter one IP address or CIDR range per line.
 3. Include every outbound address your service uses to call Unkey, including NAT or proxy addresses.
 4. Click **Save**.
 
 Leave the field empty for unrestricted IP access. Other authentication and permission checks still apply.
-
-<Warning>
-  Before restricting a key, keep a separate management key or dashboard admin session available. An allowlist that excludes your service's outbound IP prevents that service from using the key.
-</Warning>
 
 ### Configure the allowlist through the API
 
@@ -312,7 +306,7 @@ curl --fail-with-body https://api.unkey.com/v2/rootKeys.updateKey \
 
 Replace `key_xxx` with the target key's ID and the example networks with your service's outbound addresses. Omit `ipAllowlist` to leave it unchanged. Send `"ipAllowlist": []` to remove the IP restriction, subject to workspace enablement and the delegation rules below. An empty array is valid; an empty string inside the array is not.
 
-You can also set `ipAllowlist` in `rootKeys.createKey`. Omitting it creates an unrestricted key, not a copy of the caller's allowlist. A restricted caller must supply a nonempty list within its own allowed networks. `rootKeys.listKeys` returns each key's allowlist. Rotation preserves the existing list.
+You can also set `ipAllowlist` in `rootKeys.createKey`. If you omit it, the new key inherits the caller's allowlist. An unrestricted caller creates an unrestricted key. A restricted caller can provide a narrower list, but cannot provide a broader list or `[]`. `rootKeys.listKeys` returns each key's allowlist. Rotation preserves the existing list.
 
 ### Delegation cannot widen network access
 
@@ -322,9 +316,7 @@ For example, a caller restricted to `198.51.100.0/24` can create a key restricte
 
 ### Verify the restriction
 
-Call an operation permitted by the root key from an allowed address and from an address outside the list. The first request must pass authentication. The second must fail with HTTP 403. A root-key IP denial is an authentication failure, not a `data.code: FORBIDDEN` result from verifying an end-user API key.
-
-Root-key authentication uses a cache. Allowlist changes propagate as cached entries refresh, so a saved change is not an immediate revocation across every server.
+For example, restrict a root key to `203.0.113.10` and use it in the `Authorization` header of a `keys.verifyKey` request. A request from `203.0.113.10` passes root-key authentication and proceeds to verify the end-user key in the request body. The same request from `198.51.100.20` returns HTTP 403 before that key is verified, even if the end-user key is valid. This response contains an `error` object, not a verification result in `data.code`.
 
 ## Verify the resulting access
 

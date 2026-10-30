@@ -33,7 +33,7 @@ func TestRestrictedRootKeyCannotDelegateBroaderNetworks(t *testing.T) {
 		allowedIPs *[]string
 		status     int
 	}{
-		{"omitted", nil, http.StatusForbidden},
+		{"omitted", nil, http.StatusOK},
 		{"unrestricted", &[]string{}, http.StatusForbidden},
 		{"broader subnet", &[]string{"192.0.2.0/24"}, http.StatusForbidden},
 		{"extra network", &[]string{"192.0.2.0/25", "203.0.113.1"}, http.StatusForbidden},
@@ -53,6 +53,10 @@ func TestRestrictedRootKeyCannotDelegateBroaderNetworks(t *testing.T) {
 			require.Equal(t, test.status, res.Status, "%s", res.RawBody)
 			if test.status != http.StatusOK {
 				require.Equal(t, before, snapshot(t, h))
+			} else if test.allowedIPs == nil {
+				child, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+				require.NoError(t, err)
+				require.Equal(t, []string{"192.0.2.0/25", "2001:db8:1234::/48"}, []string(child.IpAllowlist))
 			}
 		})
 	}

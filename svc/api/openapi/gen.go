@@ -7846,7 +7846,7 @@ type V2RootKeysCreateKeyRequestBody struct {
 	// Expires Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
 	Expires nullable.Nullable[int64] `json:"expires,omitempty"`
 
-	// IpAllowlist IPv4 or IPv6 addresses and CIDR ranges allowed to use this root key. Omit or use an empty list for unrestricted access. A restricted root-key caller must provide a list within its own allowed networks.
+	// IpAllowlist IPv4 or IPv6 addresses and CIDR ranges allowed to use this root key. Omit to inherit the calling root key's allowlist. A caller without an IP restriction creates an unrestricted key when this field is omitted. An explicit list must stay within the caller's allowed networks; a restricted caller cannot send an empty list.
 	IpAllowlist *[]string `json:"ipAllowlist,omitempty"`
 
 	// Name Optional name for the root key.
