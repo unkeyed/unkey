@@ -20,7 +20,6 @@ import {
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
-  STATUS_STYLES,
   Skeleton,
   TimestampInfo,
 } from "@unkey/ui";
@@ -200,14 +199,7 @@ function RootKeyRow({
       : "Enabled"
     : "Disabled";
   const statusBadge = (
-    <Badge
-      variant={status === "Enabled" ? "success" : "primary"}
-      className={cn(
-        "h-5.5 gap-2 border-none px-1.5 justify-self-start",
-        status !== "Enabled" &&
-          (selected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default),
-      )}
-    >
+    <Badge variant={status === "Enabled" ? "success" : "secondary"} size="compact">
       {status === "Enabled" ? (
         <IconCircleCheckOutline12 />
       ) : status === "Disabled" ? (
@@ -275,7 +267,7 @@ function RootKeyRow({
           />
         </span>
       ) : (
-        statusBadge
+        <span>{statusBadge}</span>
       )}
       <span className="min-w-0">
         <PermissionsCell permissions={rootKey.permissions} />
