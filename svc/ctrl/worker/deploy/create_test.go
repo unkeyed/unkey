@@ -248,6 +248,19 @@ func TestCreateRejections(t *testing.T) {
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
+	t.Run("environment variables are over the total size cap", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		for i := range 11 {
+			h.seedEnvVar(t, ctx, fmt.Sprintf("BIG_%02d", i), strings.Repeat("A", 65000))
+		}
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetOutcome())
+		require.Contains(t, resp.GetDetail(), "environment variables are too large")
+		require.Zero(t, h.countDeployments(t, ctx))
+	})
+
 	// Every violation is reported at once, so an operator fixing three settings
 	// does not need three deploys to discover them.
 	t.Run("environment runtime settings are out of bounds", func(t *testing.T) {
