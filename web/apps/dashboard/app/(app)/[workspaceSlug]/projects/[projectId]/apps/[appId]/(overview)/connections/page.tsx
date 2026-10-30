@@ -26,7 +26,7 @@ import { useAppId, useProjectData } from "../data-provider";
 import { useSlidePanels } from "../hooks/use-slide-panels";
 import { ConnectionPanel } from "./components/connection-form/connection-panel";
 import { ConnectionsList } from "./components/list";
-import { RetainedConnections } from "./components/list/retained";
+import { RemovedConnectionRows } from "./components/list/retained";
 import { ConnectionsListSkeleton } from "./components/list/skeleton";
 import { removalOf, useConnectionMutation } from "./hooks/use-connection-actions";
 import { useConnectionsData } from "./hooks/use-connections-data";
@@ -81,6 +81,12 @@ function ProductionConnections({
     () => panels.open({ type: "connection", before: null }),
     [panels.open],
   );
+  const editConnection = (connection: ListedConnection) =>
+    panels.open({ type: "connection", before: connection });
+  const removeConnection = (connection: ListedConnection) => mutation.run(removalOf(connection));
+  const removing = mutation.pending !== null;
+  const removed = <RemovedConnectionRows retained={data.retained} />;
+  const hasRemoved = data.retained.status !== "empty" && data.retained.status !== "loading";
   useConsumeSearchFlag(
     "add",
     data.snapshot.status !== "loading",
@@ -114,38 +120,51 @@ function ProductionConnections({
             <LoadError title="Could not load connections" error={error} onRetry={retry} />
           ))
           .with({ status: "loading" }, () => <ConnectionsListSkeleton />)
-          .with({ status: "empty" }, () => (
-            <EmptyState>
-              <EmptyStateIcon>
-                <IconLinkOutline18 />
-              </EmptyStateIcon>
-              <EmptyStateHeader>
-                <EmptyStateTitle>No connections yet</EmptyStateTitle>
-                <EmptyStateDescription>
-                  Connections let this app call other apps in the project over the private network.
-                </EmptyStateDescription>
-              </EmptyStateHeader>
-              <EmptyStateActions>
-                <Button variant="primary" size="md" onClick={openAdd}>
-                  <IconPlusOutline18 />
-                  Add connection
-                </Button>
-              </EmptyStateActions>
-            </EmptyState>
-          ))
+          .with({ status: "empty" }, () =>
+            hasRemoved ? (
+              <ResourceListContent>
+                <ConnectionsList
+                  rows={[]}
+                  onEdit={editConnection}
+                  onRemove={removeConnection}
+                  removing={removing}
+                  removed={removed}
+                />
+              </ResourceListContent>
+            ) : (
+              <EmptyState>
+                <EmptyStateIcon>
+                  <IconLinkOutline18 />
+                </EmptyStateIcon>
+                <EmptyStateHeader>
+                  <EmptyStateTitle>No connections yet</EmptyStateTitle>
+                  <EmptyStateDescription>
+                    Connections let this app call other apps in the project over the private
+                    network.
+                  </EmptyStateDescription>
+                </EmptyStateHeader>
+                <EmptyStateActions>
+                  <Button variant="primary" size="md" onClick={openAdd}>
+                    <IconPlusOutline18 />
+                    Add connection
+                  </Button>
+                </EmptyStateActions>
+              </EmptyState>
+            ),
+          )
           .with({ status: "ready" }, ({ rows, footer }) => (
             <ResourceListContent>
               <ConnectionsList
                 rows={rows}
-                onEdit={(connection) => panels.open({ type: "connection", before: connection })}
-                onRemove={(connection) => mutation.run(removalOf(connection))}
-                removing={mutation.pending !== null}
+                onEdit={editConnection}
+                onRemove={removeConnection}
+                removing={removing}
+                removed={removed}
               />
               <ListPager state={footer} noun="connections" />
             </ResourceListContent>
           ))
           .exhaustive()}
-        <RetainedConnections retained={data.retained} />
         {panels.panel &&
           match(panels.panel)
             .with({ type: "guide" }, () => (
