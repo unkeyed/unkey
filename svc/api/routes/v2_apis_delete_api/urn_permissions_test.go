@@ -66,36 +66,36 @@ func TestDeleteAPIRejectsNonmatchingURNPermission(t *testing.T) {
 	otherWorkspace := h.CreateWorkspace()
 	testCases := []struct {
 		name       string
-		permission func(target db.FindApiByIDRow) string
+		permission func(target db.Api) string
 	}{
 		{
 			name: "resource",
-			permission: func(_ db.FindApiByIDRow) string {
+			permission: func(_ db.Api) string {
 				otherAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 				return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", workspace.ID, otherAPI.ProjectID, otherAPI.KeyAuthID.String)
 			},
 		},
 		{
 			name: "action",
-			permission: func(target db.FindApiByIDRow) string {
+			permission: func(target db.Api) string {
 				return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspace.ID, target.ProjectID, target.KeyAuthID.String)
 			},
 		},
 		{
 			name: "workspace",
-			permission: func(target db.FindApiByIDRow) string {
+			permission: func(target db.Api) string {
 				return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", otherWorkspace.ID, target.ProjectID, target.KeyAuthID.String)
 			},
 		},
 		{
 			name: "legacy wildcard",
-			permission: func(_ db.FindApiByIDRow) string {
+			permission: func(_ db.Api) string {
 				return "api.*.delete_api"
 			},
 		},
 		{
 			name: "legacy API",
-			permission: func(target db.FindApiByIDRow) string {
+			permission: func(target db.Api) string {
 				return fmt.Sprintf("api.%s.delete_api", target.ID)
 			},
 		},
@@ -133,7 +133,7 @@ func TestDeleteAPIUsesKeyspaceProjectForURNPermission(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 
-	createDivergentAPI := func(t *testing.T) (db.FindApiByIDRow, string) {
+	createDivergentAPI := func(t *testing.T) (db.Api, string) {
 		t.Helper()
 		keyspaceProject := h.CreateProject(seed.CreateProjectRequest{
 			ID:          uid.New(uid.ProjectPrefix),
@@ -279,7 +279,7 @@ func insertKeySpace(t *testing.T, h *testutil.Harness, workspaceID, projectID st
 	return keySpaceID
 }
 
-func insertAPI(t *testing.T, h *testutil.Harness, workspaceID, projectID string, keySpaceID sql.NullString) db.FindApiByIDRow {
+func insertAPI(t *testing.T, h *testutil.Harness, workspaceID, projectID string, keySpaceID sql.NullString) db.Api {
 	t.Helper()
 	apiID := uid.New(uid.APIPrefix)
 	err := db.Query.InsertApi(context.Background(), h.DB.RW(), db.InsertApiParams{

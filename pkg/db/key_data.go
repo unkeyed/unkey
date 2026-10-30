@@ -5,7 +5,7 @@ import "database/sql"
 // KeyData represents the complete data for a key including all relationships
 type KeyData struct {
 	Key             Key
-	Api             FindApiByIDRow
+	Api             Api
 	KeyAuth         KeyAuth
 	Workspace       Workspace
 	Identity        *Identity // Is optional
@@ -74,7 +74,7 @@ func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
 			RemainingRequests: r.KeyRemainingRequests,
 			LastUsedAt:        r.KeyLastUsedAt,
 		},
-		Api: FindApiByIDRow{ID: r.ApiID, Name: r.ApiName},
+		Api: Api{ID: r.ApiID, Name: r.ApiName},
 		KeyAuth: KeyAuth{
 			ID:                 r.KeyAuthID,
 			ProjectID:          r.KeyAuthProjectID,
@@ -122,9 +122,9 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 			PendingMigrationID: r.PendingMigrationID,
 		},
 		Identity:  nil,
-		Api:       FindApiByIDRow{}, // Empty Api since not in this query
-		KeyAuth:   KeyAuth{},        // Empty KeyAuth since not in this query
-		Workspace: Workspace{},      // Empty Workspace since not in this query
+		Api:       Api{},       // Empty Api since not in this query
+		KeyAuth:   KeyAuth{},   // Empty KeyAuth since not in this query
+		Workspace: Workspace{}, // Empty Workspace since not in this query
 
 		EncryptedKey:    r.EncryptedKey,
 		EncryptionKeyID: r.EncryptionKeyID,
@@ -182,7 +182,7 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 			RemainingRequests: r.KeyRemainingRequests,
 			LastUsedAt:        r.KeyLastUsedAt,
 		},
-		Api: FindApiByIDRow{ID: r.ApiID},
+		Api: Api{ID: r.ApiID},
 		KeyAuth: KeyAuth{
 			ID:                 r.KeyAuthID,
 			ProjectID:          r.KeyAuthProjectID,
