@@ -310,9 +310,9 @@ You can also set `ipAllowlist` in `rootKeys.createKey`. If you omit it, the new 
 
 ### Delegation cannot widen network access
 
-A restricted root key can create another key only within its own allowed networks. When it updates a key, the resulting list must stay within both the caller's networks and the target's existing networks. Clearing a restricted list would widen access and is rejected. These checks also apply when the caller updates itself.
+A restricted root key can create or update another key only within its own allowed networks. An update can expand the target's existing list, but cannot allow addresses outside the caller's networks. A restricted caller cannot clear the list or expand its own allowed networks.
 
-For example, a caller restricted to `198.51.100.0/24` can create a key restricted to `198.51.100.10`. It cannot create an unrestricted key or one that permits `203.0.113.10`. Widening an existing restriction requires a caller without an IP restriction, or a dashboard admin, with workspace configuration enabled.
+For example, a caller restricted to `198.51.100.0/24` can expand a target from `198.51.100.10` to `198.51.100.0/24`. It cannot permit `203.0.113.10` or make the target unrestricted. Removing all IP restrictions requires an unrestricted caller or a dashboard admin, with the paid add-on enabled.
 
 ### Verify the restriction
 

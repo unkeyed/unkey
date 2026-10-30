@@ -6,7 +6,7 @@ import * as z from "zod/v3";
 
 export type V2RootKeysUpdateKeyRequestBody = {
   /**
-   * Replacement IPv4 or IPv6 addresses and CIDR ranges. Omit to keep the current list. Use an empty list for unrestricted access. Restricted root-key callers cannot widen their own or the target key's allowed networks.
+   * Replacement IPv4 or IPv6 addresses and CIDR ranges. Omit to keep the current list. Use an empty list for unrestricted access. A restricted root-key caller can expand the target's list only within the caller's allowed networks and cannot send an empty list.
    */
   ipAllowlist?: Array<string> | undefined;
   /**

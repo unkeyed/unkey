@@ -73,7 +73,7 @@ func TestCachedRootKeyCannotRemoveNewRestriction(t *testing.T) {
 	}))
 	res := call(h, route, caller.Key, handler.Request{KeyId: caller.KeyID, IpAllowlist: &[]string{}})
 	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
-	require.Contains(t, string(res.RawBody), "must not widen the target key's access")
+	require.Contains(t, string(res.RawBody), "must stay within the calling root key's allowed networks")
 	stored, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RW(), caller.KeyID)
 	require.NoError(t, err)
 	require.Equal(t, []string{"192.0.2.0/25"}, []string(stored.IpAllowlist))
@@ -96,7 +96,7 @@ func TestRestrictedRootKeyCannotWidenNetworksOnUpdate(t *testing.T) {
 		status int
 	}{
 		{"clear", []string{"192.0.2.0/25"}, &[]string{}, http.StatusForbidden},
-		{"widen target within caller", []string{"192.0.2.0/25"}, &[]string{"192.0.2.0/24"}, http.StatusForbidden},
+		{"widen target within caller", []string{"192.0.2.0/25"}, &[]string{"192.0.2.0/24"}, http.StatusOK},
 		{"escape caller", []string{"192.0.2.0/25"}, &[]string{"192.0.0.0/16"}, http.StatusForbidden},
 		{"modify unrestricted target", nil, nil, http.StatusForbidden},
 		{"preserve", []string{"192.0.2.0/25"}, nil, http.StatusOK},
@@ -113,6 +113,10 @@ func TestRestrictedRootKeyCannotWidenNetworksOnUpdate(t *testing.T) {
 				require.NoError(t, err)
 				require.NotEqual(t, "changed", stored.Name.String)
 				require.ElementsMatch(t, test.before, stored.IpAllowlist)
+			} else if test.after != nil {
+				stored, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), target.KeyID)
+				require.NoError(t, err)
+				require.ElementsMatch(t, *test.after, stored.IpAllowlist)
 			}
 		})
 	}

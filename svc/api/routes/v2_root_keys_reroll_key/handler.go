@@ -118,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return fault.Wrap(err, fault.Internal("invalid root key IP allowlist"))
 		}
-		if err := principal.ValidateRootKeyIPAllowlist(callerAllowlist, allowedIPs, nil); err != nil {
+		if err := principal.ValidateRootKeyIPAllowlist(callerAllowlist, allowedIPs); err != nil {
 			return err
 		}
 		if caller, ok := p.Source.(authprincipal.KeySource); ok && caller.ExpiresAt != nil {

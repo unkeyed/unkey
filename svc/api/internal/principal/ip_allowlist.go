@@ -21,12 +21,11 @@ func RequireRootKeyIPAllowlistEnabled(ctx context.Context, database db.DBTX, wor
 	return nil
 }
 
-// ValidateRootKeyIPAllowlist checks the locked caller policy. A nil previous
-// skips the target comparison; an empty previous means unrestricted access.
-func ValidateRootKeyIPAllowlist(parent, next ipallowlist.Allowlist, previous *ipallowlist.Allowlist) error {
-	if !next.IsSubsetOf(parent) || len(parent) > 0 && previous != nil && !next.IsSubsetOf(*previous) {
+// ValidateRootKeyIPAllowlist bounds delegated access by the locked caller policy.
+func ValidateRootKeyIPAllowlist(parent, next ipallowlist.Allowlist) error {
+	if !next.IsSubsetOf(parent) {
 		return fault.New("root key operation widens network access", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
-			fault.Public("The IP allowlist must stay within the calling root key's allowed networks and must not widen the target key's access."))
+			fault.Public("The IP allowlist must stay within the calling root key's allowed networks."))
 	}
 	return nil
 }

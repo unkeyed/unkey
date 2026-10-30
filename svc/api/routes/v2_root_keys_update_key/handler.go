@@ -133,7 +133,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return err
 			}
 		}
-		if err := principalpermissions.ValidateRootKeyIPAllowlist(callerAllowlist, next, &previous); err != nil {
+		if err := principalpermissions.ValidateRootKeyIPAllowlist(callerAllowlist, next); err != nil {
 			return err
 		}
 		if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
