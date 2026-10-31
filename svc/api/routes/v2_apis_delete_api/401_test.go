@@ -63,7 +63,7 @@ func TestAuthenticationErrors(t *testing.T) {
 		require.Equal(t, 401, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "The provided root key is invalid. We could not find the requested key.", res.Body.Error.Detail)
+		require.Equal(t, "The provided root key is invalid.", res.Body.Error.Detail)
 	})
 
 	// Test case for malformed authorization header

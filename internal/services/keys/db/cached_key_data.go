@@ -1,6 +1,10 @@
 package db
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
+)
 
 // CachedKeyData embeds FindKeyForVerificationRow and adds pre-processed data for caching.
 // This struct is stored in the cache to avoid redundant parsing operations.
@@ -9,6 +13,7 @@ type CachedKeyData struct {
 	Roles            []string
 	Permissions      []string
 	RatelimitConfigs map[string]KeyFindForVerificationRatelimit
+	AllowedIPs       ipallowlist.Allowlist
 }
 
 // CachedRootKeyData contains the root-key fields used during authentication.
@@ -24,4 +29,5 @@ type CachedRootKeyData struct {
 	WorkspaceEnabled    bool
 	ForWorkspaceEnabled sql.NullBool
 	Permissions         []string
+	AllowedIPs          ipallowlist.Allowlist
 }

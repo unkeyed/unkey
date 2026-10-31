@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -34,6 +35,7 @@ type KeyVerifier struct {
 	Permissions           []string                         // RBAC permissions assigned to this key
 	Status                KeyStatus                        // The current validation status
 	AuthorizedWorkspaceID string                           // The workspace ID this key is authorized for
+	AllowedIPs            ipallowlist.Allowlist
 
 	ratelimitConfigs map[string]keysdb.KeyFindForVerificationRatelimit // Rate limits configured for this key (name -> config)
 	RatelimitResults map[string]RatelimitConfigAndResult               // Combined config and results for rate limits (name -> config+result)

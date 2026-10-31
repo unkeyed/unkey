@@ -21,6 +21,7 @@ SELECT
     end,
     enabled,
     expires,
+    ip_allowlist,
     created_at,
     last_used_at,
     deleted_at
@@ -42,6 +43,7 @@ WHERE id = ? AND deleted_at IS NULL
 //	    end,
 //	    enabled,
 //	    expires,
+//	    ip_allowlist,
 //	    created_at,
 //	    last_used_at,
 //	    deleted_at
@@ -61,6 +63,7 @@ func (q *Queries) FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) 
 		&i.End,
 		&i.Enabled,
 		&i.Expires,
+		&i.IpAllowlist,
 		&i.CreatedAt,
 		&i.LastUsedAt,
 		&i.DeletedAt,
@@ -80,6 +83,7 @@ SELECT
     end,
     enabled,
     expires,
+    ip_allowlist,
     created_at,
     last_used_at,
     deleted_at
@@ -101,6 +105,7 @@ FOR UPDATE
 //	    end,
 //	    enabled,
 //	    expires,
+//	    ip_allowlist,
 //	    created_at,
 //	    last_used_at,
 //	    deleted_at
@@ -121,6 +126,7 @@ func (q *Queries) FindUnkeyRootKeyByIDForUpdate(ctx context.Context, db DBTX, id
 		&i.End,
 		&i.Enabled,
 		&i.Expires,
+		&i.IpAllowlist,
 		&i.CreatedAt,
 		&i.LastUsedAt,
 		&i.DeletedAt,

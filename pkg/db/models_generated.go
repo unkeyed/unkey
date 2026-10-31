@@ -883,6 +883,20 @@ func (ns NullUnkeyPrincipalPermissionsPrincipalType) Value() (driver.Value, erro
 	return string(ns.UnkeyPrincipalPermissionsPrincipalType), nil
 }
 
+type Api struct {
+	Pk               uint64           `db:"pk"`
+	ID               string           `db:"id"`
+	Name             string           `db:"name"`
+	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
+	AuthType         NullApisAuthType `db:"auth_type"`
+	KeyAuthID        sql.NullString   `db:"key_auth_id"`
+	CreatedAtM       int64            `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64    `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64    `db:"deleted_at_m"`
+	DeleteProtection sql.NullBool     `db:"delete_protection"`
+}
+
 type App struct {
 	Pk                  uint64         `db:"pk"`
 	ID                  string         `db:"id"`
@@ -1275,19 +1289,20 @@ type RolesPermission struct {
 }
 
 type UnkeyRootKey struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Hash        string         `db:"hash"`
-	Name        sql.NullString `db:"name"`
-	Prefix      string         `db:"prefix"`
-	Start       string         `db:"start"`
-	End         string         `db:"end"`
-	Enabled     bool           `db:"enabled"`
-	Expires     sql.NullInt64  `db:"expires"`
-	CreatedAt   int64          `db:"created_at"`
-	LastUsedAt  uint64         `db:"last_used_at"`
-	DeletedAt   sql.NullInt64  `db:"deleted_at"`
+	Pk          uint64             `db:"pk"`
+	ID          string             `db:"id"`
+	WorkspaceID string             `db:"workspace_id"`
+	Hash        string             `db:"hash"`
+	Name        sql.NullString     `db:"name"`
+	Prefix      string             `db:"prefix"`
+	Start       string             `db:"start"`
+	End         string             `db:"end"`
+	Enabled     bool               `db:"enabled"`
+	Expires     sql.NullInt64      `db:"expires"`
+	IpAllowlist dbtype.StringSlice `db:"ip_allowlist"`
+	CreatedAt   int64              `db:"created_at"`
+	LastUsedAt  uint64             `db:"last_used_at"`
+	DeletedAt   sql.NullInt64      `db:"deleted_at"`
 }
 
 type Workspace struct {

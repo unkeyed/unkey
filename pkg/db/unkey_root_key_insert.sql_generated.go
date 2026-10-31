@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const insertUnkeyRootKey = `-- name: InsertUnkeyRootKey :exec
@@ -21,8 +23,10 @@ INSERT INTO unkey_root_keys (
     end,
     enabled,
     expires,
+    ip_allowlist,
     created_at
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -37,16 +41,17 @@ INSERT INTO unkey_root_keys (
 `
 
 type InsertUnkeyRootKeyParams struct {
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Hash        string         `db:"hash"`
-	Name        sql.NullString `db:"name"`
-	Prefix      string         `db:"prefix"`
-	Start       string         `db:"start"`
-	End         string         `db:"end"`
-	Enabled     bool           `db:"enabled"`
-	Expires     sql.NullInt64  `db:"expires"`
-	CreatedAt   int64          `db:"created_at"`
+	ID          string             `db:"id"`
+	WorkspaceID string             `db:"workspace_id"`
+	Hash        string             `db:"hash"`
+	Name        sql.NullString     `db:"name"`
+	Prefix      string             `db:"prefix"`
+	Start       string             `db:"start"`
+	End         string             `db:"end"`
+	Enabled     bool               `db:"enabled"`
+	Expires     sql.NullInt64      `db:"expires"`
+	IpAllowlist dbtype.StringSlice `db:"ip_allowlist"`
+	CreatedAt   int64              `db:"created_at"`
 }
 
 // InsertUnkeyRootKey creates an administrative credential outside the regular
@@ -62,8 +67,10 @@ type InsertUnkeyRootKeyParams struct {
 //	    end,
 //	    enabled,
 //	    expires,
+//	    ip_allowlist,
 //	    created_at
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -86,6 +93,7 @@ func (q *Queries) InsertUnkeyRootKey(ctx context.Context, db DBTX, arg InsertUnk
 		arg.End,
 		arg.Enabled,
 		arg.Expires,
+		arg.IpAllowlist,
 		arg.CreatedAt,
 	)
 	return err

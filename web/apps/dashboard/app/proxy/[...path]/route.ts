@@ -1,6 +1,7 @@
 import { type GetAuthResult, getAuth } from "@/lib/auth/get-auth";
 import { mintProxyJWT } from "@/lib/auth/mint-proxy-jwt";
 import { env } from "@/lib/env";
+import type { BadRequestErrorDetails, BaseError } from "@unkey/api/models/components";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
@@ -12,15 +13,15 @@ type RouteContext = {
 
 export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   if (req.headers.has("authorization")) {
-    return NextResponse.json(
-      { error: "Dashboard proxy requests must not include an Authorization header." },
-      { status: 400 },
+    return proxyError(
+      "invalidInput",
+      "Dashboard proxy requests must not include an Authorization header.",
     );
   }
 
   const auth = await getAuth(req);
   if (!auth.userId || !auth.orgId) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    return proxyError("unauthenticated", "Authentication required.");
   }
   const orgId = auth.orgId;
   const userId = auth.userId;
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
   let bearerToken: string | null | undefined = upstreamBearerToken(auth, apiURL);
   if (!bearerToken) {
     if (!auth.role) {
-      return NextResponse.json({ error: "Role required." }, { status: 403 });
+      return proxyError("forbidden", "Role required.");
     }
 
     bearerToken = await mintProxyJWT({
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     });
   }
   if (!bearerToken) {
-    return NextResponse.json({ error: "Dashboard proxy is not configured." }, { status: 500 });
+    return proxyError("unexpected", "Dashboard proxy is not configured.");
   }
 
   const { path } = await ctx.params;
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
       return code <= 0x1f || code === 0x7f;
     });
     if (/[\\/]/.test(segment) || hasControlChar) {
-      return NextResponse.json({ error: "Invalid proxy path." }, { status: 400 });
+      return proxyError("invalidInput", "Invalid proxy path.");
     }
   }
 
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
 
   // Defense in depth: never let the constructed URL leave the upstream origin.
   if (upstreamURL.origin !== baseURL.origin) {
-    return NextResponse.json({ error: "Invalid proxy path." }, { status: 400 });
+    return proxyError("invalidInput", "Invalid proxy path.");
   }
 
   const headers = upstreamRequestHeaders(req);
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     return null;
   });
   if (!upstream) {
-    return NextResponse.json({ error: "Upstream API request failed." }, { status: 502 });
+    return proxyError("upstreamUnavailable", "Upstream API request failed.");
   }
 
   const responseHeaders = new Headers(upstream.headers);
@@ -100,6 +101,45 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     statusText: upstream.statusText,
     headers: responseHeaders,
   });
+}
+
+// The SDK only parses error bodies shaped like the API's, so proxy failures
+// must use the same envelope and docs URLs as pkg/codes.
+const proxyErrors = {
+  invalidInput: {
+    status: 400,
+    title: "Bad Request",
+    type: "https://unkey.com/docs/errors/unkey/application/invalid_input",
+    errors: [],
+  },
+  unauthenticated: {
+    status: 401,
+    title: "Unauthorized",
+    type: "https://unkey.com/docs/errors/unkey/authentication/missing",
+  },
+  forbidden: {
+    status: 403,
+    title: "Forbidden",
+    type: "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions",
+  },
+  unexpected: {
+    status: 500,
+    title: "Internal Server Error",
+    type: "https://unkey.com/docs/errors/unkey/application/unexpected_error",
+  },
+  upstreamUnavailable: {
+    status: 502,
+    title: "Bad Gateway",
+    type: "https://unkey.com/docs/errors/unkey/application/service_unavailable",
+  },
+} satisfies Record<string, Omit<BaseError, "detail"> | Omit<BadRequestErrorDetails, "detail">>;
+
+function proxyError(kind: keyof typeof proxyErrors, detail: string): NextResponse {
+  const error = { ...proxyErrors[kind], detail };
+  return NextResponse.json(
+    { meta: { requestId: "req_proxyonly" }, error },
+    { status: error.status },
+  );
 }
 
 function upstreamBearerToken(auth: GetAuthResult, apiURL: string): string | undefined {
