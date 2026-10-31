@@ -453,6 +453,9 @@ func Run(ctx context.Context, cfg Config) error {
 		DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
 		Signer:           nil,
 		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
+		IssuerURL:        "",
+		OAuthResources:   nil,
+		ClientMetadata:   nil,
 	}
 	if len(cliSecrets) > 0 {
 		cliSigner, signErr := tokenjwt.NewHS256Signer[devicesession.Claims](cliSecrets[0])

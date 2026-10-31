@@ -34,5 +34,8 @@ func New(h *testutil.Harness) *clidevice.Service {
 		DashboardBaseURL: "http://dashboard.test",
 		Signer:           signer,
 		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
+		IssuerURL:        "",
+		OAuthResources:   nil,
+		ClientMetadata:   nil,
 	}
 }

@@ -30,6 +30,11 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 		}
 		return PollResult{}, err
 	}
+	// An OAuth login is redeemed only at the token endpoint, where PKCE proves
+	// the redeemer started the authorization.
+	if row.Oauth != nil {
+		return PollResult{}, loginNotFound()
+	}
 
 	switch s.authorizationStatus(row) {
 	case db.DeviceAuthorizationsStatusDenied:
@@ -106,6 +111,12 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		}, nil
 	}
 
+	var clientID, resource string
+	if row.Oauth != nil {
+		clientID = row.Oauth.ClientID
+		resource = row.Oauth.Resource
+	}
+
 	sessionID := uid.New(uid.CLISessionPrefix)
 	family := newRefreshFamily()
 	refreshToken := newRefreshToken(family)
@@ -114,7 +125,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 	if err != nil {
 		return PollResult{}, err
 	}
-	accessToken, err := s.signAccessToken(row.ApproverUserID.String, row.ApproverName.String, workspace.ID, sessionID, row.DeviceName.String, narrowed)
+	accessToken, err := s.signAccessToken(row.ApproverUserID.String, row.ApproverName.String, workspace.ID, sessionID, row.DeviceName.String, resource, narrowed)
 	if err != nil {
 		return PollResult{}, err
 	}
@@ -150,8 +161,14 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			CreatedAt:        now,
 			LastUsedAt:       now,
 			ExpiresAt:        sessionExpiry(now, now),
-			OauthClientID:    sql.NullString{String: "", Valid: false},
-			Audience:         sql.NullString{String: "", Valid: false},
+			OauthClientID: sql.NullString{
+				String: clientID,
+				Valid:  clientID != "",
+			},
+			Audience: sql.NullString{
+				String: resource,
+				Valid:  resource != "",
+			},
 		}); err != nil {
 			return err
 		}
@@ -213,7 +230,8 @@ func approvalChanged(read db.DeviceAuthorization, locked db.DeviceAuthorization)
 	return read.ApprovedAt != locked.ApprovedAt ||
 		read.ApproverUserID != locked.ApproverUserID ||
 		read.WorkspaceID != locked.WorkspaceID ||
-		!bytes.Equal(read.Permissions, locked.Permissions)
+		!bytes.Equal(read.Permissions, locked.Permissions) ||
+		read.CodeHash != locked.CodeHash
 }
 
 func (s *Service) denyAuthorization(ctx context.Context, id string) error {

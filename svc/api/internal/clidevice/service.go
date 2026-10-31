@@ -65,6 +65,13 @@ type Service struct {
 	DashboardBaseURL string
 	Signer           tokenjwt.Signer[devicesession.Claims]
 	SessionCache     cache.Cache[string, SessionVerdict]
+
+	// IssuerURL is the API's public URL. OAuth is off while it is empty.
+	IssuerURL string
+	// OAuthResources are the resource indicators an OAuth client may request.
+	// Each one becomes an extra audience on the access token.
+	OAuthResources []string
+	ClientMetadata ClientMetadataFetcher
 }
 
 // SessionVerdict is the cached answer for one device session.

@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -25,6 +26,12 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 	if err := s.limit(ctx, "start", req.RemoteIP, startLimitPerMinute); err != nil {
 		return Started{}, err
 	}
+	return s.insertAuthorization(ctx, req, nil)
+}
+
+// insertAuthorization stores a pending authorization under a fresh user code.
+// A nil binding is a CLI device login.
+func (s *Service) insertAuthorization(ctx context.Context, req StartRequest, binding *mysqltype.DeviceAuthorizationOAuth) (Started, error) {
 	s.deleteExpired(ctx)
 
 	deviceName := truncate(strings.TrimSpace(req.DeviceName), 512)
@@ -67,7 +74,7 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 				Valid:  userAgent != "",
 			},
 			CreatedAt: now,
-			Oauth:     nil,
+			Oauth:     binding,
 		})
 		if db.IsDuplicateKeyError(err) {
 			lastErr = err

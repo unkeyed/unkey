@@ -122,18 +122,18 @@ func TestUserCodeAttemptsShareAUserBudgetAcrossActionsAndWorkspaces(t *testing.T
 		case 0:
 			_, err = svc.Get(t.Context(), GetRequest{Principal: caller, UserCode: code})
 		case 1:
-			err = svc.Approve(t.Context(), ApproveRequest{Principal: caller, UserCode: code, Permissions: caller.Permissions})
+			_, err = svc.Approve(t.Context(), ApproveRequest{Principal: caller, UserCode: code, Permissions: caller.Permissions})
 		case 2:
-			err = svc.Deny(t.Context(), DenyRequest{Principal: caller, UserCode: code})
+			_, err = svc.Deny(t.Context(), DenyRequest{Principal: caller, UserCode: code})
 		}
 		require.Equal(t, "This login code was not found. Run unkey login again.", fault.UserFacingMessage(err))
 	}
 
 	_, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
 	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
-	err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
+	_, err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
 	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
-	err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
+	_, err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
 	require.Equal(t, codes.User.TooManyRequests.UserRateLimited.URN(), codeOf(t, err))
 
 	otherUser := adminPrincipal(workspace, uid.New(uid.TestPrefix))
@@ -167,9 +167,9 @@ func TestUserCodeActionsRejectUnavailableLimiters(t *testing.T) {
 	svc.Ratelimit = unavailableCodeLimiter{}
 	_, err = svc.Get(t.Context(), GetRequest{Principal: p, UserCode: started.UserCode})
 	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
-	err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
+	_, err = svc.Approve(t.Context(), ApproveRequest{Principal: p, UserCode: started.UserCode, Permissions: p.Permissions})
 	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
-	err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
+	_, err = svc.Deny(t.Context(), DenyRequest{Principal: p, UserCode: started.UserCode})
 	require.Equal(t, codes.App.Internal.ServiceUnavailable.URN(), codeOf(t, err))
 
 	svc.Ratelimit = h.Ratelimit
@@ -188,28 +188,29 @@ func TestApproveRejectsMaliciousAndOverscopedPermissions(t *testing.T) {
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.7", UserAgent: "unkey-cli/1.0"})
 	require.NoError(t, err)
 
-	err = svc.Approve(t.Context(), ApproveRequest{Principal: developer, UserCode: started.UserCode, Permissions: []string{"not a permission"}})
+	_, err = svc.Approve(t.Context(), ApproveRequest{Principal: developer, UserCode: started.UserCode, Permissions: []string{"not a permission"}})
 	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
 
-	err = svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developer,
 		UserCode:    started.UserCode,
 		Permissions: []string{"unkey:v1:" + uid.New(uid.WorkspacePrefix) + ":projects/*/keyspaces/*/keys/*#read"},
 	})
 	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
 
-	err = svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developer,
 		UserCode:    started.UserCode,
 		Permissions: []string{"unkey:v1:" + workspace.ID + ":rootKeys/*#write"},
 	})
 	require.Equal(t, codes.Auth.Authorization.InsufficientPermissions.URN(), codeOf(t, err))
 
-	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developer,
 		UserCode:    started.UserCode,
 		Permissions: []string{allowed},
-	}))
+	})
+	require.NoError(t, err)
 }
 
 func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
@@ -229,11 +230,12 @@ func TestPollIssuesASessionInsteadOfARootKey(t *testing.T) {
 	require.Equal(t, PollPermissionsRequired, pending.Status)
 	require.Empty(t, pending.AccessToken)
 
-	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developerPrincipal(workspace, userID),
 		UserCode:    started.UserCode,
 		Permissions: []string{allowed},
-	}))
+	})
+	require.NoError(t, err)
 
 	done, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID, RemoteIP: "127.0.0.1", UserAgent: "unkey-cli"})
 	require.NoError(t, err)
@@ -522,7 +524,7 @@ func TestRootKeyCannotApprove(t *testing.T) {
 	rootKey.Source = principal.KeySource{}
 	_, err = svc.Get(t.Context(), GetRequest{Principal: rootKey, UserCode: started.UserCode})
 	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
-	err = svc.Approve(t.Context(), ApproveRequest{Principal: rootKey, UserCode: started.UserCode, Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)}})
+	_, err = svc.Approve(t.Context(), ApproveRequest{Principal: rootKey, UserCode: started.UserCode, Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)}})
 	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
 }
 
@@ -537,11 +539,12 @@ func login(t *testing.T, svc *Service, workspace db.Workspace, userID string, pe
 	t.Helper()
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.9", UserAgent: "unkey-cli"})
 	require.NoError(t, err)
-	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developerPrincipal(workspace, userID),
 		UserCode:    started.UserCode,
 		Permissions: []string{permission},
-	}))
+	})
+	require.NoError(t, err)
 	done, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID})
 	require.NoError(t, err)
 	require.Equal(t, PollComplete, done.Status)
@@ -632,11 +635,12 @@ func TestConcurrentPollsIssueOneSession(t *testing.T) {
 	userID := uid.New(uid.TestPrefix)
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.10", UserAgent: "unkey-cli"})
 	require.NoError(t, err)
-	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developerPrincipal(workspace, userID),
 		UserCode:    started.UserCode,
 		Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)},
-	}))
+	})
+	require.NoError(t, err)
 
 	const pollers = 8
 	results := make([]PollResult, pollers)
@@ -677,13 +681,14 @@ func TestSecondApproverCannotTakeOverAnApprovedLogin(t *testing.T) {
 	permission := permissionOnlyDeveloperHas(t, workspace.ID)
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.11", UserAgent: "unkey-cli"})
 	require.NoError(t, err)
-	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developerPrincipal(workspace, uid.New(uid.TestPrefix)),
 		UserCode:    started.UserCode,
 		Permissions: []string{permission},
-	}))
+	})
+	require.NoError(t, err)
 
-	err = svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developerPrincipal(workspace, uid.New(uid.TestPrefix)),
 		UserCode:    started.UserCode,
 		Permissions: []string{permission},
@@ -699,13 +704,14 @@ func TestDeniedLoginStaysDenied(t *testing.T) {
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.12", UserAgent: "unkey-cli"})
 	require.NoError(t, err)
 
-	require.NoError(t, svc.Deny(t.Context(), DenyRequest{Principal: developer, UserCode: started.UserCode}))
+	_, err = svc.Deny(t.Context(), DenyRequest{Principal: developer, UserCode: started.UserCode})
+	require.NoError(t, err)
 	polled, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID})
 	require.NoError(t, err)
 	require.Equal(t, PollDenied, polled.Status)
 	require.Empty(t, polled.AccessToken)
 
-	err = svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developer,
 		UserCode:    started.UserCode,
 		Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)},
@@ -734,11 +740,12 @@ func TestApproverDemotedBeforePollIsDenied(t *testing.T) {
 	userID := uid.New(uid.TestPrefix)
 	started, err := svc.Start(t.Context(), StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.14", UserAgent: "unkey-cli"})
 	require.NoError(t, err)
-	require.NoError(t, svc.Approve(t.Context(), ApproveRequest{
+	_, err = svc.Approve(t.Context(), ApproveRequest{
 		Principal:   developerPrincipal(workspace, userID),
 		UserCode:    started.UserCode,
 		Permissions: []string{permissionOnlyDeveloperHas(t, workspace.ID)},
-	}))
+	})
+	require.NoError(t, err)
 
 	membership.roles[userID] = []string{"viewer"}
 	polled, err := svc.Poll(t.Context(), PollRequest{LoginID: started.LoginID})

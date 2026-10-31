@@ -34,6 +34,8 @@ type Authorization struct {
 	WorkspaceID        string
 	CreatedAt          int64
 	ExpiresAt          int64
+	// OAuthClientID is set when an OAuth client started the login.
+	OAuthClientID string
 }
 
 // ApproveRequest records the permissions the dashboard user granted.
@@ -63,9 +65,12 @@ type PollResult struct {
 	Tokens
 }
 
-// RefreshRequest exchanges a refresh token for a new pair.
+// RefreshRequest exchanges a refresh token for a new pair. ClientID is the
+// OAuth client presenting it, empty for the CLI. It must match the client the
+// session was issued to.
 type RefreshRequest struct {
 	RefreshToken string
+	ClientID     string
 	RemoteIP     string
 	UserAgent    string
 }

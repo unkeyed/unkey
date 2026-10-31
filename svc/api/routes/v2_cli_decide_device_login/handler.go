@@ -38,7 +38,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch req.Decision {
 	case openapi.V2CliDecideDeviceLoginRequestBodyDecisionApprove:
-		if err := h.Devices.Approve(ctx, clidevice.ApproveRequest{
+		if _, err := h.Devices.Approve(ctx, clidevice.ApproveRequest{
 			Principal:   p,
 			UserCode:    req.UserCode,
 			Permissions: ptr.SafeDeref(req.Permissions),
@@ -46,7 +46,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 	case openapi.V2CliDecideDeviceLoginRequestBodyDecisionDeny:
-		if err := h.Devices.Deny(ctx, clidevice.DenyRequest{
+		if _, err := h.Devices.Deny(ctx, clidevice.DenyRequest{
 			Principal: p,
 			UserCode:  req.UserCode,
 		}); err != nil {
