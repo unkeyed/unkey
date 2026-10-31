@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/counter"
+	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/tls"
 )
 
@@ -58,6 +59,16 @@ type CLIAuthConfig struct {
 	WorkOSAPIBaseURL string   `toml:"workos_api_base_url" config:"default=https://api.workos.com"`
 	DashboardBaseURL string   `toml:"dashboard_base_url" config:"default=https://app.unkey.com"`
 	SigningSecrets   []string `toml:"signing_secrets"`
+
+	// IssuerURL is the API's public URL. It is the OAuth issuer and the base
+	// of the OAuth endpoints, which are served only when it is set and CLI
+	// login is configured.
+	IssuerURL string `toml:"issuer_url"`
+
+	// OAuthResources are the resource indicators (RFC 8707) OAuth clients may
+	// request, such as the API's own URL and the MCP server URLs. Each one is
+	// added to the access token audience.
+	OAuthResources []string `toml:"oauth_resources"`
 }
 
 // RestateConfig configures the Restate ingress used to submit durable
@@ -521,6 +532,23 @@ func (c CLIAuthConfig) validate() error {
 	hasSigningSecrets := len(c.SigningSecrets) > 0
 	if hasWorkOSAPIKey != hasSigningSecrets {
 		return fmt.Errorf("cli_auth requires both workos_api_key and signing_secrets, or neither")
+	}
+	if c.IssuerURL != "" {
+		issuer, err := url.Parse(c.IssuerURL)
+		if err != nil || (issuer.Scheme != "https" && issuer.Scheme != "http") || issuer.Host == "" ||
+			issuer.RawQuery != "" || issuer.Fragment != "" || strings.TrimRight(issuer.Path, "/") != "" {
+			return fmt.Errorf("cli_auth.issuer_url must be an http(s) origin without a path, query, or fragment")
+		}
+	}
+	for i, resource := range c.OAuthResources {
+		parsed, err := url.Parse(resource)
+		if err != nil || !parsed.IsAbs() || parsed.Host == "" || parsed.Fragment != "" || strings.Contains(resource, "#") {
+			return fmt.Errorf("cli_auth.oauth_resources[%d] must be an absolute URL without a fragment", i)
+		}
+		// Each resource becomes a JWT aud entry, which pkg/jwt bounds.
+		if len(resource) > jwt.MaxAudienceEntrySize {
+			return fmt.Errorf("cli_auth.oauth_resources[%d] must be at most %d bytes", i, jwt.MaxAudienceEntrySize)
+		}
 	}
 	return nil
 }

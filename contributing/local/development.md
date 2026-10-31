@@ -340,6 +340,12 @@ in, check the code, narrow the permissions if you want, and click Allow. Use
 `AUTH_PROVIDER=workos` so the signed-in user id is the WorkOS user stored on
 the workspace.
 
+The same flag turns on the OAuth authorization server that MCP clients use,
+with issuer `http://localhost:7070`. Its metadata is at
+`http://localhost:7070/.well-known/oauth-authorization-server`. Clients
+identify themselves with an https client metadata document URL, so a local
+client needs a publicly reachable document.
+
 Stripe billing:
 
 The dashboard subscription flow needs all four variables in

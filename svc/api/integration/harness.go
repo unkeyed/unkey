@@ -220,6 +220,8 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				WorkOSAPIBaseURL: "",
 				DashboardBaseURL: "",
 				SigningSecrets:   nil,
+				IssuerURL:        "",
+				OAuthResources:   nil,
 			},
 		}
 

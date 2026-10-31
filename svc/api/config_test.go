@@ -477,6 +477,36 @@ func TestConfig_ValidateCLIAuthRequiresBothHalves(t *testing.T) {
 			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{secret, " "}},
 			wantErr: true,
 		},
+		{
+			name: "oauth issuer and resources pass",
+			cliAuth: CLIAuthConfig{
+				WorkOSAPIKey:   "sk_test",
+				SigningSecrets: []string{secret},
+				IssuerURL:      "https://api.unkey.com",
+				OAuthResources: []string{"https://api.unkey.com", "https://mcp.unkey.com/mcp/v2", "https://mcp.unkey.com/mcp/compute"},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "oauth issuer with a path is rejected",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{secret}, IssuerURL: "https://api.unkey.com/oauth"},
+			wantErr: true,
+		},
+		{
+			name:    "relative oauth issuer is rejected",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{secret}, IssuerURL: "api.unkey.com"},
+			wantErr: true,
+		},
+		{
+			name:    "oauth resource with a fragment is rejected",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{secret}, OAuthResources: []string{"https://mcp.unkey.com/mcp#v2"}},
+			wantErr: true,
+		},
+		{
+			name:    "oauth resource longer than an audience entry is rejected",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{secret}, OAuthResources: []string{"https://mcp.unkey.com/" + strings.Repeat("a", 256)}},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

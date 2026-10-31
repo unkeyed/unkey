@@ -40,7 +40,6 @@ type OAuthErrorCode string
 
 const (
 	OAuthInvalidRequest          OAuthErrorCode = "invalid_request"
-	OAuthInvalidClient           OAuthErrorCode = "invalid_client"
 	OAuthInvalidGrant            OAuthErrorCode = "invalid_grant"
 	OAuthUnsupportedGrantType    OAuthErrorCode = "unsupported_grant_type"
 	OAuthUnsupportedResponseType OAuthErrorCode = "unsupported_response_type"
