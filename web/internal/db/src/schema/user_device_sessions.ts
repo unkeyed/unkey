@@ -25,6 +25,8 @@ export const userDeviceSessions = mysqlTable(
     lastUsedAt: bigint("last_used_at", { mode: "number" }).notNull(),
     expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
     revokedAt: bigint("revoked_at", { mode: "number" }),
+    oauthClientId: caseSensitiveVarchar("oauth_client_id", { length: 512 }),
+    audience: caseSensitiveVarchar("audience", { length: 512 }),
   },
   (table) => [
     index("user_device_sessions_workspace_user_created_idx").on(

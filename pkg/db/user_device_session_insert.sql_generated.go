@@ -23,13 +23,17 @@ INSERT INTO user_device_sessions (
     refresh_family,
     created_at,
     last_used_at,
-    expires_at
+    expires_at,
+    oauth_client_id,
+    audience
 ) VALUES (
     ?,
     ?,
     ?,
     ?,
     CAST(? AS JSON),
+    ?,
+    ?,
     ?,
     ?,
     ?,
@@ -51,6 +55,8 @@ type InsertUserDeviceSessionParams struct {
 	CreatedAt        int64           `db:"created_at"`
 	LastUsedAt       int64           `db:"last_used_at"`
 	ExpiresAt        int64           `db:"expires_at"`
+	OauthClientID    sql.NullString  `db:"oauth_client_id"`
+	Audience         sql.NullString  `db:"audience"`
 }
 
 // InsertUserDeviceSession
@@ -66,13 +72,17 @@ type InsertUserDeviceSessionParams struct {
 //	    refresh_family,
 //	    created_at,
 //	    last_used_at,
-//	    expires_at
+//	    expires_at,
+//	    oauth_client_id,
+//	    audience
 //	) VALUES (
 //	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
 //	    CAST(? AS JSON),
+//	    ?,
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -93,6 +103,8 @@ func (q *Queries) InsertUserDeviceSession(ctx context.Context, db DBTX, arg Inse
 		arg.CreatedAt,
 		arg.LastUsedAt,
 		arg.ExpiresAt,
+		arg.OauthClientID,
+		arg.Audience,
 	)
 	return err
 }

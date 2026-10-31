@@ -9,7 +9,9 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -88,6 +90,62 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 	require.Equal(t, now+2*time.Hour.Milliseconds(), session.ExpiresAt)
 }
 
+// TestDeviceAuthorizationOAuthRoundTrip guarantees that the OAuth binding and
+// the session's client and audience survive interpolated parameters, and that
+// a CLI device login reads back without a binding.
+func TestDeviceAuthorizationOAuthRoundTrip(t *testing.T) {
+	skipWithoutDatabase(t)
+	ctx := context.Background()
+	database := openCLILoginDB(t, containers.MySQL(t))
+	now := time.Now().UnixMilli()
+
+	binding := mysqltype.DeviceAuthorizationOAuth{
+		ClientID:      "https://client.example.com/oauth/metadata.json",
+		RedirectURI:   "https://client.example.com/callback?tenant=a&b=it's",
+		CodeChallenge: uid.Secure(43),
+		State:         `st"ate`,
+		Resource:      "https://mcp.example.com/mcp",
+	}
+	id := uid.New(uid.TestPrefix)
+	require.NoError(t, Query.InsertDeviceAuthorization(ctx, database.RW(), InsertDeviceAuthorizationParams{
+		ID:        id,
+		UserCode:  uid.New(uid.TestPrefix, 20),
+		ExpiresAt: now + time.Hour.Milliseconds(),
+		Status:    DeviceAuthorizationsStatusPending,
+		CreatedAt: now,
+		Oauth:     &binding,
+	}))
+	stored, err := Query.FindDeviceAuthorizationByID(ctx, database.RO(), id)
+	require.NoError(t, err)
+	require.NotNil(t, stored.Oauth)
+	require.Equal(t, binding, *stored.Oauth)
+
+	device := insertPendingDeviceAuthorization(t, ctx, database, now+time.Hour.Milliseconds())
+	require.Nil(t, device.Oauth)
+	require.False(t, device.CodeHash.Valid)
+
+	permissions, err := json.Marshal([]string{"api.*.read_api"})
+	require.NoError(t, err)
+	sessionID := uid.New(uid.TestPrefix)
+	require.NoError(t, Query.InsertUserDeviceSession(ctx, database.RW(), InsertUserDeviceSessionParams{
+		ID:               sessionID,
+		WorkspaceID:      uid.New(uid.WorkspacePrefix),
+		UserID:           uid.New(uid.TestPrefix),
+		Permissions:      permissions,
+		RefreshTokenHash: uid.New(uid.TestPrefix, 32),
+		RefreshFamily:    uid.New(uid.TestPrefix, 20),
+		CreatedAt:        now,
+		LastUsedAt:       now,
+		ExpiresAt:        now + time.Hour.Milliseconds(),
+		OauthClientID:    sql.NullString{String: binding.ClientID, Valid: true},
+		Audience:         sql.NullString{String: binding.Resource, Valid: true},
+	}))
+	session, err := Query.FindUserDeviceSessionByID(ctx, database.RO(), sessionID)
+	require.NoError(t, err)
+	require.Equal(t, sql.NullString{String: binding.ClientID, Valid: true}, session.OauthClientID)
+	require.Equal(t, sql.NullString{String: binding.Resource, Valid: true}, session.Audience)
+}
+
 // TestDeviceAuthorizationStatusTransitions guarantees that a consumed login
 // cannot be denied, expired, or approved again. Reopening it would let a
 // second poll consume the same authorization.
@@ -98,7 +156,7 @@ func TestDeviceAuthorizationStatusTransitions(t *testing.T) {
 	now := time.Now().UnixMilli()
 
 	consumed := insertPendingDeviceAuthorization(t, ctx, database, now+time.Hour.Milliseconds())
-	approvePendingAuthorization(t, ctx, database, consumed.ID, now)
+	approvePendingAuthorization(t, ctx, database, consumed, now)
 	n, err := Query.ConsumeDeviceAuthorization(ctx, database.RW(), ConsumeDeviceAuthorizationParams{
 		SessionID: sql.NullString{String: uid.New(uid.TestPrefix), Valid: true},
 		ID:        consumed.ID,
@@ -112,7 +170,7 @@ func TestDeviceAuthorizationStatusTransitions(t *testing.T) {
 	expired, err := Query.ExpireDeviceAuthorization(ctx, database.RW(), consumed.ID)
 	require.NoError(t, err)
 	require.Equal(t, int64(0), expired)
-	reapproved := approvePendingAuthorization(t, ctx, database, consumed.ID, now)
+	reapproved := approvePendingAuthorization(t, ctx, database, consumed, now)
 	require.Equal(t, int64(0), reapproved)
 
 	stored, err := Query.FindDeviceAuthorizationByID(ctx, database.RW(), consumed.ID)
@@ -128,7 +186,7 @@ func TestDeviceAuthorizationStatusTransitions(t *testing.T) {
 	require.Equal(t, int64(0), deniedAgain)
 
 	approved := insertPendingDeviceAuthorization(t, ctx, database, now+time.Hour.Milliseconds())
-	require.Equal(t, int64(1), approvePendingAuthorization(t, ctx, database, approved.ID, now))
+	require.Equal(t, int64(1), approvePendingAuthorization(t, ctx, database, approved, now))
 	denied, err = Query.DenyDeviceAuthorization(ctx, database.RW(), approved.ID)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), denied)
@@ -140,6 +198,46 @@ func TestDeviceAuthorizationStatusTransitions(t *testing.T) {
 	stored, err = Query.FindDeviceAuthorizationByID(ctx, database.RW(), expiring.ID)
 	require.NoError(t, err)
 	require.Equal(t, DeviceAuthorizationsStatusExpired, stored.Status)
+}
+
+// TestApprovedAuthorizationIsFoundByCodeHash guarantees that approval stores
+// the authorization code hash and the shortened code lifetime, so the token
+// endpoint can find the row by the code alone and an unknown code finds nothing.
+func TestApprovedAuthorizationIsFoundByCodeHash(t *testing.T) {
+	skipWithoutDatabase(t)
+	ctx := context.Background()
+	database := openCLILoginDB(t, containers.MySQL(t))
+	now := time.Now().UnixMilli()
+
+	row := insertPendingDeviceAuthorization(t, ctx, database, now+time.Hour.Milliseconds())
+	codeHash := sql.NullString{String: hash.Sha256(uid.Secure(32)), Valid: true}
+	codeExpiresAt := now + time.Minute.Milliseconds()
+	roles, err := json.Marshal([]string{"admin"})
+	require.NoError(t, err)
+	permissions, err := json.Marshal([]string{"api.*.read_api"})
+	require.NoError(t, err)
+	approved, err := Query.ApproveDeviceAuthorization(ctx, database.RW(), ApproveDeviceAuthorizationParams{
+		WorkspaceID:    sql.NullString{String: uid.New(uid.WorkspacePrefix), Valid: true},
+		ApproverUserID: sql.NullString{String: uid.New(uid.TestPrefix), Valid: true},
+		ApproverName:   sql.NullString{String: "", Valid: false},
+		ApproverRoles:  roles,
+		Permissions:    permissions,
+		ApprovedAt:     sql.NullInt64{Int64: now, Valid: true},
+		ExpiresAt:      codeExpiresAt,
+		CodeHash:       codeHash,
+		ID:             row.ID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), approved)
+
+	byCode, err := Query.FindDeviceAuthorizationByCodeHash(ctx, database.RW(), codeHash)
+	require.NoError(t, err)
+	require.Equal(t, row.ID, byCode.ID)
+	require.Equal(t, DeviceAuthorizationsStatusApproved, byCode.Status)
+	require.Equal(t, codeExpiresAt, byCode.ExpiresAt)
+
+	_, err = Query.FindDeviceAuthorizationByCodeHash(ctx, database.RW(), sql.NullString{String: hash.Sha256(uid.Secure(32)), Valid: true})
+	require.True(t, IsNotFound(err))
 }
 
 // TestListUserDeviceSessionsReturnsActiveRows guarantees that workspace and user
@@ -359,7 +457,7 @@ func insertPendingDeviceAuthorization(t *testing.T, ctx context.Context, databas
 	return row
 }
 
-func approvePendingAuthorization(t *testing.T, ctx context.Context, database *database, id string, approvedAt int64) int64 {
+func approvePendingAuthorization(t *testing.T, ctx context.Context, database *database, row DeviceAuthorization, approvedAt int64) int64 {
 	t.Helper()
 	roles, err := json.Marshal([]string{"developer"})
 	require.NoError(t, err)
@@ -372,7 +470,9 @@ func approvePendingAuthorization(t *testing.T, ctx context.Context, database *da
 		ApproverRoles:  roles,
 		Permissions:    permissions,
 		ApprovedAt:     sql.NullInt64{Int64: approvedAt, Valid: true},
-		ID:             id,
+		ExpiresAt:      row.ExpiresAt,
+		CodeHash:       sql.NullString{String: "", Valid: false},
+		ID:             row.ID,
 	})
 	require.NoError(t, err)
 	return n

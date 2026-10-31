@@ -67,6 +67,7 @@ func (s *Service) Start(ctx context.Context, req StartRequest) (Started, error) 
 				Valid:  userAgent != "",
 			},
 			CreatedAt: now,
+			Oauth:     nil,
 		})
 		if db.IsDuplicateKeyError(err) {
 			lastErr = err

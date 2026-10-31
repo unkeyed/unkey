@@ -48,6 +48,16 @@
               }
             },
             {
+              "column": "device_authorizations.oauth",
+              "go_type": {
+                "type": "DeviceAuthorizationOAuth",
+                "package": "mysqltype",
+                "import": "github.com/unkeyed/unkey/pkg/mysql/types",
+                "pointer": true
+              },
+              "nullable": true
+            },
+            {
               "db_type": "json",
               "go_type": {
                 "type": "[]byte"

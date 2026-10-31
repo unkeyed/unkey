@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const insertDeviceAuthorization = `-- name: InsertDeviceAuthorization :exec
@@ -19,8 +21,10 @@ INSERT INTO device_authorizations (
     device_name,
     requester_ip,
     requester_user_agent,
-    created_at
+    created_at,
+    oauth
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -33,14 +37,15 @@ INSERT INTO device_authorizations (
 `
 
 type InsertDeviceAuthorizationParams struct {
-	ID                 string                     `db:"id"`
-	UserCode           string                     `db:"user_code"`
-	ExpiresAt          int64                      `db:"expires_at"`
-	Status             DeviceAuthorizationsStatus `db:"status"`
-	DeviceName         sql.NullString             `db:"device_name"`
-	RequesterIp        sql.NullString             `db:"requester_ip"`
-	RequesterUserAgent sql.NullString             `db:"requester_user_agent"`
-	CreatedAt          int64                      `db:"created_at"`
+	ID                 string                              `db:"id"`
+	UserCode           string                              `db:"user_code"`
+	ExpiresAt          int64                               `db:"expires_at"`
+	Status             DeviceAuthorizationsStatus          `db:"status"`
+	DeviceName         sql.NullString                      `db:"device_name"`
+	RequesterIp        sql.NullString                      `db:"requester_ip"`
+	RequesterUserAgent sql.NullString                      `db:"requester_user_agent"`
+	CreatedAt          int64                               `db:"created_at"`
+	Oauth              *mysqltype.DeviceAuthorizationOAuth `db:"oauth"`
 }
 
 // InsertDeviceAuthorization
@@ -53,8 +58,10 @@ type InsertDeviceAuthorizationParams struct {
 //	    device_name,
 //	    requester_ip,
 //	    requester_user_agent,
-//	    created_at
+//	    created_at,
+//	    oauth
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -74,6 +81,7 @@ func (q *Queries) InsertDeviceAuthorization(ctx context.Context, db DBTX, arg In
 		arg.RequesterIp,
 		arg.RequesterUserAgent,
 		arg.CreatedAt,
+		arg.Oauth,
 	)
 	return err
 }

@@ -1732,6 +1732,8 @@ type DeviceAuthorization struct {
 	SessionID          sql.NullString             `db:"session_id"`
 	CreatedAt          int64                      `db:"created_at"`
 	ApprovedAt         sql.NullInt64              `db:"approved_at"`
+	Oauth              json.RawMessage            `db:"oauth"`
+	CodeHash           sql.NullString             `db:"code_hash"`
 }
 
 type EncryptedKey struct {
@@ -2184,6 +2186,8 @@ type UserDeviceSession struct {
 	LastUsedAt               int64           `db:"last_used_at"`
 	ExpiresAt                int64           `db:"expires_at"`
 	RevokedAt                sql.NullInt64   `db:"revoked_at"`
+	OauthClientID            sql.NullString  `db:"oauth_client_id"`
+	Audience                 sql.NullString  `db:"audience"`
 }
 
 type Workspace struct {

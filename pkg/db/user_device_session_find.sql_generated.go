@@ -26,7 +26,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE refresh_family = ?
   AND revoked_at IS NULL
@@ -50,7 +52,9 @@ LIMIT 1
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    oauth_client_id,
+//	    audience
 //	FROM user_device_sessions
 //	WHERE refresh_family = ?
 //	  AND revoked_at IS NULL
@@ -74,6 +78,8 @@ func (q *Queries) FindUnrevokedUserDeviceSessionByRefreshFamily(ctx context.Cont
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.OauthClientID,
+		&i.Audience,
 	)
 	return i, err
 }
@@ -94,7 +100,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE id = ?
 `
@@ -116,7 +124,9 @@ WHERE id = ?
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    oauth_client_id,
+//	    audience
 //	FROM user_device_sessions
 //	WHERE id = ?
 func (q *Queries) FindUserDeviceSessionByID(ctx context.Context, db DBTX, id string) (UserDeviceSession, error) {
@@ -138,6 +148,8 @@ func (q *Queries) FindUserDeviceSessionByID(ctx context.Context, db DBTX, id str
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.OauthClientID,
+		&i.Audience,
 	)
 	return i, err
 }
@@ -158,7 +170,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE previous_refresh_token_hash = ?
 `
@@ -180,7 +194,9 @@ WHERE previous_refresh_token_hash = ?
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    oauth_client_id,
+//	    audience
 //	FROM user_device_sessions
 //	WHERE previous_refresh_token_hash = ?
 func (q *Queries) FindUserDeviceSessionByPreviousRefreshTokenHash(ctx context.Context, db DBTX, previousRefreshTokenHash sql.NullString) (UserDeviceSession, error) {
@@ -202,6 +218,8 @@ func (q *Queries) FindUserDeviceSessionByPreviousRefreshTokenHash(ctx context.Co
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.OauthClientID,
+		&i.Audience,
 	)
 	return i, err
 }
@@ -222,7 +240,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE refresh_token_hash = ?
 `
@@ -244,7 +264,9 @@ WHERE refresh_token_hash = ?
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    oauth_client_id,
+//	    audience
 //	FROM user_device_sessions
 //	WHERE refresh_token_hash = ?
 func (q *Queries) FindUserDeviceSessionByRefreshTokenHash(ctx context.Context, db DBTX, refreshTokenHash string) (UserDeviceSession, error) {
@@ -266,6 +288,8 @@ func (q *Queries) FindUserDeviceSessionByRefreshTokenHash(ctx context.Context, d
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.RevokedAt,
+		&i.OauthClientID,
+		&i.Audience,
 	)
 	return i, err
 }
@@ -286,7 +310,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE workspace_id = ?
   AND user_id = ?
@@ -319,7 +345,9 @@ type ListUserDeviceSessionsByUserParams struct {
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    oauth_client_id,
+//	    audience
 //	FROM user_device_sessions
 //	WHERE workspace_id = ?
 //	  AND user_id = ?
@@ -352,6 +380,8 @@ func (q *Queries) ListUserDeviceSessionsByUser(ctx context.Context, db DBTX, arg
 			&i.LastUsedAt,
 			&i.ExpiresAt,
 			&i.RevokedAt,
+			&i.OauthClientID,
+			&i.Audience,
 		); err != nil {
 			return nil, err
 		}
@@ -382,7 +412,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE workspace_id = ?
   AND revoked_at IS NULL
@@ -413,7 +445,9 @@ type ListUserDeviceSessionsByWorkspaceParams struct {
 //	    created_at,
 //	    last_used_at,
 //	    expires_at,
-//	    revoked_at
+//	    revoked_at,
+//	    oauth_client_id,
+//	    audience
 //	FROM user_device_sessions
 //	WHERE workspace_id = ?
 //	  AND revoked_at IS NULL
@@ -445,6 +479,8 @@ func (q *Queries) ListUserDeviceSessionsByWorkspace(ctx context.Context, db DBTX
 			&i.LastUsedAt,
 			&i.ExpiresAt,
 			&i.RevokedAt,
+			&i.OauthClientID,
+			&i.Audience,
 		); err != nil {
 			return nil, err
 		}

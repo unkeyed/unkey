@@ -14,7 +14,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE id = sqlc.arg(id);
 
@@ -34,7 +36,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE refresh_token_hash = sqlc.arg(refresh_token_hash);
 
@@ -54,7 +58,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE previous_refresh_token_hash = sqlc.arg(previous_refresh_token_hash);
 
@@ -74,7 +80,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE workspace_id = sqlc.arg(workspace_id)
   AND revoked_at IS NULL
@@ -98,7 +106,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE workspace_id = sqlc.arg(workspace_id)
   AND user_id = sqlc.arg(user_id)
@@ -123,7 +133,9 @@ SELECT
     created_at,
     last_used_at,
     expires_at,
-    revoked_at
+    revoked_at,
+    oauth_client_id,
+    audience
 FROM user_device_sessions
 WHERE refresh_family = sqlc.arg(refresh_family)
   AND revoked_at IS NULL

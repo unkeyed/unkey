@@ -7,7 +7,8 @@ INSERT INTO device_authorizations (
     device_name,
     requester_ip,
     requester_user_agent,
-    created_at
+    created_at,
+    oauth
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(user_code),
@@ -16,5 +17,6 @@ INSERT INTO device_authorizations (
     sqlc.arg(device_name),
     sqlc.arg(requester_ip),
     sqlc.arg(requester_user_agent),
-    sqlc.arg(created_at)
+    sqlc.arg(created_at),
+    sqlc.arg(oauth)
 );

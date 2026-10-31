@@ -14,6 +14,8 @@ CREATE TABLE `user_device_sessions` (
 	`last_used_at` bigint NOT NULL,
 	`expires_at` bigint NOT NULL,
 	`revoked_at` bigint,
+	`oauth_client_id` varchar(512) COLLATE utf8mb4_0900_as_cs,
+	`audience` varchar(512) COLLATE utf8mb4_0900_as_cs,
 	CONSTRAINT `user_device_sessions_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `user_device_sessions_id_unique` UNIQUE(`id`),
 	CONSTRAINT `user_device_sessions_refresh_token_hash_unique` UNIQUE(`refresh_token_hash`),

@@ -150,6 +150,8 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			CreatedAt:        now,
 			LastUsedAt:       now,
 			ExpiresAt:        sessionExpiry(now, now),
+			OauthClientID:    sql.NullString{String: "", Valid: false},
+			Audience:         sql.NullString{String: "", Valid: false},
 		}); err != nil {
 			return err
 		}

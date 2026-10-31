@@ -20,7 +20,9 @@ type Querier interface {
 	//      approver_name = ?,
 	//      approver_roles = CAST(? AS JSON),
 	//      permissions = CAST(? AS JSON),
-	//      approved_at = ?
+	//      approved_at = ?,
+	//      expires_at = ?,
+	//      code_hash = ?
 	//  WHERE id = ?
 	//    AND status IN ('pending', 'approved')
 	//    AND (
@@ -625,6 +627,30 @@ type Querier interface {
 	//    AND a.deleted_at IS NULL
 	//    AND p.deleted_at IS NULL
 	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
+	//FindDeviceAuthorizationByCodeHash
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      user_code,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      requester_ip,
+	//      requester_user_agent,
+	//      workspace_id,
+	//      approver_user_id,
+	//      approver_name,
+	//      approver_roles,
+	//      permissions,
+	//      session_id,
+	//      created_at,
+	//      approved_at,
+	//      oauth,
+	//      code_hash
+	//  FROM device_authorizations
+	//  WHERE code_hash = ?
+	FindDeviceAuthorizationByCodeHash(ctx context.Context, db DBTX, codeHash sql.NullString) (DeviceAuthorization, error)
 	//FindDeviceAuthorizationByID
 	//
 	//  SELECT
@@ -643,7 +669,9 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      oauth,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE id = ?
 	FindDeviceAuthorizationByID(ctx context.Context, db DBTX, id string) (DeviceAuthorization, error)
@@ -665,7 +693,9 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      oauth,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE id = ?
 	//  FOR UPDATE
@@ -688,7 +718,9 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      oauth,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE user_code = ?
 	FindDeviceAuthorizationByUserCode(ctx context.Context, db DBTX, userCode string) (DeviceAuthorization, error)
@@ -710,7 +742,9 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      oauth,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE user_code = ?
 	//  FOR UPDATE
@@ -1633,7 +1667,9 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      oauth_client_id,
+	//      audience
 	//  FROM user_device_sessions
 	//  WHERE refresh_family = ?
 	//    AND revoked_at IS NULL
@@ -1656,7 +1692,9 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      oauth_client_id,
+	//      audience
 	//  FROM user_device_sessions
 	//  WHERE id = ?
 	FindUserDeviceSessionByID(ctx context.Context, db DBTX, id string) (UserDeviceSession, error)
@@ -1677,7 +1715,9 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      oauth_client_id,
+	//      audience
 	//  FROM user_device_sessions
 	//  WHERE previous_refresh_token_hash = ?
 	FindUserDeviceSessionByPreviousRefreshTokenHash(ctx context.Context, db DBTX, previousRefreshTokenHash sql.NullString) (UserDeviceSession, error)
@@ -1698,7 +1738,9 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      oauth_client_id,
+	//      audience
 	//  FROM user_device_sessions
 	//  WHERE refresh_token_hash = ?
 	FindUserDeviceSessionByRefreshTokenHash(ctx context.Context, db DBTX, refreshTokenHash string) (UserDeviceSession, error)
@@ -2042,8 +2084,10 @@ type Querier interface {
 	//      device_name,
 	//      requester_ip,
 	//      requester_user_agent,
-	//      created_at
+	//      created_at,
+	//      oauth
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2620,13 +2664,17 @@ type Querier interface {
 	//      refresh_family,
 	//      created_at,
 	//      last_used_at,
-	//      expires_at
+	//      expires_at,
+	//      oauth_client_id,
+	//      audience
 	//  ) VALUES (
 	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
 	//      CAST(? AS JSON),
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3509,7 +3557,9 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      oauth_client_id,
+	//      audience
 	//  FROM user_device_sessions
 	//  WHERE workspace_id = ?
 	//    AND user_id = ?
@@ -3535,7 +3585,9 @@ type Querier interface {
 	//      created_at,
 	//      last_used_at,
 	//      expires_at,
-	//      revoked_at
+	//      revoked_at,
+	//      oauth_client_id,
+	//      audience
 	//  FROM user_device_sessions
 	//  WHERE workspace_id = ?
 	//    AND revoked_at IS NULL

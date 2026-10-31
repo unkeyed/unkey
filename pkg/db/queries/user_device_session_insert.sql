@@ -10,7 +10,9 @@ INSERT INTO user_device_sessions (
     refresh_family,
     created_at,
     last_used_at,
-    expires_at
+    expires_at,
+    oauth_client_id,
+    audience
 ) VALUES (
     sqlc.arg(id),
     sqlc.arg(workspace_id),
@@ -22,5 +24,7 @@ INSERT INTO user_device_sessions (
     sqlc.arg(refresh_family),
     sqlc.arg(created_at),
     sqlc.arg(last_used_at),
-    sqlc.arg(expires_at)
+    sqlc.arg(expires_at),
+    sqlc.arg(oauth_client_id),
+    sqlc.arg(audience)
 );
