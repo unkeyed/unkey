@@ -1,4 +1,4 @@
-FROM clickhouse/clickhouse-server:26.2.1.1139@sha256:f57ed23ab5c4ee0e9a05c2e811bb3580ead222cea30421b3e66234c32e272bce
+FROM clickhouse/clickhouse-server:26.9.18.11@sha256:e5bc0bf2c7770f35c7e43f06a4ecb497a01f552afe14cc34526a183f8e30b0fd
 
 # Copy ClickHouse schemas
 COPY pkg/clickhouse/migrations /opt/clickhouse-schemas/
