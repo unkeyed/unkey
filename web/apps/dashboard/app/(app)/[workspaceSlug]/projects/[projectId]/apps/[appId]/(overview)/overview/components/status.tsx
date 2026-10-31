@@ -11,6 +11,7 @@ export type StatusBadgeVariant = "primary" | "success" | "error" | "warning";
 
 export type DeploymentDisplayStatus =
   | "live"
+  | "rolled-back"
   | "deploying"
   | "crashing"
   | "failed"
@@ -45,6 +46,7 @@ export const GROUP_BADGE_VARIANT: Record<DeploymentStatusGroup, StatusBadgeVaria
 
 export function deriveProductionStatus(
   deployment: Pick<Deployment, "status" | "instances" | "targetRegions" | "desiredState">,
+  { rolledBack = false }: { rolledBack?: boolean } = {},
 ): DeploymentDisplayStatus {
   const display = DISPLAY_BY_GROUP[statusGroupOf(deployment.status)];
   if (
@@ -53,7 +55,7 @@ export function deriveProductionStatus(
   ) {
     return "crashing";
   }
-  return display;
+  return display === "live" && rolledBack ? "rolled-back" : display;
 }
 
 export const STATUS_META: Record<
@@ -64,6 +66,12 @@ export const STATUS_META: Record<
     label: "Live",
     dotClass: DEPLOYMENT_GROUP_COLOR.ready,
     badge: "success",
+    polls: true,
+  },
+  "rolled-back": {
+    label: "Rolled back",
+    dotClass: "bg-warning-9",
+    badge: "warning",
     polls: true,
   },
   deploying: {

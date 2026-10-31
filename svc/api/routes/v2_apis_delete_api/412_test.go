@@ -106,7 +106,6 @@ func TestDeleteProtectionWithReplicaLag(t *testing.T) {
 		WorkspaceID: api.WorkspaceID,
 		ProjectID:   api.ProjectID,
 		AuthType:    api.AuthType,
-		IpWhitelist: api.IpWhitelist,
 		KeyAuthID:   api.KeyAuthID,
 		CreatedAtM:  api.CreatedAtM,
 	})

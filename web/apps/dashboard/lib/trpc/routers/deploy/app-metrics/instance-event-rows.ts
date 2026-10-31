@@ -53,6 +53,7 @@ export function toInstanceEvents(
         kind,
         reason: row.reason,
         exitCode: row.event_kind === "terminated" ? row.exit_code : null,
+        message: row.message.trim() || null,
       },
     ];
   });

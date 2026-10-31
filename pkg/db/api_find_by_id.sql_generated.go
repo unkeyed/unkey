@@ -10,12 +10,12 @@ import (
 )
 
 const findApiByID = `-- name: FindApiByID :one
-SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
+SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 `
 
 // FindApiByID
 //
-//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
+//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 func (q *Queries) FindApiByID(ctx context.Context, db DBTX, id string) (Api, error) {
 	row := db.QueryRowContext(ctx, findApiByID, id)
 	var i Api
@@ -25,7 +25,6 @@ func (q *Queries) FindApiByID(ctx context.Context, db DBTX, id string) (Api, err
 		&i.Name,
 		&i.WorkspaceID,
 		&i.ProjectID,
-		&i.IpWhitelist,
 		&i.AuthType,
 		&i.KeyAuthID,
 		&i.CreatedAtM,
@@ -37,12 +36,12 @@ func (q *Queries) FindApiByID(ctx context.Context, db DBTX, id string) (Api, err
 }
 
 const findApiByIDForUpdate = `-- name: FindApiByIDForUpdate :one
-SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
+SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
 `
 
 // FindApiByIDForUpdate locks the API so mutation checks remain valid until commit.
 //
-//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
+//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
 func (q *Queries) FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) (Api, error) {
 	row := db.QueryRowContext(ctx, findApiByIDForUpdate, id)
 	var i Api
@@ -52,7 +51,6 @@ func (q *Queries) FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) 
 		&i.Name,
 		&i.WorkspaceID,
 		&i.ProjectID,
-		&i.IpWhitelist,
 		&i.AuthType,
 		&i.KeyAuthID,
 		&i.CreatedAtM,

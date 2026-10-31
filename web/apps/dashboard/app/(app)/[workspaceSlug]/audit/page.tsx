@@ -1,4 +1,5 @@
 import { getAuth } from "@/lib/auth";
+import { dashboardAuditLogBuckets } from "@unkey/schema/src/auditlog";
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { getWorkspace } from "./actions";
 import { LogsClient } from "./components/logs-client";
@@ -16,7 +17,7 @@ export default async function AuditPage() {
         </PageHeaderContent>
       </PageHeader>
       <PageBody>
-        <LogsClient rootKeys={workspace.keys} buckets={["unkey_mutations"]} />
+        <LogsClient rootKeys={workspace.keys} buckets={[...dashboardAuditLogBuckets]} />
       </PageBody>
     </PageContainer>
   );

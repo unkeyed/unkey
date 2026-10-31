@@ -70,12 +70,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	app, err := db.Query.FindAppById(ctx, h.DB.RW(), dep.AppID)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to load app for stop"),
+			fault.Public("Failed to resolve the current live deployment."),
+		)
+	}
+
 	// A draining deployment keeps status ready until krane removes its last
 	// instance, so desired_state is the signal that a stop is already in flight.
 	if err := deploygate.CheckStopTarget(deploygate.StopInput{
-		Status:          dep.Status,
-		DesiredState:    dep.DesiredState,
-		EnvironmentKind: dep.EnvironmentKind,
+		Status:              dep.Status,
+		DesiredState:        dep.DesiredState,
+		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		DeploymentID:        dep.ID,
 	}); err != nil {
 		return err
 	}

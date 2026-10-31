@@ -2,6 +2,7 @@ import { useResourceSearch } from "@/components/resource-search-input";
 import { useConsumeSearchFlag } from "@/hooks/use-consume-search-flag";
 import { collection } from "@/lib/collections";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
+import { usePageLimit } from "@/lib/loadable/list";
 import { match } from "@unkey/match";
 import { useCallback, useState } from "react";
 import { useProjectData } from "../data-provider";
@@ -22,7 +23,7 @@ export function useDomainsPage() {
   } = useProjectData();
   const load = useCollectionLoad(collection.domains.utils, collection.customDomains.utils);
   const [search, setSearch] = useResourceSearch(SEARCH_KEY);
-  const { limit, loadMore } = usePageLimitPerSearch(search);
+  const { limit, loadMore } = usePageLimit(search, PAGE_SIZE);
   const [addOpen, setAddOpen] = useState(false);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -85,10 +86,4 @@ export function useDomainsPage() {
       onCancel: () => setAddOpen(false),
     },
   };
-}
-
-function usePageLimitPerSearch(search: string) {
-  const [shown, setShown] = useState({ forSearch: search, limit: PAGE_SIZE });
-  const limit = shown.forSearch === search ? shown.limit : PAGE_SIZE;
-  return { limit, loadMore: () => setShown({ forSearch: search, limit: limit + PAGE_SIZE }) };
 }

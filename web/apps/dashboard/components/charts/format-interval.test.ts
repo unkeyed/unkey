@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBucketInterval } from "./format-interval";
+import { formatBucketInterval, formatSpan } from "./format-interval";
 
 // Midday, well clear of any day boundary, so the multi-day assertion holds
 // regardless of the runner's timezone.
@@ -30,5 +30,22 @@ describe("formatBucketInterval", () => {
   it("carries both endpoints' dates across a multi-day range so a bare time isn't ambiguous", () => {
     // Start date + cross-day end date → two ", " prefixes.
     expect(commaCount(formatBucketInterval(T0, PLUS_2DAYS, true))).toBe(2);
+  });
+});
+
+describe("formatSpan", () => {
+  const NOON = new Date(2026, 5, 17, 12, 0).getTime();
+
+  it("closes a finished span at its end", () => {
+    expect(formatSpan(NOON, NOON + 60_000, false)).toBe("12:00 PM – 12:01 PM");
+  });
+
+  it("shows only the start for a zero-length span", () => {
+    expect(formatSpan(NOON, NOON, true)).toBe("Jun 17, 12:00 PM");
+  });
+
+  it("leaves an ongoing span open to now", () => {
+    expect(formatSpan(NOON, "now", false)).toBe("12:00 PM – now");
+    expect(formatSpan(NOON, "now", true)).toBe("Jun 17, 12:00 PM – now");
   });
 });

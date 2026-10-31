@@ -14,6 +14,7 @@ import {
 } from "@unkey/ui";
 import { InstancesLayout, type LayoutHandlers } from "./instances-layout";
 import { INSTANCE_METRICS, type InstancesTabView } from "./instances-model";
+import { outdatedProps } from "./outdated";
 
 type Props = LayoutHandlers & {
   view: InstancesTabView;
@@ -47,8 +48,8 @@ export function InstancesTab({ view, markers, syncId, ...handlers }: Props) {
             Instances are unavailable right now
           </Card>
         ))
-        .with({ status: "empty" }, () => (
-          <EmptyState>
+        .with({ status: "empty" }, ({ outdated }) => (
+          <EmptyState {...outdatedProps(outdated)}>
             <EmptyStateIcon>
               <IconServerOutline18 />
             </EmptyStateIcon>

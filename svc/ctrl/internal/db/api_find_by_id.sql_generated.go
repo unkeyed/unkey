@@ -10,12 +10,12 @@ import (
 )
 
 const findApiByID = `-- name: FindApiByID :one
-SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
+SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 `
 
 // FindApiByID
 //
-//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
+//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 func (q *Queries) FindApiByID(ctx context.Context, id string) (Api, error) {
 	row := q.db.QueryRowContext(ctx, findApiByID, id)
 	var i Api
@@ -25,7 +25,6 @@ func (q *Queries) FindApiByID(ctx context.Context, id string) (Api, error) {
 		&i.Name,
 		&i.WorkspaceID,
 		&i.ProjectID,
-		&i.IpWhitelist,
 		&i.AuthType,
 		&i.KeyAuthID,
 		&i.CreatedAtM,

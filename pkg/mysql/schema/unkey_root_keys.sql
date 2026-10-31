@@ -9,6 +9,7 @@ CREATE TABLE `unkey_root_keys` (
 	`end` varchar(4) NOT NULL,
 	`enabled` boolean NOT NULL,
 	`expires` bigint,
+	`ip_allowlist` json NOT NULL DEFAULT ('[]'),
 	`created_at` bigint NOT NULL,
 	`last_used_at` bigint unsigned NOT NULL DEFAULT 0,
 	`deleted_at` bigint,
@@ -18,4 +19,3 @@ CREATE TABLE `unkey_root_keys` (
 );
 
 CREATE INDEX `workspace_id_idx` ON `unkey_root_keys` (`workspace_id`);
-

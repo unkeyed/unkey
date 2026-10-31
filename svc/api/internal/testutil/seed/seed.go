@@ -156,7 +156,6 @@ func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
 		Name:        ptr.SafeDeref(req.Name, "test-api"),
 		WorkspaceID: req.WorkspaceID,
 		ProjectID:   projectID,
-		IpWhitelist: sql.NullString{String: req.IpWhitelist, Valid: req.IpWhitelist != ""},
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 		KeyAuthID:   sql.NullString{Valid: true, String: keySpaceID},
 		CreatedAtM:  ptr.SafeDeref(req.CreatedAt, time.Now().UnixMilli()),
@@ -501,6 +500,7 @@ type CreateUnkeyRootKeyRequest struct {
 	Disabled    bool
 	Expires     *time.Time
 	Permissions []string
+	IpAllowlist []string
 }
 
 // CreateUnkeyRootKey creates a root key and its principal permissions in the new
@@ -520,6 +520,7 @@ func (s *Seeder) CreateUnkeyRootKey(ctx context.Context, req CreateUnkeyRootKeyR
 		Enabled:     !req.Disabled,
 		Expires:     sql.NullInt64{Int64: ptr.SafeDeref(req.Expires, time.Time{}).UnixMilli(), Valid: req.Expires != nil},
 		CreatedAt:   now,
+		IpAllowlist: req.IpAllowlist,
 	})
 	require.NoError(s.t, err)
 	for _, permission := range req.Permissions {

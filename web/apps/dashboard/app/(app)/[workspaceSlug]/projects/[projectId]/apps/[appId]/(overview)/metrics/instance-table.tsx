@@ -3,12 +3,13 @@
 import { RegionFlag } from "@/components/region-flag";
 import type { InstanceRow } from "@/lib/metrics/app-metrics";
 import { regionInfo } from "@/lib/regions";
-import { IconChevronRightOutline12 } from "@unkey/icons";
+import { IconChevronRightOutline12, IconServerOutline18 } from "@unkey/icons";
 import {
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
   ResourceListRow,
+  TimestampInfo,
 } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
@@ -16,9 +17,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   type InstanceTableRow,
+  LINE_COLOR,
   type LineTone,
   type LogsTarget,
   type UsageCell,
+  instanceIdsOf,
   instanceSrLabel,
 } from "./instances-model";
 
@@ -29,6 +32,7 @@ const TONE_TEXT: Record<LineTone, { name: string; status: string }> = {
   unhealthy: { name: "text-gray-12", status: "text-error-11" },
   previous: { name: "text-gray-12", status: "text-gray-11" },
   current: { name: "text-gray-12", status: "text-gray-11" },
+  stopped: { name: "text-gray-11", status: "text-gray-11" },
 };
 
 export function InstanceTable({
@@ -66,14 +70,32 @@ export function InstanceTable({
                 onPointerLeave={() => onHover(null)}
                 onFocus={() => onHover(instance.key)}
                 onBlur={() => onHover(null)}
-                className={cn(COLUMNS, "h-12 text-sm")}
+                className={cn(COLUMNS, "group/row h-12 text-sm")}
               >
-                <span className={cn("truncate text-xs", TONE_TEXT[tone].name)}>{instance.key}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span aria-hidden="true" className="relative flex shrink-0">
+                    <IconServerOutline18 className="size-4 text-gray-12 [mask-image:radial-gradient(circle_at_calc(100%-3px)_calc(100%-3px),transparent_4.5px,#000_5px)]" />
+                    <span
+                      className="absolute right-0 bottom-0 size-1.5 rounded-full"
+                      style={{ backgroundColor: LINE_COLOR[tone] }}
+                    />
+                  </span>
+                  <span className={cn("truncate font-medium", TONE_TEXT[tone].name)}>
+                    {instance.key}
+                  </span>
+                </span>
                 <span
-                  className={cn("truncate text-xs", TONE_TEXT[tone].status)}
+                  className={cn("flex min-w-0 gap-1 text-xs", TONE_TEXT[tone].status)}
                   title={instance.statusText}
                 >
-                  {instance.statusText}
+                  <span className="truncate">{instance.statusText}</span>
+                  {instance.presence.kind === "stopped" && (
+                    <TimestampInfo
+                      value={instance.presence.lastSeenMs}
+                      displayType="relative"
+                      className="relative truncate"
+                    />
+                  )}
                 </span>
                 <span className="flex min-w-0 items-center gap-1.5 text-xs text-gray-11">
                   <RegionFlag region={instance.region.name} shape="rect" size="xs" />
@@ -85,15 +107,18 @@ export function InstanceTable({
                   {tone === "unhealthy" && (
                     <Link
                       href={logsHref({
-                        deploymentId: instance.deployment.id,
-                        instanceId: instance.instanceId,
+                        deploymentIds: [instance.deployment.id],
+                        instanceIds: instanceIdsOf(instance),
                       })}
+                      aria-label={`Logs for ${instance.key}`}
                       className="relative rounded-sm text-xs text-gray-11 outline-none hover:text-gray-12 focus-visible:ring-1 focus-visible:ring-grayA-12"
                     >
                       Logs
                     </Link>
                   )}
-                  <IconChevronRightOutline12 className="size-3 text-gray-8" />
+                  <span className="flex items-center justify-center rounded-sm p-0.5 text-gray-9 transition-colors group-hover/row:bg-grayA-4 group-hover/row:text-gray-12 group-has-focus-visible/row:bg-grayA-4 group-has-focus-visible/row:text-gray-12 motion-reduce:transition-none">
+                    <IconChevronRightOutline12 className="size-2.5" />
+                  </span>
                 </span>
               </ResourceListRow>
             </ResourceListItem>

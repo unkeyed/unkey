@@ -4,7 +4,7 @@ import {
   getAppResourcesByInstance,
 } from "./app-metrics/resources";
 import { getAppTraffic } from "./app-metrics/traffic";
-import { getAuditLogs } from "./audit-logs";
+import { getAuditLogs, getLatestAuditLogByTarget } from "./audit-logs";
 import {
   getActiveKeysUsage,
   getDeployMeterUsage,
@@ -400,6 +400,7 @@ export class ClickHouse {
   public get auditLogs() {
     return {
       logs: getAuditLogs(this.querier),
+      latestByTarget: getLatestAuditLogByTarget(this.querier),
     };
   }
   public get logdrains() {

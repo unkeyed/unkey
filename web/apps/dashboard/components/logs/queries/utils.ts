@@ -7,8 +7,6 @@ import {
 import { formatTimestamp } from "@unkey/ui";
 import React from "react";
 
-import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
-import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
 import {
   IconBucketOutline18,
   IconCalendarEventOutline18,
@@ -26,12 +24,7 @@ import {
 
 import type { AuditLogsFilterField } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import type { RatelimitFilterField } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
-import { namespaceListFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/_components/namespace-list-filters.schema";
-import {
-  type LogsFilterField,
-  type QuerySearchParams,
-  logsFilterFieldEnum,
-} from "@/lib/schemas/logs.filter.schema";
+import type { LogsFilterField, QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
 import type { FC } from "react";
 
 export const iconsPerField: Record<string, FC<IconProps>> = {
@@ -167,24 +160,6 @@ export function getFilterFieldIcon(field: string): React.ReactElement {
     className: "size-4 justify-center",
   });
 }
-
-export const getFilterFieldEnum = () => {
-  // Combine all unique filter field values from different enums
-  const filterFieldList: { field: string; icon: FC<IconProps> }[] = [];
-  for (const field of Object.values(logsFilterFieldEnum)) {
-    filterFieldList.push(field);
-  }
-  for (const field of Object.values(auditLogsFilterFieldEnum)) {
-    filterFieldList.push(field);
-  }
-  for (const field of Object.values(ratelimitFilterFieldEnum)) {
-    filterFieldList.push(field);
-  }
-  for (const field of Object.values(namespaceListFilterFieldEnum)) {
-    filterFieldList.push(field);
-  }
-  return filterFieldList;
-};
 
 export const getSinceTime = (date: number) => {
   const elapsedMs = Date.now() - date;

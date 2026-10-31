@@ -25,7 +25,11 @@ func newHarness(t *testing.T) (*testutil.Harness, *handler.Handler, *principal.P
 	h := testutil.NewHarness(t)
 	resources := h.Resources()
 	route := &handler.Handler{
-		DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock,
+		DB:          h.DB,
+		Keys:        h.Keys,
+		Auditlogs:   h.Auditlogs,
+		Clock:       h.Clock,
+		LimitsCache: h.Caches.WorkspaceLimits,
 	}
 	p := &principal.Principal{
 		Type:                  principal.TypeJWT,

@@ -50,7 +50,7 @@ func TestEncodeAuditLogEvents(t *testing.T) {
 		row := rows[0]
 		require.Equal(t, "log_1", row.EventID)
 		require.Equal(t, "ws_a", row.WorkspaceID)
-		require.Equal(t, "unkey_mutations", row.Bucket)
+		require.Equal(t, auditlog.BucketUnkeyMutations, row.Bucket)
 		require.Equal(t, auditlog.EventSourcePlatform, row.Source)
 		require.Equal(t, "key.create", row.Event)
 		require.Equal(t, "Created key foo", row.Description)
@@ -90,6 +90,24 @@ func TestEncodeAuditLogEvents(t *testing.T) {
 		require.Empty(t, rows[0].TargetIDs)
 		require.Empty(t, rows[0].TargetNames)
 		require.Empty(t, rows[0].TargetMetas)
+	})
+
+	// Every writer funnels through this encoder, so defaulting and rejecting
+	// buckets here means a typo in any producer can never create a row that
+	// the dashboard and log drains silently filter out.
+	t.Run("empty bucket defaults to unkey_mutations", func(t *testing.T) {
+		rows, err := EncodeAuditLogEvents([]auditlog.Event{
+			{EventID: "log_4", Actor: auditlog.EventActor{Type: "system", ID: "system"}},
+		})
+		require.NoError(t, err)
+		require.Equal(t, auditlog.BucketUnkeyMutations, rows[0].Bucket)
+	})
+
+	t.Run("unknown bucket is rejected", func(t *testing.T) {
+		_, err := EncodeAuditLogEvents([]auditlog.Event{
+			{EventID: "log_5", Bucket: "unkey_mutation", Actor: auditlog.EventActor{Type: "system", ID: "system"}},
+		})
+		require.ErrorContains(t, err, "resolve bucket event_id=log_5")
 	})
 
 	t.Run("invalid target metadata", func(t *testing.T) {

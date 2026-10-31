@@ -54,6 +54,9 @@ type Querier interface {
 	//  SELECT
 	//    fr.environment_id,
 	//    fr.deployment_id,
+	//    d.workspace_id,
+	//    d.project_id,
+	//    d.app_id,
 	//    d.sentinel_config,
 	//    d.upstream_protocol,
 	//    d.desired_state,

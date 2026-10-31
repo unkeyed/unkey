@@ -299,7 +299,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
-	policyEngine, err := buildEngine(r, engineDatabase, cfg.Redis.URL, cfg.Region, keyVerifications, clk)
+	policyEngine, err := buildEngine(r, engineDatabase, cfg.Redis.URL, cfg.Region, keyVerifications, clk, cfg.OpenapiBodyBytesMax, cfg.OpenapiBodyBytesBudget)
 	if err != nil {
 		return fmt.Errorf("unable to build policy engine: %w", err)
 	}
@@ -337,6 +337,7 @@ func Run(ctx context.Context, cfg Config) error {
 		httpsSrv, httpsErr := zen.New(zen.Config{
 			TLS:                tlsConfig,
 			ReadTimeout:        -1,
+			ReadHeaderTimeout:  10 * time.Second,
 			WriteTimeout:       -1,
 			IdleTimeout:        0,
 			EnableH2C:          false,
@@ -379,11 +380,12 @@ func Run(ctx context.Context, cfg Config) error {
 		httpSrv, httpErr := zen.New(zen.Config{
 			TLS:                nil,
 			EnableH2C:          false,
-			MaxRequestBodySize: 0,
-			StreamRequestBody:  false,
+			MaxRequestBodySize: 1 << 10,
+			StreamRequestBody:  true,
 			TrustedProxyCIDRs:  nil,
-			ReadTimeout:        -1,
-			WriteTimeout:       -1,
+			ReadTimeout:        10 * time.Second,
+			ReadHeaderTimeout:  10 * time.Second,
+			WriteTimeout:       20 * time.Second,
 			IdleTimeout:        0,
 		})
 		if httpErr != nil {
@@ -431,6 +433,8 @@ func buildEngine(
 	region string,
 	keyVerifications *batch.BatchProcessor[schema.KeyVerification],
 	clk clock.Clock,
+	openapiBodyBytesMax int64,
+	openapiBodyBytesBudget int64,
 ) (policies.Evaluator, error) {
 	var ctr counter.Counter
 	if redisURL != "" {
@@ -525,9 +529,11 @@ func buildEngine(
 
 	logger.Info("policy engine initialized")
 	eng, err := policies.New(policies.Config{
-		KeyAuth:     keyauth.New(keyService, clk, keyVerifications),
-		RateLimiter: rlSvc,
-		Clock:       clk,
+		KeyAuth:                keyauth.New(keyService, clk, keyVerifications),
+		RateLimiter:            rlSvc,
+		Clock:                  clk,
+		OpenapiBodyBytesMax:    openapiBodyBytesMax,
+		OpenapiBodyBytesBudget: openapiBodyBytesBudget,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)

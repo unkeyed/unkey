@@ -11,6 +11,7 @@ INSERT INTO unkey_root_keys (
     end,
     enabled,
     expires,
+    ip_allowlist,
     created_at
 ) VALUES (
     sqlc.arg(id),
@@ -22,5 +23,6 @@ INSERT INTO unkey_root_keys (
     sqlc.arg(end),
     sqlc.arg(enabled),
     sqlc.arg(expires),
+    sqlc.arg(ip_allowlist),
     sqlc.arg(created_at)
 );

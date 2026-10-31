@@ -2,7 +2,13 @@ package clickhouse
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/url"
+	"syscall"
 	"testing"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
@@ -124,25 +130,80 @@ func TestWrapClickHouseError_ContextCancellation(t *testing.T) {
 	}
 }
 
-// TestWrapClickHouseError_InfrastructureFailures guarantees transport,
-// coordination, and storage failures reach the caller as internal errors
-// instead of a bad request blamed on the caller's query.
-func TestWrapClickHouseError_InfrastructureFailures(t *testing.T) {
+func TestWrapClickHouseError_ConnectionFailures(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
 	}{
 		{
+			name: "HTTP EOF",
+			err: fmt.Errorf("sendQuery: %w", &url.Error{
+				Op:  "Post",
+				URL: "https://clickhouse.internal:8443/?database=private",
+				Err: io.EOF,
+			}),
+		},
+		{
+			name: "EOF",
+			err:  io.EOF,
+		},
+		{
+			name: "truncated response",
+			err:  io.ErrUnexpectedEOF,
+		},
+		{
 			name: "dial refused",
-			err:  errors.New("clickhouse: failed to dial: dial tcp 10.0.0.1:9440: connect: connection refused"),
+			err:  &net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED},
+		},
+		{
+			name: "connection reset",
+			err:  &net.OpError{Op: "read", Net: "tcp", Err: syscall.ECONNRESET},
+		},
+		{
+			name: "DNS failure",
+			err:  &net.DNSError{Err: "no such host", Name: "clickhouse.internal", IsNotFound: true},
+		},
+		{
+			name: "network connection closed",
+			err:  net.ErrClosed,
+		},
+		{
+			name: "bad connection",
+			err:  driver.ErrBadConn,
 		},
 		{
 			name: "acquire connection timeout",
-			err:  errors.New("clickhouse: acquire conn timeout. you can increase the number of max open conn or the dial timeout"),
+			err:  ch.ErrAcquireConnTimeout,
 		},
 		{
 			name: "connection closed",
-			err:  errors.New("clickhouse: connection is closed"),
+			err:  ch.ErrConnectionClosed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wrapped := fault.Wrap(tt.err, fault.Internal("executing clickhouse query failed"))
+			for range 2 {
+				wrapped = WrapClickHouseError(wrapped)
+				code, ok := fault.GetCode(wrapped)
+				require.True(t, ok)
+				require.Equal(t, codes.Data.Analytics.ConnectionFailed.URN(), code)
+				require.Equal(t, "We couldn't complete your analytics query because the database connection failed. Retry your request.", fault.UserFacingMessage(wrapped))
+				require.ErrorIs(t, wrapped, tt.err)
+			}
+		})
+	}
+}
+
+func TestWrapClickHouseError_ServerFailuresRemainInternal(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{
+			name: "untyped error mentioning EOF",
+			err:  errors.New("failed to decode column: unexpected EOF"),
 		},
 		{
 			name: "network error exception",
@@ -170,7 +231,7 @@ func TestWrapClickHouseError_InfrastructureFailures(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			wrapped := WrapClickHouseError(tt.err)
 			code, ok := fault.GetCode(wrapped)
-			require.False(t, ok, "infrastructure failures must not carry a user error code, got %q", code)
+			require.False(t, ok, "unclassified and server failures must remain internal, got %q", code)
 			require.ErrorIs(t, wrapped, tt.err)
 		})
 	}

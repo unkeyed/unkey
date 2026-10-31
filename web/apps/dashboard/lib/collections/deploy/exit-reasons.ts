@@ -3,6 +3,8 @@ import type { DeploymentExitReason } from "@unkey/api/models/components";
 import type { Deployment } from "./deployments";
 import { type FatalWaitingReason, isFatalWaitingReason } from "./instance-status";
 
+type ExitFacts = Pick<LastExit, "exitCode" | "signal" | "reason" | "statusReason">;
+
 type ReasonCopy = { label: string; body: string; explainExitCode?: true };
 
 const CANT_PULL: ReasonCopy = {
@@ -100,7 +102,7 @@ export type ExitSummary = {
   raw: string | null;
 };
 
-function rawOf(lastExit: LastExit): string | null {
+function rawOf(lastExit: ExitFacts): string | null {
   const reasons = [...new Set([lastExit.statusReason, lastExit.reason])];
   const code = lastExit.exitCode !== null ? `exit code ${lastExit.exitCode}` : null;
   return [...reasons, code].filter(Boolean).join(" · ") || null;
@@ -112,7 +114,7 @@ type Resolution = {
   showsExitCode: boolean;
 };
 
-function resolve({ statusReason, reason, exitCode }: LastExit): Resolution {
+function resolve({ statusReason, reason, exitCode }: ExitFacts): Resolution {
   if (statusReason === "CrashLoopBackOff") {
     return {
       copy: hasKey(CRASH_CAUSES, reason) ? CRASH_CAUSES[reason] : WAITING_REASONS.CrashLoopBackOff,
@@ -130,7 +132,7 @@ function resolve({ statusReason, reason, exitCode }: LastExit): Resolution {
   return { copy: failed ? CRASH_CAUSES.Error : null, severity: "warning", showsExitCode: true };
 }
 
-export function summarizeExit(lastExit: LastExit): ExitSummary {
+export function summarizeExit(lastExit: ExitFacts): ExitSummary {
   const { copy, severity, showsExitCode } = resolve(lastExit);
   const failedCode =
     showsExitCode && lastExit.exitCode !== null && lastExit.exitCode !== 0

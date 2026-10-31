@@ -2,8 +2,10 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptrace"
 	"net/http/httputil"
@@ -15,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type proxyDestination string
@@ -107,12 +110,35 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	}
 
 	tracking, hasTracking := RequestTrackingFromContext(ctx)
+	logAttrs := []slog.Attr{
+		slog.String("requestId", sess.RequestID()),
+		slog.String("target", cfg.targetURL.String()),
+		slog.String("destination", string(cfg.destination)),
+		slog.String("hostname", req.Host),
+		slog.String("method", req.Method),
+		slog.String("path", req.URL.Path),
+	}
+	if hasTracking {
+		logAttrs = append(logAttrs,
+			slog.String("workspaceId", tracking.WorkspaceID),
+			slog.String("projectId", tracking.ProjectID),
+			slog.String("appId", tracking.AppID),
+			slog.String("environmentId", tracking.EnvironmentID),
+			slog.String("deploymentId", tracking.DeploymentID),
+			slog.String("upstreamInstanceId", tracking.InstanceID),
+		)
+	}
+	if spanContext := trace.SpanContextFromContext(ctx); spanContext.IsValid() {
+		logAttrs = append(logAttrs, slog.String("traceId", spanContext.TraceID().String()), slog.String("spanId", spanContext.SpanID().String()))
+	}
+	requestLogger := slog.New(logger.GetHandler().WithAttrs(logAttrs))
 
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
 		Transport:     cfg.transport,
 		BufferPool:    responseCopyBuffers,
 		FlushInterval: -1, // flush immediately for streaming
+		ErrorLog:      slog.NewLogLogger(requestLogger.With("event", "frontline.proxy_stream_error").Handler(), slog.LevelWarn),
 		Rewrite: func(proxyReq *httputil.ProxyRequest) {
 			proxyStartTime = s.clock.Now()
 			backendStart = proxyStartTime
@@ -133,6 +159,11 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			*req = *req.WithContext(httptrace.WithClientTrace(req.Context(), clientTrace))
 		},
 		ModifyResponse: func(resp *http.Response) error {
+			if cfg.destination == destinationFrontline {
+				// The peer owns the log once it returns headers, even if copying
+				// its response later fails. Transport failures remain local.
+				sess.SkipRequestLog()
+			}
 			totalTime := s.clock.Now().Sub(cfg.startTime)
 			if !proxyStartTime.IsZero() {
 				timing.Write(sess, timing.Entry{
@@ -185,18 +216,19 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 
 			return nil
 		},
-		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, err error) {
 			publishUpstream(s.clock.Now())
 
 			// Capture the error for middleware to handle
 			if ecw, ok := w.(*zen.ErrorCapturingWriter); ok {
 				ecw.SetError(err)
 
-				logger.Warn(fmt.Sprintf("proxy error forwarding to %s", cfg.destination),
-					"error", err.Error(),
-					"target", cfg.targetURL.String(),
-					"hostname", r.Host,
-				)
+				if !errors.Is(err, context.Canceled) || !errors.Is(req.Context().Err(), context.Canceled) {
+					requestLogger.WarnContext(ctx, fmt.Sprintf("proxy error forwarding to %s", cfg.destination),
+						"event", "frontline.proxy_attempt_error",
+						"error", err,
+					)
+				}
 			}
 		},
 	}

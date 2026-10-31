@@ -33,7 +33,7 @@ type service struct {
 	region       string
 	source       string
 
-	// hash -> cached key data (includes pre-parsed IP whitelist)
+	// hash -> cached key data
 	keyCache     cache.Cache[string, db.CachedKeyData]
 	rootKeyCache cache.Cache[string, db.CachedRootKeyData]
 }

@@ -4,11 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"slices"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -33,6 +36,7 @@ type Handler struct {
 	DB           db.Database
 	Auditlogs    auditlogs.AuditLogService
 	RootKeyCache cache.Cache[string, keysdb.CachedRootKeyData]
+	LimitsCache  cache.Cache[string, keysdb.Limit]
 	Clock        clock.Clock
 }
 
@@ -53,6 +57,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err := p.Authorize(rbac.U(urn.New().Workspace(p.AuthorizedWorkspaceID).RootKey(req.KeyId), permissions.Write)); err != nil {
 		return err
 	}
+	var allowedIPs ipallowlist.Allowlist
+	if req.IpAllowlist != nil {
+		allowedIPs, err = ipallowlist.Parse(*req.IpAllowlist)
+		if err != nil {
+			return fault.Wrap(err, fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Public("Allowed IPs must contain valid IPv4 or IPv6 addresses or CIDR ranges."))
+		}
+		req.IpAllowlist = new(allowedIPs.Strings())
+	}
 	var validatedPermissions []string
 	if req.Permissions != nil {
 		validatedPermissions, err = principalpermissions.ValidateDelegatedPermissions(ctx, p, *req.Permissions)
@@ -64,15 +77,72 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var key db.UnkeyRootKey
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		key, err = db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, req.KeyId)
-		if db.IsNotFound(err) || err == nil && key.WorkspaceID != p.AuthorizedWorkspaceID {
+		rootKeyIDs := []string{req.KeyId}
+		source, callerIsRootKey := p.Source.(principal.KeySource)
+		callerIsRootKey = callerIsRootKey && source.KeySpaceID == ""
+		if callerIsRootKey {
+			// Keep caller data stable for policy checks until the target write commits.
+			rootKeyIDs = append(rootKeyIDs, source.KeyID)
+		}
+		// Lock in ID order to prevent deadlocks when key A mutates key B
+		// while key B concurrently mutates key A.
+		slices.Sort(rootKeyIDs)
+		rootKeysByID := make(map[string]db.UnkeyRootKey, len(rootKeyIDs))
+		for _, id := range slices.Compact(rootKeyIDs) {
+			row, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, id)
+			// Classify missing callers and targets separately below.
+			if db.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			rootKeysByID[id] = row
+		}
+		var found bool
+		key, found = rootKeysByID[req.KeyId]
+		if !found || key.WorkspaceID != p.AuthorizedWorkspaceID {
 			return fault.New("root key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
 				fault.Public("The specified root key was not found."),
 			)
 		}
+		callerAllowlist := source.AllowedIPs
+		if callerIsRootKey {
+			caller, found := rootKeysByID[source.KeyID]
+			if !found || caller.WorkspaceID != p.AuthorizedWorkspaceID {
+				return fault.New("calling root key not found",
+					fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("The calling root key is no longer available."))
+			}
+			callerAllowlist, err = ipallowlist.Parse(caller.IpAllowlist)
+			if err != nil {
+				return fault.Wrap(err, fault.Internal("invalid caller IP allowlist"))
+			}
+		}
+		if req.IpAllowlist != nil {
+			limits, hit, err := h.LimitsCache.SWR(ctx, p.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+				return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), p.AuthorizedWorkspaceID)
+			}, caches.DefaultFindFirstOp)
+			if err != nil && !db.IsNotFound(err) {
+				return err
+			}
+			if db.IsNotFound(err) || hit == cache.Null || !limits.IpAllowlistEnabled {
+				return fault.New("IP allowlist is not enabled", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("IP allowlists are not enabled for this workspace. Contact support to enable them."))
+			}
+		}
+		allowlistBefore, err := ipallowlist.Parse(key.IpAllowlist)
 		if err != nil {
-			return err
+			return fault.Wrap(err, fault.Internal("invalid root key IP allowlist"))
+		}
+		allowlistAfter := allowlistBefore
+		if req.IpAllowlist != nil {
+			allowlistAfter = allowedIPs
+		}
+		if !allowlistAfter.IsSubsetOf(callerAllowlist) {
+			return fault.New("root key operation widens network access", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Public("The IP allowlist must stay within the calling root key's allowed networks."))
 		}
 		if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
 			if !key.Expires.Valid || key.Expires.Int64 > source.ExpiresAt.UnixMilli() {
@@ -89,7 +159,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		return h.Auditlogs.Insert(ctx, tx, updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, key, permissionRows, removedPermissions))
+		logs := updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, key, permissionRows, removedPermissions)
+		if req.IpAllowlist != nil {
+			logs[0].Targets[0].Meta = map[string]any{
+				"ipAllowlistBefore": allowlistBefore.Strings(),
+				"ipAllowlistAfter":  allowlistAfter.Strings(),
+			}
+		}
+		return h.Auditlogs.Insert(ctx, tx, logs)
 	})
 	if err != nil {
 		return err
@@ -116,12 +193,24 @@ func (h *Handler) updateFields(ctx context.Context, tx db.DBTX, workspaceID stri
 		enabledSpecified = 1
 		enabled = sql.NullBool{Bool: *req.Enabled, Valid: true}
 	}
-	if nameSpecified == 0 && enabledSpecified == 0 {
+	var allowedIPsSpecified int64
+	var allowedIPs []string
+	if req.IpAllowlist != nil {
+		allowedIPsSpecified = 1
+		allowedIPs = *req.IpAllowlist
+	}
+	if nameSpecified == 0 && enabledSpecified == 0 && allowedIPsSpecified == 0 {
 		return nil
 	}
 	return db.Query.UpdateUnkeyRootKey(ctx, tx, db.UpdateUnkeyRootKeyParams{
-		NameSpecified: nameSpecified, Name: name, EnabledSpecified: enabledSpecified, Enabled: enabled,
-		ID: req.KeyId, WorkspaceID: workspaceID,
+		NameSpecified:        nameSpecified,
+		Name:                 name,
+		EnabledSpecified:     enabledSpecified,
+		Enabled:              enabled,
+		IpAllowlistSpecified: allowedIPsSpecified,
+		IpAllowlist:          allowedIPs,
+		ID:                   req.KeyId,
+		WorkspaceID:          workspaceID,
 	})
 }
 

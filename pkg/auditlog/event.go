@@ -1,5 +1,11 @@
 package auditlog
 
+import (
+	"slices"
+
+	"github.com/unkeyed/unkey/pkg/assert"
+)
+
 // Event is the canonical envelope JSON-encoded into the clickhouse_outbox
 // payload column. Both the writer (internal/services/auditlogs) and the
 // drainer (svc/ctrl/worker/cron RunAuditLogExport) marshal/unmarshal this shape.
@@ -16,7 +22,7 @@ type Event struct {
 	EventID     string         `json:"event_id"`
 	Time        int64          `json:"time"`
 	WorkspaceID string         `json:"workspace_id"`
-	Bucket      string         `json:"bucket"`
+	Bucket      Bucket         `json:"bucket"`
 	Source      string         `json:"source"`
 	Event       string         `json:"event"`
 	Description string         `json:"description"`
@@ -56,6 +62,49 @@ const (
 	EventSourcePlatform = "platform"
 	EventSourceCustomer = "customer"
 )
+
+// Bucket names the ClickHouse audit log bucket an Event is stored in.
+// BucketBackoffice holds staff actions taken on a workspace from the back
+// office. Dashboard and log drain readers must restrict to DashboardBuckets
+// so those rows never leak.
+type Bucket string
+
+const (
+	BucketUnkeyMutations Bucket = "unkey_mutations"
+	BucketBackoffice     Bucket = "unkey_backoffice"
+)
+
+// DashboardBuckets lists the buckets a workspace member may read
+// through the dashboard or export through a log drain.
+var DashboardBuckets = []Bucket{BucketUnkeyMutations}
+
+// KnownBuckets lists every bucket a writer may emit.
+var KnownBuckets = []Bucket{BucketUnkeyMutations, BucketBackoffice}
+
+// String satisfies fmt.Stringer, which is the only way the clickhouse-go
+// String column accepts a named string type on insert.
+func (b Bucket) String() string {
+	return string(b)
+}
+
+// IsKnown reports whether b is one of KnownBuckets.
+func (b Bucket) IsKnown() bool {
+	return slices.Contains(KnownBuckets, b)
+}
+
+// ResolveBucket returns the bucket to store for an event. An empty bucket
+// resolves to BucketUnkeyMutations. Any other value outside KnownBuckets is
+// a programmer error and returns an assertion error, so a typo can never
+// create a bucket that no reader filters on.
+func ResolveBucket(bucket Bucket) (Bucket, error) {
+	if bucket == "" {
+		return BucketUnkeyMutations, nil
+	}
+	if err := assert.True(bucket.IsKnown(), "unknown audit log bucket"); err != nil {
+		return "", err
+	}
+	return bucket, nil
+}
 
 // OutboxVersionV1 is the `version` value the writer puts on every
 // clickhouse_outbox row that holds an Event. Drainers must include this

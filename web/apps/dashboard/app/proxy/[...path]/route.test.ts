@@ -20,6 +20,9 @@ vi.mock("@/lib/env", () => ({
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
 import { env } from "@/lib/env";
+import { HTTPClient, Unkey } from "@unkey/api";
+import * as errors from "@unkey/api/models/errors";
+import { newId } from "@unkey/id";
 import { jwtVerify } from "jose";
 import { POST } from "./route";
 
@@ -37,6 +40,21 @@ function makeRequest(headers: Record<string, string> = {}): NextRequest {
 
 const params = Promise.resolve({ path: ["v2", "apis.listKeys"] });
 const encoder = new TextEncoder();
+
+function sdkThroughProxy(rootKey?: string): Unkey {
+  return new Unkey({
+    rootKey,
+    serverURL: "http://localhost/proxy/",
+    retryConfig: { strategy: "none" },
+    httpClient: new HTTPClient({
+      fetcher: async (input, init) => {
+        const req = new NextRequest(new Request(input, init));
+        const path = req.nextUrl.pathname.replace(/^\/proxy\//, "").split("/");
+        return POST(req, { params: Promise.resolve({ path }) });
+      },
+    }),
+  });
+}
 
 describe("dashboard proxy POST", () => {
   beforeEach(() => {
@@ -284,5 +302,39 @@ describe("dashboard proxy POST", () => {
     expect(res.status).toBe(403);
     expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a smuggled Authorization header as a BadRequestErrorResponse", async () => {
+    await expect(
+      sdkThroughProxy("unkey_attacker").apps.listApps({ project: newId("project") }),
+    ).rejects.toBeInstanceOf(errors.BadRequestErrorResponse);
+  });
+
+  it("surfaces a missing session as an UnauthorizedErrorResponse", async () => {
+    mockedGetAuth.mockResolvedValue({ userId: null, orgId: null, role: null });
+
+    await expect(
+      sdkThroughProxy().apps.listApps({ project: newId("project") }),
+    ).rejects.toBeInstanceOf(errors.UnauthorizedErrorResponse);
+  });
+
+  it("surfaces a missing role as a ForbiddenErrorResponse", async () => {
+    mockedGetAuth.mockResolvedValue({ userId: newId("test"), orgId: newId("test"), role: null });
+
+    await expect(
+      sdkThroughProxy().apps.listApps({ project: newId("project") }),
+    ).rejects.toBeInstanceOf(errors.ForbiddenErrorResponse);
+  });
+
+  it("surfaces a JWT minting failure as an InternalServerErrorResponse", async () => {
+    mockedEnv.mockReturnValue({
+      UNKEY_API_URL: "https://api.example.test",
+      UNKEY_JWT_AUDIENCE: "api.unkey.com",
+    } as ReturnType<typeof env>);
+    mockedGetAuth.mockResolvedValue({ userId: newId("test"), orgId: newId("test"), role: "admin" });
+
+    await expect(
+      sdkThroughProxy().apps.listApps({ project: newId("project") }),
+    ).rejects.toBeInstanceOf(errors.InternalServerErrorResponse);
   });
 });

@@ -140,6 +140,12 @@ func (s *service) ForwardToInstance(ctx context.Context, sess *zen.Session, prot
 
 func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, targetRegionPlatform string, hops []meta.Hop) error {
 	startTime, _ := RequestStartTimeFromContext(ctx)
+	if tracking, ok := RequestTrackingFromContext(ctx); ok {
+		tracking.InstanceID = ""
+		tracking.Address = ""
+		tracking.InstanceStart = time.Time{}
+		tracking.InstanceEnd = time.Time{}
+	}
 
 	srcRegion := fmt.Sprintf("%s::%s", s.platform, s.region)
 	hopCount := len(hops)

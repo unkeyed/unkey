@@ -1,3 +1,4 @@
+import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
 import { failed, loading, ready } from "@/lib/loadable/fixtures";
 import type {
   Grid,
@@ -30,13 +31,17 @@ function point(t: number, cpu: number | null, memory: number | null): ResourcePo
 
 function instance(
   key: string,
-  overrides: Partial<Omit<InstanceRow, "replica">> = {},
+  {
+    status = "running",
+    ...overrides
+  }: Partial<Omit<InstanceRow, "replica">> & {
+    status?: InstanceStatus;
+  } = {},
   size: Partial<Pick<ReplicaTarget, "cpuMillicores" | "memoryMib">> = {},
 ): InstanceRow {
   return {
-    instanceId: `ins_${key}`,
+    presence: { kind: "live", instanceId: `ins_${key}`, status },
     region: { name: "us-east-1" },
-    status: "running",
     role: "current",
     lastExit: null,
     deployment: { id: "d_new", source: null },
@@ -94,6 +99,7 @@ function view(input: Partial<Parameters<typeof instancesTabView>[0]> = {}) {
     usage: ready(usage),
     events: ready([]),
     filter: { regions: [], statuses: [], instances: [] },
+    markersOutdated: false,
     ...input,
   });
   if (result.status !== "ready") {
@@ -164,8 +170,7 @@ describe("instancesTabView", () => {
     const stopped = instance(
       "gone",
       {
-        instanceId: null,
-        status: "inactive",
+        presence: { kind: "stopped", lastSeenMs: 0 },
         role: "previous",
         region: { name: "eu-central-1" },
         deployment: { id: "d_old", source: null },
@@ -175,7 +180,7 @@ describe("instancesTabView", () => {
     const historicalUsage = ready<InstanceSeries>({
       ...usage,
       history: {
-        instances: [stopped, { ...usEast, instanceId: null, status: "inactive" }],
+        instances: [stopped, { ...usEast, presence: { kind: "stopped", lastSeenMs: 0 } }],
         truncated: true,
       },
     });
@@ -191,10 +196,10 @@ describe("instancesTabView", () => {
     const filtered = view({
       instances: ready([]),
       usage: historicalUsage,
-      filter: { regions: ["eu-central-1"], statuses: ["previous"], instances: ["gone"] },
+      filter: { regions: ["eu-central-1"], statuses: ["stopped"], instances: ["gone"] },
     });
     expect(filtered.filters.regions.selected).toEqual(["eu-central-1"]);
-    expect(filtered.filters.statuses.selected).toEqual(["previous"]);
+    expect(filtered.filters.statuses.selected).toEqual(["stopped"]);
     expect(filtered.filters.instances.selected).toEqual(["gone"]);
     expect(filtered.rows.map((r) => r.instance.key)).toEqual(["gone"]);
     expect(filtered.rows[0].instance.statusText).toBe("Stopped");
@@ -211,20 +216,24 @@ describe("instancesTabView", () => {
       usage: ready(usage),
       events: ready([]),
       filter: { regions: [], statuses: [], instances: [] },
+      markersOutdated: false,
     };
     const failure = failed();
     expect(instancesTabView({ ...base, instances: loading })).toBe(loading);
     expect(instancesTabView({ ...base, instances: failure })).toBe(failure);
     expect(instancesTabView({ ...base, instances: ready([]), usage: loading })).toBe(loading);
     expect(instancesTabView({ ...base, instances: ready([]), usage: failure })).toBe(failure);
-    expect(instancesTabView({ ...base, instances: ready([]) })).toEqual({ status: "empty" });
+    expect(instancesTabView({ ...base, instances: ready([]) })).toEqual({
+      status: "empty",
+      outdated: false,
+    });
   });
 
   it("lists the region names and sorts the rows by deploy, region and name", () => {
     const result = view();
     expect(result.filters).toEqual({
       regions: { options: ["eu-central-1", "us-east-1"], selected: [] },
-      statuses: { options: ["unhealthy", "running", "previous"], selected: [] },
+      statuses: { options: ["running", "unhealthy"], selected: [] },
       instances: { options: ["eu-0", "eu-1", "us-0", "us-old"], selected: [] },
     });
     expect(
@@ -322,7 +331,7 @@ describe("instancesTabView", () => {
     const filtered = view({ filter: { regions: ["eu-central-1"], statuses: [], instances: [] } });
     expect(filtered.filters).toEqual({
       regions: { options: ["eu-central-1", "us-east-1"], selected: ["eu-central-1"] },
-      statuses: { options: ["unhealthy", "running"], selected: [] },
+      statuses: { options: ["running", "unhealthy"], selected: [] },
       instances: { options: ["eu-0", "eu-1"], selected: [] },
     });
     expect(filtered.rows.map((r) => r.instance.key)).toEqual(["eu-0", "eu-1"]);
@@ -330,6 +339,8 @@ describe("instancesTabView", () => {
       current: [{ id: "d_new", source: null }],
       previous: [],
       unhealthy: true,
+      stopped: false,
+      crashes: 0,
     });
   });
 
@@ -357,6 +368,8 @@ describe("instancesTabView", () => {
       current: [],
       previous: [{ id: "d_old", source: null }],
       unhealthy: false,
+      stopped: false,
+      crashes: 0,
     });
   });
 
@@ -368,6 +381,8 @@ describe("instancesTabView", () => {
       ],
       previous: [{ id: "d_old", source: null }],
       unhealthy: false,
+      stopped: false,
+      crashes: 0,
     });
   });
 
@@ -381,7 +396,7 @@ describe("instancesTabView", () => {
     });
     expect(stale.filters).toEqual({
       regions: { options: ["eu-central-1", "us-east-1"], selected: ["eu-central-1"] },
-      statuses: { options: ["unhealthy", "running"], selected: [] },
+      statuses: { options: ["running", "unhealthy"], selected: [] },
       instances: { options: ["eu-0", "eu-1"], selected: ["eu-0"] },
     });
     expect(stale.rows.map((r) => r.instance.key)).toEqual(["eu-0"]);
@@ -390,7 +405,7 @@ describe("instancesTabView", () => {
   it("narrows rows, lines, legend and instance options to the selected status", () => {
     const unhealthy = view({ filter: { regions: [], statuses: ["unhealthy"], instances: [] } });
     expect(unhealthy.filters.statuses).toEqual({
-      options: ["unhealthy", "running", "previous"],
+      options: ["running", "unhealthy"],
       selected: ["unhealthy"],
     });
     expect(unhealthy.filters.instances.options).toEqual(["eu-1"]);
@@ -400,25 +415,32 @@ describe("instancesTabView", () => {
       current: [{ id: "d_new", source: null }],
       previous: [],
       unhealthy: true,
+      stopped: false,
+      crashes: 0,
     });
   });
 
-  it("lists only the statuses present in the selected regions and combines them", () => {
+  it("files previous-deploy pods by their health and combines statuses", () => {
     const filtered = view({
-      filter: { regions: ["us-east-1"], statuses: ["previous", "running"], instances: [] },
+      filter: { regions: [], statuses: ["running", "unhealthy"], instances: [] },
     });
     expect(filtered.filters.statuses).toEqual({
-      options: ["running", "previous"],
-      selected: ["running", "previous"],
+      options: ["running", "unhealthy"],
+      selected: ["running", "unhealthy"],
     });
-    expect(filtered.rows.map((r) => r.instance.key)).toEqual(["us-0", "us-old"]);
+    expect(filtered.rows.map((r) => [r.instance.key, r.instance.statusText])).toEqual([
+      ["eu-0", "Running"],
+      ["eu-1", "Exited with error · exit=1 · 7 restarts"],
+      ["us-0", "Running"],
+      ["us-old", "Previous deploy"],
+    ]);
   });
 
-  it("drops a status that no instance in scope has", () => {
+  it("ignores retired status values from old URLs", () => {
     const stale = view({
-      filter: { regions: ["eu-central-1"], statuses: ["previous"], instances: [] },
+      filter: { regions: ["eu-central-1"], statuses: ["previous", "disabled"], instances: [] },
     });
-    expect(stale.filters.statuses).toEqual({ options: ["unhealthy", "running"], selected: [] });
+    expect(stale.filters.statuses).toEqual({ options: ["running", "unhealthy"], selected: [] });
     expect(stale.rows.map((r) => r.instance.key)).toEqual(["eu-0", "eu-1"]);
   });
 
@@ -434,6 +456,7 @@ describe("instancesTabView", () => {
         kind: "crashloop" as const,
         reason: "CrashLoopBackOff",
         exitCode: null,
+        message: null,
       },
       {
         id: "e2",
@@ -445,6 +468,7 @@ describe("instancesTabView", () => {
         kind: "oom" as const,
         reason: "OOMKilled",
         exitCode: 137,
+        message: null,
       },
     ]);
     const result = view({
@@ -452,6 +476,30 @@ describe("instancesTabView", () => {
       filter: { regions: [], statuses: ["unhealthy"], instances: [] },
     });
     expect(result.episodes.map((e) => e.instance)).toEqual(["eu-1"]);
+    expect(result.legend.crashes).toBe(1);
+    expect(view({ events }).legend.crashes).toBe(2);
+  });
+
+  it("ends crash episodes on the grid the usage charts draw, not the newer clock grid", () => {
+    const events = ready([
+      {
+        id: "e1",
+        atMs: 1,
+        instance: "eu-1",
+        instanceId: "ins_eu-1",
+        region: "eu-central-1",
+        deploymentId: "d_new",
+        kind: "crashloop" as const,
+        reason: "CrashLoopBackOff",
+        exitCode: null,
+        message: null,
+      },
+    ]);
+    const clock: Grid = { ...grid, startMs: 0, endMs: 86_400_000 };
+    const result = view({ grid: clock, events });
+    expect(result.grid.endMs).toBe(120_000);
+    expect(result.episodes.map((e) => [e.endMs, e.ongoing])).toEqual([[120_000, true]]);
+    expect(view({ grid: clock, events, usage: loading }).grid.endMs).toBe(86_400_000);
   });
 
   it("reports a failed events query and shows no episodes", () => {
@@ -460,17 +508,29 @@ describe("instancesTabView", () => {
     expect(view({ events: loading }).crashEventsFailed).toBe(false);
   });
 
-  it("files disabled instances under Disabled, not Running", () => {
+  it("files disabled live instances and stopped pods together under Stopped", () => {
     const disabled = instance("us-off", { status: "inactive" });
     const result = view({
       instances: ready([usEast, disabled]),
-      filter: { regions: [], statuses: ["disabled"], instances: [] },
+      usage: ready<InstanceSeries>({
+        ...usage,
+        history: {
+          instances: [instance("gone", { presence: { kind: "stopped", lastSeenMs: 0 } })],
+          truncated: false,
+        },
+      }),
+      filter: { regions: [], statuses: ["stopped"], instances: [] },
     });
     expect(result.filters.statuses).toEqual({
-      options: ["running", "disabled"],
-      selected: ["disabled"],
+      options: ["running", "stopped"],
+      selected: ["stopped"],
     });
-    expect(result.rows.map((r) => r.instance.key)).toEqual(["us-off"]);
+    expect(
+      result.rows.map((r) => [r.instance.key, r.instance.tone, r.instance.statusText]),
+    ).toEqual([
+      ["us-off", "stopped", "Stopped"],
+      ["gone", "stopped", "Stopped"],
+    ]);
   });
 
   it("treats a selection with nothing known as all", () => {
@@ -486,6 +546,84 @@ describe("instancesTabView", () => {
     expect(result.usage[0].chart).toBe(failure);
     expect(result.rows.map((r) => r.usage.cpu.percent)).toEqual([null, null, null, null]);
     expect(result.filters.regions.options).toEqual(["eu-central-1", "us-east-1"]);
+  });
+});
+
+describe("stopped pods", () => {
+  const stoppedPod = (key: string, lastSeenMs: number) =>
+    instance(key, {
+      presence: { kind: "stopped", lastSeenMs },
+      role: "previous",
+      deployment: { id: "d_gone", source: null },
+    });
+  const result = view({
+    instances: ready([usEast]),
+    usage: ready<InstanceSeries>({
+      grid,
+      history: {
+        instances: [stoppedPod("old-a", 30_000), stoppedPod("old-b", 90_000)],
+        truncated: false,
+      },
+      instances: [
+        { instance: "us-0", points: [point(60_000, 250, 256 * MIB)] },
+        { instance: "old-a", points: [point(60_000, 400, 400 * MIB)] },
+        { instance: "old-b", points: [point(60_000, 300, 300 * MIB)] },
+      ],
+    }),
+  });
+
+  it("lists live rows first, then stopped rows by last seen, without usage", () => {
+    expect(
+      result.rows.map((r) => [
+        r.instance.key,
+        r.instance.statusText,
+        r.usage.cpu.percent,
+        r.usage.memory.percent,
+      ]),
+    ).toEqual([
+      ["us-0", "Running", 50, 50],
+      ["old-b", "Stopped", null, null],
+      ["old-a", "Stopped", null, null],
+    ]);
+    expect(result.rows[1].instance.presence).toEqual({ kind: "stopped", lastSeenMs: 90_000 });
+  });
+
+  it("sorts a disabled live instance first among the stopped rows and keeps its usage", () => {
+    const disabled = instance("a-off", { status: "inactive" });
+    const { rows } = view({
+      instances: ready([disabled, usEast]),
+      usage: ready<InstanceSeries>({
+        grid,
+        history: { instances: [stoppedPod("old-b", 90_000)], truncated: false },
+        instances: [
+          { instance: "us-0", points: [point(60_000, 250, 256 * MIB)] },
+          { instance: "a-off", points: [point(60_000, 250, 256 * MIB)] },
+        ],
+      }),
+    });
+    expect(rows.map((r) => [r.instance.key, r.instance.statusText, r.usage.cpu.percent])).toEqual([
+      ["us-0", "Running", 50],
+      ["a-off", "Stopped", 50],
+      ["old-b", "Stopped", null],
+    ]);
+  });
+
+  it("draws stopped lines in their own tone under the live ones", () => {
+    expect(result.usage[0].series).toEqual({
+      "old-a": { label: "old-a", color: "var(--color-gray-10)" },
+      "old-b": { label: "old-b", color: "var(--color-gray-10)" },
+      "us-0": { label: "us-0", color: "var(--color-activity)" },
+    });
+  });
+
+  it("keys Stopped in the legend and leaves their deploys out of Current and Previous", () => {
+    expect(result.legend).toEqual({
+      current: [{ id: "d_new", source: null }],
+      previous: [],
+      unhealthy: false,
+      stopped: true,
+      crashes: 0,
+    });
   });
 });
 

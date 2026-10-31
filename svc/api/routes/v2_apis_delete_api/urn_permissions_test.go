@@ -288,7 +288,6 @@ func insertAPI(t *testing.T, h *testutil.Harness, workspaceID, projectID string,
 		WorkspaceID: workspaceID,
 		ProjectID:   projectID,
 		AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
-		IpWhitelist: sql.NullString{},
 		KeyAuthID:   keySpaceID,
 		CreatedAtM:  time.Now().UnixMilli(),
 	})

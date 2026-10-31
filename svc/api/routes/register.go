@@ -705,10 +705,11 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2RootKeysCreateKey.Handler{
-			DB:        svc.Database,
-			Keys:      svc.Keys,
-			Auditlogs: svc.Auditlogs,
-			Clock:     svc.Clock,
+			DB:          svc.Database,
+			Keys:        svc.Keys,
+			Auditlogs:   svc.Auditlogs,
+			Clock:       svc.Clock,
+			LimitsCache: svc.Caches.WorkspaceLimits,
 		},
 	)
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysListKeys.Handler{DB: svc.Database})
@@ -716,6 +717,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		DB:           svc.Database,
 		Auditlogs:    svc.Auditlogs,
 		RootKeyCache: svc.Caches.RootKeyByHash,
+		LimitsCache:  svc.Caches.WorkspaceLimits,
 		Clock:        svc.Clock,
 	})
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysDeleteKey.Handler{
@@ -1318,6 +1320,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	srv.RegisterRoute(
 		miscMiddlewares,
-		&openapi.Handler{},
+		&openapi.Handler{Format: "yaml"},
+	)
+	srv.RegisterRoute(
+		miscMiddlewares,
+		&openapi.Handler{Format: "json"},
 	)
 }

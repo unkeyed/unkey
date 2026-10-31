@@ -26,6 +26,45 @@ func TestBearer(t *testing.T) {
 			wantErr:     false,
 		},
 		{
+			name:        "lowercase bearer preserves token case",
+			headerValue: "bearer AbC123xYz",
+			wantToken:   "AbC123xYz",
+		},
+		{
+			name:        "uppercase bearer preserves token case",
+			headerValue: "BEARER AbC123xYz",
+			wantToken:   "AbC123xYz",
+		},
+		{
+			name:        "mixed case bearer with extra spaces",
+			headerValue: "  bEaReR   AbC123xYz  ",
+			wantToken:   "AbC123xYz",
+		},
+		{
+			name:        "bearer prefix without separating space",
+			headerValue: "BearerAbC123xYz",
+			wantErr:     true,
+			code:        codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
+			name:        "bearer with tab separator",
+			headerValue: "Bearer\tAbC123xYz",
+			wantErr:     true,
+			code:        codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
+			name:        "token with embedded space",
+			headerValue: "Bearer AbC123 xYz",
+			wantErr:     true,
+			code:        codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
+			name:        "token with embedded tab",
+			headerValue: "bearer AbC123\txYz",
+			wantErr:     true,
+			code:        codes.Auth.Authentication.Malformed.URN(),
+		},
+		{
 			name:        "empty authorization header",
 			headerValue: "",
 			wantErr:     true,
@@ -76,6 +115,7 @@ func TestBearer(t *testing.T) {
 			// Check error conditions
 			if tt.wantErr {
 				require.Error(t, err)
+				require.Empty(t, token)
 
 				code, ok := fault.GetCode(err)
 				if tt.code != "" {

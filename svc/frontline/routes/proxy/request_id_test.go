@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -33,13 +34,16 @@ import (
 
 func TestRequestID_PreservedAcrossRegions(t *testing.T) {
 	for _, test := range []struct {
-		name   string
-		status int
-		accept string
+		name     string
+		status   int
+		accept   string
+		fallback bool
 	}{
-		{"success", http.StatusOK, "application/json"},
-		{"JSON routing error", http.StatusServiceUnavailable, "application/json"},
-		{"HTML routing error", http.StatusServiceUnavailable, "text/html"},
+		{"success", http.StatusOK, "application/json", false},
+		{"JSON routing error", http.StatusServiceUnavailable, "application/json", false},
+		{"HTML routing error", http.StatusServiceUnavailable, "text/html", false},
+		{"local fallback success", http.StatusOK, "application/json", true},
+		{"local fallback routing error", http.StatusServiceUnavailable, "application/json", true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			spans := tracetest.NewSpanRecorder()
@@ -79,22 +83,33 @@ func TestRequestID_PreservedAcrossRegions(t *testing.T) {
 			initialIDs := make(chan string, 3)
 			regions := []string{"us-east-1", "us-west-2", "eu-west-1"}
 			var peer *httptest.Server
+			var servers []*httptest.Server
+			route := db.FindFrontlineRouteByFQDNRow{
+				DeploymentID: uid.New(uid.DeploymentPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix),
+				WorkspaceID: uid.New(uid.WorkspacePrefix), ProjectID: uid.New(uid.ProjectPrefix), AppID: uid.New(uid.AppPrefix),
+				DesiredState: db.DeploymentsDesiredStateRunning, UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1,
+			}
 			for hop := len(regions) - 1; hop >= 0; hop-- {
-				decision := router.RouteDecision{
-					Destination:      router.DestinationLocalInstance,
-					DeploymentID:     uid.New(uid.DeploymentPrefix),
-					UpstreamProtocol: db.DeploymentsUpstreamProtocolHttp1,
-				}
+				var instances []db.FindInstancesByDeploymentIDRow
 				if test.status == http.StatusOK {
-					decision.LocalInstances = []db.FindInstancesByDeploymentIDRow{{
+					instances = []db.FindInstancesByDeploymentIDRow{{
 						ID:      uid.New(uid.InstancePrefix),
 						Address: strings.TrimPrefix(workload.URL, "http://"),
+						Status:  db.InstancesStatusRunning, RegionName: regions[hop], RegionPlatform: "aws",
 					}}
 				}
 				var transport *http.Transport
 				if peer != nil {
-					decision.Destination = router.DestinationRemoteRegion
-					decision.RemoteRegionAddress = regions[hop+1] + ".aws"
+					instances = []db.FindInstancesByDeploymentIDRow{{
+						ID: uid.New(uid.InstancePrefix), Status: db.InstancesStatusRunning,
+						RegionName: regions[hop+1], RegionPlatform: "aws",
+					}}
+					if test.fallback {
+						instances = append(instances, db.FindInstancesByDeploymentIDRow{
+							ID: uid.New(uid.InstancePrefix), Address: unreachableAddr(t), Status: db.InstancesStatusRunning,
+							RegionName: regions[hop], RegionPlatform: "aws",
+						})
+					}
 					peerURL, err := url.Parse(peer.URL)
 					require.NoError(t, err)
 					peerTransport, ok := peer.Client().Transport.(*http.Transport)
@@ -106,6 +121,13 @@ func TestRequestID_PreservedAcrossRegions(t *testing.T) {
 					}
 					t.Cleanup(transport.CloseIdleConnections)
 				}
+				routes, err := router.New(router.Config{
+					Platform: "aws", Region: regions[hop], DB: regionQuerier{route: route, instances: instances},
+					FrontlineRouteCache:   regionCache[db.FindFrontlineRouteByFQDNRow](t, "routes"),
+					InstancesByDeployment: regionCache[[]db.FindInstancesByDeploymentIDRow](t, "instances"),
+					PolicyCache:           regionCache[[]*frontlinev1.Policy](t, "policies"),
+				})
+				require.NoError(t, err)
 				clk := clock.New()
 				transports := proxy.NewTransportRegistry()
 				t.Cleanup(transports.CloseIdleConnections)
@@ -134,12 +156,13 @@ func TestRequestID_PreservedAcrossRegions(t *testing.T) {
 					middleware.WithClickHouseLogging(logs, clk, frontlineID, regions[hop], "aws"),
 					middleware.WithObservability(errorpage.NewRenderer()),
 				}, &handler.Handler{
-					RouterService: &stubRouter{decision: decision},
+					RouterService: routes,
 					ProxyService:  service,
 					Clock:         clk,
 					Metadata:      codec,
 				})
 				peer = httptest.NewTLSServer(server.Mux())
+				servers = append(servers, peer)
 				t.Cleanup(peer.Close)
 			}
 
@@ -164,12 +187,6 @@ func TestRequestID_PreservedAcrossRegions(t *testing.T) {
 				headers := <-workloadHeaders
 				require.Equal(t, []string{ingressID}, headers.Values(proxy.HeaderRequestID))
 				require.Empty(t, headers.Values(proxy.HeaderFrontlineMeta))
-				select {
-				case row := <-rows:
-					require.Equal(t, ingressID, row.RequestID)
-				case <-time.After(5 * time.Second):
-					t.Fatal("request log was not emitted")
-				}
 			} else if test.accept == "application/json" {
 				var errorResponse middleware.ErrorResponse
 				require.NoError(t, json.Unmarshal(body, &errorResponse))
@@ -181,6 +198,24 @@ func TestRequestID_PreservedAcrossRegions(t *testing.T) {
 			for _, span := range spans.Ended() {
 				require.Contains(t, span.Attributes(), attribute.String("request_id", ingressID))
 			}
+			for _, server := range servers {
+				server.Close()
+			}
+			logs.Close()
+			require.Len(t, rows, 1, "only the serving peer logs, including routing errors and local fallbacks")
+			row := <-rows
+			require.Equal(t, ingressID, row.RequestID)
+			require.EqualValues(t, test.status, row.ResponseStatus)
+			require.Equal(t, "eu-west-1", row.Region)
+			require.Equal(t, route.WorkspaceID, row.WorkspaceID)
+			require.Equal(t, route.ProjectID, row.ProjectID)
+			require.Equal(t, route.AppID, row.AppID)
+			require.Equal(t, route.EnvironmentID, row.EnvironmentID)
+			require.Equal(t, route.DeploymentID, row.DeploymentID)
+			require.Empty(t, row.RequestHeaders)
+			require.Empty(t, row.ResponseHeaders)
+			require.Empty(t, row.RequestBody)
+			require.Empty(t, row.ResponseBody)
 		})
 	}
 }

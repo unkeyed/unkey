@@ -1,7 +1,8 @@
-import { type InstanceState, instanceStateOf } from "@/lib/collections/deploy/instance-status";
 import type { Failure, Loadable } from "@/lib/loadable/loadable";
+import { isOutdated } from "@/lib/metrics/app-metrics";
 import type {
   Grid,
+  HeldLoadable,
   InstanceRow,
   InstanceSeries,
   MetricId,
@@ -17,6 +18,7 @@ import {
   absoluteScale,
   shareOf,
 } from "./allocation";
+import { type InstancePhase, phaseOf } from "./instances-model";
 
 export type ReplicaMetric = Extract<MetricId, LimitedMetric | "network">;
 
@@ -104,11 +106,11 @@ export type OpenReplica = { environmentId: string | null; row: InstanceRow };
 export type ReplicaSheetModel = {
   name: string;
   region: string;
-  status: InstanceState;
+  status: InstancePhase;
   deployment: InstanceRow["deployment"];
   lastExit: InstanceRow["lastExit"];
-  stopped: boolean;
   usage: ReplicaUsage;
+  outdated: boolean;
 };
 
 export function openInstanceOf(
@@ -137,11 +139,13 @@ export function replicaSheetModel({
   environmentId,
   instances,
   usage,
+  markersOutdated,
 }: {
   open: OpenReplica | null;
   environmentId: string | null;
   instances: Loadable<InstanceRow[]>;
-  usage: Loadable<InstanceSeries>;
+  usage: HeldLoadable<InstanceSeries>;
+  markersOutdated: boolean;
 }): ReplicaSheetModel | null {
   if (!open || open.environmentId !== environmentId) {
     return null;
@@ -151,13 +155,15 @@ export function replicaSheetModel({
       ? instances.data.find((row) => row.replica.k8sName === open.row.replica.k8sName)
       : undefined;
   const row = live ?? open.row;
+  const gone = instances.status === "ready" && !live;
+  const drawn = replicaUsage(usage, row.replica);
   return {
     name: row.replica.k8sName,
     region: row.region.name,
-    status: instanceStateOf(row),
+    status: gone ? "stopped" : phaseOf(row),
     deployment: row.deployment,
     lastExit: row.lastExit,
-    stopped: row.instanceId === null || (instances.status === "ready" && !live),
-    usage: replicaUsage(usage, row.replica),
+    usage: drawn,
+    outdated: isOutdated(usage) || (drawn.status === "ready" && markersOutdated),
   };
 }

@@ -7,6 +7,12 @@ import { createContext, use } from "react";
 import type { DisplayDomain } from "../../../components/display-domain";
 import type { DeploymentDisplayStatus } from "./status";
 
+export type DeployStamp = {
+  verb: "Deployed" | "Rolled back";
+  at: number;
+  actor: { name: string; avatarUrl: string | null } | null;
+};
+
 export type CanvasModel = {
   appName: string;
   appSource: AppSource;
@@ -23,6 +29,8 @@ export type ProductionCardContextValue = {
   status: DeploymentDisplayStatus;
   isCurrent: boolean;
   isRolledBack: boolean;
+  stamp: DeployStamp | null;
+  replaced: DeploymentSummary | null;
   canvas: CanvasModel;
   sourceRepo: string | null;
   diagnostic: { label: string; href: Route } | null;

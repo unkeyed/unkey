@@ -32,18 +32,14 @@ AvatarImage.displayName = "AvatarImage";
 
 const AvatarFallback = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Fallback>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback> & {
-    name: string;
-    variant?: "marble" | "beam";
-    square?: boolean;
-  }
->(({ className, name, variant = "beam", square = false, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback> & { name: string }
+>(({ className, name, ...props }, ref) => (
   <AvatarPrimitive.Fallback
     ref={ref}
     className={cn("flex h-full w-full items-center justify-center rounded-full", className)}
     {...props}
   >
-    <GeneratedAvatar name={name} variant={variant} square={square} />
+    <GeneratedAvatar name={name} variant="beam" />
   </AvatarPrimitive.Fallback>
 ));
 AvatarFallback.displayName = "AvatarFallback";

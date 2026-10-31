@@ -7,9 +7,10 @@ import {
   queryCollectionOptions,
 } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
-import type {
-  Environment,
-  V2EnvironmentsUpdateSettingsRequestBody,
+import {
+  type Environment,
+  EnvironmentShutdownSignal,
+  type V2EnvironmentsUpdateSettingsRequestBody,
 } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
@@ -58,7 +59,7 @@ const schema = z.object({
       replicasMax: z.number().int().min(1),
     }),
   ),
-  shutdownSignal: z.string(),
+  shutdownSignal: z.enum(EnvironmentShutdownSignal),
   upstreamProtocol: z.enum(["http1", "h2c"]).default("http1"),
   openapiSpecPath: z.string().nullable().default(null),
 });
@@ -261,6 +262,11 @@ export function buildSettingsUpdate(
     dirty = true;
   }
 
+  if (modified.shutdownSignal !== original.shutdownSignal) {
+    body.shutdownSignal = modified.shutdownSignal;
+    dirty = true;
+  }
+
   if (modified.upstreamProtocol !== original.upstreamProtocol) {
     body.upstreamProtocol = modified.upstreamProtocol;
     dirty = true;
@@ -360,6 +366,7 @@ async function writeDefaultSettings(
           storageMib: d.storageMib,
           command: [],
           healthcheck: null,
+          shutdownSignal: d.shutdownSignal,
           upstreamProtocol: d.upstreamProtocol,
           openapiSpecPath: null,
           ...(regionNames.length > 0

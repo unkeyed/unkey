@@ -6,10 +6,14 @@ import (
 	"net/http"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/internal/services/keys"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -29,10 +33,11 @@ type Request = openapi.V2RootKeysCreateKeyRequestBody
 type Response = openapi.V2RootKeysCreateKeyResponseBody
 
 type Handler struct {
-	DB        db.Database
-	Keys      keys.KeyService
-	Auditlogs auditlogs.AuditLogService
-	Clock     clock.Clock
+	DB          db.Database
+	Keys        keys.KeyService
+	Auditlogs   auditlogs.AuditLogService
+	Clock       clock.Clock
+	LimitsCache cache.Cache[string, keysdb.Limit]
 }
 
 func (h *Handler) Method() string { return "POST" }
@@ -50,6 +55,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
+	}
+	allowedIPs, err := ipallowlist.Parse(ptr.SafeDeref(req.IpAllowlist))
+	if err != nil {
+		return fault.Wrap(err, fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Public("Allowed IPs must contain valid IPv4 or IPv6 addresses or CIDR ranges."))
 	}
 	var expires sql.NullInt64
 	if req.Expires.IsSpecified() && !req.Expires.IsNull() {
@@ -84,6 +94,46 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyID := uid.New(uid.KeyPrefix)
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		var callerAllowlist ipallowlist.Allowlist
+		if source, ok := p.Source.(principal.KeySource); ok {
+			callerAllowlist = source.AllowedIPs
+			if source.KeySpaceID == "" {
+				// Prevent concurrent deletion or policy changes to the calling root key
+				// while this transaction creates a new key.
+				caller, err := db.Query.FindUnkeyRootKeyByIDForUpdate(ctx, tx, source.KeyID)
+				if db.IsNotFound(err) || err == nil && caller.WorkspaceID != p.AuthorizedWorkspaceID {
+					return fault.New("calling root key not found",
+						fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+						fault.Public("The calling root key is no longer available."))
+				}
+				if err != nil {
+					return err
+				}
+				callerAllowlist, err = ipallowlist.Parse(caller.IpAllowlist)
+				if err != nil {
+					return fault.Wrap(err, fault.Internal("invalid caller IP allowlist"))
+				}
+			}
+		}
+		if req.IpAllowlist == nil {
+			allowedIPs = callerAllowlist
+		}
+		if !allowedIPs.IsSubsetOf(callerAllowlist) {
+			return fault.New("root key operation widens network access", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+				fault.Public("The IP allowlist must stay within the calling root key's allowed networks."))
+		}
+		if len(allowedIPs) > 0 {
+			limits, hit, err := h.LimitsCache.SWR(ctx, p.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+				return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), p.AuthorizedWorkspaceID)
+			}, caches.DefaultFindFirstOp)
+			if err != nil && !db.IsNotFound(err) {
+				return err
+			}
+			if db.IsNotFound(err) || hit == cache.Null || !limits.IpAllowlistEnabled {
+				return fault.New("IP allowlist is not enabled", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+					fault.Public("IP allowlists are not enabled for this workspace. Contact support to enable them."))
+			}
+		}
 		err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
 			ID:          keyID,
 			WorkspaceID: p.AuthorizedWorkspaceID,
@@ -91,13 +141,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				String: ptr.SafeDeref(req.Name),
 				Valid:  req.Name != nil,
 			},
-			Hash:      key.Hash,
-			Prefix:    key.Prefix,
-			Start:     key.Start,
-			End:       key.End,
-			Enabled:   true,
-			CreatedAt: h.Clock.Now().UnixMilli(),
-			Expires:   expires,
+			Hash:        key.Hash,
+			Prefix:      key.Prefix,
+			Start:       key.Start,
+			End:         key.End,
+			Enabled:     true,
+			CreatedAt:   h.Clock.Now().UnixMilli(),
+			Expires:     expires,
+			IpAllowlist: allowedIPs.Strings(),
 		})
 		if err != nil {
 			return err
@@ -121,7 +172,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:          keyID,
 			Name:        ptr.SafeDeref(req.Name),
 			DisplayName: ptr.SafeDeref(req.Name),
-			Meta:        map[string]any{},
+			Meta:        map[string]any{"ipAllowlist": allowedIPs.Strings()},
 		}
 		logs := []auditlog.AuditLog{{
 			WorkspaceID:   p.AuthorizedWorkspaceID,

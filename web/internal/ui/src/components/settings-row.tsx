@@ -1,10 +1,9 @@
 "use client";
 
-import { Collapsible } from "@base-ui/react/collapsible";
-import { IconChevronDownOutline12 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./collapsible";
 import { InfoTooltip } from "./info-tooltip";
 import { type GroupSave, type SaveState, resolveGroupSave } from "./settings-save";
 import { Skeleton } from "./skeleton";
@@ -236,13 +235,13 @@ function SettingsGroupCollapsible({
   const { context, values, dirty } = useSettingsGroupMembers();
   return (
     <SettingsGroupContext.Provider value={context}>
-      <Collapsible.Root
+      <Collapsible
         render={<SettingsGroupShell />}
         data-slot="settings-group-collapsible"
         className={className}
         {...props}
       >
-        <Collapsible.Trigger className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-grayA-2 focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-gray-5">
+        <CollapsibleTrigger className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-grayA-2 focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-gray-5">
           <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-sm font-medium text-gray-12">{title}</span>
             {description ? (
@@ -258,15 +257,11 @@ function SettingsGroupCollapsible({
               {dirty ? "Unsaved changes" : summary}
             </span>
           ) : null}
-          <IconChevronDownOutline12 className="size-3 shrink-0 text-gray-10 transition-transform duration-200 ease-out group-data-[panel-open]:rotate-180" />
-        </Collapsible.Trigger>
-        <Collapsible.Panel
-          keepMounted
-          className="h-(--collapsible-panel-height) overflow-hidden border-t border-grayA-4 transition-[height] duration-200 ease-out data-[ending-style]:h-0 data-[starting-style]:h-0 motion-reduce:transition-none"
-        >
+        </CollapsibleTrigger>
+        <CollapsibleContent className="border-t border-grayA-4">
           <SettingsGroupBody values={values}>{children}</SettingsGroupBody>
-        </Collapsible.Panel>
-      </Collapsible.Root>
+        </CollapsibleContent>
+      </Collapsible>
     </SettingsGroupContext.Provider>
   );
 }

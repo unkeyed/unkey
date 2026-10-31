@@ -588,9 +588,10 @@ type Querier interface {
 	// Rows a test leaves behind are rescanned by every later run, so the seeder
 	// deletes what it created once the test finishes.
 	//
-	//  DELETE w, wb, p, a, e, d, b, bt
+	//  DELETE w, wb, l, p, a, e, d, b, bt
 	//  FROM workspaces w
 	//  LEFT JOIN workspace_billing wb ON wb.workspace_id = w.id
+	//  LEFT JOIN `limits` l ON l.workspace_id = w.id
 	//  LEFT JOIN projects p ON p.workspace_id = w.id
 	//  LEFT JOIN apps a ON a.workspace_id = w.id
 	//  LEFT JOIN environments e ON e.workspace_id = w.id
@@ -1089,7 +1090,7 @@ type Querier interface {
 	FindAcmeUserByWorkspaceID(ctx context.Context, workspaceID string) (AcmeUser, error)
 	//FindApiByID
 	//
-	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
+	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, id string) (Api, error)
 	//FindAppBuildSettingByAppEnv
 	//
@@ -1618,7 +1619,7 @@ type Querier interface {
 	FindLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeysByHashesParams) ([]FindLeakedKeysByHashesRow, error)
 	//FindLimitsByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
+	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, ip_allowlist_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
@@ -1833,12 +1834,10 @@ type Querier interface {
 	//      workspace_id,
 	//      project_id,
 	//      auth_type,
-	//      ip_whitelist,
 	//      key_auth_id,
 	//      created_at_m,
 	//      deleted_at_m
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
