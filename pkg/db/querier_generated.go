@@ -2054,10 +2054,8 @@ type Querier interface {
 	//      autoscaling_replicas_max,
 	//      autoscaling_threshold_cpu,
 	//      autoscaling_threshold_memory,
-	//      desired_status,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3726,22 +3724,6 @@ type Querier interface {
 	//    AND portal_id = ?
 	//    AND external_id = ?
 	MaxPortalSessionPkByExternalID(ctx context.Context, db DBTX, arg MaxPortalSessionPkByExternalIDParams) (int64, error)
-	//NotifyDeploymentTopologiesByApp
-	//
-	//  UPDATE deployment_topology dt
-	//  JOIN deployments d ON d.id = dt.deployment_id
-	//  SET dt.desired_status = 'stopped',
-	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
-	//  WHERE d.app_id = ?
-	NotifyDeploymentTopologiesByApp(ctx context.Context, db DBTX, arg NotifyDeploymentTopologiesByAppParams) error
-	//NotifyDeploymentTopologiesByProject
-	//
-	//  UPDATE deployment_topology dt
-	//  JOIN deployments d ON d.id = dt.deployment_id
-	//  SET dt.desired_status = 'stopped',
-	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
-	//  WHERE d.project_id = ?
-	NotifyDeploymentTopologiesByProject(ctx context.Context, db DBTX, arg NotifyDeploymentTopologiesByProjectParams) error
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription

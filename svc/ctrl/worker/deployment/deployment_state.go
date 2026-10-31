@@ -104,15 +104,12 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 // for a missing one
 func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID string, state hydrav1.DeploymentDesiredState) error {
 	var desiredState mysqltype.DeploymentsDesiredState
-	var topologyDesiredStatus db.DeploymentTopologyDesiredStatus
 
 	switch state {
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
 		desiredState = mysqltype.DeploymentsDesiredStateRunning
-		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED:
 		desiredState = mysqltype.DeploymentsDesiredStateStopped
-		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
 		return restate.TerminalErrorf("invalid state: %s", state)
 	default:
@@ -147,15 +144,14 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 	if err != nil {
 		return err
 	}
-
-	return applyTopologyDesiredStatus(ctx, v.db, deploymentID, topologyDesiredStatus)
+	return notifyDeploymentRegions(ctx, v.db, deploymentID)
 }
 
-// ApplyDesiredState updates the deployment and its topology in each region.
+// ApplyDesiredState updates the deployment's desired state for every region.
 // It does not check whether this is the app's current deployment. Resume needs
 // this so it can start a suspended deployment before making it current.
 // Use ChangeDesiredState when the update needs that check.
-func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState mysqltype.DeploymentsDesiredState, topologyStatus db.DeploymentTopologyDesiredStatus) error {
+func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState mysqltype.DeploymentsDesiredState) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return database.UpdateDeploymentDesiredState(runCtx, db.UpdateDeploymentDesiredStateParams{
 			ID:           deploymentID,
@@ -166,32 +162,28 @@ func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deployme
 	if err != nil {
 		return err
 	}
-
-	return applyTopologyDesiredStatus(ctx, database, deploymentID, topologyStatus)
+	return notifyDeploymentRegions(ctx, database, deploymentID)
 }
 
-// applyTopologyDesiredStatus updates the deployment's topology in each region.
-func applyTopologyDesiredStatus(ctx restate.ObjectContext, database db.Database, deploymentID string, topologyStatus db.DeploymentTopologyDesiredStatus) error {
+// Keep the legacy journal positions so interrupted regional writes can replay.
+func notifyDeploymentRegions(ctx restate.ObjectContext, database db.Database, deploymentID string) error {
 	regions, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.Region, error) {
 		return database.FindDeploymentRegions(runCtx, deploymentID)
 	}, restate.WithName("find deployment regions"))
 	if err != nil {
 		return fmt.Errorf("failed to find deployment regions: %w", err)
 	}
-
 	for _, region := range regions {
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return database.UpdateDeploymentTopologyDesiredStatus(runCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
-				DesiredStatus: topologyStatus,
-				UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				DeploymentID:  deploymentID,
-				RegionID:      region.ID,
+		err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+			return database.NotifyDeploymentTopology(runCtx, db.NotifyDeploymentTopologyParams{
+				DeploymentID: deploymentID,
+				RegionID:     region.ID,
+				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
 		}, restate.WithName(fmt.Sprintf("updating topology desired status in %s", region.ID)))
 		if err != nil {
-			return fmt.Errorf("failed to update topology desired status in %s: %w", region.ID, err)
+			return fmt.Errorf("failed to notify deployment region %s: %w", region.ID, err)
 		}
 	}
-
 	return nil
 }

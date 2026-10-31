@@ -484,7 +484,6 @@ func (w *Workflow) createTopologies(
 			AutoscalingReplicasMax:     autoscalingMax,
 			AutoscalingThresholdCpu:    rs.AutoscalingThresholdCpu,
 			AutoscalingThresholdMemory: rs.AutoscalingThresholdMemory,
-			DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
 		})
 	}
 
@@ -504,33 +503,15 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
-	// Keep stopped rows for debugging instead of deleting them.
+	// Keep compensation journal positions for interrupted Deploy invocations.
 	for _, topo := range topologies {
 		compensation.Add(
 			fmt.Sprintf("stop deployment topology %s/%s", topo.DeploymentID, topo.RegionID),
 			func(runCtx restate.RunContext) error {
-				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-					queries := db.NewQueries(tx)
-					if err := queries.FailDeploymentAndStop(txCtx, db.FailDeploymentAndStopParams{
-						ID:                  topo.DeploymentID,
-						UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-						ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
-					}); err != nil {
-						return err
-					}
-					deployment, err := queries.FindDeploymentById(txCtx, topo.DeploymentID)
-					if err != nil {
-						return err
-					}
-					if deployment.DesiredState != mysqltype.DeploymentsDesiredStateStopped {
-						return nil
-					}
-					return queries.UpdateDeploymentTopologyDesiredStatus(txCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
-						DeploymentID:  topo.DeploymentID,
-						RegionID:      topo.RegionID,
-						DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
-						UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-					})
+				return w.db.FailDeploymentAndStop(runCtx, db.FailDeploymentAndStopParams{
+					ID:                  topo.DeploymentID,
+					UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 				})
 			},
 		)

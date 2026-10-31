@@ -37,45 +37,66 @@ func TestGetDesiredDeploymentStateUsesDeploymentIntent(t *testing.T) {
 	require.Equal(t, deployment.ID, state.Msg.GetApply().GetDeploymentId())
 }
 
-func TestDeploymentIntentMigrationLegacyWriterUpdatesDeployment(t *testing.T) {
+func TestDeploymentIntentMigrationStopsWritingLegacyStatus(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
 	const bearer = "test-bearer"
 	key := &ctrlv1.ClusterKey{CellId: uid.DNS1035(12), Platform: "test", Region: uid.DNS1035(12)}
 	svc := h.ClusterService(key, bearer)
 	deployment := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: key.Region})
-	region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
-		Platform: key.Platform, Name: key.Region,
-	})
-	require.NoError(t, err)
-	require.NoError(t, h.DB.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
-		ID: deployment.ID, Status: mysqltype.DeploymentsStatusFailed,
-	}))
-	for _, test := range []struct {
-		legacy db.DeploymentTopologyDesiredStatus
-		intent mysqltype.DeploymentsDesiredState
-	}{
-		{db.DeploymentTopologyDesiredStatusStopped, mysqltype.DeploymentsDesiredStateStopped},
-		{db.DeploymentTopologyDesiredStatusRunning, mysqltype.DeploymentsDesiredStateRunning},
+	for _, state := range []mysqltype.DeploymentsDesiredState{
+		mysqltype.DeploymentsDesiredStateStopped,
+		mysqltype.DeploymentsDesiredStateRunning,
 	} {
-		t.Run(string(test.intent), func(t *testing.T) {
-			require.NoError(t, h.DB.UpdateDeploymentTopologyDesiredStatus(ctx, db.UpdateDeploymentTopologyDesiredStatusParams{
-				DeploymentID: deployment.ID, RegionID: region.ID, DesiredStatus: test.legacy,
+		require.NoError(t, h.DB.UpdateDeploymentDesiredState(ctx, db.UpdateDeploymentDesiredStateParams{
+			ID: deployment.ID, DesiredState: state,
+		}))
+		var legacyState string
+		err := h.DB.RW().QueryRowContext(ctx,
+			"SELECT desired_status FROM deployment_topology WHERE deployment_id = ? LIMIT 1", deployment.ID,
+		).Scan(&legacyState)
+		require.NoError(t, err)
+		require.Equal(t, "running", legacyState, "writer retirement must leave the old column untouched")
+		req := connect.NewRequest(&ctrlv1.GetDesiredDeploymentStateRequest{Cluster: key, DeploymentId: deployment.ID})
+		req.Header().Set("Authorization", "Bearer "+bearer)
+		response, err := svc.GetDesiredDeploymentState(ctx, req)
+		require.NoError(t, err)
+		if state == mysqltype.DeploymentsDesiredStateStopped {
+			require.Equal(t, deployment.K8sName, response.Msg.GetDelete().GetK8SName())
+		} else {
+			require.Equal(t, deployment.ID, response.Msg.GetApply().GetDeploymentId())
+		}
+	}
+	for _, stop := range []struct {
+		name  string
+		write func() error
+	}{
+		{"failure", func() error {
+			return h.DB.FailDeploymentAndStop(ctx, db.FailDeploymentAndStopParams{
+				ID: deployment.ID, ProgressingStatuses: []mysqltype.DeploymentsStatus{mysqltype.DeploymentsStatusPending},
+			})
+		}},
+		{"environment", func() error {
+			return h.DB.StopDeploymentsByEnvironment(ctx, db.StopDeploymentsByEnvironmentParams{EnvironmentID: deployment.EnvironmentID})
+		}},
+	} {
+		t.Run(stop.name, func(t *testing.T) {
+			require.NoError(t, h.DB.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{ID: deployment.ID, Status: mysqltype.DeploymentsStatusPending}))
+			require.NoError(t, h.DB.UpdateDeploymentDesiredState(ctx, db.UpdateDeploymentDesiredStateParams{
+				ID: deployment.ID, DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 			}))
-			current, err := h.DB.FindDeploymentById(ctx, deployment.ID)
+			require.NoError(t, stop.write())
+			var legacyState string
+			err := h.DB.RW().QueryRowContext(ctx,
+				"SELECT desired_status FROM deployment_topology WHERE deployment_id = ? LIMIT 1", deployment.ID,
+			).Scan(&legacyState)
 			require.NoError(t, err)
-			require.Equal(t, test.intent, current.DesiredState)
+			require.Equal(t, "running", legacyState, "writer retirement must leave the old column untouched")
 			req := connect.NewRequest(&ctrlv1.GetDesiredDeploymentStateRequest{Cluster: key, DeploymentId: deployment.ID})
 			req.Header().Set("Authorization", "Bearer "+bearer)
 			response, err := svc.GetDesiredDeploymentState(ctx, req)
 			require.NoError(t, err)
-			if test.intent == mysqltype.DeploymentsDesiredStateStopped {
-				require.Equal(t, deployment.K8sName, response.Msg.GetDelete().GetK8SName())
-			} else {
-				require.Equal(t, deployment.ID, response.Msg.GetApply().GetDeploymentId())
-				require.Equal(t, mysqltype.DeploymentsStatusDeploying, current.Status,
-					"legacy wake must reset failure before its notification reaches new readers")
-			}
+			require.Equal(t, deployment.K8sName, response.Msg.GetDelete().GetK8SName())
 		})
 	}
 }

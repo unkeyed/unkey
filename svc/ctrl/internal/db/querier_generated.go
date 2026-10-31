@@ -1621,10 +1621,8 @@ type Querier interface {
 	//      autoscaling_replicas_max,
 	//      autoscaling_threshold_cpu,
 	//      autoscaling_threshold_memory,
-	//      desired_status,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1638,8 +1636,7 @@ type Querier interface {
 	//      autoscaling_replicas_min = ?,
 	//      autoscaling_replicas_max = ?,
 	//      autoscaling_threshold_cpu = ?,
-	//      autoscaling_threshold_memory = ?,
-	//      desired_status = ?
+	//      autoscaling_threshold_memory = ?
 	InsertDeploymentTopology(ctx context.Context, arg InsertDeploymentTopologyParams) error
 	//InsertEnvironment
 	//
@@ -2477,22 +2474,13 @@ type Querier interface {
 	//  UPDATE projects SET deleted_at = COALESCE(deleted_at, ?)
 	//  WHERE id = ?
 	MarkProjectDeleted(ctx context.Context, arg MarkProjectDeletedParams) error
-	//NotifyDeploymentTopologiesByApp
+	// NotifyDeploymentTopology completes legacy regional journal steps without
+	// accessing retired intent columns. Readers reload the current deployment intent.
 	//
 	//  UPDATE deployment_topology dt
-	//  JOIN deployments d ON d.id = dt.deployment_id
-	//  SET dt.desired_status = 'stopped',
-	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
-	//  WHERE d.app_id = ?
-	NotifyDeploymentTopologiesByApp(ctx context.Context, arg NotifyDeploymentTopologiesByAppParams) error
-	//NotifyDeploymentTopologiesByProject
-	//
-	//  UPDATE deployment_topology dt
-	//  JOIN deployments d ON d.id = dt.deployment_id
-	//  SET dt.desired_status = 'stopped',
-	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
-	//  WHERE d.project_id = ?
-	NotifyDeploymentTopologiesByProject(ctx context.Context, arg NotifyDeploymentTopologiesByProjectParams) error
+	//  SET dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, COALESCE(?, 0))
+	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
+	NotifyDeploymentTopology(ctx context.Context, arg NotifyDeploymentTopologyParams) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
@@ -2715,18 +2703,13 @@ type Querier interface {
 	//    AND d.status IN (/*SLICE:active_statuses*/?)
 	//    AND i.deployment_id IS NULL
 	StopDeploymentIfNoInstances(ctx context.Context, arg StopDeploymentIfNoInstancesParams) error
-	//StopDeploymentTopologiesByEnvironment
+	// StopDeploymentsByEnvironment also notifies each region in the same write.
 	//
-	//  UPDATE deployment_topology dt
-	//  JOIN deployments d ON d.id = dt.deployment_id
-	//  SET dt.desired_status = 'stopped',
-	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, CAST(? AS SIGNED))
+	//  UPDATE deployments d
+	//  LEFT JOIN deployment_topology dt ON dt.deployment_id = d.id
+	//  SET d.desired_state = 'stopped', d.updated_at = ?,
+	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
 	//  WHERE d.environment_id = ?
-	StopDeploymentTopologiesByEnvironment(ctx context.Context, arg StopDeploymentTopologiesByEnvironmentParams) error
-	//StopDeploymentsByEnvironment
-	//
-	//  UPDATE deployments SET desired_state = 'stopped', updated_at = ?
-	//  WHERE environment_id = ?
 	StopDeploymentsByEnvironment(ctx context.Context, arg StopDeploymentsByEnvironmentParams) error
 	// Legacy failure can leave running intent after compute has stopped.
 	//
@@ -2928,20 +2911,6 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
-	// UpdateDeploymentTopologyDesiredStatus also updates deployment intent while
-	// legacy workers still stop compute through regional topology writes.
-	//
-	//  UPDATE deployment_topology dt
-	//  JOIN deployments d ON d.id = dt.deployment_id
-	//  SET d.desired_state = CASE WHEN ? = 'stopped' THEN 'stopped' ELSE 'running' END,
-	//      d.status = CASE
-	//          WHEN ? = 'running' AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped') THEN 'deploying'
-	//          ELSE d.status
-	//      END,
-	//      dt.desired_status = ?,
-	//      dt.updated_at = ?
-	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
-	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateInstance
 	//
 	//  UPDATE instances
