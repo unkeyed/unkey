@@ -12,8 +12,7 @@ import (
 
 var (
 	// AuthIPAllowlistDenialsTotal counts authentication attempts rejected by an
-	// IP policy, including cached credentials. It remains separate from public
-	// authentication errors, which hide credential existence.
+	// IP allow list.
 	// Investigate root-key denials in Grafana: search API logs for "This IP address
 	// is not allowed to use the root key." and inspect auth.root_key_id, auth.workspace_id,
 	// and the request ID. IDs stay in logs to avoid unbounded metric cardinality.
