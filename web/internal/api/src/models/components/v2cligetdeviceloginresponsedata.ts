@@ -41,6 +41,13 @@ export type V2CliGetDeviceLoginResponseData = {
    * Unix millisecond expiry.
    */
   expiresAt: number;
+  /**
+   * Client ID metadata document URL of the OAuth client that started the login. Present only for OAuth logins.
+   *
+   * @remarks
+   * deviceName then holds the client's self-reported name, so show this URL's host next to it.
+   */
+  oauthClientId?: string | undefined;
 };
 
 /** @internal */
@@ -58,6 +65,7 @@ export const V2CliGetDeviceLoginResponseData$inboundSchema: z.ZodType<
   grantablePermissions: z.array(z.string()).optional(),
   createdAt: z.number().int(),
   expiresAt: z.number().int(),
+  oauthClientId: z.string().optional(),
 });
 
 export function v2CliGetDeviceLoginResponseDataFromJSON(

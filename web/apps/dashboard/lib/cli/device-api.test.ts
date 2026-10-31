@@ -47,6 +47,8 @@ const sessionsResponse: V2CliListSessionsResponseBody = {
   },
 };
 const emptyResponse: V2CliDecideDeviceLoginResponseBody = { meta, data: {} };
+const redirectUrl = `https://client.example.com/callback?code=${newId("test")}&state=${newId("test")}`;
+const redirectResponse: V2CliDecideDeviceLoginResponseBody = { meta, data: { redirectUrl } };
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -74,6 +76,20 @@ describe("dashboard CLI API", () => {
       body: { userCode, decision: "deny" },
       response: emptyResponse,
       expected: undefined,
+    },
+    {
+      route: "decideDeviceLogin",
+      call: () => approveDeviceLogin({ userCode, permissions }),
+      body: { userCode, permissions, decision: "approve" },
+      response: redirectResponse,
+      expected: redirectUrl,
+    },
+    {
+      route: "decideDeviceLogin",
+      call: () => denyDeviceLogin(userCode),
+      body: { userCode, decision: "deny" },
+      response: redirectResponse,
+      expected: redirectUrl,
     },
     {
       route: "listSessions",

@@ -24,6 +24,10 @@ type V2CliGetDeviceLoginResponseData struct {
 	CreatedAt int64 `json:"createdAt"`
 	// Unix millisecond expiry.
 	ExpiresAt int64 `json:"expiresAt"`
+	// Client ID metadata document URL of the OAuth client that started the login. Present only for OAuth logins.
+	// deviceName then holds the client's self-reported name, so show this URL's host next to it.
+	//
+	OauthClientID *string `json:"oauthClientId,omitzero"`
 }
 
 func (v V2CliGetDeviceLoginResponseData) MarshalJSON() ([]byte, error) {
@@ -98,6 +102,13 @@ func (v *V2CliGetDeviceLoginResponseData) GetExpiresAt() int64 {
 		return 0
 	}
 	return v.ExpiresAt
+}
+
+func (v *V2CliGetDeviceLoginResponseData) GetOauthClientID() *string {
+	if v == nil {
+		return nil
+	}
+	return v.OauthClientID
 }
 
 // #region class-body-v2cligetdeviceloginresponsedata

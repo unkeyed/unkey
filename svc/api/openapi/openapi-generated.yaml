@@ -674,7 +674,7 @@ components:
                 meta:
                     $ref: '#/components/schemas/Meta'
                 data:
-                    $ref: '#/components/schemas/EmptyResponse'
+                    $ref: '#/components/schemas/V2CliDecideDeviceLoginResponseData'
         V2CliExchangeTokenRequestBody:
             type: object
             additionalProperties: false
@@ -5470,6 +5470,16 @@ components:
                         branch of the connected repository.
                     example: main
             additionalProperties: false
+        V2CliDecideDeviceLoginResponseData:
+            type: object
+            additionalProperties: false
+            properties:
+                redirectUrl:
+                    type: string
+                    x-unkey-redact: true
+                    description: |
+                        Where to send the browser after an OAuth login is decided. It carries the authorization code or the access_denied error to the client.
+                        Absent for CLI logins.
         V2CliExchangeTokenResponseData:
             type: object
             description: Session credentials returned by a successful token exchange.
@@ -5536,6 +5546,11 @@ components:
                     type: integer
                     format: int64
                     description: Unix millisecond expiry.
+                oauthClientId:
+                    type: string
+                    description: |
+                        Client ID metadata document URL of the OAuth client that started the login. Present only for OAuth logins.
+                        deviceName then holds the client's self-reported name, so show this URL's host next to it.
         V2CliListSessionsResponseData:
             type: object
             required:
@@ -11047,6 +11062,7 @@ paths:
                 Approval requires permissions. Denial must not include permissions and prevents token issuance.
                 Every permission must fit inside the caller's role. Any member can approve, not only admins.
                 The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
+                For a login an OAuth client started, the response carries redirectUrl and the session is created when the client redeems the authorization code.
             operationId: cli.decideDeviceLogin
             requestBody:
                 content:

@@ -3674,11 +3674,17 @@ type V2CliDecideDeviceLoginRequestBody1Decision string
 
 // V2CliDecideDeviceLoginResponseBody defines model for V2CliDecideDeviceLoginResponseBody.
 type V2CliDecideDeviceLoginResponseBody struct {
-	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
-	Data EmptyResponse `json:"data"`
+	Data V2CliDecideDeviceLoginResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2CliDecideDeviceLoginResponseData defines model for V2CliDecideDeviceLoginResponseData.
+type V2CliDecideDeviceLoginResponseData struct {
+	// RedirectUrl Where to send the browser after an OAuth login is decided. It carries the authorization code or the access_denied error to the client.
+	// Absent for CLI logins.
+	RedirectUrl *string `json:"redirectUrl,omitempty"`
 }
 
 // V2CliExchangeTokenPendingResponseBody defines model for V2CliExchangeTokenPendingResponseBody.
@@ -3760,6 +3766,10 @@ type V2CliGetDeviceLoginResponseData struct {
 
 	// GrantablePermissions Permissions the signed-in member's role allows. The approval page starts with all of them selected.
 	GrantablePermissions *[]string `json:"grantablePermissions,omitempty"`
+
+	// OauthClientId Client ID metadata document URL of the OAuth client that started the login. Present only for OAuth logins.
+	// deviceName then holds the client's self-reported name, so show this URL's host next to it.
+	OauthClientId *string `json:"oauthClientId,omitempty"`
 
 	// RequesterIp IP address that started the login. Empty when the API could not determine it.
 	RequesterIp *string `json:"requesterIp,omitempty"`

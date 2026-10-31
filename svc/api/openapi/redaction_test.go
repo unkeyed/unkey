@@ -26,9 +26,10 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 	require.Equal(t, []string{
 		"code", // portal exchangeCode request, the single-use code
 		"data.accessToken",
-		"data.key",       // createKey and rerollKey responses
-		"data.loginId",   // cli.startDeviceLogin response, the poll secret
-		"data.plaintext", // getKey response, recoverable key material
+		"data.key",         // createKey and rerollKey responses
+		"data.loginId",     // cli.startDeviceLogin response, the poll secret
+		"data.plaintext",   // getKey response, recoverable key material
+		"data.redirectUrl", // cli.decideDeviceLogin response, carries the OAuth authorization code
 		"data.refreshToken",
 		"data.url",         // portal URL, which carries the exchange code in its query
 		"data[].plaintext", // listKeys response, one entry per key
@@ -85,6 +86,13 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 	})
 	require.NoError(t, err)
 	bodies["cli exchange response"] = string(exchanged)
+	redirectURL := "https://client.example.com/callback?code=ukc_FIXTURE_LEAK&state=s"
+	decided, err := json.Marshal(openapi.V2CliDecideDeviceLoginResponseBody{
+		Data: openapi.V2CliDecideDeviceLoginResponseData{RedirectUrl: &redirectURL},
+		Meta: openapi.Meta{RequestId: ""},
+	})
+	require.NoError(t, err)
+	bodies["cli oauth decide response"] = string(decided)
 
 	for name, body := range bodies {
 		t.Run(name, func(t *testing.T) {

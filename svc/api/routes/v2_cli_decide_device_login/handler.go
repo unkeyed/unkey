@@ -36,28 +36,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	var redirectURL string
 	switch req.Decision {
 	case openapi.V2CliDecideDeviceLoginRequestBodyDecisionApprove:
-		if _, err := h.Devices.Approve(ctx, clidevice.ApproveRequest{
+		redirectURL, err = h.Devices.Approve(ctx, clidevice.ApproveRequest{
 			Principal:   p,
 			UserCode:    req.UserCode,
 			Permissions: ptr.SafeDeref(req.Permissions),
-		}); err != nil {
-			return err
-		}
+		})
 	case openapi.V2CliDecideDeviceLoginRequestBodyDecisionDeny:
-		if _, err := h.Devices.Deny(ctx, clidevice.DenyRequest{
+		redirectURL, err = h.Devices.Deny(ctx, clidevice.DenyRequest{
 			Principal: p,
 			UserCode:  req.UserCode,
-		}); err != nil {
-			return err
-		}
+		})
 	default:
 		return fault.New("unexpected cli login decision")
 	}
+	if err != nil {
+		return err
+	}
 
+	data := openapi.V2CliDecideDeviceLoginResponseData{RedirectUrl: nil}
+	if redirectURL != "" {
+		data.RedirectUrl = &redirectURL
+	}
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: openapi.EmptyResponse{},
+		Data: data,
 	})
 }

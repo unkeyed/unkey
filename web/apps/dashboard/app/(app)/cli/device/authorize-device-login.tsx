@@ -15,6 +15,7 @@ import {
   getDeviceLogin,
 } from "@/lib/cli/device-api";
 import { formatUserCode } from "@/lib/cli/format-user-code";
+import { type OAuthClient, oauthClientOf } from "@/lib/cli/oauth-client";
 import { fromQuery } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -179,28 +180,46 @@ function DeviceLoginView({
   onChanged: (status: "approved" | "denied") => Promise<void>;
   onStale: () => void;
 }) {
+  const client = oauthClientOf(login);
   return match(login.status)
     .with("pending", () => (
       <PendingLogin
         login={login}
+        client={client}
         workspaceId={workspace.id}
         onChanged={onChanged}
         onStale={onStale}
       />
     ))
-    .with("approved", "consumed", () => <Approved workspaceSlug={workspace.slug} />)
+    .with("approved", "consumed", () =>
+      client ? (
+        <BrandHeader
+          tone="success"
+          title={`Authorized ${client.name}`}
+          description={`Returning you to ${client.host}. You can close this tab.`}
+        />
+      ) : (
+        <Approved workspaceSlug={workspace.slug} />
+      ),
+    )
     .with("denied", () => (
       <BrandHeader
         tone="closed"
         title="This login was denied"
-        description="Run unkey login again if you want to start a new one."
+        description={
+          client
+            ? `${client.name} did not get access to this workspace.`
+            : "Run unkey login again if you want to start a new one."
+        }
       />
     ))
     .otherwise(() => (
       <BrandHeader
         tone="closed"
         title="This login has expired"
-        description="Run unkey login again to get a new code."
+        description={
+          client ? `Connect again from ${client.name}.` : "Run unkey login again to get a new code."
+        }
       />
     ));
 }
@@ -345,11 +364,13 @@ function Approved({ workspaceSlug }: { workspaceSlug: string }) {
 
 function PendingLogin({
   login,
+  client,
   workspaceId,
   onChanged,
   onStale,
 }: {
   login: DeviceLogin;
+  client: OAuthClient | null;
   workspaceId: string;
   onChanged: (status: "approved" | "denied") => Promise<void>;
   onStale: () => void;
@@ -359,7 +380,10 @@ function PendingLogin({
   const permissionsRef = useRef<HTMLButtonElement>(null);
   const approve = useMutation({
     mutationFn: approveDeviceLogin,
-    async onSuccess() {
+    async onSuccess(redirectUrl) {
+      if (redirectUrl) {
+        window.location.assign(redirectUrl);
+      }
       await onChanged("approved");
     },
     onError(error) {
@@ -369,7 +393,10 @@ function PendingLogin({
   });
   const deny = useMutation({
     mutationFn: () => denyDeviceLogin(login.userCode),
-    async onSuccess() {
+    async onSuccess(redirectUrl) {
+      if (redirectUrl) {
+        window.location.assign(redirectUrl);
+      }
       await onChanged("denied");
     },
     onError(error) {
@@ -399,24 +426,43 @@ function PendingLogin({
 
   return (
     <form onSubmit={authorize} className="flex w-full flex-col gap-8">
-      <BrandHeader
-        tone="pending"
-        title="Sign in to the Unkey CLI"
-        description="Approve this request so the CLI can work in your workspace."
-      />
+      {client ? (
+        <BrandHeader
+          tone="pending"
+          title={`Authorize ${client.name}`}
+          description={
+            <>
+              Requested by <span className="font-medium text-gray-12">{client.host}</span>. Approve
+              it so it can work in your workspace.
+            </>
+          }
+        />
+      ) : (
+        <BrandHeader
+          tone="pending"
+          title="Sign in to the Unkey CLI"
+          description="Approve this request so the CLI can work in your workspace."
+        />
+      )}
       <OnboardingCard>
         <OnboardingCardContent className="mt-0 flex flex-col gap-6">
+          {client ? null : (
+            <Step
+              number={1}
+              title="Confirm the code"
+              description="Check this code matches the one in your terminal."
+            >
+              <CodeBoxes userCode={login.userCode} />
+            </Step>
+          )}
           <Step
-            number={1}
-            title="Confirm the code"
-            description="Check this code matches the one in your terminal."
-          >
-            <CodeBoxes userCode={login.userCode} />
-          </Step>
-          <Step
-            number={2}
+            number={client ? 1 : 2}
             title="Choose access"
-            description="Pick what the CLI can do in this workspace."
+            description={
+              client
+                ? `Pick what ${client.name} can do in this workspace.`
+                : "Pick what the CLI can do in this workspace."
+            }
           >
             <div className="flex flex-col gap-4">
               <FormField label="Workspace">
@@ -424,7 +470,7 @@ function PendingLogin({
               </FormField>
               {grantable.length === 0 ? (
                 <p className="text-sm text-gray-11">
-                  Your role has no permissions it can give to the CLI.
+                  Your role has no permissions it can give to {client ? client.name : "the CLI"}.
                 </p>
               ) : (
                 <PermissionsField
@@ -447,8 +493,9 @@ function PendingLogin({
               aria-hidden="true"
               className="mt-0.5 size-3.5 shrink-0 text-gray-9"
             />
-            Only authorize if you started this login. Whoever started it gets access to this
-            workspace.
+            {client
+              ? `Only authorize if you trust ${client.host}. It gets access to this workspace.`
+              : "Only authorize if you started this login. Whoever started it gets access to this workspace."}
           </p>
         </OnboardingCardContent>
         <OnboardingCardFooter className="flex items-center justify-end gap-2">
@@ -469,7 +516,7 @@ function PendingLogin({
             disabled={busy || grantable.length === 0}
             loading={approve.isLoading}
           >
-            Authorize CLI
+            {client ? "Authorize" : "Authorize CLI"}
           </Button>
         </OnboardingCardFooter>
       </OnboardingCard>

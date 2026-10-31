@@ -56,6 +56,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAt:            authz.CreatedAt,
 			ExpiresAt:            authz.ExpiresAt,
 			GrantablePermissions: &permissions,
+			OauthClientId:        optional(authz.OAuthClientID),
 		},
 	})
 }

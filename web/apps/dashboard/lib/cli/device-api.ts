@@ -14,14 +14,24 @@ export async function getDeviceLogin(userCode: string): Promise<DeviceLogin> {
   return response.data;
 }
 
+/** Resolves to the URL to send the browser to, which only OAuth logins have. */
 export async function approveDeviceLogin(
   request: Required<Omit<Parameters<Unkey["cli"]["decideDeviceLogin"]>[0], "decision">>,
-): Promise<void> {
-  await getUnkeyClient().cli.decideDeviceLogin({ ...request, decision: "approve" }, requestOptions);
+): Promise<string | undefined> {
+  const response = await getUnkeyClient().cli.decideDeviceLogin(
+    { ...request, decision: "approve" },
+    requestOptions,
+  );
+  return response.data.redirectUrl;
 }
 
-export async function denyDeviceLogin(userCode: string): Promise<void> {
-  await getUnkeyClient().cli.decideDeviceLogin({ userCode, decision: "deny" }, requestOptions);
+/** Resolves to the URL to send the browser to, which only OAuth logins have. */
+export async function denyDeviceLogin(userCode: string): Promise<string | undefined> {
+  const response = await getUnkeyClient().cli.decideDeviceLogin(
+    { userCode, decision: "deny" },
+    requestOptions,
+  );
+  return response.data.redirectUrl;
 }
 
 export async function listCliSessions(): Promise<CliSession[]> {
