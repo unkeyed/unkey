@@ -51,6 +51,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/gdprerasure"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
@@ -388,6 +389,52 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("create deploy teardown service: %w", err)
 	}
 	restateSrv.Bind(hydrav1.NewDeployTeardownServiceServer(teardownSvc))
+
+	// GdprErasureWorkflow executes GDPR erasure requests that operators submit
+	// over ingress. Its deletes are forward-only, so an exhausted retry pauses
+	// the run for an operator to resume instead of killing it halfway. The
+	// inactivity timeout covers a ClickHouse mutation that rewrites large parts.
+	var gdprStripe gdprerasure.StripeCustomers
+	if cfg.Billing.StripeSecretKey != "" {
+		gdprStripe = gdprerasure.NewStripe(cfg.Billing.StripeSecretKey)
+	}
+	var gdprResend gdprerasure.ResendContacts
+	if cfg.Email.ResendAPIKey != "" {
+		gdprResend = gdprerasure.NewResend(cfg.Email.ResendAPIKey)
+	}
+	var gdprPlain gdprerasure.PlainCustomers
+	if cfg.Plain.APIKey != "" {
+		gdprPlain = gdprerasure.NewPlain(cfg.Plain.APIKey)
+	}
+	var gdprDepot gdprerasure.DepotProjects
+	if buildConfig.Backend == deploy.BuildBackendDepot && buildConfig.Depot.APIUrl != "" && registryConfig.Password != "" {
+		gdprDepot = gdprerasure.NewDepot(buildConfig.Depot.APIUrl, registryConfig.Password)
+	}
+	if clickhouseClient == nil {
+		logger.Warn("GdprErasureWorkflow: ClickHouse not configured, erasures will not reach analytics rows")
+	}
+	gdprErasure, err := gdprerasure.New(gdprerasure.Config{
+		DB:         database,
+		ClickHouse: ch,
+		WorkOS:     workos.New(cfg.WorkOSAPIKey, ""),
+		Stripe:     gdprStripe,
+		Resend:     gdprResend,
+		Plain:      gdprPlain,
+		Depot:      gdprDepot,
+	})
+	if err != nil {
+		return fmt.Errorf("create gdpr erasure workflow: %w", err)
+	}
+	restateSrv.Bind(hydrav1.NewGdprErasureWorkflowServer(gdprErasure,
+		restate.WithInactivityTimeout(15*time.Minute),
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(2*time.Second),
+			restate.WithRetryIntervalFactor(2.0),
+			restate.WithMaxRetryInterval(time.Minute),
+			restate.WithMaxRetryAttempts(30),
+			restate.PauseOnMaxAttempts(),
+		),
+	))
 
 	restateSrv.Bind(hydrav1.NewGitHubStatusServiceServer(githubstatus.New(githubstatus.Config{
 		GitHub: ghClient,
