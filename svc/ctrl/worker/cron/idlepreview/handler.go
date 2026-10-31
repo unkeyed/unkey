@@ -13,6 +13,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -32,12 +33,17 @@ type Config struct {
 
 	// Clickhouse stores request telemetry used to decide whether a deployment is idle.
 	Clickhouse clickhouse.ClickHouse
+
+	// Heartbeat is pinged after a successful sweep. Must not be nil; use
+	// healthcheck.NewNoop() if monitoring is not configured
+	Heartbeat healthcheck.Heartbeat
 }
 
 // Handler owns the idle preview deployment scan and stop transition scheduling.
 type Handler struct {
 	db         db.Database
 	clickhouse clickhouse.ClickHouse
+	heartbeat  healthcheck.Heartbeat
 }
 
 // New constructs a Handler with the dependencies required to evaluate preview
@@ -46,12 +52,14 @@ func New(cfg Config) (*Handler, error) {
 	if err := assert.All(
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Clickhouse, "Clickhouse must not be nil; use clickhouse.NewNoop() if unavailable"),
+		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
 	return &Handler{
 		db:         cfg.DB,
 		clickhouse: cfg.Clickhouse,
+		heartbeat:  cfg.Heartbeat,
 	}, nil
 }
 
@@ -59,7 +67,7 @@ func New(cfg Config) (*Handler, error) {
 // traffic within the idle window. Preview environments can accumulate many
 // running deployments from feature branches that are no longer actively used,
 // so this workflow paginates through all preview environments and transitions
-// idle deployments to stopped.
+// idle deployments to stopped, then pings the heartbeat.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunScaleDownIdlePreviewDeploymentsRequest,
@@ -131,6 +139,12 @@ func (h *Handler) Handle(
 				}
 			}
 		}
+	}
+
+	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+		return h.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat")); err != nil {
+		return nil, fmt.Errorf("send heartbeat: %w", err)
 	}
 
 	return &hydrav1.RunScaleDownIdlePreviewDeploymentsResponse{}, nil
