@@ -880,7 +880,8 @@ type Querier interface {
 	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 	//
 	//  SELECT
-	//      dt.desired_status,
+	//      d.desired_state,
+	//      d.status,
 	//      dt.autoscaling_replicas_min,
 	//      dt.autoscaling_replicas_max,
 	//      dt.autoscaling_threshold_cpu,
@@ -2002,6 +2003,7 @@ type Querier interface {
 	InsertWorkspaceBilling(ctx context.Context, arg InsertWorkspaceBillingParams) error
 	// ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
 	// Used by SyncDesiredState to reconcile krane agents with current desired state.
+	// Legacy unsuccessful deployments can retain running intent but must not restart.
 	//
 	//  SELECT
 	//      dt.pk AS topology_pk,
@@ -2009,7 +2011,8 @@ type Querier interface {
 	//      dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
 	//      dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
 	//      dt.autoscaling_threshold_memory AS topology_autoscaling_threshold_memory,
-	//      dt.desired_status AS topology_desired_status,
+	//      d.desired_state AS deployment_desired_state,
+	//      d.status AS deployment_status,
 	//      d.id AS deployment_id,
 	//      d.k8s_name AS deployment_k8s_name,
 	//      d.workspace_id AS deployment_workspace_id,
@@ -2039,7 +2042,8 @@ type Querier interface {
 	//  INNER JOIN `regions` r ON r.id = dt.region_id
 	//  INNER JOIN `environments` e ON e.id = d.environment_id
 	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
-	//  WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+	//  WHERE r.id = ? AND dt.pk > ? AND d.desired_state = 'running'
+	//    AND d.status NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
@@ -2724,7 +2728,7 @@ type Querier interface {
 	//  UPDATE deployments SET desired_state = 'stopped', updated_at = ?
 	//  WHERE environment_id = ?
 	StopDeploymentsByEnvironment(ctx context.Context, arg StopDeploymentsByEnvironmentParams) error
-	//SumAllocatedResourcesByWorkspaceID
+	// Legacy failure can leave running intent after compute has stopped.
 	//
 	//  SELECT
 	//    CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_cpu_millicores`,
@@ -2734,7 +2738,8 @@ type Querier interface {
 	//  JOIN `deployments` d ON d.`id` = dt.`deployment_id`
 	//  WHERE dt.`workspace_id` = ?
 	//    AND dt.`deployment_id` != ?
-	//    AND dt.`desired_status` = 'running'
+	//    AND d.`desired_state` = 'running'
+	//    AND d.`status` NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
 	SumAllocatedResourcesByWorkspaceID(ctx context.Context, arg SumAllocatedResourcesByWorkspaceIDParams) (SumAllocatedResourcesByWorkspaceIDRow, error)
 	//TightenFreeTierApiThrottle
 	//
@@ -2867,11 +2872,20 @@ type Querier interface {
 	//  SET created_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentCreatedAt(ctx context.Context, arg UpdateDeploymentCreatedAtParams) error
-	//UpdateDeploymentDesiredState
+	// UpdateDeploymentDesiredState changes intent and notifies every regional stream
+	// atomically. Advancing topology timestamps preserves repeated stop/wake delivery.
+	// Explicit running intent resets unsuccessful outcomes before readers see it.
 	//
-	//  UPDATE deployments
-	//  SET desired_state = ?, updated_at = ?
-	//  WHERE id = ?
+	//  UPDATE deployments d
+	//  LEFT JOIN deployment_topology dt ON dt.deployment_id = d.id
+	//  SET d.desired_state = ?,
+	//      d.status = CASE
+	//          WHEN ? = 'running' AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped') THEN 'deploying'
+	//          ELSE d.status
+	//      END,
+	//      d.updated_at = ?,
+	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, COALESCE(?, 0))
+	//  WHERE d.id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, arg UpdateDeploymentDesiredStateParams) error
 	//UpdateDeploymentGithubDeploymentId
 	//

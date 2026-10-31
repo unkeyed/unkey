@@ -18,7 +18,8 @@ FROM ` + "`" + `deployment_topology` + "`" + ` dt
 JOIN ` + "`" + `deployments` + "`" + ` d ON d.` + "`" + `id` + "`" + ` = dt.` + "`" + `deployment_id` + "`" + `
 WHERE dt.` + "`" + `workspace_id` + "`" + ` = ?
   AND dt.` + "`" + `deployment_id` + "`" + ` != ?
-  AND dt.` + "`" + `desired_status` + "`" + ` = 'running'
+  AND d.` + "`" + `desired_state` + "`" + ` = 'running'
+  AND d.` + "`" + `status` + "`" + ` NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
 `
 
 type SumAllocatedResourcesByWorkspaceIDParams struct {
@@ -32,7 +33,7 @@ type SumAllocatedResourcesByWorkspaceIDRow struct {
 	TotalStorageMib    int64 `db:"total_storage_mib"`
 }
 
-// SumAllocatedResourcesByWorkspaceID
+// Legacy failure can leave running intent after compute has stopped.
 //
 //	SELECT
 //	  CAST(COALESCE(SUM(d.`cpu_millicores` * dt.`autoscaling_replicas_max`), 0) AS SIGNED) AS `total_cpu_millicores`,
@@ -42,7 +43,8 @@ type SumAllocatedResourcesByWorkspaceIDRow struct {
 //	JOIN `deployments` d ON d.`id` = dt.`deployment_id`
 //	WHERE dt.`workspace_id` = ?
 //	  AND dt.`deployment_id` != ?
-//	  AND dt.`desired_status` = 'running'
+//	  AND d.`desired_state` = 'running'
+//	  AND d.`status` NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
 func (q *Queries) SumAllocatedResourcesByWorkspaceID(ctx context.Context, arg SumAllocatedResourcesByWorkspaceIDParams) (SumAllocatedResourcesByWorkspaceIDRow, error) {
 	row := q.db.QueryRowContext(ctx, sumAllocatedResourcesByWorkspaceID, arg.WorkspaceID, arg.ExcludeDeploymentID)
 	var i SumAllocatedResourcesByWorkspaceIDRow

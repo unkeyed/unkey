@@ -19,7 +19,8 @@ SELECT
     dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
     dt.autoscaling_threshold_memory AS topology_autoscaling_threshold_memory,
-    dt.desired_status AS topology_desired_status,
+    d.desired_state AS deployment_desired_state,
+    d.status AS deployment_status,
     d.id AS deployment_id,
     d.k8s_name AS deployment_k8s_name,
     d.workspace_id AS deployment_workspace_id,
@@ -49,7 +50,8 @@ INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = d.workspace_id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON r.id = dt.region_id
 INNER JOIN ` + "`" + `environments` + "`" + ` e ON e.id = d.environment_id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON grc.app_id = d.app_id
-WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+WHERE r.id = ? AND dt.pk > ? AND d.desired_state = 'running'
+  AND d.status NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
 ORDER BY dt.pk ASC
 LIMIT ?
 `
@@ -61,39 +63,41 @@ type ListAllDeploymentTopologiesByRegionParams struct {
 }
 
 type ListAllDeploymentTopologiesByRegionRow struct {
-	TopologyPk                              uint64                          `db:"topology_pk"`
-	TopologyAutoscalingReplicasMin          uint32                          `db:"topology_autoscaling_replicas_min"`
-	TopologyAutoscalingReplicasMax          uint32                          `db:"topology_autoscaling_replicas_max"`
-	TopologyAutoscalingThresholdCpu         sql.NullInt16                   `db:"topology_autoscaling_threshold_cpu"`
-	TopologyAutoscalingThresholdMemory      sql.NullInt16                   `db:"topology_autoscaling_threshold_memory"`
-	TopologyDesiredStatus                   DeploymentTopologyDesiredStatus `db:"topology_desired_status"`
-	DeploymentID                            string                          `db:"deployment_id"`
-	DeploymentK8sName                       string                          `db:"deployment_k8s_name"`
-	DeploymentWorkspaceID                   string                          `db:"deployment_workspace_id"`
-	DeploymentProjectID                     string                          `db:"deployment_project_id"`
-	DeploymentEnvironmentID                 string                          `db:"deployment_environment_id"`
-	DeploymentAppID                         string                          `db:"deployment_app_id"`
-	DeploymentImageResolved                 sql.NullString                  `db:"deployment_image_resolved"`
-	DeploymentBuildID                       sql.NullString                  `db:"deployment_build_id"`
-	DeploymentGitCommitSha                  sql.NullString                  `db:"deployment_git_commit_sha"`
-	DeploymentGitBranch                     sql.NullString                  `db:"deployment_git_branch"`
-	DeploymentGitCommitMessage              sql.NullString                  `db:"deployment_git_commit_message"`
-	DeploymentCpuMillicores                 int32                           `db:"deployment_cpu_millicores"`
-	DeploymentMemoryMib                     int32                           `db:"deployment_memory_mib"`
-	DeploymentStorageMib                    uint32                          `db:"deployment_storage_mib"`
-	DeploymentEncryptedEnvironmentVariables []byte                          `db:"deployment_encrypted_environment_variables"`
-	DeploymentCommand                       mysqltype.StringSlice           `db:"deployment_command"`
-	DeploymentPort                          int32                           `db:"deployment_port"`
-	DeploymentShutdownSignal                DeploymentsShutdownSignal       `db:"deployment_shutdown_signal"`
-	DeploymentHealthcheck                   mysqltype.NullHealthcheck       `db:"deployment_healthcheck"`
-	K8sNamespace                            string                          `db:"k8s_namespace"`
-	EnvironmentSlug                         string                          `db:"environment_slug"`
-	RegionName                              string                          `db:"region_name"`
-	GitRepo                                 sql.NullString                  `db:"git_repo"`
+	TopologyPk                              uint64                            `db:"topology_pk"`
+	TopologyAutoscalingReplicasMin          uint32                            `db:"topology_autoscaling_replicas_min"`
+	TopologyAutoscalingReplicasMax          uint32                            `db:"topology_autoscaling_replicas_max"`
+	TopologyAutoscalingThresholdCpu         sql.NullInt16                     `db:"topology_autoscaling_threshold_cpu"`
+	TopologyAutoscalingThresholdMemory      sql.NullInt16                     `db:"topology_autoscaling_threshold_memory"`
+	DeploymentDesiredState                  mysqltype.DeploymentsDesiredState `db:"deployment_desired_state"`
+	DeploymentStatus                        mysqltype.DeploymentsStatus       `db:"deployment_status"`
+	DeploymentID                            string                            `db:"deployment_id"`
+	DeploymentK8sName                       string                            `db:"deployment_k8s_name"`
+	DeploymentWorkspaceID                   string                            `db:"deployment_workspace_id"`
+	DeploymentProjectID                     string                            `db:"deployment_project_id"`
+	DeploymentEnvironmentID                 string                            `db:"deployment_environment_id"`
+	DeploymentAppID                         string                            `db:"deployment_app_id"`
+	DeploymentImageResolved                 sql.NullString                    `db:"deployment_image_resolved"`
+	DeploymentBuildID                       sql.NullString                    `db:"deployment_build_id"`
+	DeploymentGitCommitSha                  sql.NullString                    `db:"deployment_git_commit_sha"`
+	DeploymentGitBranch                     sql.NullString                    `db:"deployment_git_branch"`
+	DeploymentGitCommitMessage              sql.NullString                    `db:"deployment_git_commit_message"`
+	DeploymentCpuMillicores                 int32                             `db:"deployment_cpu_millicores"`
+	DeploymentMemoryMib                     int32                             `db:"deployment_memory_mib"`
+	DeploymentStorageMib                    uint32                            `db:"deployment_storage_mib"`
+	DeploymentEncryptedEnvironmentVariables []byte                            `db:"deployment_encrypted_environment_variables"`
+	DeploymentCommand                       mysqltype.StringSlice             `db:"deployment_command"`
+	DeploymentPort                          int32                             `db:"deployment_port"`
+	DeploymentShutdownSignal                DeploymentsShutdownSignal         `db:"deployment_shutdown_signal"`
+	DeploymentHealthcheck                   mysqltype.NullHealthcheck         `db:"deployment_healthcheck"`
+	K8sNamespace                            string                            `db:"k8s_namespace"`
+	EnvironmentSlug                         string                            `db:"environment_slug"`
+	RegionName                              string                            `db:"region_name"`
+	GitRepo                                 sql.NullString                    `db:"git_repo"`
 }
 
 // ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
 // Used by SyncDesiredState to reconcile krane agents with current desired state.
+// Legacy unsuccessful deployments can retain running intent but must not restart.
 //
 //	SELECT
 //	    dt.pk AS topology_pk,
@@ -101,7 +105,8 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	    dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
 //	    dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
 //	    dt.autoscaling_threshold_memory AS topology_autoscaling_threshold_memory,
-//	    dt.desired_status AS topology_desired_status,
+//	    d.desired_state AS deployment_desired_state,
+//	    d.status AS deployment_status,
 //	    d.id AS deployment_id,
 //	    d.k8s_name AS deployment_k8s_name,
 //	    d.workspace_id AS deployment_workspace_id,
@@ -131,7 +136,8 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	INNER JOIN `regions` r ON r.id = dt.region_id
 //	INNER JOIN `environments` e ON e.id = d.environment_id
 //	LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
-//	WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+//	WHERE r.id = ? AND dt.pk > ? AND d.desired_state = 'running'
+//	  AND d.status NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
 //	ORDER BY dt.pk ASC
 //	LIMIT ?
 func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error) {
@@ -149,7 +155,8 @@ func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg L
 			&i.TopologyAutoscalingReplicasMax,
 			&i.TopologyAutoscalingThresholdCpu,
 			&i.TopologyAutoscalingThresholdMemory,
-			&i.TopologyDesiredStatus,
+			&i.DeploymentDesiredState,
+			&i.DeploymentStatus,
 			&i.DeploymentID,
 			&i.DeploymentK8sName,
 			&i.DeploymentWorkspaceID,

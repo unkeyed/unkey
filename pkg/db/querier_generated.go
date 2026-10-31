@@ -1031,7 +1031,8 @@ type Querier interface {
 	//    FROM `deployment_topology` dt
 	//    JOIN `deployments` d ON d.`id` = dt.`deployment_id`
 	//    WHERE dt.`workspace_id` = ?
-	//      AND dt.`desired_status` = 'running'
+	//      AND d.`desired_state` = 'running'
+	//      AND d.`status` NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
 	//    GROUP BY dt.`workspace_id`
 	//  ) a ON a.`workspace_id` = l.`workspace_id`
 	//  WHERE l.`workspace_id` = ?
@@ -4120,11 +4121,20 @@ type Querier interface {
 	//  SET custom_domains_max = ?
 	//  WHERE workspace_id = ?
 	UpdateCustomDomainsMax(ctx context.Context, db DBTX, arg UpdateCustomDomainsMaxParams) error
-	//UpdateDeploymentDesiredState
+	// UpdateDeploymentDesiredState changes intent and notifies every regional stream
+	// atomically. Advancing topology timestamps preserves repeated stop/wake delivery.
+	// Explicit running intent resets unsuccessful outcomes before readers see it.
 	//
-	//  UPDATE deployments
-	//  SET desired_state = ?, updated_at = ?
-	//  WHERE id = ?
+	//  UPDATE deployments d
+	//  LEFT JOIN deployment_topology dt ON dt.deployment_id = d.id
+	//  SET d.desired_state = ?,
+	//      d.status = CASE
+	//          WHEN ? = 'running' AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped') THEN 'deploying'
+	//          ELSE d.status
+	//      END,
+	//      d.updated_at = ?,
+	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, COALESCE(?, 0))
+	//  WHERE d.id = ?
 	UpdateDeploymentDesiredState(ctx context.Context, db DBTX, arg UpdateDeploymentDesiredStateParams) error
 	//UpdateDeploymentImage
 	//
