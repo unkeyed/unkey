@@ -1570,24 +1570,6 @@ type CiliumNetworkPolicy struct {
 	UpdatedAt     sql.NullInt64   `db:"updated_at"`
 }
 
-type CliSession struct {
-	Pk                       uint64          `db:"pk"`
-	ID                       string          `db:"id"`
-	WorkspaceID              string          `db:"workspace_id"`
-	UserID                   string          `db:"user_id"`
-	UserName                 sql.NullString  `db:"user_name"`
-	Permissions              json.RawMessage `db:"permissions"`
-	DeviceName               sql.NullString  `db:"device_name"`
-	RefreshTokenHash         string          `db:"refresh_token_hash"`
-	PreviousRefreshTokenHash sql.NullString  `db:"previous_refresh_token_hash"`
-	RefreshFamily            string          `db:"refresh_family"`
-	RotatedAt                sql.NullInt64   `db:"rotated_at"`
-	CreatedAt                int64           `db:"created_at"`
-	LastUsedAt               int64           `db:"last_used_at"`
-	ExpiresAt                int64           `db:"expires_at"`
-	RevokedAt                sql.NullInt64   `db:"revoked_at"`
-}
-
 type ClickhouseOutbox struct {
 	Pk          uint64          `db:"pk"`
 	Version     string          `db:"version"`
