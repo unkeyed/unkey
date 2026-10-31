@@ -1,4 +1,4 @@
-package clisession
+package devicesession
 
 import (
 	"context"
@@ -117,7 +117,7 @@ func TestResolverBuildsPrincipalFromPermissionsClaim(t *testing.T) {
 	require.Equal(t, fixture.userID, got.Subject.ID)
 	require.Equal(t, fixture.workspaceID, got.AuthorizedWorkspaceID)
 	require.Equal(t, []string{fixture.permission}, got.Permissions)
-	source, ok := got.Source.(principal.CLISessionSource)
+	source, ok := got.Source.(principal.DeviceSessionSource)
 	require.True(t, ok)
 	require.Equal(t, fixture.sessionID, source.SessionID)
 	require.Equal(t, "laptop", source.DeviceName)

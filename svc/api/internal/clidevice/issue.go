@@ -138,7 +138,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			return nil
 		}
 
-		if err := db.Query.InsertCLISession(ctx, tx, db.InsertCLISessionParams{
+		if err := db.Query.InsertUserDeviceSession(ctx, tx, db.InsertUserDeviceSessionParams{
 			ID:               sessionID,
 			WorkspaceID:      workspace.ID,
 			UserID:           locked.ApproverUserID.String,

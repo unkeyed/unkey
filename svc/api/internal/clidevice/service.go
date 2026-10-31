@@ -7,7 +7,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
-	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	"github.com/unkeyed/unkey/pkg/auth/devicesession"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -55,7 +55,7 @@ type Memberships interface {
 	ActiveRoles(ctx context.Context, orgID string, userID string) (roles []string, found bool, err error)
 }
 
-// Service runs device login and CLI sessions.
+// Service runs device login and user device sessions.
 type Service struct {
 	DB               db.Database
 	Auditlogs        auditlogs.AuditLogService
@@ -63,14 +63,14 @@ type Service struct {
 	Ratelimit        ratelimit.Service
 	Memberships      Memberships
 	DashboardBaseURL string
-	Signer           tokenjwt.Signer[clisession.Claims]
+	Signer           tokenjwt.Signer[devicesession.Claims]
 	SessionCache     cache.Cache[string, SessionVerdict]
 }
 
-// SessionVerdict is the cached answer for one CLI session.
+// SessionVerdict is the cached answer for one device session.
 type SessionVerdict struct {
 	Allowed bool
-	Session clisession.Session
+	Session devicesession.Session
 }
 
 // Enabled reports whether login can issue tokens.
@@ -103,7 +103,7 @@ func RequireDashboardSession(p *principal.Principal) (principal.JWTSource, error
 	return source, nil
 }
 
-// RequireUserSession accepts a dashboard session or a CLI access token.
+// RequireUserSession accepts a dashboard session or a device session access token.
 // List and revoke use it. Root keys are rejected.
 func RequireUserSession(p *principal.Principal) error {
 	if _, err := RequireDashboardSession(p); err == nil {
@@ -112,7 +112,7 @@ func RequireUserSession(p *principal.Principal) error {
 	if p == nil {
 		return dashboardSessionRequired()
 	}
-	if _, ok := p.Source.(principal.CLISessionSource); ok && p.Subject.Type == principal.SubjectTypeUser && p.Subject.ID != "" {
+	if _, ok := p.Source.(principal.DeviceSessionSource); ok && p.Subject.Type == principal.SubjectTypeUser && p.Subject.ID != "" {
 		return nil
 	}
 	return dashboardSessionRequired()
@@ -197,7 +197,7 @@ func (s *Service) deleteExpired(ctx context.Context) {
 	if _, err := db.Query.DeleteExpiredDeviceAuthorizations(ctx, s.DB.RW(), cutoff); err != nil {
 		logger.Error("device authorization cleanup failed", "error", err.Error())
 	}
-	if _, err := db.Query.DeleteExpiredCLISessions(ctx, s.DB.RW(), cutoff); err != nil {
-		logger.Error("cli session cleanup failed", "error", err.Error())
+	if _, err := db.Query.DeleteExpiredUserDeviceSessions(ctx, s.DB.RW(), cutoff); err != nil {
+		logger.Error("device session cleanup failed", "error", err.Error())
 	}
 }

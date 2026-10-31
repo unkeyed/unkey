@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// bulkInsertCLISession is the base query for bulk insert
-const bulkInsertCLISession = `INSERT INTO cli_sessions ( id, workspace_id, user_id, user_name, permissions, device_name, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at ) VALUES %s`
+// bulkInsertUserDeviceSession is the base query for bulk insert
+const bulkInsertUserDeviceSession = `INSERT INTO user_device_sessions ( id, workspace_id, user_id, user_name, permissions, device_name, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at ) VALUES %s`
 
-// InsertCLISessions performs bulk insert in a single query
-func (q *BulkQueries) InsertCLISessions(ctx context.Context, db DBTX, args []InsertCLISessionParams) error {
+// InsertUserDeviceSessions performs bulk insert in a single query
+func (q *BulkQueries) InsertUserDeviceSessions(ctx context.Context, db DBTX, args []InsertUserDeviceSessionParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -24,7 +24,7 @@ func (q *BulkQueries) InsertCLISessions(ctx context.Context, db DBTX, args []Ins
 		valueClauses[i] = "( ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ? )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkInsertCLISession, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkInsertUserDeviceSession, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any

@@ -31,7 +31,7 @@ func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (Tokens, erro
 	}
 
 	presented := hashRefreshToken(token)
-	row, err := db.Query.FindCLISessionByRefreshTokenHash(ctx, s.DB.RW(), presented)
+	row, err := db.Query.FindUserDeviceSessionByRefreshTokenHash(ctx, s.DB.RW(), presented)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return s.refreshPreviousToken(ctx, req, presented, family)
@@ -41,7 +41,7 @@ func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (Tokens, erro
 	return s.rotate(ctx, req, row, presented)
 }
 
-func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSession, currentHash string) (Tokens, error) {
+func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.UserDeviceSession, currentHash string) (Tokens, error) {
 	if row.RevokedAt.Valid || row.ExpiresAt <= s.Clock.Now().UnixMilli() {
 		return Tokens{}, unauthenticated("This CLI session is no longer valid. Run unkey login again.")
 	}
@@ -96,7 +96,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 
 	var tokens Tokens
 	err = db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		n, err := db.Query.RotateCLISessionRefreshToken(ctx, tx, db.RotateCLISessionRefreshTokenParams{
+		n, err := db.Query.RotateUserDeviceSessionRefreshToken(ctx, tx, db.RotateUserDeviceSessionRefreshTokenParams{
 			RefreshTokenHash: hashRefreshToken(next),
 			PreviousRefreshTokenHash: sql.NullString{
 				String: currentHash,
@@ -158,7 +158,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.CliSess
 }
 
 func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, presented string, family string) (Tokens, error) {
-	row, err := db.Query.FindCLISessionByPreviousRefreshTokenHash(ctx, s.DB.RW(), sql.NullString{
+	row, err := db.Query.FindUserDeviceSessionByPreviousRefreshTokenHash(ctx, s.DB.RW(), sql.NullString{
 		String: presented,
 		Valid:  true,
 	})
@@ -185,7 +185,7 @@ func (s *Service) refreshPreviousToken(ctx context.Context, req RefreshRequest, 
 // nor the previous one. If its family still has a live session, the token was
 // rotated away more than once, so it is reuse and the family is revoked.
 func (s *Service) refreshOlderToken(ctx context.Context, family string) error {
-	row, err := db.Query.FindUnrevokedCLISessionByRefreshFamily(ctx, s.DB.RW(), family)
+	row, err := db.Query.FindUnrevokedUserDeviceSessionByRefreshFamily(ctx, s.DB.RW(), family)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return invalidRefreshToken()
@@ -214,8 +214,8 @@ func refreshReuseAllowed(rotatedAt sql.NullInt64, now int64) bool {
 	return age >= 0 && age <= refreshReuseGrace.Milliseconds()
 }
 
-func (s *Service) endSession(ctx context.Context, row db.CliSession) error {
-	if _, err := db.Query.RevokeCLISessionFamily(ctx, s.DB.RW(), db.RevokeCLISessionFamilyParams{
+func (s *Service) endSession(ctx context.Context, row db.UserDeviceSession) error {
+	if _, err := db.Query.RevokeUserDeviceSessionFamily(ctx, s.DB.RW(), db.RevokeUserDeviceSessionFamilyParams{
 		RevokedAt: sql.NullInt64{
 			Int64: s.Clock.Now().UnixMilli(),
 			Valid: true,

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/auditlog"
-	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	"github.com/unkeyed/unkey/pkg/auth/devicesession"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -17,29 +17,29 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
 )
 
-// Allow reports whether a CLI session may authenticate a request.
-func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Session, error) {
+// Allow reports whether a device session may authenticate a request.
+func (s *Service) Allow(ctx context.Context, sessionID string) (devicesession.Session, error) {
 	if verdict, hit := s.SessionCache.Get(ctx, sessionID); hit == cache.Hit {
 		if !verdict.Allowed {
-			return clisession.Session{}, clisession.ErrInactive
+			return devicesession.Session{}, devicesession.ErrInactive
 		}
 		return verdict.Session, nil
 	}
 
-	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), sessionID)
+	row, err := db.Query.FindUserDeviceSessionByID(ctx, s.DB.RW(), sessionID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			var inactive clisession.Session
+			var inactive devicesession.Session
 			s.SessionCache.Set(ctx, sessionID, SessionVerdict{
 				Allowed: false,
 				Session: inactive,
 			})
-			return clisession.Session{}, clisession.ErrInactive
+			return devicesession.Session{}, devicesession.ErrInactive
 		}
-		return clisession.Session{}, err
+		return devicesession.Session{}, err
 	}
 
-	session := clisession.Session{
+	session := devicesession.Session{
 		UserID:      row.UserID,
 		WorkspaceID: row.WorkspaceID,
 		DeviceName:  row.DeviceName.String,
@@ -49,7 +49,7 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 	if active {
 		workspace, err := db.Query.FindWorkspaceByID(ctx, s.DB.RO(), row.WorkspaceID)
 		if err != nil && !db.IsNotFound(err) {
-			return clisession.Session{}, err
+			return devicesession.Session{}, err
 		}
 		active = err == nil && workspaceUsable(workspace)
 	}
@@ -59,7 +59,7 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		Session: session,
 	})
 	if !active {
-		return clisession.Session{}, clisession.ErrInactive
+		return devicesession.Session{}, devicesession.ErrInactive
 	}
 	return session, nil
 }
@@ -74,18 +74,18 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		return err
 	}
 
-	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), strings.TrimSpace(req.SessionID))
+	row, err := db.Query.FindUserDeviceSessionByID(ctx, s.DB.RW(), strings.TrimSpace(req.SessionID))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return invalid("This CLI session was not found.")
+			return invalid("This session was not found.")
 		}
 		return err
 	}
 	if row.WorkspaceID != req.Principal.AuthorizedWorkspaceID {
-		return invalid("This CLI session was not found.")
+		return invalid("This session was not found.")
 	}
 	if row.UserID != req.Principal.Subject.ID && !isAdmin(req.Principal) {
-		return forbidden("You can only revoke your own CLI sessions.")
+		return forbidden("You can only revoke your own sessions.")
 	}
 	if row.RevokedAt.Valid {
 		s.SessionCache.Remove(ctx, row.ID)
@@ -93,7 +93,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 	}
 
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		n, err := db.Query.RevokeCLISession(ctx, tx, db.RevokeCLISessionParams{
+		n, err := db.Query.RevokeUserDeviceSession(ctx, tx, db.RevokeUserDeviceSessionParams{
 			RevokedAt: sql.NullInt64{
 				Int64: s.Clock.Now().UnixMilli(),
 				Valid: true,
@@ -142,16 +142,16 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 		return nil, err
 	}
 
-	var rows []db.CliSession
+	var rows []db.UserDeviceSession
 	var err error
 	now := s.Clock.Now().UnixMilli()
 	if isAdmin(req.Principal) {
-		rows, err = db.Query.ListCLISessionsByWorkspace(ctx, s.DB.RO(), db.ListCLISessionsByWorkspaceParams{
+		rows, err = db.Query.ListUserDeviceSessionsByWorkspace(ctx, s.DB.RO(), db.ListUserDeviceSessionsByWorkspaceParams{
 			WorkspaceID: req.Principal.AuthorizedWorkspaceID,
 			Now:         now,
 		})
 	} else {
-		rows, err = db.Query.ListCLISessionsByUser(ctx, s.DB.RO(), db.ListCLISessionsByUserParams{
+		rows, err = db.Query.ListUserDeviceSessionsByUser(ctx, s.DB.RO(), db.ListUserDeviceSessionsByUserParams{
 			WorkspaceID: req.Principal.AuthorizedWorkspaceID,
 			UserID:      req.Principal.Subject.ID,
 			Now:         now,

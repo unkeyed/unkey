@@ -113,7 +113,7 @@ func TestAuthorizeAllowsEveryAuthenticationMethod(t *testing.T) {
 	}{
 		{"api key", TypeAPIKey, KeySource{}},
 		{"jwt", TypeJWT, JWTSource{}},
-		{"cli session", TypeJWT, CLISessionSource{}},
+		{"device session", TypeJWT, DeviceSessionSource{}},
 		{"portal", TypePortalSession, PortalSessionSource{}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

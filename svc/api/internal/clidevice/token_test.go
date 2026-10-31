@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	"github.com/unkeyed/unkey/pkg/auth/devicesession"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -51,7 +51,7 @@ func TestRefreshTokenFamilyRejectsMalformedTokens(t *testing.T) {
 }
 
 func TestRefreshRejectsMalformedTokenWithoutRevoking(t *testing.T) {
-	signer, err := tokenjwt.NewHS256Signer[clisession.Claims]([]byte(testSecret))
+	signer, err := tokenjwt.NewHS256Signer[devicesession.Claims]([]byte(testSecret))
 	require.NoError(t, err)
 	svc := &Service{
 		Clock:            clock.NewTestClock(),

@@ -51,7 +51,7 @@ func FromPrincipal(p *principal.Principal) Actor {
 	if _, ok := p.Source.(principal.PortalSessionSource); ok {
 		actor.Type = auditlog.PortalEndUserActor
 	}
-	if source, ok := p.Source.(principal.CLISessionSource); ok {
+	if source, ok := p.Source.(principal.DeviceSessionSource); ok {
 		actor.Meta["via"] = "cli"
 		actor.Meta["session_id"] = source.SessionID
 		actor.Meta["device"] = source.DeviceName

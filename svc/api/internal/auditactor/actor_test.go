@@ -13,7 +13,7 @@ func TestFromPrincipalRecordsCLISessionMeta(t *testing.T) {
 	sessionID := uid.New(uid.CLISessionPrefix)
 	actor := FromPrincipal(&principal.Principal{
 		Subject: principal.Subject{ID: userID, Name: "Ada", Type: principal.SubjectTypeUser},
-		Source:  principal.CLISessionSource{SessionID: sessionID, DeviceName: "laptop"},
+		Source:  principal.DeviceSessionSource{SessionID: sessionID, DeviceName: "laptop"},
 	})
 	require.Equal(t, "user", string(actor.Type))
 	require.Equal(t, userID, actor.ID)

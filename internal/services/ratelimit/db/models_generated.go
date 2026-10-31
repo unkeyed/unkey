@@ -1745,18 +1745,20 @@ type EncryptedKey struct {
 }
 
 type Environment struct {
-	Pk               uint64           `db:"pk"`
-	ID               string           `db:"id"`
-	WorkspaceID      string           `db:"workspace_id"`
-	ProjectID        string           `db:"project_id"`
-	AppID            string           `db:"app_id"`
-	Slug             string           `db:"slug"`
-	Description      string           `db:"description"`
-	Kind             EnvironmentsKind `db:"kind"`
-	DeleteProtection sql.NullBool     `db:"delete_protection"`
-	CreatedAt        int64            `db:"created_at"`
-	UpdatedAt        sql.NullInt64    `db:"updated_at"`
-	DeletedAt        sql.NullInt64    `db:"deleted_at"`
+	Pk                  uint64           `db:"pk"`
+	ID                  string           `db:"id"`
+	WorkspaceID         string           `db:"workspace_id"`
+	ProjectID           string           `db:"project_id"`
+	AppID               string           `db:"app_id"`
+	Slug                string           `db:"slug"`
+	Description         string           `db:"description"`
+	Kind                EnvironmentsKind `db:"kind"`
+	CurrentDeploymentID sql.NullString   `db:"current_deployment_id"`
+	IsRolledBack        bool             `db:"is_rolled_back"`
+	DeleteProtection    sql.NullBool     `db:"delete_protection"`
+	CreatedAt           int64            `db:"created_at"`
+	UpdatedAt           sql.NullInt64    `db:"updated_at"`
+	DeletedAt           sql.NullInt64    `db:"deleted_at"`
 }
 
 type Flag struct {
@@ -2164,6 +2166,24 @@ type UnkeyRootKey struct {
 	CreatedAt   int64           `db:"created_at"`
 	LastUsedAt  uint64          `db:"last_used_at"`
 	DeletedAt   sql.NullInt64   `db:"deleted_at"`
+}
+
+type UserDeviceSession struct {
+	Pk                       uint64          `db:"pk"`
+	ID                       string          `db:"id"`
+	WorkspaceID              string          `db:"workspace_id"`
+	UserID                   string          `db:"user_id"`
+	UserName                 sql.NullString  `db:"user_name"`
+	Permissions              json.RawMessage `db:"permissions"`
+	DeviceName               sql.NullString  `db:"device_name"`
+	RefreshTokenHash         string          `db:"refresh_token_hash"`
+	PreviousRefreshTokenHash sql.NullString  `db:"previous_refresh_token_hash"`
+	RefreshFamily            string          `db:"refresh_family"`
+	RotatedAt                sql.NullInt64   `db:"rotated_at"`
+	CreatedAt                int64           `db:"created_at"`
+	LastUsedAt               int64           `db:"last_used_at"`
+	ExpiresAt                int64           `db:"expires_at"`
+	RevokedAt                sql.NullInt64   `db:"revoked_at"`
 }
 
 type Workspace struct {

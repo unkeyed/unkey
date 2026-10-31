@@ -51,7 +51,7 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	sessionID := uid.New(uid.TestPrefix)
 	refreshHash := uid.New(uid.TestPrefix, 32)
-	require.NoError(t, Query.InsertCLISession(ctx, database.RW(), InsertCLISessionParams{
+	require.NoError(t, Query.InsertUserDeviceSession(ctx, database.RW(), InsertUserDeviceSessionParams{
 		ID:               sessionID,
 		WorkspaceID:      stored.WorkspaceID.String,
 		UserID:           stored.ApproverUserID.String,
@@ -68,7 +68,7 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 	rotatedPermissions, err := json.Marshal([]string{"api.*.read_api", "api.*.read_key"})
 	require.NoError(t, err)
 	nextHash := uid.New(uid.TestPrefix, 32)
-	rotated, err := Query.RotateCLISessionRefreshToken(ctx, database.RW(), RotateCLISessionRefreshTokenParams{
+	rotated, err := Query.RotateUserDeviceSessionRefreshToken(ctx, database.RW(), RotateUserDeviceSessionRefreshTokenParams{
 		RefreshTokenHash:         nextHash,
 		PreviousRefreshTokenHash: sql.NullString{String: refreshHash, Valid: true},
 		RotatedAt:                sql.NullInt64{Int64: now, Valid: true},
@@ -81,7 +81,7 @@ func TestDeviceAuthorizationJSONRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), rotated)
 
-	session, err := Query.FindCLISessionByID(ctx, database.RO(), sessionID)
+	session, err := Query.FindUserDeviceSessionByID(ctx, database.RO(), sessionID)
 	require.NoError(t, err)
 	requireJSONStrings(t, session.Permissions, []string{"api.*.read_api", "api.*.read_key"})
 	require.Equal(t, sql.NullString{String: "Ada", Valid: true}, session.UserName)
@@ -142,9 +142,9 @@ func TestDeviceAuthorizationStatusTransitions(t *testing.T) {
 	require.Equal(t, DeviceAuthorizationsStatusExpired, stored.Status)
 }
 
-// TestListCLISessionsReturnsActiveRows guarantees that workspace and user
+// TestListUserDeviceSessionsReturnsActiveRows guarantees that workspace and user
 // lists omit revoked and idle-expired sessions.
-func TestListCLISessionsReturnsActiveRows(t *testing.T) {
+func TestListUserDeviceSessionsReturnsActiveRows(t *testing.T) {
 	skipWithoutDatabase(t)
 	ctx := context.Background()
 	database := openCLILoginDB(t, containers.MySQL(t))
@@ -153,32 +153,32 @@ func TestListCLISessionsReturnsActiveRows(t *testing.T) {
 	userID := uid.New(uid.TestPrefix)
 	otherUserID := uid.New(uid.TestPrefix)
 
-	active := insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	active := insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID: workspaceID,
 		UserID:      userID,
 		CreatedAt:   now,
 		ExpiresAt:   now + time.Hour.Milliseconds(),
 	})
-	revoked := insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	revoked := insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID: workspaceID,
 		UserID:      userID,
 		CreatedAt:   now - time.Minute.Milliseconds(),
 		ExpiresAt:   now + time.Hour.Milliseconds(),
 	})
-	idle := insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	idle := insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID: workspaceID,
 		UserID:      userID,
 		CreatedAt:   now - 2*time.Minute.Milliseconds(),
 		ExpiresAt:   now - time.Minute.Milliseconds(),
 	})
-	other := insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	other := insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID: workspaceID,
 		UserID:      otherUserID,
 		CreatedAt:   now - 3*time.Minute.Milliseconds(),
 		ExpiresAt:   now + time.Hour.Milliseconds(),
 	})
 
-	revokedRows, err := Query.RevokeCLISession(ctx, database.RW(), RevokeCLISessionParams{
+	revokedRows, err := Query.RevokeUserDeviceSession(ctx, database.RW(), RevokeUserDeviceSessionParams{
 		RevokedAt:   sql.NullInt64{Int64: now, Valid: true},
 		ID:          revoked.ID,
 		WorkspaceID: workspaceID,
@@ -186,7 +186,7 @@ func TestListCLISessionsReturnsActiveRows(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), revokedRows)
 
-	byUser, err := Query.ListCLISessionsByUser(ctx, database.RO(), ListCLISessionsByUserParams{
+	byUser, err := Query.ListUserDeviceSessionsByUser(ctx, database.RO(), ListUserDeviceSessionsByUserParams{
 		WorkspaceID: workspaceID,
 		UserID:      userID,
 		Now:         now,
@@ -194,7 +194,7 @@ func TestListCLISessionsReturnsActiveRows(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{active.ID}, sessionIDs(byUser))
 
-	byWorkspace, err := Query.ListCLISessionsByWorkspace(ctx, database.RO(), ListCLISessionsByWorkspaceParams{
+	byWorkspace, err := Query.ListUserDeviceSessionsByWorkspace(ctx, database.RO(), ListUserDeviceSessionsByWorkspaceParams{
 		WorkspaceID: workspaceID,
 		Now:         now,
 	})
@@ -204,9 +204,9 @@ func TestListCLISessionsReturnsActiveRows(t *testing.T) {
 	require.NotContains(t, sessionIDs(byWorkspace), revoked.ID)
 }
 
-// TestRevokeCLISessionFamilyReturnsAffectedRows guarantees that reuse
+// TestRevokeUserDeviceSessionFamilyReturnsAffectedRows guarantees that reuse
 // detection can observe how many sessions in the family were revoked.
-func TestRevokeCLISessionFamilyReturnsAffectedRows(t *testing.T) {
+func TestRevokeUserDeviceSessionFamilyReturnsAffectedRows(t *testing.T) {
 	skipWithoutDatabase(t)
 	ctx := context.Background()
 	database := openCLILoginDB(t, containers.MySQL(t))
@@ -214,35 +214,35 @@ func TestRevokeCLISessionFamilyReturnsAffectedRows(t *testing.T) {
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	family := uid.New(uid.TestPrefix, 20)
 
-	insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID:   workspaceID,
 		UserID:        uid.New(uid.TestPrefix),
 		RefreshFamily: family,
 		CreatedAt:     now,
 		ExpiresAt:     now + time.Hour.Milliseconds(),
 	})
-	insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID:   workspaceID,
 		UserID:        uid.New(uid.TestPrefix),
 		RefreshFamily: family,
 		CreatedAt:     now,
 		ExpiresAt:     now + time.Hour.Milliseconds(),
 	})
-	insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID: workspaceID,
 		UserID:      uid.New(uid.TestPrefix),
 		CreatedAt:   now,
 		ExpiresAt:   now + time.Hour.Milliseconds(),
 	})
 
-	revoked, err := Query.RevokeCLISessionFamily(ctx, database.RW(), RevokeCLISessionFamilyParams{
+	revoked, err := Query.RevokeUserDeviceSessionFamily(ctx, database.RW(), RevokeUserDeviceSessionFamilyParams{
 		RevokedAt:     sql.NullInt64{Int64: now, Valid: true},
 		RefreshFamily: family,
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(2), revoked)
 
-	again, err := Query.RevokeCLISessionFamily(ctx, database.RW(), RevokeCLISessionFamilyParams{
+	again, err := Query.RevokeUserDeviceSessionFamily(ctx, database.RW(), RevokeUserDeviceSessionFamilyParams{
 		RevokedAt:     sql.NullInt64{Int64: now, Valid: true},
 		RefreshFamily: family,
 	})
@@ -250,16 +250,16 @@ func TestRevokeCLISessionFamilyReturnsAffectedRows(t *testing.T) {
 	require.Equal(t, int64(0), again)
 }
 
-// TestFindUnrevokedCLISessionByRefreshFamily guarantees that refresh reuse
+// TestFindUnrevokedUserDeviceSessionByRefreshFamily guarantees that refresh reuse
 // detection finds a live session by family and ignores a revoked one.
-func TestFindUnrevokedCLISessionByRefreshFamily(t *testing.T) {
+func TestFindUnrevokedUserDeviceSessionByRefreshFamily(t *testing.T) {
 	skipWithoutDatabase(t)
 	ctx := context.Background()
 	database := openCLILoginDB(t, containers.MySQL(t))
 	now := time.Now().UnixMilli()
 	family := uid.New(uid.TestPrefix, 20)
 
-	session := insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	session := insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID:   uid.New(uid.WorkspacePrefix),
 		UserID:        uid.New(uid.TestPrefix),
 		RefreshFamily: family,
@@ -267,54 +267,54 @@ func TestFindUnrevokedCLISessionByRefreshFamily(t *testing.T) {
 		ExpiresAt:     now + time.Hour.Milliseconds(),
 	})
 
-	found, err := Query.FindUnrevokedCLISessionByRefreshFamily(ctx, database.RW(), family)
+	found, err := Query.FindUnrevokedUserDeviceSessionByRefreshFamily(ctx, database.RW(), family)
 	require.NoError(t, err)
 	require.Equal(t, session.ID, found.ID)
 
-	_, err = Query.FindUnrevokedCLISessionByRefreshFamily(ctx, database.RW(), uid.New(uid.TestPrefix, 20))
+	_, err = Query.FindUnrevokedUserDeviceSessionByRefreshFamily(ctx, database.RW(), uid.New(uid.TestPrefix, 20))
 	require.True(t, IsNotFound(err))
 
-	revoked, err := Query.RevokeCLISessionFamily(ctx, database.RW(), RevokeCLISessionFamilyParams{
+	revoked, err := Query.RevokeUserDeviceSessionFamily(ctx, database.RW(), RevokeUserDeviceSessionFamilyParams{
 		RevokedAt:     sql.NullInt64{Int64: now, Valid: true},
 		RefreshFamily: family,
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), revoked)
 
-	_, err = Query.FindUnrevokedCLISessionByRefreshFamily(ctx, database.RW(), family)
+	_, err = Query.FindUnrevokedUserDeviceSessionByRefreshFamily(ctx, database.RW(), family)
 	require.True(t, IsNotFound(err))
 }
 
-// TestDeleteExpiredCLISessionsRemovesOnlyExpiredRows guarantees that idle
+// TestDeleteExpiredUserDeviceSessionsRemovesOnlyExpiredRows guarantees that idle
 // sessions past the cutoff are deleted and a session that is still live is
 // left in place.
-func TestDeleteExpiredCLISessionsRemovesOnlyExpiredRows(t *testing.T) {
+func TestDeleteExpiredUserDeviceSessionsRemovesOnlyExpiredRows(t *testing.T) {
 	skipWithoutDatabase(t)
 	ctx := context.Background()
 	database := openCLILoginDB(t, containers.MySQLLogicalIsolated(t))
 	now := time.Now().UnixMilli()
 	workspaceID := uid.New(uid.WorkspacePrefix)
 
-	expired := insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	expired := insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID: workspaceID,
 		UserID:      uid.New(uid.TestPrefix),
 		CreatedAt:   now - time.Hour.Milliseconds(),
 		ExpiresAt:   now - time.Minute.Milliseconds(),
 	})
-	live := insertActiveCLISession(t, ctx, database, cliSessionFixture{
+	live := insertActiveUserDeviceSession(t, ctx, database, userDeviceSessionFixture{
 		WorkspaceID: workspaceID,
 		UserID:      uid.New(uid.TestPrefix),
 		CreatedAt:   now,
 		ExpiresAt:   now + time.Hour.Milliseconds(),
 	})
 
-	deleted, err := Query.DeleteExpiredCLISessions(ctx, database.RW(), now)
+	deleted, err := Query.DeleteExpiredUserDeviceSessions(ctx, database.RW(), now)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), deleted)
 
-	_, err = Query.FindCLISessionByID(ctx, database.RW(), expired.ID)
+	_, err = Query.FindUserDeviceSessionByID(ctx, database.RW(), expired.ID)
 	require.True(t, IsNotFound(err))
-	_, err = Query.FindCLISessionByID(ctx, database.RW(), live.ID)
+	_, err = Query.FindUserDeviceSessionByID(ctx, database.RW(), live.ID)
 	require.NoError(t, err)
 }
 
@@ -378,7 +378,7 @@ func approvePendingAuthorization(t *testing.T, ctx context.Context, database *da
 	return n
 }
 
-type cliSessionFixture struct {
+type userDeviceSessionFixture struct {
 	WorkspaceID   string
 	UserID        string
 	RefreshFamily string
@@ -386,7 +386,7 @@ type cliSessionFixture struct {
 	ExpiresAt     int64
 }
 
-func insertActiveCLISession(t *testing.T, ctx context.Context, database *database, fixture cliSessionFixture) CliSession {
+func insertActiveUserDeviceSession(t *testing.T, ctx context.Context, database *database, fixture userDeviceSessionFixture) UserDeviceSession {
 	t.Helper()
 	permissions, err := json.Marshal([]string{"api.*.read_api"})
 	require.NoError(t, err)
@@ -395,7 +395,7 @@ func insertActiveCLISession(t *testing.T, ctx context.Context, database *databas
 		family = uid.New(uid.TestPrefix, 20)
 	}
 	id := uid.New(uid.TestPrefix)
-	require.NoError(t, Query.InsertCLISession(ctx, database.RW(), InsertCLISessionParams{
+	require.NoError(t, Query.InsertUserDeviceSession(ctx, database.RW(), InsertUserDeviceSessionParams{
 		ID:               id,
 		WorkspaceID:      fixture.WorkspaceID,
 		UserID:           fixture.UserID,
@@ -407,7 +407,7 @@ func insertActiveCLISession(t *testing.T, ctx context.Context, database *databas
 		LastUsedAt:       fixture.CreatedAt,
 		ExpiresAt:        fixture.ExpiresAt,
 	}))
-	row, err := Query.FindCLISessionByID(ctx, database.RW(), id)
+	row, err := Query.FindUserDeviceSessionByID(ctx, database.RW(), id)
 	require.NoError(t, err)
 	return row
 }
@@ -419,7 +419,7 @@ func requireJSONStrings(t *testing.T, raw []byte, want []string) {
 	require.Equal(t, want, got)
 }
 
-func sessionIDs(rows []CliSession) []string {
+func sessionIDs(rows []UserDeviceSession) []string {
 	ids := make([]string, 0, len(rows))
 	for _, row := range rows {
 		ids = append(ids, row.ID)

@@ -14,7 +14,6 @@ type BulkQuerier interface {
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
 	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsPolicyConfigParams) error
 	InsertAppSourceOcis(ctx context.Context, db DBTX, args []InsertAppSourceOciParams) error
-	InsertCLISessions(ctx context.Context, db DBTX, args []InsertCLISessionParams) error
 	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
@@ -56,6 +55,7 @@ type BulkQuerier interface {
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
 	InsertUnkeyPermissions(ctx context.Context, db DBTX, args []InsertUnkeyPermissionParams) error
 	InsertUnkeyRootKeys(ctx context.Context, db DBTX, args []InsertUnkeyRootKeyParams) error
+	InsertUserDeviceSessions(ctx context.Context, db DBTX, args []InsertUserDeviceSessionParams) error
 	UpsertWorkspaceBillingPlanOverride(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingPlanOverrideParams) error
 	UpsertWorkspaceBillingSpendSuspended(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingSpendSuspendedParams) error
 	UpsertWorkspaceFlagOverride(ctx context.Context, db DBTX, args []UpsertWorkspaceFlagOverrideParams) error

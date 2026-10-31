@@ -3,7 +3,7 @@ package clidevice
 import (
 	"strings"
 
-	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	"github.com/unkeyed/unkey/pkg/auth/devicesession"
 	"github.com/unkeyed/unkey/pkg/hash"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -55,11 +55,11 @@ func hashRefreshToken(token string) string {
 
 func (s *Service) signAccessToken(userID string, name string, workspaceID string, sessionID string, device string, permissions []string) (string, error) {
 	now := s.Clock.Now()
-	return s.Signer.Sign(clisession.Claims{
+	return s.Signer.Sign(devicesession.Claims{
 		RegisteredClaims: tokenjwt.RegisteredClaims{
-			Issuer:    clisession.Issuer,
+			Issuer:    devicesession.Issuer,
 			Subject:   userID,
-			Audience:  []string{clisession.Audience},
+			Audience:  []string{devicesession.Audience},
 			ExpiresAt: now.Add(accessTTL).Unix(),
 			NotBefore: 0,
 			IssuedAt:  now.Unix(),
@@ -68,7 +68,7 @@ func (s *Service) signAccessToken(userID string, name string, workspaceID string
 		WorkspaceID: workspaceID,
 		SessionID:   sessionID,
 		Permissions: permissions,
-		TokenUse:    clisession.TokenUse,
+		TokenUse:    devicesession.TokenUse,
 		Name:        name,
 		Device:      device,
 	})

@@ -125,7 +125,7 @@ func TestCLISessionBoundsRootKeyLifetime(t *testing.T) {
 			ID:   "user_cli",
 			Type: principal.SubjectTypeUser,
 		},
-		Source: principal.CLISessionSource{
+		Source: principal.DeviceSessionSource{
 			SessionID:  "clis_test",
 			DeviceName: "laptop",
 			ExpiresAt:  expires,

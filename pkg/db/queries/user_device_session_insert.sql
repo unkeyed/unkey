@@ -1,5 +1,5 @@
--- name: InsertCLISession :exec
-INSERT INTO cli_sessions (
+-- name: InsertUserDeviceSession :exec
+INSERT INTO user_device_sessions (
     id,
     workspace_id,
     user_id,

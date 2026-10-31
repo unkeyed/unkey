@@ -4,7 +4,7 @@ package clidevicetest
 import (
 	"context"
 
-	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	"github.com/unkeyed/unkey/pkg/auth/devicesession"
 	"github.com/unkeyed/unkey/pkg/cache"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
@@ -21,7 +21,7 @@ func (allowAdmin) ActiveRoles(context.Context, string, string) ([]string, bool, 
 
 // New returns a service that treats every user as an admin member.
 func New(h *testutil.Harness) *clidevice.Service {
-	signer, err := tokenjwt.NewHS256Signer[clisession.Claims]([]byte(signingSecret))
+	signer, err := tokenjwt.NewHS256Signer[devicesession.Claims]([]byte(signingSecret))
 	if err != nil {
 		panic(err)
 	}

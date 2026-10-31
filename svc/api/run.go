@@ -29,7 +29,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
-	clisession "github.com/unkeyed/unkey/pkg/auth/clisession"
+	devicesession "github.com/unkeyed/unkey/pkg/auth/devicesession"
 	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	portalsession "github.com/unkeyed/unkey/pkg/auth/portal_session"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
@@ -455,9 +455,9 @@ func Run(ctx context.Context, cfg Config) error {
 		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
 	}
 	if len(cliSecrets) > 0 {
-		cliSigner, signErr := tokenjwt.NewHS256Signer[clisession.Claims](cliSecrets[0])
+		cliSigner, signErr := tokenjwt.NewHS256Signer[devicesession.Claims](cliSecrets[0])
 		if signErr != nil {
-			return fmt.Errorf("unable to create cli access token signer: %w", signErr)
+			return fmt.Errorf("unable to create device session token signer: %w", signErr)
 		}
 		cliService.Signer = cliSigner
 		sessionCache, cacheErr := cache.New[string, clidevice.SessionVerdict](cache.Config[string, clidevice.SessionVerdict]{
@@ -469,12 +469,12 @@ func Run(ctx context.Context, cfg Config) error {
 			Scheduler: nil,
 		})
 		if cacheErr != nil {
-			return fmt.Errorf("unable to create cli session cache: %w", cacheErr)
+			return fmt.Errorf("unable to create device session cache: %w", cacheErr)
 		}
 		cliService.SessionCache = sessionCache
-		cliResolver, cliErr := clisession.NewResolver(cliService, clk, cliSecrets...)
+		cliResolver, cliErr := devicesession.NewResolver(cliService, clk, cliSecrets...)
 		if cliErr != nil {
-			return fmt.Errorf("unable to create cli session resolver: %w", cliErr)
+			return fmt.Errorf("unable to create device session resolver: %w", cliErr)
 		}
 		authResolvers = append(authResolvers, cliResolver)
 	}

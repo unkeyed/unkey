@@ -1,4 +1,4 @@
-package clisession
+package devicesession
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 )
 
 // ErrInactive means the session row is missing, revoked, or expired.
-var ErrInactive = errors.New("cli session is not active")
+var ErrInactive = errors.New("device session is not active")
 
 // Session is the non-secret state a resolver needs from the session row.
 type Session struct {
@@ -37,20 +37,20 @@ type Sessions interface {
 	Allow(ctx context.Context, sessionID string) (Session, error)
 }
 
-// Resolver authenticates CLI access tokens into user principals.
+// Resolver authenticates device session access tokens into user principals.
 type Resolver struct {
 	verifiers []tokenjwt.Verifier[Claims]
 	sessions  Sessions
 }
 
-// NewResolver verifies CLI access tokens with any of the configured secrets.
+// NewResolver verifies device session access tokens with any of the configured secrets.
 // The first secret is the one the API signs with. Later secrets verify tokens
 // signed before a rotation.
 func NewResolver(sessions Sessions, clk clock.Clock, secrets ...[]byte) (*Resolver, error) {
 	if err := assert.All(
-		assert.NotNil(sessions, "cli session lookup is required"),
+		assert.NotNil(sessions, "device session lookup is required"),
 		assert.NotNil(clk, "clock is required"),
-		assert.Greater(len(secrets), 0, "at least one CLI signing secret is required"),
+		assert.Greater(len(secrets), 0, "at least one device session signing secret is required"),
 	); err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func NewResolver(sessions Sessions, clk clock.Clock, secrets ...[]byte) (*Resolv
 		)
 		if err != nil {
 			return nil, fault.Wrap(err,
-				fault.Internal(fmt.Sprintf("create cli verifier for secret %d", i)),
+				fault.Internal(fmt.Sprintf("create device session verifier for secret %d", i)),
 			)
 		}
 
@@ -77,7 +77,7 @@ func NewResolver(sessions Sessions, clk clock.Clock, secrets ...[]byte) (*Resolv
 	}, nil
 }
 
-// Resolve claims CLI access tokens and leaves every other bearer for later resolvers.
+// Resolve claims device session access tokens and leaves every other bearer for later resolvers.
 func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
 	token, err := zen.Bearer(sess)
 	if err != nil || tokenUse(token) != TokenUse {
@@ -88,16 +88,16 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	if err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
-			fault.Internal("failed to verify cli access token"),
+			fault.Internal("failed to verify device session access token"),
 			fault.Public("Invalid bearer token."),
 		)
 	}
 
 	if claims.Subject == "" || claims.SessionID == "" ||
 		claims.WorkspaceID == "" || len(claims.Permissions) == 0 {
-		return nil, fault.New("invalid cli access token",
+		return nil, fault.New("invalid device session access token",
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
-			fault.Internal("cli token is missing subject, session, workspace, or permissions"),
+			fault.Internal("device session token is missing subject, session, workspace, or permissions"),
 			fault.Public("Invalid bearer token."),
 		)
 	}
@@ -107,22 +107,22 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		if errors.Is(err, ErrInactive) {
 			return nil, fault.Wrap(err,
 				fault.Code(codes.Auth.Authentication.Malformed.URN()),
-				fault.Internal("cli session is revoked, expired, or unknown"),
-				fault.Public("This CLI session is no longer valid. Run unkey login again."),
+				fault.Internal("device session is revoked, expired, or unknown"),
+				fault.Public("This session is no longer valid. Sign in again."),
 			)
 		}
 
 		return nil, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to load cli session"),
+			fault.Internal("failed to load device session"),
 			fault.Public("Unable to verify the bearer token right now."),
 		)
 	}
 
 	if session.UserID != claims.Subject || session.WorkspaceID != claims.WorkspaceID {
-		return nil, fault.New("cli token does not match the session",
+		return nil, fault.New("device session token does not match the session",
 			fault.Code(codes.Auth.Authentication.Malformed.URN()),
-			fault.Internal("cli token subject or workspace does not match the session row"),
+			fault.Internal("device session token subject or workspace does not match the session row"),
 			fault.Public("Invalid bearer token."),
 		)
 	}
@@ -135,7 +135,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			Type: principal.SubjectTypeUser,
 		},
 		Type: principal.TypeJWT,
-		Source: principal.CLISessionSource{
+		Source: principal.DeviceSessionSource{
 			SessionID:  claims.SessionID,
 			DeviceName: session.DeviceName,
 			ExpiresAt:  session.ExpiresAt,
