@@ -8,10 +8,12 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 )
 
+// PathMetadata, PathAuthorize, and PathToken are the paths the authorization
+// server endpoints are served at, relative to the issuer.
 const (
-	metadataPath  = "/.well-known/oauth-authorization-server"
-	authorizePath = "/oauth/authorize"
-	tokenPath     = "/oauth/token"
+	PathMetadata  = "/.well-known/oauth-authorization-server"
+	PathAuthorize = "/oauth/authorize"
+	PathToken     = "/oauth/token"
 )
 
 // Metadata is the RFC 8414 authorization server metadata document.
@@ -36,7 +38,7 @@ type MetadataHandler struct {
 func (h *MetadataHandler) Method() string { return http.MethodGet }
 
 // Path returns the RFC 8414 well-known path for an issuer without a path.
-func (h *MetadataHandler) Path() string { return metadataPath }
+func (h *MetadataHandler) Path() string { return PathMetadata }
 
 // Handle writes the metadata document.
 func (h *MetadataHandler) Handle(_ context.Context, s *zen.Session) error {
@@ -45,8 +47,8 @@ func (h *MetadataHandler) Handle(_ context.Context, s *zen.Session) error {
 	s.AddHeader("Cache-Control", "public, max-age=3600")
 	return s.JSON(http.StatusOK, Metadata{
 		Issuer:                                     issuer,
-		AuthorizationEndpoint:                      issuer + authorizePath,
-		TokenEndpoint:                              issuer + tokenPath,
+		AuthorizationEndpoint:                      issuer + PathAuthorize,
+		TokenEndpoint:                              issuer + PathToken,
 		ResponseTypesSupported:                     []string{"code"},
 		GrantTypesSupported:                        []string{grantAuthorizationCode, grantRefreshToken},
 		CodeChallengeMethodsSupported:              []string{"S256"},

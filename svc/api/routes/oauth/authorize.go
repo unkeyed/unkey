@@ -18,7 +18,7 @@ type AuthorizeHandler struct {
 func (h *AuthorizeHandler) Method() string { return http.MethodGet }
 
 // Path returns the URL path pattern this route matches.
-func (h *AuthorizeHandler) Path() string { return authorizePath }
+func (h *AuthorizeHandler) Path() string { return PathAuthorize }
 
 // Handle redirects the user agent, or answers 400 when the client or its
 // redirect URI cannot be trusted.

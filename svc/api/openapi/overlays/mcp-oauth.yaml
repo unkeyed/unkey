@@ -1,0 +1,27 @@
+# Applied only when building the hosted MCP server, because in the public spec the extra scheme would change every SDK's security signature.
+overlay: 1.0.0
+x-speakeasy-jsonpath: rfc9535
+info:
+  title: Unkey MCP OAuth
+  version: 1.0.0
+actions:
+  - target: $.components.securitySchemes
+    description: Add the OAuth 2.1 authorization code flow served by the API. Permissions are chosen on the consent page, not requested as scopes.
+    update:
+      oauth2:
+        type: oauth2
+        description: Sign in with your Unkey account and choose the permissions to grant.
+        flows:
+          authorizationCode:
+            authorizationUrl: https://api.unkey.com/oauth/authorize
+            tokenUrl: https://api.unkey.com/oauth/token
+            refreshUrl: https://api.unkey.com/oauth/token
+            scopes: {}
+  - target: $.security
+    description: Accept OAuth as an alternative to a root key.
+    update:
+      - oauth2: []
+  - target: $.paths.*[?@.security[0].bearer].security
+    description: Append a separate requirement so OAuth is an alternative to the root key, not an addition to it.
+    update:
+      - oauth2: []

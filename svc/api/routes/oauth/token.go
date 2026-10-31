@@ -30,7 +30,7 @@ type TokenHandler struct {
 func (h *TokenHandler) Method() string { return http.MethodPost }
 
 // Path returns the URL path pattern this route matches.
-func (h *TokenHandler) Path() string { return tokenPath }
+func (h *TokenHandler) Path() string { return PathToken }
 
 // Handle redeems an authorization code or rotates a refresh token.
 func (h *TokenHandler) Handle(ctx context.Context, s *zen.Session) error {
