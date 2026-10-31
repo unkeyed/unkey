@@ -13,6 +13,7 @@ type CachedKeyData struct {
 	Roles            []string
 	Permissions      []string
 	RatelimitConfigs map[string]KeyFindForVerificationRatelimit
+	AllowedIPs       ipallowlist.Allowlist
 }
 
 // CachedRootKeyData contains the root-key fields used during authentication.

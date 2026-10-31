@@ -15,7 +15,6 @@ sources:
   - svc/api/openapi/spec/paths/v2/rootKeys/createKey/V2RootKeysCreateKeyResponseData.yaml
   - svc/api/openapi/spec/paths/v2/rootKeys/updateKey/V2RootKeysUpdateKeyRequestBody.yaml
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/key-fields.tsx
-  - svc/api/internal/principal/ip_allowlist.go
   - pkg/auth/ipallowlist/allowlist.go
   - internal/services/keys/get.go
   - internal/services/caches/caches.go
@@ -316,7 +315,7 @@ For example, a caller restricted to `198.51.100.0/24` can expand a target from `
 
 ### Verify the restriction
 
-For example, restrict a root key to `203.0.113.10` and use it in the `Authorization` header of a `keys.verifyKey` request. A request from `203.0.113.10` passes root-key authentication and proceeds to verify the end-user key in the request body. The same request from `198.51.100.20` returns HTTP 403 before that key is verified, even if the end-user key is valid. This response contains an `error` object, not a verification result in `data.code`.
+For example, restrict a root key to `203.0.113.10` and use it in the `Authorization` header of a `keys.verifyKey` request. A request from `203.0.113.10` passes root-key authentication and proceeds to verify the end-user key in the request body. The same request from `198.51.100.20` returns HTTP 401 before that key is verified, even if the end-user key is valid. The response matches a missing root key and does not reveal that the restricted key exists. It contains an `error` object, not a verification result in `data.code`.
 
 ## Verify the resulting access
 

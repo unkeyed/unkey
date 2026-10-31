@@ -11,6 +11,20 @@ import (
 )
 
 var (
+	// AuthIPAllowlistDenialsTotal counts authentication attempts rejected by an
+	// IP policy, including cached credentials. It remains separate from public
+	// authentication errors, which hide credential existence.
+	// Investigate root-key denials in Grafana: search API logs for "This IP address
+	// is not allowed to use the root key." and inspect auth.root_key_id, auth.workspace_id,
+	// and the request ID. IDs stay in logs to avoid unbounded metric cardinality.
+	// The AuthIPAllowlistDenied alert includes a filtered Grafana Logs link.
+	AuthIPAllowlistDenialsTotal = vec.NewCounter(prometheus.CounterOpts{
+		Namespace: "unkey",
+		Subsystem: "auth",
+		Name:      "ip_allowlist_denials_total",
+		Help:      `Authentication attempts rejected by an IP allowlist. For root-key denials, search API logs in Grafana for "This IP address is not allowed to use the root key." The AuthIPAllowlistDenied alert includes a filtered Logs link.`,
+	})
+
 	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by type and outcome.
 	// The type should be either "root_key" or "key"
 	// Use this counter to monitor API traffic patterns.

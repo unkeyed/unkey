@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -22,6 +24,7 @@ import (
 
 func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 	h, route, p := newHarness(t)
+	logs := loggertest.Install(t)
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 	}, handler.Request{Permissions: []string{}, IpAllowlist: &[]string{"198.51.100.128/25"}})
@@ -63,18 +66,32 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 			session := &zen.Session{}
 			require.NoError(t, session.Init(httptest.NewRecorder(), req, 0))
 			validBefore := rootKeyVerificationCount(t, "VALID")
-			forbiddenBefore := rootKeyVerificationCount(t, "FORBIDDEN")
-			_, err := h.Keys.GetRootKey(t.Context(), session)
+			notFoundBefore := rootKeyVerificationCount(t, "NOT_FOUND")
+			var denialsBefore, denialsAfter dto.Metric
+			require.NoError(t, metrics.AuthIPAllowlistDenialsTotal.WithLabelValues().Write(&denialsBefore))
+			ctx, event := logger.StartWideEvent(t.Context(), "root key authentication")
+			_, err := h.Keys.GetRootKey(ctx, session)
+			event.SetError(err)
+			event.End()
+			attrs := loggertest.FlatAttrs(logs.Last(t))
+			require.Equal(t, res.Body.Data.KeyId, attrs["auth.root_key_id"])
+			require.Equal(t, p.AuthorizedWorkspaceID, attrs["auth.workspace_id"])
+			require.NoError(t, metrics.AuthIPAllowlistDenialsTotal.WithLabelValues().Write(&denialsAfter))
 			if test.allowed {
 				require.NoError(t, err)
+				require.Equal(t, denialsBefore.GetCounter().GetValue(), denialsAfter.GetCounter().GetValue())
 				require.Equal(t, validBefore+1, rootKeyVerificationCount(t, "VALID"))
-				require.Equal(t, forbiddenBefore, rootKeyVerificationCount(t, "FORBIDDEN"))
+				require.Equal(t, notFoundBefore, rootKeyVerificationCount(t, "NOT_FOUND"))
 			} else {
 				require.Error(t, err)
+				require.Equal(t, denialsBefore.GetCounter().GetValue()+1, denialsAfter.GetCounter().GetValue())
 				code, ok := fault.GetCode(err)
 				require.True(t, ok)
-				require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), code)
-				require.Equal(t, forbiddenBefore+1, rootKeyVerificationCount(t, "FORBIDDEN"))
+				require.Equal(t, codes.Auth.Authentication.KeyNotFound.URN(), code)
+				require.Equal(t, "The provided root key is invalid.", fault.UserFacingMessage(err))
+				require.Contains(t, fault.InternalMessage(err), session.ClientIP().String())
+				require.Contains(t, fault.InternalMessage(err), "This IP address is not allowed to use the root key.")
+				require.Equal(t, notFoundBefore+1, rootKeyVerificationCount(t, "NOT_FOUND"))
 				require.Equal(t, validBefore, rootKeyVerificationCount(t, "VALID"))
 			}
 		})

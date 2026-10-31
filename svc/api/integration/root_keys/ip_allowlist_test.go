@@ -1,6 +1,7 @@
 package root_keys
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -45,18 +46,18 @@ func TestIPAllowlistLifecycle(t *testing.T) {
 	}{
 		{"192.0.2.128", http.StatusOK},
 		{"192.0.2.255", http.StatusOK},
-		{"192.0.2.127", http.StatusForbidden},
-		{"192.0.3.0", http.StatusForbidden},
+		{"192.0.2.127", http.StatusUnauthorized},
+		{"192.0.3.0", http.StatusUnauthorized},
 		{"::ffff:192.0.2.129", http.StatusOK},
-		{"::ffff:192.0.2.127", http.StatusForbidden},
+		{"::ffff:192.0.2.127", http.StatusUnauthorized},
 		{"2001:db8:1234:ffff::1", http.StatusOK},
-		{"2001:db8:1235::1", http.StatusForbidden},
+		{"2001:db8:1235::1", http.StatusUnauthorized},
 		{"203.0.113.7", http.StatusOK},
-		{"203.0.113.8", http.StatusForbidden},
-		{"192.0.2.129, 198.51.100.1", http.StatusForbidden},
+		{"203.0.113.8", http.StatusUnauthorized},
+		{"192.0.2.129, 198.51.100.1", http.StatusUnauthorized},
 		{"198.51.100.1, 192.0.2.129", http.StatusOK},
-		{"invalid", http.StatusForbidden},
-		{"", http.StatusForbidden},
+		{"invalid", http.StatusUnauthorized},
+		{"", http.StatusUnauthorized},
 	} {
 		t.Run(tc.ip, func(t *testing.T) {
 			for range 2 {
@@ -87,7 +88,7 @@ func TestIPAllowlistLifecycle(t *testing.T) {
 		IpAllowlist: &narrow,
 	}, http.StatusOK)
 	assertIPAllowlist(t, addr, admin.Key, child.Data.KeyId, narrow)
-	callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.V2RootKeysListKeysResponseBody](t, addr, child.Data.Key, "192.0.2.200", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusForbidden)
+	callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.UnauthorizedErrorResponse](t, addr, child.Data.Key, "192.0.2.200", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusUnauthorized)
 	callIPAllowlist[openapi.V2RootKeysUpdateKeyRequestBody, openapi.V2RootKeysUpdateKeyResponseBody](t, addr, parent.Data.Key, "192.0.2.129", "updateKey", openapi.V2RootKeysUpdateKeyRequestBody{
 		KeyId: child.Data.KeyId,
 		Name:  nullable.NewNullableWithValue("renamed"),
@@ -99,7 +100,7 @@ func TestIPAllowlistLifecycle(t *testing.T) {
 	}, http.StatusOK)
 	assertIPAllowlist(t, addr, admin.Key, rotated.Data.KeyId, narrow)
 	callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.V2RootKeysListKeysResponseBody](t, addr, rotated.Data.Key, "192.0.2.129", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusOK)
-	callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.V2RootKeysListKeysResponseBody](t, addr, rotated.Data.Key, "192.0.2.200", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusForbidden)
+	callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.UnauthorizedErrorResponse](t, addr, rotated.Data.Key, "192.0.2.200", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusUnauthorized)
 	callIPAllowlist[openapi.V2RootKeysUpdateKeyRequestBody, openapi.V2RootKeysUpdateKeyResponseBody](t, addr, admin.Key, "198.51.100.1", "updateKey", openapi.V2RootKeysUpdateKeyRequestBody{
 		KeyId:       rotated.Data.KeyId,
 		IpAllowlist: &[]string{},
@@ -132,8 +133,11 @@ func TestIPAllowlistDisabledAndUntrustedProxy(t *testing.T) {
 		IpAllowlist: []string{"127.0.0.0/8", "::1/128"},
 	})
 	addr := h.GetClusterAddrs()[0]
+	missing := callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.UnauthorizedErrorResponse](t, addr, remote.Key+"missing", "192.0.2.129", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusUnauthorized)
 	for range 2 {
-		callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.ForbiddenErrorResponse](t, addr, remote.Key, "192.0.2.129", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusForbidden)
+		denied := callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.UnauthorizedErrorResponse](t, addr, remote.Key, "192.0.2.129", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusUnauthorized)
+		require.Equal(t, "The provided root key is invalid.", denied.Error.Detail)
+		require.Equal(t, missing.Error, denied.Error)
 		callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.V2RootKeysListKeysResponseBody](t, addr, local.Key, "192.0.2.129", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusOK)
 	}
 	callIPAllowlist[openapi.V2RootKeysCreateKeyRequestBody, openapi.ForbiddenErrorResponse](t, addr, admin.Key, "", "createKey", openapi.V2RootKeysCreateKeyRequestBody{
@@ -150,7 +154,63 @@ func TestIPAllowlistDisabledAndUntrustedProxy(t *testing.T) {
 		Expiration: nullable.NewNullNullable[int64](),
 	}, http.StatusOK)
 	assertIPAllowlist(t, addr, admin.Key, rotated.Data.KeyId, []string{"192.0.2.0/24"})
-	callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.ForbiddenErrorResponse](t, addr, rotated.Data.Key, "192.0.2.129", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusForbidden)
+	callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.UnauthorizedErrorResponse](t, addr, rotated.Data.Key, "192.0.2.129", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusUnauthorized)
+}
+
+// TestIPAllowlistEntryLimit checks that direct HTTP requests cannot bypass the
+// 100-entry limit and that rejected creates and updates leave stored keys intact.
+func TestIPAllowlistEntryLimit(t *testing.T) {
+	h := integration.New(t, integration.Config{NumNodes: 1})
+	workspace := h.Resources().UserWorkspace
+	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{
+		WorkspaceID: workspace.ID,
+		Enabled:     true,
+	}))
+	permissions := []string{
+		"unkey:v1:" + workspace.ID + ":rootKeys/*#write",
+		"unkey:v1:" + workspace.ID + ":rootKeys/*#read",
+	}
+	admin := h.Seed.CreateUnkeyRootKey(t.Context(), seed.CreateUnkeyRootKeyRequest{
+		WorkspaceID: workspace.ID,
+		Permissions: permissions,
+	})
+	addr := h.GetClusterAddrs()[0]
+	policy := make([]string, 100)
+	for i := range policy {
+		policy[i] = fmt.Sprintf("192.0.2.%d", i*2)
+	}
+	created := callIPAllowlist[openapi.V2RootKeysCreateKeyRequestBody, openapi.V2RootKeysCreateKeyResponseBody](t, addr, admin.Key, "", "createKey", openapi.V2RootKeysCreateKeyRequestBody{
+		Permissions: permissions,
+		IpAllowlist: &policy,
+	}, http.StatusOK)
+	assertIPAllowlist(t, addr, admin.Key, created.Data.KeyId, policy)
+	policyOversized := append(policy, "203.0.113.7")
+	denied := callIPAllowlist[openapi.V2RootKeysCreateKeyRequestBody, openapi.BadRequestErrorResponse](t, addr, admin.Key, "", "createKey", openapi.V2RootKeysCreateKeyRequestBody{
+		Permissions: permissions,
+		IpAllowlist: &policyOversized,
+	}, http.StatusBadRequest)
+	require.NotEmpty(t, denied.Error.Errors)
+	require.Contains(t, denied.Error.Errors[0].Location, "ipAllowlist")
+	require.Contains(t, denied.Error.Errors[0].Location, "maxItems")
+	listed := callIPAllowlist[openapi.V2RootKeysListKeysRequestBody, openapi.V2RootKeysListKeysResponseBody](t, addr, admin.Key, "", "listKeys", openapi.V2RootKeysListKeysRequestBody{}, http.StatusOK)
+	require.Len(t, listed.Data, 2)
+
+	for i := range policy {
+		policy[i] = fmt.Sprintf("198.51.100.%d", i*2)
+	}
+	callIPAllowlist[openapi.V2RootKeysUpdateKeyRequestBody, openapi.V2RootKeysUpdateKeyResponseBody](t, addr, admin.Key, "", "updateKey", openapi.V2RootKeysUpdateKeyRequestBody{
+		KeyId:       created.Data.KeyId,
+		IpAllowlist: &policy,
+	}, http.StatusOK)
+	assertIPAllowlist(t, addr, admin.Key, created.Data.KeyId, policy)
+	denied = callIPAllowlist[openapi.V2RootKeysUpdateKeyRequestBody, openapi.BadRequestErrorResponse](t, addr, admin.Key, "", "updateKey", openapi.V2RootKeysUpdateKeyRequestBody{
+		KeyId:       created.Data.KeyId,
+		IpAllowlist: &policyOversized,
+	}, http.StatusBadRequest)
+	require.NotEmpty(t, denied.Error.Errors)
+	require.Contains(t, denied.Error.Errors[0].Location, "ipAllowlist")
+	require.Contains(t, denied.Error.Errors[0].Location, "maxItems")
+	assertIPAllowlist(t, addr, admin.Key, created.Data.KeyId, policy)
 }
 
 func callIPAllowlist[Req, Res any](t *testing.T, addr, key, ip, operation string, request Req, status int) Res {

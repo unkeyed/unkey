@@ -9,6 +9,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -42,10 +43,25 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		return nil, err
 	}
 
+	logger.Set(ctx, slog.Group("auth",
+		slog.String("workspace_id", key.Key.ForWorkspaceID.String),
+		slog.String("root_key_id", key.Key.ID),
+	))
+
 	if key.Status == StatusExpired {
 		return nil, fault.New("invalid root key",
 			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 			fault.Internal(key.message),
+			fault.Public("The provided root key is invalid."),
+		)
+	}
+
+	// Missing keys and IP-denied keys share [StatusNotFound] so callers cannot
+	// distinguish them. A fresh fault keeps the internal reason out of the public message.
+	if key.Status == StatusNotFound {
+		return nil, fault.New("invalid root key",
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Internal(fmt.Sprintf("root key status %s from client IP %s: %s", key.Status, sess.ClientIP(), key.message)),
 			fault.Public("The provided root key is invalid."),
 		)
 	}
@@ -71,11 +87,6 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	}
 
 	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
-
-	logger.Set(ctx, slog.Group("auth",
-		slog.String("workspace_id", key.AuthorizedWorkspaceID),
-		slog.String("root_key_id", key.Key.ID),
-	))
 
 	return key, nil
 }
@@ -150,10 +161,11 @@ func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			Roles:                     roles,
 			Permissions:               permissions,
 			RatelimitConfigs:          ratelimitConfigs,
+			AllowedIPs:                nil,
 		}, nil
 	}, caches.DefaultFindFirstOp)
 
-	return s.newKeyVerifier(sess, key, nil, hit, err, startTime)
+	return s.newKeyVerifier(sess, key, hit, err, startTime)
 }
 
 // getRootKey loads a root key through the dedicated root-key cache.
@@ -170,7 +182,7 @@ func (s *service) getRootKey(ctx context.Context, sess *zen.Session, sha256Hash 
 		return s.loadRootKey(ctx, sha256Hash)
 	}, caches.DefaultFindFirstOp)
 
-	return s.newKeyVerifier(sess, asCachedKey(rootKey), rootKey.AllowedIPs, hit, err, startTime)
+	return s.newKeyVerifier(sess, asCachedKey(rootKey), hit, err, startTime)
 }
 
 // loadRootKey checks the new store first and falls back to the legacy store only
@@ -267,6 +279,7 @@ func asCachedKey(rootKey keysdb.CachedRootKeyData) keysdb.CachedKeyData {
 		Roles:            []string{},
 		Permissions:      rootKey.Permissions,
 		RatelimitConfigs: map[string]keysdb.KeyFindForVerificationRatelimit{},
+		AllowedIPs:       rootKey.AllowedIPs,
 	}
 }
 
@@ -283,7 +296,7 @@ func unmarshalPermissions(value any) ([]string, error) {
 }
 
 // newKeyVerifier applies lifecycle checks shared by API and root keys.
-func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, allowedIPs ipallowlist.Allowlist, hit cache.CacheHit, loadErr error, startTime time.Time) (kv *KeyVerifier, err error) {
+func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hit cache.CacheHit, loadErr error, startTime time.Time) (kv *KeyVerifier, err error) {
 	defer func() {
 		if kv == nil {
 			return
@@ -383,7 +396,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, al
 		// By default we assume the key is valid unless proven otherwise
 		Status:           StatusValid,
 		ratelimitConfigs: key.RatelimitConfigs,
-		AllowedIPs:       allowedIPs,
+		AllowedIPs:       key.AllowedIPs,
 		Roles:            key.Roles,
 		Permissions:      key.Permissions,
 		RatelimitResults: nil,
@@ -409,8 +422,9 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, al
 		return kv, nil
 	}
 
-	if kv.isRootKey && !kv.AllowedIPs.Allows(sess.ClientIP()) {
-		kv.setInvalid(StatusForbidden, "This IP address is not allowed to use the root key.")
+	if !kv.AllowedIPs.Allows(sess.ClientIP()) {
+		metrics.AuthIPAllowlistDenialsTotal.WithLabelValues().Inc()
+		kv.setInvalid(StatusNotFound, "This IP address is not allowed to use the root key.")
 		return kv, nil
 	}
 
