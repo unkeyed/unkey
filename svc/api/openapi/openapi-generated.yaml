@@ -4554,6 +4554,14 @@ components:
             required:
                 - permissions
             properties:
+                ipAllowlist:
+                    type: array
+                    maxItems: 100
+                    description: IPv4 or IPv6 addresses and CIDR ranges allowed to use this root key. Omit to inherit the calling root key's allowlist. A caller without an IP restriction creates an unrestricted key when this field is omitted. An explicit list must stay within the caller's allowed networks; a restricted caller cannot send an empty list.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 49
                 name:
                     type: string
                     maxLength: 255
@@ -4679,6 +4687,14 @@ components:
                 - keyId
             minProperties: 2
             properties:
+                ipAllowlist:
+                    type: array
+                    maxItems: 100
+                    description: Replacement IPv4 or IPv6 addresses and CIDR ranges. Omit to keep the current list. Use an empty list for unrestricted access. A restricted root-key caller can expand the target's list only within the caller's allowed networks and cannot send an empty list.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 49
                 keyId:
                     type: string
                     minLength: 3
@@ -9214,7 +9230,13 @@ components:
                 - lastUsedAt
                 - expires
                 - permissions
+                - ipAllowlist
             properties:
+                ipAllowlist:
+                    type: array
+                    description: Allowed IPv4 or IPv6 addresses and CIDR ranges. An empty list allows any IP address.
+                    items:
+                        type: string
                 keyId:
                     type: string
                     description: Stable root key identifier.

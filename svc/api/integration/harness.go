@@ -23,9 +23,10 @@ import (
 
 // ApiConfig holds configuration for dynamic API container creation
 type ApiConfig struct {
-	Nodes         int
-	MysqlDSN      string
-	ClickhouseDSN string
+	Nodes             int
+	MysqlDSN          string
+	ClickhouseDSN     string
+	TrustedProxyCIDRs []string
 }
 
 // ApiCluster represents a cluster of API containers
@@ -62,6 +63,8 @@ type Config struct {
 	// that advance simulated time must use this instead of a local clock so
 	// request handlers and background services observe the same time.
 	TestClock *clock.TestClock
+
+	TrustedProxyCIDRs []string
 }
 
 // New creates a new cluster test harness
@@ -107,9 +110,10 @@ func New(t *testing.T, config Config) *Harness {
 
 	// Create dynamic API container cluster
 	cluster := h.RunAPI(ApiConfig{
-		Nodes:         config.NumNodes,
-		MysqlDSN:      mysqlCfg.DSN,
-		ClickhouseDSN: chCfg.DSN,
+		Nodes:             config.NumNodes,
+		MysqlDSN:          mysqlCfg.DSN,
+		ClickhouseDSN:     chCfg.DSN,
+		TrustedProxyCIDRs: config.TrustedProxyCIDRs,
 	})
 	h.apiCluster = cluster
 	h.instanceAddrs = cluster.Addrs
@@ -156,7 +160,7 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 			},
 			TLSConfig:          nil,
 			MaxRequestBodySize: 0,
-			TrustedProxyCIDRs:  nil,
+			TrustedProxyCIDRs:  config.TrustedProxyCIDRs,
 			Database: sharedconfig.DatabaseConfig{
 				Primary:         h.dbDSN,
 				ReadonlyReplica: "",

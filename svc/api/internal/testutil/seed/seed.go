@@ -500,6 +500,7 @@ type CreateUnkeyRootKeyRequest struct {
 	Disabled    bool
 	Expires     *time.Time
 	Permissions []string
+	IpAllowlist []string
 }
 
 // CreateUnkeyRootKey creates a root key and its principal permissions in the new
@@ -519,6 +520,7 @@ func (s *Seeder) CreateUnkeyRootKey(ctx context.Context, req CreateUnkeyRootKeyR
 		Enabled:     !req.Disabled,
 		Expires:     sql.NullInt64{Int64: ptr.SafeDeref(req.Expires, time.Time{}).UnixMilli(), Valid: req.Expires != nil},
 		CreatedAt:   now,
+		IpAllowlist: req.IpAllowlist,
 	})
 	require.NoError(s.t, err)
 	for _, permission := range req.Permissions {
