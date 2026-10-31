@@ -57,8 +57,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err := p.Authorize(rbac.U(urn.New().Workspace(p.AuthorizedWorkspaceID).RootKey(req.KeyId), permissions.Write)); err != nil {
 		return err
 	}
+	var allowedIPs ipallowlist.Allowlist
 	if req.IpAllowlist != nil {
-		allowedIPs, err := ipallowlist.Parse(*req.IpAllowlist)
+		allowedIPs, err = ipallowlist.Parse(*req.IpAllowlist)
 		if err != nil {
 			return fault.Wrap(err, fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Public("Allowed IPs must contain valid IPv4 or IPv6 addresses or CIDR ranges."))
@@ -137,10 +138,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		allowlistAfter := allowlistBefore
 		if req.IpAllowlist != nil {
-			allowlistAfter, err = ipallowlist.Parse(*req.IpAllowlist)
-			if err != nil {
-				return err
-			}
+			allowlistAfter = allowedIPs
 		}
 		if !allowlistAfter.IsSubsetOf(callerAllowlist) {
 			return fault.New("root key operation widens network access", fault.Code(codes.Auth.Authorization.Forbidden.URN()),
