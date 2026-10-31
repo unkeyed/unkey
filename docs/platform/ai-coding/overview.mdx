@@ -12,12 +12,12 @@ You can connect an AI coding assistant like Claude Code, Cursor, or VS Code to U
 
 ## Let your assistant act on Unkey
 
-Unkey hosts two MCP servers. Add one to your assistant with a root key, and it can call the Unkey API for you.
+Unkey hosts two MCP servers. Add one to your assistant and sign in with your Unkey account, and it can call the Unkey API for you.
 
 - **Unkey**: every v2 API endpoint, so keys, keyspaces, identities, permissions, rate limits, analytics, portals, and Compute.
 - **Compute**: only the Compute endpoints, for <Tooltip tip="Groups of apps, usually one per codebase or product.">projects</Tooltip>, apps, environments, deployments, domains, and gateway policies.
 
-See [Unkey MCP servers](/platform/ai-coding/mcp-servers) for the URLs, the root key to use, and example prompts.
+See [Unkey MCP servers](/platform/ai-coding/mcp-servers) for the URLs, how sign-in works, and example prompts.
 
 ## Give your assistant the docs
 
@@ -39,7 +39,7 @@ Assistants that run terminal commands can also use the `unkey` CLI. Pass `--outp
 
 <Columns cols={2}>
   <Card title="Unkey MCP servers" icon="plug" href="/platform/ai-coding/mcp-servers">
-    Pick a server, create a root key for it, and try some prompts.
+    Pick a server, sign in, and try some prompts.
   </Card>
   <Card title="Claude Code" icon="terminal" href="/platform/ai-coding/claude-code">
     Add Unkey to Claude Code with one command.
