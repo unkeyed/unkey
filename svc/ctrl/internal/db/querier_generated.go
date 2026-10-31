@@ -944,7 +944,7 @@ type Querier interface {
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, id string) (Environment, error)
@@ -2243,7 +2243,7 @@ type Querier interface {
 	ListPortalDomainsByPortal(ctx context.Context, portalID string) ([]PortalDomain, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  WHERE kind = 'preview'
 	//  AND pk > ?

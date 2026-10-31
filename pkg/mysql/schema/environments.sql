@@ -7,6 +7,8 @@ CREATE TABLE `environments` (
 	`slug` varchar(256) NOT NULL,
 	`description` varchar(255) NOT NULL DEFAULT '',
 	`kind` enum('production','preview') NOT NULL DEFAULT 'preview',
+	`current_deployment_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
+	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`delete_protection` boolean DEFAULT false,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
