@@ -8075,9 +8075,10 @@ type V2WorkspaceGetLimitsResponseData struct {
 	// CpuCoresMaxPerInstance CPU cores for one instance. Has no `current`. Present only with a Compute plan.
 	CpuCoresMaxPerInstance *V2WorkspaceGetLimitsLimit `json:"cpuCoresMaxPerInstance,omitempty"`
 
-	// CustomDomainsMax Custom domains across all apps. `current` is the custom domains attached
-	// now. `limit` is `null` when the plan has no limit. Present only with a
-	// Compute plan.
+	// CustomDomainsMax Custom domains across all apps. Subdomains are unlimited, so
+	// `api.acme.com`, `app.acme.com`, and `acme.com` together count as one
+	// custom domain. `current` is the custom domains counted now. `limit` is `null` when
+	// the plan has no limit. Present only with a Compute plan.
 	CustomDomainsMax *V2WorkspaceGetLimitsLimit `json:"customDomainsMax,omitempty"`
 
 	// LogdrainsMax Log drains. `current` is the log drains in the workspace now.

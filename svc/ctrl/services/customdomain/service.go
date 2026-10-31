@@ -132,13 +132,13 @@ func (s *Service) AddCustomDomain(
 
 	// Concurrent creates can both pass. The overshoot is bounded by request
 	// concurrency, which beats serializing every create in a workspace behind a lock.
-	attached, err := s.db.CountCustomDomainsByWorkspace(ctx, req.Msg.GetWorkspaceId())
+	attached, err := s.db.ListCustomDomainNamesByWorkspace(ctx, req.Msg.GetWorkspaceId())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to count custom domains: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list custom domains: %w", err))
 	}
 	if err := gatefault.ConnectWith(
 		connect.CodeResourceExhausted,
-		domaingate.CheckAllowance(attached, limits.CustomDomainsMax),
+		domaingate.CheckAllowance(attached, domain, limits.CustomDomainsMax),
 	); err != nil {
 		return nil, err
 	}

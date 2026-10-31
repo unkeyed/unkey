@@ -192,17 +192,63 @@ func TestAlreadyExists(t *testing.T) {
 func TestCheckAllowance(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, domaingate.CheckAllowance(0, 1))
-	require.NoError(t, domaingate.CheckAllowance(4, 5))
+	for _, tc := range []struct {
+		name     string
+		attached []string
+		domain   string
+		allowed  uint32
+		accepted bool
+	}{
+		{name: "first domain under the allowance", attached: nil, domain: "api.acme.com", allowed: 1, accepted: true},
+		{name: "new registrable domain with a free slot", attached: []string{"api.acme.com"}, domain: "api.other.com", allowed: 2, accepted: true},
+		{name: "new registrable domain at the allowance", attached: []string{"api.acme.com"}, domain: "api.other.com", allowed: 1, accepted: false},
+		{name: "sibling subdomain at the allowance", attached: []string{"api.acme.com"}, domain: "app.acme.com", allowed: 1, accepted: true},
+		{name: "registrable domain itself at the allowance", attached: []string{"api.acme.com"}, domain: "acme.com", allowed: 1, accepted: true},
+		{name: "nested subdomain at the allowance", attached: []string{"api.acme.com"}, domain: "v1.api.acme.com", allowed: 1, accepted: true},
+		{name: "subdomain of the held registrable domain", attached: []string{"acme.com"}, domain: "api.acme.com", allowed: 1, accepted: true},
+		{name: "zero allowance refuses the first domain", attached: nil, domain: "api.acme.com", allowed: 0, accepted: false},
+		{name: "zero allowance refuses a subdomain of a kept domain", attached: []string{"api.acme.com"}, domain: "app.acme.com", allowed: 0, accepted: false},
+		{name: "multi-label suffix shares the registrable domain", attached: []string{"a.acme.co.uk"}, domain: "b.acme.co.uk", allowed: 1, accepted: true},
+		{name: "multi-label suffix separates registrable domains", attached: []string{"acme.co.uk"}, domain: "other.co.uk", allowed: 1, accepted: false},
+		{name: "private suffix separates its users", attached: []string{"a.github.io"}, domain: "b.github.io", allowed: 1, accepted: false},
+		{name: "overshot allowance still admits a held registrable domain", attached: []string{"a.com", "b.com", "c.com"}, domain: "api.b.com", allowed: 1, accepted: true},
+		{name: "overshot allowance refuses a new registrable domain", attached: []string{"a.com", "b.com", "c.com"}, domain: "d.com", allowed: 1, accepted: false},
+		{name: "name without a registrable domain counts as its own unit", attached: []string{"co.uk"}, domain: "api.acme.com", allowed: 1, accepted: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	// At the allowance, not merely over it.
-	requireCode(t, codes.Limits.CustomDomain.Exceeded, domaingate.CheckAllowance(1, 1))
+			err := domaingate.CheckAllowance(tc.attached, tc.domain, tc.allowed)
+			if tc.accepted {
+				require.NoError(t, err)
+				return
+			}
+			requireCode(t, codes.Limits.CustomDomain.Exceeded, err)
+		})
+	}
+}
 
-	// A zero allowance refuses the first domain, which is the free tier.
-	requireCode(t, codes.Limits.CustomDomain.Exceeded, domaingate.CheckAllowance(0, 0))
+func TestAllowanceUsage(t *testing.T) {
+	t.Parallel()
 
-	// An allowance already overshot by a concurrent create stays closed.
-	requireCode(t, codes.Limits.CustomDomain.Exceeded, domaingate.CheckAllowance(3, 1))
+	for _, tc := range []struct {
+		name     string
+		attached []string
+		usage    int64
+	}{
+		{name: "no domains", attached: nil, usage: 0},
+		{name: "one registrable domain", attached: []string{"api.acme.com", "app.acme.com", "acme.com", "v1.api.acme.com"}, usage: 1},
+		{name: "two registrable domains", attached: []string{"api.acme.com", "app.acme.com", "api.other.com"}, usage: 2},
+		{name: "multi-label suffix", attached: []string{"a.acme.co.uk", "b.acme.co.uk", "other.co.uk"}, usage: 2},
+		{name: "private suffix", attached: []string{"a.github.io", "b.github.io"}, usage: 2},
+		{name: "name without a registrable domain", attached: []string{"co.uk", "api.acme.co.uk"}, usage: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tc.usage, domaingate.AllowanceUsage(tc.attached))
+		})
+	}
 }
 
 // ctrl surfaces fault.UserFacingMessage on its own error surface, so verify each
@@ -221,7 +267,7 @@ func TestFaultUserFacingMessage(t *testing.T) {
 
 	require.Equal(t,
 		"Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry.",
-		fault.UserFacingMessage(domaingate.CheckAllowance(1, 1)))
+		fault.UserFacingMessage(domaingate.CheckAllowance([]string{"api.acme.com"}, "api.other.com", 1)))
 
 	require.Equal(t,
 		"Resource limits are not configured for this workspace. Contact support@unkey.com.",
@@ -229,6 +275,6 @@ func TestFaultUserFacingMessage(t *testing.T) {
 
 	// The allowance counts and the workspace id describe billing state the caller
 	// cannot act on, so they stay internal.
-	require.NotContains(t, fault.UserFacingMessage(domaingate.CheckAllowance(7, 2)), "7")
+	require.NotContains(t, fault.UserFacingMessage(domaingate.CheckAllowance([]string{"a.com", "b.com", "c.com"}, "d.com", 2)), "3")
 	require.NotContains(t, fault.UserFacingMessage(domaingate.LimitsNotConfigured("ws_1234abcd")), "ws_1234abcd")
 }

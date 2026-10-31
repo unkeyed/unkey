@@ -87,14 +87,18 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	stopped := createDeployment(t, h, setup, 1000, 2048, 4096)
 	insertTopology(t, h, workspaceID, stopped.ID, 3, db.DeploymentTopologyDesiredStatusStopped)
 
-	h.CreateCustomDomain(seed.CreateCustomDomainRequest{
-		ID:            uid.New(uid.DomainPrefix),
-		WorkspaceID:   workspaceID,
-		ProjectID:     setup.Project.ID,
-		AppID:         setup.App.ID,
-		EnvironmentID: setup.Environment.ID,
-		Domain:        uid.DNS1035() + ".example.com",
-	})
+	// Usage counts registrable domains, so the three names below take two slots
+	apex := uid.DNS1035() + ".com"
+	for _, domain := range []string{"api." + apex, "app." + apex, uid.DNS1035() + ".com"} {
+		h.CreateCustomDomain(seed.CreateCustomDomainRequest{
+			ID:            uid.New(uid.DomainPrefix),
+			WorkspaceID:   workspaceID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+			Domain:        domain,
+		})
+	}
 	insertLogdrain(t, h, workspaceID)
 
 	now := h.Clock.Now().UTC()
@@ -136,7 +140,7 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 		StorageMibMaxPerInstance:              new(limit(5120)),
 		BuildsConcurrentMax:                   new(limit(2)),
 		AutoscalingReplicasMax:                new(limit(10)),
-		CustomDomainsMax:                      new(meteredLimit(5, 1)),
+		CustomDomainsMax:                      new(meteredLimit(5, 2)),
 	}, res.Body.Data)
 }
 

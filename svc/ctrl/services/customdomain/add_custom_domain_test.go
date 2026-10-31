@@ -267,8 +267,8 @@ func TestAddCustomDomainEnforcesPlanAllowance(t *testing.T) {
 	_, err := svc.AddCustomDomain(ctx, f.request(f.domain))
 	require.NoError(t, err)
 
-	// The second is refused even though its name is free, because the allowance
-	// counts domains rather than names.
+	// The second is refused even though its name is free, because it sits under
+	// another registrable domain and the allowance counts registrable domains.
 	second := randomDomain()
 	_, err = svc.AddCustomDomain(ctx, f.request(second))
 	require.Error(t, err)
@@ -278,6 +278,30 @@ func TestAddCustomDomainEnforcesPlanAllowance(t *testing.T) {
 
 	// Nothing was written for the refused request.
 	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, second)
+}
+
+// TestAddCustomDomainSubdomainsAreFree pins that the allowance counts registrable
+// domains, not names. At an allowance of one, every name under the registrable
+// domain already attached is accepted, and a name under a new one is refused.
+func TestAddCustomDomainSubdomainsAreFree(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+	svc := f.newService(t)
+
+	apex := randomDomain()
+	for _, name := range []string{"api." + apex, "app." + apex, apex, "v1.api." + apex} {
+		_, err := svc.AddCustomDomain(ctx, f.request(name))
+		require.NoError(t, err, "%q is under the attached registrable domain", name)
+		requireCustomDomain(t, ctx, f.database, f.workspaceID, name)
+	}
+
+	other := "api." + randomDomain()
+	_, err := svc.AddCustomDomain(ctx, f.request(other))
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, connect.CodeResourceExhausted, connectErr.Code())
+	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, other)
 }
 
 // TestAddCustomDomainRejectsDuplicate pins the workspace-uniqueness pre-check. It
@@ -357,7 +381,7 @@ func TestAddCustomDomainConcurrentDuplicateReadsTheSame(t *testing.T) {
 }
 
 // TestAddCustomDomainAllowanceIsWorkspaceWide pins that the allowance counts every
-// domain in the workspace, not per environment. A per-environment reading would let
+// registrable domain in the workspace, not per environment. A per-environment reading would let
 // one workspace multiply its allowance by adding environments.
 func TestAddCustomDomainAllowanceIsWorkspaceWide(t *testing.T) {
 	ctx := context.Background()
@@ -701,9 +725,10 @@ func acceptingIngress(t *testing.T) string {
 	return server.URL
 }
 
-// randomDomain keeps names unique across runs sharing one database.
+// randomDomain returns a fresh registrable domain, so names stay unique across
+// runs sharing one database and each one takes its own allowance slot.
 func randomDomain() string {
-	return uid.DNS1035(16) + ".example.com"
+	return uid.DNS1035(16) + ".com"
 }
 
 type failingAuditLogService struct {
