@@ -29,7 +29,7 @@ A custom domain lets you serve an <Tooltip tip="A production or preview environm
 
 ## Before you start
 
-- **Your plan must allow it.** Starter includes one custom domain, and Pro and Business have no practical limit. Going over returns [`custom_domain_limit_exceeded`](/errors/unkey/limits/custom_domain_limit_exceeded). See [Compute plans](/compute/get-started/plans).
+- **Your plan must allow it.** Starter includes one custom domain with unlimited subdomains, and Pro and Business have no practical limit. Once `api.acme.com` is attached, `acme.com`, `app.acme.com`, and any other name under `acme.com` are free. Going over returns [`custom_domain_limit_exceeded`](/errors/unkey/limits/custom_domain_limit_exceeded). See [Compute plans](/compute/get-started/plans).
 - **Each name can be used once in your workspace**, so you can't attach it to two environments.
 - **It must be under a domain someone can register.** `api.acme.co.uk` is fine, but `co.uk` on its own isn't. Wildcards and IP addresses aren't allowed. Unicode names work, and we store them in lowercase Punycode.
 - **Port 80 must reach us as well as 443**, so we can get a certificate.

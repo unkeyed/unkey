@@ -15,6 +15,8 @@ sources:
 
 Your workspace already has as many custom domains as your plan allows, so `domains.createDomain` didn't add another one. You get HTTP 403. Waiting won't change it.
 
+Subdomains are unlimited, so once `api.acme.com` is attached, `app.acme.com` and `acme.com` never hit this error. The domain you tried to add isn't under any custom domain your workspace already has.
+
 ```json Example response
 {
   "meta": {
@@ -31,7 +33,7 @@ Your workspace already has as many custom domains as your plan allows, so `domai
 
 ## How to fix
 
-1. Remove a domain you no longer use with `domains.deleteDomain`, or move to a plan with a higher limit. See [Limits](/platform/billing/limits) and [Plans](/platform/billing/plans). To see your domain count and limit from code, call `workspace.getLimits` with a root key that has `unkey:v1:{workspace_id}:limits#read`.
+1. Remove a custom domain you no longer use, along with its subdomains, with `domains.deleteDomain`, or move to a plan with a higher limit. See [Limits](/platform/billing/limits) and [Plans](/platform/billing/plans). To see your domain count and limit from code, call `workspace.getLimits` with a root key that has `unkey:v1:{workspace_id}:limits#read`.
 2. Create the domain again.
 
 ## Related errors
