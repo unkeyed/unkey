@@ -11,9 +11,16 @@ import (
 )
 
 const updateDeploymentTopologyDesiredStatus = `-- name: UpdateDeploymentTopologyDesiredStatus :exec
-UPDATE ` + "`" + `deployment_topology` + "`" + `
-SET desired_status = ?, updated_at = ?
-WHERE deployment_id = ? AND region_id = ?
+UPDATE deployment_topology dt
+JOIN deployments d ON d.id = dt.deployment_id
+SET d.desired_state = CASE WHEN ? = 'stopped' THEN 'stopped' ELSE 'running' END,
+    d.status = CASE
+        WHEN ? = 'running' AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped') THEN 'deploying'
+        ELSE d.status
+    END,
+    dt.desired_status = ?,
+    dt.updated_at = ?
+WHERE dt.deployment_id = ? AND dt.region_id = ?
 `
 
 type UpdateDeploymentTopologyDesiredStatusParams struct {
@@ -23,13 +30,23 @@ type UpdateDeploymentTopologyDesiredStatusParams struct {
 	RegionID      string                          `db:"region_id"`
 }
 
-// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
+// UpdateDeploymentTopologyDesiredStatus also updates deployment intent while
+// legacy workers still stop compute through regional topology writes.
 //
-//	UPDATE `deployment_topology`
-//	SET desired_status = ?, updated_at = ?
-//	WHERE deployment_id = ? AND region_id = ?
+//	UPDATE deployment_topology dt
+//	JOIN deployments d ON d.id = dt.deployment_id
+//	SET d.desired_state = CASE WHEN ? = 'stopped' THEN 'stopped' ELSE 'running' END,
+//	    d.status = CASE
+//	        WHEN ? = 'running' AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped') THEN 'deploying'
+//	        ELSE d.status
+//	    END,
+//	    dt.desired_status = ?,
+//	    dt.updated_at = ?
+//	WHERE dt.deployment_id = ? AND dt.region_id = ?
 func (q *Queries) UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error {
 	_, err := q.db.ExecContext(ctx, updateDeploymentTopologyDesiredStatus,
+		arg.DesiredStatus,
+		arg.DesiredStatus,
 		arg.DesiredStatus,
 		arg.UpdatedAt,
 		arg.DeploymentID,
