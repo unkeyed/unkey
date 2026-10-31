@@ -7,7 +7,6 @@ CREATE TABLE `deployment_topology` (
 	`autoscaling_replicas_max` int unsigned NOT NULL DEFAULT 1,
 	`autoscaling_threshold_cpu` tinyint unsigned,
 	`autoscaling_threshold_memory` tinyint unsigned,
-	`desired_status` enum('stopped','running') NOT NULL DEFAULT 'running',
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),
@@ -15,5 +14,3 @@ CREATE TABLE `deployment_topology` (
 );
 
 CREATE INDEX `workspace_idx` ON `deployment_topology` (`workspace_id`);
-
-CREATE INDEX `status_idx` ON `deployment_topology` (`desired_status`);
