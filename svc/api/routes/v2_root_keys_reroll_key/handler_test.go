@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
@@ -11,8 +12,10 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -236,6 +239,61 @@ func TestRerollRootKeyRejectsLongerLivedSource(t *testing.T) {
 				require.Equal(t, originalBefore, originalAfter)
 			})
 		}
+	}
+}
+
+// TestAgentRerollCannotOutliveToken guarantees an agent access token cannot
+// reroll a root key that outlives the token, which would hand the agent a new
+// secret for a longer-lived key.
+func TestAgentRerollCannotOutliveToken(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	expiresAt := h.Clock.Now().Add(time.Hour).Truncate(time.Millisecond)
+	permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
+	p := &principal.Principal{
+		Type:    principal.TypeJWT,
+		Subject: principal.Subject{ID: uid.New(uid.TestPrefix), Type: principal.SubjectTypeUser},
+		Source: principal.AgentSource{
+			RegistrationID: "agent_reg_" + uid.New(uid.TestPrefix),
+			ExpiresAt:      expiresAt,
+		},
+		AuthorizedWorkspaceID: workspace.ID,
+		Permissions: []string{
+			"unkey:v1:" + workspace.ID + ":rootKeys/*#write",
+			"unkey:v1:" + workspace.ID + ":rootKeys/*#delete",
+			permission,
+		},
+	}
+	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, RootKeyCache: h.Caches.RootKeyByHash, Clock: h.Clock}
+	h.Register(route, append(h.PublicMiddleware(), func(next zen.HandleFunc) zen.HandleFunc {
+		return func(ctx context.Context, s *zen.Session) error {
+			s.SetPrincipal(p)
+			return next(ctx, s)
+		}
+	})...)
+
+	for _, tt := range []struct {
+		name    string
+		expires *time.Time
+		status  int
+	}{
+		{"unlimited", nil, http.StatusBadRequest},
+		{"later", new(expiresAt.Add(time.Millisecond)), http.StatusBadRequest},
+		{"equal", &expiresAt, http.StatusOK},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			target := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{
+				WorkspaceID: workspace.ID,
+				Expires:     tt.expires,
+				Permissions: []string{permission},
+			})
+			before := liveRootKeyIDs(t, h, workspace.ID)
+			res := call(h, route, "test", handler.Request{KeyId: target.KeyID, Expiration: nullable.NewNullNullable[int64]()})
+			require.Equal(t, tt.status, res.Status, "%s", res.RawBody)
+			if tt.status != http.StatusOK {
+				require.Equal(t, before, liveRootKeyIDs(t, h, workspace.ID))
+			}
+		})
 	}
 }
 

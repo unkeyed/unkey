@@ -199,6 +199,56 @@ func TestConfig_ValidateAcceptsWorkOSProvider(t *testing.T) {
 	}
 }
 
+// TestConfig_ValidateWorkOSAgentProviderRequiresWorkOSAPIKey guarantees the
+// agent provider cannot start without the WorkOS API client it uses to look up
+// the claiming user's roles.
+func TestConfig_ValidateWorkOSAgentProviderRequiresWorkOSAPIKey(t *testing.T) {
+	t.Parallel()
+
+	agentAuth := JWTAuthConfig{
+		Issuer:   "https://auth.acme.com",
+		Audience: "client_test",
+		JWKSURL:  "https://api.workos.com/sso/jwks/client_test",
+		Provider: "workos_agent",
+	}
+	tests := []struct {
+		name    string
+		cliAuth CLIAuthConfig
+		wantErr string
+	}{
+		{
+			name:    "with WorkOS API key",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{strings.Repeat("s", 32)}},
+			wantErr: "",
+		},
+		{
+			name:    "without WorkOS API key",
+			cliAuth: CLIAuthConfig{},
+			wantErr: "cli_auth.workos_api_key",
+		},
+		{
+			name:    "blank WorkOS API key",
+			cliAuth: CLIAuthConfig{WorkOSAPIKey: "  "},
+			wantErr: "cli_auth.workos_api_key",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := configWithAuth(agentAuth)
+			cfg.CLIAuth = tt.cliAuth
+			err := cfg.Validate()
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, tt.wantErr)
+		})
+	}
+}
+
 // TestConfig_ValidateRejectsUnknownProvider guarantees a misspelled provider
 // fails startup instead of creating JWT principals without permissions.
 func TestConfig_ValidateRejectsUnknownProvider(t *testing.T) {

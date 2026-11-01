@@ -130,6 +130,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 		}
+		if caller, ok := p.Source.(authprincipal.AgentSource); ok {
+			if !source.Expires.Valid || source.Expires.Int64 > caller.ExpiresAt.UnixMilli() {
+				return fault.New("target root key outlives agent token",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Public("An agent access token can only reroll root keys that expire no later than itself."),
+				)
+			}
+		}
 		rootKeyPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(ctx, tx, db.ListUnkeyPermissionsByPrincipalParams{
 			WorkspaceID:   p.AuthorizedWorkspaceID,
 			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,

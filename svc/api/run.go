@@ -401,6 +401,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(func() error { jwksCache.Close(); return nil })
 
+	var workosMemberships clidevice.Memberships
+	if key := strings.TrimSpace(cfg.CLIAuth.WorkOSAPIKey); key != "" {
+		workosMemberships = workos.New(key, cfg.CLIAuth.WorkOSAPIBaseURL)
+	}
+
 	// Portal sessions authenticate on a dedicated auth service used only by the
 	// portal routes, so protected routes never accept a portal-session cookie.
 	authResolvers := []auth.Resolver{}
@@ -412,19 +417,38 @@ func Run(ctx context.Context, cfg Config) error {
 			for _, secret := range authConfig.Secrets {
 				jwtSecrets = append(jwtSecrets, []byte(secret))
 			}
-			var jwtResolver auth.Resolver
+			var verified *authjwt.Resolver
 			var jwtErr error
 			// Config.Validate guarantees exactly one of secrets or jwks_url.
 			if len(jwtSecrets) > 0 {
-				jwtResolver, jwtErr = authjwt.NewResolver(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, jwtSecrets...)
+				verified, jwtErr = authjwt.NewResolver(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, jwtSecrets...)
 			} else {
-				jwtResolver, jwtErr = authjwt.NewResolverWithJWKSURL(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL, jwksCache, clk)
+				verified, jwtErr = authjwt.NewResolverWithJWKSURL(workspaceByOrgID, authConfig.Issuer, authConfig.Audience, authConfig.JWKSURL, jwksCache, clk)
 			}
 			if jwtErr != nil {
 				return fmt.Errorf("unable to create JWT auth resolver from auth[%d]: %w", i, jwtErr)
 			}
-			if authConfig.Provider == jwtProviderWorkOS {
-				jwtResolver = authworkos.NewRoleMappingResolver(jwtResolver)
+			var jwtResolver auth.Resolver = verified
+			switch authConfig.Provider {
+			case jwtProviderWorkOS:
+				jwtResolver = authworkos.NewRoleMappingResolver(verified)
+			case jwtProviderWorkOSAgent:
+				agentMembershipCache, cacheErr := cache.New(cache.Config[authworkos.MembershipKey, authworkos.Membership]{
+					Fresh:     30 * time.Second,
+					Stale:     30 * time.Second,
+					MaxSize:   10_000,
+					Resource:  "workos_agent_roles",
+					Clock:     clk,
+					Scheduler: nil,
+				})
+				if cacheErr != nil {
+					return fmt.Errorf("unable to create WorkOS agent role cache for auth[%d]: %w", i, cacheErr)
+				}
+				r.Defer(func() error { agentMembershipCache.Close(); return nil })
+				jwtResolver, jwtErr = authworkos.NewAgentResolver(verified.WithFlatOrgID(), workosMemberships, agentMembershipCache)
+				if jwtErr != nil {
+					return fmt.Errorf("unable to create WorkOS agent auth resolver from auth[%d]: %w", i, jwtErr)
+				}
 			}
 			authResolvers = append(authResolvers, jwtResolver)
 		case PortalSessionAuthConfig:
@@ -435,10 +459,6 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unsupported auth config at auth[%d]", i)
 		}
 	}
-	var cliMemberships clidevice.Memberships
-	if key := strings.TrimSpace(cfg.CLIAuth.WorkOSAPIKey); key != "" {
-		cliMemberships = workos.New(key, cfg.CLIAuth.WorkOSAPIBaseURL)
-	}
 	cliSecrets := make([][]byte, 0, len(cfg.CLIAuth.SigningSecrets))
 	for _, secret := range cfg.CLIAuth.SigningSecrets {
 		cliSecrets = append(cliSecrets, []byte(secret))
@@ -448,7 +468,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:        auditlogSvc,
 		Clock:            clk,
 		Ratelimit:        rlSvc,
-		Memberships:      cliMemberships,
+		Memberships:      workosMemberships,
 		DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
 		Signer:           nil,
 		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),

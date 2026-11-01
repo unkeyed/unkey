@@ -33,7 +33,8 @@ type Actor struct {
 // can see end-user activity in their audit logs. All other principals are
 // attributed to their subject type. The ID and Name come from the principal's
 // subject, which the resolver already sets to the end user's externalId for
-// portal sessions.
+// portal sessions. CLI-session and agent principals act as a user, so Meta
+// records "via" and the session or agent registration the user acted through.
 //
 // Keeping actor construction here ensures every portal-capable handler
 // attributes actions consistently instead of reaching into principal.Subject
@@ -48,13 +49,16 @@ func FromPrincipal(p *principal.Principal) Actor {
 		Meta: map[string]any{},
 	}
 
-	if _, ok := p.Source.(principal.PortalSessionSource); ok {
+	switch source := p.Source.(type) {
+	case principal.PortalSessionSource:
 		actor.Type = auditlog.PortalEndUserActor
-	}
-	if source, ok := p.Source.(principal.CLISessionSource); ok {
+	case principal.CLISessionSource:
 		actor.Meta["via"] = "cli"
 		actor.Meta["session_id"] = source.SessionID
 		actor.Meta["device"] = source.DeviceName
+	case principal.AgentSource:
+		actor.Meta["via"] = "agent"
+		actor.Meta["registration_id"] = source.RegistrationID
 	}
 
 	return actor
