@@ -40,6 +40,14 @@
           "omit_unused_structs": true,
           "overrides": [
             {
+              "column": "unkey_root_keys.ip_allowlist",
+              "go_type": {
+                "type": "StringSlice",
+                "package": "dbtype",
+                "import": "github.com/unkeyed/unkey/pkg/db/types"
+              }
+            },
+            {
               "db_type": "json",
               "go_type": {
                 "type": "[]byte"

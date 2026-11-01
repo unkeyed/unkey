@@ -6,6 +6,10 @@ import * as z from "zod/v3";
 
 export type V2RootKeysCreateKeyRequestBody = {
   /**
+   * IPv4 or IPv6 addresses and CIDR ranges allowed to use this root key. Omit to inherit the calling root key's allowlist. A caller without an IP restriction creates an unrestricted key when this field is omitted. An explicit list must stay within the caller's allowed networks; a restricted caller cannot send an empty list.
+   */
+  ipAllowlist?: Array<string> | undefined;
+  /**
    * Optional name for the root key.
    */
   name?: string | undefined;
@@ -21,6 +25,7 @@ export type V2RootKeysCreateKeyRequestBody = {
 
 /** @internal */
 export type V2RootKeysCreateKeyRequestBody$Outbound = {
+  ipAllowlist?: Array<string> | undefined;
   name?: string | undefined;
   permissions: Array<string>;
   expires?: number | null | undefined;
@@ -32,6 +37,7 @@ export const V2RootKeysCreateKeyRequestBody$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   V2RootKeysCreateKeyRequestBody
 > = z.object({
+  ipAllowlist: z.array(z.string()).optional(),
   name: z.string().optional(),
   permissions: z.array(z.string()),
   expires: z.nullable(z.number().int()).optional(),
@@ -41,8 +47,6 @@ export function v2RootKeysCreateKeyRequestBodyToJSON(
   v2RootKeysCreateKeyRequestBody: V2RootKeysCreateKeyRequestBody,
 ): string {
   return JSON.stringify(
-    V2RootKeysCreateKeyRequestBody$outboundSchema.parse(
-      v2RootKeysCreateKeyRequestBody,
-    ),
+    V2RootKeysCreateKeyRequestBody$outboundSchema.parse(v2RootKeysCreateKeyRequestBody),
   );
 }

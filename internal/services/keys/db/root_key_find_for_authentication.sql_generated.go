@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const findLegacyRootKeyForAuthentication = `-- name: FindLegacyRootKeyForAuthentication :one
@@ -125,6 +127,7 @@ SELECT
     k.workspace_id,
     k.name,
     k.expires,
+    k.ip_allowlist,
     k.enabled,
     k.deleted_at,
     fws.enabled AS workspace_enabled,
@@ -142,14 +145,15 @@ WHERE k.hash = ?
 `
 
 type FindUnkeyRootKeyForAuthenticationRow struct {
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
-	Name             sql.NullString `db:"name"`
-	Expires          sql.NullInt64  `db:"expires"`
-	Enabled          bool           `db:"enabled"`
-	DeletedAt        sql.NullInt64  `db:"deleted_at"`
-	WorkspaceEnabled sql.NullBool   `db:"workspace_enabled"`
-	Permissions      interface{}    `db:"permissions"`
+	ID               string             `db:"id"`
+	WorkspaceID      string             `db:"workspace_id"`
+	Name             sql.NullString     `db:"name"`
+	Expires          sql.NullInt64      `db:"expires"`
+	IpAllowlist      dbtype.StringSlice `db:"ip_allowlist"`
+	Enabled          bool               `db:"enabled"`
+	DeletedAt        sql.NullInt64      `db:"deleted_at"`
+	WorkspaceEnabled sql.NullBool       `db:"workspace_enabled"`
+	Permissions      interface{}        `db:"permissions"`
 }
 
 // FindUnkeyRootKeyForAuthentication loads a root key from the new store,
@@ -161,6 +165,7 @@ type FindUnkeyRootKeyForAuthenticationRow struct {
 //	    k.workspace_id,
 //	    k.name,
 //	    k.expires,
+//	    k.ip_allowlist,
 //	    k.enabled,
 //	    k.deleted_at,
 //	    fws.enabled AS workspace_enabled,
@@ -183,6 +188,7 @@ func (q *Queries) FindUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX
 		&i.WorkspaceID,
 		&i.Name,
 		&i.Expires,
+		&i.IpAllowlist,
 		&i.Enabled,
 		&i.DeletedAt,
 		&i.WorkspaceEnabled,
