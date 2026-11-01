@@ -2,9 +2,9 @@ import { ListViews } from "@/components/list-views";
 import { ResourceSearchInput, useListSearch } from "@/components/resource-search-input";
 import { useVisibleProjects } from "@/hooks/use-visible-projects";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import { projectDisplayName } from "@/lib/collections/deploy/projects";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { refetchAllApps, refetchProjects } from "@/lib/deploy-data";
 import { GRID_PAGE_SIZE } from "@/lib/list-limits";
 import { useShowMore } from "@/lib/loadable/list";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
@@ -36,10 +36,10 @@ export function ProjectsList() {
     pageSize: GRID_PAGE_SIZE,
   });
 
-  useCollectionPolling(
-    () => Promise.all([collection.projects.utils.refetch(), collection.apps.utils.refetch()]),
-    { intervalMs: IDLE_POLL_MS, enabled: true },
-  );
+  useCollectionPolling(() => Promise.all([refetchProjects(), refetchAllApps()]), {
+    intervalMs: IDLE_POLL_MS,
+    enabled: true,
+  });
 
   return (
     <ListViews

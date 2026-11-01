@@ -24,21 +24,14 @@ const { rows } = vi.hoisted(() => {
 });
 
 vi.mock("@/lib/flags/provider", () => ({ useFlag: () => projectsNav }));
-// A real in-memory collection, so the query runs through the actual builder
-// instead of a hand-written stand-in for `where` and `eq`.
-vi.mock("@/lib/collections", async () => {
-  const { createCollection, localOnlyCollectionOptions } = await import("@tanstack/react-db");
-  return {
-    collection: {
-      projects: createCollection(
-        localOnlyCollectionOptions<Project, string>({
-          getKey: (project) => project.id,
-          initialData: rows,
-        }),
-      ),
-    },
-  };
-});
+// Newest first, as useProjects returns them
+vi.mock("@/lib/deploy-data", () => ({
+  useProjects: () => ({
+    data: rows.toSorted((a, b) => b.createdAt - a.createdAt),
+    isLoading: false,
+    isError: false,
+  }),
+}));
 
 import { useVisibleProjects } from "./use-visible-projects";
 

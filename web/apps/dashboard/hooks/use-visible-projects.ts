@@ -1,19 +1,12 @@
 "use client";
 
-import { collection } from "@/lib/collections";
+import { type Project, type QueryResult, useProjects } from "@/lib/deploy-data";
 import { useFlag } from "@/lib/flags/provider";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 
-export function useVisibleProjects() {
+export function useVisibleProjects(): QueryResult<Project[]> {
   const projectsNav = useFlag("projectsNav");
-
-  return useLiveQuery(
-    (q) => {
-      const all = q
-        .from({ project: collection.projects })
-        .orderBy(({ project }) => project.createdAt, "desc");
-      return projectsNav ? all : all.where(({ project }) => eq(project.isDefault, false));
-    },
-    [projectsNav],
-  );
+  const projects = useProjects();
+  return projectsNav
+    ? projects
+    : { ...projects, data: projects.data.filter((project) => !project.isDefault) };
 }

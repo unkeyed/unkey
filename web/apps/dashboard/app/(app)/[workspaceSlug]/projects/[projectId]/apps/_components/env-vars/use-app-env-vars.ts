@@ -1,7 +1,4 @@
-import { collection } from "@/lib/collections";
-import type { EnvVar } from "@/lib/collections/deploy/env-vars";
-import { useCollectionLoad } from "@/lib/collections/use-collection-load";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { type EnvVar, useEnvVars } from "@/lib/deploy-data";
 
 export type AppEnvVarsLoad =
   | { status: "loading" }
@@ -9,16 +6,9 @@ export type AppEnvVarsLoad =
   | { status: "ready"; data: EnvVar[] };
 
 export function useAppEnvVars(projectId: string, appId: string): AppEnvVarsLoad {
-  const { data, isLoading } = useLiveQuery(
-    (q) =>
-      q
-        .from({ v: collection.envVars })
-        .where(({ v }) => and(eq(v.projectId, projectId), eq(v.appId, appId))),
-    [projectId, appId],
-  );
-  const { failed, retry } = useCollectionLoad(collection.envVars.utils);
-  if (failed) {
-    return { status: "failed", retry };
+  const { data, isLoading, isError, refetch } = useEnvVars(projectId, appId);
+  if (isError) {
+    return { status: "failed", retry: refetch };
   }
   if (isLoading) {
     return { status: "loading" };

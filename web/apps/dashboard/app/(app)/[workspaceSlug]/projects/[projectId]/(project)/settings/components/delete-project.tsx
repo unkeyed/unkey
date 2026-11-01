@@ -1,8 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import type { Project } from "@/lib/collections/deploy/projects";
+import { type Project, useProjectMutations } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
@@ -23,6 +22,7 @@ import { z } from "zod";
 export function DeleteProject({ project }: { project: Project }) {
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
+  const { deleteProject } = useProjectMutations();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const projectName = project.name;
@@ -49,12 +49,10 @@ export function DeleteProject({ project }: { project: Project }) {
   const isValid = watch("name") === projectName;
 
   const onSubmit = async () => {
-    // Non-optimistic: keep the project in the collection until the server delete
-    // resolves. An optimistic removal empties the local project while this page
-    // is still mounted and trips ProjectGuard's notFound(), 404ing before
-    // navigation lands.
-    const tx = collection.projects.delete(project.id, { optimistic: false });
-    await tx.isPersisted.promise;
+    // The delete is not optimistic: removing the project first would trip
+    // ProjectGuard's notFound() while this page is still mounted, 404ing
+    // before navigation lands.
+    await deleteProject(project.id);
     setIsDialogOpen(false);
     router.push(routes.projects.list({ workspaceSlug: workspace.slug }));
   };

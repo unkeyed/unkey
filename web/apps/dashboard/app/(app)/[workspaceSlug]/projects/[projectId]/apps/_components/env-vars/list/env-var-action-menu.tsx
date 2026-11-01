@@ -1,8 +1,7 @@
 "use client";
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { collection } from "@/lib/collections";
-import type { EnvVar } from "@/lib/collections/deploy/env-vars";
+import { type EnvVar, useEnvVarMutations } from "@/lib/deploy-data";
 import {
   IconCloneOutline18,
   IconDotsOutline18,
@@ -16,6 +15,7 @@ export function EnvVarActionMenu({ envVar, onEdit }: { envVar: EnvVar; onEdit: (
   const { id: envVarId, value, key: variableKey, type } = envVar;
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const { deleteEnvVars } = useEnvVarMutations();
 
   const menuItems: MenuItem[] = [
     {
@@ -63,7 +63,7 @@ export function EnvVarActionMenu({ envVar, onEdit }: { envVar: EnvVar; onEdit: (
       <ConfirmPopover
         isOpen={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
-        onConfirm={() => collection.envVars.delete([envVarId])}
+        onConfirm={() => deleteEnvVars([envVarId])}
         triggerRef={triggerRef}
         title="Confirm deletion"
         description={`This will permanently delete "${variableKey}". This action cannot be undone.`}

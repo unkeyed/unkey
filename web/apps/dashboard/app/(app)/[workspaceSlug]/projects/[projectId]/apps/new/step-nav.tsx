@@ -1,7 +1,6 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { useAppsInProject } from "@/lib/deploy-data";
 import {
   Github,
   IconCheckOutline18,
@@ -43,15 +42,7 @@ function stepIcons(source: SourceKind | null): Record<Step, Icon> {
 type StepView = StepRow & { title: string; detail: string | null; icon: Icon };
 
 function useStepViews(projectId: string, state: WizardState): StepView[] {
-  const appId = state.appId ?? "";
-  const { data } = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
-  const app = data.at(0);
+  const app = useAppsInProject(projectId).data.find(({ id }) => id === state.appId);
   const { source } = state;
   const chosen: Record<Step, string | null> = {
     method: source ? sourceCopy[source].sourceLabel : null,

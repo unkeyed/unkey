@@ -5,6 +5,8 @@ import { queryClient } from "@/lib/collections/client";
 import { type App, refetchProjectApps } from "@/lib/collections/deploy/apps";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
 import type { Domain } from "@/lib/collections/deploy/domains";
+import type { EnvVar } from "@/lib/collections/deploy/env-vars";
+import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { pickPrimaryApp } from "@/lib/collections/deploy/project-cards";
 import { queryKeys } from "@/lib/query-keys";
@@ -17,7 +19,7 @@ import {
   useLiveQuery,
 } from "@tanstack/react-db";
 import { useCallback, useSyncExternalStore } from "react";
-import { useDeployScope } from "./context";
+import { useAppScope, useDeployScope } from "./context";
 
 // Shaped like a React Query result so the source behind a hook can change
 // without touching its callers. Lists are empty, not undefined, while loading.
@@ -32,8 +34,18 @@ export type QueryResult<T> = {
 };
 
 export function useProjectApps(): QueryResult<App[]> {
-  const { projectId } = useDeployScope();
-  const query = useLiveQuery(() => projectAppsQuery(projectId), [projectId]);
+  return useAppsInProject(useDeployScope().projectId);
+}
+
+// A project's apps, latest update first. Needs no DeployDataProvider.
+export function useAppsInProject(
+  projectId: string,
+  { enabled = true }: { enabled?: boolean } = {},
+): QueryResult<App[]> {
+  const query = useLiveQuery(
+    () => (enabled ? projectAppsQuery(projectId) : null),
+    [projectId, enabled],
+  );
   const load = useLoadState(collection.apps.utils, refetchProjectApps, projectId);
   return { data: query.data ?? [], isLoading: query.isLoading, ...load };
 }
@@ -85,6 +97,44 @@ export function useCustomDomains(): QueryResult<CustomDomain[]> {
   );
   const load = useLoadState(collection.customDomains.utils, refetchScopeCustomDomains, projectId);
   return { data: query.data ?? [], isLoading: query.isLoading, ...load };
+}
+
+export function useEnvVars(projectId: string, appId: string): QueryResult<EnvVar[]> {
+  const query = useLiveQuery(() => envVarsQuery(projectId, appId), [projectId, appId]);
+  const load = useLoadState(collection.envVars.utils, refetchAppEnvVars, appId);
+  return { data: query.data ?? [], isLoading: query.isLoading, ...load };
+}
+
+// The settings of every environment of the scope's app
+export function useAppEnvironmentSettings(): QueryResult<EnvironmentSettings[]> {
+  const { projectId, appId } = useAppScope();
+  const query = useLiveQuery(() => environmentSettingsQuery(projectId, appId), [projectId, appId]);
+  const load = useLoadState(
+    collection.environmentSettings.utils,
+    refetchAppEnvironmentSettings,
+    appId,
+  );
+  return { data: query.data ?? [], isLoading: query.isLoading, ...load };
+}
+
+// Reads what the apps already loaded hold, without subscribing, for event handlers
+export function getAppData(appId: string): App | undefined {
+  return collection.apps.get(appId);
+}
+
+export function getProjectAppsData(projectId: string): App[] {
+  return collection.apps.toArray.filter((app) => app.projectId === projectId);
+}
+
+// Drops an app the server no longer has, without waiting for a refetch
+export function removeAppData(appId: string): void {
+  if (collection.apps.has(appId)) {
+    collection.apps.utils.writeDelete(appId);
+  }
+}
+
+export function refetchAllApps() {
+  return collection.apps.utils.refetch();
 }
 
 export function refetchScopeDeployments(projectId: string, appId: string | undefined) {
@@ -144,6 +194,41 @@ export function memoByArgs<A extends Array<string | number | null>, T>(
   };
 }
 
+/**
+ * A live query reports only errors inside sync, so load failures are read from
+ * the source collection. A failed load records its error there and emits
+ * nothing, so the flag is reread on every query cache event.
+ */
+export function useLoadState(
+  source: LoadSource,
+  refetchScope: (scopeId: string) => Promise<unknown>,
+  scopeId: string,
+): Pick<QueryResult<unknown>, "isError" | "error" | "refetch"> {
+  const isError = useSyncExternalStore(
+    subscribeQueryCache,
+    () => source.isError,
+    () => false,
+  );
+  const refetch = useCallback(
+    () => (source.isError ? source.clearError() : refetchScope(scopeId)),
+    [source, refetchScope, scopeId],
+  );
+  return { isError, error: isError ? source.lastError : null, refetch };
+}
+
+export function subscribeQueryCache(onChange: () => void): () => void {
+  return queryClient.getQueryCache().subscribe(onChange);
+}
+
+export function projectAppsQueryFor(projectId: string) {
+  return (q: InitialQueryBuilder) =>
+    q
+      .from({ app: collection.apps })
+      .where(({ app }) => eq(app.projectId, projectId))
+      .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
+      .orderBy(({ app }) => app.id, "desc");
+}
+
 export function domainsQueryFor(projectId: string, appId: string | null) {
   return (q: InitialQueryBuilder) =>
     q
@@ -176,8 +261,22 @@ export function environmentsQueryFor(projectId: string, appIds: string) {
 }
 
 const projectAppsQuery = memoByArgs((projectId: string) =>
+  createLiveQueryCollection(projectAppsQueryFor(projectId)),
+);
+
+const envVarsQuery = memoByArgs((projectId: string, appId: string) =>
   createLiveQueryCollection((q) =>
-    q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    q
+      .from({ v: collection.envVars })
+      .where(({ v }) => and(eq(v.projectId, projectId), eq(v.appId, appId))),
+  ),
+);
+
+const environmentSettingsQuery = memoByArgs((projectId: string, appId: string) =>
+  createLiveQueryCollection((q) =>
+    q
+      .from({ s: collection.environmentSettings })
+      .where(({ s }) => and(eq(s.projectId, projectId), eq(s.appId, appId))),
   ),
 );
 
@@ -193,8 +292,12 @@ const customDomainsQuery = memoByArgs((projectId: string, appId: string | null) 
   createLiveQueryCollection(customDomainsQueryFor(projectId, appId)),
 );
 
-function subscribeQueryCache(onChange: () => void): () => void {
-  return queryClient.getQueryCache().subscribe(onChange);
+function refetchAppEnvVars(appId: string) {
+  return queryClient.refetchQueries({ queryKey: ["envVars", appId], type: "active" });
+}
+
+function refetchAppEnvironmentSettings(appId: string) {
+  return queryClient.refetchQueries({ queryKey: ["environmentSettings", appId], type: "active" });
 }
 
 // Environment keys name each app as projectId:appId
@@ -212,25 +315,3 @@ type LoadSource = {
   readonly lastError: unknown;
   clearError: () => Promise<void>;
 };
-
-/**
- * A live query reports only errors inside sync, so load failures are read from
- * the source collection. A failed load records its error there and emits
- * nothing, so the flag is reread on every query cache event.
- */
-function useLoadState(
-  source: LoadSource,
-  refetchScope: (projectId: string) => Promise<unknown>,
-  projectId: string,
-): Pick<QueryResult<unknown>, "isError" | "error" | "refetch"> {
-  const isError = useSyncExternalStore(
-    subscribeQueryCache,
-    () => source.isError,
-    () => false,
-  );
-  const refetch = useCallback(
-    () => (source.isError ? source.clearError() : refetchScope(projectId)),
-    [source, refetchScope, projectId],
-  );
-  return { isError, error: isError ? source.lastError : null, refetch };
-}

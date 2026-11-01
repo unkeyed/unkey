@@ -1,15 +1,13 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import {
   type CreateProjectRequestSchema,
   createProjectRequestSchema,
 } from "@/lib/collections/deploy/projects";
-import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
+import { useProjectMutations } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -33,6 +31,7 @@ type Props = {
 
 export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Props) => {
   const router = useRouter();
+  const { createProject } = useProjectMutations();
   const [isNavigating, startNavigation] = useTransition();
   const {
     register,
@@ -52,29 +51,22 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
 
   async function onSubmit(values: CreateProjectRequestSchema) {
     try {
-      const tx = collection.projects.insert({
-        name: values.name,
-        slug: values.slug,
-        isDefault: false,
-        id: SERVER_PLACEHOLDER,
-        createdAt: Date.now(),
-      });
-      await tx.isPersisted.promise;
-      const { projectId } = tx.metadata as { projectId: string };
+      const created = await createProject(values);
+      if (created.status === "duplicate") {
+        setError("slug", {
+          type: "custom",
+          message: "Project with this slug already exists",
+        });
+        return;
+      }
+      const { projectId } = created;
       // Keep the dialog (and its loading button) up until the new route has
       // rendered; closing immediately leaves the user staring at the old page.
       startNavigation(() => {
         router.push(routes.projects.apps.new({ workspaceSlug, projectId }));
       });
     } catch (error) {
-      if (error instanceof DuplicateKeyError) {
-        setError("slug", {
-          type: "custom",
-          message: "Project with this slug already exists",
-        });
-      } else {
-        console.error("Form submission error:", error);
-      }
+      console.error("Form submission error:", error);
     }
   }
 

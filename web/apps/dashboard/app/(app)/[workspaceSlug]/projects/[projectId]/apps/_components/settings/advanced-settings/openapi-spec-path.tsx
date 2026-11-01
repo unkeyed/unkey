@@ -34,7 +34,7 @@ export function OpenapiSpecPath() {
     void update((draft) => {
       draft.openapiSpecPath = null;
     })
-      .isPersisted.promise.catch(() => undefined)
+      .catch(() => undefined)
       .finally(() => setRemoving(false));
   };
 

@@ -1,8 +1,12 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { refetchProjectApps } from "@/lib/collections/deploy/apps";
-import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
+import {
+  getAppData,
+  getProjectAppsData,
+  refetchProjectApps,
+  removeAppData,
+  useEnvironmentSettingsMutations,
+} from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { TRPCClientError } from "@trpc/client";
@@ -49,11 +53,12 @@ function isApiError(
 
 export function useAppLifecycle(projectId: string) {
   const utils = trpc.useUtils();
+  const { applyDefaultSettings } = useEnvironmentSettingsMutations();
 
   const takenSlugs = (excludeAppId: string | null): ReadonlySet<string> =>
     new Set(
-      collection.apps.toArray
-        .filter((app) => app.projectId === projectId && app.id !== excludeAppId)
+      getProjectAppsData(projectId)
+        .filter((app) => app.id !== excludeAppId)
         .map((app) => app.slug),
     );
 
@@ -93,7 +98,7 @@ export function useAppLifecycle(projectId: string) {
     });
 
   const setAppName = async (appId: string, slug: string): Promise<void> => {
-    if (collection.apps.get(appId)?.slug === slug) {
+    if (getAppData(appId)?.slug === slug) {
       return;
     }
     try {
@@ -112,9 +117,7 @@ export function useAppLifecycle(projectId: string) {
         throw error;
       }
     }
-    if (collection.apps.has(appId)) {
-      collection.apps.utils.writeDelete(appId);
-    }
+    removeAppData(appId);
   };
 
   const createApp = async (baseName: string, source: AppSource): Promise<string> => {
@@ -146,11 +149,10 @@ export function useAppLifecycle(projectId: string) {
     createApp(baseName, { oci: { image } });
 
   const createGitPlaceholder = async (): Promise<string> =>
-    findReusablePlaceholder(collection.apps.toArray.filter((app) => app.projectId === projectId)) ??
-    createGitApp(provisionalAppName);
+    findReusablePlaceholder(getProjectAppsData(projectId)) ?? createGitApp(provisionalAppName);
 
   const renameApp = async (appId: string, baseName: string): Promise<void> => {
-    if (collection.apps.get(appId)?.slug === baseName) {
+    if (getAppData(appId)?.slug === baseName) {
       return;
     }
     await withFreeSlug(baseName, appId, (slug) =>

@@ -2,9 +2,8 @@
 
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
+import { useAppsInProject } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Github, IconPlusOutline18, IconTerminalOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
@@ -12,16 +11,8 @@ import type { CrumbPopoverItem } from "./crumb-popover";
 export function AppCrumb({ projectId, appId }: { projectId: string; appId: string }) {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
-  const appsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => eq(app.projectId, projectId))
-        .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
-        .orderBy(({ app }) => app.id, "desc"),
-    [projectId],
-  );
-  const apps = appsQuery.data ?? [];
+  const appsQuery = useAppsInProject(projectId);
+  const apps = appsQuery.data;
   const current = apps.find((a) => a.id === appId);
 
   const items: CrumbPopoverItem[] = apps.map((a) => ({

@@ -1,8 +1,7 @@
 "use client";
 
 import { LoadError } from "@/components/load-error";
-import { collection } from "@/lib/collections";
-import { refetchProjectApps } from "@/lib/collections/deploy/apps";
+import { getAppData, refetchProjectApps } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { Github, IconChevronRightOutline18 } from "@unkey/icons";
@@ -28,7 +27,7 @@ function usePickRepository(appId: string | null) {
   const selectRepository = trpc.github.selectRepository.useMutation();
 
   const relink = async (id: string, repo: RepoItem, baseName: string) => {
-    const linked = collection.apps.get(id);
+    const linked = getAppData(id);
     await selectRepository.mutateAsync({
       projectId,
       appId: id,
