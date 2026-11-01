@@ -39,3 +39,10 @@ export function warmAppPage(projectId: string, appId: string): void {
       : []),
   ]);
 }
+
+// Loads one deployment by id, so opening its page after hovering its row finds it held
+export function warmDeployment(projectId: string, appId: string, deploymentId: string): void {
+  warmQueries(`deployment/${deploymentId}`, () => [
+    createLiveQueryCollection(deploymentByIdQueryFor(projectId, appId, deploymentId)),
+  ]);
+}
