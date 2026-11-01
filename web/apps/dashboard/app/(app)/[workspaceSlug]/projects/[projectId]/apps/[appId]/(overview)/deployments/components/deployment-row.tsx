@@ -65,7 +65,7 @@ export const DeploymentRow = memo(function DeploymentRow({
       : latestExit(deployment.instances.map((i) => i.lastExit));
 
   return (
-    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
+    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors [contain-intrinsic-size:auto_45px] [content-visibility:auto] hover:bg-grayA-2">
       {needsApproval ? (
         <button
           type="button"
