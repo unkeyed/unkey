@@ -323,6 +323,62 @@ func TestGuidedTerminalSecretIsHiddenAndPreserved(t *testing.T) {
 	recordGuided(t, "secret-after", terminal, out)
 }
 
+func TestGuidedTerminalSingleSecretFinishes(t *testing.T) {
+	requests := make(chan components.V2KeysWhoamiRequestBody, 1)
+	keyID := uid.New(uid.KeyPrefix)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request components.V2KeysWhoamiRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		requests <- request
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(components.V2KeysWhoamiResponseBody{
+			Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+			Data: components.KeyResponseData{KeyID: keyID, Name: new("Build runner"), Enabled: true},
+		}); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	secret := uid.New(uid.KeyPrefix)
+	for _, cancel := range []bool{false, true} {
+		t.Run(fmt.Sprintf("cancel=%t", cancel), func(t *testing.T) {
+			answer := secret + "\r"
+			if cancel {
+				answer = "\x03"
+			}
+			out, terminal, err := runGuidedTerminal(t, []string{
+				"keys", "whoami", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
+			}, []terminalAnswer{{expect: "Input is hidden", answer: answer}})
+			if cancel {
+				require.Error(t, err)
+				require.Empty(t, out)
+				require.Empty(t, requests)
+			} else {
+				require.NoError(t, err, terminal)
+				require.Equal(t, secret, (<-requests).Key)
+				require.Contains(t, out, keyID)
+			}
+			screen := vt100.NewVT100(40, 100)
+			_, err = screen.Write([]byte(terminal + out))
+			require.NoError(t, err)
+			var visible strings.Builder
+			for _, row := range screen.Content {
+				visible.WriteString(strings.TrimRight(string(row), " ") + "\n")
+			}
+			require.NotContains(t, visible.String(), "? Key")
+			require.NotContains(t, visible.String(), "Input is hidden")
+			require.NotContains(t, visible.String(), "Ctrl+C to cancel")
+			require.NotContains(t, terminal+out, secret)
+			if !cancel {
+				require.Contains(t, visible.String(), "✓ Key: [hidden]\n")
+			}
+		})
+	}
+}
+
 func TestGuidedTerminalDeploymentUsesOneOptionalSource(t *testing.T) {
 	requests := make(chan components.V3DeploymentsCreateDeploymentRequestBody, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

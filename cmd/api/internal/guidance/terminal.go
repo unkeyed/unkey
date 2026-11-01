@@ -81,6 +81,7 @@ type terminalForm struct {
 	selected  bool
 	width     int
 	height    int
+	frameOpen bool
 	cursorRow int
 	page      int
 }
@@ -122,7 +123,7 @@ func (f *terminalForm) finish() (err error) {
 		_, restoreErr := fmt.Fprint(f.out, "\x1b[?25h")
 		err = errors.Join(err, restoreErr)
 	}()
-	if f.cursorRow == 0 {
+	if !f.frameOpen {
 		return nil
 	}
 	f.pending.Reset()
@@ -138,6 +139,7 @@ func (f *terminalForm) commit() error {
 	if err := f.draw(nil, -1, -1); err != nil {
 		return err
 	}
+	f.frameOpen = false
 	f.cursorRow = 0
 	f.page = 0
 	return nil
@@ -425,6 +427,9 @@ func (f *terminalForm) draw(controls []string, row, column int) error {
 		output.WriteString("\x1b[?25h")
 	}
 	_, err := io.WriteString(f.out, output.String())
+	if err == nil {
+		f.frameOpen = true
+	}
 	return err
 }
 
