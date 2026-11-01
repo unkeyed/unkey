@@ -21,6 +21,8 @@ import { useDeployScope } from "./context";
 
 // Shaped like a React Query result so the source behind a hook can change
 // without touching its callers. Lists are empty, not undefined, while loading.
+const MEMO_ENTRIES_MAX = 50;
+
 export type QueryResult<T> = {
   data: T;
   isLoading: boolean;
@@ -115,6 +117,8 @@ export function refetchDeployData(projectId: string, appId: string | undefined) 
  * Each hook call site gets the same live query for the same arguments, so
  * components reading one thing share a single subscription instead of building
  * one each. An unused live query cleans itself up and restarts on next use.
+ * Hovering and opening deployments adds one query per id, so only the most
+ * recently used ones are kept; a component holding an evicted one keeps it.
  */
 export function memoByArgs<A extends Array<string | number | null>, T>(
   create: (...args: A) => T,
@@ -124,10 +128,18 @@ export function memoByArgs<A extends Array<string | number | null>, T>(
     const key = JSON.stringify(args);
     const cached = cache.get(key);
     if (cached !== undefined) {
+      cache.delete(key);
+      cache.set(key, cached);
       return cached;
     }
     const created = create(...args);
     cache.set(key, created);
+    if (cache.size > MEMO_ENTRIES_MAX) {
+      const [oldest] = cache.keys();
+      if (oldest !== undefined) {
+        cache.delete(oldest);
+      }
+    }
     return created;
   };
 }
