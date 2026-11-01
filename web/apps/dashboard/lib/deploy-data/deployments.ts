@@ -116,9 +116,20 @@ export function useDeployment(
     () => (deploymentId ? deploymentByIdQuery(projectId, appId ?? null, deploymentId) : null),
     [projectId, appId, deploymentId],
   );
+  // A row already on a loaded list page shows while its own load is in flight
+  const listed =
+    query.isLoading && deploymentId && appId !== undefined
+      ? queryClient
+          .getQueriesData<InfiniteData<DeploymentsPage>>({
+            queryKey: queryKeys.deployments.pages(projectId, appId),
+          })
+          .flatMap(([, data]) => data?.pages ?? [])
+          .flatMap((page) => page.rows)
+          .find((row) => row.id === deploymentId)
+      : undefined;
   return {
-    data: deploymentId ? (query.isLoading ? undefined : (query.data?.[0] ?? null)) : null,
-    isLoading: query.isLoading,
+    data: deploymentId ? (query.isLoading ? listed : (query.data?.[0] ?? null)) : null,
+    isLoading: query.isLoading && listed === undefined,
     isError: query.isError,
     error: null,
     refetch,
