@@ -116,17 +116,21 @@ export function useDeployment(
     () => (deploymentId ? deploymentByIdQuery(projectId, appId ?? null, deploymentId) : null),
     [projectId, appId, deploymentId],
   );
-  // A row already on a loaded list page shows while its own load is in flight
+  // A row another list of the scope already holds shows while its own load is in flight
+  const held =
+    query.isLoading && deploymentId ? collection.deployments.get(deploymentId) : undefined;
   const listed =
-    query.isLoading && deploymentId && appId !== undefined
-      ? queryClient
-          .getQueriesData<InfiniteData<DeploymentsPage>>({
-            queryKey: queryKeys.deployments.pages(projectId, appId),
-          })
-          .flatMap(([, data]) => data?.pages ?? [])
-          .flatMap((page) => page.rows)
-          .find((row) => row.id === deploymentId)
-      : undefined;
+    held && held.projectId === projectId && (appId === undefined || held.appId === appId)
+      ? held
+      : query.isLoading && deploymentId && appId !== undefined
+        ? queryClient
+            .getQueriesData<InfiniteData<DeploymentsPage>>({
+              queryKey: queryKeys.deployments.pages(projectId, appId),
+            })
+            .flatMap(([, data]) => data?.pages ?? [])
+            .flatMap((page) => page.rows)
+            .find((row) => row.id === deploymentId)
+        : undefined;
   return {
     data: deploymentId ? (query.isLoading ? listed : (query.data?.[0] ?? null)) : null,
     isLoading: query.isLoading && listed === undefined,
