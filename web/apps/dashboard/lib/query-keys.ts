@@ -1,4 +1,5 @@
 import type { UsagePeriod } from "@/app/(app)/[workspaceSlug]/settings/usage/period";
+import type { DeploymentListFilter } from "@/lib/deploy-data";
 import type {
   V2LogsGetApiRequestMetricsFilters,
   V2LogsListApiRequestsFilters,
@@ -19,6 +20,16 @@ export const queryKeys = {
   },
   deployments: {
     buildLogs: (deploymentId: string) => ["deployments", "buildLogs", deploymentId] as const,
+    // Every deployments query of the collections client starts with this,
+    // collection subsets and paged lists alike
+    scope: (projectId: string, appId: string | undefined) =>
+      appId === undefined
+        ? (["deployments", projectId] as const)
+        : (["deployments", projectId, appId] as const),
+    pages: (projectId: string, appId: string) =>
+      ["deployments", projectId, appId, "pages"] as const,
+    page: (projectId: string, appId: string, filter: DeploymentListFilter) =>
+      ["deployments", projectId, appId, "pages", filter] as const,
   },
   identities: {
     all: identitiesRoot,
