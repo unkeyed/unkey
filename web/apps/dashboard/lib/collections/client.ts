@@ -10,9 +10,6 @@ export const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000 } },
 });
 
-// For data that changes only through actions that refetch it explicitly
-export const STATIC_STALE_MS = 5 * 60_000;
-
 // Create vanilla TRPC client for one-time calls
 export const trpcClient = createTRPCProxyClient<Router>({
   transformer: superjson,

@@ -26,12 +26,6 @@ export function useWarmAppPage() {
   return { warmApp, cancelWarm: cancel };
 }
 
-export type WarmHandlers = {
-  onPointerEnter: () => void;
-  onPointerLeave: () => void;
-  onFocusCapture: () => void;
-};
-
 export function useWarmAppHandlers(projectId: string, appId: string): WarmHandlers {
   const { warmApp, cancelWarm } = useWarmAppPage();
   const warm = () => warmApp(projectId, appId);
@@ -60,3 +54,9 @@ function useDelayedWarm() {
   }, []);
   return { schedule, cancel };
 }
+
+export type WarmHandlers = {
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+  onFocusCapture: () => void;
+};

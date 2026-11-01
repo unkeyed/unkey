@@ -1,5 +1,4 @@
-// The reads, polling and writes behind the app pages. Components import from
-// here only; which store holds the data is this module's concern.
+// The reads, polling and writes behind the app pages
 export { DeployDataProvider } from "./provider";
 export {
   type DeployActions,

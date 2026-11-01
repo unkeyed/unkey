@@ -1,9 +1,9 @@
-const IDLE_POLL_MS = 20_000;
-const IDLE_POLL_MAX_MS = 60_000;
-const SETTLING_POLL_MS = 5_000;
-const AWAITING_POLL_MS = 2_000;
+const POLL_IDLE_MS = 20_000;
+const POLL_IDLE_MAX_MS = 60_000;
+const POLL_SETTLING_MS = 5_000;
+const POLL_AWAITING_MS = 2_000;
 
-// Faster while a held row is moving, and fastest while this tab waits on an
+// Faster while a deployment of the scope is settling, and fastest while this tab waits on an
 // action of its own. A page may ask for a faster idle cadence. Idle polls that
 // change nothing back off, since a page left open mostly sees no deploys.
 export function deploymentsPollIntervalMs({
@@ -17,10 +17,10 @@ export function deploymentsPollIntervalMs({
   requestedMs: number | null;
   unchangedPolls: number;
 }): number {
-  const idleMs = Math.min(IDLE_POLL_MS * (1 + unchangedPolls), IDLE_POLL_MAX_MS);
+  const idleMs = Math.min(POLL_IDLE_MS * (1 + unchangedPolls), POLL_IDLE_MAX_MS);
   return Math.min(
-    awaiting ? AWAITING_POLL_MS : idleMs,
-    settling ? SETTLING_POLL_MS : idleMs,
+    awaiting ? POLL_AWAITING_MS : idleMs,
+    settling ? POLL_SETTLING_MS : idleMs,
     requestedMs ?? idleMs,
   );
 }

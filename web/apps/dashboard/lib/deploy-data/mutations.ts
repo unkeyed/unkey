@@ -6,7 +6,6 @@ import { retryDomainVerification } from "@/lib/collections/deploy/custom-domains
 
 type AppChanges = Partial<Pick<App, "name" | "defaultBranch" | "imageReference">>;
 
-// The app is written back from the save response, without a refetch
 export function useAppMutations() {
   return APP_MUTATIONS;
 }
@@ -26,7 +25,6 @@ const APP_MUTATIONS = {
 };
 
 const CUSTOM_DOMAIN_MUTATIONS = {
-  // Settles once the server accepted the domain; rejects with the API error
   addCustomDomain: (
     domain: { domain: string; projectId: string; appId: string; environmentId: string },
     workspaceSlug: string,

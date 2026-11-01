@@ -29,7 +29,7 @@ export type DeployScope = {
   appId: string | undefined;
 };
 
-export type ScopeStore = ReturnType<typeof createScopeStore>;
+type ScopeStore = ReturnType<typeof createScopeStore>;
 
 type DeployDataContextValue = DeployScope & { actions: DeployActions; store: ScopeStore };
 

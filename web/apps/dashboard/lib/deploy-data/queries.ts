@@ -92,16 +92,6 @@ export function refetchScopeDeployments(projectId: string, appId: string | undef
   });
 }
 
-// Environment keys name each app as projectId:appId
-function refetchScopeEnvironments(projectId: string) {
-  return queryClient.refetchQueries({
-    type: "active",
-    predicate: ({ queryKey }) =>
-      queryKey[0] === "environments" &&
-      queryKey.some((part) => typeof part === "string" && part.startsWith(`${projectId}:`)),
-  });
-}
-
 export function refetchScopeDomains(projectId: string) {
   return queryClient.refetchQueries({ queryKey: ["domains", projectId], type: "active" });
 }
@@ -140,34 +130,6 @@ export function memoByArgs<A extends Array<string | number | null>, T>(
     cache.set(key, created);
     return created;
   };
-}
-
-type LoadSource = {
-  readonly isError: boolean;
-  readonly lastError: unknown;
-  clearError: () => Promise<void>;
-};
-
-/**
- * A live query reports only errors inside sync, so load failures are read from
- * the source collection. A failed load records its error there and emits
- * nothing, so the flag is reread on every query cache event.
- */
-function useLoadState(
-  source: LoadSource,
-  refetchScope: (projectId: string) => Promise<unknown>,
-  projectId: string,
-): Pick<QueryResult<unknown>, "isError" | "error" | "refetch"> {
-  const isError = useSyncExternalStore(
-    subscribeQueryCache,
-    () => source.isError,
-    () => false,
-  );
-  const refetch = useCallback(
-    () => (source.isError ? source.clearError() : refetchScope(projectId)),
-    [source, refetchScope, projectId],
-  );
-  return { isError, error: isError ? source.lastError : null, refetch };
 }
 
 export function domainsQueryFor(projectId: string, appId: string | null) {
@@ -221,4 +183,42 @@ const customDomainsQuery = memoByArgs((projectId: string, appId: string | null) 
 
 function subscribeQueryCache(onChange: () => void): () => void {
   return queryClient.getQueryCache().subscribe(onChange);
+}
+
+// Environment keys name each app as projectId:appId
+function refetchScopeEnvironments(projectId: string) {
+  return queryClient.refetchQueries({
+    type: "active",
+    predicate: ({ queryKey }) =>
+      queryKey[0] === "environments" &&
+      queryKey.some((part) => typeof part === "string" && part.startsWith(`${projectId}:`)),
+  });
+}
+
+type LoadSource = {
+  readonly isError: boolean;
+  readonly lastError: unknown;
+  clearError: () => Promise<void>;
+};
+
+/**
+ * A live query reports only errors inside sync, so load failures are read from
+ * the source collection. A failed load records its error there and emits
+ * nothing, so the flag is reread on every query cache event.
+ */
+function useLoadState(
+  source: LoadSource,
+  refetchScope: (projectId: string) => Promise<unknown>,
+  projectId: string,
+): Pick<QueryResult<unknown>, "isError" | "error" | "refetch"> {
+  const isError = useSyncExternalStore(
+    subscribeQueryCache,
+    () => source.isError,
+    () => false,
+  );
+  const refetch = useCallback(
+    () => (source.isError ? source.clearError() : refetchScope(projectId)),
+    [source, refetchScope, projectId],
+  );
+  return { isError, error: isError ? source.lastError : null, refetch };
 }
