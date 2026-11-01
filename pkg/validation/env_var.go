@@ -1,6 +1,27 @@
 package validation
 
-import "regexp"
+import (
+	"encoding/base64"
+	"regexp"
+)
+
+// EnvVarsBytesMax caps the combined key and value bytes of one environment's
+// variables. Krane writes them into a single Kubernetes Secret, which the
+// apiserver rejects above 1 MiB, and the container receives them through exec,
+// where the kernel limits the whole environment to about 2 MiB.
+const EnvVarsBytesMax = 512 << 10
+
+// vaultCiphertextOverheadMin is the AES-GCM nonce and tag that every Vault
+// ciphertext carries next to the plaintext bytes.
+const vaultCiphertextOverheadMin = 12 + 16
+
+// EnvVarBytesEncrypted returns an upper bound for the key and plaintext bytes of
+// a variable whose stored value is Vault ciphertext of ciphertextBytes length.
+// Vault ciphertext is base64 of a protobuf holding the AES-GCM output, so the
+// bound needs no decryption.
+func EnvVarBytesEncrypted(keyBytes, ciphertextBytes int) int {
+	return keyBytes + max(base64.StdEncoding.DecodedLen(ciphertextBytes)-vaultCiphertextOverheadMin, 0)
+}
 
 // envVarKeyRegex matches POSIX shell variable names. Environment variables
 // exist to become process env: builds expose them to install/build commands,

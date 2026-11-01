@@ -50,6 +50,8 @@ const (
 	connectionBatchSize = 1000
 )
 
+var errEnvVarsTooLarge = errors.New("the environment variables are too large")
+
 // Create writes a deployment row and starts its pipeline. See the proto for the
 // contract.
 func (w *Workflow) Create(ctx restate.WorkflowSharedContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
@@ -285,7 +287,12 @@ func (w *Workflow) validateAndBuildPayload(
 				)
 			case db.IsNotFound(err):
 				capabilities.PrivateNetworking = w.flags.IsPrivateNetworkingEnabled(runCtx, target.WorkspaceID)
-				if secrets, connections, err = w.loadSecrets(runCtx, *target, capabilities.PrivateNetworking); err != nil {
+				secrets, connections, err = w.loadSecrets(runCtx, *target, capabilities.PrivateNetworking)
+				if errors.Is(err, errEnvVarsTooLarge) {
+					payload.Rejection = rejectf(hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, "%s", err)
+					return payload, nil
+				}
+				if err != nil {
 					return payload, err
 				}
 			default:
@@ -672,6 +679,15 @@ func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRo
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch app environment variables: %w", err)
+	}
+
+	totalBytes := 0
+	for _, ev := range envVars {
+		totalBytes += validation.EnvVarBytesEncrypted(len(ev.Key), len(ev.Value))
+	}
+	if totalBytes > validation.EnvVarsBytesMax {
+		return nil, nil, fmt.Errorf("%w: they total about %d KiB, the limit is %d KiB",
+			errEnvVarsTooLarge, totalBytes>>10, validation.EnvVarsBytesMax>>10)
 	}
 
 	var connections []db.ListAppConnectionsByAppRow

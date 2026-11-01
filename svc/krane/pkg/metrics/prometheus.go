@@ -107,7 +107,7 @@ var (
 	// DispatchTotal counts event dispatches to controllers by source, resource type, and outcome.
 	//
 	// Labels:
-	//   - "source": "stream" or "full_sync"
+	//   - "source": "stream", "retry" (a failed stream event applied again), or "full_sync"
 	//   - "resource_type": "deployment", or "unknown" for an unrecognized event
 	//   - "status": "success" or "error"
 	DispatchTotal = vec.NewCounter(
@@ -117,9 +117,21 @@ var (
 			Name:      "dispatch_total",
 			Help:      "Total number of event dispatches to controllers.",
 		},
-		vec.Values("source", "stream", "full_sync"),
+		vec.Values("source", "stream", "retry", "full_sync"),
 		vec.Values("resource_type", "deployment"),
 		vec.Values("status", "success", "error"),
+	)
+
+	// StreamRetriesPending counts workloads whose latest stream event failed
+	// and waits for another attempt. A value above zero that does not fall
+	// means a workload's desired state cannot be applied.
+	StreamRetriesPending = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "stream_retries_pending",
+			Help:      "Workloads whose latest stream event failed and waits for another attempt.",
+		},
 	)
 
 	// StreamErrorsTotal counts incremental streams that connected and then
@@ -335,6 +347,7 @@ func ResetLeaderGauges() {
 		RolloutGateWorkloads.WithLabelValues(state).Set(0)
 	}
 	LastSuccessfulCheckpointUnixSeconds.Set(0)
+	StreamRetriesPending.Set(0)
 	Leader.Set(0)
 }
 

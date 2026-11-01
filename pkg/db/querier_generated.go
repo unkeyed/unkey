@@ -2674,6 +2674,13 @@ type Querier interface {
 	//  FROM app_build_settings
 	//  WHERE app_id = ?
 	ListAppBuildSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppBuildSetting, error)
+	//ListAppEnvVarSizesByAppAndEnv
+	//
+	//  SELECT LENGTH(`key`) AS key_bytes, LENGTH(value) AS value_bytes
+	//  FROM app_environment_variables
+	//  WHERE app_id = ?
+	//    AND environment_id = ?
+	ListAppEnvVarSizesByAppAndEnv(ctx context.Context, db DBTX, arg ListAppEnvVarSizesByAppAndEnvParams) ([]ListAppEnvVarSizesByAppAndEnvRow, error)
 	//ListAppEnvVarsByAppAndEnv
 	//
 	//  SELECT id, `key`, value, `type`, description, created_at
