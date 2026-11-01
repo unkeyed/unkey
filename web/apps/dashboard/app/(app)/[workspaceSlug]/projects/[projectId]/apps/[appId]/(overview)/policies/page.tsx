@@ -1,6 +1,7 @@
 "use client";
 import { LoadError } from "@/components/load-error";
 import { useConsumeSearchFlag } from "@/hooks/use-consume-search-flag";
+import { useAppScope } from "@/lib/deploy-data";
 import { IconCircleInfoOutline18, IconPlusOutline18, IconShieldGlobeOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -20,7 +21,6 @@ import {
   ResourceListContent,
 } from "@unkey/ui";
 import { useCallback } from "react";
-import { useAppId, useProjectData } from "../data-provider";
 import { HowPoliciesWorkPanel } from "./components/how-policies-work";
 import { PoliciesList } from "./components/list";
 import { PoliciesListSkeleton } from "./components/list/skeleton";
@@ -32,8 +32,7 @@ import { usePolicyPanels } from "./hooks/use-policy-panels";
 import { otherMatchKeys } from "./model/duplicate-name";
 
 export default function PoliciesPage() {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
   const data = usePoliciesData();
   const { envs, merged, canWrite } = data;
   const actions = usePolicyActions({ envs, projectId, appId });

@@ -1,8 +1,14 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { instancesText } from "@/lib/collections/deploy/instance-status";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
+import {
+  type Deployment,
+  useApp,
+  useCurrentDeployment,
+  useEnvironments,
+  useProductionDeployments,
+} from "@/lib/deploy-data";
 import { githubUrl } from "@/lib/github-url";
 import { IconArrowUpRightOutline12 } from "@unkey/icons";
 import {
@@ -17,9 +23,6 @@ import type { ReactNode } from "react";
 import { StatusDot } from "../../../../components/deployment-status-dot";
 import { DottedLink } from "../../../../components/dotted-link";
 import { EnvironmentBadge, badgeRollout } from "../../../../components/environment-badge";
-import { useProjectData } from "../../../data-provider";
-import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
-import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
 import { useBuildDuration } from "../../components/deployment-duration";
 import { InstantRollbackRow } from "../instant-rollback-row";
 import type { DeploymentPage } from "../use-deployment-page";
@@ -35,9 +38,11 @@ type DeploymentDetailsCardProps = {
 export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
   const { deployment, status, pageStatus, instances, domainsLoading } = page;
   const { primary, additional } = page.domains;
-  const { environments } = useProjectData();
-  const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
-  const { deployments } = useRecentDeployments({ enabled: isRolledBack });
+  const { data: environments } = useEnvironments();
+  const { data: app } = useApp();
+  const currentDeployment = useCurrentDeployment().data ?? undefined;
+  const isRolledBack = app?.isRolledBack ?? false;
+  const { data: deployments } = useProductionDeployments({ enabled: isRolledBack });
   const isRolledBackFrom =
     isRolledBack && currentDeployment
       ? findRolledBackFrom(deployments, currentDeployment)?.id === deployment.id

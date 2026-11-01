@@ -2,24 +2,35 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
+import {
+  RECENT_DEPLOYMENTS_LIMIT,
+  useApp,
+  useAppScope,
+  useCurrentDeployment,
+  useEnvironments,
+  useProductionDeployments,
+  useRecentDeployments,
+} from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { ResourceList, ResourceListBody, ResourceListContent, ResourceListHeader } from "@unkey/ui";
 import Link from "next/link";
-import { useAppId, useProjectData } from "../../data-provider";
 import { DeploymentRow } from "../../deployments/components/deployment-row";
 import { DeploymentsSkeleton } from "../../deployments/components/deployments-skeleton";
-import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
-import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 
 export function RecentDeployments() {
   const workspace = useWorkspaceNavigation();
-  const appId = useAppId();
-  const { projectId, environments } = useProjectData();
-  const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
-  const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
+  const { projectId, appId } = useAppScope();
+  const { data: environments } = useEnvironments();
+  const { data: deployments, isLoading: isDeploymentsLoading } = useRecentDeployments({
+    limit: RECENT_DEPLOYMENTS_LIMIT,
+  });
+  const { data: app } = useApp();
+  const currentDeployment = useCurrentDeployment().data ?? undefined;
+  const isRolledBack = app?.isRolledBack ?? false;
+  const { data: productionDeployments } = useProductionDeployments({ enabled: isRolledBack });
   const rolledBackFromId =
     isRolledBack && currentDeployment
-      ? findRolledBackFrom(deployments, currentDeployment)?.id
+      ? findRolledBackFrom(productionDeployments, currentDeployment)?.id
       : undefined;
 
   return (
@@ -42,7 +53,7 @@ export function RecentDeployments() {
       ) : (
         <ResourceListContent>
           <ResourceListBody>
-            {deployments.slice(0, 5).map((deployment) => (
+            {deployments.slice(0, RECENT_DEPLOYMENTS_LIMIT).map((deployment) => (
               <DeploymentRow
                 key={deployment.id}
                 deployment={deployment}

@@ -1,10 +1,10 @@
 "use client";
 
-import { warmDeploymentsTable } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider-queries";
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { usePrefetchWorkspaceUsage } from "@/hooks/use-prefetch-workspace-usage";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { warmDeploymentsPage } from "@/lib/deploy-data";
 import { useFlag } from "@/lib/flags/provider";
 import {
   buildApiLinks,
@@ -59,7 +59,7 @@ export function SidebarBody() {
         return appId
           ? buildAppLinks(slug, projectId, appId, segments, { metrics: appV2 }).map((link) =>
               link.key === "deployments"
-                ? { ...link, onIntent: () => warmDeploymentsTable(projectId, appId) }
+                ? { ...link, onIntent: () => warmDeploymentsPage(projectId, appId) }
                 : link,
             )
           : projectLinks(slug, projectId, segments);

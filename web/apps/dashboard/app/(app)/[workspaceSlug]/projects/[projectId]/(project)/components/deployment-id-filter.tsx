@@ -1,6 +1,6 @@
 "use client";
 
-import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
+import { DEPLOYMENT_PICKER_LIMIT, useRecentDeployments } from "@/lib/deploy-data";
 import { IconMagnifierOutline18 } from "@unkey/icons";
 import { Button, Checkbox } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
@@ -22,7 +22,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
   updateFilters,
   createDeploymentFilter,
 }: DeploymentIdFilterProps<T>) {
-  const { deployments } = useRecentDeployments();
+  const { data: deployments } = useRecentDeployments({ limit: DEPLOYMENT_PICKER_LIMIT });
 
   const byId = useMemo(() => new Map(deployments.map((d) => [d.id, d])), [deployments]);
 

@@ -1,12 +1,11 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { type Deployment, useEnvironments } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { Button } from "@unkey/ui";
 import Link from "next/link";
 import { useState } from "react";
-import { useProjectData } from "../../../data-provider";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import type { StageKey } from "../details/stages-model";
 import { settingsTargetFor } from "./settings-hint";
@@ -21,7 +20,7 @@ export function FailureActions({
   error: string;
 }) {
   const workspace = useWorkspaceNavigation();
-  const { environments } = useProjectData();
+  const { data: environments } = useEnvironments();
   const [redeployOpen, setRedeployOpen] = useState(false);
   const settingsTarget = settingsTargetFor(
     error,

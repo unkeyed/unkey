@@ -1,22 +1,14 @@
 import {
   DEPLOYMENT_STATUSES,
-  type DeploymentStatus,
   type DeploymentStatusGroup,
   expandDeploymentStatusGroups,
   isDeploymentStatusGroup,
 } from "@/lib/collections/deploy/deployment-status";
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { DeploymentListFilter, Environment } from "@/lib/deploy-data";
 import { getTimestampFromRelative } from "@/lib/duration";
 import type { DeploymentListFilterValue } from "../filters.schema";
 
-// Both time bounds are inclusive, as the time filter writes them
-export type DeploymentListFilter = {
-  statuses: DeploymentStatus[];
-  environmentId?: string;
-  branches: string[];
-  startTime?: number;
-  endTime?: number;
-};
+export type { DeploymentListFilter };
 
 export type DeploymentListFilterInput = {
   filter: DeploymentListFilter;

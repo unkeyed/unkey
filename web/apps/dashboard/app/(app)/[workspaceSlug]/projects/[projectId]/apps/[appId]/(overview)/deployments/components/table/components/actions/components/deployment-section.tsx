@@ -1,4 +1,4 @@
-import type { DeploymentSummary } from "@/lib/collections";
+import type { DeploymentSummary } from "@/lib/deploy-data";
 import { DeploymentCard } from "./deployment-card";
 
 type DeploymentSectionProps = {

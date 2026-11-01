@@ -1,10 +1,10 @@
 "use client";
 import { LeaveGuard } from "@/components/leave-guard";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { DeployDataProvider } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { useParams } from "next/navigation";
 import type { PropsWithChildren } from "react";
-import { ProjectDataProvider } from "./(overview)/data-provider";
 import { PendingRedeployBanner } from "./components/pending-redeploy-banner";
 
 export default function ProjectLayoutWrapper({ children }: PropsWithChildren) {
@@ -12,7 +12,7 @@ export default function ProjectLayoutWrapper({ children }: PropsWithChildren) {
   const { projectId } = useParams<{ projectId: string }>();
 
   return (
-    <ProjectDataProvider>
+    <DeployDataProvider>
       <LeaveGuard
         fallbackHref={routes.projects.detail({ workspaceSlug: workspace.slug, projectId })}
       >
@@ -23,6 +23,6 @@ export default function ProjectLayoutWrapper({ children }: PropsWithChildren) {
           <PendingRedeployBanner />
         </div>
       </LeaveGuard>
-    </ProjectDataProvider>
+    </DeployDataProvider>
   );
 }

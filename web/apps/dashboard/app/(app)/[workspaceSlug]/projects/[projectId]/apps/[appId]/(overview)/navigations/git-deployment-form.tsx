@@ -2,8 +2,7 @@
 
 import { environmentName } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
 import { RepoNameLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/build-settings/github-settings/shared";
-import type { App } from "@/lib/collections/deploy/apps";
-import type { Environment } from "@/lib/collections/deploy/environments";
+import { type App, type Environment, useAppScope, useEnvironments } from "@/lib/deploy-data";
 import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { githubUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
@@ -23,7 +22,6 @@ import {
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useAppId, useProjectData } from "../data-provider";
 import { DeployRefPicker } from "./deploy-ref-picker";
 import { DeploymentDialog } from "./deployment-dialog";
 import { useCreateDeployment } from "./use-create-deployment";
@@ -72,8 +70,8 @@ type GitDeploymentFormProps = {
 };
 
 export function GitDeploymentForm({ app, isOpen, onOpenChange }: GitDeploymentFormProps) {
-  const { projectId, environments } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const { data: environments } = useEnvironments();
   const repositoryFullName = app.repositoryFullName ?? null;
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
   const productionBranch = app.defaultBranch ?? "main";

@@ -1,10 +1,10 @@
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceSummary,
   instanceLabel,
   instancesText,
 } from "@/lib/collections/deploy/instance-status";
+import type { Deployment } from "@/lib/deploy-data";
 import { plural } from "@/lib/fmt";
 import type { StepsData } from "../use-deployment-status";
 

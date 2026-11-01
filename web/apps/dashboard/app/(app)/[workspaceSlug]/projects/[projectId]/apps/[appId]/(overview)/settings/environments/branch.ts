@@ -1,4 +1,4 @@
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Environment } from "@/lib/deploy-data";
 
 export type Branch = { kind: "default"; name: string } | { kind: "unassigned" } | { kind: "none" };
 

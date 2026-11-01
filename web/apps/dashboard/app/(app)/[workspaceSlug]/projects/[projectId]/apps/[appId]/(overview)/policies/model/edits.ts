@@ -1,4 +1,3 @@
-import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import { type PolicyRow, toPolicyInput } from "@/lib/collections/deploy/policies";
 import {
   POLICY_ERRORS,
@@ -6,6 +5,7 @@ import {
   type PolicyInput,
   policyMatchKey,
 } from "@/lib/collections/deploy/policies.schema";
+import { ENVIRONMENT_KINDS } from "@/lib/deploy-data";
 import { duplicateNameError, otherMatchKeys } from "./duplicate-name";
 import { type Env, type MergedPolicy, mergePolicies, policyInEnv } from "./merge";
 import { movePolicy } from "./reorder";

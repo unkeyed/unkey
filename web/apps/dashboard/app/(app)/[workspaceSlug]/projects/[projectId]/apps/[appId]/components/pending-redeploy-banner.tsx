@@ -3,11 +3,11 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useGuardedNavigate } from "@/components/leave-guard";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import {
   dismissSettingsBanner,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/pending-redeploy";
+import { useApp, useCurrentDeployment, useDeployActions } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
@@ -15,13 +15,12 @@ import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { cn } from "cn";
 import { useEffect } from "react";
-import { useProjectData } from "../(overview)/data-provider";
-import { useAppCurrentDeployment } from "../(overview)/hooks/use-app-current-deployment";
 import { GlowIcon } from "../components/glow-icon";
 
 export function PendingRedeployBanner() {
-  const { refetchDeployments } = useProjectData();
-  const { app, currentDeployment } = useAppCurrentDeployment();
+  const { refetchDeployments, refetchApps } = useDeployActions();
+  const { data: app } = useApp();
+  const currentDeployment = useCurrentDeployment().data ?? undefined;
   const currentDeploymentId = app?.currentDeploymentId ?? null;
   const navigate = useGuardedNavigate();
   const workspace = useWorkspaceNavigation();
@@ -50,7 +49,7 @@ export function PendingRedeployBanner() {
         return;
       }
       refetchDeployments();
-      await collection.apps.utils.refetch();
+      await refetchApps();
       navigate(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,

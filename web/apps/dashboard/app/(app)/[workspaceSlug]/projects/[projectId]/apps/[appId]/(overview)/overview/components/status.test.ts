@@ -1,4 +1,4 @@
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { Deployment } from "@/lib/deploy-data";
 import { describe, expect, test } from "vitest";
 import { deriveProductionStatus } from "./status";
 

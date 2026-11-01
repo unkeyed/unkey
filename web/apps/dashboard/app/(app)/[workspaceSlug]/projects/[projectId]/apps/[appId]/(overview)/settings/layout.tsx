@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useAppScope } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import {
   PageContainer,
@@ -17,7 +18,6 @@ import {
 import Link from "next/link";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
 import type { ReactNode } from "react";
-import { useAppId, useProjectData } from "../data-provider";
 import {
   SETTINGS_RAIL,
   SETTINGS_SECTIONS,
@@ -28,8 +28,7 @@ import {
 
 export default function AppSettingsLayout({ children }: { children: ReactNode }) {
   const workspace = useWorkspaceNavigation();
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
   const active = activeSection(useSelectedLayoutSegments());
   const { environment } = useParams<{ environment?: string }>();
   const { back, title, description } = settingsHeader(active, environment);

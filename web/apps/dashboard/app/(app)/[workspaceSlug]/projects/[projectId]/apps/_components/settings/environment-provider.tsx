@@ -3,11 +3,10 @@
 import { LoadError } from "@/components/load-error";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { productionFirst } from "@/lib/collections/deploy/environments";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
+import { productionFirst, useAppScope, useEnvironments } from "@/lib/deploy-data";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { type PropsWithChildren, type ReactNode, createContext, use } from "react";
-import { useAppId, useProjectData } from "../../[appId]/(overview)/data-provider";
 import { SettingsSkeleton } from "./settings-skeleton";
 
 type SettingsTransaction = ReturnType<typeof collection.environmentSettings.update>;
@@ -33,8 +32,7 @@ export function useEnvironmentSettings(): EnvironmentSettingsContextType {
 }
 
 export function useAppEnvironmentSettings(): EnvironmentSettings[] {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
   const { data } = useLiveQuery(
     (q) =>
       q
@@ -49,7 +47,7 @@ export function EnvironmentSettingsProvider({
   children,
   fallback = <SettingsSkeleton />,
 }: ScopeProps) {
-  const { environments, isEnvironmentsLoading } = useProjectData();
+  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
   const all = useAppEnvironmentSettings();
   const shown = productionFirst(environments).at(0);
 
@@ -118,9 +116,15 @@ function SettingsContext({
 }
 
 function SettingsLoadError() {
-  const { retry } = useCollectionLoad(
-    collection.environments.utils,
-    collection.environmentSettings.utils,
+  const environments = useEnvironments();
+  const settingsLoad = useCollectionLoad(collection.environmentSettings.utils);
+  return (
+    <LoadError
+      title="Could not load settings"
+      onRetry={() => {
+        environments.refetch();
+        settingsLoad.retry();
+      }}
+    />
   );
-  return <LoadError title="Could not load settings" onRetry={retry} />;
 }

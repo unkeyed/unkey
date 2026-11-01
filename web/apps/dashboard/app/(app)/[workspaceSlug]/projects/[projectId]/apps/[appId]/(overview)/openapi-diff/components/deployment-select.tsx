@@ -1,5 +1,5 @@
 "use client";
-import type { Deployment } from "@/lib/collections";
+import { type Deployment, useApp } from "@/lib/deploy-data";
 import { shortenId } from "@/lib/shorten-id";
 import {
   InfoTooltip,
@@ -11,7 +11,6 @@ import {
   formatTimestamp,
 } from "@unkey/ui";
 import { PulseIndicator } from "../../../components/status-indicator";
-import { useProjectData } from "../../data-provider";
 
 type DeploymentSelectProps = {
   value: string;
@@ -36,8 +35,8 @@ export function DeploymentSelect({
   id,
   disabledDeploymentId,
 }: DeploymentSelectProps) {
-  const { project } = useProjectData();
-  const currentDeploymentId = project?.currentDeploymentId;
+  const { data: app } = useApp();
+  const currentDeploymentId = app?.currentDeploymentId;
   const latestDeploymentId = deployments.find(
     ({ deployment }) => deployment.id !== currentDeploymentId,
   )?.deployment.id;

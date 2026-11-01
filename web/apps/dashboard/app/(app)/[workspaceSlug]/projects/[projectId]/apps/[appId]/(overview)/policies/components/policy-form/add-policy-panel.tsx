@@ -1,8 +1,8 @@
 "use client";
 
 import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
-import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import type { PolicyInput } from "@/lib/collections/deploy/policies.schema";
+import { ENVIRONMENT_KINDS } from "@/lib/deploy-data";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormSelect, type FormSelectOption } from "@unkey/ui";
 import { useState } from "react";

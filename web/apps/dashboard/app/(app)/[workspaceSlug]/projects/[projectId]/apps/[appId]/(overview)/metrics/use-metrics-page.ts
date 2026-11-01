@@ -2,6 +2,7 @@
 
 import type { ActiveMarker } from "@/components/charts/use-hover-owner";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useAppScope, useEnvironments } from "@/lib/deploy-data";
 import {
   type InstanceRow,
   METRIC_IDS,
@@ -13,7 +14,6 @@ import {
 import { routes } from "@/lib/navigation/routes";
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useState } from "react";
-import { useAppId, useProjectData } from "../data-provider";
 import {
   type AppMetricsScope,
   useDeployMarkers,
@@ -42,9 +42,9 @@ const FILTER_PARAM = {
 } as const satisfies Record<FilterKey, string>;
 
 export function useMetricsPage() {
-  const { environments, isEnvironmentsLoading, projectId } = useProjectData();
+  const { projectId, appId } = useAppScope();
+  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
   const workspace = useWorkspaceNavigation();
-  const appId = useAppId();
   const [query, setQuery] = useQueryStates(
     {
       env: parseAsString,

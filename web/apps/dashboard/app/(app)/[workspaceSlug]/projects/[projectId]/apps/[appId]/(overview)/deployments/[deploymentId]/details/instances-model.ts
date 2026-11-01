@@ -1,4 +1,3 @@
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceState,
   groupInstancesByRegion,
@@ -6,6 +5,7 @@ import {
   instancesText,
 } from "@/lib/collections/deploy/instance-status";
 import { exitSummary } from "@/lib/collections/deploy/last-exit";
+import type { Deployment } from "@/lib/deploy-data";
 import type { StepResolution } from "./stages-model";
 
 type DeploymentInstance = Deployment["instances"][number];

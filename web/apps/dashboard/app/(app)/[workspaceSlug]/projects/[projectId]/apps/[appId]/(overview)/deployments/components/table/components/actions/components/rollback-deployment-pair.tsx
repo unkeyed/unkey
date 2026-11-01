@@ -1,8 +1,8 @@
 "use client";
 
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
-import type { DeploymentSummary } from "@/lib/collections";
 import { deploymentTitle } from "@/lib/collections/deploy/deployment-title";
+import type { DeploymentSummary } from "@/lib/deploy-data";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
   IconArrowDottedRotateAnticlockwiseOutline18,

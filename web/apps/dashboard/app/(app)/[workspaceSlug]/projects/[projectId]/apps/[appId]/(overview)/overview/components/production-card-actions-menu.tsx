@@ -2,7 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import type { Deployment } from "@/lib/collections";
+import type { Deployment } from "@/lib/deploy-data";
 import {
   Github,
   IconArrowsOppositeDirectionYOutline18,
