@@ -29,9 +29,9 @@ func NewWithColor(w io.Writer, color bool) *Renderer {
 
 // shouldColor reports whether escape codes should be emitted: the writer must
 // be a terminal, and the user must not have opted out via the NO_COLOR
-// convention (https://no-color.org) or a dumb TERM.
+// convention (https://no-color.org), CLICOLOR=0, or a dumb TERM.
 func shouldColor(w io.Writer) bool {
-	if os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
+	if os.Getenv("NO_COLOR") != "" || os.Getenv("CLICOLOR") == "0" || os.Getenv("TERM") == "dumb" {
 		return false
 	}
 	f, ok := w.(*os.File)

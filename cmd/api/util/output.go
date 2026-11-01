@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/tui"
 	"golang.org/x/term"
 )
 
@@ -54,14 +56,29 @@ func Output(cmd *cli.Command, v any) error {
 	subject, columns := listPresentation(v)
 	var output strings.Builder
 	message := successMessage(v)
+	var request map[string]any
+	indent := ""
 	if message != "" {
-		fmt.Fprintln(&output, message)
-	}
-	if rows, ok := envelope.Data.([]any); ok || (envelope.Data == nil && columns != nil) {
-		if message != "" {
-			if err := writeMutationTargets(&output, cmd); err != nil {
-				return err
+		if cmd.FlagIsSet("body") {
+			if err := json.Unmarshal([]byte(cmd.String("body")), &request); err != nil {
+				return fmt.Errorf("cannot read mutation target: %w", err)
 			}
+		}
+		if strings.HasPrefix(message, "Created ") {
+			if name := cmp.Or(requestValue(cmd, request, "slug", "slug"), requestValue(cmd, request, "name", "name")); name != "" {
+				message += " " + terminalText(name)
+			}
+		}
+		fmt.Fprintf(&output, "%s %s\n", tui.New(os.Stdout).Green("✓"), message)
+		indent = "  "
+	}
+	if _, ok := v.(*components.V2KeysWhoamiResponseBody); ok {
+		if err := writeKeyTree(&output, envelope.Data, format); err != nil {
+			return err
+		}
+	} else if rows, ok := envelope.Data.([]any); ok || (envelope.Data == nil && columns != nil) {
+		if message != "" {
+			writeMutationTargets(&output, cmd, request, indent)
 		}
 		if _, ok := v.(*components.V2EnvironmentsListEnvironmentVariablesResponseBody); ok {
 			for _, row := range rows {
@@ -80,24 +97,22 @@ func Output(cmd *cli.Command, v any) error {
 		}
 		if len(rows) == 0 {
 			if message != "" {
-				fmt.Fprintf(&output, "No %s assigned.\n", subject)
+				fmt.Fprintf(&output, "%sNo %s assigned.\n", indent, subject)
 			} else {
 				fmt.Fprintf(&output, "No %s found.\n", subject)
 			}
-		} else if err := writeTable(&output, rows, columns, "", format); err != nil {
+		} else if err := writeTable(&output, rows, columns, indent, format); err != nil {
 			return err
 		}
 	} else if envelope.Data == nil || emptyObject(envelope.Data) {
 		if message != "" {
-			if err := writeMutationTargets(&output, cmd); err != nil {
-				return err
-			}
+			writeMutationTargets(&output, cmd, request, indent)
 		} else if _, ok := v.(*components.V2WorkspaceGetFlagsResponseBody); ok {
 			fmt.Fprintln(&output, "No workspace flags found.")
 		} else {
 			fmt.Fprintln(&output, "Done.")
 		}
-	} else if err := writeDetails(&output, envelope.Data, "", false); err != nil {
+	} else if err := writeDetails(&output, envelope.Data, indent, false); err != nil {
 		return err
 	}
 	if envelope.Pagination != nil && envelope.Pagination.HasMore {
@@ -192,121 +207,123 @@ func listPresentation(response any) (string, []string) {
 func successMessage(response any) string {
 	switch response.(type) {
 	case *components.V2ProjectsCreateProjectResponseBody:
-		return "Project created."
+		return "Created project"
 	case *components.V2ProjectsUpdateProjectResponseBody:
-		return "Project updated."
+		return "Updated project"
 	case *components.V2AppsCreateAppResponseBody:
-		return "App created."
+		return "Created app"
 	case *components.V2AppsUpdateAppResponseBody:
-		return "App updated."
+		return "Updated app"
 	case *components.V2ProjectsDeleteProjectResponseBody, *components.V2AppsDeleteAppResponseBody:
-		return "Deletion requested."
+		return "Deletion requested"
 	case *components.V2DeploymentsCreateDeploymentResponseBody, *components.V3DeploymentsCreateDeploymentResponseBody:
-		return "Deployment requested."
+		return "Deployment requested"
 	case *components.V2DeploymentsPromoteDeploymentResponseBody:
-		return "Promotion requested."
+		return "Promotion requested"
 	case *components.V2DeploymentsRollbackDeploymentResponseBody:
-		return "Rollback requested."
+		return "Rollback requested"
 	case *components.V2DeploymentsStartDeploymentResponseBody:
-		return "Start requested."
+		return "Start requested"
 	case *components.V2DeploymentsStopDeploymentResponseBody:
-		return "Stop requested."
+		return "Stop requested"
 	case *components.V2DeploymentsAuthorizeDeploymentResponseBody:
-		return "Authorization requested."
+		return "Authorization requested"
 	case *components.V2DeploymentsCancelDeploymentResponseBody:
-		return "Cancellation requested."
+		return "Cancellation requested"
 	case *components.V2DomainsVerifyDomainResponseBody:
-		return "Verification requested."
+		return "Verification requested"
 	case *components.V2ApisCreateAPIResponseBody:
-		return "API created."
+		return "Created API"
 	case *components.V2ApisDeleteAPIResponseBody:
-		return "API deleted."
+		return "Deleted API"
 	case *components.V2KeysCreateKeyResponseBody:
-		return "Key created."
+		return "Created key"
 	case *components.V2KeysRerollKeyResponseBody:
-		return "Key rerolled."
+		return "Rerolled key"
 	case *components.V2KeysDeleteKeyResponseBody:
-		return "Key deleted."
+		return "Deleted key"
 	case *components.V2KeysUpdateKeyResponseBody:
-		return "Key updated."
+		return "Updated key"
 	case *components.V2KeysUpdateCreditsResponseBody:
-		return "Credits updated."
+		return "Updated credits"
 	case *components.V2KeysAddRolesResponseBody, *components.V2KeysRemoveRolesResponseBody,
 		*components.V2KeysSetRolesResponseBody:
-		return "Roles updated."
+		return "Updated roles"
 	case *components.V2KeysAddPermissionsResponseBody, *components.V2KeysRemovePermissionsResponseBody,
 		*components.V2KeysSetPermissionsResponseBody, *components.V2PermissionsSetRolePermissionsResponseBody:
-		return "Permissions updated."
+		return "Updated permissions"
 	case *components.V2RootKeysCreateKeyResponseBody:
-		return "Root key created."
+		return "Created root key"
 	case *components.V2RootKeysRerollKeyResponseBody:
-		return "Root key rerolled."
+		return "Rerolled root key"
 	case *components.V2RootKeysDeleteKeyResponseBody:
-		return "Root key deleted."
+		return "Deleted root key"
 	case *components.V2RootKeysUpdateKeyResponseBody:
-		return "Root key updated."
+		return "Updated root key"
 	case *components.V2IdentitiesCreateIdentityResponseBody:
-		return "Identity created."
+		return "Created identity"
 	case *components.V2IdentitiesUpdateIdentityResponseBody:
-		return "Identity updated."
+		return "Updated identity"
 	case *components.V2IdentitiesDeleteIdentityResponseBody:
-		return "Identity deleted."
+		return "Deleted identity"
 	case *components.V2PermissionsCreatePermissionResponseBody:
-		return "Permission created."
+		return "Created permission"
 	case *components.V2PermissionsUpdatePermissionResponseBody:
-		return "Permission updated."
+		return "Updated permission"
 	case *components.V2PermissionsDeletePermissionResponseBody:
-		return "Permission deleted."
+		return "Deleted permission"
 	case *components.V2PermissionsCreateRoleResponseBody:
-		return "Role created."
+		return "Created role"
 	case *components.V2PermissionsUpdateRoleResponseBody:
-		return "Role updated."
+		return "Updated role"
 	case *components.V2PermissionsDeleteRoleResponseBody:
-		return "Role deleted."
+		return "Deleted role"
 	case *components.V2PortalCreatePortalResponseBody:
-		return "Portal created."
+		return "Created portal"
 	case *components.V2PortalUpdatePortalResponseBody:
-		return "Portal updated."
+		return "Updated portal"
 	case *components.V2PortalDeletePortalResponseBody:
-		return "Portal deleted."
+		return "Deleted portal"
 	case *components.V2DomainsCreateDomainResponseBody:
-		return "Domain created."
+		return "Created domain"
 	case *components.V2DomainsDeleteDomainResponseBody:
-		return "Domain deleted."
+		return "Deleted domain"
 	case *components.V2EnvironmentsUpdateSettingsResponseBody:
-		return "Settings updated."
+		return "Updated settings"
 	case *components.V2EnvironmentsSetEnvironmentVariablesResponseBody:
-		return "Variables saved."
+		return "Saved variables"
 	case *components.V2EnvironmentsRemoveEnvironmentVariablesResponseBody:
-		return "Variables removed."
+		return "Removed variables"
 	case *components.V2GatewaySetPoliciesResponseBody:
-		return "Policies updated."
+		return "Updated policies"
 	case *components.V2GatewayUpdatePolicyResponseBody:
-		return "Policy updated."
+		return "Updated policy"
 	case *components.V2RatelimitCreateNamespaceResponseBody:
-		return "Rate limit namespace created."
+		return "Created rate limit namespace"
 	case *components.V2RatelimitUpdateNamespaceResponseBody:
-		return "Rate limit namespace updated."
+		return "Updated rate limit namespace"
 	case *components.V2RatelimitDeleteNamespaceResponseBody:
-		return "Rate limit namespace deleted."
+		return "Deleted rate limit namespace"
 	case *components.V2RatelimitSetOverrideResponseBody:
-		return "Rate limit override saved."
+		return "Saved rate limit override"
 	case *components.V2RatelimitDeleteOverrideResponseBody:
-		return "Rate limit override deleted."
+		return "Deleted rate limit override"
 	case *components.V2WorkspaceUpdateFlagResponseBody:
-		return "Workspace flag updated."
+		return "Updated workspace flag"
 	default:
 		return ""
 	}
 }
 
-func writeMutationTargets(output *strings.Builder, cmd *cli.Command) error {
-	var request map[string]any
+func requestValue(cmd *cli.Command, request map[string]any, field, flag string) string {
 	if cmd.FlagIsSet("body") {
-		if err := json.Unmarshal([]byte(cmd.String("body")), &request); err != nil {
-			return fmt.Errorf("cannot read mutation target: %w", err)
-		}
+		value, _ := request[field].(string)
+		return value
 	}
+	return cmd.String(flag)
+}
+
+func writeMutationTargets(output *strings.Builder, cmd *cli.Command, request map[string]any, indent string) {
 	for _, selector := range []struct{ field, flag string }{
 		{"project", "project"},
 		{"app", "app"},
@@ -324,15 +341,10 @@ func writeMutationTargets(output *strings.Builder, cmd *cli.Command) error {
 		{"policyId", "policy-id"},
 		{"slug", "slug"},
 	} {
-		value := cmd.String(selector.flag)
-		if cmd.FlagIsSet("body") {
-			value, _ = request[selector.field].(string)
-		}
-		if value != "" {
-			fmt.Fprintf(output, "%s: %s\n", fieldLabel(selector.field), terminalText(value))
+		if value := requestValue(cmd, request, selector.field, selector.flag); value != "" {
+			fmt.Fprintf(output, "%s%s: %s\n", indent, fieldLabel(selector.field), terminalText(value))
 		}
 	}
-	return nil
 }
 
 func emptyObject(value any) bool {

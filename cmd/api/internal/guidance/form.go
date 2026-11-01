@@ -35,6 +35,9 @@ func (f *form) object(ctx context.Context, schema *Schema, values map[string]any
 	if err != nil {
 		return err
 	}
+	if path != "" {
+		defer f.show(schema, values, path)()
+	}
 	for _, name := range orderedFields(schema) {
 		if !slices.Contains(schema.Required, name) {
 			continue
@@ -103,11 +106,6 @@ func (f *form) field(ctx context.Context, schema *Schema, values map[string]any,
 		}
 	}
 	path = strings.TrimPrefix(path+"."+name, ".")
-	if schema.Description != "" {
-		if _, err := fmt.Fprintln(f.out, schema.Description); err != nil {
-			return err
-		}
-	}
 	if schema.Nullable {
 		choice, err := f.prompt.SelectOrdered(label(path), []prompt.SelectOption{
 			{Key: "set", Label: "Set a value"},
@@ -229,7 +227,9 @@ func (f *form) scalar(schema *Schema, path, defaultValue string) (any, error) {
 		if err == nil {
 			return value, nil
 		}
-		if _, err := fmt.Fprintf(f.out, "%s: %s\n", label(path), err); err != nil {
+		message := []rune(err.Error())
+		message[0] = unicode.ToUpper(message[0])
+		if _, err := fmt.Fprintln(f.out, string(message)); err != nil {
 			return nil, err
 		}
 	}
@@ -256,6 +256,9 @@ func scalarValue(schema *Schema, text string) (any, error) {
 	}
 	length := utf8.RuneCountInString(text)
 	if length < schema.MinLength {
+		if schema.MinLength == 1 {
+			return nil, fmt.Errorf("enter a value")
+		}
 		return nil, fmt.Errorf("enter at least %d characters", schema.MinLength)
 	}
 	if schema.MaxLength > 0 && length > schema.MaxLength {
@@ -275,10 +278,20 @@ func scalarValue(schema *Schema, text string) (any, error) {
 
 func (f *form) array(ctx context.Context, schema *Schema, path string) ([]any, error) {
 	values := []any{}
+	name := path[strings.LastIndex(path, ".")+1:]
+	var wrapper Schema
+	wrapper.Type = "object"
+	wrapper.Properties = map[string]*Schema{name: schema}
+	defer f.section(path, func(p palette) string {
+		if len(values) == 0 {
+			return ""
+		}
+		return summary(p, &wrapper, map[string]any{name: values}, "")
+	})()
 	for schema.MaxItems == 0 || len(values) < schema.MaxItems {
 		options := []prompt.SelectOption{{Key: "add", Label: "Add item"}}
 		if len(values) >= schema.MinItems {
-			options = append(options, prompt.SelectOption{Key: "done", Label: fmt.Sprintf("Use this list (%d items)", len(values))})
+			options = append(options, prompt.SelectOption{Key: "done", Label: "Use this list (" + quantity(len(values), "item", "items") + ")"})
 		}
 		choice, err := f.prompt.SelectOrdered(label(path), options)
 		if err != nil || choice == "done" {
@@ -300,7 +313,7 @@ func (f *form) dictionary(ctx context.Context, schema *Schema, path string) (map
 	}
 	for {
 		choice, err := f.prompt.SelectOrdered(label(path), []prompt.SelectOption{
-			{Key: "add", Label: "Add entry"}, {Key: "done", Label: fmt.Sprintf("Use this object (%d entries)", len(values))},
+			{Key: "add", Label: "Add entry"}, {Key: "done", Label: "Use this object (" + quantity(len(values), "entry", "entries") + ")"},
 		})
 		if err != nil || choice == "done" {
 			return values, err
@@ -372,7 +385,11 @@ func variantLabel(schema *Schema) string {
 }
 
 func orderedFields(schema *Schema) []string {
-	names := slices.Sorted(maps.Keys(schema.Properties))
+	return orderedNames(slices.Collect(maps.Keys(schema.Properties)))
+}
+
+func orderedNames(names []string) []string {
+	slices.Sort(names)
 	priority := []string{"project", "app", "environment", "apiId", "keyId", "name", "displayName", "slug"}
 	slices.SortStableFunc(names, func(a, b string) int {
 		indexA, indexB := slices.Index(priority, a), slices.Index(priority, b)
@@ -387,7 +404,16 @@ func orderedFields(schema *Schema) []string {
 	return names
 }
 
-func label(name string) string {
+func label(path string) string {
+	parts := strings.Split(path, ".")
+	for i, part := range parts {
+		parts[i] = labelPart(part)
+	}
+	return strings.Join(parts, " › ")
+}
+
+func labelPart(name string) string {
+	name, index, indexed := strings.Cut(name, "[")
 	var text strings.Builder
 	for i, char := range name {
 		if unicode.IsControl(char) || unicode.Is(unicode.Cf, char) {
@@ -403,7 +429,24 @@ func label(name string) string {
 		}
 		text.WriteRune(unicode.ToLower(char))
 	}
-	return text.String()
+	words := strings.Split(text.String(), " ")
+	for i, word := range words {
+		switch upper := strings.ToUpper(word); upper {
+		case "API", "DNS", "HTTP", "ID", "IP", "JSON", "OCI", "TTL", "URL":
+			words[i] = upper
+		}
+	}
+	if indexed {
+		words = append(words, "#"+labelPart(strings.TrimSuffix(index, "]")))
+	}
+	return strings.Join(words, " ")
+}
+
+func quantity(count int, singular, plural string) string {
+	if count == 1 {
+		return "1 " + singular
+	}
+	return strconv.Itoa(count) + " " + plural
 }
 
 func slug(name string) string {

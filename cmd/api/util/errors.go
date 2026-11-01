@@ -138,6 +138,11 @@ func flagTakesValue(cmd *cli.Command, name string) bool {
 	return false
 }
 
+// ErrorMessage describes err in one line for terminal output, without the command context.
+func ErrorMessage(err error) string {
+	return describeError(err).Message
+}
+
 func describeError(err error) diagnostic {
 	var info diagnostic
 	info.Message = err.Error()
