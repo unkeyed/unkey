@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/billingperiod"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 	"golang.org/x/text/language"
@@ -12,15 +13,16 @@ import (
 	"golang.org/x/text/number"
 )
 
-func quotaSlackMessage(e exceededWorkspace, billingBaseURL string) slack.Payload {
+func quotaSlackMessage(e exceededWorkspace, period billingperiod.Period, billingBaseURL string) slack.Payload {
 	title := "Monthly request quota exceeded"
 	if e.IsFollowUp {
 		title = "Monthly request quota still exceeded"
 	}
 	printer := message.NewPrinter(language.English)
-	usage := fmt.Sprintf("%s / %s requests",
+	usage := fmt.Sprintf("%s / %s requests in %s",
 		printer.Sprint(number.Decimal(e.Used)),
-		printer.Sprint(number.Decimal(e.Workspace.RequestsPerMonth.Int64)))
+		printer.Sprint(number.Decimal(e.Workspace.RequestsPerMonth.Int64)),
+		period.Start().Format("January 2006"))
 	detail := "*" + usage + "*"
 	if e.Workspace.RequestsPerMonth.Int64 > 0 {
 		over := fmt.Sprintf("%.1f%% over quota", (float64(e.Used)/float64(e.Workspace.RequestsPerMonth.Int64)-1)*100)
