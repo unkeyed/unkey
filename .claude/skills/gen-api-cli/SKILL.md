@@ -38,9 +38,10 @@ Use the SDK version pinned in `go.mod` and `go.sum`. Do not run routine dependen
 
 ## Step 2: Read the inputs
 
-1. **OpenAPI spec**: Read `svc/api/openapi/openapi-generated.yaml` — the source of truth for all endpoints.
+1. **OpenAPI spec**: Read `svc/api/openapi/openapi-generated.yaml`, the source of truth for all endpoints. Do not use or modify the skill's bundled spec as the source of truth.
 2. **Go SDK source**: Find the exact version in `go.mod` under `github.com/unkeyed/sdks/api/go/v3`, then read the SDK source from the Go module cache at `~/go/pkg/mod/github.com/unkeyed/sdks/api/go/v3@<version>/`. You MUST read the actual SDK files to verify struct names, field names, and field types. Do not guess.
 3. **Existing code**: Read `cmd/api/util/` (shared helpers, do not change for routine generation), `cmd/api/root.go`, `cmd/api/resources.go`, `build/cli/main.go`, and the affected subpackages. Verify the output policy in `util/output.go` and `util/human.go` rather than recreating it in a leaf command.
+4. **Guided input**: Read `cmd/api/AGENTS.md`, `cmd/api/internal/guidance/{input,form,picker,schema}.go`, and `tools/cliguidance/`. Use the shared form and picker, not endpoint-specific prompts.
 
 ## Step 3: Group endpoints
 
@@ -77,7 +78,7 @@ cmd/api/
 │   ├── client.go                  # CreateClient
 │   ├── output.go                  # Output
 │   ├── human.go                   # Human-readable tables and details
-│   ├── errors.go                  # FormatError
+│   ├── errors.go                  # CommandError
 │   └── flags.go                   # Shared flags
 ├── apis/
 │   ├── root.go                    # Cmd (group command), registers leaf commands
@@ -228,7 +229,7 @@ util.ConfigFlag(),
 util.OutputFlag(),
 ```
 
-`groups()` adds fresh `--json` and `--debug` flags to endpoint commands for both command trees. Do not declare duplicates in the leaves or make these operational flags mutually exclusive with `--body`.
+`groups()` adds fresh `--json`, `--debug`, and `--error-format` flags to endpoint commands for both command trees. It wraps each action with `util.CommandError`. Return original errors from leaf actions and `util.SendBody`; do not format or stringify them before this boundary. Do not declare duplicate shared flags in the leaves or make operational flags mutually exclusive with `--body`. The environment-variable list's `--reveal` is also an output flag, not request input.
 
 Add one explicit `cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive.")` to the leaf. Keep flag order consistent with existing commands.
 
@@ -237,10 +238,12 @@ Then map OpenAPI request body properties to CLI flags:
 | OpenAPI type | SDK Go type | CLI flag | Read value |
 |---|---|---|---|
 | `string` (required) | `string` | `cli.String("name", "desc", cli.Required())` | `cmd.String("name")` |
-| `string` (optional) | `*string` | `cli.String("name", "desc")` | check non-empty, then `&v` |
+| `string` (optional) | `*string` | `cli.String("name", "desc")` | check `cmd.FlagIsSet("name")`, then `new(cmd.String("name"))` |
 | `integer` (required) | `int64` | `cli.Int64("name", "desc", cli.Required())` | `cmd.Int64("name")` |
-| `integer` (optional) | `*int64` | `cli.Int64("name", "desc")` | check non-zero, then `&v` |
-| `boolean` (optional) | `*bool` | `cli.Bool("name", "desc", cli.Default(X))` | `new(cmd.Bool("name"))` |
+| `integer` (optional) | `*int64` | `cli.Int64("name", "desc")` | check `cmd.FlagIsSet("name")`, then `new(cmd.Int64("name"))` |
+| `boolean` (optional) | `*bool` | `cli.Bool("name", "desc")` | check `cmd.FlagIsSet("name")`, then `new(cmd.Bool("name"))` |
+| `array of strings` | `[]string` | `cli.StringSlice("name", "desc")` | check `cmd.FlagIsSet("name")`, then `cmd.StringSlice("name")` |
+| `object` / `map` / nested | complex | `cli.String("domain-name", "Domain value as a JSON object or array.")` | check `cmd.FlagIsSet("domain-name")`, then `json.Unmarshal` |
 
 **Boolean flag defaults**: Look up `default:` in the OpenAPI spec. Use `cli.Default(true)` or `cli.Default(false)` accordingly. For partial-update endpoints where omitting a boolean means "don't change" (no `default:` in spec), do NOT set a default — use `cmd.FlagIsSet("name")` to check if the user explicitly passed it:
 ```go
@@ -248,8 +251,8 @@ if cmd.FlagIsSet("enabled") {
     req.Enabled = new(cmd.Bool("enabled"))
 }
 ```
-| `array of strings` | `[]string` | `cli.StringSlice("name", "desc")` | `cmd.StringSlice("name")` |
-| `object` / `map` / nested | complex | `cli.String("domain-name", "Domain value as a JSON object or array.")` | `json.Unmarshal` |
+
+Use flag presence, not `v != ""`, `v != 0`, or `len(v) > 0`, to distinguish omitted input from explicit values. Read SDK serialization for nullable fields and empty collections. Preserve omission, `null`, `false`, `0`, and `[]` separately, especially on updates. Keep existing schema-defined create defaults without applying them to omitted update fields.
 
 **JSON flags**: Name complex flags after their domain field, such as `--meta`, `--credits`, or `--ratelimits`. Do not add a `-json` suffix. The CLI help description and product docs MUST explicitly state that the value is encoded as JSON, using wording such as "as JSON," "JSON object," or "JSON array." Show the JSON shape in the command's `Examples` field with realistic values. Every command that has JSON flags MUST include at least one example showing its usage.
 
@@ -264,7 +267,7 @@ selector flags.
 ## Action pattern
 
 Every leaf command uses a plain `func(ctx, cmd) error` action. For commands without
-confirmation, create the client, format errors, and print output as follows:
+confirmation, create the client, return original errors, and print output as follows:
 
 ```go
 Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -283,44 +286,9 @@ Action: func(ctx context.Context, cmd *cli.Command) error {
     }
 
     req := components.V2ApisCreateAPIRequestBody{Name: cmd.String("name")}
-
-    // Optional string:
-    if v := cmd.String("prefix"); v != "" {
-        req.Prefix = &v
-    }
-
-    // Optional int64:
-    if v := cmd.Int64("limit"); v != 0 {
-        req.Limit = &v
-    }
-
-    // Optional bool — look up the default in the OpenAPI spec (check `default:` on the property).
-    // Use cli.Bool with cli.Default and new:
-    req.Enabled = new(cmd.Bool("enabled")) // default: true in spec
-    req.Decrypt = new(cmd.Bool("decrypt")) // default: false in spec
-
-    // For partial-update endpoints where omitting a bool means "don't change":
-    if cmd.FlagIsSet("enabled") {
-        req.Enabled = new(cmd.Bool("enabled"))
-    }
-
-    // String slice:
-    if v := cmd.StringSlice("permissions"); len(v) > 0 {
-        req.Permissions = v
-    }
-
-    // JSON field (complex object):
-    if v := cmd.String("meta"); v != "" {
-        var meta map[string]any
-        if err := json.Unmarshal([]byte(v), &meta); err != nil {
-            return fmt.Errorf("invalid JSON for --meta: %w", err)
-        }
-        req.Meta = meta
-    }
-
     res, err := client.Apis.CreateAPI(ctx, req)
     if err != nil {
-        return fmt.Errorf("%s", util.FormatError(err))
+        return err
     }
     return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
 },
@@ -333,6 +301,25 @@ For commands without confirmation, explicitly supplied `--body` JSON is decoded 
 Authentication and transport/output flags remain active. Root-key and config bearer authentication still apply, while `--api-url` and `--output` retain their normal behavior. Do not generate browser-session or cookie-authenticated commands; this CLI supports bearer-authenticated API operations only.
 
 Generated union and slice request types are inferred from the direct SDK method value and are supported when they implement normal JSON unmarshalling.
+
+## Guided input
+
+`ResourceCommands()` attaches guidance before required-input validation, only on canonical paths. Do not add `--interactive`, `--no-input`, or `Prepare` to leaf constructors or legacy commands.
+
+- Automatic forms collect missing required inputs and changes for target-only updates when stdin and stderr are terminals. `--interactive` also opens optional settings, including list and search filters.
+- Explicit `--body`, `--no-input`, `--interactive=false`, legacy paths, and nonterminal input never start guidance. Explicit `--interactive` without stdin and stderr terminals fails. It is mutually exclusive with `--body` and `--no-input`.
+- Prompts go to stderr. Keep supplied request flags unchanged using `Flag.IsSet()`. Do not prefill omitted update fields from stored values. Guided requests use the existing typed body path and destructive confirmation.
+- Extend `picker.go` only for resources with a supported list endpoint. Preserve parent scope, server-side search, pagination, and manual ID entry without list permission. Never show key secrets in choices.
+
+After changing endpoint mappings, request schemas, or the extractor, regenerate the compact metadata from the repository root:
+
+```bash
+mise exec -- go generate ./cmd/api/internal/guidance
+```
+
+`tools/cliguidance` reads the authoritative spec and `resourcePaths`. Keep its explicit endpoint-version overrides aligned with the command's pinned SDK method. Commit the regenerated `cmd/api/internal/guidance/schemas_generated.json` with one compact endpoint per line. Do not hand-edit or bulk pretty-print this metadata, and do not copy the full spec into it.
+
+Extend `cmd/api/guidance_test.go` for endpoint coverage and `guidance_terminal_linux_test.go` for focused PTY scenarios. Cover create, update, action, and list/filter inputs as applicable, explicit flags, omission versus null/false/zero/empty arrays, cancellation without mutation, stdout/stderr separation, and body, legacy, and nonterminal paths. Picker changes need search, pagination, scope, and denied-list fallback tests. `tools/cliguidance` tests enforce metadata freshness and layout.
 
 ## Destructive confirmation
 
@@ -347,10 +334,13 @@ Every delete or remove command must confirm before sending, including removal of
 
 Always pass the complete SDK response body to `util.Output`, including in body mode. Never extract only `data`, print a request ID in a leaf, or implement another renderer.
 
-- Human output is the default, including for pipes. Lists use summary tables with selected columns. Empty lists use a resource-specific message such as `No projects found.` Single resources use labeled details. Actions without data use a resource-specific confirmation such as `Key deleted.`, `Settings updated.`, or `Variables saved.` Asynchronous actions say they were requested rather than completed.
+- Human output is the default, including for pipes. Lists use summary tables with selected columns. Empty lists use a resource-specific message such as `No projects found.` Single resources use labeled details. Mutations print a confirmation before returned data or allowlisted request targets. Empty role and permission mutations say `No roles assigned.` or `No permissions assigned.`, not that a search found nothing. Asynchronous actions say they were requested rather than completed.
 - `--json` and `--output=json` preserve the full response envelope, including all fields, metadata, and pagination. Scripts must select JSON explicitly.
 - `--output` and `UNKEY_OUTPUT` accept only `human` and `json`. Unsupported values are errors, not another spelling of human output.
 - Successful request IDs appear only in JSON metadata or with `--debug` on stderr, labeled `Request ID:`. API errors go to stderr and include a labeled request ID when available. Never mix diagnostics into stdout.
+- `--error-format=json` independently selects structured action errors on stderr. Success `--json` does not change error formatting. Parser failures before the action remain plain text. Preserve typed SDK errors so the shared boundary can retain status, request ID, validation fields, and recovery guidance.
+- Authentication hints must follow credential precedence. Never assume a 404 or verification `NOT_FOUND` proves a resource is absent or that adding a permission fixes an authentication failure. Verification can return HTTP 200 with `valid: false` and exits 0 because the API call completed.
+- Human environment-variable lists hide values unless `--reveal` is set. Write-only values cannot be retrieved. JSON retains returned values regardless of `--reveal`. Key creation and reroll retain full returned secrets and put storage warnings on stderr only in human mode. Ordinary keys can be recoverable; root keys cannot be retrieved later.
 - Human output includes a cursor hint when more results are available. In body mode, the hint must tell the user to set `cursor` inside `--body`, never combine it with `--cursor`. JSON retains the API pagination fields.
 - Login codes, URLs, instructions, and waiting messages go to stderr; only `Signed in.` or `Root key saved.` goes to stdout. Login/logout success must not expose tokens, opaque workspace IDs, or storage paths. Logout's next-active-workspace notice belongs on stderr; revocation failure must not claim success. Keep IDs where workspace switching needs them.
 - Deploy progress and context go to stderr; final details/domains go to stdout. Spinners/colors require stderr TTY, `TERM=dumb` disables both, and nonempty `NO_COLOR` disables color. Do not add deploy JSON flags or move diagnostics into results.
@@ -495,7 +485,7 @@ Write command fields and each flag, example, and child command on separate lines
 
 ```bash
 mise exec -- gofmt -w <changed-go-files>
-mise exec -- rask ./cmd/api/...
+mise exec -- rask ./tools/cliguidance ./cmd/api/...
 mise run build
 mise run docs-lint
 ```

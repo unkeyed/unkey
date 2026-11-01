@@ -18,7 +18,7 @@ import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
 
 List the variables of an <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. Results are ordered by variable ID and paginated. When `pagination.hasMore` is true, pass `pagination.cursor` back with `--cursor`.
 
-`recoverable` variables include their value. `writeonly` variables never do: their `value` is an empty string.
+Human output hides variable values by default. Use `--reveal` to show recoverable values. Write-only values show `not retrievable`, and revealed empty values show `(empty)`. JSON includes the recoverable values returned by the API regardless of `--reveal`. The API omits `value` for write-only variables.
 
 ## Usage
 
@@ -46,6 +46,10 @@ unkey environments variables list --project=<project> --app=<app> --environment=
 
 <ParamField body="--project" type="string" required>
   <Tooltip tip="A group of apps, usually one per codebase or product.">Project</Tooltip> ID or slug. Both forms resolve to the same project.
+</ParamField>
+
+<ParamField body="--reveal" type="boolean">
+  Show recoverable variable values in human output. This does not change the API request. JSON includes returned values even without this flag.
 </ParamField>
 
 ### Shared flags

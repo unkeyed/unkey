@@ -5,6 +5,8 @@ description: "Read human-friendly output, pipe the full JSON response, and use s
 sources:
   - cmd/api/root.go
   - cmd/api/resources.go
+  - cmd/api/internal/guidance/review.go
+  - cmd/api/internal/guidance/recovery.go
   - cmd/api/util/flags.go
   - cmd/api/util/output.go
   - cmd/api/util/human.go
@@ -51,6 +53,10 @@ Resource commands such as `unkey projects list` and `unkey keys get` share the f
   Print the successful response's request ID to stderr, labeled `Request ID:`. It stays separate from stdout, including when you use `--json`.
 </ParamField>
 
+<ParamField body="--error-format" type="enum" default="human">
+  Select `human` or `json` for errors on stderr, including flag parsing, missing inputs, and API failures. This is independent of success output: `--json` alone does not change errors.
+</ParamField>
+
 <ParamField body="--body" type="string">
   A JSON request body to send instead of building one from the command's flags. Commands without a request body, such as `unkey workspace flags get` and `unkey workspace limits`, don't accept this flag. See [Send a raw body](#send-a-raw-body).
 </ParamField>
@@ -76,7 +82,13 @@ An empty list prints a message instead of a table:
 No projects found.
 ```
 
-Actions without response data print a confirmation such as `Key deleted.`, `Settings updated.`, or `Variables saved.` An asynchronous action prints a message such as `Deletion requested.` instead of claiming the work has finished.
+Mutations print a confirmation such as `Key created.`, `Settings updated.`, or `Variables saved.` before returned data. When the response has no data or returns assignments, the CLI also shows available request targets such as the key ID or project, app, and environment. It does not echo credentials or variable values from the request. An asynchronous action prints a message such as `Deletion requested.` instead of claiming the work has finished.
+
+Clearing role or permission assignments prints `Roles updated.` or `Permissions updated.`, followed by `No roles assigned.` or `No permissions assigned.` An empty list operation still prints `No roles found.` or `No permissions found.`
+
+Human environment-variable lists hide values by default. Add `--reveal` to `unkey environments variables list` to show recoverable values. Write-only values show `not retrievable`. An empty recoverable value shows `(empty)` when revealed. JSON preserves returned values regardless of `--reveal`, so treat redirected JSON as sensitive data.
+
+Key creation and reroll show the key ID before the complete returned key. Human mode also writes a storage warning to stderr. Ordinary keys cannot be retrieved later unless created as recoverable, with the required encryption and decryption access. Root key plaintext cannot be retrieved later. JSON mode does not add a storage warning.
 
 Tables select fields for readability. They aren't a complete representation of the response. Use `--json` or `--output=json` to get every field, including `meta`, `data`, and `pagination` when present. JSON mode preserves the full response envelope and writes only JSON to stdout:
 
@@ -85,7 +97,7 @@ unkey keys get --key-id=key_1234abcd --json | jq '.data.enabled'
 unkey projects list --output=json | jq '.data'
 ```
 
-Use JSON mode explicitly in scripts, even when redirecting output to a file or a pipe. Set `UNKEY_OUTPUT=json` to select it for every resource command in a shell session. Both `--output` and `UNKEY_OUTPUT` accept only `human` and `json`; unsupported values fail instead of falling back to human output. `--output=human` overrides `UNKEY_OUTPUT=json`.
+Use JSON mode explicitly in scripts, even when redirecting output to a file or a pipe. Set `UNKEY_OUTPUT=json` to select it for every resource command in a shell session. Both `--output` and `UNKEY_OUTPUT` accept only `human` and `json`; unsupported values fail instead of falling back to human output. An explicit valid `--output` overrides `UNKEY_OUTPUT`, including an invalid environment value. Help and offline discovery remain available when `UNKEY_OUTPUT` is invalid.
 
 When more results are available, human output includes a hint to repeat the command with `--cursor`. JSON output includes the API's pagination fields instead. Keep the same filters when requesting the next page:
 
@@ -102,6 +114,78 @@ unkey projects list --body='{"limit":25,"search":"payments","cursor":"<cursor>"}
 
 Successful human output does not show the request ID by default. Add `--debug` when you need it for troubleshooting. JSON output still includes `meta.requestId`, with or without `--debug`.
 
+## Guided input
+
+Guided input collects request fields in your terminal. Canonical resource commands such as `unkey projects create` open a form when required inputs are missing. Update commands also open a form when you supply only the target, so you can choose what to change. Both stdin and stderr must be terminals.
+
+```bash
+unkey projects create
+unkey projects update --project=payments
+unkey deployments promote
+```
+
+The form keeps fields you supply as flags and collects missing fields. Nested objects and lists have their own prompts, so you don't need to write JSON for those inputs. If additional settings are offered, select **Continue** when finished.
+
+Before an action, **Review request** shows labelled fields and indented lists instead of JSON. Select the action, such as **Create project**, to proceed. Select **Back** to edit fields, omit an optional field, or change a list item, then select **Continue** to return to the summary. Nested edits keep the other entered fields. Secrets, environment variable values, and arbitrary JSON values are hidden in the review. Select **Cancel** or press Ctrl+C to stop. Destructive commands still require their separate confirmation.
+
+Read-only commands, such as lists and searches, run after you finish selecting filters. They don't ask you to confirm a request.
+
+The review uses **Yes** and **No** for booleans and distinguishes **Clear (null)**, **(empty text)**, and **(no items)**. It stays human-readable on stderr even with `--json`; the JSON response on stdout is unchanged.
+
+Complete commands run directly unless you pass `--interactive`. Review does not add a prompt to scripts or complete flag-based commands.
+
+<ParamField body="--interactive" type="boolean">
+  Open guided input even when all required fields are supplied. Use this for optional settings, list filters, or search fields. Requires terminals on stdin and stderr. You can't combine it with `--body` or `--no-input`.
+</ParamField>
+
+<ParamField body="--no-input" type="boolean">
+  Disable guided input. Missing required flags fail instead of opening a form. This doesn't confirm destructive commands. Use `--yes` separately when needed.
+</ParamField>
+
+Lists with no missing required fields run immediately unless you pass `--interactive`. For example, the projects list form lets you set search text and a page limit:
+
+```bash
+unkey projects list --interactive
+unkey keys create --api-id=api_1234abcd --interactive
+```
+
+In guided updates, fields you don't select remain omitted and unchanged. Where the field supports it, **Clear (null)** sends `null`. Choosing **No** sends `false`, entering zero sends `0`, and submitting a list with no items sends `[]`. These values aren't the same as leaving a field out.
+
+### Correct rejected input
+
+If the API returns a structured input-validation rejection, guided input offers **Edit saved answers**. Answers stay in memory for that command only. Edit the rejected input, review it, and explicitly send the corrected request. Selecting **Cancel** returns the API error. The CLI does not resend an unchanged request.
+
+This correction flow applies to the API's `invalid_input` 400 response with field errors. It does not reopen input for permission failures, conflicts, other 400 responses, or 422 resource-limit errors. Resource commands do not automatically retry API requests, including network and 5xx failures. A failed mutation may have completed. Check its state before running it again.
+
+### Choose existing resources
+
+Resource selectors offer **Browse existing resources** or **Enter ID manually** for projects, apps, environments, keys, root keys, permissions, roles, identities, rate limit namespaces and overrides, deployments, domains, and gateway policies. Selectors without a browser, such as API IDs, use text input.
+
+Browsing asks for parent scope when needed, such as a project's app and environment. **Search** sends a filter to the API where the list endpoint supports search. An empty search clears that filter. **Next page** uses the API's pagination cursor when more results are available.
+
+Manual ID entry doesn't require list permission. If loading choices fails, the CLI falls back to manual entry. The final request still requires the endpoint's permissions.
+
+### Keep scripts noninteractive
+
+Guided input is available only on canonical resource commands, not legacy `unkey api` paths. An explicit `--body`, `--no-input`, or `--interactive=false` disables guidance. Redirecting stdin or stderr also disables automatic guidance. Explicit `--interactive` fails when either isn't a terminal.
+
+Prompts go to stderr, leaving stdout for the result. Redirecting only stdout or selecting `--json` doesn't disable guidance when stdin and stderr remain terminals. Use `--no-input` in scripts to make that choice explicit:
+
+```bash
+unkey projects create --name=Demo --slug=demo \
+  --no-input --json --error-format=json
+```
+
+## Find command options
+
+Use `--help` to list commands or read a command's flags, requirements, and examples. Help works without credentials or API requests.
+
+```bash
+unkey --help
+unkey projects create --help
+unkey gateway policies update --help
+```
+
 ## Send a raw body
 
 Normally a command builds its request from its flags, one per request field, and checks them before sending. If you already have the request as JSON, for example from a file or another tool, pass it with `--body` instead:
@@ -112,7 +196,7 @@ unkey keys create --body='{"apiId":"api_1234abcd","name":"Payment service","enab
 
 Rules for `--body`:
 
-- It must be one JSON object that matches the endpoint's request.
+- It must be one JSON value that matches the endpoint's request. Most endpoints accept an object. `unkey ratelimit multi-limit` accepts an array.
 - Unknown fields fail before anything is sent, so a typo in a field name doesn't get silently ignored.
 - You can't combine it with the command's request flags. Required flags aren't needed either, so `unkey keys create --body='...'` doesn't also need `--api-id`.
 - Authentication, API URL, configuration, and output flags still work.
@@ -140,7 +224,7 @@ unkey projects delete --body='{"project":"payments"}' --yes --json
 
 ## Terminal output and scripts
 
-Resource commands write results to stdout. Confirmation prompts, debug request IDs, and errors go to stderr, so they don't become part of a JSON pipe. Human output remains the default when stdout is redirected; choose `--json` explicitly in scripts.
+Resource commands write results to stdout. Confirmation prompts, secret-storage warnings, debug request IDs, and errors go to stderr, so they don't become part of a JSON pipe. Human output remains the default when stdout is redirected; choose `--json` explicitly in scripts.
 
 `unkey deploy` writes progress and deployment context to stderr, then final deployment details and domains to stdout. It does not support JSON output. Deployment spinners and colors require stderr to be a terminal. `TERM=dumb` disables both, and a nonempty `NO_COLOR` disables color without disabling a terminal spinner. Redirected stderr contains plain progress messages. See [Deploy output](/compute/cli/deploy).
 
@@ -148,16 +232,23 @@ Resource commands write results to stdout. Confirmation prompts, debug request I
 
 ## Errors and exit codes
 
-A failed command writes its error to stderr and exits with status 1. API errors include a labeled `Request ID:` when the response provides one, even without `--debug`. These diagnostics never become part of stdout or its JSON response. Common API errors are shortened:
+A failed command writes its error to stderr and exits with status 1. Resource action errors start with `Error: unkey <command> failed.` and give recovery guidance. API errors include a labeled `Request ID:` when the response provides one, even without `--debug`. These diagnostics never become part of stdout or its JSON response.
 
 | Status | Message |
 | --- | --- |
-| 400 | The detail, then one line per invalid field with its location. |
-| 401 | `Authentication failed: ...` and a hint to run `unkey login`. |
-| 403 | `Permission denied: ...` |
-| 404 | `Not found: ...` |
+| 400, 422 | The detail and invalid fields, with fix suggestions when available. Locations use matching flags or body paths when `--body` is active. |
+| 401 | `Authentication failed: ...` with guidance for the active credential override or stored login. |
+| 403 | `Permission denied: ...`. Check the credential, target workspace, and required access. |
+| 404 | `Not found or not accessible: ...`. The response does not distinguish absence from insufficient access. |
+| 409, 412 | Resolve the conflict or prerequisite. `--yes` does not bypass permissions or protection. |
+| 429 | Wait before retrying and follow any retry delay reported by the API. |
+| 5xx, network failure | A mutation may have completed. Check resource state before retrying to avoid duplicate changes. |
 
-Other failures print the error text as is. Help and version requests (`--help`, `-h`, `help <command>`, `--version`, `unkey version`) exit 0 without calling the API.
+Use `--error-format=json` to get an `error` object on stderr with `message` and optional `status`, `type`, `requestId`, `hint`, and `fields`. This does not include raw HTTP response bodies. Local action errors without an HTTP status still include `message`. This option does not change success output or exit codes.
+
+Flag input diagnostics use stable `urn:unkey:cli:<kind>` types, such as `missing_required_flag`, `invalid_flag_value`, or `conflicting_flags`. Their `fields[].location` entries identify flags such as `--name`. Invalid flag values are not echoed. Validation guidance uses the declared flag help instead of arbitrary validator messages.
+
+Completed API calls exit 0, including empty lists, accepted asynchronous actions, and key verification responses with `valid: false`. A verification `NOT_FOUND` can mean a missing or inaccessible key. It does not prove the key is absent. Help and version requests (`--help`, `-h`, `help <command>`, `--version`, `unkey version`) exit 0 without calling the API.
 
 ## Flag syntax
 
