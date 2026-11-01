@@ -1,4 +1,4 @@
-import { DeployDataProvider } from "@/lib/deploy-data";
+import { DeployDataProvider } from "@/lib/deploy-data/provider";
 import type { PropsWithChildren } from "react";
 
 // Only logs and requests read deploy data. One provider for both keeps its
