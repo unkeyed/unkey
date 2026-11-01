@@ -25,8 +25,8 @@ func (missingRowDB) FindCustomDomainById(_ context.Context, _ string) (db.Custom
 	return db.CustomDomain{}, sql.ErrNoRows
 }
 
-// AddCustomDomain submits the workflow inside the transaction that inserts the
-// domain row, so the first attempts can run before the commit lands. Within
+// An older control-api submits the workflow inside the transaction that inserts
+// the domain row, so the first attempts can run before the commit lands. Within
 // rowVisibilityGrace a missing row must surface as a retryable error, not a
 // terminal one: terminal here would kill the workflow for good and strand the
 // row in `pending` once the commit does land.
@@ -44,7 +44,7 @@ func TestVerifyDomainToleratesRowNotYetVisible(t *testing.T) {
 }
 
 // Past the grace window a missing row can only mean deletion (DeleteCustomDomain,
-// environment cascade, or a create whose commit failed after the submit), and the
+// environment cascade, or a create removed because its submit failed), and the
 // workflow must terminate instead of retrying against nothing for 24 hours. The
 // window is exclusive: an attempt landing exactly on the boundary already
 // terminates, pinning the `<` so the window cannot quietly become one retry wider.

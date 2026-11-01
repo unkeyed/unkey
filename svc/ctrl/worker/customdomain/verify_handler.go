@@ -24,10 +24,11 @@ import (
 const maxVerificationDuration = 24 * time.Hour
 
 // rowVisibilityGrace is how long a missing domain row stays retryable before it
-// means deletion. AddCustomDomain submits this workflow inside the transaction
-// that inserts the row, so the first attempts can run before the commit lands;
-// treating that as terminal would kill the workflow and strand the row in
-// `pending`. The race resolves in milliseconds, the window is padding.
+// means deletion. Older control-api releases submit this workflow inside the
+// transaction that inserts the row, so while one still serves during a rollout
+// the first attempts can run before the commit lands; treating that as terminal
+// would kill the workflow and strand the row in `pending`. The race resolves in
+// milliseconds, the window is padding.
 const rowVisibilityGrace = 2 * time.Minute
 
 // errNotVerified signals incomplete verification and triggers Restate retries.

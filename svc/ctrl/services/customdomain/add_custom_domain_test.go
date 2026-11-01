@@ -143,10 +143,10 @@ func TestAddCustomDomainWritesAuditLog(t *testing.T) {
 	require.Equal(t, f.environmentID, logged.Targets[0].Meta["environmentId"])
 }
 
-// The workflow submit happens inside the insert's transaction, so a submit that
-// fails rolls the row and its audit entry back. The error then means nothing was
-// written, and calling createDomain again is the recovery — a surviving row would
-// turn every retried create into a 409 pointing at a domain that was never attached.
+// A submit that fails removes the committed row again, so the error means no
+// domain is attached and calling createDomain again is the recovery. A surviving
+// row would turn every retried create into a 409 pointing at a domain that was
+// never attached.
 func TestAddCustomDomainFailsWhenVerificationCannotStart(t *testing.T) {
 	ctx := context.Background()
 	f := newFixture(t, 1)
@@ -160,32 +160,18 @@ func TestAddCustomDomainFailsWhenVerificationCannotStart(t *testing.T) {
 	require.ErrorAs(t, err, &connectErr)
 	require.Equal(t, connect.CodeInternal, connectErr.Code())
 
-	_, err = f.database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
-		WorkspaceID: f.workspaceID,
-		Domain:      f.domain,
-	})
-	require.Error(t, err, "the transaction must roll back when the workflow never started")
-	require.True(t, db.IsNotFound(err), "expected the domain row to be deleted, got: %v", err)
+	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
+	requireAddRolledBackInAuditTrail(t, ctx, f, f.domain)
 
-	// The audit entry commits with the row, so it must roll back with it too: an
-	// "Added custom domain" trail for a domain that was never attached is a lie.
-	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
-	require.NoError(t, err)
-	require.Empty(t, outboxRows, "the audit entry must roll back with the row")
-
-	// The payoff: with the row gone, retrying the create is the recovery, rather
-	// than a 409 pointing at a domain that was never attached.
 	res, err := f.newService(t).AddCustomDomain(ctx, f.request(f.domain))
 	require.NoError(t, err, "retrying the create must succeed once Restate is reachable")
 	require.NotEmpty(t, res.Msg.GetDomainId())
+	requireCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
 }
 
-// The submit happens inside the insert's transaction, and TxRetry rolls the
-// transaction back whenever its closure errors. An ingress that answers 500 is a
-// permanent error, so the closure runs exactly once: one submit attempt, one
-// rollback, nothing persisted. The counter proves the submit really ran — without
-// it, rolling back a transaction that never reached the submit would pass the
-// absence checks too.
+// An ingress that answers 500 is a permanent failure. The submit runs once, after
+// the commit, and the counter proves it really ran: without it, a create refused
+// before the insert would pass the absence checks too.
 func TestAddCustomDomainRollsBackWhenIngressRejects(t *testing.T) {
 	ctx := context.Background()
 	f := newFixture(t, 1)
@@ -200,18 +186,48 @@ func TestAddCustomDomainRollsBackWhenIngressRejects(t *testing.T) {
 	require.ErrorAs(t, err, &connectErr)
 	require.Equal(t, connect.CodeInternal, connectErr.Code())
 
-	require.Equal(t, int32(1), submits.Load(),
-		"a rejected submit is permanent, so the transaction must not rerun")
+	require.Equal(t, int32(1), submits.Load(), "a rejected submit must not be retried")
 
-	_, err = f.database.FindCustomDomainByWorkspaceAndDomain(ctx, db.FindCustomDomainByWorkspaceAndDomainParams{
-		WorkspaceID: f.workspaceID,
-		Domain:      f.domain,
-	})
-	require.True(t, db.IsNotFound(err), "the row must roll back with the failed submit, got: %v", err)
+	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
+	requireAddRolledBackInAuditTrail(t, ctx, f, f.domain)
+}
 
-	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
-	require.NoError(t, err)
-	require.Empty(t, outboxRows, "the audit entry must roll back with the row")
+// The limits lock serializes every custom domain create and deployment in a
+// workspace, so a slow Restate must not hold it. While one create waits on its
+// submit, another create in the same workspace has to complete.
+func TestAddCustomDomainSubmitsAfterReleasingLimitsLock(t *testing.T) {
+	f := newFixture(t, 5)
+	ingressURL, entered, release := holdingIngress(t)
+	held := f.newServiceWithRestate(t, ingressURL)
+
+	first := make(chan error, 1)
+	go func() {
+		_, err := held.AddCustomDomain(context.Background(), f.request(f.domain))
+		first <- err
+	}()
+
+	select {
+	case <-entered:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the first create never reached the verification submit")
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	second := randomDomain()
+	_, err := f.newService(t).AddCustomDomain(ctx, f.request(second))
+	require.NoError(t, err, "a create must not wait on another create's verification submit")
+
+	release()
+	select {
+	case err := <-first:
+		require.NoError(t, err)
+	case <-time.After(10 * time.Second):
+		t.Fatal("the first create did not finish after its submit was released")
+	}
+
+	requireCustomDomain(t, t.Context(), f.database, f.workspaceID, f.domain)
+	requireCustomDomain(t, t.Context(), f.database, f.workspaceID, second)
 }
 
 // TestAddCustomDomainRollsBackWhenAuditInsertFails verifies the production
@@ -773,6 +789,43 @@ func rejectingIngress(t *testing.T, submits *atomic.Int32) string {
 	return server.URL
 }
 
+// holdingIngress accepts each send only once release is called, and signals
+// entered when a send arrives.
+func holdingIngress(t *testing.T) (string, <-chan struct{}, func()) {
+	t.Helper()
+
+	entered := make(chan struct{}, 1)
+	released := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/send") {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		select {
+		case entered <- struct{}{}:
+		default:
+		}
+		select {
+		case <-released:
+		case <-r.Context().Done():
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(map[string]string{
+			"invocationId": uid.New("inv"),
+			"status":       "Accepted",
+		}))
+	}))
+	t.Cleanup(server.Close)
+
+	release := sync.OnceFunc(func() { close(released) })
+	t.Cleanup(release)
+
+	return server.URL, entered, release
+}
+
 // acceptingIngress answers every send with an accepted invocation. A create only reports
 // success once Restate has taken the invocation, so without a reachable ingress every
 // test here would exercise the failure path.
@@ -850,6 +903,31 @@ func (s failingAuditLogService) Insert(ctx context.Context, tx db.DBTX, logs []a
 	require.Equal(s.t, s.domain, row.Domain)
 
 	return errInjectedAuditInsert
+}
+
+// requireAddRolledBackInAuditTrail asserts that the workspace's audit trail holds
+// exactly an add of domain and its removal, both naming the same domain row.
+func requireAddRolledBackInAuditTrail(t *testing.T, ctx context.Context, f fixture, domain string) {
+	t.Helper()
+
+	outboxRows, err := f.database.ListClickhouseOutboxByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.Len(t, outboxRows, 2, "the add and its removal must both be audited")
+
+	events := make(map[string]auditlog.Event, len(outboxRows))
+	for _, row := range outboxRows {
+		var logged auditlog.Event
+		require.NoError(t, json.Unmarshal(row.Payload, &logged))
+		require.Len(t, logged.Targets, 1)
+		require.Equal(t, domain, logged.Targets[0].Meta["domain"])
+		events[logged.Event] = logged
+	}
+
+	created, ok := events[string(auditlog.DomainCreateEvent)]
+	require.True(t, ok, "missing the add entry")
+	deleted, ok := events[string(auditlog.DomainDeleteEvent)]
+	require.True(t, ok, "missing the removal entry")
+	require.Equal(t, created.Targets[0].ID, deleted.Targets[0].ID)
 }
 
 func requireCustomDomain(t *testing.T, ctx context.Context, database db.Database, workspaceID, domain string) db.FindCustomDomainByWorkspaceAndDomainRow {
