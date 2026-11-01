@@ -95,7 +95,8 @@ spec:
       labels:
         app: ctrl-worker
     spec:
-      serviceAccountName: unkey-serviceaccount
+      serviceAccountName: ctrl-worker
+      automountServiceAccountToken: true
       volumes:
         - name: config
           configMap:

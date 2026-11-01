@@ -1,6 +1,9 @@
 role: Agent
 fullnameOverride: vector-logs
 
+rbac:
+  create: false
+
 image:
   repository: timberio/vector
   tag: 0.43.1-alpine
@@ -17,6 +20,26 @@ extraObjects:
     metadata:
       name: vector-logs-config
     data: {}
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: vector-logs
+    rules:
+      - apiGroups: [""]
+        resources: ["namespaces", "pods", "nodes"]
+        verbs: ["list", "watch"]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: vector-logs
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: vector-logs
+    subjects:
+      - kind: ServiceAccount
+        name: vector-logs
+        namespace: unkey
 
 service:
   enabled: false

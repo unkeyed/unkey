@@ -63,7 +63,8 @@ spec:
       labels:
         app: ctrl-api
     spec:
-      serviceAccountName: unkey-serviceaccount
+      serviceAccountName: ctrl-api
+      automountServiceAccountToken: false
       containers:
         - name: ctrl-api
           image: unkey/control-api:dev
