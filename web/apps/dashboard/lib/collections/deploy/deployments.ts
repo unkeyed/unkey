@@ -267,9 +267,6 @@ function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operato
 function readDeploymentSubset(opts: LoadSubsetOptions | undefined) {
   const { filters, limit } = parseLoadSubsetOptions(opts);
   const inclusiveEnd = extractNumberFilter(filters, "createdAt", "lte");
-  const [boundary] = opts?.cursor?.whereFrom
-    ? parseLoadSubsetOptions({ where: opts.cursor.whereFrom }).filters
-    : [];
   return {
     limit,
     projectId: extractStringFilter(filters, "projectId"),
@@ -284,95 +281,23 @@ function readDeploymentSubset(opts: LoadSubsetOptions | undefined) {
     endTime:
       extractNumberFilter(filters, "createdAt", "lt") ??
       (inclusiveEnd === undefined ? undefined : inclusiveEnd + 1),
-    // Load more names the createdAt of the last row on screen; the next page is
-    // everything created at or before it
-    before:
-      boundary?.field.at(-1) === "createdAt" && typeof boundary.value === "number"
-        ? boundary.value
-        : undefined,
-    offset: opts?.offset !== undefined && opts.offset > 0 ? opts.offset : undefined,
+    // Live queries here hold a fixed window of the newest rows. Paged lists
+    // use the API cursor outside the collection, so a request past the window
+    // has nothing to load
+    isPastWindow: opts?.cursor !== undefined || (opts?.offset ?? 0) > 0,
   };
 }
 
 type DeploymentSubset = ReturnType<typeof readDeploymentSubset> & { projectId: string };
 
-// The filters of a subset without its page window, so every page of one list
-// shares an entry
-function listKey(subset: DeploymentSubset): string {
-  return JSON.stringify([
-    subset.projectId,
-    subset.appId,
-    subset.statuses,
-    subset.environmentIds,
-    subset.branches,
-    subset.startTime,
-    subset.endTime,
-  ]);
-}
-
-// Lists whose last page came back shorter than asked. A window that grows past
-// such a list, as useLiveInfiniteQuery does right after a short first page, has
-// nothing left to load. A refetch of a page already held still asks the server:
-// an empty answer would delete that page's rows
-const exhaustedLists = new Set<string>();
-
-function heldRows(subset: DeploymentSubset): Deployment[] {
-  return [...deployments.values()]
-    .filter(
-      (d) =>
-        d.projectId === subset.projectId &&
-        (subset.appId === undefined || d.appId === subset.appId) &&
-        (subset.statuses.length === 0 || subset.statuses.includes(d.status)) &&
-        (subset.environmentIds.length === 0 || subset.environmentIds.includes(d.environmentId)) &&
-        (subset.branches.length === 0 || subset.branches.includes(d.gitBranch)) &&
-        (subset.startTime === undefined || d.createdAt >= subset.startTime) &&
-        (subset.endTime === undefined || d.createdAt < subset.endTime),
-    )
-    .sort((a, b) => b.createdAt - a.createdAt);
-}
-
-async function fetchDeploymentRows(
-  subset: DeploymentSubset,
-  isRefetch: boolean,
-): Promise<ApiDeployment[]> {
-  if (subset.deploymentId !== undefined) {
-    try {
+async function fetchDeploymentRows(subset: DeploymentSubset): Promise<ApiDeployment[]> {
+  try {
+    if (subset.deploymentId !== undefined) {
       const response = await getUnkeyClient().deployments.getDeployment({
         deploymentId: subset.deploymentId,
       });
       return [response.data];
-    } catch (error) {
-      if (error instanceof NotFoundErrorResponse) {
-        return [];
-      }
-      throw error;
     }
-  }
-
-  const isNextPage = subset.before !== undefined || subset.offset !== undefined;
-  if (isNextPage && !isRefetch && exhaustedLists.has(listKey(subset))) {
-    return [];
-  }
-  const held = isNextPage ? heldRows(subset) : [];
-  // A grown window without a boundary names only an offset into the rows on
-  // screen; the row there gives the boundary
-  const before =
-    subset.before ??
-    (subset.offset === undefined
-      ? undefined
-      : held[Math.min(subset.offset, held.length) - 1]?.createdAt);
-  if (isNextPage && before === undefined) {
-    return [];
-  }
-  // Rows created in the same millisecond as the boundary may sit on either
-  // side of it, so a next page asks again for the ones already held
-  const tied = held.filter((d) => d.createdAt === before).length;
-  // useLiveInfiniteQuery holds one row past the first page to know whether a
-  // next page exists; fetching it here saves a second request for that row
-  const lookahead = isNextPage ? 0 : 1;
-  const limit = Math.min((subset.limit ?? API_PAGE_LIMIT) + tied + lookahead, API_PAGE_LIMIT);
-  let rows: ApiDeployment[] = [];
-  try {
     const response = await getUnkeyClient().deployments.listDeployments({
       project: subset.projectId,
       app: subset.appId,
@@ -384,24 +309,48 @@ async function fetchDeploymentRows(
       branch:
         subset.appId !== undefined && subset.branches.length > 0 ? subset.branches : undefined,
       startTime: subset.startTime,
-      endTime:
-        before === undefined
-          ? subset.endTime
-          : Math.min(subset.endTime ?? Number.POSITIVE_INFINITY, before + 1),
-      limit,
+      endTime: subset.endTime,
+      limit: Math.min(subset.limit ?? API_PAGE_LIMIT, API_PAGE_LIMIT),
     });
-    if (response.result.pagination.hasMore) {
-      exhaustedLists.delete(listKey(subset));
-    } else {
-      exhaustedLists.add(listKey(subset));
-    }
-    rows = response.result.data;
+    return response.result.data;
   } catch (error) {
-    if (!(error instanceof NotFoundErrorResponse)) {
-      throw error;
+    if (error instanceof NotFoundErrorResponse) {
+      return [];
     }
+    throw error;
   }
-  return rows;
+}
+
+/**
+ * Merges each API row with its tRPC details. `known` returns a row already
+ * held, whose details are reused when nothing can have changed them. Rows whose
+ * details belong to another project are dropped.
+ */
+export async function withDeploymentDetails(
+  rows: ApiDeployment[],
+  projectId: string,
+  known: (id: string) => Deployment | undefined,
+): Promise<Deployment[]> {
+  if (rows.length === 0) {
+    return [];
+  }
+  const held = new Map(
+    rows.flatMap((row) => {
+      const previous = known(row.id);
+      return previous &&
+        previous.status === row.status &&
+        previous.instances.length === 0 &&
+        SETTLED_DETAIL_STATUSES.has(row.status)
+        ? [[row.id, previous] as const]
+        : [];
+    }),
+  );
+  const missing = rows.filter((row) => !held.has(row.id)).map((row) => row.id);
+  const details = missing.length > 0 ? await loadDeploymentDetails(missing) : {};
+  return rows.flatMap((row) => {
+    const detail = details[row.id] ?? held.get(row.id);
+    return detail?.projectId === projectId ? [toDeployment(row, detail, projectId)] : [];
+  });
 }
 
 /**
@@ -413,6 +362,8 @@ async function fetchDeploymentRows(
 export const deployments = createCollection<Deployment, string>(
   queryCollectionOptions({
     queryClient,
+    // Keys start with ["deployments", projectId, appId] so a refetch can name
+    // one project or one app
     queryKey: (opts) => {
       const subset = readDeploymentSubset(opts);
       return subset.projectId
@@ -427,8 +378,7 @@ export const deployments = createCollection<Deployment, string>(
             subset.startTime ?? null,
             subset.endTime ?? null,
             subset.limit ?? null,
-            subset.before ?? null,
-            subset.offset ?? null,
+            subset.isPastWindow,
           ]
         : ["deployments"];
     },
@@ -440,31 +390,11 @@ export const deployments = createCollection<Deployment, string>(
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
-
-      const rows = await fetchDeploymentRows(
-        { ...subset, projectId },
-        queryClient.getQueryData(ctx.queryKey) !== undefined,
-      );
-      if (rows.length === 0) {
+      if (subset.isPastWindow) {
         return [];
       }
-      const held = new Map(
-        rows.flatMap((row) => {
-          const known = deployments.get(row.id);
-          return known &&
-            known.status === row.status &&
-            known.instances.length === 0 &&
-            SETTLED_DETAIL_STATUSES.has(row.status)
-            ? [[row.id, known] as const]
-            : [];
-        }),
-      );
-      const missing = rows.filter((row) => !held.has(row.id)).map((row) => row.id);
-      const details = missing.length > 0 ? await loadDeploymentDetails(missing) : {};
-      return rows.flatMap((row) => {
-        const detail = details[row.id] ?? held.get(row.id);
-        return detail?.projectId === projectId ? [toDeployment(row, detail, projectId)] : [];
-      });
+      const rows = await fetchDeploymentRows({ ...subset, projectId });
+      return withDeploymentDetails(rows, projectId, (id) => deployments.get(id));
     },
     getKey: (item) => item.id,
     id: "deployments",
