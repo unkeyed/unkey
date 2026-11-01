@@ -11,6 +11,7 @@ sources:
   - cmd/api/analytics/root.go
   - cmd/auth/main.go
   - cmd/auth/login/login.go
+  - cmd/auth/status/status.go
   - cmd/deploy/main.go
   - cmd/healthcheck/main.go
   - cmd/version/main.go
@@ -88,6 +89,7 @@ Authentication, deployment, health checks, and the CLI version have their own co
 | `unkey deploy <image>` | Compute | Deploys a prebuilt container image to a project and waits until the deployment is active. Needs `--project` (or `UNKEY_PROJECT`). Uses `--root-key`, then `UNKEY_ROOT_KEY`, then `unkey login`. Reference: [unkey deploy](/compute/cli/deploy). |
 | `unkey login` | Platform | Signs you in with a device code and stores a CLI session. `--root-key=-` stores an existing root key instead. Reference: [unkey login](/platform/cli/login). |
 | `unkey logout` | Platform | Revokes the active CLI session. |
+| `unkey whoami` | Platform | Shows which credential the CLI uses and whether it works. Same as `unkey auth status`. See [CLI authentication](/platform/cli/authentication#check-which-credential-the-cli-uses). |
 | `unkey workspace switch` | Platform | Changes the active signed-in workspace. |
 | `unkey auth login` | Platform | Same command and flags as [unkey login](/platform/cli/login). |
 | `unkey healthcheck <url>` | Compute | Sends one HTTP GET and exits 0 on a 200 response, or 1 otherwise. Useful in CI and monitoring scripts. Reference: [unkey healthcheck](/compute/cli/healthcheck). |
