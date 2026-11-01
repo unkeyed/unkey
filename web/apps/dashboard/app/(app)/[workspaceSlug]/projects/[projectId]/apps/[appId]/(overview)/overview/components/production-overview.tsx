@@ -103,7 +103,7 @@ function useProductionOverview({
   const { data: customDomains } = useCustomDomains();
   const recent = useRecentDeployments({ limit: RECENT_DEPLOYMENTS_LIMIT });
   const production = useProductionDeployments();
-  const deployments = production.data;
+  const productionDeployments = production.data;
   const workspace = useWorkspaceNavigation();
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
@@ -115,7 +115,7 @@ function useProductionOverview({
   const repoFullName = app?.repositoryFullName ?? null;
   const currentDeploymentId = app?.currentDeploymentId ?? null;
 
-  const latestProductionDeployment = deployments.at(0);
+  const latestProductionDeployment = productionDeployments.at(0);
   // Without a live deployment the card shows the latest production one, which
   // needs its instances, so it loads by id like the current deployment
   const fallbackDeploymentId =
@@ -187,9 +187,9 @@ function useProductionOverview({
     currentDeploymentId,
   });
 
-  const rollbackTarget = previousRollbackTarget(deployments, deployment);
+  const rollbackTarget = previousRollbackTarget(productionDeployments, deployment);
   const undoCandidates: DeploymentSummary[] = isRolledBack
-    ? [...rollbackCandidates(deployments, deployment), deployment].sort(
+    ? [...rollbackCandidates(productionDeployments, deployment), deployment].sort(
         (a, b) => b.createdAt - a.createdAt,
       )
     : [];
@@ -198,8 +198,8 @@ function useProductionOverview({
   const stamp = stampOf({ deployment, status, isCurrent, rollback });
   const replaced =
     status === "rolled-back" && !rollbackQuery.isLoading
-      ? (deployments.find((d) => d.id === rollback?.fromDeploymentId) ??
-        findRolledBackFrom(deployments, deployment) ??
+      ? (productionDeployments.find((d) => d.id === rollback?.fromDeploymentId) ??
+        findRolledBackFrom(productionDeployments, deployment) ??
         null)
       : null;
 

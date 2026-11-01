@@ -13,7 +13,7 @@ import {
 } from "./deployments";
 import { customDomainsQueryFor, domainsQueryFor, environmentsQueryFor } from "./queries";
 
-// Loads what the app overview reads first, so a click after hovering finds it held
+// Loads what the app overview reads first, so a click after hovering finds it loaded
 export function warmAppPage(projectId: string, appId: string): void {
   warmDeploymentsPage(projectId, appId);
   const currentDeploymentId = collection.apps.get(appId)?.currentDeploymentId;
@@ -40,7 +40,7 @@ export function warmAppPage(projectId: string, appId: string): void {
   ]);
 }
 
-// Loads one deployment by id, so opening its page after hovering its row finds it held
+// Loads one deployment by id, so opening its page after hovering its row finds it loaded
 export function warmDeployment(projectId: string, appId: string, deploymentId: string): void {
   warmQueries(`deployment/${deploymentId}`, () => [
     createLiveQueryCollection(deploymentByIdQueryFor(projectId, appId, deploymentId)),

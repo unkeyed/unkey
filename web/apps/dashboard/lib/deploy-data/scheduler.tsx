@@ -18,9 +18,9 @@ import {
 } from "./queries";
 
 const AWAIT_TIMEOUT_MS = 60_000;
-const APPS_IDLE_POLL_MS = 20_000;
-const APPS_AWAITING_POLL_MS = 2_000;
-const CUSTOM_DOMAINS_POLL_MS = 5_000;
+const POLL_APPS_IDLE_MS = 20_000;
+const POLL_APPS_AWAITING_MS = 2_000;
+const POLL_CUSTOM_DOMAINS_MS = 5_000;
 
 // Deploys arrive from GitHub, the CLI and other people, so every app page
 // refreshes the scope on a slow cadence. One instance per scope runs every poll.
@@ -100,11 +100,11 @@ export function DeployDataScheduler() {
     enabled: true,
   });
   useCollectionPolling(() => refetchProjectApps(projectId), {
-    intervalMs: liveTarget !== null ? APPS_AWAITING_POLL_MS : APPS_IDLE_POLL_MS,
+    intervalMs: liveTarget !== null ? POLL_APPS_AWAITING_MS : POLL_APPS_IDLE_MS,
     enabled: appId !== undefined,
   });
   useCollectionPolling(() => refetchScopeCustomDomains(projectId), {
-    intervalMs: CUSTOM_DOMAINS_POLL_MS,
+    intervalMs: POLL_CUSTOM_DOMAINS_MS,
     enabled: customDomains.some(
       (d) => d.verificationStatus === "pending" || d.verificationStatus === "verifying",
     ),
