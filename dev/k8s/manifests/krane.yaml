@@ -64,7 +64,7 @@ spec:
         app: krane
         component: krane
     spec:
-      serviceAccountName: unkey-serviceaccount
+      serviceAccountName: krane
       containers:
         - name: krane
           image: unkey/krane:dev
