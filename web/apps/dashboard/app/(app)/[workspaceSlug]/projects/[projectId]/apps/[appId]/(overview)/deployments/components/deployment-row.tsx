@@ -15,7 +15,7 @@ import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useWarmDeploymentHandlers } from "../../hooks/use-warm-app-page";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";
@@ -40,7 +40,7 @@ type DeploymentRowProps = {
   href: Route;
 };
 
-export function DeploymentRow({
+export const DeploymentRow = memo(function DeploymentRow({
   deployment,
   environment,
   repoFullName,
@@ -150,4 +150,4 @@ export function DeploymentRow({
       </span>
     </ResourceListItem>
   );
-}
+});
