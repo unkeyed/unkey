@@ -11,7 +11,19 @@ import {
   recentDeploymentsQueryFor,
   warmDeploymentsPage,
 } from "./deployments";
-import { customDomainsQueryFor, domainsQueryFor, environmentsQueryFor } from "./queries";
+import {
+  customDomainsQueryFor,
+  domainsQueryFor,
+  environmentsQueryFor,
+  projectAppsQueryFor,
+} from "./queries";
+
+// Loads a project's apps, so opening the project after hovering it finds them loaded
+export function warmProjectPage(projectId: string): void {
+  warmQueries(`project/${projectId}`, () => [
+    createLiveQueryCollection(projectAppsQueryFor(projectId)),
+  ]);
+}
 
 // Loads what the app overview reads first, so a click after hovering finds it loaded
 export function warmAppPage(projectId: string, appId: string): void {

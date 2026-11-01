@@ -1,11 +1,7 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { type PolicyRow, policyListLoad } from "@/lib/collections/deploy/policies";
-import { useCollectionLoad } from "@/lib/collections/use-collection-load";
-import { ENVIRONMENT_KIND, useAppScope, useEnvironments } from "@/lib/deploy-data";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { useMemo } from "react";
+import { ENVIRONMENT_KIND, type PolicyRow, useEnvironments, usePolicies } from "@/lib/deploy-data";
+import { useMemo, useState } from "react";
 import { type MergedPolicy, type PolicyEnvs, mergePolicies } from "../model/merge";
 
 export type PoliciesView =
@@ -23,7 +19,6 @@ export type PoliciesData = {
 };
 
 export function usePoliciesData(): PoliciesData {
-  const { projectId, appId } = useAppScope();
   const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
 
   const productionEnv = environments.find((e) => e.kind === ENVIRONMENT_KIND.production);
@@ -32,8 +27,8 @@ export function usePoliciesData(): PoliciesData {
   const productionId = productionEnv?.id ?? null;
   const previewId = previewEnv?.id ?? null;
 
-  const production = useEnvPolicies(projectId, appId, productionId);
-  const preview = useEnvPolicies(projectId, appId, previewId);
+  const production = useEnvPolicies(productionId);
+  const preview = useEnvPolicies(previewId);
   const productionRows = production.rows;
   const previewRows = preview.rows;
 
@@ -73,10 +68,9 @@ export type ProductionPolicies = {
 };
 
 export function useProductionPolicies(): ProductionPolicies {
-  const { projectId, appId } = useAppScope();
   const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
   const productionId = environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id ?? null;
-  const production = useEnvPolicies(projectId, appId, productionId);
+  const production = useEnvPolicies(productionId);
   const policies = production.rows ?? [];
 
   return {
@@ -91,15 +85,17 @@ export function useProductionPolicies(): ProductionPolicies {
   };
 }
 
-function useEnvPolicies(projectId: string, appId: string, environmentId: string | null) {
-  const rows = usePolicyRows(projectId, appId, environmentId);
-  const { failed, retry, retrying } = useCollectionLoad(
-    ...(environmentId === null ? [] : [policyListLoad(environmentId)]),
-  );
+function useEnvPolicies(environmentId: string | null) {
+  const policies = usePolicies(environmentId);
+  const [retrying, setRetrying] = useState(false);
+  const retry = () => {
+    setRetrying(true);
+    policies.refetch().finally(() => setRetrying(false));
+  };
   return {
-    rows: rows.data,
-    isLoading: rows.isLoading,
-    isError: rows.isError || failed,
+    rows: policies.data,
+    isLoading: policies.isLoading,
+    isError: policies.isError,
     retry,
     isRetrying: retrying,
   };
@@ -113,23 +109,4 @@ function policiesView(isError: boolean, isLoading: boolean, count: number): Poli
     return { type: "loading" };
   }
   return count === 0 ? { type: "empty" } : { type: "list" };
-}
-
-function usePolicyRows(projectId: string, appId: string, environmentId: string | null) {
-  return useLiveQuery(
-    (q) =>
-      environmentId !== null
-        ? q
-            .from({ p: collection.policies })
-            .where(({ p }) =>
-              and(
-                eq(p.projectId, projectId),
-                eq(p.appId, appId),
-                eq(p.environmentId, environmentId),
-              ),
-            )
-            .orderBy(({ p }) => p._order)
-        : null,
-    [projectId, appId, environmentId],
-  );
 }

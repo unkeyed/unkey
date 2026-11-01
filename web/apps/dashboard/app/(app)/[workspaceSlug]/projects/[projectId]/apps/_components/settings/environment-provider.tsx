@@ -1,22 +1,23 @@
 "use client";
 
 import { LoadError } from "@/components/load-error";
-import { collection } from "@/lib/collections";
-import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { useCollectionLoad } from "@/lib/collections/use-collection-load";
-import { productionFirst, useAppScope, useEnvironments } from "@/lib/deploy-data";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import {
+  type EnvironmentSettings,
+  productionFirst,
+  useAppEnvironmentSettings,
+  useEnvironmentSettingsMutations,
+  useEnvironments,
+} from "@/lib/deploy-data";
 import { type PropsWithChildren, type ReactNode, createContext, use } from "react";
 import { SettingsSkeleton } from "./settings-skeleton";
 
-type SettingsTransaction = ReturnType<typeof collection.environmentSettings.update>;
-
 type EnvironmentSettingsContextType = {
   settings: EnvironmentSettings;
+  // Resolves when every environment of the scope has the change
   update: (
     updater: (draft: EnvironmentSettings) => void,
     config?: { optimistic: boolean },
-  ) => SettingsTransaction;
+  ) => Promise<unknown>;
 };
 
 type ScopeProps = PropsWithChildren<{ fallback?: ReactNode }>;
@@ -31,24 +32,12 @@ export function useEnvironmentSettings(): EnvironmentSettingsContextType {
   return context;
 }
 
-export function useAppEnvironmentSettings(): EnvironmentSettings[] {
-  const { projectId, appId } = useAppScope();
-  const { data } = useLiveQuery(
-    (q) =>
-      q
-        .from({ s: collection.environmentSettings })
-        .where(({ s }) => and(eq(s.projectId, projectId), eq(s.appId, appId))),
-    [projectId, appId],
-  );
-  return data;
-}
-
 export function EnvironmentSettingsProvider({
   children,
   fallback = <SettingsSkeleton />,
 }: ScopeProps) {
   const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
-  const all = useAppEnvironmentSettings();
+  const { data: all } = useAppEnvironmentSettings();
   const shown = productionFirst(environments).at(0);
 
   if (isEnvironmentsLoading) {
@@ -74,7 +63,7 @@ export function EnvironmentSettingsScope({
   environmentId,
   fallback = <SettingsSkeleton />,
 }: ScopeProps & { environmentId: string }) {
-  const all = useAppEnvironmentSettings();
+  const { data: all } = useAppEnvironmentSettings();
   return (
     <SettingsContext
       settings={all.find((s) => s.environmentId === environmentId)}
@@ -92,21 +81,15 @@ function SettingsContext({
   fallback,
   children,
 }: ScopeProps & { settings: EnvironmentSettings | undefined; targetIds: string[] }) {
-  const settingsLoad = useCollectionLoad(collection.environmentSettings.utils);
+  const settingsLoad = useAppEnvironmentSettings();
+  const { updateEnvironmentSettings } = useEnvironmentSettingsMutations();
 
   if (!settings) {
-    return settingsLoad.failed ? <SettingsLoadError /> : fallback;
+    return settingsLoad.isError ? <SettingsLoadError /> : fallback;
   }
 
-  // One transaction for every target: the collection refetches after each
-  // transaction settles, so one per environment would multiply the reads.
-  // Saves are not optimistic by default, so a failed save leaves the row and the form's edits alone.
   const update: EnvironmentSettingsContextType["update"] = (updater, config) =>
-    collection.environmentSettings.update(
-      targetIds,
-      { optimistic: config?.optimistic ?? false },
-      (drafts) => drafts.forEach(updater),
-    );
+    updateEnvironmentSettings(targetIds, updater, config);
 
   return (
     <EnvironmentSettingsContext.Provider value={{ settings, update }}>
@@ -117,13 +100,13 @@ function SettingsContext({
 
 function SettingsLoadError() {
   const environments = useEnvironments();
-  const settingsLoad = useCollectionLoad(collection.environmentSettings.utils);
+  const settingsLoad = useAppEnvironmentSettings();
   return (
     <LoadError
       title="Could not load settings"
       onRetry={() => {
         environments.refetch();
-        settingsLoad.retry();
+        settingsLoad.refetch();
       }}
     />
   );

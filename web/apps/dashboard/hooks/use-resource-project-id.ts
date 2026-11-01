@@ -1,8 +1,7 @@
 "use client";
 
-import { collection } from "@/lib/collections";
+import { useProjects } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { match } from "@unkey/match";
 
 export type ProjectResource =
@@ -33,15 +32,7 @@ export function useResourceProjectId(resource: ProjectResource | null): ProjectO
   );
 
   // Every namespace lives in the workspace default project
-  const defaultProjectQuery = useLiveQuery(
-    (q) =>
-      namespaceId
-        ? q
-            .from({ project: collection.projects })
-            .where(({ project }) => eq(project.isDefault, true))
-        : null,
-    [namespaceId],
-  );
+  const projects = useProjects({ enabled: Boolean(namespaceId) });
 
   const identityQuery = trpc.identity.details.useQuery(
     { identityId: identityId ?? "" },
@@ -60,10 +51,12 @@ export function useResourceProjectId(resource: ProjectResource | null): ProjectO
       return apiQuery.data ? owner(apiQuery.data.currentApi.projectId) : loading;
     })
     .with({ type: "namespace" }, () => {
-      if (defaultProjectQuery.isError) {
+      if (projects.isError) {
         return unknown;
       }
-      return defaultProjectQuery.isLoading ? loading : owner(defaultProjectQuery.data?.at(0)?.id);
+      return projects.isLoading
+        ? loading
+        : owner(projects.data.find((project) => project.isDefault)?.id);
     })
     .with({ type: "identity" }, () => {
       if (identityQuery.isError) {

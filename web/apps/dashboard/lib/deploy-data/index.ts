@@ -12,12 +12,28 @@ export {
 } from "./context";
 export {
   type QueryResult,
+  getAppData,
+  getProjectAppsData,
+  refetchAllApps,
+  removeAppData,
   useApp,
+  useAppEnvironmentSettings,
+  useAppsInProject,
   useCustomDomains,
   useDomains,
+  useEnvVars,
   useEnvironments,
   useProjectApps,
 } from "./queries";
+export {
+  type ProjectWithApps,
+  refetchProjects,
+  useProject,
+  useProjectEnvironments,
+  useProjects,
+  useProjectsWithApps,
+} from "./projects";
+export { type PolicyWrite, type PolicyWrites, usePolicies, usePolicyWrites } from "./policies";
 export {
   DEPLOYMENT_PICKER_LIMIT,
   RECENT_DEPLOYMENTS_LIMIT,
@@ -30,8 +46,15 @@ export {
   useRecentDeployments,
   warmDeploymentsPage,
 } from "./deployments";
-export { useAppMutations, useCustomDomainMutations } from "./mutations";
-export { warmAppPage, warmDeployment } from "./warm";
+export {
+  type CreateProjectResult,
+  useAppMutations,
+  useCustomDomainMutations,
+  useEnvVarMutations,
+  useEnvironmentSettingsMutations,
+  useProjectMutations,
+} from "./mutations";
+export { warmAppPage, warmDeployment, warmProjectPage } from "./warm";
 
 export {
   APP_SLUG_LENGTH,
@@ -40,7 +63,12 @@ export {
   createAppRequestSchema,
   latestDeploymentId,
   ociImageReferenceSchema,
+  refetchProjectApps,
 } from "@/lib/collections/deploy/apps";
+export type { EnvVar } from "@/lib/collections/deploy/env-vars";
+export type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+export { policyList as getPolicyListData, type PolicyRow } from "@/lib/collections/deploy/policies";
+export type { Project } from "@/lib/collections/deploy/projects";
 export {
   type CustomDomain,
   type CustomDomainDnsRecord,

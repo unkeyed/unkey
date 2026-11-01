@@ -7,14 +7,13 @@ import { useEnvironmentSettings } from "../../../../../_components/settings/envi
 export function AutoDeploy() {
   const { settings, update } = useEnvironmentSettings();
   const toggle = (autoDeploy: boolean) => {
-    const tx = update(
+    // The failure is toasted and the switch rolls back
+    update(
       (draft) => {
         draft.autoDeploy = autoDeploy;
       },
       { optimistic: true },
-    );
-    // The collection toasts the failure and rolls the switch back.
-    tx.isPersisted.promise.catch(() => undefined);
+    ).catch(() => undefined);
   };
 
   return (
