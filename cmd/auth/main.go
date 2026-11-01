@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/unkeyed/unkey/cmd/auth/login"
 	"github.com/unkeyed/unkey/cmd/auth/logout"
+	"github.com/unkeyed/unkey/cmd/auth/status"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
 
@@ -10,10 +11,11 @@ import (
 var Cmd = &cli.Command{
 	Name:        "auth",
 	Usage:       "Manage authentication",
-	Description: "Sign in with a browser, store a root key, or sign out of the Unkey API.",
+	Description: "Sign in with a browser, store a root key, check which credential the CLI uses, or sign out of the Unkey API.",
 	Flags:       []cli.Flag{},
 	Commands: []*cli.Command{
 		login.New(),
 		logout.New(),
+		status.New(),
 	},
 }

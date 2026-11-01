@@ -8,6 +8,7 @@ sources:
   - cmd/api/util/errors.go
   - cmd/auth/login/login.go
   - cmd/auth/logout/logout.go
+  - cmd/auth/status/status.go
   - cmd/auth/main.go
   - cmd/deploy/main.go
   - pkg/cli/config.go
@@ -72,6 +73,22 @@ Resource commands, including the legacy `unkey api` paths, use the first credent
 If there's no credential anywhere, the command stops before calling the API with `no credentials provided`. If the API rejects the credential, you get `Authentication failed: ...` and a hint to run `unkey login`.
 
 In CI, set `UNKEY_ROOT_KEY` as a secret. See [unkey deploy](/compute/cli/deploy).
+
+## Check which credential the CLI uses
+
+```bash
+unkey whoami
+```
+
+`unkey whoami` is the same as `unkey auth status`. It picks a credential in the same order as resource commands and accepts the same `--root-key`, `--config`, and `--api-url` overrides. It never prints the credential.
+
+- **Browser session**: The CLI checks the session with the API and shows its workspace, session ID, and user ID. `Authentication` is `verified`. An expired access token is refreshed first, as for any other command.
+- **Root key**: `Authentication` is `unchecked`, and no workspace is shown. The API has no endpoint that confirms a root key or reports its workspace without a resource permission. Run a resource command to test the key.
+- **No credential**: `Authentication` is `missing`.
+
+If the check fails, `Authentication` is `failed`, `Detail` gives the reason, and the command exits with a nonzero status. A missing credential also exits with a nonzero status. Use `--json` or `--output=json` for scripts.
+
+This command reports on the CLI login. To inspect an API key, use [unkey keys whoami](/api-management/cli/keys/whoami).
 
 ## Point at a different API host
 
