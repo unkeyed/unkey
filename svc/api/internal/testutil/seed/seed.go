@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -85,7 +86,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		StorageMibMax:                         51_200,
 		StorageMibMaxPerInstance:              10_240,
 		BuildsConcurrentMax:                   1,
-		CustomDomainsMax:                      1_000_000,
+		CustomDomainsMax:                      domaingate.AllowanceUnlimited,
 		AutoscalingReplicasMax:                0,
 	})
 	require.NoError(s.t, err)

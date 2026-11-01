@@ -305,6 +305,22 @@ func TestAddCustomDomainSubdomainsAreFree(t *testing.T) {
 	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, other)
 }
 
+// TestAddCustomDomainUnlimitedAllowanceAdmitsEveryRegistrableDomain pins that a
+// plan at the unlimited allowance attaches a domain under each new registrable
+// domain, both outside and inside the limits lock.
+func TestAddCustomDomainUnlimitedAllowanceAdmitsEveryRegistrableDomain(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, domaingate.AllowanceUnlimited)
+	svc := f.newService(t)
+
+	for range 5 {
+		name := "api." + randomDomain()
+		_, err := svc.AddCustomDomain(ctx, f.request(name))
+		require.NoError(t, err, "%q is under a new registrable domain", name)
+		requireCustomDomain(t, ctx, f.database, f.workspaceID, name)
+	}
+}
+
 // TestAddCustomDomainRejectsDuplicate pins the workspace-uniqueness pre-check. It
 // runs before the insert, so the caller gets AlreadyExists rather than the
 // duplicate-key internal error the unique index would raise. The repeat is also

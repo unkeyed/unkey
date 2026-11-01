@@ -124,15 +124,29 @@ func AlreadyVerified(domain string) error {
 	)
 }
 
+// AllowanceUnlimited is the custom domain allowance plans store to mean unlimited,
+// the same value as CUSTOM_DOMAINS_UNLIMITED in the dashboard.
+const AllowanceUnlimited uint32 = 1_000_000
+
+// Unlimited reports whether allowed is the cap plans call unlimited.
+func Unlimited(allowed uint32) bool {
+	return allowed >= AllowanceUnlimited
+}
+
 // CheckAllowance reports whether the workspace, holding the attached domains,
 // may attach domain. The allowance counts registrable domains, such as
 // 'acme.com' for 'api.acme.com', so a name under a registrable domain the
 // workspace already holds is free. A name under a new registrable domain needs
 // a free slot. An allowance of zero means the plan has no custom domains, so it
 // refuses every name, including names under a registrable domain the workspace
-// kept from an earlier plan. The counts stay internal: the way out is the same
-// either way.
+// kept from an earlier plan. An unlimited allowance admits every name, so callers
+// can skip reading the attached domains when Unlimited(allowed). The counts stay
+// internal: the way out is the same either way.
 func CheckAllowance(attached []string, domain string, allowed uint32) error {
+	if Unlimited(allowed) {
+		return nil
+	}
+
 	held := registrableDomains(attached)
 	if allowed > 0 {
 		if _, ok := held[registrableDomain(domain)]; ok {

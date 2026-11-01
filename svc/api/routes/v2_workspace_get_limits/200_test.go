@@ -229,9 +229,22 @@ func TestGetLimitsReturnsNullForUnlimitedCustomDomains(t *testing.T) {
 	route := newRoute(h)
 	h.Register(route)
 
-	// The seeded limits row allows 1,000,000 custom domains, which plans use for unlimited
+	// The seeded limits row holds domaingate.AllowanceUnlimited
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{})
 	rootKey := h.CreateRootKey(setup.Workspace.ID, fmt.Sprintf("unkey:v1:%s:limits#read", setup.Workspace.ID))
+
+	// Usage is still reported without a limit, so the three names take two slots
+	apex := uid.DNS1035() + ".com"
+	for _, domain := range []string{"api." + apex, "app." + apex, uid.DNS1035() + ".com"} {
+		h.CreateCustomDomain(seed.CreateCustomDomainRequest{
+			ID:            uid.New(uid.DomainPrefix),
+			WorkspaceID:   setup.Workspace.ID,
+			ProjectID:     setup.Project.ID,
+			AppID:         setup.App.ID,
+			EnvironmentID: setup.Environment.ID,
+			Domain:        domain,
+		})
+	}
 
 	res := callGetLimits(h, route, bearer(rootKey))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -242,7 +255,7 @@ func TestGetLimitsReturnsNullForUnlimitedCustomDomains(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(res.RawBody), &body))
 	var customDomains map[string]any
 	require.NoError(t, json.Unmarshal(body.Data["customDomainsMax"], &customDomains))
-	require.Equal(t, map[string]any{"limit": nil, "current": float64(0)}, customDomains)
+	require.Equal(t, map[string]any{"limit": nil, "current": float64(2)}, customDomains)
 }
 
 func limit(maximum int64) openapi.V2WorkspaceGetLimitsLimit {

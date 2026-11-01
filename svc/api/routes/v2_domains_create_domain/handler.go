@@ -146,18 +146,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return domaingate.LimitsNotConfigured(principal.AuthorizedWorkspaceID)
 	}
 
-	attached, err := db.Query.ListCustomDomainNamesByWorkspace(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
-	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to read the workspace's custom domains."),
-		)
-	}
+	if !domaingate.Unlimited(limits.CustomDomainsMax) {
+		attached, listErr := db.Query.ListCustomDomainNamesByWorkspace(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
+		if listErr != nil {
+			return fault.Wrap(
+				listErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to read the workspace's custom domains."),
+			)
+		}
 
-	if err = domaingate.CheckAllowance(attached, domainName, limits.CustomDomainsMax); err != nil {
-		return err
+		if err = domaingate.CheckAllowance(attached, domainName, limits.CustomDomainsMax); err != nil {
+			return err
+		}
 	}
 
 	res, err := h.CtrlClient.AddCustomDomain(ctx, &ctrlv1.AddCustomDomainRequest{

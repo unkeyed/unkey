@@ -1,6 +1,7 @@
 package domaingate_test
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -214,6 +215,10 @@ func TestCheckAllowance(t *testing.T) {
 		{name: "overshot allowance still admits a held registrable domain", attached: []string{"a.com", "b.com", "c.com"}, domain: "api.b.com", allowed: 1, accepted: true},
 		{name: "overshot allowance refuses a new registrable domain", attached: []string{"a.com", "b.com", "c.com"}, domain: "d.com", allowed: 1, accepted: false},
 		{name: "name without a registrable domain counts as its own unit", attached: []string{"co.uk"}, domain: "api.acme.com", allowed: 1, accepted: false},
+		{name: "unlimited allowance admits the first domain", attached: nil, domain: "api.acme.com", allowed: domaingate.AllowanceUnlimited, accepted: true},
+		{name: "unlimited allowance admits a new registrable domain", attached: []string{"a.com", "b.com", "c.com"}, domain: "d.com", allowed: domaingate.AllowanceUnlimited, accepted: true},
+		{name: "unlimited allowance admits a name without a registrable domain", attached: []string{"co.uk"}, domain: "api.acme.com", allowed: domaingate.AllowanceUnlimited, accepted: true},
+		{name: "allowance above unlimited admits a new registrable domain", attached: []string{"a.com"}, domain: "d.com", allowed: math.MaxUint32, accepted: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -225,6 +230,23 @@ func TestCheckAllowance(t *testing.T) {
 			}
 			requireCode(t, codes.Limits.CustomDomain.Exceeded, err)
 		})
+	}
+}
+
+func TestUnlimited(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		allowed   uint32
+		unlimited bool
+	}{
+		{allowed: 0, unlimited: false},
+		{allowed: 1, unlimited: false},
+		{allowed: 999_999, unlimited: false},
+		{allowed: 1_000_000, unlimited: true},
+		{allowed: math.MaxUint32, unlimited: true},
+	} {
+		require.Equal(t, tc.unlimited, domaingate.Unlimited(tc.allowed), "allowance %d", tc.allowed)
 	}
 }
 

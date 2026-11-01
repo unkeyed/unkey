@@ -285,6 +285,10 @@ func limitsError(workspaceID string, err error) error {
 }
 
 func checkAllowance(ctx context.Context, q db.Querier, workspaceID, domain string, customDomainsMax uint32) error {
+	if domaingate.Unlimited(customDomainsMax) {
+		return nil
+	}
+
 	attached, err := q.ListCustomDomainNamesByWorkspace(ctx, workspaceID)
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list custom domains: %w", err))
