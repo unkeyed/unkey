@@ -1,8 +1,7 @@
-import { type Environment, productionFirst } from "@/lib/collections/deploy/environments";
+import { type Environment, productionFirst, useEnvironments } from "@/lib/deploy-data";
 import { IconChevronDownOutline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import type { ComponentProps } from "react";
-import { useProjectData } from "../[appId]/(overview)/data-provider";
 import { EnvironmentLabel, environmentName } from "./environment-label";
 
 import { ALL_ENVIRONMENTS } from "./environment-scope";
@@ -28,7 +27,7 @@ export function EnvironmentSelect({
   disabled,
   ...triggerProps
 }: EnvironmentSelectProps) {
-  const { environments } = useProjectData();
+  const { data: environments } = useEnvironments();
   const options: Option[] = [
     ...(includeAll ? [{ value: ALL_ENVIRONMENTS, label: "All environments" }] : []),
     ...productionFirst(environments).map((environment) => ({

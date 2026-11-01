@@ -1,6 +1,5 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import {
   type AppEnvironmentSelection,
   createAppEnvironmentUnionFilters,
@@ -11,6 +10,7 @@ import {
   toggleEnvironmentSelection,
 } from "@/components/deploy/app-environment-selection";
 import type { FilterSearchItem } from "@/components/logs/checkbox/filters-popover";
+import { useEnvironments } from "@/lib/deploy-data";
 import { useCallback, useMemo } from "react";
 import { useAppFilterOptions } from "./app-filter-options";
 
@@ -31,7 +31,7 @@ export function useAppEnvironmentSearchItems<TFilter extends FilterLike>({
   createFilter,
 }: UseAppEnvironmentSearchItemsParams<TFilter>): FilterSearchItem[] {
   const apps = useAppFilterOptions();
-  const { environments } = useProjectData();
+  const { data: environments } = useEnvironments();
   const environmentsByAppId = useMemo(() => groupEnvironmentsByApp(environments), [environments]);
   const environmentIdsByApp = useMemo(
     () =>

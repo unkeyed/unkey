@@ -1,4 +1,4 @@
-import type { CustomDomain, Deployment, Domain } from "@/lib/collections";
+import type { CustomDomain, Deployment, Domain } from "@/lib/deploy-data";
 import {
   type DisplayDomain,
   byStickyRank,

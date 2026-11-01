@@ -6,10 +6,10 @@ import {
   badgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
-import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
 import { latestExit } from "@/lib/collections/deploy/last-exit";
+import type { Deployment, Environment } from "@/lib/deploy-data";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";

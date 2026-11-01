@@ -3,27 +3,25 @@
 import { ListPager } from "@/components/list-pager";
 import { LoadError } from "@/components/load-error";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useApp, useAppScope, useCurrentDeployment, useEnvironments } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { match } from "@unkey/match";
 import { ResourceList, ResourceListBody, ResourceListContent, ResourceListHeader } from "@unkey/ui";
 import Link from "next/link";
-import { useAppId, useProjectData } from "../../../data-provider";
 import { DeploymentsSkeleton } from "../../../deployments/components/deployments-skeleton";
-import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { ActiveBranchRow } from "./active-branch-row";
 import { useActiveBranches } from "./use-active-branches";
 
 export function ActiveBranches() {
   const workspace = useWorkspaceNavigation();
-  const { projectId, environments } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const { data: environments } = useEnvironments();
   const view = useActiveBranches();
-  const {
-    app,
-    currentDeployment,
-    isRolledBack,
-    isLoading: isAppLoading,
-  } = useAppCurrentDeployment();
+  const { data: app } = useApp();
+  const current = useCurrentDeployment();
+  const currentDeployment = current.data ?? undefined;
+  const isRolledBack = app?.isRolledBack ?? false;
+  const isAppLoading = current.isLoading;
 
   const repoFullName = app?.repositoryFullName ?? null;
   if (app?.sourceType === "oci") {

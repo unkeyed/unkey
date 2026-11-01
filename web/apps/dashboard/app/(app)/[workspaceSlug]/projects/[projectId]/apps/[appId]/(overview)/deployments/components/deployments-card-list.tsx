@@ -3,6 +3,14 @@
 import { ListPager } from "@/components/list-pager";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
+import {
+  type DeploymentListFilter,
+  useApp,
+  useAppScope,
+  useCurrentDeployment,
+  useDeploymentsPage,
+  useEnvironments,
+} from "@/lib/deploy-data";
 import { moreFooterOf } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
 import { IconBookBookmarkOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
@@ -18,20 +26,14 @@ import {
   ResourceListContent,
 } from "@unkey/ui";
 import { useMemo } from "react";
-import { useProjectData } from "../../data-provider";
-import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
-import {
-  type DeploymentListFilter,
-  buildDeploymentListInput,
-} from "../hooks/deployment-list-input";
-import { useDeployments } from "../hooks/use-deployments";
+import { buildDeploymentListInput } from "../hooks/deployment-list-input";
 import { useFilters } from "../hooks/use-filters";
 import { DeploymentRow } from "./deployment-row";
 import { DeploymentsSkeleton } from "./deployments-skeleton";
 
 export function DeploymentsCardList() {
   const { filters, isFiltered, updateFilters } = useFilters();
-  const { environments, isEnvironmentsLoading } = useProjectData();
+  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
   const { filter, cannotMatch } = useMemo(
     () => buildDeploymentListInput(filters, environments),
     [filters, environments],
@@ -65,19 +67,17 @@ function DeploymentsCardListResults({
   isFiltered: boolean;
   onClearFilters: () => void;
 }) {
-  const { rows, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useDeployments(filter);
-  const { projectId, refetchDeployments } = useProjectData();
-  const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
+  const { rows, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
+    useDeploymentsPage(filter);
+  const { projectId } = useAppScope();
+  const { data: environments } = useEnvironments();
+  const { data: app } = useApp();
+  const currentDeployment = useCurrentDeployment().data ?? undefined;
+  const isRolledBack = app?.isRolledBack ?? false;
   const workspace = useWorkspaceNavigation();
 
   const rolledBackFromId =
-    isRolledBack && currentDeployment
-      ? findRolledBackFrom(
-          rows.map((row) => row.deployment),
-          currentDeployment,
-        )?.id
-      : undefined;
+    isRolledBack && currentDeployment ? findRolledBackFrom(rows, currentDeployment)?.id : undefined;
 
   if (isLoading) {
     return <DeploymentsSkeleton />;
@@ -90,7 +90,7 @@ function DeploymentsCardListResults({
           <span role="alert" className="text-error-11 text-sm">
             We couldn't load deployments.
           </span>
-          <Button size="md" variant="outline" onClick={() => refetchDeployments()}>
+          <Button size="md" variant="outline" onClick={() => refetch()}>
             Retry
           </Button>
         </div>
@@ -137,11 +137,11 @@ function DeploymentsCardListResults({
   return (
     <ResourceListContent>
       <ResourceListBody>
-        {rows.map(({ deployment, environment }) => (
+        {rows.map((deployment) => (
           <DeploymentRow
             key={deployment.id}
             deployment={deployment}
-            environment={environment}
+            environment={environments.find((e) => e.id === deployment.environmentId)}
             repoFullName={app?.repositoryFullName ?? null}
             currentDeployment={currentDeployment}
             isRolledBack={isRolledBack}

@@ -1,13 +1,13 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useEnvironments } from "@/lib/deploy-data";
 import { useMemo } from "react";
 import { useAppNameById } from "./app-filter-options";
 
 // Logs and requests are project-wide and every app has e.g. a "production"
 // environment, so the app name is needed to tell same-slug options apart.
 export function useEnvironmentFilterOptions(): EnvironmentFilterOption[] {
-  const { environments } = useProjectData();
+  const { data: environments } = useEnvironments();
   const appNameById = useAppNameById();
 
   return useMemo(

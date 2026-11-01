@@ -1,9 +1,7 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { type DeploymentSummary, collection } from "@/lib/collections";
+import { type DeploymentSummary, useDeployActions, useDomains } from "@/lib/deploy-data";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { DeploymentSection } from "./components/deployment-section";
@@ -22,15 +20,12 @@ export const PromotionDialog = ({
   targetDeployment,
   currentDeployment,
 }: PromotionDialogProps) => {
-  const { awaitLiveDeployment } = useProjectData();
-  const domains = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collection.domains })
-        .where(({ domain }) => eq(domain.projectId, currentDeployment.projectId))
-        .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-        .where(({ domain }) => eq(domain.deploymentId, currentDeployment.id)),
-    [currentDeployment.projectId, currentDeployment.id],
+  const { awaitLiveDeployment } = useDeployActions();
+  const { data: appDomains } = useDomains();
+  const domains = appDomains.filter(
+    (d) =>
+      d.deploymentId === currentDeployment.id &&
+      (d.sticky === "environment" || d.sticky === "live"),
   );
   const promote = useMutation({
     mutationFn: (deploymentId: string) =>
@@ -80,7 +75,7 @@ export const PromotionDialog = ({
           deployment={currentDeployment}
           isCurrent={true}
         />
-        <DomainsSection domains={domains.data} />
+        <DomainsSection domains={domains} />
         <DeploymentSection
           title="Target Deployment"
           deployment={targetDeployment}

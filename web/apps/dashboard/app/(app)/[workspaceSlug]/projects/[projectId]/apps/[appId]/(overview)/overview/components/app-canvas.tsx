@@ -6,13 +6,13 @@ import {
   DEPLOYMENT_STATUS_LABELS,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment, DeploymentSummary } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceSummary,
   groupInstancesByRegion,
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
+import type { Deployment, DeploymentSummary } from "@/lib/deploy-data";
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {

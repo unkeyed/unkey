@@ -1,14 +1,13 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { DeploymentSummary } from "@/lib/collections";
+import { type DeploymentSummary, useDeployActions } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { match } from "@unkey/match";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { useProjectData } from "../../../../../data-provider";
 import { DeploymentSection } from "./components/deployment-section";
 
 type RedeployDialogProps = {
@@ -20,7 +19,7 @@ type RedeployDialogProps = {
 export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: RedeployDialogProps) => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const { refetchDeployments } = useProjectData();
+  const { refetchDeployments } = useDeployActions();
 
   const redeploy = useMutation({
     mutationFn: async () => {
