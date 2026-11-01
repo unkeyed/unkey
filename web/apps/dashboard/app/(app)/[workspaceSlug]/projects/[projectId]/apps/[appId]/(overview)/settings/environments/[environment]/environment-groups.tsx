@@ -1,7 +1,13 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Environment, EnvironmentKind } from "@/lib/collections/deploy/environments";
+import {
+  type Environment,
+  type EnvironmentKind,
+  useAppScope,
+  useCustomDomains,
+  useDomains,
+} from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { IconArrowUpRightOutline12 } from "@unkey/icons";
 import {
@@ -22,7 +28,6 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import type { ComponentType } from "react";
-import { useAppId, useProjectData } from "../../../data-provider";
 import { BranchLabel } from "../branch-label";
 import { type DomainAssignment, environmentPanelDomains } from "../model";
 import { AutoDeploy } from "./auto-deploy";
@@ -69,8 +74,9 @@ function PreviewBranch() {
 }
 
 export function EnvironmentDomains({ environment }: { environment: Environment }) {
-  const { domains, customDomains, projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const { data: domains } = useDomains();
+  const { data: customDomains } = useCustomDomains();
   const workspace = useWorkspaceNavigation();
   const rows = environmentPanelDomains(environment, domains, customDomains, workspace.slug);
   const domainsHref = routes.projects.apps.domains({

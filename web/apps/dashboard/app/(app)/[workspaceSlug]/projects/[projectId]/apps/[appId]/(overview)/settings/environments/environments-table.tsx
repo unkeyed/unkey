@@ -3,9 +3,13 @@
 import { LoadError } from "@/components/load-error";
 import { RegionFlag } from "@/components/region-flag";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { type Environment, productionFirst } from "@/lib/collections/deploy/environments";
-import { useCollectionLoad } from "@/lib/collections/use-collection-load";
+import {
+  type Environment,
+  productionFirst,
+  useCustomDomains,
+  useDomains,
+  useEnvironments,
+} from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { type RegionInfo, regionInfo } from "@/lib/regions";
 import { IconChevronRightOutline18, IconEarthOutline18 } from "@unkey/icons";
@@ -20,7 +24,6 @@ import Link from "next/link";
 import { EnvironmentLabel } from "../../../../_components/environment-label";
 import { useAppEnvironmentSettings } from "../../../../_components/settings/environment-provider";
 import { useBuildSource } from "../../../../_components/settings/hooks/use-build-source";
-import { useProjectData } from "../../data-provider";
 import { type Branch, branchFor } from "./branch";
 import { BranchLabel } from "./branch-label";
 import { environmentDomains } from "./model";
@@ -29,13 +32,14 @@ const MAX_REGION_FLAGS = 3;
 
 export function EnvironmentsTable() {
   const { projectId, appId, hasRepository, defaultBranch } = useBuildSource();
-  const { environments, domains, customDomains, isEnvironmentsLoading } = useProjectData();
-  const environmentsLoad = useCollectionLoad(collection.environments.utils);
+  const environments = useEnvironments();
+  const { data: domains } = useDomains();
+  const { data: customDomains } = useCustomDomains();
   const workspace = useWorkspaceNavigation();
   const settings = useAppEnvironmentSettings();
 
-  if (environmentsLoad.failed && !isEnvironmentsLoading) {
-    return <LoadError title="Could not load environments" onRetry={environmentsLoad.retry} />;
+  if (environments.isError && !environments.isLoading) {
+    return <LoadError title="Could not load environments" onRetry={environments.refetch} />;
   }
 
   return (
@@ -48,7 +52,7 @@ export function EnvironmentsTable() {
         <span />
       </div>
       <ResourceListBody>
-        {productionFirst(environments).map((environment) => (
+        {productionFirst(environments.data).map((environment) => (
           <EnvironmentRow
             key={environment.id}
             environment={environment}

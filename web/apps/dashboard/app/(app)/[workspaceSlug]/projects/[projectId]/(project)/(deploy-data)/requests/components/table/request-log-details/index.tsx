@@ -1,7 +1,6 @@
 "use client";
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { useRequestLogsContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/context/request-logs-provider";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
 import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
@@ -9,14 +8,12 @@ import { GatewayKeyVerification } from "@/components/logs/details/gateway-reques
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
 import { LogSection } from "@/components/logs/details/log-details/components/log-section";
 import { RegionFlag } from "@/components/region-flag";
-import { collection } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { type Deployment, useApp, useDeployment, useEnvironments } from "@/lib/deploy-data";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { formatLatency } from "@/lib/utils/metric-formatters";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import {
   IconCodeBranchOutline18,
@@ -31,27 +28,15 @@ import type React from "react";
 
 export const RequestLogDetails = () => {
   const { setSelectedLog, selectedLog: log } = useRequestLogsContext();
-  const { projectId, project, environments } = useProjectData();
+  const { data: app } = useApp();
+  const { data: environments } = useEnvironments();
 
   const handleClose = () => {
     setSelectedLog(null);
   };
 
   const deploymentId = log?.deployment_id;
-  const { data: deployment } = useLiveQuery(
-    (q) => {
-      if (!deploymentId) {
-        return null;
-      }
-      return q
-        .from({ deployment: collection.deployments })
-        .where(({ deployment }) =>
-          and(eq(deployment.projectId, projectId), eq(deployment.id, deploymentId)),
-        )
-        .findOne();
-    },
-    [projectId, deploymentId],
-  );
+  const deployment = useDeployment(deploymentId).data ?? undefined;
   const environment = environments.find((e) => e.id === deployment?.environmentId);
 
   if (!log) {
@@ -76,7 +61,7 @@ export const RequestLogDetails = () => {
             log,
             deployment,
             environment,
-            deployment?.forkRepositoryFullName || project?.repositoryFullName,
+            deployment?.forkRepositoryFullName || app?.repositoryFullName,
           )}
         />
       </LogDetails.Section>

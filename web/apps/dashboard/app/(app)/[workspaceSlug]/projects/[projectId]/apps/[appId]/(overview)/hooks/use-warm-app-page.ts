@@ -1,6 +1,6 @@
+import { warmAppPage } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
 import { useCallback, useEffect, useRef } from "react";
-import { warmAppPage } from "../data-provider-queries";
 import { ACTIVE_BRANCHES_PAGE_SIZE } from "../overview/components/active-branches/use-active-branches";
 
 // A pointer passing over a list of apps should not warm each one it crosses

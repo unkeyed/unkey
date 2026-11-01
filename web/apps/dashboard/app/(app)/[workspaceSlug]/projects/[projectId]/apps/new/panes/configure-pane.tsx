@@ -1,15 +1,13 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useBuildSource } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-source";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import {
   defaultSettingsSettled,
   useDefaultSettingsSettled,
 } from "@/lib/collections/deploy/environment-settings";
+import { useDeployActions, useEnvironments } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
@@ -41,7 +39,7 @@ export function ConfigurePane({ source }: { source: SourceKind }) {
 function ConfigureCard({ source, savedName }: { source: SourceKind; savedName: string }) {
   const { projectId } = useNewAppFlow();
   const { appId } = useBuildSource();
-  const { environments } = useProjectData();
+  const { data: environments } = useEnvironments();
   const defaultsSettled = useDefaultSettingsSettled(appId);
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const { takenSlugs } = useAppLifecycle(projectId);
@@ -111,6 +109,7 @@ function useDeploy({ onNameTaken }: { onNameTaken: (slug: string) => void }) {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const selectRepository = trpc.github.selectRepository.useMutation();
+  const { refetchDeployments, refetchApps } = useDeployActions();
   const deploy = useMutation({
     mutationKey: NEW_APP_MUTATION_KEY,
     mutationFn: async ({ environment, name, branch }: DeployInput) => {
@@ -134,8 +133,8 @@ function useDeploy({ onNameTaken }: { onNameTaken: (slug: string) => void }) {
         app: appId,
         environment,
       });
-      collection.deployments.utils.refetch().catch(() => undefined);
-      await refetchProjectApps(projectId).catch(() => undefined);
+      refetchDeployments();
+      await refetchApps().catch(() => undefined);
       return response.data.deploymentId;
     },
     onError: (error, { name }) => {

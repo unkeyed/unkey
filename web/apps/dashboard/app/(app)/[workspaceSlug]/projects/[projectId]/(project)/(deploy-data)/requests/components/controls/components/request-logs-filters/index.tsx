@@ -2,8 +2,8 @@
 
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
 import { useAppEnvironmentSearchItems } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/use-app-environment-search-items";
-import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
 import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+import { DEPLOYMENT_PICKER_LIMIT, useRecentDeployments } from "@/lib/deploy-data";
 import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
@@ -93,7 +93,10 @@ const FILTER_ITEMS: FilterItemConfig<RequestLogsFilterValue["field"]>[] = [
 export const RequestLogsFilters = () => {
   const { filters, updateFilters } = useRequestLogsFilters();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const { deployments } = useRecentDeployments({ enabled: isPopoverOpen });
+  const { data: deployments } = useRecentDeployments({
+    limit: DEPLOYMENT_PICKER_LIMIT,
+    enabled: isPopoverOpen,
+  });
   const items = useMemo(
     () => createRequestLogsFilterItems(FILTER_ITEMS, deployments),
     [deployments],

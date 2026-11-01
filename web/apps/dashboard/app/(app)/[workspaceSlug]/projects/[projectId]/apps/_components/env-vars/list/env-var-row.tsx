@@ -1,6 +1,6 @@
 import { TypeMarker } from "@/components/deploy/env-vars/type-marker";
 import type { EnvVar } from "@/lib/collections/deploy/env-vars";
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Environment } from "@/lib/deploy-data";
 import { Checkbox, ResourceListRow, TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import { EnvironmentLabel } from "../../environment-label";
