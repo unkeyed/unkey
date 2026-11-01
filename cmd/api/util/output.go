@@ -72,7 +72,11 @@ func Output(cmd *cli.Command, v any) error {
 		fmt.Fprintf(&output, "%s %s\n", tui.New(os.Stdout).Green("✓"), message)
 		indent = "  "
 	}
-	if rows, ok := envelope.Data.([]any); ok || (envelope.Data == nil && columns != nil) {
+	if _, ok := v.(*components.V2KeysWhoamiResponseBody); ok {
+		if err := writeKeyTree(&output, envelope.Data, format); err != nil {
+			return err
+		}
+	} else if rows, ok := envelope.Data.([]any); ok || (envelope.Data == nil && columns != nil) {
 		if message != "" {
 			writeMutationTargets(&output, cmd, request, indent)
 		}

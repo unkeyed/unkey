@@ -19,6 +19,30 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func TestOutputWhoamiTreeWrapsWithoutLosingUnicode(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	name := strings.Repeat("分析Cafe\u0301", 9)
+	permission := strings.Repeat("documents.read.", 7)
+	response := &components.V2KeysWhoamiResponseBody{Data: components.KeyResponseData{
+		KeyID: uid.New(uid.KeyPrefix), Name: &name, Start: "demo_", Enabled: true,
+		Permissions: []string{permission}, CreatedAt: 1700000000000,
+	}}
+	for _, width := range []uint16{24, 44, 80} {
+		t.Run(strconv.Itoa(int(width)), func(t *testing.T) {
+			output := captureTerminalOutput(t, width, response)
+			require.NotContains(t, output, "\x1b")
+			var unwrapped strings.Builder
+			for _, line := range strings.Split(output, "\n") {
+				require.LessOrEqual(t, uniseg.StringWidth(line), int(width), line)
+				unwrapped.WriteString(strings.TrimLeft(line, "│├└─ "))
+			}
+			for _, want := range []string{name, permission, response.Data.KeyID, "2023-11-14T22:13:20Z"} {
+				require.Contains(t, unwrapped.String(), want)
+			}
+		})
+	}
+}
+
 func TestOutputTerminalTablesFitWithoutLosingSelectors(t *testing.T) {
 	name := "Payments for international customers"
 	response := &components.V2ProjectsListProjectsResponseBody{
