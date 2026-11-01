@@ -32,7 +32,7 @@ export {
   warmDeploymentsPage,
 } from "./deployments";
 export { useAppMutations, useCustomDomainMutations } from "./mutations";
-export { warmAppPage } from "./warm";
+export { warmAppPage, warmDeployment } from "./warm";
 
 export {
   APP_SLUG_LENGTH,
