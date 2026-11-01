@@ -6,7 +6,7 @@ import {
 } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
-import { STATIC_STALE_MS, queryClient, trpcClient } from "../client";
+import { queryClient, trpcClient } from "../client";
 import { extractStringFilter } from "./utils";
 
 const schema = z.object({
@@ -32,8 +32,6 @@ export type Domain = z.infer<typeof schema>;
 export const domains = createCollection<Domain, string, QueryCollectionUtils<Domain, string>>(
   queryCollectionOptions({
     queryClient,
-    // Domains move with a deploy, which refetches them explicitly
-    staleTime: STATIC_STALE_MS,
     syncMode: "on-demand",
     queryKey: (opts) => {
       const { filters } = parseLoadSubsetOptions(opts);

@@ -13,7 +13,7 @@ import {
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import type { environments as environmentsTable } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { STATIC_STALE_MS, queryClient } from "../client";
+import { queryClient } from "../client";
 import { listAppEnvironments } from "./app-environments";
 
 const kind = z.enum(["production", "preview"] as const satisfies readonly KindColumn[]);
@@ -68,7 +68,7 @@ export const environments = createCollection<
   queryCollectionOptions({
     queryClient,
     // The dashboard never writes environment rows
-    staleTime: STATIC_STALE_MS,
+    staleTime: 5 * 60_000,
     queryKey: (opts) => {
       const apps = appsInWhere(opts.where);
       return apps

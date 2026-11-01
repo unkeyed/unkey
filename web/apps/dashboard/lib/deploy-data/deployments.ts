@@ -66,13 +66,15 @@ export const DEPLOYMENT_PICKER_LIMIT = 100;
 // The app overview lists this many and treats none as an app never deployed
 export const RECENT_DEPLOYMENTS_LIMIT = 5;
 
+export const PRODUCTION_LIMIT = 25;
+
 // The deployments list, newest first, one API cursor page at a time
 export function useDeploymentsPage(filter: DeploymentListFilter): DeploymentsPageResult {
   const { projectId, appId } = useAppScope();
   const options = useMemo(() => {
     const page = deploymentsPageOptions(projectId, appId, filter);
-    // The observer applies the client defaults itself; these are the fields
-    // an optimistic read needs before it has
+    // This client is query-core v5 while the app's React Query hooks are v4, so the
+    // observer is driven by hand with the fields the v5 hook would set
     return {
       ...page,
       queryHash: hashKey(page.queryKey),
@@ -207,9 +209,7 @@ export function useProductionDeployments({
 
 // What a visit to the deployments list without filters in the url loads first
 export function warmDeploymentsPage(projectId: string, appId: string): void {
-  queryClient
-    .prefetchInfiniteQuery(deploymentsPageOptions(projectId, appId, DEFAULT_FILTER))
-    .catch(() => {});
+  void queryClient.prefetchInfiniteQuery(deploymentsPageOptions(projectId, appId, DEFAULT_FILTER));
 }
 
 export function deploymentByIdQueryFor(
@@ -252,8 +252,6 @@ export function recentDeploymentsQueryFor(
     return query.orderBy(({ deployment }) => deployment.createdAt, "desc").limit(limit);
   };
 }
-
-export const PRODUCTION_LIMIT = 25;
 
 /** Every deployment this tab holds for the scope, in live queries or list pages. */
 export function scopeDeployments(projectId: string, appId: string | undefined): Deployment[] {
@@ -302,7 +300,7 @@ export function deploymentStates(rows: readonly Deployment[]): string {
 
 const PAGE_SIZE = 25;
 
-// Skipped pushes never deployed, so the shared views leave them out
+// Skipped pushes never deployed, so the overview and pickers leave them out
 const RECENT_STATUSES = DEPLOYMENT_STATUSES.filter((status) => status !== "skipped");
 
 // The list's first visit shows the status groups that are not hidden by default
