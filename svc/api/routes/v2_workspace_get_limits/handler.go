@@ -23,10 +23,6 @@ type Response = openapi.V2WorkspaceGetLimitsResponseBody
 
 const millicoresPerCpuCore = 1000
 
-// Plans store this custom domain limit to mean unlimited, the same value as
-// CUSTOM_DOMAINS_UNLIMITED in the dashboard
-const unlimitedCustomDomains = 1_000_000
-
 type Handler struct {
 	DB         db.Database
 	ClickHouse clickhouse.ClickHouse
@@ -118,8 +114,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		data.BuildsConcurrentMax = new(limit(int64(limits.BuildsConcurrentMax)))
 		data.AutoscalingReplicasMax = new(limit(int64(limits.AutoscalingReplicasMax)))
 
-		customDomains := meteredLimit(int64(limits.CustomDomainsMax), float64(limits.CustomDomainsCount))
-		if limits.CustomDomainsMax >= unlimitedCustomDomains {
+		attachedDomains, err := db.Query.ListCustomDomainNamesByWorkspace(ctx, h.DB.RO(), workspaceID)
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to read the workspace's custom domains."),
+			)
+		}
+
+		customDomains := meteredLimit(int64(limits.CustomDomainsMax), float64(domaingate.AllowanceUsage(attachedDomains)))
+		if domaingate.Unlimited(limits.CustomDomainsMax) {
 			customDomains.Limit = nullable.NewNullNullable[int64]()
 		}
 		data.CustomDomainsMax = &customDomains

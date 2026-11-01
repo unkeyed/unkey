@@ -7,7 +7,7 @@ describe("planFeatures", () => {
       { kind: "team", label: "No team members", included: false },
       { kind: "cpu", label: "2 vCPU per instance", included: true },
       { kind: "memory", label: "2 GiB memory per instance", included: true },
-      { kind: "domains", label: "1 custom domain", included: true },
+      { kind: "domains", label: "1 custom domain, unlimited subdomains", included: true },
       { kind: "autoscale", label: "Auto scale up to 4 instances per region", included: true },
       { kind: "logs", label: "3-day log retention", included: true },
     ]);

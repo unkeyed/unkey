@@ -121,25 +121,9 @@ func (s *Service) AddCustomDomain(
 	// rejected requests to drive outbound discovery traffic.
 	limits, err := s.db.FindLimitsByWorkspaceID(ctx, req.Msg.GetWorkspaceId())
 	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, gatefault.ConnectWith(
-				connect.CodeFailedPrecondition,
-				domaingate.LimitsNotConfigured(req.Msg.GetWorkspaceId()),
-			)
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to read workspace limits: %w", err))
+		return nil, limitsError(req.Msg.GetWorkspaceId(), err)
 	}
-
-	// Concurrent creates can both pass. The overshoot is bounded by request
-	// concurrency, which beats serializing every create in a workspace behind a lock.
-	attached, err := s.db.CountCustomDomainsByWorkspace(ctx, req.Msg.GetWorkspaceId())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to count custom domains: %w", err))
-	}
-	if err := gatefault.ConnectWith(
-		connect.CodeResourceExhausted,
-		domaingate.CheckAllowance(attached, limits.CustomDomainsMax),
-	); err != nil {
+	if err := checkAllowance(ctx, s.db, req.Msg.GetWorkspaceId(), domain, limits.CustomDomainsMax); err != nil {
 		return nil, err
 	}
 
@@ -179,12 +163,46 @@ func (s *Service) AddCustomDomain(
 		logger.Debug("domain connect disabled, skipping discovery", "domain", domain)
 	}
 
-	// Create custom domain record (workflow needs it in DB)
 	domainID := uid.New(uid.DomainPrefix)
 	now := time.Now().UnixMilli()
+	a := req.Msg.GetActor()
+	added := auditlog.AuditLog{
+		WorkspaceID:   req.Msg.GetWorkspaceId(),
+		Event:         auditlog.DomainCreateEvent,
+		Display:       fmt.Sprintf("Added custom domain %s", domain),
+		ActorID:       a.GetId(),
+		ActorName:     a.GetName(),
+		ActorType:     actor.AuditType(a.GetType()),
+		ActorMeta:     actor.Meta(a.GetMeta()),
+		RemoteIP:      a.GetRemoteIp(),
+		UserAgent:     a.GetUserAgent(),
+		CorrelationID: "",
+		Targets: []auditlog.AuditLogTarget{
+			{
+				ID:          domainID,
+				Type:        auditlog.DomainTargetType,
+				Meta:        map[string]any{"domain": domain, "projectId": req.Msg.GetProjectId(), "appId": req.Msg.GetAppId(), "environmentId": req.Msg.GetEnvironmentId()},
+				Name:        domain,
+				DisplayName: domain,
+			},
+		},
+	}
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.NewQueries(tx).InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
+		queries := db.NewQueries(tx)
+
+		// Locking the limits row serializes creates per workspace, so this re-check
+		// sees every domain a concurrent create committed. The check above is only
+		// a fast reject.
+		locked, txErr := queries.LockLimitsByWorkspaceID(txCtx, req.Msg.GetWorkspaceId())
+		if txErr != nil {
+			return limitsError(req.Msg.GetWorkspaceId(), txErr)
+		}
+		if txErr := checkAllowance(txCtx, queries, req.Msg.GetWorkspaceId(), domain, locked.CustomDomainsMax); txErr != nil {
+			return txErr
+		}
+
+		if txErr := queries.InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
 			ID:                    domainID,
 			WorkspaceID:           req.Msg.GetWorkspaceId(),
 			ProjectID:             req.Msg.GetProjectId(),
@@ -206,62 +224,54 @@ func (s *Service) AddCustomDomain(
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("insert custom domain: %w", txErr))
 		}
 
-		a := req.Msg.GetActor()
-		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
-			{
-				WorkspaceID:   req.Msg.GetWorkspaceId(),
-				Event:         auditlog.DomainCreateEvent,
-				Display:       fmt.Sprintf("Added custom domain %s", domain),
-				ActorID:       a.GetId(),
-				ActorName:     a.GetName(),
-				ActorType:     actor.AuditType(a.GetType()),
-				ActorMeta:     actor.Meta(a.GetMeta()),
-				RemoteIP:      a.GetRemoteIp(),
-				UserAgent:     a.GetUserAgent(),
-				CorrelationID: "",
-				Targets: []auditlog.AuditLogTarget{
-					{
-						ID:          domainID,
-						Type:        auditlog.DomainTargetType,
-						Meta:        map[string]any{"domain": domain, "projectId": req.Msg.GetProjectId(), "appId": req.Msg.GetAppId(), "environmentId": req.Msg.GetEnvironmentId()},
-						Name:        domain,
-						DisplayName: domain,
-					},
-				},
-			},
-		}); txErr != nil {
+		if txErr := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{added}); txErr != nil {
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("insert audit log: %w", txErr))
-		}
-
-		// Submitting inside the transaction makes the RPC all-or-nothing: a failed
-		// submit rolls the row and its audit entry back, so retrying createDomain is
-		// the recovery. The workflow tolerates reading before the commit lands (see
-		// rowVisibilityGrace in the worker), and a TxRetry rerun re-submitting is
-		// safe because the invocation is keyed by domain, a virtual object Restate
-		// runs one at a time per domain.
-		sendResp, sendErr := s.startVerification(txCtx, domainID, domain)
-		if sendErr != nil {
-			logger.Error(
-				"failed to trigger verification workflow",
-				"domain", domain,
-				"domain_id", domainID,
-				"error", sendErr,
-			)
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification workflow: %w", sendErr))
-		}
-
-		if txErr := db.NewQueries(tx).UpdateCustomDomainInvocationID(txCtx, db.UpdateCustomDomainInvocationIDParams{
-			ID:           domainID,
-			InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
-			UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
-		}); txErr != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("record invocation id: %w", txErr))
 		}
 
 		return nil
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// The submit runs after the commit so a slow Restate never holds the limits
+	// lock. A failed submit removes the row again, under a context that outlives a
+	// cancelled request, so retrying createDomain stays the recovery.
+	sendResp, sendErr := s.startVerification(ctx, domainID, domain)
+	followupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+
+	if sendErr != nil {
+		logger.Error(
+			"failed to trigger verification workflow",
+			"domain", domain,
+			"domain_id", domainID,
+			"error", sendErr,
+		)
+
+		if removeErr := s.removeUnstartedDomain(followupCtx, domainID, domain, added); removeErr != nil {
+			logger.Error(
+				"failed to remove custom domain whose verification never started",
+				"domain", domain,
+				"domain_id", domainID,
+				"error", removeErr,
+			)
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification workflow: %w", sendErr))
+	}
+
+	if updateErr := s.db.UpdateCustomDomainInvocationID(followupCtx, db.UpdateCustomDomainInvocationIDParams{
+		ID:           domainID,
+		InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
+		UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
+	}); updateErr != nil {
+		logger.Warn(
+			"failed to record verification invocation id",
+			"domain", domain,
+			"domain_id", domainID,
+			"invocation_id", sendResp.Id(),
+			"error", updateErr,
+		)
 	}
 
 	res := &ctrlv1.AddCustomDomainResponse{
@@ -278,6 +288,44 @@ func (s *Service) AddCustomDomain(
 	}
 
 	return connect.NewResponse(res), nil
+}
+
+// removeUnstartedDomain deletes a domain added by [Service.AddCustomDomain]
+// whose verification workflow could not be submitted, and records the removal
+// alongside the added entry.
+func (s *Service) removeUnstartedDomain(ctx context.Context, domainID, domain string, added auditlog.AuditLog) error {
+	removed := added
+	removed.Event = auditlog.DomainDeleteEvent
+	removed.Display = fmt.Sprintf("Rolled back adding custom domain %s because its verification could not start", domain)
+
+	return db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		if err := db.NewQueries(tx).DeleteCustomDomainByID(txCtx, domainID); err != nil {
+			return fmt.Errorf("delete custom domain: %w", err)
+		}
+		if err := s.auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{removed}); err != nil {
+			return fmt.Errorf("insert audit log: %w", err)
+		}
+		return nil
+	})
+}
+
+func limitsError(workspaceID string, err error) error {
+	if db.IsNotFound(err) {
+		return gatefault.ConnectWith(connect.CodeFailedPrecondition, domaingate.LimitsNotConfigured(workspaceID))
+	}
+	return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to read workspace limits: %w", err))
+}
+
+func checkAllowance(ctx context.Context, q db.Querier, workspaceID, domain string, customDomainsMax uint32) error {
+	if domaingate.Unlimited(customDomainsMax) {
+		return nil
+	}
+
+	attached, err := q.ListCustomDomainNamesByWorkspace(ctx, workspaceID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list custom domains: %w", err))
+	}
+	return gatefault.ConnectWith(connect.CodeResourceExhausted, domaingate.CheckAllowance(attached, domain, customDomainsMax))
 }
 
 // DeleteCustomDomain deletes a custom domain and its associated resources.

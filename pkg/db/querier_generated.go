@@ -42,12 +42,6 @@ type Querier interface {
 	//  FROM clickhouse_outbox
 	//  WHERE workspace_id = ?
 	CountClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
-	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
-	//
-	//  SELECT COUNT(*)
-	//  FROM custom_domains
-	//  WHERE workspace_id = ?
-	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	// CountIdentitiesByWorkspace counts every identity row in a workspace,
 	// including soft-deleted ones. Intended for tests.
 	//
@@ -1016,7 +1010,6 @@ type Querier interface {
 	//    b.plan,
 	//    b.plan_override,
 	//    CAST((SELECT COUNT(*) FROM `logdrains` ld WHERE ld.`workspace_id` = l.`workspace_id`) AS SIGNED) AS `logdrains_count`,
-	//    CAST((SELECT COUNT(*) FROM `custom_domains` cd WHERE cd.`workspace_id` = l.`workspace_id`) AS SIGNED) AS `custom_domains_count`,
 	//    CAST(COALESCE(a.`total_cpu_millicores`, 0) AS SIGNED) AS `total_cpu_millicores`,
 	//    CAST(COALESCE(a.`total_memory_mib`, 0) AS SIGNED) AS `total_memory_mib`,
 	//    CAST(COALESCE(a.`total_storage_mib`, 0) AS SIGNED) AS `total_storage_mib`
@@ -2827,6 +2820,12 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT domain
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	ListCustomDomainNamesByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]string, error)
 	// ListCustomDomains filters by IDs resolved at the most specific supplied scope.
 	// An empty scope lists the workspace. Callers authorize each returned domain.
 	//

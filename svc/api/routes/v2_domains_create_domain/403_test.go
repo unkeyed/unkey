@@ -127,6 +127,50 @@ func TestCreateDomainPlanAllowanceExceeded(t *testing.T) {
 	require.NotContains(t, res.RawBody, "attached")
 }
 
+// TestCreateDomainSubdomainsAreFree pins that the handler's allowance check
+// counts registrable domains. At an allowance of one, a name under the attached
+// registrable domain reaches ctrl, and a name under a new one is refused locally.
+func TestCreateDomainSubdomainsAreFree(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	ctrlClient := &testutil.MockCustomDomainClient{
+		AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
+			return &ctrlv1.AddCustomDomainResponse{
+				DomainId:          uid.New(uid.DomainPrefix),
+				TargetCname:       "a1b2c3d4e5f6g7h8.cname.unkey.com",
+				VerificationToken: "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
+			}, nil
+		},
+	}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient, LimitsCache: h.Caches.WorkspaceLimits}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	setCustomDomainAllowance(t, h, env.workspaceID, 1)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+
+	apex := uid.DNS1035(16) + ".com"
+	insertCustomDomain(t, h, &ctrlv1.AddCustomDomainRequest{
+		WorkspaceId:   env.workspaceID,
+		ProjectId:     env.projectID,
+		AppId:         env.appID,
+		EnvironmentId: env.environmentID,
+		Domain:        "api." + apex,
+		Actor:         nil,
+	}, uid.New(uid.DomainPrefix))
+
+	for _, name := range []string{"app." + apex, apex, "v1.api." + apex} {
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env, name))
+		require.Equal(t, http.StatusOK, res.Status, "%q is under the attached registrable domain, received: %s", name, res.RawBody)
+	}
+	require.Len(t, ctrlClient.AddCustomDomainCalls, 3)
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, "api."+uid.DNS1035(16)+".com"))
+	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/limits/custom_domain_limit_exceeded", res.Body.Error.Type)
+	require.Len(t, ctrlClient.AddCustomDomainCalls, 3, "the allowance check must reject before the RPC")
+}
+
 // TestCreateDomainMissingWorkspaceLimits pins the fail-closed path. A workspace
 // whose limits row billing never wrote is refused rather than defaulted, and the
 // caller is told to contact support rather than to upgrade a plan they may
@@ -174,7 +218,7 @@ func TestCreateDomainRejectionsMatchAcrossLayers(t *testing.T) {
 		AddCustomDomainFunc: func(_ context.Context, _ *ctrlv1.AddCustomDomainRequest) (*ctrlv1.AddCustomDomainResponse, error) {
 			return nil, connect.NewError(
 				connect.CodeResourceExhausted,
-				errors.New(fault.UserFacingMessage(domaingate.CheckAllowance(1, 1))),
+				errors.New(fault.UserFacingMessage(domaingate.CheckAllowance([]string{"api.acme.com"}, "api.other.com", 1))),
 			)
 		},
 	}

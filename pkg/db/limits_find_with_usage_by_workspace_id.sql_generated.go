@@ -29,7 +29,6 @@ SELECT
   b.plan,
   b.plan_override,
   CAST((SELECT COUNT(*) FROM ` + "`" + `logdrains` + "`" + ` ld WHERE ld.` + "`" + `workspace_id` + "`" + ` = l.` + "`" + `workspace_id` + "`" + `) AS SIGNED) AS ` + "`" + `logdrains_count` + "`" + `,
-  CAST((SELECT COUNT(*) FROM ` + "`" + `custom_domains` + "`" + ` cd WHERE cd.` + "`" + `workspace_id` + "`" + ` = l.` + "`" + `workspace_id` + "`" + `) AS SIGNED) AS ` + "`" + `custom_domains_count` + "`" + `,
   CAST(COALESCE(a.` + "`" + `total_cpu_millicores` + "`" + `, 0) AS SIGNED) AS ` + "`" + `total_cpu_millicores` + "`" + `,
   CAST(COALESCE(a.` + "`" + `total_memory_mib` + "`" + `, 0) AS SIGNED) AS ` + "`" + `total_memory_mib` + "`" + `,
   CAST(COALESCE(a.` + "`" + `total_storage_mib` + "`" + `, 0) AS SIGNED) AS ` + "`" + `total_storage_mib` + "`" + `
@@ -72,7 +71,6 @@ type FindLimitsWithUsageByWorkspaceIDRow struct {
 	Plan                                  sql.NullString `db:"plan"`
 	PlanOverride                          sql.NullString `db:"plan_override"`
 	LogdrainsCount                        int64          `db:"logdrains_count"`
-	CustomDomainsCount                    int64          `db:"custom_domains_count"`
 	TotalCpuMillicores                    int64          `db:"total_cpu_millicores"`
 	TotalMemoryMib                        int64          `db:"total_memory_mib"`
 	TotalStorageMib                       int64          `db:"total_storage_mib"`
@@ -99,7 +97,6 @@ type FindLimitsWithUsageByWorkspaceIDRow struct {
 //	  b.plan,
 //	  b.plan_override,
 //	  CAST((SELECT COUNT(*) FROM `logdrains` ld WHERE ld.`workspace_id` = l.`workspace_id`) AS SIGNED) AS `logdrains_count`,
-//	  CAST((SELECT COUNT(*) FROM `custom_domains` cd WHERE cd.`workspace_id` = l.`workspace_id`) AS SIGNED) AS `custom_domains_count`,
 //	  CAST(COALESCE(a.`total_cpu_millicores`, 0) AS SIGNED) AS `total_cpu_millicores`,
 //	  CAST(COALESCE(a.`total_memory_mib`, 0) AS SIGNED) AS `total_memory_mib`,
 //	  CAST(COALESCE(a.`total_storage_mib`, 0) AS SIGNED) AS `total_storage_mib`
@@ -139,7 +136,6 @@ func (q *Queries) FindLimitsWithUsageByWorkspaceID(ctx context.Context, db DBTX,
 		&i.Plan,
 		&i.PlanOverride,
 		&i.LogdrainsCount,
-		&i.CustomDomainsCount,
 		&i.TotalCpuMillicores,
 		&i.TotalMemoryMib,
 		&i.TotalStorageMib,
