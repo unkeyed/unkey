@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+
 	"github.com/unkeyed/unkey/cmd/api/analytics"
 	"github.com/unkeyed/unkey/cmd/api/apis"
 	"github.com/unkeyed/unkey/cmd/api/apps"
@@ -29,7 +31,12 @@ func Cmd() *cli.Command {
 		Usage:       "Legacy API command paths",
 		Description: "Manage Unkey resources through the public API." + util.Disclaimer,
 		Commands:    groups(),
+		OnError:     HandleError,
 	}
+}
+
+func HandleError(_ context.Context, cmd *cli.Command, args []string, err error) error {
+	return util.CommandError(cmd, "", err, args...)
 }
 
 func groups() []*cli.Command {
@@ -41,9 +48,14 @@ func groups() []*cli.Command {
 	}
 	for _, group := range commands {
 		for _, command := range group.Commands {
+			path := resourcePaths[group.Name+" "+command.Name]
+			command.OnError = func(_ context.Context, cmd *cli.Command, args []string, err error) error {
+				return util.CommandError(cmd, path, err, args...)
+			}
 			command.Flags = append(command.Flags,
 				cli.Bool("json", "Print the full API response as JSON"),
 				cli.Bool("debug", "Print the request ID to stderr"),
+				cli.Enum("error-format", "Error format on stderr", []string{"human", "json"}, cli.Default("human")),
 			)
 		}
 	}

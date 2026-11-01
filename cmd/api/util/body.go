@@ -23,7 +23,7 @@ func SendBody[Request, Response any](
 	}
 	response, err := send(ctx, request)
 	if err != nil {
-		return nil, fmt.Errorf("%s", FormatError(err))
+		return nil, err
 	}
 	return response, nil
 }

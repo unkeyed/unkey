@@ -46,7 +46,7 @@ func removeEnvironmentVariablesCmd() *cli.Command {
 			}
 			res, err := client.Environments.RemoveEnvironmentVariables(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
 			return util.Output(cmd, res.V2EnvironmentsRemoveEnvironmentVariablesResponseBody)
 		},

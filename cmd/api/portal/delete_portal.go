@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/dele
 			}
 			res, err := client.Portal.DeletePortal(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
 			return util.Output(cmd, res.V2PortalDeletePortalResponseBody)
 		},

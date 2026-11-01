@@ -19,6 +19,13 @@ func writeDetails(output *strings.Builder, value any, indent string, metadata bo
 		return nil
 	}
 	keys := slices.Sorted(maps.Keys(object))
+	if !metadata {
+		if _, hasKey := object["key"]; hasKey {
+			if i := slices.Index(keys, "keyId"); i >= 0 {
+				keys = append([]string{"keyId"}, append(keys[:i], keys[i+1:]...)...)
+			}
+		}
+	}
 	table := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
 	for _, key := range keys {
 		switch object[key].(type) {

@@ -64,7 +64,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/logs/get-api
 
 			res, err := client.Logs.GetAPIRequestMetrics(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
 			return util.Output(cmd, res.V2LogsGetAPIRequestMetricsResponseBody)
 		},

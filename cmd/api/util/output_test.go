@@ -168,7 +168,16 @@ func TestOutputEmptyResponses(t *testing.T) {
 	}{
 		{"empty projects", &components.V2ProjectsListProjectsResponseBody{Data: []components.Project{}}, "No projects found.\n"},
 		{"nil projects", &components.V2ProjectsListProjectsResponseBody{}, "No projects found.\n"},
-		{"empty roles", &components.V2KeysSetRolesResponseBody{Data: []components.Role{}}, "No roles found.\n"},
+		{"empty role list", &components.V2PermissionsListRolesResponseBody{Data: []components.Role{}}, "No roles found.\n"},
+		{"empty permission list", &components.V2PermissionsListPermissionsResponseBody{}, "No permissions found.\n"},
+		{"roles cleared", &components.V2KeysSetRolesResponseBody{Data: []components.Role{}}, "Roles updated.\nNo roles assigned.\n"},
+		{"nil roles", &components.V2KeysSetRolesResponseBody{}, "Roles updated.\nNo roles assigned.\n"},
+		{"roles removed", &components.V2KeysRemoveRolesResponseBody{}, "Roles updated.\nNo roles assigned.\n"},
+		{"roles added", &components.V2KeysAddRolesResponseBody{}, "Roles updated.\nNo roles assigned.\n"},
+		{"permissions cleared", &components.V2KeysSetPermissionsResponseBody{Data: []components.Permission{}}, "Permissions updated.\nNo permissions assigned.\n"},
+		{"permissions removed", &components.V2KeysRemovePermissionsResponseBody{}, "Permissions updated.\nNo permissions assigned.\n"},
+		{"permissions added", &components.V2KeysAddPermissionsResponseBody{}, "Permissions updated.\nNo permissions assigned.\n"},
+		{"role permissions cleared", &components.V2PermissionsSetRolePermissionsResponseBody{}, "Permissions updated.\nNo permissions assigned.\n"},
 		{"no analytics results", &components.V2AnalyticsGetRatelimitsResponseBody{}, "No results found.\n"},
 		{"queued deletion", &components.V2ProjectsDeleteProjectResponseBody{}, "Deletion requested.\n"},
 		{"queued stop", &components.V2DeploymentsStopDeploymentResponseBody{}, "Stop requested.\n"},
@@ -193,6 +202,140 @@ func TestOutputEmptyResponses(t *testing.T) {
 	}
 }
 
+func TestOutputMutationStatusPreservesReturnedData(t *testing.T) {
+	keyID := uid.New(uid.KeyPrefix)
+	projectID := uid.New(uid.ProjectPrefix)
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	plaintext := strings.Repeat("returned-secret", 10)
+	for _, test := range []struct {
+		name     string
+		response any
+		status   string
+		values   []string
+	}{
+		{
+			name:     "created key",
+			response: &components.V2KeysCreateKeyResponseBody{Data: components.V2KeysCreateKeyResponseData{KeyID: keyID, Key: plaintext}},
+			status:   "Key created.",
+			values:   []string{keyID, plaintext},
+		},
+		{
+			name:     "updated project",
+			response: &components.V2ProjectsUpdateProjectResponseBody{Data: components.Project{ID: projectID, Name: "Payments", Slug: "payments"}},
+			status:   "Project updated.",
+			values:   []string{projectID, "Payments", "payments"},
+		},
+		{
+			name:     "queued deployment",
+			response: &components.V2DeploymentsCreateDeploymentResponseBody{Data: components.V2DeploymentsCreateDeploymentResponseData{DeploymentID: deploymentID}},
+			status:   "Deployment requested.",
+			values:   []string{deploymentID},
+		},
+		{
+			name:     "queued v3 deployment",
+			response: &components.V3DeploymentsCreateDeploymentResponseBody{Data: components.V3DeploymentsCreateDeploymentResponseData{DeploymentID: deploymentID}},
+			status:   "Deployment requested.",
+			values:   []string{deploymentID},
+		},
+		{
+			name:     "assigned roles",
+			response: &components.V2KeysSetRolesResponseBody{Data: []components.Role{{ID: uid.New(uid.RolePrefix), Name: "Billing reader"}}},
+			status:   "Roles updated.",
+			values:   []string{"NAME", "Billing reader"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			output := captureOutput(t, test.response)
+			require.True(t, strings.HasPrefix(output, test.status+"\n"), output)
+			for _, value := range test.values {
+				require.Contains(t, output, value)
+			}
+			require.Equal(t, 1, strings.Count(output, test.status))
+		})
+	}
+}
+
+func TestOutputKeyVerificationDoesNotClaimMutationSuccess(t *testing.T) {
+	for _, code := range []components.Code{components.CodeValid, components.CodeNotFound} {
+		t.Run(string(code), func(t *testing.T) {
+			response := &components.V2KeysVerifyKeyResponseBody{
+				Data: components.V2KeysVerifyKeyResponseData{Valid: code == components.CodeValid, Code: code},
+			}
+			output := captureOutput(t, response)
+			require.True(t, strings.HasPrefix(output, "Code:"), output)
+			require.Contains(t, output, string(code))
+			require.Contains(t, output, "Valid:")
+			require.NotContains(t, output, "Done.")
+			require.NotContains(t, output, "requested.")
+		})
+	}
+}
+
+func TestOutputNoDataMutationsIdentifyOnlySafeTargets(t *testing.T) {
+	keyID := uid.New(uid.KeyPrefix)
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	secret := strings.Repeat("request-only-secret", 10)
+	variables := []components.EnvironmentVariableInput{{Key: "TOKEN", Value: secret}}
+	variablesJSON, err := json.Marshal(variables)
+	require.NoError(t, err)
+	for _, test := range []struct {
+		name     string
+		response any
+		request  any
+		flags    []string
+		want     string
+	}{
+		{
+			name:     "key deletion",
+			response: &components.V2KeysDeleteKeyResponseBody{},
+			request:  components.V2KeysDeleteKeyRequestBody{KeyID: keyID},
+			flags:    []string{"--key-id=" + keyID},
+			want:     "Key deleted.\nKey ID: " + keyID + "\n",
+		},
+		{
+			name:     "queued stop",
+			response: &components.V2DeploymentsStopDeploymentResponseBody{},
+			request:  components.V2DeploymentsStopDeploymentRequestBody{DeploymentID: deploymentID},
+			flags:    []string{"--deployment-id=" + deploymentID},
+			want:     "Stop requested.\nDeployment ID: " + deploymentID + "\n",
+		},
+		{
+			name:     "override deletion",
+			response: &components.V2RatelimitDeleteOverrideResponseBody{},
+			request:  components.V2RatelimitDeleteOverrideRequestBody{Namespace: "payments", Identifier: "premium_*"},
+			flags:    []string{"--namespace=payments", "--identifier=premium_*"},
+			want:     "Rate limit override deleted.\nNamespace: payments\nIdentifier: premium_*\n",
+		},
+		{
+			name:     "environment values stay private",
+			response: &components.V2EnvironmentsSetEnvironmentVariablesResponseBody{},
+			request:  components.V2EnvironmentsSetEnvironmentVariablesRequestBody{Project: "payments", App: "api", Environment: "production", Variables: variables},
+			flags:    []string{"--project=payments", "--app=api", "--environment=production", "--variables=" + string(variablesJSON)},
+			want:     "Variables saved.\nProject: payments\nApp: api\nEnvironment: production\n",
+		},
+		{
+			name:     "target escapes terminal controls",
+			response: &components.V2ProjectsDeleteProjectResponseBody{},
+			request:  components.V2ProjectsDeleteProjectRequestBody{Project: "payments\n\x1b[2J"},
+			flags:    []string{"--project=payments\n\x1b[2J"},
+			want:     "Deletion requested.\nProject: payments\\n\\x1b[2J\n",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			body, err := json.Marshal(test.request)
+			require.NoError(t, err)
+			for _, args := range [][]string{test.flags, {"--body=" + string(body)}} {
+				args = append(args, "--root-key="+secret)
+				require.Equal(t, test.want, captureOutput(t, test.response, args...))
+				output := captureOutput(t, test.response, append(args, "--json")...)
+				encoded, err := json.MarshalIndent(test.response, "", "  ")
+				require.NoError(t, err)
+				require.Equal(t, string(encoded)+"\n", output)
+			}
+		})
+	}
+}
+
 func TestOutputJSONPreservesTheEnvelope(t *testing.T) {
 	response := &components.V2KeysCreateKeyResponseBody{
 		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
@@ -213,6 +356,9 @@ func TestOutputJSONPreservesTheEnvelope(t *testing.T) {
 			var got components.V2KeysCreateKeyResponseBody
 			require.NoError(t, json.Unmarshal([]byte(output), &got))
 			require.Equal(t, *response, got)
+			encoded, err := json.MarshalIndent(response, "", "  ")
+			require.NoError(t, err)
+			require.Equal(t, string(encoded)+"\n", output)
 		})
 	}
 }
@@ -248,6 +394,7 @@ func TestOutputBodyPaginationEscapesControlsWithoutChangingCursor(t *testing.T) 
 	body, err := json.Marshal(components.V2PermissionsListRolesRequestBody{})
 	require.NoError(t, err)
 	output := captureOutput(t, response, "--body="+string(body))
+	require.Contains(t, output, "Keep the same filters in --body")
 	for _, control := range []string{"\u202E", "\u200F", "\x7f", "\U000e0001", "\x1b"} {
 		require.NotContains(t, output, control)
 	}
@@ -263,6 +410,59 @@ func TestOutputBodyPaginationEscapesControlsWithoutChangingCursor(t *testing.T) 
 	require.Equal(t, *response, got)
 }
 
+func TestOutputPaginationKeepsFilters(t *testing.T) {
+	cursor := "next'page"
+	response := &components.V2PermissionsListRolesResponseBody{
+		Pagination: components.Pagination{Cursor: &cursor, HasMore: true},
+	}
+	require.Contains(t, captureOutput(t, response), "Repeat this command with the same filters and --cursor='next'\"'\"'page'")
+}
+
+func TestOutputDebugDiagnosticsStayOnStderr(t *testing.T) {
+	file, err := os.CreateTemp(t.TempDir(), "stderr")
+	require.NoError(t, err)
+	original := os.Stderr
+	os.Stderr = file
+	t.Cleanup(func() {
+		os.Stderr = original
+		require.NoError(t, file.Close())
+	})
+	requestID := uid.New(uid.RequestPrefix)
+	response := &components.V2KeysDeleteKeyResponseBody{Meta: components.Meta{RequestID: requestID}}
+	require.Equal(t, "Key deleted.\n", captureOutput(t, response, "--debug"))
+	output := captureOutput(t, response, "--debug", "--json")
+	var got components.V2KeysDeleteKeyResponseBody
+	require.NoError(t, json.Unmarshal([]byte(output), &got))
+	require.Equal(t, *response, got)
+	os.Stderr = original
+	diagnostics, err := os.ReadFile(file.Name())
+	require.NoError(t, err)
+	require.Equal(t, strings.Repeat("Request ID: "+requestID+"\n", 2), string(diagnostics))
+}
+
+func TestOutputEnvironmentSecretsRequireRevealAndJSONPreservesValues(t *testing.T) {
+	secret := uid.New(uid.KeyPrefix)
+	response := &components.V2EnvironmentsListEnvironmentVariablesResponseBody{Data: []components.EnvironmentVariable{
+		{Key: "TOKEN", Kind: components.EnvironmentVariableKindRecoverable, Value: &secret},
+		{Key: "EMPTY", Kind: components.EnvironmentVariableKindRecoverable, Value: new("")},
+		{Key: "OMITTED_EMPTY", Kind: components.EnvironmentVariableKindRecoverable},
+		{Key: "WRITE_ONLY", Kind: components.EnvironmentVariableKindWriteonly},
+	}}
+	output := captureOutput(t, response)
+	require.NotContains(t, output, secret)
+	require.Contains(t, output, "[hidden]")
+	require.Contains(t, output, "not retrievable")
+	output = captureOutput(t, response, "--reveal")
+	require.Contains(t, output, secret)
+	require.Equal(t, 2, strings.Count(output, "(empty)"))
+	require.Contains(t, output, "not retrievable")
+	for _, flags := range [][]string{{"--json"}, {"--reveal", "--output=json"}} {
+		var got components.V2EnvironmentsListEnvironmentVariablesResponseBody
+		require.NoError(t, json.Unmarshal([]byte(captureOutput(t, response, flags...)), &got))
+		require.Equal(t, *response, got)
+	}
+}
+
 func captureOutput(t *testing.T, response any, args ...string) string {
 	t.Helper()
 	file, err := os.CreateTemp(t.TempDir(), "stdout")
@@ -274,7 +474,15 @@ func captureOutput(t *testing.T, response any, args ...string) string {
 		require.NoError(t, file.Close())
 	})
 	cmd := &cli.Command{
-		Name: "test", Flags: []cli.Flag{OutputFlag(), cli.Bool("json", "JSON output"), cli.String("body", "JSON request body")},
+		Name: "test", Flags: []cli.Flag{
+			OutputFlag(), cli.Bool("json", "JSON output"), cli.Bool("debug", "Debug diagnostics"),
+			cli.Bool("reveal", "Show recoverable environment variable values"),
+			cli.String("body", "JSON request body"), cli.String("root-key", "Root key"),
+			cli.String("key-id", "Key ID"), cli.String("deployment-id", "Deployment ID"),
+			cli.String("project", "Project"), cli.String("app", "App"), cli.String("environment", "Environment"),
+			cli.String("namespace", "Namespace"), cli.String("identifier", "Identifier"),
+			cli.String("variables", "Environment variables"),
+		},
 		Action: func(_ context.Context, cmd *cli.Command) error { return Output(cmd, response) },
 	}
 	require.NoError(t, cmd.Run(t.Context(), append([]string{"test"}, args...)))

@@ -80,10 +80,8 @@ func TestDestructiveCommandsRequireExplicitConfirmation(t *testing.T) {
 
 					output, diagnostic, err = runCLI(t, append(args, "--yes", "--json")...)
 					require.Error(t, err)
-					require.Contains(t, []string{
-						"Permission denied: Missing permission.\nRequest ID: " + requestID,
-						"API request failed (HTTP 403)",
-					}, err.Error())
+					require.ErrorContains(t, err, "Error: unkey "+resourcePaths[test.legacy]+" failed.")
+					require.True(t, strings.Contains(err.Error(), "Permission denied: Missing permission.") || strings.Contains(err.Error(), "API request failed (HTTP 403)"))
 					require.Empty(t, output)
 					require.Empty(t, diagnostic)
 					require.Len(t, requests, count+1)
