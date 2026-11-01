@@ -258,6 +258,8 @@ func (s *stubRouter) Route(_ context.Context, _ string, _ ...string) (router.Rou
 
 func (s *stubRouter) ValidateHostname(_ context.Context, _ string) error { return nil }
 
+func (s *stubRouter) InvalidateInstances(_ context.Context, _ string) {}
+
 // --- Hand-rolled WS framing ---
 
 func wsAccept(key string) string {
