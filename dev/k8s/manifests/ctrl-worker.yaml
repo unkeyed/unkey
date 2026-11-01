@@ -62,9 +62,16 @@ data:
 
     # Resend API key for the spend-cap budget alert emails. From the optional
     # resend-credentials secret (dev/.env.resend); empty uses a noop sender that
-    # only logs.
+    # only logs. GDPR user erasure also deletes the user's Resend contact with
+    # it, so it needs a full-access key, and with it empty user erasures fail.
     [email]
     resend_api_key = "${RESEND_API_KEY}"
+
+    # Plain API key for GDPR user erasure, which deletes the user's Plain
+    # customer. From the optional plain-credentials secret (dev/.env.plain);
+    # with it empty user erasures fail.
+    [plain]
+    api_key = "${PLAIN_API_KEY}"
 
     # GitHub App credentials for authenticating with the GitHub API.
     # app_id is resolved at runtime via os.ExpandEnv from the github-credentials secret.
@@ -157,6 +164,12 @@ spec:
                 secretKeyRef:
                   name: resend-credentials
                   key: RESEND_API_KEY
+                  optional: true
+            - name: PLAIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: plain-credentials
+                  key: PLAIN_API_KEY
                   optional: true
             - name: FORCE_DEPLOYMENT_APPROVAL
               value: "false"

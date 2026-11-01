@@ -275,10 +275,20 @@ type SlackConfig struct {
 }
 
 type EmailConfig struct {
-	// ResendAPIKey authenticates the Resend send API. Empty uses a noop sender.
+	// ResendAPIKey authenticates the Resend API. Email sending uses it, and
+	// GDPR user erasure deletes the user's Resend contact with it, which needs
+	// a full-access key. Empty uses a noop sender and refuses user erasures.
 	ResendAPIKey string `toml:"resend_api_key"`
 	// From overrides the published template's sender. Empty keeps the template default.
 	From string `toml:"from"`
+}
+
+// PlainConfig holds the Plain support inbox credentials.
+type PlainConfig struct {
+	// APIKey authenticates Plain's GraphQL API. GDPR user erasure deletes the
+	// user's Plain customer with it, which needs the customer:read and
+	// customer:delete permissions. Empty refuses user erasures.
+	APIKey string `toml:"api_key"`
 }
 
 // Config holds the complete configuration for the Restate worker service.
@@ -361,6 +371,9 @@ type Config struct {
 	Billing BillingConfig `toml:"billing"`
 
 	Email EmailConfig `toml:"email"`
+
+	// Plain configures the support inbox GDPR user erasure removes users from.
+	Plain PlainConfig `toml:"plain"`
 
 	// WorkOSAPIKey resolves notification recipients. Empty resolves no recipients.
 	WorkOSAPIKey string `toml:"workos_api_key"`

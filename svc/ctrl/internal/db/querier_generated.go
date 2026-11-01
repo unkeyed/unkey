@@ -7,6 +7,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 type Querier interface {
@@ -222,6 +223,19 @@ type Querier interface {
 	//  FROM `github_repo_connections`
 	//  WHERE app_id = ?
 	CountGithubRepoConnectionsByAppId(ctx context.Context, appID string) (int64, error)
+	// Counts an end user's rows in every table a GDPR end user erasure deletes,
+	// through the identity and key ids the test seeded. Used only by tests.
+	//
+	//  SELECT
+	//    (SELECT COUNT(*) FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?) AS identities,
+	//    (SELECT COUNT(*) FROM portal_sessions WHERE portal_sessions.workspace_id = ? AND portal_sessions.external_id = ?) AS portal_sessions,
+	//    (SELECT COUNT(*) FROM ratelimits WHERE ratelimits.identity_id = ?) AS identity_ratelimits,
+	//    (SELECT COUNT(*) FROM `keys` WHERE keys.id = ?) AS key_rows,
+	//    (SELECT COUNT(*) FROM keys_permissions WHERE keys_permissions.key_id = ?) AS keys_permissions,
+	//    (SELECT COUNT(*) FROM keys_roles WHERE keys_roles.key_id = ?) AS keys_roles,
+	//    (SELECT COUNT(*) FROM encrypted_keys WHERE encrypted_keys.key_id = ?) AS encrypted_keys,
+	//    (SELECT COUNT(*) FROM ratelimits WHERE ratelimits.key_id = ?) AS key_ratelimits
+	CountIdentityRowsByTable(ctx context.Context, arg CountIdentityRowsByTableParams) (CountIdentityRowsByTableRow, error)
 	// CountOrphanConnectionAppTargets verifies deletion cascades in tests.
 	//
 	//  SELECT COUNT(*) FROM connection_app_targets t
@@ -233,6 +247,13 @@ type Querier interface {
 	//  LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
 	//  WHERE b.pk IS NULL
 	CountOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error)
+	// Counts the other workspaces billed to a Stripe customer. A GDPR workspace
+	// erasure deletes the customer, so it refuses when another workspace shares it.
+	//
+	//  SELECT COUNT(*) FROM workspace_billing
+	//  WHERE stripe_customer_id = ?
+	//    AND workspace_id != ?
+	CountOtherWorkspaceBillingsByStripeCustomerID(ctx context.Context, arg CountOtherWorkspaceBillingsByStripeCustomerIDParams) (int64, error)
 	// Covered by unique_workspace_domain_idx, which leads on workspace_id.
 	//
 	//  SELECT COUNT(*)
@@ -245,6 +266,82 @@ type Querier interface {
 	//  FROM `projects`
 	//  WHERE id = ?
 	CountProjectsById(ctx context.Context, id string) (int64, error)
+	// Counts a dashboard user's rows in every table a GDPR user erasure deletes.
+	// Used only by tests.
+	//
+	//  SELECT
+	//    (SELECT COUNT(*) FROM cli_sessions WHERE cli_sessions.user_id = ?) AS cli_sessions,
+	//    (SELECT COUNT(*) FROM device_authorizations WHERE device_authorizations.approver_user_id = ?) AS device_authorizations,
+	//    (SELECT COUNT(*) FROM compute_signup_credit_claims WHERE compute_signup_credit_claims.workos_user_id = ?) AS compute_signup_credit_claims
+	CountUserRowsByTable(ctx context.Context, arg CountUserRowsByTableParams) (CountUserRowsByTableRow, error)
+	// Counts a workspace's rows in every table a GDPR workspace erasure deletes.
+	// Used only by tests, which assert that an erasure leaves nothing behind and
+	// leaves other workspaces alone. Tables without a workspace_id are counted
+	// through the parent ids the test seeded, because the erasure deletes the
+	// parents too.
+	//
+	//  SELECT
+	//    (SELECT COUNT(*) FROM acme_challenges WHERE acme_challenges.workspace_id = ?) AS acme_challenges,
+	//    (SELECT COUNT(*) FROM acme_users WHERE acme_users.workspace_id = ?) AS acme_users,
+	//    (SELECT COUNT(*) FROM apis WHERE apis.workspace_id = ?) AS apis,
+	//    (SELECT COUNT(*) FROM app_build_settings WHERE app_build_settings.workspace_id = ?) AS app_build_settings,
+	//    (SELECT COUNT(*) FROM app_connections WHERE app_connections.workspace_id = ?) AS app_connections,
+	//    (SELECT COUNT(*) FROM app_environment_variables WHERE app_environment_variables.workspace_id = ?) AS app_environment_variables,
+	//    (SELECT COUNT(*) FROM app_regional_settings WHERE app_regional_settings.workspace_id = ?) AS app_regional_settings,
+	//    (SELECT COUNT(*) FROM app_runtime_settings WHERE app_runtime_settings.workspace_id = ?) AS app_runtime_settings,
+	//    (SELECT COUNT(*) FROM app_source_oci WHERE app_source_oci.workspace_id = ?) AS app_source_oci,
+	//    (SELECT COUNT(*) FROM apps WHERE apps.workspace_id = ?) AS apps,
+	//    (SELECT COUNT(*) FROM billing_subscriptions WHERE billing_subscriptions.workspace_id = ?) AS billing_subscriptions,
+	//    (SELECT COUNT(*) FROM certificates WHERE certificates.workspace_id = ?) AS certificates,
+	//    (SELECT COUNT(*) FROM cilium_network_policies WHERE cilium_network_policies.workspace_id = ?) AS cilium_network_policies,
+	//    (SELECT COUNT(*) FROM cli_sessions WHERE cli_sessions.workspace_id = ?) AS cli_sessions,
+	//    (SELECT COUNT(*) FROM clickhouse_outbox WHERE clickhouse_outbox.workspace_id = ?) AS clickhouse_outbox,
+	//    (SELECT COUNT(*) FROM clickhouse_workspace_settings WHERE clickhouse_workspace_settings.workspace_id = ?) AS clickhouse_workspace_settings,
+	//    (SELECT COUNT(*) FROM compute_signup_credit_claims WHERE compute_signup_credit_claims.workspace_id = ?) AS compute_signup_credit_claims,
+	//    (SELECT COUNT(*) FROM custom_domains WHERE custom_domains.workspace_id = ?) AS custom_domains,
+	//    (SELECT COUNT(*) FROM deployment_connections WHERE deployment_connections.workspace_id = ?) AS deployment_connections,
+	//    (SELECT COUNT(*) FROM deployment_steps WHERE deployment_steps.workspace_id = ?) AS deployment_steps,
+	//    (SELECT COUNT(*) FROM deployment_topology WHERE deployment_topology.workspace_id = ?) AS deployment_topology,
+	//    (SELECT COUNT(*) FROM deployments WHERE deployments.workspace_id = ?) AS deployments,
+	//    (SELECT COUNT(*) FROM device_authorizations WHERE device_authorizations.workspace_id = ?) AS device_authorizations,
+	//    (SELECT COUNT(*) FROM encrypted_keys WHERE encrypted_keys.workspace_id = ?) AS encrypted_keys,
+	//    (SELECT COUNT(*) FROM environments WHERE environments.workspace_id = ?) AS environments,
+	//    (SELECT COUNT(*) FROM flag_overrides WHERE flag_overrides.workspace_id = ?) AS flag_overrides,
+	//    (SELECT COUNT(*) FROM github_app_installations WHERE github_app_installations.workspace_id = ?) AS github_app_installations,
+	//    (SELECT COUNT(*) FROM github_repo_connections WHERE github_repo_connections.workspace_id = ?) AS github_repo_connections,
+	//    (SELECT COUNT(*) FROM horizontal_autoscaling_policies WHERE horizontal_autoscaling_policies.workspace_id = ?) AS horizontal_autoscaling_policies,
+	//    (SELECT COUNT(*) FROM identities WHERE identities.workspace_id = ?) AS identities,
+	//    (SELECT COUNT(*) FROM instances WHERE instances.workspace_id = ?) AS instances,
+	//    (SELECT COUNT(*) FROM key_auth WHERE key_auth.workspace_id = ?) AS key_auth,
+	//    (SELECT COUNT(*) FROM key_migrations WHERE key_migrations.workspace_id = ?) AS key_migrations,
+	//    (SELECT COUNT(*) FROM `keys` WHERE keys.workspace_id = ?) AS key_rows,
+	//    (SELECT COUNT(*) FROM keys_permissions WHERE keys_permissions.workspace_id = ?) AS keys_permissions,
+	//    (SELECT COUNT(*) FROM keys_roles WHERE keys_roles.workspace_id = ?) AS keys_roles,
+	//    (SELECT COUNT(*) FROM limits WHERE limits.workspace_id = ?) AS limits,
+	//    (SELECT COUNT(*) FROM logdrains WHERE logdrains.workspace_id = ?) AS logdrains,
+	//    (SELECT COUNT(*) FROM openapi_specs WHERE openapi_specs.workspace_id = ?) AS openapi_specs,
+	//    (SELECT COUNT(*) FROM permissions WHERE permissions.workspace_id = ?) AS permissions,
+	//    (SELECT COUNT(*) FROM portal_domains WHERE portal_domains.workspace_id = ?) AS portal_domains,
+	//    (SELECT COUNT(*) FROM portal_sessions WHERE portal_sessions.workspace_id = ?) AS portal_sessions,
+	//    (SELECT COUNT(*) FROM portals WHERE portals.workspace_id = ?) AS portals,
+	//    (SELECT COUNT(*) FROM projects WHERE projects.workspace_id = ?) AS projects,
+	//    (SELECT COUNT(*) FROM ratelimit_global_counters WHERE ratelimit_global_counters.workspace_id = ?) AS ratelimit_global_counters,
+	//    (SELECT COUNT(*) FROM ratelimit_namespaces WHERE ratelimit_namespaces.workspace_id = ?) AS ratelimit_namespaces,
+	//    (SELECT COUNT(*) FROM ratelimit_overrides WHERE ratelimit_overrides.workspace_id = ?) AS ratelimit_overrides,
+	//    (SELECT COUNT(*) FROM ratelimits WHERE ratelimits.workspace_id = ?) AS ratelimits,
+	//    (SELECT COUNT(*) FROM roles WHERE roles.workspace_id = ?) AS roles,
+	//    (SELECT COUNT(*) FROM roles_permissions WHERE roles_permissions.workspace_id = ?) AS roles_permissions,
+	//    (SELECT COUNT(*) FROM shared_secrets WHERE shared_secrets.workspace_id = ?) AS shared_secrets,
+	//    (SELECT COUNT(*) FROM unkey_principal_permissions WHERE unkey_principal_permissions.workspace_id = ?) AS unkey_principal_permissions,
+	//    (SELECT COUNT(*) FROM unkey_root_keys WHERE unkey_root_keys.workspace_id = ?) AS unkey_root_keys,
+	//    (SELECT COUNT(*) FROM workspace_billing WHERE workspace_billing.workspace_id = ?) AS workspace_billing,
+	//    (SELECT COUNT(*) FROM workspaces WHERE workspaces.id = ?) AS workspaces,
+	//    (SELECT COUNT(*) FROM `keys` WHERE keys.for_workspace_id = ?) AS legacy_root_keys,
+	//    (SELECT COUNT(*) FROM keys_permissions WHERE keys_permissions.key_id = ?) AS legacy_root_key_permissions,
+	//    (SELECT COUNT(*) FROM connection_app_targets WHERE connection_app_targets.connection_id = ?) AS connection_app_targets,
+	//    (SELECT COUNT(*) FROM deployment_connection_app_targets WHERE deployment_connection_app_targets.deployment_id = ?) AS deployment_connection_app_targets,
+	//    (SELECT COUNT(*) FROM frontline_routes WHERE frontline_routes.project_id = ?) AS frontline_routes
+	CountWorkspaceRowsByTable(ctx context.Context, arg CountWorkspaceRowsByTableParams) (CountWorkspaceRowsByTableRow, error)
 	//DeleteAcmeChallengeByDomainID
 	//
 	//  DELETE FROM acme_challenges WHERE domain_id = ?
@@ -524,6 +621,456 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	//EraseEndUserIdentities
+	//
+	//  DELETE FROM identities
+	//  WHERE workspace_id = ? AND external_id = ?
+	//  LIMIT 10000
+	EraseEndUserIdentities(ctx context.Context, arg EraseEndUserIdentitiesParams) (int64, error)
+	//EraseEndUserIdentityRatelimits
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE ratelimits.workspace_id = ?
+	//    AND ratelimits.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?)
+	//  LIMIT 10000
+	EraseEndUserIdentityRatelimits(ctx context.Context, arg EraseEndUserIdentityRatelimitsParams) (int64, error)
+	//EraseEndUserKeyEncryptions
+	//
+	//  DELETE FROM encrypted_keys
+	//  WHERE encrypted_keys.workspace_id = ?
+	//    AND encrypted_keys.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.workspace_id = ? AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?))
+	//  LIMIT 10000
+	EraseEndUserKeyEncryptions(ctx context.Context, arg EraseEndUserKeyEncryptionsParams) (int64, error)
+	//EraseEndUserKeyPermissions
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE keys_permissions.workspace_id = ?
+	//    AND keys_permissions.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.workspace_id = ? AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?))
+	//  LIMIT 10000
+	EraseEndUserKeyPermissions(ctx context.Context, arg EraseEndUserKeyPermissionsParams) (int64, error)
+	//EraseEndUserKeyRatelimits
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE ratelimits.workspace_id = ?
+	//    AND ratelimits.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.workspace_id = ? AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?))
+	//  LIMIT 10000
+	EraseEndUserKeyRatelimits(ctx context.Context, arg EraseEndUserKeyRatelimitsParams) (int64, error)
+	//EraseEndUserKeyRoles
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE keys_roles.workspace_id = ?
+	//    AND keys_roles.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.workspace_id = ? AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?))
+	//  LIMIT 10000
+	EraseEndUserKeyRoles(ctx context.Context, arg EraseEndUserKeyRolesParams) (int64, error)
+	//EraseEndUserKeys
+	//
+	//  DELETE FROM `keys`
+	//  WHERE `keys`.workspace_id = ?
+	//    AND `keys`.identity_id IN (SELECT identities.id FROM identities WHERE identities.workspace_id = ? AND identities.external_id = ?)
+	//  LIMIT 10000
+	EraseEndUserKeys(ctx context.Context, arg EraseEndUserKeysParams) (int64, error)
+	//EraseEndUserPortalSessions
+	//
+	//  DELETE FROM portal_sessions
+	//  WHERE workspace_id = ? AND external_id = ?
+	//  LIMIT 10000
+	EraseEndUserPortalSessions(ctx context.Context, arg EraseEndUserPortalSessionsParams) (int64, error)
+	//EraseUserCliSessions
+	//
+	//  DELETE FROM cli_sessions
+	//  WHERE user_id = ?
+	//  LIMIT 10000
+	EraseUserCliSessions(ctx context.Context, userID string) (int64, error)
+	//EraseUserComputeSignupCreditClaims
+	//
+	//  DELETE FROM compute_signup_credit_claims
+	//  WHERE workos_user_id = ?
+	//  LIMIT 10000
+	EraseUserComputeSignupCreditClaims(ctx context.Context, userID string) (int64, error)
+	//EraseUserDeviceAuthorizations
+	//
+	//  DELETE FROM device_authorizations
+	//  WHERE approver_user_id = ?
+	//  LIMIT 10000
+	EraseUserDeviceAuthorizations(ctx context.Context, userID sql.NullString) (int64, error)
+	//EraseWorkspace
+	//
+	//  DELETE FROM workspaces
+	//  WHERE id = ?
+	//  LIMIT 10000
+	EraseWorkspace(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAcmeChallenges
+	//
+	//  DELETE FROM acme_challenges
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAcmeChallenges(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAcmeUsers
+	//
+	//  DELETE FROM acme_users
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAcmeUsers(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceApis
+	//
+	//  DELETE FROM apis
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceApis(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppBuildSettings
+	//
+	//  DELETE FROM app_build_settings
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppBuildSettings(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppConnections
+	//
+	//  DELETE FROM app_connections
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppConnections(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppEnvironmentVariables
+	//
+	//  DELETE FROM app_environment_variables
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppEnvironmentVariables(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppRegionalSettings
+	//
+	//  DELETE FROM app_regional_settings
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppRegionalSettings(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppRuntimeSettings
+	//
+	//  DELETE FROM app_runtime_settings
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppRuntimeSettings(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceAppSourceOci
+	//
+	//  DELETE FROM app_source_oci
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceAppSourceOci(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceApps
+	//
+	//  DELETE FROM apps
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceApps(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceBillingSubscriptions
+	//
+	//  DELETE FROM billing_subscriptions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceBillingSubscriptions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceCertificates
+	//
+	//  DELETE FROM certificates
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceCertificates(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceCiliumNetworkPolicies
+	//
+	//  DELETE FROM cilium_network_policies
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceCiliumNetworkPolicies(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceCliSessions
+	//
+	//  DELETE FROM cli_sessions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceCliSessions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceClickhouseOutbox
+	//
+	//  DELETE FROM clickhouse_outbox
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceClickhouseOutbox(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceClickhouseWorkspaceSettings
+	//
+	//  DELETE FROM clickhouse_workspace_settings
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceClickhouseWorkspaceSettings(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceComputeSignupCreditClaims
+	//
+	//  DELETE FROM compute_signup_credit_claims
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceComputeSignupCreditClaims(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceConnectionAppTargets
+	//
+	//  DELETE FROM connection_app_targets
+	//  WHERE connection_id IN (SELECT app_connections.id FROM app_connections WHERE app_connections.workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceConnectionAppTargets(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceCustomDomains
+	//
+	//  DELETE FROM custom_domains
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceCustomDomains(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeploymentConnectionAppTargets
+	//
+	//  DELETE FROM deployment_connection_app_targets
+	//  WHERE deployment_id IN (SELECT deployments.id FROM deployments WHERE deployments.workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceDeploymentConnectionAppTargets(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeploymentConnections
+	//
+	//  DELETE FROM deployment_connections
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeploymentConnections(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeploymentSteps
+	//
+	//  DELETE FROM deployment_steps
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeploymentSteps(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeploymentTopology
+	//
+	//  DELETE FROM deployment_topology
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeploymentTopology(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeployments
+	//
+	//  DELETE FROM deployments
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeployments(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceDeviceAuthorizations
+	//
+	//  DELETE FROM device_authorizations
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceDeviceAuthorizations(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceEncryptedKeys
+	//
+	//  DELETE FROM encrypted_keys
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceEncryptedKeys(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceEnvironments
+	//
+	//  DELETE FROM environments
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceEnvironments(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceFlagOverrides
+	//
+	//  DELETE FROM flag_overrides
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceFlagOverrides(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceFrontlineRoutes
+	//
+	//  DELETE FROM frontline_routes
+	//  WHERE project_id IN (SELECT projects.id FROM projects WHERE projects.workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceFrontlineRoutes(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceGithubAppInstallations
+	//
+	//  DELETE FROM github_app_installations
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceGithubAppInstallations(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceGithubRepoConnections
+	//
+	//  DELETE FROM github_repo_connections
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceGithubRepoConnections(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceHorizontalAutoscalingPolicies
+	//
+	//  DELETE FROM horizontal_autoscaling_policies
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceHorizontalAutoscalingPolicies(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceIdentities
+	//
+	//  DELETE FROM identities
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceIdentities(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceInstances
+	//
+	//  DELETE FROM instances
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceInstances(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeyAuth
+	//
+	//  DELETE FROM key_auth
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeyAuth(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeyMigrations
+	//
+	//  DELETE FROM key_migrations
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeyMigrations(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeys
+	//
+	//  DELETE FROM `keys`
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeys(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeysPermissions
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeysPermissions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceKeysRoles
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceKeysRoles(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceLegacyRootKeyEncryptions
+	//
+	//  DELETE FROM encrypted_keys
+	//  WHERE encrypted_keys.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.for_workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeyEncryptions(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLegacyRootKeyPermissions
+	//
+	//  DELETE FROM keys_permissions
+	//  WHERE keys_permissions.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.for_workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeyPermissions(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLegacyRootKeyRatelimits
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE ratelimits.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.for_workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeyRatelimits(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLegacyRootKeyRoles
+	//
+	//  DELETE FROM keys_roles
+	//  WHERE keys_roles.key_id IN (SELECT `keys`.id FROM `keys` WHERE `keys`.for_workspace_id = ?)
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeyRoles(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLegacyRootKeys
+	//
+	//  DELETE FROM `keys`
+	//  WHERE for_workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceLegacyRootKeys(ctx context.Context, workspaceID sql.NullString) (int64, error)
+	//EraseWorkspaceLimits
+	//
+	//  DELETE FROM limits
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceLimits(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceLogdrains
+	//
+	//  DELETE FROM logdrains
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceLogdrains(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceOpenapiSpecs
+	//
+	//  DELETE FROM openapi_specs
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceOpenapiSpecs(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspacePermissions
+	//
+	//  DELETE FROM permissions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspacePermissions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspacePortalDomains
+	//
+	//  DELETE FROM portal_domains
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspacePortalDomains(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspacePortalSessions
+	//
+	//  DELETE FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspacePortalSessions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspacePortals
+	//
+	//  DELETE FROM portals
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspacePortals(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceProjects
+	//
+	//  DELETE FROM projects
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceProjects(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRatelimitGlobalCounters
+	//
+	//  DELETE FROM ratelimit_global_counters
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRatelimitGlobalCounters(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRatelimitNamespaces
+	//
+	//  DELETE FROM ratelimit_namespaces
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRatelimitNamespaces(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRatelimitOverrides
+	//
+	//  DELETE FROM ratelimit_overrides
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRatelimitOverrides(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRatelimits
+	//
+	//  DELETE FROM ratelimits
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRatelimits(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRoles
+	//
+	//  DELETE FROM roles
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRoles(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceRolesPermissions
+	//
+	//  DELETE FROM roles_permissions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceRolesPermissions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceSharedSecrets
+	//
+	//  DELETE FROM shared_secrets
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceSharedSecrets(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceUnkeyPrincipalPermissions
+	//
+	//  DELETE FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceUnkeyPrincipalPermissions(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceUnkeyRootKeys
+	//
+	//  DELETE FROM unkey_root_keys
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceUnkeyRootKeys(ctx context.Context, workspaceID string) (int64, error)
+	//EraseWorkspaceWorkspaceBilling
+	//
+	//  DELETE FROM workspace_billing
+	//  WHERE workspace_id = ?
+	//  LIMIT 10000
+	EraseWorkspaceWorkspaceBilling(ctx context.Context, workspaceID string) (int64, error)
 	// Returns the challenge row for a domain, if one exists. domain_id is unique on
 	// acme_challenges, so there is at most one. Used as the idempotency check for
 	// infra certificate provisioning: once a challenge exists the renewal cron owns
@@ -1422,6 +1969,11 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertCiliumNetworkPolicy(ctx context.Context, arg InsertCiliumNetworkPolicyParams) error
+	// Inserts a CLI session. Used only by tests; the API owns session creation.
+	//
+	//  INSERT INTO cli_sessions (id, workspace_id, user_id, user_name, permissions, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	InsertCliSession(ctx context.Context, arg InsertCliSessionParams) error
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -1474,6 +2026,11 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertClickhouseWorkspaceSettings(ctx context.Context, arg InsertClickhouseWorkspaceSettingsParams) error
+	// Inserts a signup credit claim. Used only by tests; the dashboard owns claims.
+	//
+	//  INSERT INTO compute_signup_credit_claims (card_fingerprint, workspace_id, stripe_customer_id, workos_user_id, attempt_id, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?)
+	InsertComputeSignupCreditClaim(ctx context.Context, arg InsertComputeSignupCreditClaimParams) error
 	// InsertConnectionAppTarget must share a transaction with InsertAppConnection.
 	//
 	//  INSERT INTO connection_app_targets (
@@ -1628,6 +2185,12 @@ type Querier interface {
 	//      autoscaling_threshold_memory = ?,
 	//      desired_status = ?
 	InsertDeploymentTopology(ctx context.Context, arg InsertDeploymentTopologyParams) error
+	// Inserts an approved device authorization. Used only by tests; the API owns
+	// the device flow.
+	//
+	//  INSERT INTO device_authorizations (id, user_code, expires_at, status, workspace_id, approver_user_id, approver_name, created_at)
+	//  VALUES (?, ?, ?, 'approved', ?, ?, ?, ?)
+	InsertDeviceAuthorization(ctx context.Context, arg InsertDeviceAuthorizationParams) error
 	//InsertEnvironment
 	//
 	//  INSERT INTO environments (
@@ -1899,6 +2462,12 @@ type Querier interface {
 	//      domain_connect_provider, domain_connect_url, invocation_id, created_at
 	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertPortalDomain(ctx context.Context, arg InsertPortalDomainParams) error
+	// Inserts a portal session for an end user. Used only by tests; the portal
+	// owns session creation.
+	//
+	//  INSERT INTO portal_sessions (id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, created_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	InsertPortalSession(ctx context.Context, arg InsertPortalSessionParams) error
 	//InsertProject
 	//
 	//  INSERT INTO projects (
@@ -2145,6 +2714,15 @@ type Querier interface {
 	//    AND created_at < ?
 	//    AND (updated_at IS NULL OR updated_at < ?)
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
+	// Lists the Depot projects a workspace's projects build in, soft-deleted
+	// projects included, so a GDPR erasure can delete them.
+	//
+	//  SELECT depot_project_id FROM projects
+	//  WHERE workspace_id = ?
+	//    AND depot_project_id IS NOT NULL
+	//    AND depot_project_id != ''
+	//  ORDER BY id
+	ListDepotProjectIDsByWorkspaceID(ctx context.Context, workspaceID string) ([]sql.NullString, error)
 	//ListEnvironmentIdsByApp
 	//
 	//  SELECT environments.id FROM environments WHERE environments.app_id = ?
@@ -2159,6 +2737,13 @@ type Querier interface {
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
 	ListExecutableChallenges(ctx context.Context, verificationTypes []AcmeChallengesChallengeType) ([]ListExecutableChallengesRow, error)
+	// Lists every identity of an end user, soft-deleted ones included, so a GDPR
+	// erasure can find the end user's rows in tables keyed by identity id.
+	//
+	//  SELECT id FROM identities
+	//  WHERE workspace_id = ?
+	//    AND external_id = ?
+	ListIdentityIDsByExternalID(ctx context.Context, arg ListIdentityIDsByExternalIDParams) ([]string, error)
 	// ListKeysForRefill returns keys that need their remaining_requests refilled.
 	// Uses a deferred join on pk for stable cursor-based pagination that avoids
 	// OFFSET drift when rows are mutated between batches.
@@ -2477,6 +3062,22 @@ type Querier interface {
 	//      dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, ?)
 	//  WHERE d.project_id = ?
 	NotifyDeploymentTopologiesByProject(ctx context.Context, arg NotifyDeploymentTopologiesByProjectParams) error
+	//PseudonymizeUserAuditOutbox
+	//
+	//  UPDATE clickhouse_outbox
+	//  SET payload = JSON_REMOVE(payload, '$.actor.name', '$.actor.meta', '$.remote_ip', '$.user_agent')
+	//  WHERE version = 'audit_log.v1'
+	//    AND JSON_EXTRACT(payload, '$.actor.id') = CAST(? AS JSON)
+	//    AND JSON_CONTAINS_PATH(payload, 'one', '$.actor.name', '$.actor.meta', '$.remote_ip', '$.user_agent')
+	//  LIMIT 10000
+	PseudonymizeUserAuditOutbox(ctx context.Context, userID json.RawMessage) (int64, error)
+	//PseudonymizeUserDeploymentTriggers
+	//
+	//  UPDATE deployments
+	//  SET triggered_by = NULL
+	//  WHERE triggered_by = ?
+	//  LIMIT 10000
+	PseudonymizeUserDeploymentTriggers(ctx context.Context, userID sql.NullString) (int64, error)
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes
@@ -2682,6 +3283,11 @@ type Querier interface {
 	//  SET stripe_customer_id = ?
 	//  WHERE workspace_id = ?
 	SetWorkspaceStripeCustomerId(ctx context.Context, arg SetWorkspaceStripeCustomerIdParams) error
+	// Soft-deletes an identity the way the API's identity delete does. Used only by
+	// tests that need a soft-deleted identity.
+	//
+	//  UPDATE identities SET deleted = true, updated_at = ? WHERE id = ?
+	SoftDeleteIdentity(ctx context.Context, arg SoftDeleteIdentityParams) error
 	//SoftDeleteKeyByID
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?

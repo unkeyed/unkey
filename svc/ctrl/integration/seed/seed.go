@@ -426,6 +426,7 @@ type CreateDeploymentRequest struct {
 	ImageResolved  sql.NullString
 
 	Capabilities dbtype.DeploymentCapabilities
+	TriggeredBy  sql.NullString
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -476,7 +477,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		PrNumber:                      req.PrNumber,
 		ForkRepositoryFullName:        req.ForkRepositoryFullName,
 		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
-		TriggeredBy:                   sql.NullString{Valid: false},
+		TriggeredBy:                   req.TriggeredBy,
 		TriggerReason:                 sql.NullString{Valid: false},
 	})
 	require.NoError(s.t, err)
