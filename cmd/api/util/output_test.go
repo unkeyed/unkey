@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -12,6 +13,64 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
+
+func TestOutputWhoamiTreePreservesKeyDetails(t *testing.T) {
+	keyID := uid.New(uid.KeyPrefix)
+	identityID := uid.New(uid.IdentityPrefix)
+	rateID := uid.New(uid.RatelimitPrefix)
+	response := &components.V2KeysWhoamiResponseBody{
+		Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+		Data: components.KeyResponseData{
+			KeyID: keyID, Name: new("CI\n\x1b[2J"), Start: "demo_", Enabled: false,
+			CreatedAt: 1700000000000, LastUsedAt: new(int64(1700003600000)),
+			UpdatedAt: new(int64(1700007200000)), Expires: new(int64(1700010800000)),
+			Roles: []string{"reader"}, Permissions: []string{"documents.read", "documents.list"},
+			Credits: &components.KeyCreditsData{
+				Remaining: new(int64(0)),
+				Refill:    &components.KeyCreditsRefill{Amount: 100, Interval: components.KeyCreditsRefillIntervalMonthly, RefillDay: new(int64(3))},
+			},
+			Identity:   &components.Identity{ID: identityID, ExternalID: "demo-user", Meta: map[string]any{"createdAt": int64(123)}},
+			Ratelimits: []components.RatelimitResponse{{ID: rateID, Name: "requests", Limit: 50, Duration: 60000, AutoApply: false}},
+			Meta: map[string]any{
+				"quota":  int64(9007199254740993),
+				"nested": []any{map[string]any{"createdAt": int64(456), "enabled": false, "credits": map[string]any{"remaining": nil}}},
+			},
+		},
+	}
+	output := captureOutput(t, response)
+	require.True(t, strings.HasPrefix(output, `CI\n\x1b[2J`+"\nDisabled · "+keyID+"\nPrefix: demo_\n"), output)
+	for _, want := range []string{
+		"├─ Identity", identityID, "External ID: demo-user", "createdAt: 123",
+		"Permissions", "documents.read", "documents.list", "Roles", "reader",
+		"Remaining: 0", "Amount: 100", "Interval: monthly", "Refill day: 3",
+		"requests: 50 / 1m0s", rateID, "Auto apply: false",
+		"quota: 9007199254740993", "createdAt: 456", "enabled: false", "remaining: -",
+		"└─ Dates", "Created at: 2023-11-14T22:13:20Z", "Last used at: 2023-11-14T23:13:20Z",
+		"Updated at: 2023-11-15T00:13:20Z", "Expires: 2023-11-15T01:13:20Z",
+	} {
+		require.Contains(t, output, want)
+	}
+	require.NotContains(t, output, "\x1b")
+	require.NotContains(t, output, response.Meta.RequestID)
+	for _, flags := range [][]string{{"--json"}, {"--output=json"}} {
+		var got bytes.Buffer
+		require.NoError(t, json.Compact(&got, []byte(captureOutput(t, response, flags...))))
+		wantJSON, err := json.Marshal(response)
+		require.NoError(t, err)
+		require.Equal(t, string(wantJSON), got.String())
+	}
+}
+
+func TestOutputWhoamiTreeShowsUnlimitedCredits(t *testing.T) {
+	response := &components.V2KeysWhoamiResponseBody{Data: components.KeyResponseData{
+		KeyID: uid.New(uid.KeyPrefix), Enabled: true, Credits: &components.KeyCreditsData{},
+	}}
+	output := captureOutput(t, response)
+	require.True(t, strings.HasPrefix(output, "API key\nEnabled · "), output)
+	require.Contains(t, output, "Remaining: unlimited")
+	require.NotContains(t, output, "Permissions")
+	require.NotContains(t, output, "Identity")
+}
 
 func TestOutputDetailsPreserveValuesAndEscapeTerminalControls(t *testing.T) {
 	keyID := uid.New(uid.KeyPrefix)
