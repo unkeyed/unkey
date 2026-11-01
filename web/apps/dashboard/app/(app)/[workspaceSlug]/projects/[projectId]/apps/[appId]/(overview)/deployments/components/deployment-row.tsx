@@ -16,6 +16,7 @@ import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useState } from "react";
+import { useWarmDeploymentHandlers } from "../../hooks/use-warm-app-page";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";
 import {
@@ -50,6 +51,7 @@ export function DeploymentRow({
   href,
 }: DeploymentRowProps) {
   const [approvalOpen, setApprovalOpen] = useState(false);
+  const warmHandlers = useWarmDeploymentHandlers(deployment.id);
   const needsApproval = deployment.status === "awaiting_approval";
   const isCurrent = currentDeployment?.id === deployment.id;
   const rollout = badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom });
@@ -74,6 +76,7 @@ export function DeploymentRow({
       ) : (
         <Link
           href={href}
+          {...warmHandlers}
           className="absolute inset-0 z-10"
           aria-label={`Deployment ${shortenId(deployment.id)} ${statusLabel}`}
         />
