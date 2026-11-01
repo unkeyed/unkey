@@ -47,26 +47,28 @@ func TestIsThrottled(t *testing.T) {
 	require.False(t, isThrottled(sql.NullInt32{Int32: 1_000, Valid: true}))
 }
 
-func TestPreviousPeriodToRecheck(t *testing.T) {
+func TestPreviousPeriodKeyToRecheck(t *testing.T) {
 	period := func(year int, month time.Month) billingperiod.Period {
 		return billingperiod.Period{Year: year, Month: month}
 	}
 
 	cases := []struct {
 		name   string
+		key    string
 		period billingperiod.Period
 		now    time.Time
-		want   billingperiod.Period
+		want   string
 		wantOK bool
 	}{
-		{"first day re-checks previous month", period(2026, time.November), time.Date(2026, time.November, 1, 15, 0, 0, 0, time.UTC), period(2026, time.October), true},
-		{"first day of year re-checks december", period(2027, time.January), time.Date(2027, time.January, 1, 15, 0, 0, 0, time.UTC), period(2026, time.December), true},
-		{"second day does not re-check", period(2026, time.November), time.Date(2026, time.November, 2, 15, 0, 0, 0, time.UTC), billingperiod.Period{}, false},
-		{"previous period run does not chain", period(2026, time.October), time.Date(2026, time.November, 1, 15, 0, 0, 0, time.UTC), billingperiod.Period{}, false},
+		{"first day re-checks previous month", "quota-check-2026-11", period(2026, time.November), time.Date(2026, time.November, 1, 15, 0, 0, 0, time.UTC), "quota-check-2026-10", true},
+		{"bare key re-checks bare previous key", "2026-11", period(2026, time.November), time.Date(2026, time.November, 1, 15, 0, 0, 0, time.UTC), "2026-10", true},
+		{"first day of year re-checks december", "quota-check-2027-01", period(2027, time.January), time.Date(2027, time.January, 1, 15, 0, 0, 0, time.UTC), "quota-check-2026-12", true},
+		{"second day does not re-check", "quota-check-2026-11", period(2026, time.November), time.Date(2026, time.November, 2, 15, 0, 0, 0, time.UTC), "", false},
+		{"previous period run does not chain", "quota-check-2026-10", period(2026, time.October), time.Date(2026, time.November, 1, 15, 0, 0, 0, time.UTC), "", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, ok := previousPeriodToRecheck(tc.period, tc.now)
+			got, ok := previousPeriodKeyToRecheck(tc.key, tc.period, tc.now)
 			require.Equal(t, tc.wantOK, ok)
 			require.Equal(t, tc.want, got)
 		})
