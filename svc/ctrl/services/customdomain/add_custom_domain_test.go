@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -380,6 +381,60 @@ func TestAddCustomDomainConcurrentDuplicateReadsTheSame(t *testing.T) {
 	requireCustomDomain(t, ctx, f.database, f.workspaceID, f.domain)
 }
 
+// TestAddCustomDomainConcurrentCreatesRespectAllowance pins that the allowance
+// holds under concurrency. Every request passes the unlocked pre-check against an
+// empty workspace, so only the check under the limits-row lock can refuse them.
+func TestAddCustomDomainConcurrentCreatesRespectAllowance(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+	svc := f.newService(t)
+
+	names := make([]string, 10)
+	for i := range names {
+		names[i] = randomDomain()
+	}
+
+	var succeeded, exhausted int
+	for _, err := range addConcurrently(f, svc, names) {
+		if err == nil {
+			succeeded++
+			continue
+		}
+		var connectErr *connect.Error
+		require.ErrorAs(t, err, &connectErr)
+		require.Equal(t, connect.CodeResourceExhausted, connectErr.Code(), "unexpected error: %v", err)
+		exhausted++
+	}
+	require.Equal(t, 1, succeeded, "an allowance of one admits exactly one registrable domain")
+	require.Equal(t, len(names)-1, exhausted)
+
+	attached, err := f.database.ListCustomDomainNamesByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.Len(t, attached, 1)
+}
+
+// TestAddCustomDomainConcurrentSubdomainsAreFree pins that serializing creates does
+// not refuse names under one registrable domain when they arrive together.
+func TestAddCustomDomainConcurrentSubdomainsAreFree(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t, 1)
+	svc := f.newService(t)
+
+	apex := randomDomain()
+	names := make([]string, 10)
+	for i := range names {
+		names[i] = uid.DNS1035(8) + "." + apex
+	}
+
+	for i, err := range addConcurrently(f, svc, names) {
+		require.NoError(t, err, "%q is under the one registrable domain", names[i])
+	}
+
+	attached, err := f.database.ListCustomDomainNamesByWorkspace(ctx, f.workspaceID)
+	require.NoError(t, err)
+	require.ElementsMatch(t, names, attached)
+}
+
 // TestAddCustomDomainAllowanceIsWorkspaceWide pins that the allowance counts every
 // registrable domain in the workspace, not per environment. A per-environment reading would let
 // one workspace multiply its allowance by adding environments.
@@ -723,6 +778,23 @@ func acceptingIngress(t *testing.T) string {
 	t.Cleanup(server.Close)
 
 	return server.URL
+}
+
+// addConcurrently releases one create per name at once and returns each error at
+// the index of its name.
+func addConcurrently(f fixture, svc *Service, names []string) []error {
+	errs := make([]error, len(names))
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i, name := range names {
+		wg.Go(func() {
+			<-start
+			_, errs[i] = svc.AddCustomDomain(context.Background(), f.request(name))
+		})
+	}
+	close(start)
+	wg.Wait()
+	return errs
 }
 
 // randomDomain returns a fresh registrable domain, so names stay unique across

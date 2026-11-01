@@ -121,25 +121,9 @@ func (s *Service) AddCustomDomain(
 	// rejected requests to drive outbound discovery traffic.
 	limits, err := s.db.FindLimitsByWorkspaceID(ctx, req.Msg.GetWorkspaceId())
 	if err != nil {
-		if db.IsNotFound(err) {
-			return nil, gatefault.ConnectWith(
-				connect.CodeFailedPrecondition,
-				domaingate.LimitsNotConfigured(req.Msg.GetWorkspaceId()),
-			)
-		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to read workspace limits: %w", err))
+		return nil, limitsError(req.Msg.GetWorkspaceId(), err)
 	}
-
-	// Concurrent creates can both pass. The overshoot is bounded by request
-	// concurrency, which beats serializing every create in a workspace behind a lock.
-	attached, err := s.db.ListCustomDomainNamesByWorkspace(ctx, req.Msg.GetWorkspaceId())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list custom domains: %w", err))
-	}
-	if err := gatefault.ConnectWith(
-		connect.CodeResourceExhausted,
-		domaingate.CheckAllowance(attached, domain, limits.CustomDomainsMax),
-	); err != nil {
+	if err := checkAllowance(ctx, s.db, req.Msg.GetWorkspaceId(), domain, limits.CustomDomainsMax); err != nil {
 		return nil, err
 	}
 
@@ -184,7 +168,20 @@ func (s *Service) AddCustomDomain(
 	now := time.Now().UnixMilli()
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.NewQueries(tx).InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
+		queries := db.NewQueries(tx)
+
+		// Locking the limits row serializes creates per workspace, so this re-check
+		// sees every domain a concurrent create committed. The check above is only
+		// a fast reject.
+		locked, txErr := queries.LockLimitsByWorkspaceID(txCtx, req.Msg.GetWorkspaceId())
+		if txErr != nil {
+			return limitsError(req.Msg.GetWorkspaceId(), txErr)
+		}
+		if txErr := checkAllowance(txCtx, queries, req.Msg.GetWorkspaceId(), domain, locked.CustomDomainsMax); txErr != nil {
+			return txErr
+		}
+
+		if txErr := queries.InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
 			ID:                    domainID,
 			WorkspaceID:           req.Msg.GetWorkspaceId(),
 			ProjectID:             req.Msg.GetProjectId(),
@@ -250,7 +247,7 @@ func (s *Service) AddCustomDomain(
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger verification workflow: %w", sendErr))
 		}
 
-		if txErr := db.NewQueries(tx).UpdateCustomDomainInvocationID(txCtx, db.UpdateCustomDomainInvocationIDParams{
+		if txErr := queries.UpdateCustomDomainInvocationID(txCtx, db.UpdateCustomDomainInvocationIDParams{
 			ID:           domainID,
 			InvocationID: sql.NullString{Valid: true, String: sendResp.Id()},
 			UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
@@ -278,6 +275,21 @@ func (s *Service) AddCustomDomain(
 	}
 
 	return connect.NewResponse(res), nil
+}
+
+func limitsError(workspaceID string, err error) error {
+	if db.IsNotFound(err) {
+		return gatefault.ConnectWith(connect.CodeFailedPrecondition, domaingate.LimitsNotConfigured(workspaceID))
+	}
+	return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to read workspace limits: %w", err))
+}
+
+func checkAllowance(ctx context.Context, q db.Querier, workspaceID, domain string, customDomainsMax uint32) error {
+	attached, err := q.ListCustomDomainNamesByWorkspace(ctx, workspaceID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list custom domains: %w", err))
+	}
+	return gatefault.ConnectWith(connect.CodeResourceExhausted, domaingate.CheckAllowance(attached, domain, customDomainsMax))
 }
 
 // DeleteCustomDomain deletes a custom domain and its associated resources.
