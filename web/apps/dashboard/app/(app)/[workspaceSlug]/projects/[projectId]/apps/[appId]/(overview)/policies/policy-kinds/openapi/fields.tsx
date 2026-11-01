@@ -1,14 +1,13 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useAppScope } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import Link from "next/link";
-import { useAppId, useProjectData } from "../../../data-provider";
 
 export function OpenApiFields() {
   const workspace = useWorkspaceNavigation();
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
 
   return (
     <p className="text-sm leading-5 text-gray-11">

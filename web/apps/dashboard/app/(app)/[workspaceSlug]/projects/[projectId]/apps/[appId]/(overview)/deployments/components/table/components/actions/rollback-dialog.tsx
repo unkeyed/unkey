@@ -1,17 +1,17 @@
 "use client";
 
-import {
-  useAppId,
-  useProjectData,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
 import { getDomainPriority } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/domain-priority";
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
-import { type DeploymentSummary, collection } from "@/lib/collections";
 import { deploymentTitle } from "@/lib/collections/deploy/deployment-title";
 import { rollbackCandidates } from "@/lib/collections/deploy/rollback";
+import {
+  type DeploymentSummary,
+  useCustomDomains,
+  useDeployActions,
+  useDomains,
+  useProductionDeployments,
+} from "@/lib/deploy-data";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { IconChevronDownOutline12 } from "@unkey/icons";
 import { Badge, Button, DialogContainer, InfoTooltip, TimestampInfo, toast } from "@unkey/ui";
@@ -32,8 +32,10 @@ export function RollbackDialog({
   targetDeployment,
   currentDeployment,
 }: RollbackDialogProps) {
-  const { projectId, customDomains, awaitLiveDeployment } = useProjectData();
-  const { deployments } = useRecentDeployments();
+  const { awaitLiveDeployment } = useDeployActions();
+  const { data: customDomains } = useCustomDomains();
+  const { data: appDomains } = useDomains();
+  const { data: deployments } = useProductionDeployments();
   const [selected, setSelected] = useState<DeploymentSummary>(targetDeployment);
   const [picking, setPicking] = useState(false);
   const pickerId = useId();
@@ -42,23 +44,12 @@ export function RollbackDialog({
   const others = rollbackCandidates(deployments, currentDeployment).filter(
     (d) => d.id !== selected.id,
   );
-  const appId = useAppId();
-  const domains = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collection.domains })
-        .where(({ domain }) =>
-          and(
-            eq(domain.projectId, projectId),
-            eq(domain.appId, appId),
-            eq(domain.environmentId, currentDeployment.environmentId),
-          ),
-        )
-        .where(({ domain }) => inArray(domain.sticky, ["environment", "live"])),
-    [projectId, appId, currentDeployment.environmentId],
-  );
   const { primary, additional } = getDomainPriority({
-    domains: domains.data ?? [],
+    domains: appDomains.filter(
+      (d) =>
+        d.environmentId === currentDeployment.environmentId &&
+        (d.sticky === "environment" || d.sticky === "live"),
+    ),
     customDomains,
     environmentId: currentDeployment.environmentId,
     deploymentId: currentDeployment.id,

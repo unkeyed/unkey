@@ -1,7 +1,12 @@
 "use client";
 
 import { EnvironmentSelect } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-select";
-import type { App } from "@/lib/collections/deploy/apps";
+import {
+  type App,
+  DEPLOYMENT_PICKER_LIMIT,
+  useEnvironments,
+  useRecentDeployments,
+} from "@/lib/deploy-data";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
@@ -9,8 +14,6 @@ import { FormDescription, FormInput, FormLabel, InfoTooltip, TimestampInfo } fro
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
-import { useProjectData } from "../data-provider";
-import { useRecentDeployments } from "../hooks/use-recent-deployments";
 import { DeploymentDialog } from "./deployment-dialog";
 import { useCreateDeployment } from "./use-create-deployment";
 
@@ -40,8 +43,11 @@ type ImageDeploymentFormProps = {
 };
 
 export function ImageDeploymentForm({ app, isOpen, onOpenChange }: ImageDeploymentFormProps) {
-  const { environments } = useProjectData();
-  const { deployments } = useRecentDeployments({ enabled: isOpen });
+  const { data: environments } = useEnvironments();
+  const { data: deployments } = useRecentDeployments({
+    limit: DEPLOYMENT_PICKER_LIMIT,
+    enabled: isOpen,
+  });
   const defaultEnvironmentId =
     environments.find((env) => env.kind === "production")?.id ?? environments[0]?.id ?? "";
 

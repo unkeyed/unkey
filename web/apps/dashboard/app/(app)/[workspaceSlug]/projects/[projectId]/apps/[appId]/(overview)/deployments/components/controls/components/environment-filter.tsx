@@ -1,13 +1,13 @@
 "use client";
 
+import { useEnvironments } from "@/lib/deploy-data";
 import { IconLayers3Outline18 } from "@unkey/icons";
 import { ALL_ENVIRONMENTS } from "../../../../../../_components/environment-scope";
 import { EnvironmentSelect } from "../../../../../../_components/environment-select";
-import { useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
 
 export function EnvironmentFilter() {
-  const { environments } = useProjectData();
+  const { data: environments } = useEnvironments();
   const { filters, updateFilters } = useFilters();
 
   const activeSlug = filters.find((f) => f.field === "environment")?.value;

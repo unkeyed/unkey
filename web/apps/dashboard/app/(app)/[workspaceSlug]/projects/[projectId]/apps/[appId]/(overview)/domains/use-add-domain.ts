@@ -1,11 +1,14 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { customDomainErrorKind } from "@/lib/collections/deploy/custom-domains";
+import {
+  customDomainErrorKind,
+  useAppScope,
+  useCustomDomainMutations,
+  useCustomDomains,
+} from "@/lib/deploy-data";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { useForm } from "react-hook-form";
-import { useAppId, useProjectData } from "../data-provider";
 import { type CustomDomainFormValues, customDomainSchema } from "./schema";
 
 export type AddDomainOutcome =
@@ -19,8 +22,9 @@ type Args = {
 };
 
 export function useAddDomain({ defaultEnvironmentId, onSettled, onCancel }: Args) {
-  const { projectId, customDomains } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const { data: customDomains } = useCustomDomains();
+  const { addCustomDomain } = useCustomDomainMutations();
   const workspace = useWorkspaceNavigation();
   const form = useForm<CustomDomainFormValues>({
     resolver: zodResolver(customDomainSchema),
@@ -41,25 +45,8 @@ export function useAddDomain({ defaultEnvironmentId, onSettled, onCancel }: Args
       form.setError("domain", { message: "This domain is already added" });
       return;
     }
-    const tx = collection.customDomains.insert(
-      {
-        id: crypto.randomUUID(),
-        domain,
-        projectId,
-        appId,
-        environmentId,
-        verificationStatus: "pending",
-        dnsRecords: [],
-        verificationError: null,
-        domainConnectProvider: null,
-        domainConnectUrl: null,
-        createdAt: Date.now(),
-        updatedAt: null,
-      },
-      { metadata: { workspaceSlug: workspace.slug } },
-    );
     try {
-      await tx.isPersisted.promise;
+      await addCustomDomain({ domain, projectId, appId, environmentId }, workspace.slug);
       settle({ kind: "added", domain });
     } catch (err) {
       match(customDomainErrorKind(err))

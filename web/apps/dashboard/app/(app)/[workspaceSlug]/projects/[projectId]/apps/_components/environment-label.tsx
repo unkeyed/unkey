@@ -1,4 +1,4 @@
-import type { Environment, EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { Environment, EnvironmentKind } from "@/lib/deploy-data";
 import { IconCloudOutline18, IconEyeOutline18 } from "@unkey/icons";
 import { cn } from "cn";
 

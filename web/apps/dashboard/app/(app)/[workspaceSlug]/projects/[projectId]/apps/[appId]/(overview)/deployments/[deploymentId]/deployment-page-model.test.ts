@@ -1,6 +1,5 @@
-import type { CustomDomain, Domain } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { CustomDomain, Deployment, Domain } from "@/lib/deploy-data";
 import { describe, expect, test } from "vitest";
 import {
   type DeploymentPageInput,

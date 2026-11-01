@@ -31,22 +31,14 @@ vi.mock("./components/metrics-glance", () => ({
 vi.mock("@/hooks/use-workspace-navigation", () => ({
   useWorkspaceNavigation: () => ({ slug: "workspace" }),
 }));
-vi.mock("../data-provider", () => ({
-  useAppId: () => "app_container",
-  useProjectData: () => ({
-    projectId: "proj_backend",
-    environments: [{ id: "env_preview", slug: "preview" }],
-  }),
-}));
-vi.mock("../hooks/use-recent-deployments", () => ({
-  useRecentDeployments: () => ({ deployments: state.deployments, isLoading: false }),
-}));
-vi.mock("../hooks/use-app-current-deployment", () => ({
-  useAppCurrentDeployment: () => ({
-    app: { sourceType: state.sourceType },
-    currentDeployment: undefined,
-    isRolledBack: false,
-  }),
+vi.mock("@/lib/deploy-data", () => ({
+  RECENT_DEPLOYMENTS_LIMIT: 5,
+  useAppScope: () => ({ projectId: "proj_backend", appId: "app_container" }),
+  useEnvironments: () => ({ data: [{ id: "env_preview", slug: "preview" }], isLoading: false }),
+  useRecentDeployments: () => ({ data: state.deployments, isLoading: false }),
+  useApp: () => ({ data: { sourceType: state.sourceType, isRolledBack: false } }),
+  useCurrentDeployment: () => ({ data: undefined }),
+  useProductionDeployments: () => ({ data: [] }),
 }));
 vi.mock("./components/active-branches", () => ({
   ActiveBranches: () => <h2>Active Branches</h2>,

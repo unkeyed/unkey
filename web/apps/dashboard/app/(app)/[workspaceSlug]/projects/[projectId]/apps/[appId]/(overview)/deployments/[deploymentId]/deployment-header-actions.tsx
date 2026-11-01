@@ -1,11 +1,15 @@
 "use client";
-import { useAppCurrentDeployment } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-app-current-deployment";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import type { MenuItem } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Deployment, Environment } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import { hasBuildLogs } from "@/lib/collections/deploy/deployments";
+import {
+  type Deployment,
+  type Environment,
+  hasBuildLogs,
+  useApp,
+  useCurrentDeployment,
+} from "@/lib/deploy-data";
 import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import {
@@ -68,7 +72,9 @@ export function useDeploymentHeaderActions({
   status,
 }: UseDeploymentHeaderActionsProps): DeploymentHeaderActions {
   const workspace = useWorkspaceNavigation();
-  const { currentDeployment, isRolledBack } = useAppCurrentDeployment();
+  const { data: app } = useApp();
+  const currentDeployment = useCurrentDeployment().data ?? undefined;
+  const isRolledBack = app?.isRolledBack ?? false;
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const appV2 = useFlag("appV2");
 

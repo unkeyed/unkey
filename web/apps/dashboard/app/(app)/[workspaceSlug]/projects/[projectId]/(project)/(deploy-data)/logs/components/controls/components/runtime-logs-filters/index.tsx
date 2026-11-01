@@ -3,13 +3,12 @@
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/hooks/use-runtime-logs-filters";
 import { AppEnvironmentFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-environment-filter";
 import { useAppEnvironmentSearchItems } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/use-app-environment-search-items";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-recent-deployments";
 import {
   type FilterItemConfig,
   type FilterItemOption,
   FiltersPopover,
 } from "@/components/logs/checkbox/filters-popover";
+import { DEPLOYMENT_PICKER_LIMIT, useDeployScope, useRecentDeployments } from "@/lib/deploy-data";
 import type {
   RuntimeLogsFilterField,
   RuntimeLogsFilterValue,
@@ -104,8 +103,8 @@ const FILTER_ITEMS: FilterItemConfig<RuntimeLogsFilterField>[] = [
 
 export function RuntimeLogsFilters() {
   const { filters, updateFilters } = useRuntimeLogsFilters();
-  const { projectId } = useProjectData();
-  const { deployments } = useRecentDeployments();
+  const { projectId } = useDeployScope();
+  const { data: deployments } = useRecentDeployments({ limit: DEPLOYMENT_PICKER_LIMIT });
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   // Region and instance options are only needed once the popover opens; keep
   // the rate-limited queries off the logs page critical path.

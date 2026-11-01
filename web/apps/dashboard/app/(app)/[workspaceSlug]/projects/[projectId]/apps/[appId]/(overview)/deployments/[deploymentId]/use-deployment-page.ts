@@ -1,10 +1,9 @@
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import { useApp, useCustomDomains, useDomains } from "@/lib/deploy-data";
 import { useFlag } from "@/lib/flags/provider";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { getDeploymentDomains } from "../../../components/domain-priority";
-import { useProjectData } from "../../data-provider";
-import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { deploymentPageModel } from "./deployment-page-model";
 import { useDeployment } from "./layout-provider";
 import { useDeploymentStatus } from "./use-deployment-status";
@@ -16,9 +15,9 @@ export type DeploymentPage = ReturnType<typeof useDeploymentPage>;
 export function useDeploymentPage() {
   const buildRequested = Boolean(useSearchParams().get("build"));
   const { deployment } = useDeployment();
-  const { domains, customDomains, isDomainsLoading, isCustomDomainsLoading, refetchDomains } =
-    useProjectData();
-  const { app } = useAppCurrentDeployment();
+  const domains = useDomains();
+  const customDomains = useCustomDomains();
+  const { data: app } = useApp();
   const { steps, derivedStatus } = useDeploymentStatus(deployment, { loadEndedSteps: true });
   const showSuccessBanner = useSuccessBanner(deployment.status);
 
@@ -26,9 +25,9 @@ export function useDeploymentPage() {
   useEffect(() => {
     if (ready) {
       steps.refetch();
-      refetchDomains();
+      domains.refetch();
     }
-  }, [ready, refetchDomains, steps.refetch]);
+  }, [ready, domains.refetch, steps.refetch]);
 
   useEffect(() => {
     if (buildRequested) {
@@ -38,7 +37,7 @@ export function useDeploymentPage() {
     }
   }, [buildRequested]);
 
-  const domainsLoading = isDomainsLoading || isCustomDomainsLoading;
+  const domainsLoading = domains.isLoading || customDomains.isLoading;
   return {
     deployment,
     steps: steps.data,
@@ -49,9 +48,9 @@ export function useDeploymentPage() {
       deployment,
       status: derivedStatus,
       buildRequested,
-      domains: getDeploymentDomains(deployment, domains),
+      domains: getDeploymentDomains(deployment, domains.data),
       domainsLoading,
-      customDomains,
+      customDomains: customDomains.data,
       currentDeploymentId: app?.currentDeploymentId ?? null,
     }),
   };

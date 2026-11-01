@@ -1,10 +1,10 @@
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
 import { type PolicyRow, rowKey } from "@/lib/collections/deploy/policies";
 import {
   type Policy,
   normalizePolicyName,
   policyMatchKey,
 } from "@/lib/collections/deploy/policies.schema";
+import type { EnvironmentKind } from "@/lib/deploy-data";
 
 export type Env = EnvironmentKind;
 

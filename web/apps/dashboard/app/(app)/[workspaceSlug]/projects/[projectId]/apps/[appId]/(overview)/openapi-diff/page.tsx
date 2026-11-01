@@ -1,5 +1,6 @@
 "use client";
 
+import { useApp } from "@/lib/deploy-data";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import { IconArrowRightOutline18, IconMagnifierOutline18 } from "@unkey/icons";
@@ -15,14 +16,13 @@ import {
 } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { useProjectData } from "../data-provider";
 import { DiffViewerContent } from "./components/client";
 import { DeploymentSelect } from "./components/deployment-select";
 import { useDiffDeployments } from "./hooks/use-diff-deployments";
 
 export default function DiffPage() {
-  const { project } = useProjectData();
-  const currentDeploymentId = project?.currentDeploymentId;
+  const { data: app } = useApp();
+  const currentDeploymentId = app?.currentDeploymentId;
   const searchParams = useSearchParams();
 
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");

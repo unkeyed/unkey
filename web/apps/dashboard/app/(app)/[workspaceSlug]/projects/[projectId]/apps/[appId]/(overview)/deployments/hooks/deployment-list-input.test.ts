@@ -1,5 +1,5 @@
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Environment } from "@/lib/deploy-data";
 import { describe, expect, test } from "vitest";
 import type { DeploymentListFilterValue } from "../filters.schema";
 import { buildDeploymentListInput } from "./deployment-list-input";

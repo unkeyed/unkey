@@ -1,12 +1,16 @@
 "use client";
 
-import type { DeploymentSummary } from "@/lib/collections/deploy/deployments";
+import {
+  type DeploymentSummary,
+  useApp,
+  useDeployActions,
+  useEnvironments,
+} from "@/lib/deploy-data";
 import { githubUrl } from "@/lib/github-url";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { IconShieldAlertOutline18 } from "@unkey/icons";
 import { AlertBanner, AlertBannerDescription, Button, Dialog, DialogContent } from "@unkey/ui";
-import { useProjectData } from "../../../data-provider";
 
 const chipClass = "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-sm text-gray-12 font-medium";
 
@@ -20,7 +24,9 @@ type DeploymentApprovalProps = {
 };
 
 export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentApprovalProps) {
-  const { awaitDeploymentStatus, project, environments } = useProjectData();
+  const { awaitDeploymentStatus } = useDeployActions();
+  const { data: app } = useApp();
+  const { data: environments } = useEnvironments();
 
   const authorize = useMutation({
     mutationFn: (deploymentId: string) =>
@@ -31,7 +37,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
     },
   });
 
-  const sourceRepo = deployment.forkRepositoryFullName || project?.repositoryFullName;
+  const sourceRepo = deployment.forkRepositoryFullName || app?.repositoryFullName;
 
   // A deployment can land in awaiting_approval for two distinct reasons:
   //   1. fork PR — `forkRepositoryFullName` is populated by detectForkRepo
@@ -40,7 +46,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
   // `prNumber` is set for same-repo PRs too, so it can't gate this copy.
   const isFork = Boolean(deployment.forkRepositoryFullName);
 
-  const prUrl = githubUrl.pull(project?.repositoryFullName, deployment.prNumber);
+  const prUrl = githubUrl.pull(app?.repositoryFullName, deployment.prNumber);
   const commitUrl = githubUrl.commit(sourceRepo, deployment.gitCommitSha);
   const branchUrl = githubUrl.branch(sourceRepo, deployment.gitBranch);
 

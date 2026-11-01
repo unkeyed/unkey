@@ -1,6 +1,4 @@
-import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
-import type { Domain } from "@/lib/collections/deploy/domains";
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { CustomDomain, Domain, Environment } from "@/lib/deploy-data";
 import {
   type DisplayDomain,
   customDisplayDomain,

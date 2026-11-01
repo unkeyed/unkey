@@ -1,43 +1,27 @@
-import type { Deployment } from "@/lib/collections";
-import type { Environment } from "@/lib/collections/deploy/environments";
-import { useLiveInfiniteQuery } from "@tanstack/react-db";
-import { useAppId, useProjectData } from "../../data-provider";
-import { DEPLOYMENTS_PAGE_SIZE, deploymentsTableQueryFor } from "../../data-provider-queries";
-import type { DeploymentListFilter } from "./deployment-list-input";
+import {
+  type Deployment,
+  type DeploymentListFilter,
+  type Environment,
+  useDeploymentsPage,
+  useEnvironments,
+} from "@/lib/deploy-data";
 
-export type DeploymentListRow = {
-  deployment: Deployment;
-  environment: Environment | undefined;
-};
-
+// Legacy pages only. Everything else reads through @/lib/deploy-data.
 export function useDeployments(filter: DeploymentListFilter) {
-  const { projectId, environments, isEnvironmentsLoading } = useProjectData();
-  const appId = useAppId();
-
-  const query = useLiveInfiniteQuery(
-    deploymentsTableQueryFor(projectId, appId, filter),
-    {
-      pageSize: DEPLOYMENTS_PAGE_SIZE,
-      getNextPageParam: (lastPage, allPages) =>
-        lastPage.length === DEPLOYMENTS_PAGE_SIZE ? allPages.length : undefined,
-    },
-    [projectId, appId, JSON.stringify(filter)],
-  );
-
-  const environmentById = new Map(environments.map((e) => [e.id, e]));
-  const rows = query.data.map(
-    (deployment): DeploymentListRow => ({
-      deployment,
-      environment: environmentById.get(deployment.environmentId),
-    }),
-  );
-
+  const environments = useEnvironments();
+  const page = useDeploymentsPage(filter);
+  const environmentById = new Map(environments.data.map((e) => [e.id, e]));
   return {
-    rows,
-    isLoading: isEnvironmentsLoading || query.isLoading,
-    isError: query.isError,
-    hasNextPage: query.hasNextPage,
-    isFetchingNextPage: query.isFetchingNextPage,
-    fetchNextPage: query.fetchNextPage,
+    rows: page.rows.map(
+      (deployment): { deployment: Deployment; environment: Environment | undefined } => ({
+        deployment,
+        environment: environmentById.get(deployment.environmentId),
+      }),
+    ),
+    isLoading: environments.isLoading || page.isLoading,
+    isError: page.isError,
+    hasNextPage: page.hasNextPage,
+    isFetchingNextPage: page.isFetchingNextPage,
+    fetchNextPage: page.fetchNextPage,
   };
 }

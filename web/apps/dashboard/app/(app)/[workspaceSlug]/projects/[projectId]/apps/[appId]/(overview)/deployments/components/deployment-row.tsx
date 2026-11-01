@@ -6,16 +6,17 @@ import {
   badgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
-import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
 import { latestExit } from "@/lib/collections/deploy/last-exit";
+import type { Deployment, Environment } from "@/lib/deploy-data";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
-import { useState } from "react";
+import { memo, useState } from "react";
+import { useWarmDeploymentHandlers } from "../../hooks/use-warm-app-page";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";
 import {
@@ -39,7 +40,7 @@ type DeploymentRowProps = {
   href: Route;
 };
 
-export function DeploymentRow({
+export const DeploymentRow = memo(function DeploymentRow({
   deployment,
   environment,
   repoFullName,
@@ -50,6 +51,7 @@ export function DeploymentRow({
   href,
 }: DeploymentRowProps) {
   const [approvalOpen, setApprovalOpen] = useState(false);
+  const warmHandlers = useWarmDeploymentHandlers(deployment.id);
   const needsApproval = deployment.status === "awaiting_approval";
   const isCurrent = currentDeployment?.id === deployment.id;
   const rollout = badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom });
@@ -63,7 +65,7 @@ export function DeploymentRow({
       : latestExit(deployment.instances.map((i) => i.lastExit));
 
   return (
-    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
+    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors [contain-intrinsic-size:auto_45px] [content-visibility:auto] hover:bg-grayA-2">
       {needsApproval ? (
         <button
           type="button"
@@ -74,6 +76,7 @@ export function DeploymentRow({
       ) : (
         <Link
           href={href}
+          {...warmHandlers}
           className="absolute inset-0 z-10"
           aria-label={`Deployment ${shortenId(deployment.id)} ${statusLabel}`}
         />
@@ -147,4 +150,4 @@ export function DeploymentRow({
       </span>
     </ResourceListItem>
   );
-}
+});

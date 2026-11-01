@@ -4,11 +4,11 @@ import {
   envVarErrorToast,
   saveVariables,
 } from "@/lib/collections/deploy/env-vars";
+import { useAppScope, useEnvironments } from "@/lib/deploy-data";
 import { plural } from "@/lib/fmt";
 import { useMutation } from "@tanstack/react-query";
 import { FormField, toast } from "@unkey/ui";
 import { type FormEvent, useState } from "react";
-import { useAppId, useProjectData } from "../../../[appId]/(overview)/data-provider";
 import { environmentName } from "../../environment-label";
 import { ALL_ENVIRONMENTS, targetEnvironmentIds } from "../../environment-scope";
 import { EnvironmentSelect } from "../../environment-select";
@@ -30,8 +30,8 @@ export function useAddEnvVarsForm({
   onSaved,
   showSaved = false,
 }: { onSaved?: () => void; showSaved?: boolean } = {}) {
-  const appId = useAppId();
-  const { projectId, environments } = useProjectData();
+  const { projectId, appId } = useAppScope();
+  const { data: environments } = useEnvironments();
   const [environmentId, setEnvironmentId] = useState(ALL_ENVIRONMENTS);
   const targetIds = targetEnvironmentIds(
     environmentId,

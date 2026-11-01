@@ -1,7 +1,6 @@
 "use client";
 
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
@@ -10,6 +9,7 @@ import {
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
+import { useDeployScope } from "@/lib/deploy-data";
 import { getTimestampFromRelative } from "@/lib/duration";
 import { trpc } from "@/lib/trpc/client";
 import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
@@ -33,7 +33,7 @@ export function useRequestLogsQuery({
   pollIntervalMs = 2000,
   refreshNonce = 0,
 }: UseRequestLogsQueryParams = {}) {
-  const { projectId } = useProjectData();
+  const { projectId } = useDeployScope();
   const { filters } = useRequestLogsFilters();
   const queryClient = trpc.useUtils();
 

@@ -2,7 +2,7 @@
 
 import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
-import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
+import { ENVIRONMENT_KINDS } from "@/lib/deploy-data";
 import {
   IconDotsOutline18,
   IconGripDotsVerticalOutline18,

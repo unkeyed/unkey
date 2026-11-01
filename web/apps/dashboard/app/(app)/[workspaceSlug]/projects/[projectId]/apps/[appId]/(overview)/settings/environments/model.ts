@@ -1,7 +1,5 @@
 import { branchDomainPattern } from "@/lib/branch-domain";
-import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
-import type { Domain } from "@/lib/collections/deploy/domains";
-import type { Environment, EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { CustomDomain, Domain, Environment, EnvironmentKind } from "@/lib/deploy-data";
 import {
   type ListedPlatformDomain,
   listedPlatformDomains,

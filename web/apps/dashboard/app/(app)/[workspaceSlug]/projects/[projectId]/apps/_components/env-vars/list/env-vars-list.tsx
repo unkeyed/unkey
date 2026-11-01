@@ -2,7 +2,7 @@
 
 import { LoadError } from "@/components/load-error";
 import { useResourceSearch } from "@/components/resource-search-input";
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Environment } from "@/lib/deploy-data";
 import { IconTableCodeOutline18 } from "@unkey/icons";
 import {
   EmptyState,

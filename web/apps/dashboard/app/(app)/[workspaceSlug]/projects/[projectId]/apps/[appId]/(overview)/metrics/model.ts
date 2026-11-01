@@ -1,6 +1,6 @@
 import type { AreaChartPoint } from "@/components/charts/area-timeseries";
 import type { ChartMarker } from "@/components/charts/chart-markers";
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Environment } from "@/lib/deploy-data";
 import type { Loadable } from "@/lib/loadable/loadable";
 import { METRIC_CATALOG, isOutdated } from "@/lib/metrics/app-metrics";
 import type {

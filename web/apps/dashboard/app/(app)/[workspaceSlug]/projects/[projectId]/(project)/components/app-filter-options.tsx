@@ -1,8 +1,7 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { byLatestUpdate } from "@/lib/collections/deploy/project-cards";
+import { useProjectApps } from "@/lib/deploy-data";
 import { useMemo } from "react";
 
 export function useAppFilterOptions(): AppFilterOption[] {
@@ -13,21 +12,11 @@ export function useAppFilterOptionsWithLoading(): {
   options: AppFilterOption[];
   isLoading: boolean;
 } {
-  const { projectId } = useProjectData();
-
-  const apps = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => eq(app.projectId, projectId))
-        .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
-        .orderBy(({ app }) => app.id, "desc"),
-    [projectId],
-  );
+  const apps = useProjectApps();
 
   const options = useMemo(
     () =>
-      (apps.data ?? []).map((app, i) => ({
+      apps.data.toSorted(byLatestUpdate).map((app, i) => ({
         id: i,
         appId: app.id,
         name: app.name,

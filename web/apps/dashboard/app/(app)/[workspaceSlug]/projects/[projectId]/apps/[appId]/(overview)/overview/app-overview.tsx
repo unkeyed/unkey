@@ -1,14 +1,14 @@
 "use client";
 
+import { useApp } from "@/lib/deploy-data";
 import { PageContainer } from "@unkey/ui";
-import { useAppCurrentDeployment } from "../hooks/use-app-current-deployment";
 import { ActiveBranches } from "./components/active-branches";
 import { MetricsGlance } from "./components/metrics-glance";
 import { ProductionOverview } from "./components/production-overview";
 import { RecentDeployments } from "./components/recent-deployments";
 
 export function Overview() {
-  const { app } = useAppCurrentDeployment();
+  const { data: app } = useApp();
 
   return (
     <PageContainer>

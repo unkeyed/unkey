@@ -1,11 +1,9 @@
 import { useResourceSearch } from "@/components/resource-search-input";
 import { useConsumeSearchFlag } from "@/hooks/use-consume-search-flag";
-import { collection } from "@/lib/collections";
-import { useCollectionLoad } from "@/lib/collections/use-collection-load";
+import { useCustomDomains, useDomains, useEnvironments } from "@/lib/deploy-data";
 import { usePageLimit } from "@/lib/loadable/list";
 import { match } from "@unkey/match";
 import { useCallback, useState } from "react";
-import { useProjectData } from "../data-provider";
 import { domainsView } from "./model";
 import type { AddDomainOutcome } from "./use-add-domain";
 
@@ -13,15 +11,9 @@ const PAGE_SIZE = 25;
 const SEARCH_KEY = "search";
 
 export function useDomainsPage() {
-  const {
-    environments,
-    domains,
-    customDomains,
-    isDomainsLoading,
-    isCustomDomainsLoading,
-    isEnvironmentsLoading,
-  } = useProjectData();
-  const load = useCollectionLoad(collection.domains.utils, collection.customDomains.utils);
+  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const domains = useDomains();
+  const customDomains = useCustomDomains();
   const [search, setSearch] = useResourceSearch(SEARCH_KEY);
   const { limit, loadMore } = usePageLimit(search, PAGE_SIZE);
   const [addOpen, setAddOpen] = useState(false);
@@ -36,10 +28,10 @@ export function useDomainsPage() {
   }, []);
 
   const view = domainsView({
-    isLoading: isDomainsLoading || isCustomDomainsLoading,
-    failed: load.failed,
-    domains,
-    customDomains,
+    isLoading: domains.isLoading || customDomains.isLoading,
+    failed: domains.isError || customDomains.isError,
+    domains: domains.data,
+    customDomains: customDomains.data,
     environments,
     search,
     limit,
@@ -67,7 +59,10 @@ export function useDomainsPage() {
     toggle,
     loadMore,
     clearSearch: () => setSearch(null),
-    retry: load.retry,
+    retry: () => {
+      domains.refetch();
+      customDomains.refetch();
+    },
     limitMessage,
     add: {
       open: addOpen,

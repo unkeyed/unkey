@@ -1,7 +1,7 @@
 "use client";
 
 import { TableActionPopover } from "@/components/logs/table-action.popover";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { type Deployment, useEnvironments } from "@/lib/deploy-data";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import {
@@ -19,7 +19,6 @@ import {
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { useProjectData } from "../../data-provider";
 import {
   isCancellableDeploymentStatus,
   isRedeployableDeploymentStatus,
@@ -47,7 +46,7 @@ export function DeploymentDetailHeader() {
 }
 
 function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment }) {
-  const { environments } = useProjectData();
+  const { data: environments } = useEnvironments();
 
   const { derivedStatus } = useDeploymentStatus(deployment);
   const [isRedeployOpen, setIsRedeployOpen] = useState(false);

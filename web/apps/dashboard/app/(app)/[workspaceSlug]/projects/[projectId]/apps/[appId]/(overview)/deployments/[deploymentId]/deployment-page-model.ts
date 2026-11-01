@@ -1,4 +1,3 @@
-import type { CustomDomain, Domain } from "@/lib/collections";
 import {
   DEPLOYMENT_GROUP_COLOR,
   DEPLOYMENT_STATUS_LABELS,
@@ -6,12 +5,12 @@ import {
   deploymentStatusColor,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
-import { type Deployment, hasBuildLogs } from "@/lib/collections/deploy/deployments";
 import {
   type InstanceSummary,
   instanceLabel,
   summarizeInstances,
 } from "@/lib/collections/deploy/instance-status";
+import { type CustomDomain, type Deployment, type Domain, hasBuildLogs } from "@/lib/deploy-data";
 import { type DomainPriorityResult, getDomainPriority } from "../../../components/domain-priority";
 import type { StageKey } from "./details/stages-model";
 
