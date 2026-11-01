@@ -4,7 +4,7 @@ import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { trpc } from "@/lib/trpc/client";
-import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDeployScope, useScopeStore } from "./context";
 import { deploymentStates, scopeDeployments, subscribeDeployments } from "./deployments";
 import { deploymentsPollIntervalMs } from "./poll-interval";
@@ -72,12 +72,22 @@ export function DeployDataScheduler() {
   useSettle(liveTarget, liveReached, settleLive);
   useSettle(statusTarget, statusReached, settleStatus);
 
+  const [unchangedPolls, setUnchangedPolls] = useState(0);
+  // An action of this tab starts a new burst of changes, so polling is fast again
+  useEffect(() => {
+    if (liveTarget !== null || statusTarget !== null) {
+      setUnchangedPolls(0);
+    }
+  }, [liveTarget, statusTarget]);
   // Active branches only move when a deployment does
   const pollDeployments = useCallback(async () => {
     const before = deploymentStates(scopeDeployments(projectId, appId));
     await refetchScopeDeployments(projectId, appId);
     if (deploymentStates(scopeDeployments(projectId, appId)) !== before) {
+      setUnchangedPolls(0);
       trpcUtils.deploy.deployment.listActiveBranches.invalidate();
+    } else {
+      setUnchangedPolls((count) => count + 1);
     }
   }, [trpcUtils, projectId, appId]);
   useCollectionPolling(pollDeployments, {
@@ -85,6 +95,7 @@ export function DeployDataScheduler() {
       awaiting: statusTarget !== null,
       settling: hasSettlingDeployment,
       requestedMs: requestedPollMs,
+      unchangedPolls,
     }),
     enabled: true,
   });

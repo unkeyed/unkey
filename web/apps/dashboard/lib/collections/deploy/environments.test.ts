@@ -15,7 +15,7 @@ vi.mock("@/lib/unkey-client", () => ({
 }));
 vi.mock("../client", async () => {
   const { QueryClient } = await import("@tanstack/query-core");
-  return { queryClient: new QueryClient() };
+  return { queryClient: new QueryClient(), STATIC_STALE_MS: 0 };
 });
 
 const { appsInWhere, environments, inProjectApps } = await import("./environments");

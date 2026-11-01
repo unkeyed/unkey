@@ -166,6 +166,11 @@ const SETTLED_DETAIL_STATUSES = new Set<DeploymentStatus>(["superseded", "cancel
 const DETAILS_BATCH_MS = 10;
 let detailsBatch: { ids: Set<string>; result: Promise<DeploymentDetailsById> } | null = null;
 
+// The lists of one page load each ask for the same rows moments apart, so details
+// fetched this recently are reused rather than asked for again
+const DETAILS_FRESH_MS = 2_000;
+const detailsFetchedAt = new Map<string, number>();
+
 function loadDeploymentDetails(ids: string[]): Promise<DeploymentDetailsById> {
   if (!detailsBatch) {
     const batch = { ids: new Set<string>(), result: Promise.resolve({}) };
@@ -182,6 +187,10 @@ function loadDeploymentDetails(ids: string[]): Promise<DeploymentDetailsById> {
             trpcClient.deploy.deployment.listDetails.query({ deploymentIds }),
           ),
         );
+        const fetchedAt = Date.now();
+        for (const id of all) {
+          detailsFetchedAt.set(id, fetchedAt);
+        }
         return Object.assign({}, ...results);
       },
     );
@@ -339,8 +348,8 @@ export async function withDeploymentDetails(
       const previous = known(row.id);
       return previous &&
         previous.status === row.status &&
-        previous.instances.length === 0 &&
-        SETTLED_DETAIL_STATUSES.has(row.status)
+        ((previous.instances.length === 0 && SETTLED_DETAIL_STATUSES.has(row.status)) ||
+          Date.now() - (detailsFetchedAt.get(row.id) ?? 0) < DETAILS_FRESH_MS)
         ? [[row.id, previous] as const]
         : [];
     }),
