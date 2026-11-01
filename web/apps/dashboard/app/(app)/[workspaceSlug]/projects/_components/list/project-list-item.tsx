@@ -4,11 +4,11 @@ import { ListTableRow, listTable } from "@/components/list-views";
 import { useNearViewport } from "@/hooks/use-near-viewport";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Project } from "@/lib/collections";
+import { warmProjectPage } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Skeleton } from "@unkey/ui";
 import { DeployedAgo } from "../../[projectId]/_components/apps-list/app-source";
-import { warmProjectPage } from "../../[projectId]/_components/apps-list/queries";
 import {
   type WarmHandlers,
   useWarmAppPage,

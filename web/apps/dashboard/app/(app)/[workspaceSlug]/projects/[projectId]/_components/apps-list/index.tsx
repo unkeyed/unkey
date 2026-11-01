@@ -4,13 +4,12 @@ import { ListViews } from "@/components/list-views";
 import { ResourceSearchInput, useListSearch } from "@/components/resource-search-input";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { refetchProjectApps, useAppsInProject } from "@/lib/deploy-data";
 import { GRID_PAGE_SIZE } from "@/lib/list-limits";
 import { useShowMore } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
-import { useLiveQuery } from "@tanstack/react-db";
 import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -25,7 +24,6 @@ import { useParams, useRouter } from "next/navigation";
 import { AppCard, AppCardSkeleton } from "./app-card";
 import { filterApps, toAppRow } from "./app-row-model";
 import { APPS_TABLE, AppsTableRow } from "./apps-table";
-import { projectAppsQueryFor } from "./queries";
 
 const IDLE_POLL_MS = 60_000;
 const BUILDING_POLL_MS = 5_000;
@@ -49,7 +47,7 @@ export function AppsList() {
           }),
         );
 
-  const apps = useLiveQuery(projectAppsQueryFor(projectId), [projectId]);
+  const apps = useAppsInProject(projectId);
   const hasInFlightDeployment = apps.data.some(
     (app) => app.headlineDeployment && isDeploymentInFlight(app.headlineDeployment.status),
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useProject } from "@/hooks/use-project";
+import { useProject } from "@/lib/deploy-data";
 import {
   PageContainer,
   PageHeader,
@@ -9,11 +9,13 @@ import {
   SettingsDangerZone,
   SettingsGroups,
 } from "@unkey/ui";
+import { useParams } from "next/navigation";
 import { DeleteProject } from "./components/delete-project";
 import { UpdateProjectSettings } from "./components/update-project-settings";
 
 export default function ProjectSettingsPage() {
-  const { project } = useProject();
+  const { projectId } = useParams<{ projectId?: string }>();
+  const { data: project } = useProject(projectId);
 
   return (
     <PageContainer>

@@ -6,6 +6,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   type Environment,
   productionFirst,
+  useAppEnvironmentSettings,
   useCustomDomains,
   useDomains,
   useEnvironments,
@@ -22,7 +23,6 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { EnvironmentLabel } from "../../../../_components/environment-label";
-import { useAppEnvironmentSettings } from "../../../../_components/settings/environment-provider";
 import { useBuildSource } from "../../../../_components/settings/hooks/use-build-source";
 import { type Branch, branchFor } from "./branch";
 import { BranchLabel } from "./branch-label";
@@ -36,7 +36,7 @@ export function EnvironmentsTable() {
   const { data: domains } = useDomains();
   const { data: customDomains } = useCustomDomains();
   const workspace = useWorkspaceNavigation();
-  const settings = useAppEnvironmentSettings();
+  const { data: settings } = useAppEnvironmentSettings();
 
   if (environments.isError && !environments.isLoading) {
     return <LoadError title="Could not load environments" onRetry={environments.refetch} />;

@@ -3,9 +3,8 @@
 import { type LeaveConfirm, LeaveGuard, useLeaveBypass } from "@/components/leave-guard";
 import { keepLeaveSentinel } from "@/hooks/prevent-leave-model";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
+import { useAppsInProject } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useIsMutating, useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -61,10 +60,7 @@ export function useNewAppFlow(): NewAppFlow {
 export function FlowLoader({ projectId, children }: { projectId: string; children: ReactNode }) {
   const searchParams = useSearchParams();
   const params = { step: searchParams.get("step"), appId: searchParams.get("appId") };
-  const { data: apps, isLoading } = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
-  );
+  const { data: apps, isLoading } = useAppsInProject(projectId);
   const pending = pendingPane(params.step);
   if (params.appId && isLoading) {
     return (

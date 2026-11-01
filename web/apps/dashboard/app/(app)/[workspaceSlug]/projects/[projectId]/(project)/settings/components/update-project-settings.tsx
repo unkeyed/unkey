@@ -1,8 +1,8 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import { type Project, createProjectRequestSchema } from "@/lib/collections/deploy/projects";
+import { useProjectMutations } from "@/lib/deploy-data";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   FormInput,
@@ -54,6 +54,7 @@ export function UpdateProjectSettings({ project }: { project: Project }) {
 }
 
 function ProjectNameRow({ project }: { project: Project }) {
+  const { renameProject } = useProjectMutations();
   const {
     register,
     handleSubmit,
@@ -69,10 +70,7 @@ function ProjectNameRow({ project }: { project: Project }) {
   const saveState = formSaveState({ isSubmitting, isValid, isDirty });
 
   const onSubmit = async (values: z.infer<typeof nameSchema>) => {
-    const tx = collection.projects.update(project.id, (draft) => {
-      draft.name = values.name;
-    });
-    await tx.isPersisted.promise;
+    await renameProject(project.id, values.name);
   };
 
   return (

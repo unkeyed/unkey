@@ -2,9 +2,8 @@ import {
   MAX_VARIABLES,
   PartialAddError,
   envVarErrorToast,
-  saveVariables,
 } from "@/lib/collections/deploy/env-vars";
-import { useAppScope, useEnvironments } from "@/lib/deploy-data";
+import { useAppScope, useEnvVarMutations, useEnvironments } from "@/lib/deploy-data";
 import { plural } from "@/lib/fmt";
 import { useMutation } from "@tanstack/react-query";
 import { FormField, toast } from "@unkey/ui";
@@ -32,6 +31,7 @@ export function useAddEnvVarsForm({
 }: { onSaved?: () => void; showSaved?: boolean } = {}) {
   const { projectId, appId } = useAppScope();
   const { data: environments } = useEnvironments();
+  const { saveVariables } = useEnvVarMutations();
   const [environmentId, setEnvironmentId] = useState(ALL_ENVIRONMENTS);
   const targetIds = targetEnvironmentIds(
     environmentId,

@@ -70,8 +70,7 @@ export function useSettingForm<TValues extends FieldValues>({
   const form = useSavableForm({
     schema,
     values: saved,
-    save: (submitted) =>
-      context.update((draft) => write(draft, submitted, saved)).isPersisted.promise,
+    save: (submitted) => context.update((draft) => write(draft, submitted, saved)),
   });
 
   return { ...context, ...form };

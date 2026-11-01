@@ -1,8 +1,8 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
-import { collection } from "@/lib/collections";
-import { type EnvVar, WRITEONLY_VALUE_REQUIRED } from "@/lib/collections/deploy/env-vars";
+import { WRITEONLY_VALUE_REQUIRED } from "@/lib/collections/deploy/env-vars";
+import { type EnvVar, useEnvVarMutations } from "@/lib/deploy-data";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCircleInfoOutline18 } from "@unkey/icons";
@@ -28,6 +28,7 @@ type EditEnvVarFormValues = z.infer<typeof editWriteonlySchema>;
 export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: () => void }) {
   const { id: envVarId, value, key: variableKey, description: note } = envVar;
   const isWriteonly = envVar.type === "writeonly";
+  const { updateEnvVar } = useEnvVarMutations();
 
   const {
     register,
@@ -68,22 +69,20 @@ export function EnvVarEditRow({ envVar, onClose }: { envVar: EnvVar; onClose: ()
         }
       }
 
-      const saved = await collection.envVars
-        .update(envVarId, { optimistic: false }, (draft) => {
-          draft.key = values.key;
-          draft.value = values.value;
-          draft.description = values.description || null;
-          draft.type = values.sensitive ? "writeonly" : "recoverable";
-        })
-        .isPersisted.promise.then(
-          () => true,
-          () => false,
-        );
+      const saved = await updateEnvVar(envVarId, {
+        key: values.key,
+        value: values.value,
+        description: values.description || null,
+        type: values.sensitive ? "writeonly" : "recoverable",
+      }).then(
+        () => true,
+        () => false,
+      );
       if (saved && mounted.current) {
         onClose();
       }
     },
-    [envVarId, isWriteonly, note, variableKey, setError, onClose],
+    [envVarId, isWriteonly, note, variableKey, setError, onClose, updateEnvVar],
   );
 
   const handleKeyPaste = useCallback(

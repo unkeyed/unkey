@@ -1,14 +1,11 @@
-import { collection } from "@/lib/collections";
-import {
-  type EnvVar,
-  envVarErrorToast,
-  makeVariablesSensitive,
-} from "@/lib/collections/deploy/env-vars";
+import { envVarErrorToast } from "@/lib/collections/deploy/env-vars";
+import { type EnvVar, useEnvVarMutations } from "@/lib/deploy-data";
 import { plural } from "@/lib/fmt";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 
 export function useBulkEnvVarActions(selected: EnvVar[], onDone: () => void) {
+  const { deleteEnvVars, makeVariablesSensitive } = useEnvVarMutations();
   const makeSensitive = useMutation({
     mutationFn: makeVariablesSensitive,
     onSuccess: (updated) => {
@@ -26,7 +23,7 @@ export function useBulkEnvVarActions(selected: EnvVar[], onDone: () => void) {
 
   const deleteSelected = () => {
     if (selected.length > 0) {
-      collection.envVars.delete(selected.map((item) => item.id));
+      deleteEnvVars(selected.map((item) => item.id));
     }
     onDone();
   };

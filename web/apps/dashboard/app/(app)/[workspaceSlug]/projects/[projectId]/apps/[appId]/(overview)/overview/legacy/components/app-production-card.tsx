@@ -14,7 +14,7 @@ import {
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { type InitialQueryBuilder, and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Card } from "@unkey/ui";
 import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -22,7 +22,6 @@ import { useState } from "react";
 import { getDomainPriority } from "../../../../components/domain-priority";
 import { ActiveDeploymentCardEmpty } from "../../../../components/legacy/active-deployment-card/components/active-deployment-card-empty";
 import { useAppId, useProjectData } from "../../../data-provider";
-import { appDeploymentQueryFor } from "../../../data-provider-queries";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../../navigations/create-deployment-button";
@@ -319,3 +318,15 @@ export function AppProductionCard() {
     </ProductionCardProvider>
   );
 }
+
+const appDeploymentQueryFor =
+  (projectId: string, appId: string, deploymentId: string) => (q: InitialQueryBuilder) =>
+    q
+      .from({ deployment: collection.deployments })
+      .where(({ deployment }) =>
+        and(
+          eq(deployment.projectId, projectId),
+          eq(deployment.appId, appId),
+          eq(deployment.id, deploymentId),
+        ),
+      );
