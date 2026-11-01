@@ -20,12 +20,12 @@ import { GlowIcon } from "../components/glow-icon";
 export function PendingRedeployBanner() {
   const { refetchDeployments, refetchApps } = useDeployActions();
   const { data: app } = useApp();
-  const currentDeployment = useCurrentDeployment().data ?? undefined;
   const currentDeploymentId = app?.currentDeploymentId ?? null;
   const navigate = useGuardedNavigate();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
+  const currentDeployment = useCurrentDeployment({ enabled: visible }).data ?? undefined;
 
   const show = visible && !!currentDeployment;
 
