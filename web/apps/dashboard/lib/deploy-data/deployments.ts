@@ -137,10 +137,12 @@ export function useDeployment(
 }
 
 // The deployment serving the app, or the project's primary app outside an app
-export function useCurrentDeployment(): QueryResult<Deployment | null | undefined> {
+export function useCurrentDeployment({
+  enabled = true,
+}: { enabled?: boolean } = {}): QueryResult<Deployment | null | undefined> {
   const app = useApp();
   const currentDeploymentId = app.data?.currentDeploymentId;
-  const deployment = useDeployment(currentDeploymentId);
+  const deployment = useDeployment(enabled ? currentDeploymentId : null);
   return {
     ...deployment,
     data: app.isLoading && currentDeploymentId === undefined ? undefined : deployment.data,
