@@ -1,7 +1,7 @@
 package prompt
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -73,18 +73,65 @@ func New(opts ...Option) *Prompt {
 // the user presses Enter. If a default is provided and the user enters nothing,
 // the default is returned.
 func (p *Prompt) String(label string, defaultValue ...string) (string, error) {
+	var err error
 	if len(defaultValue) > 0 && defaultValue[0] != "" {
-		_, _ = fmt.Fprintf(p.out, "%s [%s]: ", label, defaultValue[0])
+		_, err = fmt.Fprintf(p.out, "%s [%s]: ", label, defaultValue[0])
 	} else {
-		_, _ = fmt.Fprint(p.out, label+": ")
+		_, err = fmt.Fprint(p.out, label+": ")
 	}
-	reader := bufio.NewReader(p.in)
-	input, err := reader.ReadString('\n')
-	result := strings.TrimSpace(input)
+	if err != nil {
+		return "", err
+	}
+
+	var input []byte
+	var inputByte [1]byte
+	readsEmpty := 0
+	for {
+		var n int
+		n, err = p.in.Read(inputByte[:])
+		if n > 0 {
+			readsEmpty = 0
+			if inputByte[0] == '\n' {
+				err = nil
+				break
+			}
+			input = append(input, inputByte[0])
+		} else {
+			readsEmpty++
+		}
+		if err != nil {
+			break
+		}
+		if readsEmpty == 100 {
+			err = io.ErrNoProgress
+			break
+		}
+	}
+	result := strings.TrimSpace(string(input))
 	if result == "" && len(defaultValue) > 0 {
 		return defaultValue[0], err
 	}
 	return result, err
+}
+
+// Secret reads a terminal value without echoing it or trimming whitespace.
+func (p *Prompt) Secret(label string) (value string, err error) {
+	state, err := term.MakeRaw(p.fd)
+	if err != nil {
+		return "", err
+	}
+	defer func() { err = errors.Join(err, term.Restore(p.fd, state)) }()
+	if _, err := fmt.Fprint(p.out, label+" (hidden): "); err != nil {
+		return "", err
+	}
+	raw, err := term.ReadPassword(p.fd)
+	if err != nil {
+		return "", err
+	}
+	if _, err := fmt.Fprint(p.out, "\r\n"); err != nil {
+		return "", err
+	}
+	return string(raw), nil
 }
 
 // Int prompts the user for an integer value. If a default is provided and the
@@ -308,12 +355,15 @@ func (p *Prompt) SelectOrdered(label string, options []SelectOption, defaultKey 
 			_, _ = fmt.Fprint(p.out, showCursor)
 			return options[selected].Key, nil
 		} else if buf[0] == 3 {
-			// Ctrl+C sends byte 3 (ETX - End of Text). Treat as interrupt.
-			_, _ = fmt.Fprint(p.out, showCursor)
-			return "", fmt.Errorf("interrupted")
+			return "", p.interrupt()
 		}
 		render()
 	}
+}
+
+func (p *Prompt) interrupt() error {
+	_, err := fmt.Fprint(p.out, carriageReturn+clearBelow+showCursor)
+	return errors.Join(errors.New("interrupted"), err)
 }
 
 // defaultIndex returns the index of the option matching the first default key,
@@ -448,9 +498,7 @@ func (p *Prompt) MultiSelect(label string, options map[string]string, defaultKey
 			}
 			return result, nil
 		} else if buf[0] == 3 {
-			// Ctrl+C sends byte 3 (ETX - End of Text). Treat as interrupt.
-			_, _ = fmt.Fprint(p.out, showCursor)
-			return nil, fmt.Errorf("interrupted")
+			return nil, p.interrupt()
 		}
 		render()
 	}

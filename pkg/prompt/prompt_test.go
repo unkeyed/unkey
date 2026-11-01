@@ -174,6 +174,67 @@ func TestString(t *testing.T) {
 	})
 }
 
+func TestStringSequentialAnswers(t *testing.T) {
+	in := strings.NewReader("first\n\nこんにちは\npartial")
+	var out bytes.Buffer
+	p := New(WithReader(in), WithWriter(&out))
+
+	for _, expected := range []string{"first", "fallback", "こんにちは"} {
+		result, err := p.String("Name", "fallback")
+		require.NoError(t, err)
+		require.Equal(t, expected, result)
+	}
+	result, err := p.String("Name", "fallback")
+	require.ErrorIs(t, err, io.EOF)
+	require.Equal(t, "partial", result)
+	require.Equal(t, strings.Repeat("Name [fallback]: ", 4), out.String())
+}
+
+func TestStringPreservesUnreadMenuInput(t *testing.T) {
+	in := strings.NewReader("first\n\x1b[B\rsecond\n")
+	p := New(WithReader(in), WithWriter(io.Discard))
+
+	first, err := p.String("First")
+	require.NoError(t, err)
+	require.Equal(t, "first", first)
+
+	var menuInput [4]byte
+	_, err = io.ReadFull(in, menuInput[:])
+	require.NoError(t, err)
+	require.Equal(t, "\x1b[B\r", string(menuInput[:]))
+
+	second, err := p.String("Second")
+	require.NoError(t, err)
+	require.Equal(t, "second", second)
+}
+
+func TestStringWriteFailureLeavesInputUnread(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		defaults []string
+	}{
+		{name: "without default"},
+		{name: "with default", defaults: []string{"fallback"}},
+		{name: "with empty default", defaults: []string{""}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			expectedErr := errors.New("write failed")
+			reader, writer := io.Pipe()
+			require.NoError(t, reader.CloseWithError(expectedErr))
+			t.Cleanup(func() { require.NoError(t, writer.Close()) })
+			in := strings.NewReader("answer\n")
+			p := New(WithReader(in), WithWriter(writer))
+
+			result, err := p.String("Name", tc.defaults...)
+			require.ErrorIs(t, err, expectedErr)
+			require.Empty(t, result)
+			unread, err := io.ReadAll(in)
+			require.NoError(t, err)
+			require.Equal(t, "answer\n", string(unread))
+		})
+	}
+}
+
 func TestInt(t *testing.T) {
 	t.Run("parses valid integer", func(t *testing.T) {
 		in := strings.NewReader("42\n")
