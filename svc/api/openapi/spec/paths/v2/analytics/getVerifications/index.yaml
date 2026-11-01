@@ -5,7 +5,6 @@ post:
     - bearer: []
   x-speakeasy-name-override: getVerifications
   operationId: analytics.getVerifications
-  x-unkey-workspace-rate-limit-exempt: true
   summary: Query key verification data
   description: |
     Execute custom SQL queries against your key verification analytics. CTEs, subqueries, UNION, and EXCEPT are supported.

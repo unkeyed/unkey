@@ -7,7 +7,6 @@ post:
     Returns the device label, requester details, and status for a user code.
     Requires a dashboard session.
   operationId: cli.getDeviceLogin
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getDeviceLogin
   requestBody:
     required: true

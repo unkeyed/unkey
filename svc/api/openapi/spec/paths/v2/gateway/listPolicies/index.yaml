@@ -15,7 +15,6 @@ post:
     - `environment.*.read_policies` (for any environment)
     - `environment.<environment_id>.read_policies` (for a specific environment)
   operationId: gateway.listPolicies
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listPolicies
   security:
     - bearer: []

@@ -252,11 +252,6 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create validator: %w", err)
 	}
 
-	rateLimitExemptions, err := openapi.WorkspaceRateLimitExemptionsFromSpec(openapi.Spec)
-	if err != nil {
-		return fmt.Errorf("unable to load workspace rate limit exemptions: %w", err)
-	}
-
 	// Bodies are logged to ClickHouse verbatim apart from this, so an empty
 	// field set means every annotated secret would be persisted in the clear.
 	// Refuse to start rather than log plaintext keys.
@@ -562,27 +557,26 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:            database,
-		Flags:               flagSvc,
-		ClickHouse:          ch,
-		ApiRequests:         apiRequests,
-		DirectAuditLogs:     directAuditLogs,
-		RatelimitEvents:     ratelimits,
-		KeyVerifications:    keyVerifications,
-		Clock:               clk,
-		Keys:                keySvc,
-		Auth:                authSvc,
-		PortalAuth:          portalAuthSvc,
-		Validator:           validator,
-		Redactor:            redactor,
-		Ratelimit:           rlSvc,
-		RateLimitExemptions: rateLimitExemptions,
-		Auditlogs:           auditlogSvc,
-		Caches:              caches,
-		Vault:               vaultClient,
-		CtrlProjectClient:   ctrlProjectClient,
-		CtrlAppClient:       ctrlAppClient,
-		Restate:             restateClient,
+		Database:          database,
+		Flags:             flagSvc,
+		ClickHouse:        ch,
+		ApiRequests:       apiRequests,
+		DirectAuditLogs:   directAuditLogs,
+		RatelimitEvents:   ratelimits,
+		KeyVerifications:  keyVerifications,
+		Clock:             clk,
+		Keys:              keySvc,
+		Auth:              authSvc,
+		PortalAuth:        portalAuthSvc,
+		Validator:         validator,
+		Redactor:          redactor,
+		Ratelimit:         rlSvc,
+		Auditlogs:         auditlogSvc,
+		Caches:            caches,
+		Vault:             vaultClient,
+		CtrlProjectClient: ctrlProjectClient,
+		CtrlAppClient:     ctrlAppClient,
+		Restate:           restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,
 		PprofEnabled:           pprofEnabled,

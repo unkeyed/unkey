@@ -12,7 +12,6 @@ post:
     Your root key must have the following permission:
     - `environment.*.read_environment` (to read environments in any app)
   operationId: environments.listEnvironments
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listEnvironments
   security:
     - bearer: []

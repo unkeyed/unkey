@@ -12,7 +12,6 @@ post:
     Your root key must have the following permission:
     - `project.*.read_project` (to read projects in your workspace)
   operationId: projects.listProjects
-  x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listProjects
   security:
     - bearer: []

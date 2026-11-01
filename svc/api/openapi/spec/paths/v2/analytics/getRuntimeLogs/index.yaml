@@ -5,7 +5,6 @@ post:
     - bearer: []
   x-speakeasy-name-override: getRuntimeLogs
   operationId: analytics.getRuntimeLogs
-  x-unkey-workspace-rate-limit-exempt: true
   summary: Query runtime log data
   description: |
     A query can use only the public alias `runtime_logs_v1`. CTEs, subqueries, UNION, and EXCEPT are permitted.

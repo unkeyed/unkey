@@ -164,22 +164,20 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	})
 
 	withAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:                svc.Auth,
-		KeyVerifications:    svc.KeyVerifications,
-		Region:              info.Region,
-		Database:            svc.Database,
-		LimitsCache:         svc.Caches.WorkspaceLimits,
-		Ratelimit:           svc.Ratelimit,
-		RateLimitExemptions: svc.RateLimitExemptions,
+		Auth:             svc.Auth,
+		KeyVerifications: svc.KeyVerifications,
+		Region:           info.Region,
+		Database:         svc.Database,
+		LimitsCache:      svc.Caches.WorkspaceLimits,
+		Ratelimit:        svc.Ratelimit,
 	})
 	withPortalAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:                svc.PortalAuth,
-		KeyVerifications:    nil,
-		Region:              "",
-		Database:            svc.Database,
-		LimitsCache:         svc.Caches.WorkspaceLimits,
-		Ratelimit:           svc.Ratelimit,
-		RateLimitExemptions: svc.RateLimitExemptions,
+		Auth:             svc.PortalAuth,
+		KeyVerifications: nil,
+		Region:           "",
+		Database:         svc.Database,
+		LimitsCache:      svc.Caches.WorkspaceLimits,
+		Ratelimit:        svc.Ratelimit,
 	})
 
 	publicMiddlewares := []zen.Middleware{
