@@ -3,7 +3,7 @@
 import { FEATURE_ICONS } from "@/components/billing/plan-feature-icons";
 import { PlanTierIcon } from "@/components/billing/plan-tier-icons";
 import { announceUpgrade } from "@/components/billing/upgrade-success/upgrade-success-dialog";
-import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
+import { useInvalidateBillingQueries } from "@/hooks/use-payment-issues";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   type CurrentPlan,
@@ -66,7 +66,7 @@ export function ComputePlans({
   const router = useRouter();
   const pathname = usePathname();
   const trpcUtils = trpc.useUtils();
-  const invalidateWorkspace = useInvalidateWorkspaceQueries();
+  const invalidateBilling = useInvalidateBillingQueries();
   const [pendingOption, setPendingOption] = useState<DeployPlanOption | null>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<DeployPlan | null>(null);
   const [isCancelOpen, setCancelOpen] = useState(false);
@@ -96,10 +96,9 @@ export function ComputePlans({
       await Promise.all([
         trpcUtils.stripe.getDeploySubscription.invalidate(),
         trpcUtils.stripe.getDeployEntitlement.invalidate(),
-        trpcUtils.stripe.getUpcomingInvoice.invalidate(),
         trpcUtils.stripe.getDeployCredit.invalidate(),
         trpcUtils.billing.queryDeployUsage.invalidate(),
-        invalidateWorkspace(),
+        invalidateBilling(),
       ]);
       router.refresh();
       setPendingOption(null);

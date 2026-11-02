@@ -47,9 +47,7 @@ export function isPaymentFailureRelatedUpdate(
   const changedKeys = Object.keys(previousAttributes);
 
   // Check if status changed to a payment-failure-related status
-  const paymentFailureStatuses = ["past_due", "unpaid", "incomplete"];
-  const statusChanged =
-    changedKeys.includes("status") && paymentFailureStatuses.includes(sub.status);
+  const statusChanged = changedKeys.includes("status") && needsPaymentAction(sub.status);
 
   // Check if latest_invoice changed (indicates payment processing)
   const invoiceChanged = changedKeys.includes("latest_invoice");
@@ -194,3 +192,19 @@ export function hostedInvoiceUrl(sub: Stripe.Subscription): string | null {
     sub.latest_invoice && typeof sub.latest_invoice !== "string" ? sub.latest_invoice : null;
   return invoice?.hosted_invoice_url ?? null;
 }
+
+export const PAYMENT_ACTION_STATUSES = [
+  "incomplete",
+  "past_due",
+  "unpaid",
+] as const satisfies ReadonlyArray<Stripe.Subscription.Status>;
+
+export type PaymentActionStatus = (typeof PAYMENT_ACTION_STATUSES)[number];
+
+export function needsPaymentAction(
+  status: Stripe.Subscription.Status,
+): status is PaymentActionStatus {
+  return PAYMENT_ACTION_STATUSES.some((s) => s === status);
+}
+
+export const SUBSCRIPTION_STATUS_TTL_MS = 5 * 60 * 1000;
