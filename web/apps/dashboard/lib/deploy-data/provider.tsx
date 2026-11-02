@@ -2,7 +2,7 @@
 
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
-import { refetchProjectApps } from "@/lib/queries/apps";
+import { refetchProjectApps, useProjectApps } from "@/lib/queries/apps";
 import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -125,9 +125,9 @@ function DeployDataScheduler() {
   );
   useSettle(liveTarget, liveReached, settleLive);
 
-  useCollectionPolling(() => refetchProjectApps(queryClient, projectId), {
-    intervalMs: liveTarget !== null ? POLL_AWAITING_MS : POLL_APPS_IDLE_MS,
+  useProjectApps(projectId, {
     enabled: appId !== undefined,
+    refetchInterval: liveTarget !== null ? POLL_AWAITING_MS : POLL_APPS_IDLE_MS,
   });
   useCollectionPolling(() => refetchScopeCustomDomains(projectId), {
     intervalMs: POLL_CUSTOM_DOMAINS_MS,

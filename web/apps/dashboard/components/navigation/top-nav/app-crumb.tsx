@@ -2,7 +2,6 @@
 
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { byLatestUpdate } from "@/lib/collections/deploy/project-cards";
 import { routes } from "@/lib/navigation/routes";
 import { useProjectApps } from "@/lib/queries/apps";
 import { Github, IconPlusOutline18, IconTerminalOutline18 } from "@unkey/icons";
@@ -13,7 +12,7 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
   const appsQuery = useProjectApps(projectId);
-  const apps = (appsQuery.data ?? []).toSorted(byLatestUpdate);
+  const apps = appsQuery.data ?? [];
   const current = apps.find((a) => a.id === appId);
 
   const items: CrumbPopoverItem[] = apps.map((a) => ({

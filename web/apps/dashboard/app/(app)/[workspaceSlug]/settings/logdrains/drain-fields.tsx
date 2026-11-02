@@ -14,7 +14,7 @@ import {
   useMultiboxAnchor,
 } from "@/components/ui/multibox";
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
-import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
+import { useProjectsWithApps } from "@/lib/queries/projects";
 import { useEveryNamespace } from "@/lib/queries/ratelimit-namespaces";
 import { trpc } from "@/lib/trpc/client";
 import { Radio } from "@base-ui/react/radio";

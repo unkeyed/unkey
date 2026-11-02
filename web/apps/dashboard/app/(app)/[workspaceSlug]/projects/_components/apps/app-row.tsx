@@ -2,7 +2,7 @@
 
 import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
-import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
+import type { ProjectApp } from "@/lib/queries/apps";
 import {
   IconClockOutline18,
   IconCodeBranchOutline18,

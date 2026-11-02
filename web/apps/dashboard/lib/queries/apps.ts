@@ -40,6 +40,8 @@ export type App = {
   } | null;
 };
 
+export type ProjectApp = Pick<App, "id" | "name" | "customDomain" | "headlineDeployment">;
+
 export const ociImageReferenceSchema = z
   .string()
   .transform(sanitizeImageRef)
@@ -76,10 +78,14 @@ export function latestDeploymentId(app: AppDeploymentRefs): string | null {
   return app.headlineDeployment?.id ?? app.currentDeploymentId;
 }
 
-export function hasInFlightDeployment(apps: readonly App[] | undefined): boolean {
-  return (apps ?? []).some(
+const IN_FLIGHT_POLL_MS = 5_000;
+const IDLE_POLL_MS = 60_000;
+
+export function appsPollInterval(apps: readonly App[] | undefined): number {
+  const inFlight = (apps ?? []).some(
     (app) => app.headlineDeployment !== null && isDeploymentInFlight(app.headlineDeployment.status),
   );
+  return inFlight ? IN_FLIGHT_POLL_MS : IDLE_POLL_MS;
 }
 
 export function useProjectApps(
@@ -87,7 +93,10 @@ export function useProjectApps(
   {
     enabled = true,
     refetchInterval,
-  }: { enabled?: boolean; refetchInterval?: (apps: App[] | undefined) => number | false } = {},
+  }: {
+    enabled?: boolean;
+    refetchInterval?: number | ((apps: App[] | undefined) => number | false);
+  } = {},
 ) {
   return useQuery({
     ...projectAppsOptions(projectId),
@@ -212,7 +221,7 @@ export async function loadProjectApps(
     const headlineByApp = new Map(headlines.map(({ appId, ...headline }) => [appId, headline]));
     const domainsByApp = new Map(displayDomains.map((d) => [d.appId, d]));
 
-    return pages.flatMap((page) =>
+    const apps = pages.flatMap((page) =>
       page.result.data.map((app): App => {
         const currentDeploymentId = app.currentDeploymentId ?? null;
         return {
@@ -235,10 +244,18 @@ export async function loadProjectApps(
         };
       }),
     );
+    return apps.toSorted(byLatestUpdate);
   } catch (error) {
     if (error instanceof NotFoundErrorResponse) {
       return [];
     }
     throw error;
   }
+}
+
+export function byLatestUpdate(
+  a: Pick<App, "id" | "updatedAt">,
+  b: Pick<App, "id" | "updatedAt">,
+): number {
+  return (b.updatedAt ?? -1) - (a.updatedAt ?? -1) || (b.id < a.id ? -1 : b.id > a.id ? 1 : 0);
 }

@@ -17,14 +17,18 @@ vi.mock("@/lib/collections/client", () => ({
   },
 }));
 
-const { loadProjectApps } = await import("./apps");
+const { byLatestUpdate, loadProjectApps } = await import("./apps");
 
 describe("loadProjectApps", () => {
   it("merges the SDK apps with their headline deployment and display domain", async () => {
     const projectId = newId("project");
     const deployed = { id: newId("app"), currentDeploymentId: newId("test") };
-    const image = { id: newId("app"), oci: { image: "KEBAP:latest" } };
-    const noBranch = { id: newId("app"), git: { repository: "unkeyed/unkey", defaultBranch: "" } };
+    const image = { id: newId("app"), oci: { image: "KEBAP:latest" }, updatedAt: 2 };
+    const noBranch = {
+      id: newId("app"),
+      git: { repository: "unkeyed/unkey", defaultBranch: "" },
+      updatedAt: 3,
+    };
     const rows = [deployed, image, noBranch].map((app) => ({
       name: "KEBAP",
       slug: "kebap",
@@ -55,7 +59,10 @@ describe("loadProjectApps", () => {
       { appId: image.id, domain: "web.KEBAP.app", customDomain: "web.KEBAP.com" },
     ]);
 
-    const byId = new Map((await loadProjectApps(projectId, undefined)).map((app) => [app.id, app]));
+    const apps = await loadProjectApps(projectId, undefined);
+    const byId = new Map(apps.map((app) => [app.id, app]));
+
+    expect(apps.map((app) => app.id)).toEqual([noBranch.id, image.id, deployed.id]);
 
     expect(byId.get(deployed.id)).toMatchObject({
       projectId,
@@ -75,5 +82,24 @@ describe("loadProjectApps", () => {
       { project: projectId, limit: 100 },
       { signal: undefined },
     );
+  });
+});
+
+describe("byLatestUpdate", () => {
+  it("orders by updatedAt descending, never-updated last, ties by higher id", () => {
+    const [low, high] = [newId("app"), newId("app")].sort();
+    const apps = [
+      { id: newId("app"), updatedAt: null },
+      { id: newId("app"), updatedAt: 10 },
+      { id: low, updatedAt: 20 },
+      { id: high, updatedAt: 20 },
+    ];
+    expect(apps.toSorted(byLatestUpdate).map((a) => a.updatedAt)).toEqual([20, 20, 10, null]);
+    expect(
+      apps
+        .toSorted(byLatestUpdate)
+        .slice(0, 2)
+        .map((a) => a.id),
+    ).toEqual([high, low]);
   });
 });

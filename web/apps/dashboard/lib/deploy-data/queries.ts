@@ -8,9 +8,8 @@ import {
 } from "@/lib/collections/deploy/custom-domains";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
-import { pickPrimaryApp } from "@/lib/collections/deploy/project-cards";
 import type { QueryResult } from "@/lib/loadable/loadable";
-import { type App, refetchProjectApps, useProjectApps as useAppsQuery } from "@/lib/queries/apps";
+import { type App, refetchProjectApps, useProjectApps } from "@/lib/queries/apps";
 import {
   type InitialQueryBuilder,
   and,
@@ -26,36 +25,29 @@ import { useDeployScope } from "./context";
 // Data stays undefined until the first load, so fromQuery tells loading from empty
 export type DeployQuery<T> = QueryResult<T> & { isLoading: boolean };
 
-export function useProjectApps(): DeployQuery<App[]> {
-  const { projectId } = useDeployScope();
-  const query = useAppsQuery(projectId);
-  return {
-    data: query.data,
-    isLoading: query.isInitialLoading,
-    isFetching: query.isFetching,
-    isError: query.isError,
-    error: query.error,
-    refetch: query.refetch,
-  };
+export function useScopeApps(): DeployQuery<App[]> {
+  return useProjectApps(useDeployScope().projectId);
 }
 
-// The scope's app, or the project's primary app outside an app. Null when it does not exist.
+// The scope's app, or outside an app the most recently updated deployed one, since apps
+// arrive newest first. Null when it does not exist.
 export function useApp(): DeployQuery<App | null> {
   const { appId } = useDeployScope();
-  const apps = useProjectApps();
+  const apps = useScopeApps();
   return {
     ...apps,
     data:
       apps.data === undefined
         ? undefined
-        : ((appId ? apps.data.find((app) => app.id === appId) : pickPrimaryApp(apps.data)) ?? null),
+        : (apps.data.find((app) => (appId ? app.id === appId : app.currentDeploymentId !== null)) ??
+          null),
   };
 }
 
 // The app's environments, or those of every app in the project outside an app
 export function useEnvironments(): DeployQuery<Environment[]> {
   const { projectId, appId } = useDeployScope();
-  const apps = useProjectApps();
+  const apps = useScopeApps();
   const appIds = appId
     ? appId
     : (apps.data ?? [])

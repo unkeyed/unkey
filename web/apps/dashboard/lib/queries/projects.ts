@@ -1,10 +1,11 @@
 "use client";
 import { trpcClient } from "@/lib/collections/client";
 import { useFlag } from "@/lib/flags/provider";
+import { projectAppsOptions } from "@/lib/queries/apps";
 import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 
@@ -93,6 +94,27 @@ export function useVisibleProjects({ refetchInterval }: { refetchInterval?: numb
     select: (projects) => visibleProjects(projects, projectsNav),
     refetchInterval,
   });
+}
+
+export function useProjectsWithApps({ enabled = true }: { enabled?: boolean } = {}) {
+  const projects = useProjects({ enabled, select: (all) => visibleProjects(all, false) });
+  const appQueries = useQueries({
+    queries: (projects.data ?? []).map((p) => projectAppsOptions(p.id)),
+  });
+  const appsByProject = Map.groupBy(
+    appQueries.flatMap((query) => query.data ?? []),
+    (app) => app.projectId,
+  );
+
+  return {
+    data: projects.data?.map((project) => ({
+      id: project.id,
+      name: project.name,
+      apps: (appsByProject.get(project.id) ?? []).map((app) => ({ id: app.id, name: app.name })),
+    })),
+    isLoading: projects.isLoading || appQueries.some((query) => query.isLoading),
+    isError: projects.isError || appQueries.some((query) => query.isError),
+  };
 }
 
 export function visibleProjects(projects: readonly Project[], includeDefault: boolean): Project[] {

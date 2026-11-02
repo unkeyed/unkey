@@ -4,11 +4,10 @@ import { ListViews } from "@/components/list-views";
 import { ResourceSearchInput, useListSearch } from "@/components/resource-search-input";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { byLatestUpdate } from "@/lib/collections/deploy/project-cards";
 import { GRID_PAGE_SIZE } from "@/lib/list-limits";
 import { useShowMore } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
-import { hasInFlightDeployment, useProjectApps } from "@/lib/queries/apps";
+import { appsPollInterval, useProjectApps } from "@/lib/queries/apps";
 import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -23,9 +22,6 @@ import { useParams, useRouter } from "next/navigation";
 import { AppCard, AppCardSkeleton } from "./app-card";
 import { filterApps, toAppRow } from "./app-row-model";
 import { APPS_TABLE, AppsTableRow } from "./apps-table";
-
-const IDLE_POLL_MS = 60_000;
-const BUILDING_POLL_MS = 5_000;
 
 export function AppsList() {
   const params = useParams();
@@ -46,15 +42,11 @@ export function AppsList() {
           }),
         );
 
-  const apps = useProjectApps(projectId, {
-    refetchInterval: (data) => (hasInFlightDeployment(data) ? BUILDING_POLL_MS : IDLE_POLL_MS),
-  });
+  const apps = useProjectApps(projectId, { refetchInterval: appsPollInterval });
   const list = useShowMore({
-    all: (apps.data ?? [])
-      .toSorted(byLatestUpdate)
-      .map((app) =>
-        toAppRow(app, appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id })),
-      ),
+    all: (apps.data ?? []).map((app) =>
+      toAppRow(app, appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id })),
+    ),
     isLoading: apps.isInitialLoading,
     matches: (rows) => filterApps(rows, search),
     search,

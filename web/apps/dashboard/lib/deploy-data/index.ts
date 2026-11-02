@@ -26,7 +26,7 @@ export {
   useCustomDomains,
   useDomains,
   useEnvironments,
-  useProjectApps,
+  useScopeApps,
 } from "./queries";
 export {
   DEPLOYMENT_PICKER_LIMIT,

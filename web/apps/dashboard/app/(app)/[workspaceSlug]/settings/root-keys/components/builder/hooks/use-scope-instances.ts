@@ -2,8 +2,7 @@
 
 import type { AppEnvironmentListProps } from "@/components/deploy/app-environment-list";
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
-import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
-import { useDefaultProjectId } from "@/lib/queries/projects";
+import { useDefaultProjectId, useProjectsWithApps } from "@/lib/queries/projects";
 import { useEveryNamespace } from "@/lib/queries/ratelimit-namespaces";
 import { trpc } from "@/lib/trpc/client";
 import type { ResourceScope } from "../lib/catalogue.types";
