@@ -10,6 +10,8 @@ replace github.com/pingcap/tidb/pkg/parser => github.com/pingcap/tidb/pkg/parser
 
 replace cloud.google.com/go/compute => cloud.google.com/go/compute v1.49.1
 
+replace github.com/labstack/echo/v4 v4.15.1 => github.com/labstack/echo/v4 v4.16.1
+
 // Generating code
 tool (
 	github.com/bufbuild/buf/cmd/buf
