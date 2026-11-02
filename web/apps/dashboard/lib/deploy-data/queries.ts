@@ -25,15 +25,11 @@ import { useDeployScope } from "./context";
 // Data stays undefined until the first load, so fromQuery tells loading from empty
 export type DeployQuery<T> = QueryResult<T> & { isLoading: boolean };
 
-export function useScopeApps(): DeployQuery<App[]> {
-  return useProjectApps(useDeployScope().projectId);
-}
-
 // The scope's app, or outside an app the most recently updated deployed one, since apps
 // arrive newest first. Null when it does not exist.
 export function useApp(): DeployQuery<App | null> {
-  const { appId } = useDeployScope();
-  const apps = useScopeApps();
+  const { projectId, appId } = useDeployScope();
+  const apps = useProjectApps(projectId);
   return {
     ...apps,
     data:
@@ -47,7 +43,7 @@ export function useApp(): DeployQuery<App | null> {
 // The app's environments, or those of every app in the project outside an app
 export function useEnvironments(): DeployQuery<Environment[]> {
   const { projectId, appId } = useDeployScope();
-  const apps = useScopeApps();
+  const apps = useProjectApps(projectId);
   const appIds = appId
     ? appId
     : (apps.data ?? [])

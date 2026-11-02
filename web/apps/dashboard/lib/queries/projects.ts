@@ -112,7 +112,7 @@ export function useProjectsWithApps({ enabled = true }: { enabled?: boolean } = 
       name: project.name,
       apps: (appsByProject.get(project.id) ?? []).map((app) => ({ id: app.id, name: app.name })),
     })),
-    isLoading: projects.isLoading || appQueries.some((query) => query.isLoading),
+    isLoading: projects.isInitialLoading || appQueries.some((query) => query.isInitialLoading),
     isError: projects.isError || appQueries.some((query) => query.isError),
   };
 }
