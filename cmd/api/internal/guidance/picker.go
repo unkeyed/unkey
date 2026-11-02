@@ -2,6 +2,7 @@ package guidance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -11,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/prompt"
+	"golang.org/x/term"
 )
 
 func resourcePicker(_ context.Context, cmd *cli.Command, legacy string) func(context.Context, *form, string, map[string]any) (string, bool, error) {
@@ -58,20 +60,45 @@ func (b *resourceBrowser) pick(ctx context.Context, f *form, field string, scope
 	if load == nil {
 		return manualResource(ctx, f, field)
 	}
-	choice, err := f.prompt.SelectOrdered(label(field), []prompt.SelectOption{
-		{Key: "browse", Label: "Browse existing resources"},
-		{Key: "manual", Label: "Enter ID manually"},
-	})
-	if err != nil {
-		return "", err
+	if field == "deploymentId" {
+		switch {
+		case scope["environment"] != "":
+			parents = []string{"project", "app"}
+		case scope["app"] != "":
+			parents = []string{"project"}
+		}
 	}
-	if choice == "manual" {
-		return manualResource(ctx, f, field)
-	}
-	if choice != "browse" {
-		return "", fmt.Errorf("invalid resource selection")
+	if f.screen == nil {
+		choice, err := f.prompt.SelectOrdered(label(field), []prompt.SelectOption{
+			{Key: "browse", Label: "Browse existing resources"},
+			{Key: "manual", Label: "Enter ID manually"},
+		})
+		if err != nil {
+			return "", err
+		}
+		if choice == "manual" {
+			return manualResource(ctx, f, field)
+		}
+		if choice != "browse" {
+			return "", fmt.Errorf("invalid resource selection")
+		}
+	} else {
+		for _, parent := range parents {
+			if scope[parent] != "" {
+				continue
+			}
+			choice, err := f.screen.Resource(label(field), []prompt.SelectOption{{Key: "browse", Label: "Choose " + label(parent) + " to browse"}}, false, scope[field])
+			if err != nil {
+				return "", err
+			}
+			if value, ok := strings.CutPrefix(choice, "manual:"); ok {
+				return value, nil
+			}
+			break
+		}
 	}
 	if b.client == nil {
+		var err error
 		b.client, err = util.CreateClient(ctx, b.cmd)
 		if err != nil {
 			return resourceFallback(ctx, f, field, err)
@@ -90,32 +117,67 @@ func (b *resourceBrowser) pick(ctx context.Context, f *form, field string, scope
 	return b.browse(ctx, f, field, resourceQuery{scope: scope, cursor: nil, search: nil}, load, searchable)
 }
 
-func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, query resourceQuery, load resourceLoader, searchable bool) (string, error) {
+func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, query resourceQuery, load resourceLoader, searchable bool) (value string, err error) {
+	if f.screen != nil {
+		state, err := term.MakeRaw(f.screen.fd)
+		if err != nil {
+			return "", err
+		}
+		defer func() { err = errors.Join(err, term.Restore(f.screen.fd, state)) }()
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return "", err
 		}
-		page, err := load(ctx, b.client, query)
+		var page resourcePage
+		if f.screen == nil {
+			page, err = load(ctx, b.client, query)
+		} else {
+			page, err = f.screen.loadResource(ctx, label(field), func(ctx context.Context) (resourcePage, error) {
+				return load(ctx, b.client, query)
+			})
+		}
 		if err != nil {
+			if errors.Is(err, errInterrupted) || errors.Is(err, context.Canceled) {
+				return "", err
+			}
 			return resourceFallback(ctx, f, field, err)
 		}
 		options := append([]prompt.SelectOption{}, page.choices...)
-		if searchable {
+		if searchable && f.screen == nil {
 			options = append(options, prompt.SelectOption{Key: "search", Label: "Search (empty clears filter)"})
 		}
 		if page.cursor != nil && *page.cursor != "" && (query.cursor == nil || *page.cursor != *query.cursor) {
 			options = append(options, prompt.SelectOption{Key: "next", Label: "Next page"})
 		}
-		options = append(options, prompt.SelectOption{Key: "manual", Label: "Enter ID manually"})
+		if f.screen == nil {
+			options = append(options, prompt.SelectOption{Key: "manual", Label: "Enter ID manually"})
+		} else if query.search != nil {
+			options = append(options, prompt.SelectOption{Key: "clear", Label: "Clear search"})
+		}
 		question := label(field)
 		if len(page.choices) == 0 {
 			question += " · No resources found"
 		}
-		choice, err := f.prompt.SelectOrdered(question, options)
+		var choice string
+		if f.screen == nil {
+			choice, err = f.prompt.SelectOrdered(question, options)
+		} else {
+			choice, err = f.screen.Resource(question, options, searchable, query.scope[field])
+		}
 		if err != nil {
 			return "", err
 		}
+		if value, ok := strings.CutPrefix(choice, "manual:"); ok {
+			return value, nil
+		}
+		if text, ok := strings.CutPrefix(choice, "search:"); ok && searchable {
+			query.search, query.cursor = nonempty(text), nil
+			continue
+		}
 		switch choice {
+		case "clear":
+			query.search, query.cursor = nil, nil
 		case "manual":
 			return manualResource(ctx, f, field)
 		case "search":
@@ -135,6 +197,10 @@ func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, que
 		default:
 			for _, option := range page.choices {
 				if option.Key == choice {
+					if f.selections == nil {
+						f.selections = map[string]prompt.SelectOption{}
+					}
+					f.selections[field] = option
 					return strings.TrimPrefix(choice, "id:"), nil
 				}
 			}
@@ -179,6 +245,10 @@ func resourceSource(field, legacy string) (resourceLoader, []string, bool) {
 		return listProjects, nil, true
 	case "app":
 		return listApps, []string{"project"}, true
+	case "appId":
+		if legacy == "portal create-portal" || legacy == "portal get-portal" || legacy == "portal update-portal" {
+			return listApps, []string{"project"}, true
+		}
 	case "environment":
 		return listEnvironments, []string{"project", "app"}, false
 	case "keyId":
@@ -186,25 +256,28 @@ func resourceSource(field, legacy string) (resourceLoader, []string, bool) {
 			return listRootKeys, nil, false
 		}
 		return listKeys, []string{"apiId"}, false
-	case "permissionId", "permission":
+	case "permission":
 		return listPermissions, nil, true
 	case "roleId", "role":
 		return listRoles, nil, true
-	case "identityId", "identity":
+	case "identity":
 		return listIdentities, nil, true
-	case "namespaceId", "namespace":
+	case "namespace":
 		return listNamespaces, nil, true
-	case "overrideId":
-		return listOverrides, []string{"namespace"}, false
+	case "identifier":
+		if legacy == "ratelimit get-override" || legacy == "ratelimit delete-override" {
+			return listOverrides, []string{"namespace"}, false
+		}
 	case "deploymentId":
-		return listDeployments, []string{"project", "app", "environment"}, false
-	case "domainId":
-		return listDomains, []string{"project", "app", "environment"}, true
+		return listDeployments, nil, false
+	case "domain":
+		if legacy == "domains get-domain" || legacy == "domains delete-domain" || legacy == "domains verify-domain" {
+			return listDomains, nil, true
+		}
 	case "policyId":
 		return listPolicies, []string{"project", "app", "environment"}, false
-	default:
-		return nil, nil, false
 	}
+	return nil, nil, false
 }
 
 func resourceOption(id, name string) prompt.SelectOption {
@@ -354,7 +427,7 @@ func listOverrides(ctx context.Context, client *unkey.Unkey, query resourceQuery
 	}
 	body := res.V2RatelimitListOverridesResponseBody
 	return resourceResults(body.GetData(), body.GetPagination(), func(item components.RatelimitOverride) prompt.SelectOption {
-		return resourceOption(item.OverrideID, item.Identifier)
+		return resourceOption(item.Identifier, "")
 	}), nil
 }
 

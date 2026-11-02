@@ -45,7 +45,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Permanently delete identity %q?", req.Identity)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Permanently delete identity %q?", req.Identity)); err != nil {
 				return err
 			}
 

@@ -46,7 +46,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete project %q and all its apps, environments, deployments, and domains?", req.Project)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete project %q and all its apps, environments, deployments, and domains?", req.Project)); err != nil {
 				return err
 			}
 			res, err := client.Projects.DeleteProject(ctx, req)

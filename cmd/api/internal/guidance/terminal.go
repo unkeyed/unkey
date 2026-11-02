@@ -17,7 +17,10 @@ import (
 	"golang.org/x/term"
 )
 
-var errInterrupted = errors.New("interrupted")
+var (
+	errInterrupted = errors.New("interrupted")
+	errBack        = errors.New("back")
+)
 
 const cancelHint = "Ctrl+C to cancel"
 
@@ -334,6 +337,13 @@ func (f *terminalForm) key() (string, error) {
 	case 27:
 		sequence := string(key)
 		for len(sequence) < 16 {
+			ready, err := f.escapeReady()
+			if err != nil {
+				return "", err
+			}
+			if !ready {
+				return sequence, nil
+			}
 			part, _, err := f.in.ReadRune()
 			if err != nil {
 				return "", err
@@ -341,8 +351,11 @@ func (f *terminalForm) key() (string, error) {
 			if part == 3 || part == 4 {
 				return "", errInterrupted
 			}
+			if len(sequence) == 1 && part != '[' && part != 'O' {
+				return sequence, f.in.UnreadRune()
+			}
 			sequence += string(part)
-			if len(sequence) > 2 && part >= 0x40 && part <= 0x7e || len(sequence) == 2 && part != '[' && part != 'O' {
+			if len(sequence) > 2 && part >= 0x40 && part <= 0x7e {
 				break
 			}
 		}
@@ -353,6 +366,9 @@ func (f *terminalForm) key() (string, error) {
 }
 
 func (f *terminalForm) size() error {
+	if !terminalInputSupported {
+		return fmt.Errorf("%w: use line prompts on this platform", errors.ErrUnsupported)
+	}
 	width, height, err := term.GetSize(f.fd)
 	if err != nil {
 		return err

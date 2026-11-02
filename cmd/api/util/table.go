@@ -3,11 +3,14 @@ package util
 import (
 	"fmt"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/rivo/uniseg"
+	"github.com/unkeyed/unkey/pkg/tui"
 )
 
 type tableFormat struct {
@@ -16,6 +19,7 @@ type tableFormat struct {
 }
 
 func writeTable(output *strings.Builder, rows []any, columns []string, indent string, format tableFormat) error {
+	renderer := tui.New(os.Stdout)
 	curated := len(columns) > 0
 	if !curated {
 		fields := map[string]struct{}{}
@@ -40,7 +44,18 @@ func writeTable(output *strings.Builder, rows []any, columns []string, indent st
 		if curated {
 			labels[i] = tableLabel(column)
 		}
-		widths[i] = uniseg.StringWidth(strings.ToUpper(labels[i]))
+		if format.width == 0 {
+			labels[i] = strings.ToUpper(labels[i])
+		} else {
+			words := strings.Fields(labels[i])
+			for j, word := range words {
+				letters := []rune(word)
+				letters[0] = unicode.ToUpper(letters[0])
+				words[j] = string(letters)
+			}
+			labels[i] = strings.Join(words, " ")
+		}
+		widths[i] = uniseg.StringWidth(labels[i])
 	}
 	values := make([][]string, len(rows))
 	for i, row := range rows {
@@ -58,25 +73,48 @@ func writeTable(output *strings.Builder, rows []any, columns []string, indent st
 			widths[j] = max(widths[j], uniseg.StringWidth(value))
 		}
 	}
+	style := func(index int, value string) string {
+		if !curated {
+			return value
+		}
+		return styleTableCell(renderer, columns[index], value, index == 0)
+	}
 	if format.width > 0 && !fitTable(widths, columns, curated, format.width-uniseg.StringWidth(indent)) {
 		for i, row := range values {
 			if i > 0 {
 				output.WriteByte('\n')
 			}
 			for j, value := range row {
-				fmt.Fprintf(output, "%s%s: %s\n", indent, labels[j], value)
+				fmt.Fprintf(output, "%s%s %s\n", indent, renderer.Dim(labels[j]+":"), style(j, value))
 			}
 		}
 		return nil
 	}
-	for i := range labels {
-		labels[i] = strings.ToUpper(labels[i])
-	}
-	writeTableRow(output, labels, widths, indent)
+	writeTableRow(output, labels, widths, indent, func(_ int, value string) string { return renderer.Dim(value) })
 	for _, row := range values {
-		writeTableRow(output, row, widths, indent)
+		writeTableRow(output, row, widths, indent, style)
 	}
 	return nil
+}
+
+func styleTableCell(renderer *tui.Renderer, column, value string, primary bool) string {
+	switch column {
+	case "createdAt", "updatedAt", "lastUsedAt", "expires", "time":
+		return renderer.Dim(value)
+	case "status", "enabled":
+		switch strings.ToLower(value) {
+		case "verified", "ready", "enabled":
+			return renderer.Green(value)
+		case "pending", "verifying":
+			return renderer.Yellow(value)
+		case "failed":
+			return renderer.Red(value)
+		}
+	}
+	if primary {
+		return renderer.Bold(value)
+	}
+	return value
 }
 
 func fitTable(widths []int, columns []string, curated bool, width int) bool {
@@ -105,11 +143,11 @@ func fitTable(widths []int, columns []string, curated bool, width int) bool {
 	return false
 }
 
-func writeTableRow(output *strings.Builder, row []string, widths []int, indent string) {
+func writeTableRow(output *strings.Builder, row []string, widths []int, indent string, style func(int, string) string) {
 	output.WriteString(indent)
 	for i, value := range row {
 		value = shortenCell(value, widths[i])
-		output.WriteString(value)
+		output.WriteString(style(i, value))
 		if i < len(row)-1 {
 			output.WriteString(strings.Repeat(" ", widths[i]-uniseg.StringWidth(value)+2))
 		}

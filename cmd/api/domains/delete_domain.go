@@ -45,7 +45,7 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete domain %q and stop serving traffic to it?", req.Domain)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete domain %q and stop serving traffic to it?", req.Domain)); err != nil {
 				return err
 			}
 			res, err := client.Domains.DeleteDomain(ctx, req)

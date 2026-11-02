@@ -51,7 +51,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete override %q in namespace %q and restore the default limit?", req.Identifier, req.Namespace)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete override %q in namespace %q and restore the default limit?", req.Identifier, req.Namespace)); err != nil {
 				return err
 			}
 			res, err := client.Ratelimit.DeleteOverride(ctx, req)

@@ -47,7 +47,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/del
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete app %q in project %q and all its environments, deployments, and domains?", req.App, req.Project)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete app %q in project %q and all its environments, deployments, and domains?", req.App, req.Project)); err != nil {
 				return err
 			}
 			res, err := client.Apps.DeleteApp(ctx, req)

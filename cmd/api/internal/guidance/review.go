@@ -2,6 +2,7 @@ package guidance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -13,50 +14,26 @@ import (
 	"github.com/unkeyed/unkey/pkg/prompt"
 )
 
-func (f *form) confirm(ctx context.Context, schema *Schema, values map[string]any, action string, needsChanges bool) error {
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		selected, err := f.variant(schema, values, "")
-		if err != nil {
-			return err
-		}
-		if err := f.preview(selected, values, ""); err != nil {
-			return err
-		}
-		choice, err := f.prompt.SelectOrdered("Continue?", []prompt.SelectOption{
-			{Key: "confirm", Label: action},
-			{Key: "back", Label: "Back"},
-			{Key: "cancel", Label: "Cancel"},
-		})
-		if err != nil {
-			return err
-		}
-		switch choice {
-		case "confirm":
-			return nil
-		case "cancel":
-			return context.Canceled
-		case "back":
-			if err := f.review(ctx, schema, values, "", needsChanges); err != nil {
-				return err
-			}
-		}
-	}
+var errReviewEdited = errors.New("edit before confirmation")
+
+type reviewMode struct {
+	action      string
+	warning     string
+	expanded    bool
+	destructive bool
 }
 
 func (f *form) preview(schema *Schema, values map[string]any, path string) error {
 	if f.screen != nil {
 		return nil
 	}
-	_, err := io.WriteString(f.out, summary(palette{color: false, accent: ""}, schema, values, path))
+	_, err := io.WriteString(f.out, f.summary(palette{color: false, accent: ""}, schema, values, path))
 	return err
 }
 
 // show keeps the request summary above the active prompt until the returned function runs.
 func (f *form) show(schema *Schema, values map[string]any, path string) func() {
-	return f.section(path, func(p palette) string { return summary(p, schema, values, path) })
+	return f.section(path, func(p palette) string { return f.summary(p, schema, values, path) })
 }
 
 func (f *form) section(path string, render func(palette) string) func() {
@@ -69,6 +46,10 @@ func (f *form) section(path string, render func(palette) string) func() {
 }
 
 func (f *form) review(ctx context.Context, schema *Schema, values map[string]any, path string, needsChanges bool) error {
+	return f.reviewMenu(ctx, schema, values, path, needsChanges, reviewMode{action: "", warning: "", expanded: true, destructive: false})
+}
+
+func (f *form) reviewMenu(ctx context.Context, schema *Schema, values map[string]any, path string, needsChanges bool, mode reviewMode) error {
 	configuration := schema
 	schema, err := f.variant(schema, values, path)
 	if err != nil {
@@ -84,14 +65,36 @@ func (f *form) review(ctx context.Context, schema *Schema, values map[string]any
 		if err := f.preview(schema, values, path); err != nil {
 			return err
 		}
-		options := []prompt.SelectOption{}
-		if !missingRequired(schema, values) && (!needsChanges || hasChanges(schema, values)) {
-			options = append(options, prompt.SelectOption{Key: "done", Label: "Continue"})
-			if path != "" {
-				options[0].Label = "Keep changes"
+		if f.screen == nil && mode.warning != "" {
+			if _, err := fmt.Fprintln(f.out, mode.warning); err != nil {
+				return err
 			}
 		}
-		for _, name := range orderedFields(schema) {
+		options := []prompt.SelectOption{}
+		if !missingRequired(schema, values) && (!needsChanges || hasChanges(schema, values)) {
+			action := "Keep changes"
+			if mode.action != "" {
+				action = mode.action
+			}
+			options = append(options, prompt.SelectOption{Key: "done", Label: action})
+		}
+		fields := orderedFields(schema)
+		if mode.action != "" {
+			slices.SortStableFunc(fields, func(a, b string) int {
+				if targetField(a) == targetField(b) {
+					return 0
+				}
+				if targetField(a) {
+					return 1
+				}
+				return -1
+			})
+		}
+		if !mode.expanded {
+			fields = nil
+			options = append(options, prompt.SelectOption{Key: "expand", Label: "Edit…"})
+		}
+		for _, name := range fields {
 			if path == "" && slices.ContainsFunc(f.conflicts[name], func(other string) bool {
 				_, present := values[other]
 				return other != name && present
@@ -102,14 +105,36 @@ func (f *form) review(ctx context.Context, schema *Schema, values map[string]any
 			if _, present := values[name]; present {
 				verb = "Edit "
 			}
+			if mode.action != "" {
+				verb = "Set "
+				if _, present := values[name]; present {
+					verb = "Change "
+				}
+			}
 			options = append(options, prompt.SelectOption{Key: name, Label: verb + label(name)})
 		}
-		if len(configuration.Alternatives) > 0 {
+		if mode.expanded && len(configuration.Alternatives) > 0 {
 			options = append(options, prompt.SelectOption{Key: "configuration", Label: "Change configuration"})
 		}
-		name, err := f.prompt.SelectOrdered("Edit or continue", options)
+		question := "Edit fields"
+		defaultValue := ""
+		if mode.action != "" {
+			question = mode.action
+			options = append(options, prompt.SelectOption{Key: "cancel", Label: "Cancel"})
+			if mode.destructive {
+				defaultValue = "cancel"
+			}
+		}
+		name, err := f.prompt.SelectOrdered(question, options, defaultValue)
 		if err != nil || name == "done" {
 			return err
+		}
+		if name == "cancel" {
+			return context.Canceled
+		}
+		if name == "expand" {
+			mode.expanded = true
+			continue
 		}
 		if name == "configuration" {
 			replacement := map[string]any{}
@@ -134,6 +159,9 @@ func (f *form) review(ctx context.Context, schema *Schema, values map[string]any
 			if err != nil {
 				return err
 			}
+			if mode.destructive {
+				return errReviewEdited
+			}
 			continue
 		}
 		if _, present := values[name]; present && !slices.Contains(schema.Required, name) {
@@ -147,6 +175,9 @@ func (f *form) review(ctx context.Context, schema *Schema, values map[string]any
 			}
 			if choice == "omit" {
 				delete(values, name)
+				if mode.destructive {
+					return errReviewEdited
+				}
 				continue
 			}
 			if choice == "back" {
@@ -156,10 +187,18 @@ func (f *form) review(ctx context.Context, schema *Schema, values map[string]any
 		if err := f.edit(ctx, schema.Properties[name], values, name, path); err != nil {
 			return err
 		}
+		if mode.destructive {
+			return errReviewEdited
+		}
 	}
 }
 
 func (f *form) edit(ctx context.Context, schema *Schema, values map[string]any, name, path string) error {
+	if f.screen != nil {
+		sections := f.screen.sections
+		f.screen.sections = slices.DeleteFunc(slices.Clone(sections), func(s section) bool { return s.path == "confirmation" })
+		defer func() { f.screen.sections = sections }()
+	}
 	childPath := strings.TrimPrefix(path+"."+name, ".")
 	_, emptyErr := scalarValue(schema, "")
 	if schema.Type == "string" && emptyErr == nil && len(schema.Enum) == 0 {
@@ -289,6 +328,18 @@ func (f *form) editList(ctx context.Context, schema *Schema, fields map[string]a
 			values[index] = item[name]
 		}
 	}
+}
+
+func (f *form) summary(p palette, schema *Schema, values map[string]any, path string) string {
+	if path == "" && len(f.selections) > 0 {
+		values = maps.Clone(values)
+		for field, selection := range f.selections {
+			if values[field] == strings.TrimPrefix(selection.Key, "id:") {
+				values[field] = selection.Label
+			}
+		}
+	}
+	return summary(p, schema, values, path)
 }
 
 func summary(p palette, schema *Schema, values map[string]any, path string) string {

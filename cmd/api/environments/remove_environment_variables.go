@@ -41,7 +41,7 @@ func removeEnvironmentVariablesCmd() *cli.Command {
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Remove variables %q from environment %q, app %q, project %q?", req.Variables, req.Environment, req.App, req.Project)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Remove variables %q from environment %q, app %q, project %q?", req.Variables, req.Environment, req.App, req.Project)); err != nil {
 				return err
 			}
 			res, err := client.Environments.RemoveEnvironmentVariables(ctx, req)

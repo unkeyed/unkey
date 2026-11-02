@@ -75,6 +75,22 @@ func TestFormsRejectInvalidValuesBeforeAcceptingInput(t *testing.T) {
 	require.ErrorIs(t, f.object(t.Context(), schema, map[string]any{}, "", false), io.EOF)
 }
 
+func TestResourceInputValidatesManualValues(t *testing.T) {
+	schema, ok := Lookup("projects delete-project")
+	require.True(t, ok)
+	answers := &pickerScript{t: t, answers: []string{"manual", "zz", "manual", "demo-project"}}
+	var output bytes.Buffer
+	f := form{
+		prompt: answers, out: &output,
+		pick: resourcePicker(t.Context(), nil, "projects delete-project"),
+	}
+	values := map[string]any{}
+	require.NoError(t, f.field(t.Context(), schema.Properties["project"], values, "project", ""))
+	require.Equal(t, "demo-project", values["project"])
+	require.Empty(t, answers.answers)
+	require.Contains(t, output.String(), "at least 3")
+}
+
 func TestReviewEditsPreservePatchValues(t *testing.T) {
 	schema, ok := Lookup("keys update-key")
 	require.True(t, ok)

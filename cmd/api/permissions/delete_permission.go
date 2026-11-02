@@ -44,7 +44,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete permission %q from the workspace and all keys and roles?", req.Permission)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete permission %q from the workspace and all keys and roles?", req.Permission)); err != nil {
 				return err
 			}
 

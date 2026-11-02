@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/del
 			if req.Permanent != nil && *req.Permanent {
 				question = fmt.Sprintf("Permanently erase key %q and invalidate it?", req.KeyID)
 			}
-			if err := util.Confirm(cmd, question); err != nil {
+			if err := util.Confirm(ctx, cmd, question); err != nil {
 				return err
 			}
 

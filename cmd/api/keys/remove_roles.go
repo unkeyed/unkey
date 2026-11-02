@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rem
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Remove roles %q from key %q?", req.Roles, req.KeyID)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Remove roles %q from key %q?", req.Roles, req.KeyID)); err != nil {
 				return err
 			}
 

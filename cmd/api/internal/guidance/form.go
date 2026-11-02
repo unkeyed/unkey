@@ -3,6 +3,7 @@ package guidance
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -23,11 +24,13 @@ type questions interface {
 }
 
 type form struct {
-	prompt    questions
-	out       io.Writer
-	screen    *terminalForm
-	pick      func(context.Context, *form, string, map[string]any) (string, bool, error)
-	conflicts map[string][]string
+	prompt        questions
+	out           io.Writer
+	screen        *terminalForm
+	pick          func(context.Context, *form, string, map[string]any) (string, bool, error)
+	conflicts     map[string][]string
+	selections    map[string]prompt.SelectOption
+	reviewPending bool
 }
 
 func (f *form) object(ctx context.Context, schema *Schema, values map[string]any, path string, needsChanges bool) error {
@@ -48,6 +51,9 @@ func (f *form) object(ctx context.Context, schema *Schema, values map[string]any
 		if err := f.field(ctx, schema.Properties[name], values, name, path); err != nil {
 			return err
 		}
+	}
+	if path == "" && f.reviewPending {
+		return nil
 	}
 	for {
 		options := []prompt.SelectOption{}
@@ -95,15 +101,29 @@ func (f *form) field(ctx context.Context, schema *Schema, values map[string]any,
 	if schema == nil {
 		return fmt.Errorf("missing input definition for %s", name)
 	}
-	if path == "" && f.pick != nil && targetField(name) {
+	for path == "" && f.pick != nil {
 		value, handled, err := f.pick(ctx, f, name, values)
+		if errors.Is(err, errBack) {
+			if _, present := values[name]; present {
+				return nil
+			}
+			return errInterrupted
+		}
 		if err != nil {
 			return err
 		}
-		if handled {
-			values[name] = value
-			return nil
+		if !handled {
+			break
 		}
+		parsed, err := scalarValue(schema, value)
+		if err != nil {
+			if _, writeErr := fmt.Fprintln(f.out, err); writeErr != nil {
+				return writeErr
+			}
+			continue
+		}
+		values[name] = parsed
+		return nil
 	}
 	path = strings.TrimPrefix(path+"."+name, ".")
 	if schema.Nullable {
@@ -390,7 +410,7 @@ func orderedFields(schema *Schema) []string {
 
 func orderedNames(names []string) []string {
 	slices.Sort(names)
-	priority := []string{"project", "app", "environment", "apiId", "keyId", "name", "displayName", "slug"}
+	priority := []string{"project", "app", "environment", "apiId", "keyId", "namespace", "name", "displayName", "slug"}
 	slices.SortStableFunc(names, func(a, b string) int {
 		indexA, indexB := slices.Index(priority, a), slices.Index(priority, b)
 		if indexA < 0 {
