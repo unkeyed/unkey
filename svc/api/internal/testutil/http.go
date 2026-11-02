@@ -80,7 +80,7 @@ type Harness struct {
 	UsageLimiter               usagelimiter.Service
 	Auditlogs                  auditlogs.AuditLogService
 	ClickHouse                 clickhouse.ClickHouse
-	DirectAuditLogs            *batch.BatchProcessor[auditlog.Event]
+	AuditLogBuffer             *batch.BatchProcessor[auditlog.Event]
 	KeyVerifications           *batch.BatchProcessor[schema.KeyVerification]
 	RatelimitEvents            *batch.BatchProcessor[schema.Ratelimit]
 	FrontlineRequests          *batch.BatchProcessor[schema.FrontlineRequest]
@@ -163,7 +163,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	require.NoError(t, err)
 
 	var ch clickhouse.ClickHouse
-	var directAuditLogs *batch.BatchProcessor[auditlog.Event]
+	var auditLogBuffer *batch.BatchProcessor[auditlog.Event]
 	var keyVerifications *batch.BatchProcessor[schema.KeyVerification]
 	var ratelimitsfer *batch.BatchProcessor[schema.Ratelimit]
 	var frontlineRequests *batch.BatchProcessor[schema.FrontlineRequest]
@@ -178,8 +178,8 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 
 		// Small test batches flush quickly. Production uses 10,000-row batches
 		// and a 20,000-row buffer for request traffic.
-		directAuditLogs = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
-			Name:          "direct_audit_logs",
+		auditLogBuffer = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
+			Name:          "audit_logs",
 			BatchSize:     10,
 			BufferSize:    100,
 			FlushInterval: 100 * time.Millisecond,
@@ -187,7 +187,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		t.Cleanup(directAuditLogs.Close)
+		t.Cleanup(auditLogBuffer.Close)
 
 		keyVerifications = clickhouse.NewBuffer[schema.KeyVerification](chClient, clickhouse.BufferConfig{
 			Name:          "key_verifications",
@@ -222,8 +222,8 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		})
 		t.Cleanup(frontlineRequests.Close)
 	} else {
-		directAuditLogs = batch.NewNoop[auditlog.Event]()
-		t.Cleanup(directAuditLogs.Close)
+		auditLogBuffer = batch.NewNoop[auditlog.Event]()
+		t.Cleanup(auditLogBuffer.Close)
 		keyVerifications = batch.NewNoop[schema.KeyVerification]()
 		t.Cleanup(keyVerifications.Close)
 		ratelimitsfer = batch.NewNoop[schema.Ratelimit]()
@@ -304,15 +304,15 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	require.NoError(t, err)
 
 	keyService, err := keys.New(keys.Config{
-		DirectAuditLogs: directAuditLogs,
-		DB:              db.ToMySQL(database),
-		KeyCache:        caches.VerificationKeyByHash,
-		RootKeyCache:    caches.RootKeyByHash,
-		RateLimiter:     ratelimitService,
-		RBAC:            rbac.New(),
-		Region:          "test",
-		UsageLimiter:    ulSvc,
-		Source:          schema.SourceAPI,
+		AuditLogBuffer: auditLogBuffer,
+		DB:             db.ToMySQL(database),
+		KeyCache:       caches.VerificationKeyByHash,
+		RootKeyCache:   caches.RootKeyByHash,
+		RateLimiter:    ratelimitService,
+		RBAC:           rbac.New(),
+		Region:         "test",
+		UsageLimiter:   ulSvc,
+		Source:         schema.SourceAPI,
 	})
 	require.NoError(t, err)
 	portalService := portal.New(portal.Config{
@@ -336,7 +336,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		Ratelimit:                  ratelimitService,
 		Vault:                      v,
 		ClickHouse:                 ch,
-		DirectAuditLogs:            directAuditLogs,
+		AuditLogBuffer:             auditLogBuffer,
 		KeyVerifications:           keyVerifications,
 		RatelimitEvents:            ratelimitsfer,
 		FrontlineRequests:          frontlineRequests,

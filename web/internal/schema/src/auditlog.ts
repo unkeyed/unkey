@@ -36,7 +36,7 @@ export const unkeyAuditLogEvents = z.enum([
   "rootKey.reroll",
   "rootKey.update",
   "rootKey.delete",
-  "auth.ipAllowlistDenied",
+  "auth.ipDenied",
   "ratelimitNamespace.create",
   "ratelimitNamespace.update",
   "ratelimitNamespace.delete",

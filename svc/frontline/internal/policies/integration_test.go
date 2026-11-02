@@ -140,18 +140,18 @@ func newTestHarness(t *testing.T) *testHarness {
 	require.NoError(t, err)
 	t.Cleanup(rootKeyCache.Close)
 
-	directAuditLogs := batch.NewNoop[auditlog.Event]()
-	t.Cleanup(directAuditLogs.Close)
+	auditLogBuffer := batch.NewNoop[auditlog.Event]()
+	t.Cleanup(auditLogBuffer.Close)
 	keyService, err := keys.New(keys.Config{
-		DirectAuditLogs: directAuditLogs,
-		DB:              db.ToMySQL(database),
-		RateLimiter:     rateLimiter,
-		RBAC:            rbac.New(),
-		Region:          "test",
-		UsageLimiter:    usageLimiter,
-		Source:          schema.SourceGateway,
-		KeyCache:        keyCache,
-		RootKeyCache:    rootKeyCache,
+		AuditLogBuffer: auditLogBuffer,
+		DB:             db.ToMySQL(database),
+		RateLimiter:    rateLimiter,
+		RBAC:           rbac.New(),
+		Region:         "test",
+		UsageLimiter:   usageLimiter,
+		Source:         schema.SourceGateway,
+		KeyCache:       keyCache,
+		RootKeyCache:   rootKeyCache,
 	})
 	require.NoError(t, err)
 

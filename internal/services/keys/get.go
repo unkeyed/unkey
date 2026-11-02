@@ -436,13 +436,13 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 				slog.String("request_id", sess.RequestID()),
 			),
 		)
-		s.directAuditLogs.Buffer(auditlog.Event{
+		s.auditLogBuffer.Buffer(auditlog.Event{
 			EventID:     uid.New(uid.AuditLogPrefix),
 			Time:        time.Now().UnixMilli(),
 			WorkspaceID: key.ForWorkspaceID.String,
 			Bucket:      auditlog.BucketUnkeyMutations,
 			Source:      auditlog.EventSourcePlatform,
-			Event:       string(auditlog.IPAllowlistDeniedEvent),
+			Event:       string(auditlog.IPDeniedEvent),
 			Description: fmt.Sprintf("Root key authentication from %s denied by IP allowlist", sess.ClientIP()),
 			Actor: auditlog.EventActor{
 				Type: string(auditlog.RootKeyActor),

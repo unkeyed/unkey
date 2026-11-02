@@ -33,7 +33,7 @@ import (
 func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 	h, route, p := newHarness(t)
 	var events []auditlog.Event
-	directAuditLogs := batch.New(batch.Config[auditlog.Event]{
+	auditLogBuffer := batch.New(batch.Config[auditlog.Event]{
 		Name:          "ip_denial_test",
 		BatchSize:     1,
 		BufferSize:    10,
@@ -42,22 +42,22 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 		Drop:          false,
 		Flush:         func(_ context.Context, batch []auditlog.Event) { events = append(events, batch...) },
 	})
-	t.Cleanup(directAuditLogs.Close)
+	t.Cleanup(auditLogBuffer.Close)
 	keyConfig := keys.Config{
-		DB:              db.ToMySQL(h.DB),
-		KeyCache:        h.Caches.VerificationKeyByHash,
-		RootKeyCache:    h.Caches.RootKeyByHash,
-		RateLimiter:     h.Ratelimit,
-		RBAC:            rbac.New(),
-		Region:          "test",
-		UsageLimiter:    h.UsageLimiter,
-		Source:          "api",
-		DirectAuditLogs: nil,
+		DB:             db.ToMySQL(h.DB),
+		KeyCache:       h.Caches.VerificationKeyByHash,
+		RootKeyCache:   h.Caches.RootKeyByHash,
+		RateLimiter:    h.Ratelimit,
+		RBAC:           rbac.New(),
+		Region:         "test",
+		UsageLimiter:   h.UsageLimiter,
+		Source:         "api",
+		AuditLogBuffer: nil,
 	}
 	keyService, err := keys.New(keyConfig)
-	require.ErrorContains(t, err, "direct audit log buffer is required")
+	require.ErrorContains(t, err, "audit log buffer is required")
 	require.Nil(t, keyService)
-	keyConfig.DirectAuditLogs = directAuditLogs
+	keyConfig.AuditLogBuffer = auditLogBuffer
 	keyService, err = keys.New(keyConfig)
 	require.NoError(t, err)
 	metaExpected := []map[string]any{}
@@ -159,10 +159,10 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 			}
 		})
 	}
-	directAuditLogs.Close()
+	auditLogBuffer.Close()
 	require.Len(t, events, len(metaExpected))
 	for i, event := range events {
-		require.Equal(t, "auth.ipAllowlistDenied", event.Event)
+		require.Equal(t, "auth.ipDenied", event.Event)
 		require.Equal(t, p.AuthorizedWorkspaceID, event.WorkspaceID)
 		require.Equal(t, res.Body.Data.KeyId, event.Actor.ID)
 		require.Len(t, event.Targets, 1)

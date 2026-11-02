@@ -167,7 +167,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	var ch clickhouse.ClickHouse = clickhouse.NewNoop()
 	apiRequests := batch.NewNoop[schema.ApiRequest]()
-	directAuditLogs := batch.NewNoop[auditlog.Event]()
+	auditLogBuffer := batch.NewNoop[auditlog.Event]()
 	keyVerifications := batch.NewNoop[schema.KeyVerification]()
 	ratelimits := batch.NewNoop[schema.Ratelimit]()
 
@@ -189,8 +189,8 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
-		directAuditLogs = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
-			Name:          "direct_audit_logs",
+		auditLogBuffer = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
+			Name:          "audit_logs",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
 			FlushInterval: 5 * time.Second,
@@ -220,7 +220,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// Close buffers before the connection (LIFO).
 		r.Defer(chClient.Close)
 		r.Defer(func() error { apiRequests.Close(); return nil })
-		r.Defer(func() error { directAuditLogs.Close(); return nil })
+		r.Defer(func() error { auditLogBuffer.Close(); return nil })
 		r.Defer(func() error { keyVerifications.Close(); return nil })
 		r.Defer(func() error { ratelimits.Close(); return nil })
 	}
@@ -351,15 +351,15 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Defer(caches.Close)
 
 	keySvc, err := keys.New(keys.Config{
-		DirectAuditLogs: directAuditLogs,
-		DB:              db.ToMySQL(database),
-		KeyCache:        caches.VerificationKeyByHash,
-		RootKeyCache:    caches.RootKeyByHash,
-		RateLimiter:     rlSvc,
-		RBAC:            rbac.New(),
-		Region:          cfg.Region,
-		UsageLimiter:    ulSvc,
-		Source:          schema.SourceAPI,
+		AuditLogBuffer: auditLogBuffer,
+		DB:             db.ToMySQL(database),
+		KeyCache:       caches.VerificationKeyByHash,
+		RootKeyCache:   caches.RootKeyByHash,
+		RateLimiter:    rlSvc,
+		RBAC:           rbac.New(),
+		Region:         cfg.Region,
+		UsageLimiter:   ulSvc,
+		Source:         schema.SourceAPI,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create key service: %w", err)
@@ -567,7 +567,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Flags:               flagSvc,
 		ClickHouse:          ch,
 		ApiRequests:         apiRequests,
-		DirectAuditLogs:     directAuditLogs,
+		AuditLogBuffer:      auditLogBuffer,
 		RatelimitEvents:     ratelimits,
 		KeyVerifications:    keyVerifications,
 		Clock:               clk,

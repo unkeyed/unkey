@@ -71,18 +71,18 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	})
 
 	// Create key service for proper key generation
-	directAuditLogs := batch.NewNoop[auditlog.Event]()
-	defer directAuditLogs.Close()
+	auditLogBuffer := batch.NewNoop[auditlog.Event]()
+	defer auditLogBuffer.Close()
 	keyService, err := keys.New(keys.Config{
-		DirectAuditLogs: directAuditLogs,
-		DB:              db.ToMySQL(database),
-		RateLimiter:     nil,
-		RBAC:            nil,
-		Region:          "test",
-		UsageLimiter:    nil,
-		Source:          schema.SourceAPI,
-		KeyCache:        nil,
-		RootKeyCache:    nil,
+		AuditLogBuffer: auditLogBuffer,
+		DB:             db.ToMySQL(database),
+		RateLimiter:    nil,
+		RBAC:           nil,
+		Region:         "test",
+		UsageLimiter:   nil,
+		Source:         schema.SourceAPI,
+		KeyCache:       nil,
+		RootKeyCache:   nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)

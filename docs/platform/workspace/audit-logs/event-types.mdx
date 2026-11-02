@@ -65,7 +65,7 @@ Authentication denial events record blocked attempts, not successful access.
 
 | Event | Recorded when |
 | --- | --- |
-| `auth.ipAllowlistDenied` | A request uses a root key from an IP address outside its allowlist. |
+| `auth.ipDenied` | A request uses a root key from an IP address outside its allowlist. |
 
 The event name is shared across authentication types. Root-key authentication
 emits this event. The actor and target identify the root key used in the attempt.

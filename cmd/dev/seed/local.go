@@ -52,18 +52,18 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
-	directAuditLogs := batch.NewNoop[auditlog.Event]()
-	defer directAuditLogs.Close()
+	auditLogBuffer := batch.NewNoop[auditlog.Event]()
+	defer auditLogBuffer.Close()
 	keyService, err := keys.New(keys.Config{
-		DirectAuditLogs: directAuditLogs,
-		DB:              db.ToMySQL(database),
-		RateLimiter:     nil,
-		RBAC:            nil,
-		Region:          "local",
-		UsageLimiter:    nil,
-		Source:          schema.SourceAPI,
-		KeyCache:        nil,
-		RootKeyCache:    nil,
+		AuditLogBuffer: auditLogBuffer,
+		DB:             db.ToMySQL(database),
+		RateLimiter:    nil,
+		RBAC:           nil,
+		Region:         "local",
+		UsageLimiter:   nil,
+		Source:         schema.SourceAPI,
+		KeyCache:       nil,
+		RootKeyCache:   nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)

@@ -24,19 +24,19 @@ type Config struct {
 	Source       string
 	UsageLimiter usagelimiter.Service // Redis Counter for usage limiting
 
-	KeyCache        cache.Cache[string, db.CachedKeyData]     // Cache for key lookups with pre-parsed data
-	RootKeyCache    cache.Cache[string, db.CachedRootKeyData] // Cache for root-key authentication lookups
-	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
+	KeyCache       cache.Cache[string, db.CachedKeyData]     // Cache for key lookups with pre-parsed data
+	RootKeyCache   cache.Cache[string, db.CachedRootKeyData] // Cache for root-key authentication lookups
+	AuditLogBuffer *batch.BatchProcessor[auditlog.Event]
 }
 
 type service struct {
-	db              *db.Database
-	rateLimiter     ratelimit.Service
-	usageLimiter    usagelimiter.Service
-	rbac            *rbac.RBAC
-	region          string
-	source          string
-	directAuditLogs *batch.BatchProcessor[auditlog.Event]
+	db             *db.Database
+	rateLimiter    ratelimit.Service
+	usageLimiter   usagelimiter.Service
+	rbac           *rbac.RBAC
+	region         string
+	source         string
+	auditLogBuffer *batch.BatchProcessor[auditlog.Event]
 
 	// hash -> cached key data
 	keyCache     cache.Cache[string, db.CachedKeyData]
@@ -45,19 +45,19 @@ type service struct {
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
-	if err := assert.NotZero(config.DirectAuditLogs, "direct audit log buffer is required"); err != nil {
+	if err := assert.NotZero(config.AuditLogBuffer, "audit log buffer is required"); err != nil {
 		return nil, err
 	}
 	return &service{
-		db:              db.New(config.DB),
-		rbac:            config.RBAC,
-		rateLimiter:     config.RateLimiter,
-		usageLimiter:    config.UsageLimiter,
-		region:          config.Region,
-		source:          config.Source,
-		keyCache:        config.KeyCache,
-		rootKeyCache:    config.RootKeyCache,
-		directAuditLogs: config.DirectAuditLogs,
+		db:             db.New(config.DB),
+		rbac:           config.RBAC,
+		rateLimiter:    config.RateLimiter,
+		usageLimiter:   config.UsageLimiter,
+		region:         config.Region,
+		source:         config.Source,
+		keyCache:       config.KeyCache,
+		rootKeyCache:   config.RootKeyCache,
+		auditLogBuffer: config.AuditLogBuffer,
 	}, nil
 }
 
