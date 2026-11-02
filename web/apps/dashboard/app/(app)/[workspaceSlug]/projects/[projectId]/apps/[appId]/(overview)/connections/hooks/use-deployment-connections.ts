@@ -2,6 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { useConnectionsEnabled } from "@/lib/flags/use-connections-enabled";
 import { type ListView, listOf } from "@/lib/loadable/list";
 import { type Loadable, fromQuery, mapLoadable } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
@@ -30,18 +31,25 @@ function truncatedListOf<Data extends { truncated: boolean }, Row>(
 
 export function useDeploymentConnections(
   deploymentId: string,
-): TruncatedList<DeploymentConnectionSummary> {
+): TruncatedList<DeploymentConnectionSummary> | null {
+  const enabled = useConnectionsEnabled();
   const query = useQuery({
+    enabled,
     queryKey: queryKeys.deployments.connections(deploymentId),
     queryFn: async ({ signal }) =>
       (await getUnkeyClient().deployments.listConnections({ deploymentId }, { signal })).data,
   });
+  if (!enabled) {
+    return null;
+  }
   return truncatedListOf(fromQuery(query), ({ connections }) => connections);
 }
 
-export function usePinningApps(deployment: Deployment): TruncatedList<PinningApp> {
+export function usePinningApps(deployment: Deployment): TruncatedList<PinningApp> | null {
+  const enabled = useConnectionsEnabled();
   const workspace = useWorkspaceNavigation();
   const query = useQuery({
+    enabled,
     queryKey: queryKeys.deployments.connectionPins(deployment.id),
     queryFn: async ({ signal }) =>
       (
@@ -57,6 +65,9 @@ export function usePinningApps(deployment: Deployment): TruncatedList<PinningApp
       projectId: deployment.projectId,
       appId,
     });
+  if (!enabled) {
+    return null;
+  }
   return truncatedListOf(fromQuery(query), ({ pins }) => pinningAppsOf(pins, appHref));
 }
 

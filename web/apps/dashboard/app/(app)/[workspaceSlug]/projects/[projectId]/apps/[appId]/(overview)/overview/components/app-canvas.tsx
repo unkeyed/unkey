@@ -94,7 +94,7 @@ export function AppCanvas() {
       <Group icon={<IconCubeOutline18 />} label="App">
         <AppNode />
       </Group>
-      <HFlow empty={!listed && connections.view.status !== "ready"} />
+      <HFlow empty={!listed && connections?.view.status !== "ready"} />
       <Group
         icon={<IconGridOutline18 />}
         label={listed ? `Services · ${policies.length}` : "Services"}
@@ -119,12 +119,14 @@ export function AppCanvas() {
           ))
           .with("list", () => <PoliciesNode policies={policies} href={policiesHref} />)
           .exhaustive()}
-        <ConnectionsNode
-          view={connections.view}
-          truncated={connections.truncated}
-          href={connectionsHref}
-          addHref={addConnectionHref}
-        />
+        {connections && (
+          <ConnectionsNode
+            view={connections.view}
+            truncated={connections.truncated}
+            href={connectionsHref}
+            addHref={addConnectionHref}
+          />
+        )}
       </Group>
     </Canvas>
   );

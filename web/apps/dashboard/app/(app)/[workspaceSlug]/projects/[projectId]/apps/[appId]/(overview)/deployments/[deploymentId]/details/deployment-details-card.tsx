@@ -60,7 +60,6 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
   const isCurrent = app?.currentDeploymentId === deployment.id;
   const liveSwitch = useLiveSwitch(currentDeployment?.id, isRolledBack)(deployment.id);
   const duration = useBuildDuration(status, deployment.createdAt, deployment.buildEndedAt);
-  const pinningApps = usePinningApps(deployment);
 
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -102,20 +101,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
             )}
           </Row>
           <Row label="Instances">{instancesText(instances, deployment.desiredState)}</Row>
-          {match(pinningApps.view)
-            .with({ status: "loading" }, () => null)
-            .with({ status: "failed" }, ({ retry, retrying }) => (
-              <Row label="Pinned by">
-                <PinningAppsError retry={retry} retrying={retrying} />
-              </Row>
-            ))
-            .with({ status: "empty" }, () => null)
-            .with({ status: "ready" }, ({ rows }) => (
-              <Row label="Pinned by">
-                <PinningApps apps={rows} truncated={pinningApps.truncated} />
-              </Row>
-            ))
-            .exhaustive()}
+          <PinnedByRow deployment={deployment} />
         </Column>
         <Column>
           <SourceRows deployment={deployment} repoFullName={repoFullName} />
@@ -136,6 +122,27 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
       <InstantRollbackRow key={deployment.id} />
     </Card>
   );
+}
+
+function PinnedByRow({ deployment }: { deployment: Deployment }) {
+  const pinningApps = usePinningApps(deployment);
+  if (!pinningApps) {
+    return null;
+  }
+  return match(pinningApps.view)
+    .with({ status: "loading" }, () => null)
+    .with({ status: "failed" }, ({ retry, retrying }) => (
+      <Row label="Pinned by">
+        <PinningAppsError retry={retry} retrying={retrying} />
+      </Row>
+    ))
+    .with({ status: "empty" }, () => null)
+    .with({ status: "ready" }, ({ rows }) => (
+      <Row label="Pinned by">
+        <PinningApps apps={rows} truncated={pinningApps.truncated} />
+      </Row>
+    ))
+    .exhaustive();
 }
 
 function Column({ children }: { children: ReactNode }) {

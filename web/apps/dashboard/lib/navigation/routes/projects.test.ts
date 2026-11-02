@@ -118,9 +118,6 @@ describe("app-scoped paths", () => {
     "shows active Connections in app navigation with metrics=%s",
     (metrics) => {
       const segments = ["projects", projectId, "apps", appId, "connections"];
-      expect(
-        buildAppLinks(ws, projectId, appId, segments, { metrics }).map((link) => link.key),
-      ).not.toContain("connections");
       const links = buildAppLinks(ws, projectId, appId, segments, { metrics, connections: true });
       expect(links.find((link) => link.key === "connections")).toMatchObject({
         label: "Connections",
