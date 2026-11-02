@@ -32,13 +32,10 @@ import { Result } from "../types/fp.js";
  * @remarks
  * Detach a custom domain from a portal. A verified domain stops serving the portal.
  *
- * **Required Permissions**
- *
- * Your root key must have one of:
- * - `portal.*.update_portal` (to manage domains on any portal in the workspace)
- * - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
- *
- * Without the permission this returns **404**, not 403.
+ * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#delete`.
+ * Use `portals/<portal_id>/domains/*#delete` to delete any domain on the portal.
+ * Without the permission this returns **404**, not 403, unless the key can read
+ * the portal or the domain.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
@@ -51,6 +48,7 @@ export function portalDeleteDomain(
     components.V2PortalDeleteDomainResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -81,6 +79,7 @@ async function $do(
       components.V2PortalDeleteDomainResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
+      | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
@@ -179,6 +178,7 @@ async function $do(
     components.V2PortalDeleteDomainResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
+    | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
@@ -194,6 +194,7 @@ async function $do(
     M.json(200, components.V2PortalDeleteDomainResponseBody$inboundSchema),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
+    M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema),
     M.jsonErr(500, errors.InternalServerErrorResponse$inboundSchema),

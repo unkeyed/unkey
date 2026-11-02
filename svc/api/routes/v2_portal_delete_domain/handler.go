@@ -2,20 +2,20 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/customdomain"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portaldomain"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -49,24 +49,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	found, err := portaldomain.FindPortal(ctx, h.DB, principal.AuthorizedWorkspaceID, req.Portal)
+	lookup, err := portaldomain.FindPortalAndDomain(ctx, h.DB, principal.AuthorizedWorkspaceID, req.Portal, req.DomainId)
 	if err != nil {
 		return err
 	}
 
-	// The wildcard tuple is spelled out because a stored `*` matches literally.
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: "*", Action: rbac.UpdatePortal}),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: found.ID, Action: rbac.UpdatePortal}),
-		rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID), permissions.Write),
-	))
-	if err != nil {
-		return portaldomain.PortalNotFound(fmt.Sprintf("delete domain denied for portal %s: %s", found.ID, fault.InternalMessage(err)))
+	portalURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(lookup.Portal.ProjectID).Portal(lookup.Portal.ID)
+	permissionQuery := rbac.U(portalURN.Domain(req.DomainId), permissions.Delete)
+	if err = principal.Authorize(permissionQuery); err != nil {
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			rbac.Or(
+				rbac.U(portalURN, permissions.Read),
+				rbac.U(portalURN.Domain(req.DomainId), permissions.Read),
+			),
+			codes.Data.Portal.NotFound.URN(),
+			portaldomain.PortalNotFoundMessage,
+		)
 	}
-
-	row, err := portaldomain.FindDomain(ctx, h.DB, principal.AuthorizedWorkspaceID, found.ID, req.DomainId)
-	if err != nil {
-		return err
+	if lookup.DomainErr != nil {
+		return lookup.DomainErr
 	}
 
 	actor, err := ctrlclient.Actor(s)
@@ -76,14 +80,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	_, err = h.CtrlClient.DeletePortalDomain(ctx, &ctrlv1.DeletePortalDomainRequest{
 		WorkspaceId: principal.AuthorizedWorkspaceID,
-		PortalId:    found.ID,
-		DomainId:    row.ID,
+		PortalId:    lookup.Portal.ID,
+		DomainId:    lookup.Domain.ID,
 		Actor:       actor,
 	})
-	if err != nil {
-		if connect.CodeOf(err) == connect.CodeNotFound {
-			return portaldomain.DomainNotFound(fmt.Sprintf("ctrl has no domain %s on portal %s: %s", row.ID, found.ID, err.Error()))
-		}
+	// A concurrent delete got there first, which leaves what the caller asked for.
+	if err != nil && connect.CodeOf(err) != connect.CodeNotFound {
 		return customdomain.MapCtrlError(err, "delete portal domain")
 	}
 

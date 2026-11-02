@@ -1,15 +1,11 @@
 package handler_test
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_domain"
@@ -34,13 +30,13 @@ func TestDeletePortalDomainMissesNeverReachCtrl(t *testing.T) {
 		permissions []string
 		message     string
 	}{
-		{name: "unknown domain", req: handler.Request{Portal: f.portal.ID, DomainId: uid.New(uid.PortalDomainPrefix)}, permissions: []string{"portal.*.update_portal"}, message: "The requested domain does not exist."},
-		{name: "domain on another portal in this workspace", req: handler.Request{Portal: f.portal.ID, DomainId: siblingDomain.ID}, permissions: []string{"portal.*.update_portal"}, message: "The requested domain does not exist."},
-		{name: "domain in another workspace", req: handler.Request{Portal: f.portal.ID, DomainId: foreignDomain.ID}, permissions: []string{"portal.*.update_portal"}, message: "The requested domain does not exist."},
-		{name: "portal in another workspace", req: handler.Request{Portal: foreignPortal.ID, DomainId: foreignDomain.ID}, permissions: []string{"portal.*.update_portal"}, message: "Portal not found."},
+		{name: "unknown domain", req: handler.Request{Portal: f.portal.ID, DomainId: uid.New(uid.PortalDomainPrefix)}, permissions: []string{f.grant("delete")}, message: "The requested domain does not exist."},
+		{name: "domain on another portal in this workspace", req: handler.Request{Portal: f.portal.ID, DomainId: siblingDomain.ID}, permissions: []string{f.grant("delete")}, message: "The requested domain does not exist."},
+		{name: "domain in another workspace", req: handler.Request{Portal: f.portal.ID, DomainId: foreignDomain.ID}, permissions: []string{f.grant("delete")}, message: "The requested domain does not exist."},
+		{name: "portal in another workspace", req: handler.Request{Portal: foreignPortal.ID, DomainId: foreignDomain.ID}, permissions: []string{f.grant("delete")}, message: "Portal not found."},
 		{name: "no permissions", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{}, message: "Portal not found."},
-		{name: "read only", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{"portal.*.read_portal"}, message: "Portal not found."},
-		{name: "update on another portal", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{fmt.Sprintf("portal.%s.update_portal", sibling.ID)}, message: "Portal not found."},
+		{name: "legacy update_portal", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{"portal.*.update_portal"}, message: "Portal not found."},
+		{name: "domains on another portal", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/domains/*#delete", f.workspaceID, f.projectID, sibling.ID)}, message: "Portal not found."},
 	}
 
 	for _, tc := range testCases {
@@ -52,17 +48,4 @@ func TestDeletePortalDomainMissesNeverReachCtrl(t *testing.T) {
 	}
 
 	require.Empty(t, f.ctrl.DeletePortalDomainCalls)
-}
-
-// The row was removed between the API's read and ctrl's.
-func TestDeletePortalDomainCtrlNotFound(t *testing.T) {
-	f := setup(t)
-	stored := f.seedDomain(t, db.PortalDomainsVerificationStatusFailed)
-	f.ctrl.DeletePortalDomainFunc = func(_ context.Context, _ *ctrlv1.DeletePortalDomainRequest) (*ctrlv1.DeletePortalDomainResponse, error) {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("portal domain not found: "+stored.ID))
-	}
-
-	res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, "portal.*.update_portal")
-	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
-	require.Contains(t, res.RawBody, "The requested domain does not exist.")
 }

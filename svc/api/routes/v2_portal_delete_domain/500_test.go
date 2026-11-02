@@ -22,7 +22,7 @@ func TestDeletePortalDomainCtrlFailureIsNotReflected(t *testing.T) {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("failed to delete frontline route: table is gone"))
 	}
 
-	res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, f.grant("delete"))
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
 	require.NotContains(t, res.RawBody, "frontline")
 }

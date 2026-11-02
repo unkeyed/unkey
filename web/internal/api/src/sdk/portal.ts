@@ -137,13 +137,10 @@ export class Portal extends ClientSDK {
    * @remarks
    * Detach a custom domain from a portal. A verified domain stops serving the portal.
    *
-   * **Required Permissions**
-   *
-   * Your root key must have one of:
-   * - `portal.*.update_portal` (to manage domains on any portal in the workspace)
-   * - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
-   *
-   * Without the permission this returns **404**, not 403.
+   * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#delete`.
+   * Use `portals/<portal_id>/domains/*#delete` to delete any domain on the portal.
+   * Without the permission this returns **404**, not 403, unless the key can read
+   * the portal or the domain.
    */
   async deleteDomain(
     request: components.V2PortalDeleteDomainRequestBody,

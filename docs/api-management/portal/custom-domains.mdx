@@ -38,7 +38,16 @@ A portal domain follows the same naming rules as a [Compute custom domain](/comp
 
 <RootKeyPrereq />
 
-Attaching, verifying, and removing a domain need `portal.*.update_portal` or `portal.<portalId>.update_portal`. Reading domains also works with `read_portal`. Without the permission, the request fails with 404, not 403.
+Portal domains have their own permission, under the portal they belong to:
+
+| Action | Permission |
+| --- | --- |
+| Attach a domain | `unkey:v1:<workspaceId>:projects/<projectId>/portals/<portalId>/domains/*#write` |
+| Read or list domains | `unkey:v1:<workspaceId>:projects/<projectId>/portals/<portalId>/domains/*#read` |
+| Retry verification | `unkey:v1:<workspaceId>:projects/<projectId>/portals/<portalId>/domains/<domainId>#write` |
+| Remove a domain | `unkey:v1:<workspaceId>:projects/<projectId>/portals/<portalId>/domains/<domainId>#delete` |
+
+Permission on the portal itself doesn't cover its domains. Without the permission, the request fails with 404, or with 403 naming the missing permission if your root key can read the portal.
 
 <Steps titleSize="h3">
   <Step title="Add the domain">
@@ -51,7 +60,7 @@ Attaching, verifying, and removing a domain need `portal.*.update_portal` or `po
       -d '{ "portal": "acme-portal", "domain": "developers.acme.com" }'
     ```
 
-    The response has the domain's `pdom_` ID and the `dnsRecords` to publish.
+    The response has the domain's `pdom_` ID and the `dnsRecords` to publish. If your DNS provider supports [Domain Connect](https://www.domainconnect.org/), it also has `domainConnect.url`, a link that creates the records at your provider in one step. `portal.getDomain` returns the same link.
   </Step>
   <Step title="Publish the DNS records">
     Create both records at your DNS provider, exactly as `dnsRecords` lists them, with a TTL of 60 seconds:
@@ -79,7 +88,7 @@ Attaching, verifying, and removing a domain need `portal.*.update_portal` or `po
 
 ## Verification failed
 
-After 24 hours without the right records, the status becomes `failed` and `verificationError` says why. Fix the records, then call `portal.verifyDomain` to start a new 24 hour window. Calling it on a domain that's already verified returns 412.
+After 24 hours without the right records, the status becomes `failed` and `verificationError` says why. Fix the records, then call `portal.verifyDomain` to start a new 24 hour window. Calling it on a domain that's already verified succeeds and does nothing.
 
 Things to check:
 
@@ -102,9 +111,10 @@ Adding, verifying, and removing a domain write `portal.domain.create`, `portal.d
 
 | Status | Code | Meaning |
 | --- | --- | --- |
-| 404 | `err:unkey:data:portal_not_found` | The portal does not exist, is not in your workspace, or your root key lacks the permission for it. |
+| 404 | `err:unkey:data:portal_not_found` | The portal does not exist, is not in your workspace, or your root key can't read it or its domains. |
+| 403 | `err:unkey:authorization:insufficient_permissions` | Your root key can read the portal but lacks the domain permission. The error names it. |
 | 404 | `err:unkey:data:domain_not_found` | The domain is not attached to that portal. |
 | 409 | `err:unkey:data:domain_already_exists` | The name is already attached to a portal or an environment in your workspace. |
-| 403 | `err:unkey:limits:custom_domain_limit_exceeded` | The workspace already holds 10 portal domains. |
-| 412 | `err:unkey:application:precondition_failed` | On verify: the domain is already verified. On portal delete: the portal still has domains. |
+| 403 | `err:unkey:limits:portal_domain_limit_exceeded` | The workspace already holds 10 portal domains. |
+| 412 | `err:unkey:application:precondition_failed` | On portal delete: the portal still has domains. |
 | 400 | `err:unkey:application:invalid_input` | The name is malformed, a wildcard, an IP address, or not under a registrable domain. |
