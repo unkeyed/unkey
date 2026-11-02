@@ -1,28 +1,25 @@
 "use client";
 
 import { Button } from "@unkey/ui";
-import { type ReactNode, createContext, use } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-
-const PaneFooterContext = createContext<HTMLElement | null>(null);
-
-export const PaneFooterProvider = PaneFooterContext.Provider;
+import { usePaneFooter } from "./card";
 
 type PaneSubmitProps = {
-  loading: boolean;
+  loading?: boolean;
   disabled?: boolean;
   children?: ReactNode;
   notice?: ReactNode;
 } & ({ form: string } | { onClick: () => void });
 
 export function PaneSubmit({
-  loading,
+  loading = false,
   disabled = loading,
   children = "Continue",
   notice,
   ...action
 }: PaneSubmitProps) {
-  const footer = use(PaneFooterContext);
+  const footer = usePaneFooter();
   if (!footer) {
     return null;
   }

@@ -1,9 +1,15 @@
 "use client";
 
 import { Loading, cn } from "@unkey/ui";
-import { type ReactNode, type Ref, useEffect, useState } from "react";
+import { type ReactNode, createContext, use, useEffect, useState } from "react";
 
 const MIN_HIDDEN_PX = 8;
+
+const PaneFooterContext = createContext<HTMLElement | null>(null);
+
+export function usePaneFooter(): HTMLElement | null {
+  return use(PaneFooterContext);
+}
 
 type SurfaceProps = {
   className?: string;
@@ -23,31 +29,35 @@ export function CardSurface({ className, children }: SurfaceProps) {
 export function CardFrame({
   copy,
   eyebrow,
+  action,
   back,
-  actionsRef,
   footerHidden = false,
   children,
 }: {
   copy: { title: string; description: string };
   eyebrow?: string;
+  action?: ReactNode;
   back: ReactNode;
-  actionsRef?: Ref<HTMLDivElement>;
   footerHidden?: boolean;
   children: ReactNode;
 }) {
+  const [footer, setFooter] = useState<HTMLDivElement | null>(null);
   return (
-    <CardSurface className="@container">
-      <CardScrollBody>
-        <div className="shrink-0">
-          <CardTitle eyebrow={eyebrow} title={copy.title} description={copy.description} />
-        </div>
-        {children}
-      </CardScrollBody>
-      <CardFooter hidden={footerHidden}>
-        {back}
-        <div ref={actionsRef} className="ml-auto flex items-center gap-3" />
-      </CardFooter>
-    </CardSurface>
+    <PaneFooterContext.Provider value={footer}>
+      <CardSurface className="@container">
+        <CardScrollBody>
+          <div className="flex shrink-0 items-start gap-4">
+            <CardTitle eyebrow={eyebrow} title={copy.title} description={copy.description} />
+            {action}
+          </div>
+          {children}
+        </CardScrollBody>
+        <CardFooter hidden={footerHidden}>
+          {back}
+          <div ref={setFooter} className="ml-auto flex items-center gap-3" />
+        </CardFooter>
+      </CardSurface>
+    </PaneFooterContext.Provider>
   );
 }
 
@@ -74,7 +84,7 @@ function CardTitle({
   description: string;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-1 flex-col gap-1">
       {eyebrow ? (
         <span className="hidden text-xs text-gray-11 lg:max-xl:block">{eyebrow}</span>
       ) : null}
