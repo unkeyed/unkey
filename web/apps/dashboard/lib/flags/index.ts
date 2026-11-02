@@ -42,3 +42,8 @@ export const appV2 = {
   slug: "app_v2",
   defaultValue: false,
 } as const satisfies WorkspaceFlag;
+
+export const connections = {
+  slug: "connections",
+  defaultValue: false,
+} as const satisfies WorkspaceFlag;
