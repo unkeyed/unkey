@@ -2,6 +2,7 @@ import { parseReturnPath } from "@/lib/billing/upgrade-result";
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 import { createSubscriptionCheckout } from "@/lib/stripe/createSubscriptionCheckout";
+import { retrieveSubscriptionOrNull } from "@/lib/stripe/notFound";
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { hostedInvoiceUrl, isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
 import { getBaseUrl } from "@/lib/utils";
@@ -83,14 +84,9 @@ export const createSubscription = workspaceProcedure
     // not a 500; anything else propagates so a transient failure never silently
     // downgrades a live subscription to "absent".
     if (ctx.workspace.stripeSubscriptionId) {
-      let recorded = await stripe.subscriptions
-        .retrieve(ctx.workspace.stripeSubscriptionId, { expand: ["latest_invoice"] })
-        .catch((err: unknown) => {
-          if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
-            return null;
-          }
-          throw err;
-        });
+      let recorded = await retrieveSubscriptionOrNull(stripe, ctx.workspace.stripeSubscriptionId, {
+        expand: ["latest_invoice"],
+      });
       if (recorded?.status === "incomplete") {
         const paymentUrl = hostedInvoiceUrl(recorded);
         if (paymentUrl) {

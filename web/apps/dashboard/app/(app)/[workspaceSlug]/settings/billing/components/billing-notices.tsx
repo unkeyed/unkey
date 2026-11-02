@@ -19,8 +19,6 @@ import { AdminGate } from "./admin-gate";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 
-const PAYMENT_REQUIRED_STATUSES = ["incomplete", "incomplete_expired", "unpaid", "past_due"];
-
 export function BillingNotices({
   isAdmin,
   subscription,
@@ -30,9 +28,7 @@ export function BillingNotices({
 }) {
   return (
     <>
-      {subscription && PAYMENT_REQUIRED_STATUSES.includes(subscription.status) ? (
-        <PaymentRequired status={subscription.status} />
-      ) : null}
+      {subscription?.status === "incomplete_expired" ? <PaymentExpired /> : null}
       {subscription?.cancelAt && subscription.cancelAt > Date.now() ? (
         <ScheduledCancellation isAdmin={isAdmin} cancelAt={subscription.cancelAt} />
       ) : null}
@@ -40,33 +36,14 @@ export function BillingNotices({
   );
 }
 
-function PaymentRequired({ status }: { status: string }) {
-  const completePayment = trpc.stripe.getSubscriptionPaymentUrl.useMutation({
-    onSuccess: ({ paymentUrl }) => window.location.assign(paymentUrl),
-    onError: (err) => toast.error(err.message),
-  });
-
+function PaymentExpired() {
   return (
     <AlertBanner variant="error">
       <IconTriangleWarningOutline18 className="size-3.5" />
       <AlertBannerTitle>Payment required</AlertBannerTitle>
       <AlertBannerDescription>
-        {status === "incomplete_expired"
-          ? "The previous payment attempt expired. Choose your plan again to retry."
-          : "Complete the payment in Stripe to activate or restore your plan."}
+        The previous payment attempt expired. Choose your plan again to retry.
       </AlertBannerDescription>
-      {status === "incomplete_expired" ? null : (
-        <AlertBannerActions>
-          <Button
-            variant="outline"
-            size="md"
-            loading={completePayment.isLoading}
-            onClick={() => completePayment.mutate()}
-          >
-            Complete payment
-          </Button>
-        </AlertBannerActions>
-      )}
     </AlertBanner>
   );
 }

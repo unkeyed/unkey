@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 )
@@ -35,6 +36,16 @@ type Command struct {
 	Aliases     []string   // Alternative names for this command
 	AcceptsArgs bool       // Whether this command accepts positional arguments
 	commandPath string     // Full command path for MDX generation (e.g., "run api")
+
+	// Prepare resolves input after parsing and conflict checks, before required
+	// validation. It may replace Flags and RequireOneOf; errors prevent Action.
+	Prepare Action
+
+	// OnError transforms parse, Prepare, and Action failures once, using the
+	// nearest ancestor hook when nil. Action wrappers see the original error first.
+	// Args contains the command's original input only when parsing failed;
+	// otherwise it is nil and parsed flags are complete.
+	OnError func(context.Context, *Command, []string, error) error
 
 	// RootAliases invoke this command from the root without changing its canonical path.
 	RootAliases []string
@@ -65,6 +76,28 @@ func (c *Command) FlagIsSet(name string) bool {
 		return flag.IsSet()
 	}
 	return false
+}
+
+// ConflictingFlags returns flags that cannot be supplied together with name.
+func (c *Command) ConflictingFlags(name string) []string {
+	var names []string
+	for _, flag := range c.Flags {
+		if flag.Name() == name {
+			names = c.mutuallyExclusiveNames(flag)
+			break
+		}
+	}
+	for _, group := range c.RequireOneOf {
+		if !slices.Contains(group, name) {
+			continue
+		}
+		for _, other := range group {
+			if other != name && !slices.Contains(names, other) {
+				names = append(names, other)
+			}
+		}
+	}
+	return names
 }
 
 // String returns the value of a string flag by name

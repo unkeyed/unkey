@@ -543,8 +543,10 @@ func TestWithAuthentication_SkipsRequestLogForDashboard(t *testing.T) {
 		principalType principal.Type
 		client        string
 		wantLogged    bool
+		denied        bool
 	}{
 		{name: "dashboard JWT", principalType: principal.TypeJWT, client: "unkey-dashboard", wantLogged: false},
+		{name: "denied dashboard JWT", principalType: principal.TypeJWT, client: "unkey-dashboard", wantLogged: true, denied: true},
 		{name: "other JWT client", principalType: principal.TypeJWT, client: "", wantLogged: true},
 		{name: "root key claiming dashboard", principalType: principal.TypeAPIKey, client: "unkey-dashboard", wantLogged: true},
 		{name: "root key", principalType: principal.TypeAPIKey, client: "", wantLogged: true},
@@ -573,6 +575,9 @@ func TestWithAuthentication_SkipsRequestLogForDashboard(t *testing.T) {
 					WithAuthentication(AuthenticationConfig{Auth: auth}),
 				},
 				zen.NewRoute(http.MethodPost, "/v2/deployments.listDeployments", func(_ context.Context, s *zen.Session) error {
+					if tt.denied {
+						return auth.principal.Authorize(rbac.U(urn.New().Workspace(auth.principal.AuthorizedWorkspaceID).Project(uid.New(uid.ProjectPrefix)), permissions.Read))
+					}
 					return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
 				}),
 			)
@@ -581,10 +586,16 @@ func TestWithAuthentication_SkipsRequestLogForDashboard(t *testing.T) {
 			if tt.client != "" {
 				req.Header.Set("X-Unkey-Client", tt.client)
 			}
-			server.Mux().ServeHTTP(httptest.NewRecorder(), req)
+			response := httptest.NewRecorder()
+			server.Mux().ServeHTTP(response, req)
 
 			if tt.wantLogged {
 				require.Len(t, recorder.requests, 1)
+				if tt.denied {
+					require.Equal(t, http.StatusForbidden, response.Code)
+					require.EqualValues(t, http.StatusForbidden, recorder.requests[0].ResponseStatus)
+					require.Equal(t, auth.principal.AuthorizedWorkspaceID, recorder.requests[0].WorkspaceID)
+				}
 				return
 			}
 			require.Empty(t, recorder.requests)

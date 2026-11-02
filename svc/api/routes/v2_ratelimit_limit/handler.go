@@ -39,7 +39,7 @@ type (
 type Handler struct {
 	DB              db.Database
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
-	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
+	AuditLogBuffer  *batch.BatchProcessor[auditlog.Event]
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
@@ -234,7 +234,7 @@ func (h *Handler) bufferAuditLog(
 		})
 	}
 
-	h.DirectAuditLogs.Buffer(auditlog.Event{
+	h.AuditLogBuffer.Buffer(auditlog.Event{
 		EventID:     uid.New(uid.AuditLogPrefix),
 		Time:        timeMillis,
 		WorkspaceID: p.AuthorizedWorkspaceID,

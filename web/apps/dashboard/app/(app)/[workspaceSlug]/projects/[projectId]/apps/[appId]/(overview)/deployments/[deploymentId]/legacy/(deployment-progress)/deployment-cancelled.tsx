@@ -1,6 +1,6 @@
 "use client";
 
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { Deployment } from "@/lib/deploy-data/deployment";
 import {
   IconBanOutline18,
   IconCloudUploadOutline18,

@@ -1,4 +1,5 @@
 "use client";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
@@ -9,7 +10,6 @@ import { useEffect, useRef, useState } from "react";
 import { DeploymentApproval } from "../(deployment-progress)/deployment-approval";
 import { DeploymentSkipped } from "../(deployment-progress)/deployment-skipped";
 import { DeploymentDomainsCard } from "../../../../components/legacy/deployment-domains-card";
-import { useProjectData } from "../../../data-provider";
 import { DeploymentSuccessBanner } from "../deployment-success-banner";
 import { useDeployment } from "../layout-provider";
 import { useDeploymentStatus } from "../use-deployment-status";

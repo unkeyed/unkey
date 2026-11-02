@@ -4,8 +4,8 @@ import { pausedBody } from "@/app/(app)/[workspaceSlug]/settings/billing/compone
 import { formatDollars } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import Link from "next/link";
+import { AppBanner } from "./app-banner";
 
 /**
  * Workspace-wide banner for the spend-cap paused state. The cap is per
@@ -26,20 +26,15 @@ export function ComputePausedBanner() {
       : undefined;
 
   return (
-    <div
-      data-compute-paused
-      className="flex h-(--app-banner-h) w-full shrink-0 items-center justify-center gap-2 bg-warning-9 px-4 text-center font-medium text-sm text-black"
-    >
-      <IconTriangleWarningOutline12 className="shrink-0" />
-      <span>
-        <span className="font-semibold">Compute paused.</span> {pausedBody(budgetLabel)}{" "}
-        <Link
-          href={routes.settings.billing({ workspaceSlug: workspace.slug })}
-          className="underline underline-offset-2 hover:opacity-80"
-        >
+    <AppBanner
+      tone="warning"
+      action={
+        <Link href={routes.settings.billing({ workspaceSlug: workspace.slug })}>
           Manage billing
         </Link>
-      </span>
-    </div>
+      }
+    >
+      <span className="font-semibold">Compute paused.</span> {pausedBody(budgetLabel)}
+    </AppBanner>
   );
 }

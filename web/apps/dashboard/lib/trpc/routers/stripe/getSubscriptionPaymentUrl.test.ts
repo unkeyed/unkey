@@ -6,7 +6,7 @@ vi.mock("@/lib/stripe", () => ({ getStripeClient: vi.fn() }));
 vi.mock("../../trpc", () => ({
   requireWorkspaceAdmin: {},
   workspaceProcedure: {
-    use: () => ({ mutation: () => ({}) }),
+    use: () => ({ input: () => ({ mutation: () => ({}) }) }),
   },
 }));
 

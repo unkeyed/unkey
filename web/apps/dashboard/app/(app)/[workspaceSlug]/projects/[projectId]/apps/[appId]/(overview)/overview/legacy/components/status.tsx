@@ -3,7 +3,7 @@ import {
   DEPLOYMENT_STATUS_LABELS,
   isDeploymentInFlight,
 } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { Deployment } from "@/lib/deploy-data/deployment";
 
 export type DeploymentDisplayStatus = "live" | "deploying" | "crashing" | "failed" | "stopped";
 

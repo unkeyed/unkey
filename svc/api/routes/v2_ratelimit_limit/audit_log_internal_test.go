@@ -29,7 +29,7 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 	))
 
 	var eventCountFlushed atomic.Int64
-	directAuditLogs := batch.New(batch.Config[auditlog.Event]{
+	auditLogBuffer := batch.New(batch.Config[auditlog.Event]{
 		Name:          "ratelimit_limit_non_root_audit_test",
 		Drop:          false,
 		BatchSize:     1,
@@ -41,11 +41,11 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 		},
 	})
 	t.Cleanup(func() {
-		directAuditLogs.Close()
+		auditLogBuffer.Close()
 		require.Zero(t, eventCountFlushed.Load())
 	})
 
-	h := &Handler{DirectAuditLogs: directAuditLogs} //nolint:exhaustruct
+	h := &Handler{AuditLogBuffer: auditLogBuffer} //nolint:exhaustruct
 	p := &principal.Principal{
 		Version: principal.Version,
 		Subject: principal.Subject{

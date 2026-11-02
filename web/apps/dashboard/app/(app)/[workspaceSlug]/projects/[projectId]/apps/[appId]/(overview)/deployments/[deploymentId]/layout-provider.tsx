@@ -1,12 +1,10 @@
 "use client";
 
+import { LoadError } from "@/components/load-error";
 import { LoadingState } from "@/components/loading-state";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { useLiveQuery } from "@tanstack/react-db";
+import { type Deployment, useDeployment as useDeploymentById } from "@/lib/deploy-data";
 import { notFound, useParams } from "next/navigation";
 import { createContext, useContext } from "react";
-import { useAppId, useProjectData } from "../../data-provider";
-import { appDeploymentQueryFor } from "../../data-provider-queries";
 
 type DeploymentLayoutContextType = {
   deployment: Deployment;
@@ -32,19 +30,18 @@ export const DeploymentLayoutProvider = ({
     throw new Error("DeploymentLayoutProvider requires a deploymentId (via prop or route params)");
   }
 
-  const { projectId } = useProjectData();
-  const appId = useAppId();
-  // A single-id query loads the row with its instances however old it is, and
-  // the provider's refetch keeps it live while the deployment builds
-  const deploymentQuery = useLiveQuery(appDeploymentQueryFor(projectId, appId, deploymentId), [
-    projectId,
-    appId,
-    deploymentId,
-  ]);
-
-  const resolved = deploymentQuery.data?.[0];
+  // Loads the row with its instances however old it is; the scope's polling
+  // keeps it live while the deployment builds
+  const { data: resolved, isError, error, refetch } = useDeploymentById(deploymentId);
   if (!resolved) {
-    if (deploymentQuery.isLoading) {
+    if (resolved === undefined && isError) {
+      return (
+        <div className="flex min-h-(--app-body-h) flex-col">
+          <LoadError title="Could not load deployment" error={error} onRetry={() => refetch()} />
+        </div>
+      );
+    }
+    if (resolved === undefined) {
       return (
         <div className="flex min-h-(--app-body-h) flex-col">
           <LoadingState message="Loading deployment..." />

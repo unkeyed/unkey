@@ -108,6 +108,7 @@ spec:
       labels:
         app: otel-collector
     spec:
+      serviceAccountName: otel-collector
       containers:
         - name: otel-collector
           image: grafana/otel-lgtm:0.11.7@sha256:10c9cf2db84bfc63477c026718bae52800daf1c270fafe7687628d84b4c34fd4
