@@ -175,8 +175,12 @@
     scroll-padding-top: calc(var(--app-header-h) + --spacing(2));
   }
 
-  html:has([data-compute-paused]) {
+  html:has([data-app-banner]) {
     --app-header-h: calc(var(--app-nav-h) + var(--app-banner-h));
+  }
+
+  html:has([data-app-banner] ~ [data-app-banner]) {
+    --app-header-h: calc(var(--app-nav-h) + 2 * var(--app-banner-h));
   }
 
   body {
