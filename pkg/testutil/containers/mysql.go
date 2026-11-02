@@ -73,7 +73,7 @@ func MySQLLogicalIsolated(t testing.TB) MySQLConfig {
 	hostDB, err := sql.Open("mysql", dsnCfg.FormatDSN())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, hostDB.Close()) })
-	applyMySQLSchema(t, hostDB, dsnCfg.DBName)
+	loadMySQLSchema(t, t.Context(), hostDB)
 	return MySQLConfig{DSN: dsnCfg.FormatDSN()}
 }
 
@@ -100,19 +100,19 @@ func configureMySQL(t testing.TB, c Container) MySQLConfig {
 	}, 60*time.Second, 500*time.Millisecond)
 	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
 
-	applyMySQLSchema(t, hostDB, dsnCfg.DBName)
+	applyMySQLSchema(t, hostDB)
 
 	return MySQLConfig{
 		DSN: dsnCfg.FormatDSN(),
 	}
 }
 
-// applyMySQLSchema initializes a database schema once.
+// applyMySQLSchema initializes the shared database schema once.
 //
 // CI can run many test processes at the same time. The advisory lock keeps
 // non-idempotent CREATE TABLE statements from racing when those processes use
-// the same database without serializing setup of independent databases.
-func applyMySQLSchema(t testing.TB, hostDB *sql.DB, databaseName string) {
+// the same database.
+func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
 	t.Helper()
 
 	schemaStart := time.Now()
@@ -122,14 +122,13 @@ func applyMySQLSchema(t testing.TB, hostDB *sql.DB, databaseName string) {
 	require.NoError(t, err, "failed to pin MySQL schema connection")
 	defer func() { require.NoError(t, conn.Close()) }()
 
-	lockName := mysqlSchemaLockName + ":" + databaseName
 	var lockAcquired int
-	err = conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 60)", lockName).Scan(&lockAcquired)
+	err = conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 60)", mysqlSchemaLockName).Scan(&lockAcquired)
 	require.NoError(t, err, "failed to acquire MySQL schema lock")
 	require.Equal(t, 1, lockAcquired, "timed out acquiring MySQL schema lock")
 	defer func() {
 		var lockReleased sql.NullInt64
-		releaseErr := conn.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", lockName).Scan(&lockReleased)
+		releaseErr := conn.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", mysqlSchemaLockName).Scan(&lockReleased)
 		require.NoError(t, releaseErr, "failed to release MySQL schema lock")
 		require.True(t, lockReleased.Valid, "MySQL schema lock release returned NULL")
 		require.Equal(t, int64(1), lockReleased.Int64, "MySQL schema lock was not held by this connection")
@@ -146,6 +145,13 @@ func applyMySQLSchema(t testing.TB, hostDB *sql.DB, databaseName string) {
 		return
 	}
 
+	loadMySQLSchema(t, ctx, conn)
+	markMySQLSchema(t, ctx, conn)
+	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
+}
+
+func loadMySQLSchema(t testing.TB, ctx context.Context, database mysqlSchemaDB) {
+	t.Helper()
 	schemaDir := schemaPath()
 	entries, err := os.ReadDir(schemaDir)
 	require.NoError(t, err)
@@ -155,11 +161,9 @@ func applyMySQLSchema(t testing.TB, hostDB *sql.DB, databaseName string) {
 		}
 		data, readErr := os.ReadFile(filepath.Join(schemaDir, entry.Name()))
 		require.NoError(t, readErr)
-		_, execErr := conn.ExecContext(ctx, string(data))
+		_, execErr := database.ExecContext(ctx, string(data))
 		require.NoError(t, execErr, "failed to apply %s", entry.Name())
 	}
-	markMySQLSchema(t, ctx, conn)
-	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
 }
 
 // mysqlTableExists reports whether a table exists in the current database.
