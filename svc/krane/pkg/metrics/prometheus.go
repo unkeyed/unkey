@@ -167,7 +167,7 @@ var (
 			Subsystem: "krane",
 			Name:      "full_sync_duration_seconds",
 			Help:      "Duration of full sync operations from the krane side.",
-			Buckets:   []float64{0.1, 0.5, 1, 2, 5, 10, 30, 60},
+			Buckets:   []float64{0.1, 0.5, 1, 2, 5, 10, 20, 30, 45, 60, 120, 300, 600},
 		},
 	)
 

@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -83,19 +84,14 @@ type sink struct {
 	server       *httptest.Server
 	status       atomic.Int64
 	mu           sync.Mutex
-	delay        time.Duration
+	acknowledge  <-chan struct{}
 	responseBody string
 	requests     []capturedRequest
 }
 
 func newSink(t *testing.T, status int) *sink {
 	t.Helper()
-	return newSlowSink(t, status, 0)
-}
-
-func newSlowSink(t *testing.T, status int, delay time.Duration) *sink {
-	t.Helper()
-	s := &sink{delay: delay}
+	s := &sink{}
 	s.status.Store(int64(status))
 	s.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
@@ -103,12 +99,18 @@ func newSlowSink(t *testing.T, status int, delay time.Duration) *sink {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		time.Sleep(s.delay)
 		responseStatus := int(s.status.Load())
 		s.mu.Lock()
 		s.requests = append(s.requests, capturedRequest{method: r.Method, path: r.URL.Path, header: r.Header.Clone(), body: body, responseStatus: responseStatus})
 		responseBody := s.responseBody
 		s.mu.Unlock()
+		if s.acknowledge != nil {
+			select {
+			case <-s.acknowledge:
+			case <-r.Context().Done():
+				return
+			}
+		}
 		w.WriteHeader(responseStatus)
 		if responseBody != "" {
 			_, _ = io.WriteString(w, responseBody)
@@ -135,6 +137,14 @@ type auditEvent struct {
 }
 
 func TestEngine_Integration(t *testing.T) {
+	testClock := clock.NewTestClock()
+	eventually := func(t *testing.T, check func(*assert.CollectT)) {
+		t.Helper()
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			testClock.Tick(5 * time.Second)
+			check(c)
+		}, 30*time.Second, 10*time.Millisecond)
+	}
 	// Lease acquisition scans all workspaces, including other suites' old cursors.
 	mysqlCfg := containers.MySQLLogicalIsolated(t)
 	clickhouseCfg := containers.ClickHouse(t)
@@ -151,7 +161,7 @@ func TestEngine_Integration(t *testing.T) {
 	t.Run("happy path delivers audit logs with credentials", func(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
 		httpSink := newSink(t, http.StatusOK)
-		start := time.Now().Add(-6 * time.Minute).UnixMilli()
+		start := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 		actorID := uid.New(uid.TestPrefix)
 		apiID := uid.New(uid.APIPrefix)
 		events := []auditEvent{
@@ -162,9 +172,9 @@ func TestEngine_Integration(t *testing.T) {
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", start-1, "Bearer it-test-token")
 		cleanupDrain(t, mysqlDB, drainID)
-		deliveries := startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
+		deliveries := startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock)
 
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			requests := httpSink.snapshot()
 			require.NotEmpty(c, requests)
 			ids, eventPayloads, parseErr := parseSuccessfulRequests(requests)
@@ -195,13 +205,13 @@ func TestEngine_Integration(t *testing.T) {
 			targets := event["targets"].([]any)
 			require.Equal(c, map[string]any{"id": apiID, "type": "api", "name": "My API", "metadata": map[string]any{"region": "us"}}, targets[0])
 			require.Equal(c, events[2].correlationID, eventPayloads[events[2].id]["correlation_id"])
-		}, 30*time.Second, 250*time.Millisecond)
+		})
 
 		state := readDrainState(t, mysqlDB, drainID)
 		require.Zero(t, state.ConsecutiveFailures)
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			require.True(c, hasDelivery(deliveries.snapshot(), drainID, "success", 3))
-		}, 5*time.Second, 100*time.Millisecond)
+		})
 	})
 
 	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces", "gateway_requests", "runtime_logs", "ratelimits"} {
@@ -231,7 +241,7 @@ func TestEngine_Integration(t *testing.T) {
 				}
 			}))
 			t.Cleanup(httpSink.Close)
-			insertedAt := time.Now().Add(-6 * time.Minute).UnixMilli()
+			insertedAt := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 			insertAuditEvents(t, chConn, workspaceID, []auditEvent{
 				{id: drainID + "_a", eventType: "key.create", insertedAt: insertedAt},
 				{id: drainID + "_b", eventType: "key.create", insertedAt: insertedAt},
@@ -349,6 +359,7 @@ func TestEngine_Integration(t *testing.T) {
 			deliveries := &collector{}
 			eng, err := engine.New(engine.Config{
 				DB: database, LeaseID: leaseID, AuditLogs: source.NewAuditLogs(chClient), Vault: stubVault{},
+				Clock:            testClock,
 				KeyVerifications: source.NewKeyVerifications(chClient),
 				GatewayRequests:  source.NewGatewayRequests(chClient),
 				RuntimeLogs:      source.NewRuntimeLogs(chClient),
@@ -367,6 +378,9 @@ func TestEngine_Integration(t *testing.T) {
 			t.Cleanup(func() { close(acknowledge) })
 			receiveEvent := func(wantID, wantAction string) {
 				t.Helper()
+				eventually(t, func(c *assert.CollectT) {
+					require.NotEmpty(c, requests)
+				})
 				select {
 				case body := <-requests:
 					events, decodeErr := decodeDeliveredEvents(body)
@@ -428,13 +442,13 @@ func TestEngine_Integration(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, db.NewQueries(mysqlDB).UpdateLogdrainConfig(t.Context(), db.UpdateLogdrainConfigParams{Config: encoded, ID: drainID}))
 			acknowledge <- struct{}{}
-			require.EventuallyWithT(t, func(c *assert.CollectT) {
+			eventually(t, func(c *assert.CollectT) {
 				attempts := deliveries.snapshot()
 				require.Len(c, attempts, 1)
 				require.Equal(c, "error", attempts[0].Outcome)
 				require.Equal(c, stream, attempts[0].Stream)
 				require.Contains(c, attempts[0].Error, "logdrain lease lost")
-			}, 5*time.Second, 20*time.Millisecond)
+			})
 			stored := readDrainState(t, mysqlDB, drainID)
 			require.Equal(t, insertedAt, stored.CommittedOffsetInsertedAt)
 			require.Equal(t, initialID, stored.CommittedOffsetEventID)
@@ -442,10 +456,10 @@ func TestEngine_Integration(t *testing.T) {
 			acquireLease()
 			receiveEvent(drainID+"_b", "key.create")
 			acknowledge <- struct{}{}
-			require.EventuallyWithT(t, func(c *assert.CollectT) {
+			eventually(t, func(c *assert.CollectT) {
 				require.True(c, hasDelivery(deliveries.snapshot(), drainID, "success", 1))
 				require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).CommittedOffsetInsertedAt, insertedAt)
-			}, 5*time.Second, 20*time.Millisecond)
+			})
 			require.Empty(t, requests)
 		})
 	}
@@ -453,7 +467,7 @@ func TestEngine_Integration(t *testing.T) {
 	t.Run("gateway byte pages retry and oversized events pause without skipping", func(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
 		httpSink := newSink(t, http.StatusInternalServerError)
-		start := time.Now().Add(-time.Minute).UnixMilli()
+		start := testClock.Now().Add(-time.Minute).UnixMilli()
 		var rows []gatewayRequestRow
 		for _, event := range []struct {
 			id    string
@@ -475,10 +489,10 @@ func TestEngine_Integration(t *testing.T) {
 		config.Stream = &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{}}
 		insertDrain(t, mysqlDB, newDrain(t, workspaceID, drainID, config, start))
 		cleanupDrain(t, mysqlDB, drainID)
-		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock)
+		eventually(t, func(c *assert.CollectT) {
 			require.EqualValues(c, 1, readDrainStateCollect(c, mysqlDB, drainID).ConsecutiveFailures)
-		}, 30*time.Second, 100*time.Millisecond)
+		})
 		require.Empty(t, readDrainState(t, mysqlDB, drainID).CommittedOffsetEventID)
 		requests := httpSink.snapshot()
 		require.Equal(t, 1, len(requests))
@@ -489,11 +503,11 @@ func TestEngine_Integration(t *testing.T) {
 
 		httpSink.status.Store(http.StatusOK)
 		retryNow(t, mysqlDB, drainID)
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			state := readDrainStateCollect(c, mysqlDB, drainID)
 			require.Equal(c, "b", state.CommittedOffsetEventID)
 			require.EqualValues(c, 1, state.ConsecutiveFailures)
-		}, 30*time.Second, 100*time.Millisecond)
+		})
 		requests = httpSink.snapshot()
 		require.Equal(t, 3, len(requests))
 		require.Equal(t, requests[0].body, requests[1].body)
@@ -509,9 +523,9 @@ func TestEngine_Integration(t *testing.T) {
 			ConsecutiveFailures: 4,
 			ID:                  drainID,
 		}))
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			require.Equal(c, db.LogdrainsStatusPausedByFailure, readDrainStateCollect(c, mysqlDB, drainID).Status)
-		}, 30*time.Second, 100*time.Millisecond)
+		})
 		require.Equal(t, "b", readDrainState(t, mysqlDB, drainID).CommittedOffsetEventID)
 		require.Equal(t, 3, len(httpSink.snapshot()))
 	})
@@ -519,23 +533,23 @@ func TestEngine_Integration(t *testing.T) {
 	t.Run("failed response retries without advancing offset", func(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
 		httpSink := newSink(t, http.StatusInternalServerError)
-		start := time.Now().Add(-6 * time.Minute).UnixMilli()
+		start := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 		events := []auditEvent{{id: drainID + "_event_1", insertedAt: start}, {id: drainID + "_event_2", insertedAt: start + 1}}
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", start-1)
 		cleanupDrain(t, mysqlDB, drainID)
-		deliveries := startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
+		deliveries := startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock)
 
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			state := readDrainStateCollect(c, mysqlDB, drainID)
 			require.GreaterOrEqual(c, state.ConsecutiveFailures, int32(1))
 			require.Equal(c, start-1, state.CommittedOffsetInsertedAt)
-		}, 30*time.Second, 250*time.Millisecond)
+		})
 
 		httpSink.status.Store(http.StatusOK)
 		// Production retry backoff starts at 1 minute and is intentionally not configurable.
 		retryNow(t, mysqlDB, drainID)
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			state := readDrainStateCollect(c, mysqlDB, drainID)
 			require.GreaterOrEqual(c, state.CommittedOffsetInsertedAt, start+1)
 			require.Zero(c, state.ConsecutiveFailures)
@@ -544,9 +558,9 @@ func TestEngine_Integration(t *testing.T) {
 			for _, event := range events {
 				require.Contains(c, ids, event.id)
 			}
-		}, 30*time.Second, 250*time.Millisecond)
-		require.True(t, hasDelivery(deliveries.snapshot(), drainID, "error", 2))
-		require.True(t, hasDelivery(deliveries.snapshot(), drainID, "success", 2))
+			require.True(c, hasDelivery(deliveries.snapshot(), drainID, "error", 2))
+			require.True(c, hasDelivery(deliveries.snapshot(), drainID, "success", 2))
+		})
 	})
 
 	t.Run("client error pauses drain at failure threshold", func(t *testing.T) {
@@ -555,15 +569,15 @@ func TestEngine_Integration(t *testing.T) {
 		responseBody, err := json.Marshal(map[string]string{"message": "invalid payload"})
 		require.NoError(t, err)
 		httpSink.responseBody = string(responseBody)
-		start := time.Now().Add(-6 * time.Minute).UnixMilli()
+		start := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 		insertAuditEvents(t, chConn, workspaceID, []auditEvent{{id: drainID + "_event_1", insertedAt: start}})
 		drain := newDrain(t, workspaceID, drainID, httpConfig(httpSink.server.URL+"/ingest"), start-1)
 		drain.ConsecutiveFailures = 4
 		insertDrain(t, mysqlDB, drain)
 		cleanupDrain(t, mysqlDB, drainID)
-		deliveries := startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
+		deliveries := startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock)
 
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			state := readDrainStateCollect(c, mysqlDB, drainID)
 			require.Equal(c, db.LogdrainsStatusPausedByFailure, state.Status)
 			require.Equal(c, start-1, state.CommittedOffsetInsertedAt)
@@ -578,15 +592,18 @@ func TestEngine_Integration(t *testing.T) {
 				}
 			}
 			require.True(c, found)
-		}, 30*time.Second, 250*time.Millisecond)
+		})
 	})
 
 	t.Run("concurrent engines do not duplicate a batch while the lease is valid", func(t *testing.T) {
 		// One valid lease must prevent concurrent happy-path delivery. Delivery
 		// remains at-least-once if the lease expires during an external request.
 		workspaceID, drainID := uniqueIDs()
-		httpSink := newSlowSink(t, http.StatusOK, time.Second)
-		start := time.Now().Add(-6 * time.Minute).UnixMilli()
+		httpSink := newSink(t, http.StatusOK)
+		acknowledge := make(chan struct{})
+		httpSink.acknowledge = acknowledge
+		release := sync.OnceFunc(func() { close(acknowledge) })
+		start := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 		events := []auditEvent{
 			{id: drainID + "_event_1", insertedAt: start},
 			{id: drainID + "_event_2", insertedAt: start + 1},
@@ -595,28 +612,34 @@ func TestEngine_Integration(t *testing.T) {
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", start-1, "Bearer it-test-token")
 		cleanupDrain(t, mysqlDB, drainID)
-		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
-		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
+		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock)
+		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock)
+		t.Cleanup(release)
+		eventually(t, func(c *assert.CollectT) {
+			require.Len(c, httpSink.snapshot(), 1)
+		})
+		testClock.Tick(10 * time.Second)
+		release()
 
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			ids, _, parseErr := parseSuccessfulRequests(httpSink.snapshot())
 			require.NoError(c, parseErr)
 			for _, event := range events {
 				require.Contains(c, ids, event.id)
 			}
-			require.GreaterOrEqual(c, readDrainStateCollect(c, mysqlDB, drainID).CommittedOffsetInsertedAt, start+2)
-		}, 30*time.Second, 250*time.Millisecond)
+			require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).CommittedOffsetInsertedAt, start+2)
+		})
 
-		require.Never(t, func() bool {
-			counts, err := successfulRequestIDCounts(httpSink.snapshot())
-			require.NoError(t, err)
-			for _, count := range counts {
-				if count > 1 {
-					return true
-				}
-			}
-			return false
-		}, 3*time.Second, 250*time.Millisecond)
+		offset := readDrainState(t, mysqlDB, drainID).CommittedOffsetInsertedAt
+		retryNow(t, mysqlDB, drainID)
+		eventually(t, func(c *assert.CollectT) {
+			require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).CommittedOffsetInsertedAt, offset)
+		})
+		counts, err := successfulRequestIDCounts(httpSink.snapshot())
+		require.NoError(t, err)
+		for _, event := range events {
+			require.Equal(t, 1, counts[event.id])
+		}
 	})
 
 	t.Run("one replica processes drains in parallel up to the limit", func(t *testing.T) {
@@ -644,15 +667,18 @@ func TestEngine_Integration(t *testing.T) {
 			}
 		}))
 		t.Cleanup(httpSink.Close)
-		start := time.Now().Add(-6 * time.Minute).UnixMilli()
+		start := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 		insertAuditEvents(t, chConn, workspaceA, []auditEvent{{id: drainA + "_event_1", insertedAt: start}})
 		insertAuditEvents(t, chConn, workspaceB, []auditEvent{{id: drainB + "_event_1", insertedAt: start}})
 		seedDrain(t, mysqlDB, workspaceA, drainA, httpSink.URL+"/ingest", start-1)
 		seedDrain(t, mysqlDB, workspaceB, drainB, httpSink.URL+"/ingest", start-1)
 		cleanupDrain(t, mysqlDB, drainA)
 		cleanupDrain(t, mysqlDB, drainB)
-		deliveries := startEngineConcurrent(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, 2)
+		deliveries := startEngineConcurrent(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock, 2)
 		t.Cleanup(release)
+		eventually(t, func(c *assert.CollectT) {
+			require.Len(c, requests, 2)
+		})
 
 		ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 		defer cancel()
@@ -673,17 +699,17 @@ func TestEngine_Integration(t *testing.T) {
 		require.ElementsMatch(t, []string{drainA + "_event_1", drainB + "_event_1"}, ids)
 		release()
 
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			attempts := deliveries.snapshot()
 			require.True(c, hasDelivery(attempts, drainA, "success", 1))
 			require.True(c, hasDelivery(attempts, drainB, "success", 1))
-		}, 30*time.Second, 250*time.Millisecond)
+		})
 	})
 
 	t.Run("composite cursor delivers every event sharing one millisecond", func(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
 		httpSink := newSink(t, http.StatusOK)
-		insertedAt := time.Now().Add(-6 * time.Minute).UnixMilli()
+		insertedAt := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 		events := make([]auditEvent, 1000)
 		for i := range events {
 			events[i] = auditEvent{id: fmt.Sprintf("%s_event_%04d", drainID, i), insertedAt: insertedAt}
@@ -691,9 +717,9 @@ func TestEngine_Integration(t *testing.T) {
 		insertAuditEvents(t, chConn, workspaceID, events)
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", insertedAt-1)
 		cleanupDrain(t, mysqlDB, drainID)
-		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
+		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock)
 
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			counts, parseErr := successfulRequestIDCounts(httpSink.snapshot())
 			require.NoError(c, parseErr)
 			require.GreaterOrEqual(c, len(counts), len(events))
@@ -702,13 +728,13 @@ func TestEngine_Integration(t *testing.T) {
 				require.Equal(c, 1, counts[event.id])
 			}
 			require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).CommittedOffsetInsertedAt, insertedAt)
-		}, 60*time.Second, 250*time.Millisecond)
+		})
 	})
 
 	t.Run("mixed-case cursor advances bytewise across batches", func(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
 		httpSink := newSink(t, http.StatusOK)
-		insertedAt := time.Now().Add(-6 * time.Minute).UnixMilli()
+		insertedAt := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 		events := []auditEvent{
 			{id: drainID + "_B", insertedAt: insertedAt},
 			{id: drainID + "_C", insertedAt: insertedAt},
@@ -720,30 +746,31 @@ func TestEngine_Integration(t *testing.T) {
 		config.BatchSize = 1
 		insertDrain(t, mysqlDB, newDrain(t, workspaceID, drainID, config, insertedAt-1))
 		cleanupDrain(t, mysqlDB, drainID)
-		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN)
+		startEngine(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock)
 
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			counts, parseErr := successfulRequestIDCounts(httpSink.snapshot())
 			require.NoError(c, parseErr)
 			for _, event := range events {
 				require.Equal(c, 1, counts[event.id])
 			}
-		}, 30*time.Second, 250*time.Millisecond)
-		require.Never(t, func() bool {
-			counts, err := successfulRequestIDCounts(httpSink.snapshot())
-			require.NoError(t, err)
-			for _, event := range events {
-				if counts[event.id] != 1 {
-					return true
-				}
-			}
-			return false
-		}, time.Second, 100*time.Millisecond)
+			require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).CommittedOffsetInsertedAt, insertedAt)
+		})
+		offset := readDrainState(t, mysqlDB, drainID).CommittedOffsetInsertedAt
+		retryNow(t, mysqlDB, drainID)
+		eventually(t, func(c *assert.CollectT) {
+			require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).CommittedOffsetInsertedAt, offset)
+		})
+		counts, err := successfulRequestIDCounts(httpSink.snapshot())
+		require.NoError(t, err)
+		for _, event := range events {
+			require.Equal(t, 1, counts[event.id])
+		}
 	})
 
 	t.Run("blocking queue eventually processes every due drain", func(t *testing.T) {
 		httpSink := newSink(t, http.StatusOK)
-		insertedAt := time.Now().Add(-6 * time.Minute).UnixMilli()
+		insertedAt := testClock.Now().Add(-6 * time.Minute).UnixMilli()
 		eventIDs := make([]string, 10)
 		for i := range eventIDs {
 			workspaceID, drainID := uniqueIDs()
@@ -752,15 +779,15 @@ func TestEngine_Integration(t *testing.T) {
 			seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL+"/ingest", insertedAt-1)
 			cleanupDrain(t, mysqlDB, drainID)
 		}
-		startEngineConfigured(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, 2, 2)
+		startEngineConfigured(t, mysqlCfg.DSN, clickhouseCfg.HTTPDSN, testClock, 2, 2)
 
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
+		eventually(t, func(c *assert.CollectT) {
 			ids, _, parseErr := parseSuccessfulRequests(httpSink.snapshot())
 			require.NoError(c, parseErr)
 			for _, eventID := range eventIDs {
 				require.Contains(c, ids, eventID)
 			}
-		}, 30*time.Second, 250*time.Millisecond)
+		})
 	})
 }
 
@@ -876,26 +903,26 @@ func retryNow(t *testing.T, database *sql.DB, drainID string) {
 // binds Int64 server-side parameters, which ClickHouse 25.6 rejects over the
 // native protocol ("Cannot parse quoted string") but accepts over HTTP. The
 // deployed service configures an http:// URL as well.
-func startEngine(t *testing.T, mysqlDSN, clickhouseDSN string) *collector {
+func startEngine(t *testing.T, mysqlDSN, clickhouseDSN string, testClock *clock.TestClock) *collector {
 	t.Helper()
-	return startEngineConcurrent(t, mysqlDSN, clickhouseDSN, 1)
+	return startEngineConcurrent(t, mysqlDSN, clickhouseDSN, testClock, 1)
 }
 
 // startEngineConcurrent starts an engine whose poll cycle may process up to
 // maxConcurrentDrains drains in parallel.
-func startEngineConcurrent(t *testing.T, mysqlDSN, clickhouseDSN string, maxConcurrentDrains int) *collector {
+func startEngineConcurrent(t *testing.T, mysqlDSN, clickhouseDSN string, testClock *clock.TestClock, maxConcurrentDrains int) *collector {
 	t.Helper()
-	return startEngineConfigured(t, mysqlDSN, clickhouseDSN, maxConcurrentDrains, 0)
+	return startEngineConfigured(t, mysqlDSN, clickhouseDSN, testClock, maxConcurrentDrains, 0)
 }
 
 // startEngineConfigured starts an engine with explicit worker and queue bounds.
-func startEngineConfigured(t *testing.T, mysqlDSN, clickhouseDSN string, maxConcurrentDrains, workQueueSize int) *collector {
+func startEngineConfigured(t *testing.T, mysqlDSN, clickhouseDSN string, testClock *clock.TestClock, maxConcurrentDrains, workQueueSize int) *collector {
 	t.Helper()
 	database, err := db.New(mysqlDSN, sqlcomment.ForService("logdrain-integration-test", "test"))
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	leaseID := uid.New("")
-	leaseService, err := lease.New(lease.Config{DB: database, LeaseID: leaseID})
+	leaseService, err := lease.New(lease.Config{DB: database, LeaseID: leaseID, Clock: testClock})
 	require.NoError(t, err)
 	chClient, err := clickhouse.New(clickhouse.Config{URL: clickhouseDSN})
 	require.NoError(t, err)
@@ -903,6 +930,7 @@ func startEngineConfigured(t *testing.T, mysqlDSN, clickhouseDSN string, maxConc
 	deliveries := &collector{}
 	eng, err := engine.New(engine.Config{
 		DB:                          database,
+		Clock:                       testClock,
 		LeaseID:                     leaseID,
 		AuditLogs:                   source.NewAuditLogs(chClient),
 		GatewayRequests:             source.NewGatewayRequests(chClient),
