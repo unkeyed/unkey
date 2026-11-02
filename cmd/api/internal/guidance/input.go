@@ -81,6 +81,7 @@ func Attach(command *cli.Command, legacy string) {
 		form := form{
 			prompt:    prompt.New(prompt.WithWriter(os.Stderr)),
 			out:       os.Stderr,
+			pick:      resourcePicker(ctx, cmd, legacy),
 			conflicts: conflicts,
 		}
 		if _, err := fmt.Fprintln(form.out, "Guided input · Ctrl+C cancels without sending the request."); err != nil {
