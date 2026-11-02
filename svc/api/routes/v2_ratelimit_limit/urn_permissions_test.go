@@ -23,7 +23,7 @@ func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
 	route := &handler.Handler{
 		DB:              h.DB,
 		RatelimitEvents: h.RatelimitEvents,
-		DirectAuditLogs: h.DirectAuditLogs,
+		AuditLogBuffer:  h.AuditLogBuffer,
 		Ratelimit:       h.Ratelimit,
 		NamespaceCache:  h.Caches.RatelimitNamespace,
 		Auditlogs:       h.Auditlogs,

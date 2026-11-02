@@ -1,7 +1,4 @@
-import {
-  useAppId,
-  useProjectData,
-} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useAppScope } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 import { normalizePath } from "./path-hint";
@@ -54,8 +51,7 @@ function resolveAgainstContext(dockerContext: string, relativePath: string): str
 }
 
 export function useRepoTree() {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
   const { data, isLoading, isError } = trpc.github.getRepoTree.useQuery(
     { projectId, appId },
     { staleTime: 5 * 60 * 1000 },

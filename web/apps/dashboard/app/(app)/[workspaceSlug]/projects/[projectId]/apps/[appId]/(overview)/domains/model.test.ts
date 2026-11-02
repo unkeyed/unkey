@@ -1,5 +1,4 @@
-import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
-import type { Domain } from "@/lib/collections/deploy/domains";
+import type { CustomDomain, Domain } from "@/lib/deploy-data";
 import { describe, expect, it } from "vitest";
 import { domainsPageList, domainsView } from "./model";
 

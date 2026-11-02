@@ -1,4 +1,4 @@
-import type { Deployment } from "./deployments";
+import type { Deployment } from "@/lib/deploy-data/deployment";
 
 export const INSTANCE_STATUSES = ["inactive", "pending", "running", "failed"] as const;
 

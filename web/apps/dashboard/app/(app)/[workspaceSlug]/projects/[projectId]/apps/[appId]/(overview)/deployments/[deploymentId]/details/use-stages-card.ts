@@ -1,5 +1,5 @@
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
-import { isPrebuilt } from "@/lib/collections/deploy/deployments";
+import { isPrebuilt } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
 import { toBuildLogLines } from "../(deployment-progress)/build-logs/build-log-lines";

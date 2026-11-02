@@ -18,6 +18,7 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -139,15 +140,18 @@ func newTestHarness(t *testing.T) *testHarness {
 	require.NoError(t, err)
 	t.Cleanup(rootKeyCache.Close)
 
+	auditLogBuffer := batch.NewNoop[auditlog.Event]()
+	t.Cleanup(auditLogBuffer.Close)
 	keyService, err := keys.New(keys.Config{
-		DB:           db.ToMySQL(database),
-		RateLimiter:  rateLimiter,
-		RBAC:         rbac.New(),
-		Region:       "test",
-		UsageLimiter: usageLimiter,
-		Source:       schema.SourceGateway,
-		KeyCache:     keyCache,
-		RootKeyCache: rootKeyCache,
+		AuditLogBuffer: auditLogBuffer,
+		DB:             db.ToMySQL(database),
+		RateLimiter:    rateLimiter,
+		RBAC:           rbac.New(),
+		Region:         "test",
+		UsageLimiter:   usageLimiter,
+		Source:         schema.SourceGateway,
+		KeyCache:       keyCache,
+		RootKeyCache:   rootKeyCache,
 	})
 	require.NoError(t, err)
 

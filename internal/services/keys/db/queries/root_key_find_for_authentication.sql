@@ -7,6 +7,7 @@ SELECT
     k.workspace_id,
     k.name,
     k.expires,
+    k.ip_allowlist,
     k.enabled,
     k.deleted_at,
     fws.enabled AS workspace_enabled,

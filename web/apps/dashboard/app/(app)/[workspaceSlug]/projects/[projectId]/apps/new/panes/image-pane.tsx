@@ -1,8 +1,7 @@
 "use client";
 
-import { useApp } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-app";
 import { OCIImage } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image";
-import { ociImageReferenceSchema } from "@/lib/collections/deploy/apps";
+import { ociImageReferenceSchema, useApp } from "@/lib/deploy-data";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -85,7 +84,7 @@ function NewImage() {
 function SavedImage({ appId }: { appId: string }) {
   const { dispatch } = useNewAppFlow();
   const { isDirty, report } = useUnsavedChanges();
-  const { app } = useApp();
+  const { data: app } = useApp();
   if (!app) {
     return <Skeleton className="h-24 w-full rounded-lg" />;
   }

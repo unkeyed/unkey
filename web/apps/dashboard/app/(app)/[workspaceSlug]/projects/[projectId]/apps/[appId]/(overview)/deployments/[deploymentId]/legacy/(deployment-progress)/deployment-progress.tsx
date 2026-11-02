@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -19,7 +20,6 @@ import { useEffect, useRef, useState } from "react";
 import { DeploymentStep } from "../../(deployment-progress)/deployment-step";
 import { getDeploymentDomains } from "../../../../../components/domain-priority";
 import { DeploymentDomainsCard } from "../../../../../components/legacy/deployment-domains-card";
-import { useProjectData } from "../../../../data-provider";
 import { useDeployment } from "../../layout-provider";
 import { DeploymentBuildLogs } from "./build-logs/deployment-build-logs";
 import { DeploymentContainerLogsTable } from "./container-logs-table/deployment-container-logs-table";

@@ -16,6 +16,52 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
+func TestRestrictedRootKeyCannotDelegateBroaderNetworks(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	require.NoError(t, db.Query.UpdateIPAllowlistEnabled(t.Context(), h.DB.RW(), db.UpdateIPAllowlistEnabledParams{WorkspaceID: workspace.ID, Enabled: true}))
+	route := &handler.Handler{DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
+	h.Register(route)
+	permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#write"
+	admin := h.CreateRootKey(workspace.ID, permission)
+	parent := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer " + admin}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: []string{permission}, IpAllowlist: &[]string{"192.0.2.0/25", "2001:db8:1234::/48"}})
+	require.Equal(t, http.StatusOK, parent.Status, "%s", parent.RawBody)
+	for _, test := range []struct {
+		name       string
+		allowedIPs *[]string
+		status     int
+	}{
+		{"omitted", nil, http.StatusOK},
+		{"unrestricted", &[]string{}, http.StatusForbidden},
+		{"broader subnet", &[]string{"192.0.2.0/24"}, http.StatusForbidden},
+		{"extra network", &[]string{"192.0.2.0/25", "203.0.113.1"}, http.StatusForbidden},
+		{"broader IPv6 subnet", &[]string{"2001:db8::/32"}, http.StatusForbidden},
+		{"invalid address", &[]string{"192.0.2.999"}, http.StatusBadRequest},
+		{"invalid prefix", &[]string{"192.0.2.1/33"}, http.StatusBadRequest},
+		{"scoped address", &[]string{"fe80::1%eth0"}, http.StatusBadRequest},
+		{"mapped prefix outside IPv4", &[]string{"::ffff:192.0.2.1/80"}, http.StatusBadRequest},
+		{"narrower", &[]string{"192.0.2.0/26", "2001:db8:1234:abcd::/64"}, http.StatusOK},
+		{"mapped IPv4", &[]string{"::ffff:192.0.2.1"}, http.StatusOK},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			before := snapshot(t, h)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+				"Authorization": {"Bearer " + parent.Body.Data.Key}, "Content-Type": {"application/json"},
+			}, handler.Request{Permissions: []string{permission}, IpAllowlist: test.allowedIPs})
+			require.Equal(t, test.status, res.Status, "%s", res.RawBody)
+			if test.status != http.StatusOK {
+				require.Equal(t, before, snapshot(t, h))
+			} else if test.allowedIPs == nil {
+				child, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+				require.NoError(t, err)
+				require.Equal(t, []string{"192.0.2.0/25", "2001:db8:1234::/48"}, []string(child.IpAllowlist))
+			}
+		})
+	}
+}
+
 // TestExpiringRootKeyBoundsChildLifetime guarantees a child cannot outlive its
 // caller. For example, equal or earlier expiry succeeds, but one millisecond
 // later, null, or omitted expiry fails without storing a key or audit events.

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const updateUnkeyRootKey = `-- name: UpdateUnkeyRootKey :exec
@@ -19,6 +21,10 @@ UPDATE unkey_root_keys SET
     enabled = CASE
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE enabled
+    END,
+    ip_allowlist = CASE
+        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+        ELSE ip_allowlist
     END
 WHERE id = ?
     AND workspace_id = ?
@@ -26,12 +32,14 @@ WHERE id = ?
 `
 
 type UpdateUnkeyRootKeyParams struct {
-	NameSpecified    int64          `db:"name_specified"`
-	Name             sql.NullString `db:"name"`
-	EnabledSpecified int64          `db:"enabled_specified"`
-	Enabled          sql.NullBool   `db:"enabled"`
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
+	NameSpecified        int64              `db:"name_specified"`
+	Name                 sql.NullString     `db:"name"`
+	EnabledSpecified     int64              `db:"enabled_specified"`
+	Enabled              sql.NullBool       `db:"enabled"`
+	IpAllowlistSpecified int64              `db:"ip_allowlist_specified"`
+	IpAllowlist          dbtype.StringSlice `db:"ip_allowlist"`
+	ID                   string             `db:"id"`
+	WorkspaceID          string             `db:"workspace_id"`
 }
 
 // UpdateUnkeyRootKey changes mutable fields on a live new-format root key.
@@ -44,6 +52,10 @@ type UpdateUnkeyRootKeyParams struct {
 //	    enabled = CASE
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE enabled
+//	    END,
+//	    ip_allowlist = CASE
+//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+//	        ELSE ip_allowlist
 //	    END
 //	WHERE id = ?
 //	    AND workspace_id = ?
@@ -54,6 +66,8 @@ func (q *Queries) UpdateUnkeyRootKey(ctx context.Context, db DBTX, arg UpdateUnk
 		arg.Name,
 		arg.EnabledSpecified,
 		arg.Enabled,
+		arg.IpAllowlistSpecified,
+		arg.IpAllowlist,
 		arg.ID,
 		arg.WorkspaceID,
 	)

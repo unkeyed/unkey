@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 const listRootKeys = `-- name: ListRootKeys :many
@@ -19,6 +21,7 @@ SELECT
     end,
     enabled,
     expires,
+    ip_allowlist,
     created_at,
     last_used_at,
     COALESCE(
@@ -44,16 +47,17 @@ type ListRootKeysParams struct {
 }
 
 type ListRootKeysRow struct {
-	ID          string         `db:"id"`
-	Name        sql.NullString `db:"name"`
-	Prefix      string         `db:"prefix"`
-	Start       string         `db:"start"`
-	End         string         `db:"end"`
-	Enabled     bool           `db:"enabled"`
-	Expires     sql.NullInt64  `db:"expires"`
-	CreatedAt   int64          `db:"created_at"`
-	LastUsedAt  uint64         `db:"last_used_at"`
-	Permissions interface{}    `db:"permissions"`
+	ID          string             `db:"id"`
+	Name        sql.NullString     `db:"name"`
+	Prefix      string             `db:"prefix"`
+	Start       string             `db:"start"`
+	End         string             `db:"end"`
+	Enabled     bool               `db:"enabled"`
+	Expires     sql.NullInt64      `db:"expires"`
+	IpAllowlist dbtype.StringSlice `db:"ip_allowlist"`
+	CreatedAt   int64              `db:"created_at"`
+	LastUsedAt  uint64             `db:"last_used_at"`
+	Permissions interface{}        `db:"permissions"`
 }
 
 // ListRootKeys returns live root keys from the new store for one customer workspace.
@@ -67,6 +71,7 @@ type ListRootKeysRow struct {
 //	    end,
 //	    enabled,
 //	    expires,
+//	    ip_allowlist,
 //	    created_at,
 //	    last_used_at,
 //	    COALESCE(
@@ -100,6 +105,7 @@ func (q *Queries) ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysPar
 			&i.End,
 			&i.Enabled,
 			&i.Expires,
+			&i.IpAllowlist,
 			&i.CreatedAt,
 			&i.LastUsedAt,
 			&i.Permissions,

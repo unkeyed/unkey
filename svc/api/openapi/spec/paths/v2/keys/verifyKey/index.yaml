@@ -23,7 +23,7 @@ post:
     - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/*#verify_key` (verify keys in a specific keyspace)
     - `unkey:v1:<workspace_id>:keyspaces/<keyspace_id>/keys/<key_id>#verify_key` (verify a specific key)
 
-    **Note**: If your credential has no verify permissions at all, you will receive a `403 Forbidden` error. If your credential has verify permissions for a different API or keyspace than the key you're verifying, you will receive a `200` response with `code: NOT_FOUND` to avoid leaking key existence.
+    **Note**: If your credential lacks permission to verify this key, the response is HTTP 200 with `valid: false` and `code: NOT_FOUND`. This does not distinguish a missing key from an inaccessible key.
   operationId: keys.verifyKey
   x-speakeasy-name-override: verifyKey
   requestBody:
@@ -73,13 +73,6 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
-    "403":
-      description: |
-        Forbidden. Returned when the credential has no verify permissions at all.
-      content:
-        application/json:
-          schema:
-            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: Not found
       content:

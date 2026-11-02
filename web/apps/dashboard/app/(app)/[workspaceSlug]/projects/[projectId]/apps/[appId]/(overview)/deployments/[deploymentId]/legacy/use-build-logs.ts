@@ -1,5 +1,5 @@
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { Deployment } from "@/lib/deploy-data/deployment";
 import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import { getUnkeyClient } from "@/lib/unkey-client";

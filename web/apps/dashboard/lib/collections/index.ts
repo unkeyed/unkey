@@ -1,7 +1,6 @@
 "use client";
 import { apps } from "./deploy/apps";
 import { customDomains } from "./deploy/custom-domains";
-import { deployments } from "./deploy/deployments";
 import { domains } from "./deploy/domains";
 import { envVars } from "./deploy/env-vars";
 import { environmentSettings } from "./deploy/environment-settings";
@@ -15,7 +14,7 @@ export type { App } from "./deploy/apps";
 export type { CustomDomain } from "./deploy/custom-domains";
 export type { DeploymentStatus } from "./deploy/deployment-status";
 export { DEPLOYMENT_STATUSES } from "./deploy/deployment-status";
-export type { Deployment, DeploymentSummary } from "./deploy/deployments";
+export type { Deployment, DeploymentSummary } from "@/lib/deploy-data/deployment";
 export type { Domain } from "./deploy/domains";
 export type { EnvVar } from "./deploy/env-vars";
 export type { EnvironmentSettings } from "./deploy/environment-settings";
@@ -32,7 +31,6 @@ export const collection = {
   ratelimitOverrides,
   environments,
   domains,
-  deployments,
   customDomains,
   environmentSettings,
   envVars,

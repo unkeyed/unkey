@@ -1,11 +1,31 @@
 import { type Database, type Transaction, and, eq, schema } from "@unkey/db";
+import { z } from "zod";
 
 /**
  * A Stripe subscription belongs to exactly one Unkey product. After the billing
  * split each product owns a whole subscription, tracked as one row per
  * (workspace, product) in billing_subscriptions.
  */
-export type SubscriptionProduct = "api" | "compute";
+export const SUBSCRIPTION_PRODUCTS = ["api", "compute"] as const;
+export const subscriptionProductSchema = z.enum(SUBSCRIPTION_PRODUCTS);
+export type SubscriptionProduct = z.infer<typeof subscriptionProductSchema>;
+
+type WorkspaceSubscriptionIds = {
+  stripeSubscriptionId: string | null;
+  stripeDeploySubscriptionId: string | null;
+};
+
+const SUBSCRIPTION_ID_FIELD = {
+  api: "stripeSubscriptionId",
+  compute: "stripeDeploySubscriptionId",
+} as const satisfies Record<SubscriptionProduct, keyof WorkspaceSubscriptionIds>;
+
+export function subscriptionIdFor(
+  workspace: WorkspaceSubscriptionIds,
+  product: SubscriptionProduct,
+): string | null {
+  return workspace[SUBSCRIPTION_ID_FIELD[product]];
+}
 
 /**
  * Records (or repoints) the workspace's subscription for a product. Keyed on the
@@ -56,15 +76,13 @@ export async function deleteBillingSubscription(
  */
 export function subscriptionIdsByProduct(
   subscriptions: ReadonlyArray<{ product: SubscriptionProduct; stripeSubscriptionId: string }>,
-): { stripeSubscriptionId: string | null; stripeDeploySubscriptionId: string | null } {
-  let stripeSubscriptionId: string | null = null;
-  let stripeDeploySubscriptionId: string | null = null;
+): WorkspaceSubscriptionIds {
+  const ids: WorkspaceSubscriptionIds = {
+    stripeSubscriptionId: null,
+    stripeDeploySubscriptionId: null,
+  };
   for (const s of subscriptions) {
-    if (s.product === "api") {
-      stripeSubscriptionId = s.stripeSubscriptionId;
-    } else if (s.product === "compute") {
-      stripeDeploySubscriptionId = s.stripeSubscriptionId;
-    }
+    ids[SUBSCRIPTION_ID_FIELD[s.product]] = s.stripeSubscriptionId;
   }
-  return { stripeSubscriptionId, stripeDeploySubscriptionId };
+  return ids;
 }

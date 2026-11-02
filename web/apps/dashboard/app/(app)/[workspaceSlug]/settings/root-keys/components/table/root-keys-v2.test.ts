@@ -13,6 +13,7 @@ const rootKeys: V2RootKey[] = [
     lastUsedAt: 300,
     expires: null,
     permissions: ["unkey:v1:ws_1:apis/*#read_api"],
+    ipAllowlist: [],
   },
   {
     keyId: "key_b",
@@ -24,6 +25,7 @@ const rootKeys: V2RootKey[] = [
     lastUsedAt: 0,
     expires: null,
     permissions: ["unkey:v1:ws_1:projects/*#deploy_project"],
+    ipAllowlist: [],
   },
 ];
 

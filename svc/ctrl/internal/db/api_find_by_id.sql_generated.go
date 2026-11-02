@@ -7,33 +7,18 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findApiByID = `-- name: FindApiByID :one
 SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 `
 
-type FindApiByIDRow struct {
-	Pk               uint64           `db:"pk"`
-	ID               string           `db:"id"`
-	Name             string           `db:"name"`
-	WorkspaceID      string           `db:"workspace_id"`
-	ProjectID        string           `db:"project_id"`
-	AuthType         NullApisAuthType `db:"auth_type"`
-	KeyAuthID        sql.NullString   `db:"key_auth_id"`
-	CreatedAtM       int64            `db:"created_at_m"`
-	UpdatedAtM       sql.NullInt64    `db:"updated_at_m"`
-	DeletedAtM       sql.NullInt64    `db:"deleted_at_m"`
-	DeleteProtection sql.NullBool     `db:"delete_protection"`
-}
-
 // FindApiByID
 //
 //	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
-func (q *Queries) FindApiByID(ctx context.Context, id string) (FindApiByIDRow, error) {
+func (q *Queries) FindApiByID(ctx context.Context, id string) (Api, error) {
 	row := q.db.QueryRowContext(ctx, findApiByID, id)
-	var i FindApiByIDRow
+	var i Api
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
