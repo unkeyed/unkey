@@ -297,7 +297,9 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create key leak verifier: %w", err)
 	}
 	r.Defer(func() error { keyLeakVerifier.Close(); return nil })
-	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient, database, keyLeakVerifier))
+	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(keyleakwebhook.Config{
+		Restate: restateClient, Database: database, Verifier: keyLeakVerifier,
+	}))
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
 		mux.Handle("POST /webhooks/stripe", stripewebhook.New(

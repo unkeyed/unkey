@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -22,10 +24,16 @@ type handler struct {
 	db      db.Database
 }
 
-func New(client *ingress.Client, database db.Database, verifier webhook.Verifier) http.Handler {
-	h := &handler{restate: client, db: database}
+type Config struct {
+	Restate  *ingress.Client
+	Database db.Database
+	Verifier webhook.Verifier
+}
 
-	return webhook.New("github_secret_scanning", verifier,
+func New(cfg Config) http.Handler {
+	h := &handler{restate: cfg.Restate, db: cfg.Database}
+
+	return webhook.New("github_secret_scanning", cfg.Verifier,
 		webhook.WithMaxBodySize(bodyBytesMax),
 		webhook.WithTimeout(10*time.Second),
 	).On([]string{githubsecrets.EventType}, h.report)
@@ -59,6 +67,7 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 		if _, found := byHash[digest]; found {
 			continue
 		}
+
 		byHash[digest] = token
 		hashes = append(hashes, digest)
 	}
@@ -73,24 +82,35 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 
 	reportID := hash.Sha256(string(event.Payload))
 	date := time.Now().UTC().Format("Mon Jan 02 2006")
-	client := hydrav1.NewKeyLeakServiceIngressClient(h.restate)
+	matches := make([]*hydrav1.KeyLeakMatch, 0, len(keys))
 	for _, key := range keys {
 		token, found := byHash[key.Hash]
 		if !found {
 			continue
 		}
+
 		delete(byHash, key.Hash)
-		_, err := client.Notify().Send(ctx, &hydrav1.KeyLeakNotification{
-			KeyId:         key.ID,
-			OrgId:         key.OrgID,
-			WorkspaceName: key.WorkspaceName,
-			Source:        token.Source,
-			Url:           token.URL,
-			Type:          token.Type,
-			Date:          date,
-		}, restate.WithIdempotencyKey(reportID+":"+key.Hash))
+		matches = append(matches, &hydrav1.KeyLeakMatch{
+			Hash: key.Hash, WorkspaceId: key.WorkspaceID, RootKey: key.KeyType == "rootKey",
+			Notification: &hydrav1.KeyLeakNotification{
+				KeyId: key.ID, OrgId: key.OrgID, WorkspaceName: key.WorkspaceName,
+				Source: token.Source, Url: token.URL, Type: token.Type, Date: date,
+			},
+		})
+	}
+	slices.SortFunc(matches, func(a, b *hydrav1.KeyLeakMatch) int { return strings.Compare(a.GetHash(), b.GetHash()) })
+
+	client := hydrav1.NewKeyLeakServiceIngressClient(h.restate)
+	for batch := range slices.Chunk(matches, 100) {
+		hashes := make([]string, 0, len(batch))
+		for _, key := range batch {
+			hashes = append(hashes, key.GetHash())
+		}
+
+		_, err := client.NotifyBatch().Send(ctx, &hydrav1.KeyLeakBatchRequest{ReportId: reportID, Keys: batch},
+			restate.WithIdempotencyKey(reportID+":"+hash.Sha256(strings.Join(hashes, ","))))
 		if err != nil {
-			return fmt.Errorf("%w: persist key leak notification: %w", webhook.ErrUnavailable, err)
+			return fmt.Errorf("%w: persist key leak batch: %w", webhook.ErrUnavailable, err)
 		}
 	}
 

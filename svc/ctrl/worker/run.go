@@ -422,6 +422,8 @@ func Run(ctx context.Context, cfg Config) error {
 	})))
 
 	restateSrv.Bind(keyleak.New(keyleak.Config{
+		DB:              database,
+		Auditlogs:       auditlogSvc,
 		Members:         workos.New(cfg.WorkOSAPIKey, ""),
 		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
 		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
