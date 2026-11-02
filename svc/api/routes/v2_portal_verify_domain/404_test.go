@@ -34,13 +34,13 @@ func TestVerifyPortalDomainMissesNeverReachCtrl(t *testing.T) {
 		permissions []string
 		message     string
 	}{
-		{name: "unknown domain", req: handler.Request{Portal: f.portal.ID, DomainId: uid.New(uid.PortalDomainPrefix)}, permissions: []string{"portal.*.update_portal"}, message: "The requested domain does not exist."},
-		{name: "domain on another portal in this workspace", req: handler.Request{Portal: f.portal.ID, DomainId: siblingDomain.ID}, permissions: []string{"portal.*.update_portal"}, message: "The requested domain does not exist."},
-		{name: "domain in another workspace", req: handler.Request{Portal: f.portal.ID, DomainId: foreignDomain.ID}, permissions: []string{"portal.*.update_portal"}, message: "The requested domain does not exist."},
-		{name: "portal in another workspace", req: handler.Request{Portal: foreignPortal.ID, DomainId: foreignDomain.ID}, permissions: []string{"portal.*.update_portal"}, message: "Portal not found."},
+		{name: "unknown domain", req: handler.Request{Portal: f.portal.ID, DomainId: uid.New(uid.PortalDomainPrefix)}, permissions: []string{f.grant("write")}, message: "The requested domain does not exist."},
+		{name: "domain on another portal in this workspace", req: handler.Request{Portal: f.portal.ID, DomainId: siblingDomain.ID}, permissions: []string{f.grant("write")}, message: "The requested domain does not exist."},
+		{name: "domain in another workspace", req: handler.Request{Portal: f.portal.ID, DomainId: foreignDomain.ID}, permissions: []string{f.grant("write")}, message: "The requested domain does not exist."},
+		{name: "portal in another workspace", req: handler.Request{Portal: foreignPortal.ID, DomainId: foreignDomain.ID}, permissions: []string{f.grant("write")}, message: "Portal not found."},
 		{name: "no permissions", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{}, message: "Portal not found."},
-		{name: "read only", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{"portal.*.read_portal"}, message: "Portal not found."},
-		{name: "update on another portal", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{fmt.Sprintf("portal.%s.update_portal", sibling.ID)}, message: "Portal not found."},
+		{name: "legacy update_portal", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{"portal.*.update_portal"}, message: "Portal not found."},
+		{name: "domains on another portal", req: handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/domains/*#write", f.workspaceID, f.projectID, sibling.ID)}, message: "Portal not found."},
 	}
 
 	for _, tc := range testCases {
@@ -62,7 +62,7 @@ func TestVerifyPortalDomainCtrlNotFound(t *testing.T) {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("portal domain not found: "+stored.ID))
 	}
 
-	res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, f.grant("write"))
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Contains(t, res.RawBody, "The requested domain does not exist.")
 }

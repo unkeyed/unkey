@@ -470,15 +470,12 @@ export class Portal extends ClientSDK {
    * `pending` domain a new 24-hour verification period. The endpoint returns when Unkey accepts
    * the retry. Poll `portal.getDomain` for the result.
    *
-   * A domain that is already `verified` returns a 412.
+   * A domain that is already `verified` returns a 202 and starts nothing.
    *
-   * **Required Permissions**
-   *
-   * Your root key must have one of:
-   * - `portal.*.update_portal` (to manage domains on any portal in the workspace)
-   * - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
-   *
-   * Without the permission this returns **404**, not 403.
+   * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#write`.
+   * Use `portals/<portal_id>/domains/*#write` to manage every domain on the portal.
+   * Without the permission this returns **404**, not 403, unless the key can read
+   * the portal or the domain.
    */
   async verifyDomain(
     request: components.V2PortalVerifyDomainRequestBody,

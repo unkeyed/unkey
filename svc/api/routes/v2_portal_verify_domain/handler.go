@@ -10,14 +10,13 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/domain/domaingate"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/customdomain"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portaldomain"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -51,28 +50,35 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	found, err := portaldomain.FindPortal(ctx, h.DB, principal.AuthorizedWorkspaceID, req.Portal)
+	lookup, err := portaldomain.FindPortalAndDomain(ctx, h.DB, principal.AuthorizedWorkspaceID, req.Portal, req.DomainId)
 	if err != nil {
 		return err
 	}
+	found := lookup.Portal
 
-	// The wildcard tuple is spelled out because a stored `*` matches literally.
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: "*", Action: rbac.UpdatePortal}),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: found.ID, Action: rbac.UpdatePortal}),
-		rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID), permissions.Write),
-	))
-	if err != nil {
-		return portaldomain.PortalNotFound(fmt.Sprintf("verify domain denied for portal %s: %s", found.ID, fault.InternalMessage(err)))
+	portalURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID)
+	permissionQuery := rbac.U(portalURN.Domain(req.DomainId), permissions.Write)
+	if err = principal.Authorize(permissionQuery); err != nil {
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			rbac.Or(
+				rbac.U(portalURN, permissions.Read),
+				rbac.U(portalURN.Domain(req.DomainId), permissions.Read),
+			),
+			codes.Data.Portal.NotFound.URN(),
+			portaldomain.PortalNotFoundMessage,
+		)
 	}
-
-	row, err := portaldomain.FindDomain(ctx, h.DB, principal.AuthorizedWorkspaceID, found.ID, req.DomainId)
-	if err != nil {
-		return err
+	if lookup.DomainErr != nil {
+		return lookup.DomainErr
 	}
+	row := lookup.Domain
 
+	// Nothing to retry, and the caller's goal already holds.
 	if row.VerificationStatus == db.PortalDomainsVerificationStatusVerified {
-		return domaingate.AlreadyVerified(row.Domain)
+		return accepted(s)
 	}
 
 	actor, err := ctrlclient.Actor(s)
@@ -91,19 +97,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		switch connect.CodeOf(err) {
 		case connect.CodeNotFound:
 			return portaldomain.DomainNotFound(fmt.Sprintf("ctrl has no domain %s on portal %s: %s", row.ID, found.ID, err.Error()))
-		// The verified guard above already passed, so this is the row verifying
-		// between that read and ctrl's re-check.
+		// The row verified between the read above and ctrl's re-check.
 		case connect.CodeFailedPrecondition:
-			return fault.Wrap(err,
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal(fmt.Sprintf("ctrl rejected the verification retry for portal domain %s: %s", row.ID, err.Error())),
-				fault.Public("The domain is already verified. No action is needed."),
-			)
+			return accepted(s)
 		default:
 			return customdomain.MapCtrlError(err, "verify portal domain")
 		}
 	}
 
+	return accepted(s)
+}
+
+func accepted(s *zen.Session) error {
 	return s.JSON(http.StatusAccepted, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

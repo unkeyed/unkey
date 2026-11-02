@@ -9,15 +9,12 @@ post:
     `pending` domain a new 24-hour verification period. The endpoint returns when Unkey accepts
     the retry. Poll `portal.getDomain` for the result.
 
-    A domain that is already `verified` returns a 412.
+    A domain that is already `verified` returns a 202 and starts nothing.
 
-    **Required Permissions**
-
-    Your root key must have one of:
-    - `portal.*.update_portal` (to manage domains on any portal in the workspace)
-    - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
-
-    Without the permission this returns **404**, not 403.
+    Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#write`.
+    Use `portals/<portal_id>/domains/*#write` to manage every domain on the portal.
+    Without the permission this returns **404**, not 403, unless the key can read
+    the portal or the domain.
   operationId: portal.verifyDomain
   x-speakeasy-name-override: verifyDomain
   security:
@@ -54,19 +51,20 @@ post:
         application/json:
           schema:
             "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: |
+        Your root key can read the portal or the domain but may not manage it. The error names the missing permission.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
     "404":
       description: |
-        No such portal or domain on that portal, or your root key may not update the portal.
+        No such portal or domain on that portal, or your root key may not read either.
       content:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
-    "412":
-      description: The domain is already verified. There is nothing to retry.
-      content:
-        application/json:
-          schema:
-            "$ref": "../../../../error/PreconditionFailedErrorResponse.yaml"
     "429":
       description: Too Many Requests
       content:

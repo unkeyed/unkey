@@ -18,26 +18,24 @@ func TestVerifyPortalDomainAuthorization(t *testing.T) {
 	testCases := []struct {
 		name       string
 		permission string
-		shouldPass bool
+		status     int
 	}{
-		{name: "legacy update_portal", permission: "portal.*.update_portal", shouldPass: true},
-		{name: "legacy update_portal on this portal", permission: fmt.Sprintf("portal.%s.update_portal", f.portal.ID), shouldPass: true},
-		{name: "urn write", permission: portalURN + "#write", shouldPass: true},
-		{name: "urn admin", permission: fmt.Sprintf("unkey:v1:%s:**#*", f.workspaceID), shouldPass: true},
-		{name: "legacy read_portal", permission: "portal.*.read_portal", shouldPass: false},
-		{name: "urn read", permission: portalURN + "#read", shouldPass: false},
-		{name: "urn write on another project", permission: fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#write", f.workspaceID, uid.New(uid.ProjectPrefix), f.portal.ID), shouldPass: false},
+		{name: "this portal's domains", permission: f.grant("write"), status: http.StatusAccepted},
+		{name: "every portal's domains in the project", permission: fmt.Sprintf("unkey:v1:%s:projects/%s/portals/*/domains/*#write", f.workspaceID, f.projectID), status: http.StatusAccepted},
+		{name: "everything under this portal", permission: portalURN + "/**#write", status: http.StatusAccepted},
+		{name: "admin", permission: fmt.Sprintf("unkey:v1:%s:**#*", f.workspaceID), status: http.StatusAccepted},
+		{name: "domains read names the missing permission", permission: f.grant("read"), status: http.StatusForbidden},
+		{name: "portal read names the missing permission", permission: portalURN + "#read", status: http.StatusForbidden},
+		{name: "portal write without domains", permission: portalURN + "#write", status: http.StatusNotFound},
+		{name: "domains in another project", permission: fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/domains/*#write", f.workspaceID, uid.New(uid.ProjectPrefix), f.portal.ID), status: http.StatusNotFound},
+		{name: "legacy update_portal", permission: "portal.*.update_portal", status: http.StatusNotFound},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			stored := f.seedDomain(t, db.PortalDomainsVerificationStatusFailed)
 			res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, tc.permission)
-			if tc.shouldPass {
-				require.Equal(t, http.StatusAccepted, res.Status, "%s must authorize: %s", tc.permission, res.RawBody)
-				return
-			}
-			require.Equal(t, http.StatusNotFound, res.Status, "%s must be a masked 404: %s", tc.permission, res.RawBody)
+			require.Equal(t, tc.status, res.Status, "%s: %s", tc.permission, res.RawBody)
 		})
 	}
 }
