@@ -1,9 +1,14 @@
 "use client";
 
-import { type DeploymentSummary, useDeployActions, useDomains } from "@/lib/deploy-data";
+import {
+  type DeploymentSummary,
+  toastWhenSettled,
+  useDeployActions,
+  useDomains,
+} from "@/lib/deploy-data";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
 
@@ -30,24 +35,23 @@ export const PromotionDialog = ({
   const promote = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
-    onSuccess: () => {
-      awaitLiveDeployment({ deploymentId: targetDeployment.id, rolledBack: false });
-      toast.success("Promotion completed", {
-        description: `Successfully promoted to deployment ${targetDeployment.id}`,
-      });
-      onClose();
-    },
-    onError: (error) => {
-      toast.error("Promotion failed", {
-        description: getErrorMessage(error),
-      });
-    },
+    onSuccess: onClose,
   });
 
-  const handlePromotion = async () => {
-    await promote.mutateAsync(targetDeployment.id).catch((error) => {
-      console.error("Promotion error:", error);
-    });
+  const handlePromotion = () => {
+    toastWhenSettled(
+      promote
+        .mutateAsync(targetDeployment.id)
+        .then(() => awaitLiveDeployment({ deploymentId: targetDeployment.id, rolledBack: false })),
+      {
+        loading: "Promoting...",
+        success: {
+          message: "Promotion completed",
+          description: `Successfully promoted to deployment ${targetDeployment.id}`,
+        },
+        failure: (error) => ({ message: "Promotion failed", description: getErrorMessage(error) }),
+      },
+    );
   };
 
   return (
