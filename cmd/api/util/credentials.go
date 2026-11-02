@@ -12,17 +12,36 @@ import (
 	"github.com/unkeyed/unkey/pkg/cli/session"
 )
 
-// ResolvedCredential is the bearer a command will send and, when it came from
-// a CLI session, the API that issued that session.
+// ResolvedCredential is the bearer a command will send and where it came from.
+// APIURL, WorkspaceID, and SessionID are set only for CLI sessions.
 type ResolvedCredential struct {
-	Key    string
-	APIURL string
+	Key         string
+	Source      CredentialSource
+	APIURL      string
+	WorkspaceID string
+	SessionID   string
 }
+
+// CredentialSource names where [Credential] found the bearer.
+type CredentialSource string
+
+const (
+	SourceRootKeyFlag  CredentialSource = "--root-key"
+	SourceRootKeyEnv   CredentialSource = "UNKEY_ROOT_KEY"
+	SourceConfig       CredentialSource = "--config"
+	SourceSession      CredentialSource = "browser session"
+	SourceSavedRootKey CredentialSource = "saved root key"
+)
+
+// ErrNoCredentials means no credential source holds a bearer.
+var ErrNoCredentials = errors.New("no credentials provided")
 
 // Credential resolves the bearer for a command. Credentials are used in this order:
 // the --root-key flag, then UNKEY_ROOT_KEY, then an explicit --config file,
 // then the stored CLI session for this API, then a root key saved with
-// unkey login --root-key=-. APIURL is set only for CLI sessions.
+// unkey login --root-key=-. When the selected CLI session cannot be refreshed,
+// the error comes with that session's source, API, workspace, and session ID
+// but no key.
 func Credential(ctx context.Context, cmd *cli.Command) (ResolvedCredential, error) {
 	return credential(ctx, cmd, credentials.DefaultRootKeyStore())
 }
@@ -34,21 +53,15 @@ func credential(ctx context.Context, cmd *cli.Command, keys credentials.RootKeyS
 			return ResolvedCredential{}, fmt.Errorf("root key cannot be empty")
 		}
 
-		return ResolvedCredential{
-			Key:    key,
-			APIURL: "",
-		}, nil
+		return rootKey(key, SourceRootKeyFlag), nil
 	}
 
 	if env := strings.TrimSpace(os.Getenv("UNKEY_ROOT_KEY")); env != "" {
-		return ResolvedCredential{
-			Key:    env,
-			APIURL: "",
-		}, nil
+		return rootKey(env, SourceRootKeyEnv), nil
 	}
 
 	if cmd.FlagIsSet("config") {
-		return rootKeyCredential(keys, cmd.String("config"))
+		return rootKeyCredential(keys, cmd.String("config"), SourceConfig)
 	}
 
 	commandURL, explicitAPI := commandAPIURL(cmd)
@@ -62,21 +75,40 @@ func credential(ctx context.Context, cmd *cli.Command, keys credentials.RootKeyS
 			return session.Refresh(ctx, storedAPIURL(current), current.RefreshToken)
 		})
 		if err != nil && !errors.Is(err, session.ErrNotFound) {
-			return ResolvedCredential{}, err
+			return ResolvedCredential{
+				Key:         "",
+				Source:      SourceSession,
+				APIURL:      storedAPIURL(current),
+				WorkspaceID: current.WorkspaceID,
+				SessionID:   current.SessionID,
+			}, err
 		}
 
 		if err == nil && sessionMatchesAPI(used, commandURL, explicitAPI) {
 			return ResolvedCredential{
-				Key:    used.AccessToken,
-				APIURL: storedAPIURL(used),
+				Key:         used.AccessToken,
+				Source:      SourceSession,
+				APIURL:      storedAPIURL(used),
+				WorkspaceID: used.WorkspaceID,
+				SessionID:   used.SessionID,
 			}, nil
 		}
 	}
 
-	return rootKeyCredential(keys, cmd.String("config"))
+	return rootKeyCredential(keys, cmd.String("config"), SourceSavedRootKey)
 }
 
-func rootKeyCredential(keys credentials.RootKeyStore, configPath string) (ResolvedCredential, error) {
+func rootKey(key string, source CredentialSource) ResolvedCredential {
+	return ResolvedCredential{
+		Key:         key,
+		Source:      source,
+		APIURL:      "",
+		WorkspaceID: "",
+		SessionID:   "",
+	}
+}
+
+func rootKeyCredential(keys credentials.RootKeyStore, configPath string, source CredentialSource) (ResolvedCredential, error) {
 	if configPath == "" {
 		path, err := cli.UserConfigPath()
 		if err != nil {
@@ -89,16 +121,13 @@ func rootKeyCredential(keys credentials.RootKeyStore, configPath string) (Resolv
 	loaded, err := credentials.LoadRootKey(keys, configPath)
 	if err != nil {
 		if errors.Is(err, credentials.ErrRootKeyNotFound) {
-			return ResolvedCredential{}, fmt.Errorf("no credentials provided\n\nProvide them via:\n  --root-key flag\n  UNKEY_ROOT_KEY environment variable\n  unkey login")
+			return ResolvedCredential{}, fmt.Errorf("%w\n\nProvide them via:\n  --root-key flag\n  UNKEY_ROOT_KEY environment variable\n  unkey login", ErrNoCredentials)
 		}
 
 		return ResolvedCredential{}, fmt.Errorf("failed to load credentials: %w", err)
 	}
 
-	return ResolvedCredential{
-		Key:    loaded,
-		APIURL: "",
-	}, nil
+	return rootKey(loaded, source), nil
 }
 
 func commandAPIURL(cmd *cli.Command) (string, bool) {
