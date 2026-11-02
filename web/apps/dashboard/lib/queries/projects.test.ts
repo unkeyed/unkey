@@ -2,9 +2,13 @@ import { newId } from "@unkey/id";
 import { describe, expect, it, vi } from "vitest";
 
 const listProjects = vi.fn();
+const getDefault = vi.fn();
 vi.mock("@/lib/unkey-client", () => ({
   getUnkeyClient: () => ({ projects: { listProjects } }),
   getErrorToast: vi.fn(),
+}));
+vi.mock("@/lib/collections/client", () => ({
+  trpcClient: { deploy: { project: { getDefault: { query: getDefault } } } },
 }));
 
 const { loadProjects, visibleProjects } = await import("./projects");
@@ -55,7 +59,9 @@ describe("loadProjects", () => {
     });
     const defaultProject = { id: newId("project"), name: "Default", slug: "default", createdAt: 0 };
 
-    expect(await loadProjects(async () => defaultProject)).toEqual([
+    getDefault.mockResolvedValue(defaultProject);
+
+    expect(await loadProjects()).toEqual([
       { ...defaultProject, isDefault: true },
       ...pages.flat().map((p) => ({ ...p, isDefault: false })),
     ]);

@@ -1,8 +1,8 @@
 "use client";
+import { trpcClient } from "@/lib/collections/client";
 import { useFlag } from "@/lib/flags/provider";
 import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
-import { trpc } from "@/lib/trpc/client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
@@ -41,30 +41,24 @@ export function projectDisplayName(
 export function useProjects<T = Project[]>({
   select,
   enabled = true,
-}: { select?: (projects: Project[]) => T; enabled?: boolean } = {}) {
-  const trpcUtils = trpc.useUtils();
+  refetchInterval,
+}: { select?: (projects: Project[]) => T; enabled?: boolean; refetchInterval?: number } = {}) {
   return useQuery({
     queryKey: queryKeys.projects.all,
     staleTime: DEPLOY_DATA_STALE_MS,
     retry: 3,
     enabled,
     select,
-    queryFn: ({ signal }) =>
-      loadProjects(
-        () => trpcUtils.client.deploy.project.getDefault.query(undefined, { signal }),
-        signal,
-      ),
+    refetchInterval,
+    queryFn: ({ signal }) => loadProjects(signal),
   });
 }
 
 // The default project lives outside the public API, so it comes from tRPC
-export async function loadProjects(
-  getDefault: () => Promise<Omit<Project, "isDefault"> | null>,
-  signal?: AbortSignal,
-): Promise<Project[]> {
+export async function loadProjects(signal?: AbortSignal): Promise<Project[]> {
   const [pages, defaultProject] = await Promise.all([
     getUnkeyClient().projects.listProjects({ limit: 100 }, { signal }),
-    getDefault(),
+    trpcClient.deploy.project.getDefault.query(undefined, { signal }),
   ]);
   const listed = (await Array.fromAsync(pages)).flatMap((page) =>
     page.result.data.map(
@@ -93,9 +87,12 @@ export function useDefaultProjectId({ enabled }: { enabled: boolean }) {
   return useProjects({ enabled, select: (projects) => projects.find((p) => p.isDefault)?.id });
 }
 
-export function useVisibleProjects() {
+export function useVisibleProjects({ refetchInterval }: { refetchInterval?: number } = {}) {
   const projectsNav = useFlag("projectsNav");
-  return useProjects({ select: (projects) => visibleProjects(projects, projectsNav) });
+  return useProjects({
+    select: (projects) => visibleProjects(projects, projectsNav),
+    refetchInterval,
+  });
 }
 
 export function visibleProjects(projects: readonly Project[], includeDefault: boolean): Project[] {

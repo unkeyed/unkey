@@ -1,4 +1,4 @@
-import type { App } from "./apps";
+import type { App } from "@/lib/queries/apps";
 
 export type ProjectApp = Pick<App, "id" | "name" | "customDomain" | "headlineDeployment">;
 

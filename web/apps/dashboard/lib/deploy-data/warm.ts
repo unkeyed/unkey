@@ -3,6 +3,7 @@
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { warmQueries } from "@/lib/collections/warm-queries";
+import { cachedApp } from "@/lib/queries/apps";
 import { createLiveQueryCollection } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -25,7 +26,7 @@ export function warmAppPage(queryClient: QueryClient, projectId: string, appId: 
   void queryClient.prefetchQuery(
     recentDeploymentsOptions(queryClient, projectId, appId, null, RECENT_DEPLOYMENTS_LIMIT),
   );
-  const currentDeploymentId = collection.apps.get(appId)?.currentDeploymentId;
+  const currentDeploymentId = cachedApp(queryClient, projectId, appId)?.currentDeploymentId;
   if (currentDeploymentId) {
     warmDeployment(queryClient, projectId, currentDeploymentId);
   }

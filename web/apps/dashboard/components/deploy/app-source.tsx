@@ -1,4 +1,4 @@
-import type { App } from "@/lib/collections/deploy/apps";
+import type { App } from "@/lib/queries/apps";
 import { Github, IconLayers2Outline18, IconTerminalOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 
