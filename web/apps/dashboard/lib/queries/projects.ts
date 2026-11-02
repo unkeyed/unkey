@@ -1,9 +1,9 @@
 "use client";
-import { trpcClient } from "@/lib/collections/client";
 import { useFlag } from "@/lib/flags/provider";
 import { projectAppsOptions } from "@/lib/queries/apps";
 import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
+import { trpcClient } from "@/lib/trpc/client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";

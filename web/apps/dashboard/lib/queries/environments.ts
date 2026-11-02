@@ -1,6 +1,6 @@
 "use client";
-import { listAppEnvironments } from "@/lib/collections/deploy/app-environments";
 import { queryKeys } from "@/lib/query-keys";
+import { getUnkeyClient } from "@/lib/unkey-client";
 import { useQueries } from "@tanstack/react-query";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import type { environments as environmentsTable } from "@unkey/db/src/schema";
@@ -46,13 +46,28 @@ export function useAppsEnvironments(apps: ReadonlyArray<{ projectId: string; app
   };
 }
 
+/** Environments of every app in the given projects. Idle until `projects` loads. */
+export function useProjectEnvironments(
+  projects: ReadonlyArray<{ id: string; apps: ReadonlyArray<{ id: string }> }> | undefined,
+) {
+  return useAppsEnvironments(
+    (projects ?? []).flatMap((project) =>
+      project.apps.map((app) => ({ projectId: project.id, appId: app.id })),
+    ),
+  );
+}
+
 // A deleted app or one without read permission lists none, so it does not hide the other apps' environments
 export async function loadAppEnvironments(
   projectId: string,
   appId: string,
+  signal?: AbortSignal,
 ): Promise<Environment[]> {
   try {
-    const data = await listAppEnvironments(projectId, appId);
+    const { data } = await getUnkeyClient().environments.listEnvironments(
+      { project: projectId, app: appId },
+      { signal },
+    );
     return data.map((e) => ({ id: e.id, projectId, appId, slug: e.slug, kind: e.kind }));
   } catch (error) {
     if (error instanceof NotFoundErrorResponse) {
@@ -68,7 +83,8 @@ export function appEnvironmentsOptions(projectId: string, appId: string) {
     // The dashboard never writes environment rows
     staleTime: 5 * 60_000,
     retry: 3,
-    queryFn: () => loadAppEnvironments(projectId, appId),
+    queryFn: ({ signal }: { signal?: AbortSignal }) =>
+      loadAppEnvironments(projectId, appId, signal),
   };
 }
 

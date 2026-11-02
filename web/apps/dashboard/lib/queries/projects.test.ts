@@ -7,7 +7,7 @@ vi.mock("@/lib/unkey-client", () => ({
   getUnkeyClient: () => ({ projects: { listProjects } }),
   getErrorToast: vi.fn(),
 }));
-vi.mock("@/lib/collections/client", () => ({
+vi.mock("@/lib/trpc/client", () => ({
   trpcClient: { deploy: { project: { getDefault: { query: getDefault } } } },
 }));
 

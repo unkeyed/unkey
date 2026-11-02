@@ -18,7 +18,7 @@ const sourceState = vi.hoisted(() => ({
   empty: false,
 }));
 const createDrain = vi.hoisted(() => vi.fn());
-vi.mock("@/hooks/use-project-environments", () => ({
+vi.mock("@/lib/queries/environments", () => ({
   useProjectEnvironments: () => ({
     data: [
       { id: "env", slug: "Production", kind: "production", projectId: "project", appId: "app" },
