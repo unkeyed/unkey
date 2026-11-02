@@ -22,27 +22,39 @@ import {
 export function warmAppPage(projectId: string, appId: string): void {
   warmDeploymentsPage(projectId, appId);
   const currentDeploymentId = collection.apps.get(appId)?.currentDeploymentId;
+  warmQueries(`app/${projectId}/${appId}`, () => {
+    const environments = createLiveQueryCollection(environmentsQueryFor(projectId, appId));
+    // Environments load on demand, so the production id is only known once they arrive
+    environments
+      .preload()
+      .then(() => warmProduction(projectId, appId))
+      .catch(() => {});
+    return [
+      environments,
+      createLiveQueryCollection(
+        recentDeploymentsQueryFor(projectId, appId, null, RECENT_DEPLOYMENTS_LIMIT),
+      ),
+      createLiveQueryCollection(domainsQueryFor(projectId, appId)),
+      createLiveQueryCollection(customDomainsQueryFor(projectId, appId)),
+      ...(currentDeploymentId
+        ? [createLiveQueryCollection(deploymentByIdQueryFor(projectId, appId, currentDeploymentId))]
+        : []),
+    ];
+  });
+}
+
+function warmProduction(projectId: string, appId: string): void {
   const productionId = [...collection.environments.values()].find(
     (e) => e.appId === appId && e.kind === ENVIRONMENT_KIND.production,
   )?.id;
-  warmQueries(`app/${projectId}/${appId}`, () => [
+  if (!productionId) {
+    return;
+  }
+  warmQueries(`app/${projectId}/${appId}/production`, () => [
     createLiveQueryCollection(
-      recentDeploymentsQueryFor(projectId, appId, null, RECENT_DEPLOYMENTS_LIMIT),
+      recentDeploymentsQueryFor(projectId, appId, productionId, PRODUCTION_LIMIT),
     ),
-    createLiveQueryCollection(domainsQueryFor(projectId, appId)),
-    createLiveQueryCollection(customDomainsQueryFor(projectId, appId)),
-    createLiveQueryCollection(environmentsQueryFor(projectId, appId)),
-    ...(productionId
-      ? [
-          createLiveQueryCollection(
-            recentDeploymentsQueryFor(projectId, appId, productionId, PRODUCTION_LIMIT),
-          ),
-          createLiveQueryCollection(policiesQueryFor(projectId, appId, productionId)),
-        ]
-      : []),
-    ...(currentDeploymentId
-      ? [createLiveQueryCollection(deploymentByIdQueryFor(projectId, appId, currentDeploymentId))]
-      : []),
+    createLiveQueryCollection(policiesQueryFor(projectId, appId, productionId)),
   ]);
 }
 
