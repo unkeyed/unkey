@@ -30,8 +30,9 @@ func TestCreatePortalDomainCapReached(t *testing.T) {
 		}))
 	}
 
-	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, f.grant("write"))
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Contains(t, res.RawBody, "portal_domain_limit_exceeded")
 	require.Empty(t, f.ctrl.AddPortalDomainCalls)
 }
 
@@ -43,6 +44,18 @@ func TestCreatePortalDomainCapReachedInCtrl(t *testing.T) {
 		return nil, asCtrlError(connect.CodeResourceExhausted, domaingate.CheckPortalAllowance(domaingate.PortalDomainsMax))
 	}
 
-	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, f.grant("write"))
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Contains(t, res.RawBody, "portal_domain_limit_exceeded")
+}
+
+// A caller who can already see the portal learns which permission is missing
+// rather than getting a 404 for a portal they can read.
+func TestCreatePortalDomainReadableNamesMissingPermission(t *testing.T) {
+	f := setup(t)
+
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, f.grant("read"))
+	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Contains(t, res.RawBody, "domains/*#write")
+	require.Empty(t, f.ctrl.AddPortalDomainCalls)
 }

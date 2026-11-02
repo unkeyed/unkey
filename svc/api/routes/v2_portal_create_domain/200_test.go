@@ -26,7 +26,7 @@ func TestCreatePortalDomainReturnsDNSRecords(t *testing.T) {
 	}
 
 	domain := randomDomain()
-	res := f.call(t, handler.Request{Portal: f.portal.Slug, Domain: domain}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.Slug, Domain: domain}, f.grant("write"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, domainID, res.Body.Data.DomainId)
 
@@ -57,7 +57,7 @@ func TestCreatePortalDomainCanonicalizesTheName(t *testing.T) {
 	f := setup(t)
 
 	domain := randomDomain()
-	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: strings.ToUpper(domain)}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: strings.ToUpper(domain)}, f.grant("write"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Len(t, f.ctrl.AddPortalDomainCalls, 1)
 	require.Equal(t, domain, f.ctrl.AddPortalDomainCalls[0].GetDomain())

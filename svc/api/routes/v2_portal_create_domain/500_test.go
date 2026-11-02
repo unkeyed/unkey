@@ -21,7 +21,7 @@ func TestCreatePortalDomainNotConfigured(t *testing.T) {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New(message))
 	}
 
-	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, f.grant("write"))
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
 	require.Contains(t, res.RawBody, message)
 }

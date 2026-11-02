@@ -10,7 +10,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_domain"
 )
 
-func TestCreatePortalDomainAuthorizesCanonicalPortalURNs(t *testing.T) {
+func TestCreatePortalDomainAuthorizesCanonicalPortalDomainURNs(t *testing.T) {
 	f := setup(t)
 
 	testCases := []struct {
@@ -19,11 +19,13 @@ func TestCreatePortalDomainAuthorizesCanonicalPortalURNs(t *testing.T) {
 		action     string
 		shouldPass bool
 	}{
-		{name: "this portal", resource: fmt.Sprintf("projects/%s/portals/%s", f.projectID, f.portal.ID), action: "write", shouldPass: true},
-		{name: "every portal in the project", resource: fmt.Sprintf("projects/%s/portals/*", f.projectID), action: "write", shouldPass: true},
+		{name: "this portal's domains", resource: fmt.Sprintf("projects/%s/portals/%s/domains/*", f.projectID, f.portal.ID), action: "write", shouldPass: true},
+		{name: "every portal's domains in the project", resource: fmt.Sprintf("projects/%s/portals/*/domains/*", f.projectID), action: "write", shouldPass: true},
+		{name: "everything under this portal", resource: fmt.Sprintf("projects/%s/portals/%s/**", f.projectID, f.portal.ID), action: "write", shouldPass: true},
 		{name: "workspace-wide admin", resource: "**", action: "*", shouldPass: true},
-		{name: "this portal read", resource: fmt.Sprintf("projects/%s/portals/%s", f.projectID, f.portal.ID), action: "read", shouldPass: false},
-		{name: "this portal in another project", resource: fmt.Sprintf("projects/%s/portals/%s", uid.New(uid.ProjectPrefix), f.portal.ID), action: "write", shouldPass: false},
+		{name: "this portal itself", resource: fmt.Sprintf("projects/%s/portals/%s", f.projectID, f.portal.ID), action: "write", shouldPass: false},
+		{name: "this portal's domains read", resource: fmt.Sprintf("projects/%s/portals/%s/domains/*", f.projectID, f.portal.ID), action: "read", shouldPass: false},
+		{name: "this portal's domains in another project", resource: fmt.Sprintf("projects/%s/portals/%s/domains/*", uid.New(uid.ProjectPrefix), f.portal.ID), action: "write", shouldPass: false},
 	}
 
 	for _, tc := range testCases {

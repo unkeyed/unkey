@@ -14,9 +14,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// portalNotFoundMessage matches the portal routes, so a denial here reads the
+// PortalNotFoundMessage matches the portal routes, so a denial here reads the
 // same as one from portal.getPortal or portal.updatePortal.
-const portalNotFoundMessage = "Portal not found."
+const PortalNotFoundMessage = "Portal not found."
 
 // FindPortal finds the portal ref names, by id or slug, in workspaceID.
 func FindPortal(ctx context.Context, database db.Database, workspaceID, ref string) (db.Portal, error) {
@@ -45,6 +45,6 @@ func PortalNotFound(detail string) error {
 	return fault.New("portal not found",
 		fault.Code(codes.Data.Portal.NotFound.URN()),
 		fault.Internal(detail),
-		fault.Public(portalNotFoundMessage),
+		fault.Public(PortalNotFoundMessage),
 	)
 }

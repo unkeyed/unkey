@@ -27,11 +27,12 @@ func TestCreatePortalDomainUnresolvedPortalNeverReachesCtrl(t *testing.T) {
 		portal      string
 		permissions []string
 	}{
-		{name: "unknown portal", portal: uid.New(uid.PortalPrefix), permissions: []string{"portal.*.update_portal"}},
-		{name: "portal in another workspace", portal: foreign.ID, permissions: []string{"portal.*.update_portal"}},
+		{name: "unknown portal", portal: uid.New(uid.PortalPrefix), permissions: []string{f.grant("write")}},
+		{name: "portal in another workspace", portal: foreign.ID, permissions: []string{f.grant("write")}},
 		{name: "no permissions", portal: f.portal.ID, permissions: []string{}},
-		{name: "read only", portal: f.portal.ID, permissions: []string{"portal.*.read_portal"}},
-		{name: "update on another portal", portal: f.portal.ID, permissions: []string{fmt.Sprintf("portal.%s.update_portal", uid.New(uid.PortalPrefix))}},
+		{name: "portal write without domains", portal: f.portal.ID, permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#write", f.workspaceID, f.projectID, f.portal.ID)}},
+		{name: "domains on another portal", portal: f.portal.ID, permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/domains/*#write", f.workspaceID, f.projectID, uid.New(uid.PortalPrefix))}},
+		{name: "legacy tuple", portal: f.portal.ID, permissions: []string{"portal.*.update_portal"}},
 	}
 
 	for _, tc := range testCases {
@@ -54,7 +55,7 @@ func TestCreatePortalDomainPortalDeletedBeforeCtrl(t *testing.T) {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("portal not found"))
 	}
 
-	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, f.grant("write"))
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Contains(t, res.RawBody, "Portal not found.")
 }

@@ -12,6 +12,9 @@ unkey:v1:ws_123:projects/*#delete
 unkey:v1:ws_123:projects/*/portals/*#read
 unkey:v1:ws_123:projects/*/portals/*#write
 unkey:v1:ws_123:projects/*/portals/*#delete
+unkey:v1:ws_123:projects/*/portals/*/domains/*#read
+unkey:v1:ws_123:projects/*/portals/*/domains/*#write
+unkey:v1:ws_123:projects/*/portals/*/domains/*#delete
 unkey:v1:ws_123:projects/*/apps/*#read
 unkey:v1:ws_123:projects/*/apps/*#write
 unkey:v1:ws_123:projects/*/apps/*#delete

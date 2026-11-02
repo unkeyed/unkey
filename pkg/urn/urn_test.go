@@ -281,6 +281,8 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 		"unkey:v1:ws_123:projects/*/portals/*/sessions/*",
 		"unkey:v1:ws_123:projects/proj_123/portals/portal_123",
 		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123",
+		"unkey:v1:ws_123:projects/*/portals/*/domains/*",
+		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/domains/pdom_123",
 		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/**",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/buildLogs",
@@ -438,6 +440,8 @@ func TestResourceCatalogBuilders(t *testing.T) {
 		{name: "portal session", got: portal.Session("sess_123").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123"},
 		{name: "wildcard portal", got: project.Portal("*").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/*"},
 		{name: "wildcard portal session", got: portal.Session("*").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/*"},
+		{name: "portal domain", got: portal.Domain("pdom_123").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/portal_123/domains/pdom_123"},
+		{name: "wildcard portal domain", got: portal.Domain("*").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/portal_123/domains/*"},
 		{name: "role", got: project.RBAC().Role("role_123").String(), want: "unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123"},
 		{name: "permission", got: project.RBAC().Permission("perm_123").String(), want: "unkey:v1:ws_123:projects/proj_123/rbac/permissions/perm_123"},
 	}

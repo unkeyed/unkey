@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/customdomain"
 	"github.com/unkeyed/unkey/svc/api/internal/domain"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portaldomain"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -57,14 +58,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// The wildcard tuple is spelled out because a stored `*` matches literally.
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: "*", Action: rbac.UpdatePortal}),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: found.ID, Action: rbac.UpdatePortal}),
-		rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID), permissions.Write),
-	))
-	if err != nil {
-		return portaldomain.PortalNotFound(fmt.Sprintf("create domain denied for portal %s: %s", found.ID, fault.InternalMessage(err)))
+	portalURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID)
+	permissionQuery := rbac.U(portalURN.Domain("*"), permissions.Write)
+	if err = principal.Authorize(permissionQuery); err != nil {
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			rbac.Or(
+				rbac.U(portalURN, permissions.Read),
+				rbac.U(portalURN.Domain("*"), permissions.Read),
+			),
+			codes.Data.Portal.NotFound.URN(),
+			portaldomain.PortalNotFoundMessage,
+		)
 	}
 
 	domainName, err := domaingate.ParseDomain(req.Domain)
@@ -98,10 +105,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Actor:       actor,
 	})
 	if err != nil {
-		// ctrl re-checks the portal on the primary, so one deleted since the
-		// lookup above is reported the same way as one that never existed.
-		if connect.CodeOf(err) == connect.CodeNotFound {
+		// ctrl re-checks the portal and the cap on the primary, so a request that
+		// raced past the reads above gets the same response as one caught there.
+		//nolint:exhaustive // all other Connect error codes fall through to the generic mapping
+		switch connect.CodeOf(err) {
+		case connect.CodeNotFound:
 			return portaldomain.PortalNotFound(fmt.Sprintf("portal %s deleted before the domain was added", found.ID))
+		case connect.CodeResourceExhausted:
+			return domaingate.CheckPortalAllowance(domaingate.PortalDomainsMax)
 		}
 		return customdomain.MapCtrlError(err, "create portal domain")
 	}

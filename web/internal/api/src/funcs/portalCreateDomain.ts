@@ -38,12 +38,8 @@ import { Result } from "../types/fp.js";
  *
  * A name already attached to one of your portals or environments returns a 409.
  *
- * **Required Permissions**
- *
- * Your root key must have one of:
- * - `portal.*.update_portal` (to manage domains on any portal in the workspace)
- * - `portal.<portal_id>.update_portal` (to manage domains on a specific portal)
- *
+ * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/*#write`.
+ * Use `portals/* /domains/*#write` to attach domains to any portal in the project.
  * Without the permission this returns **404**, not 403.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.

@@ -21,7 +21,7 @@ func TestCreatePortalDomainDuplicate(t *testing.T) {
 		return nil, asCtrlError(connect.CodeAlreadyExists, domaingate.AlreadyExists(req.GetDomain()))
 	}
 
-	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: domain}, "portal.*.update_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: domain}, f.grant("write"))
 	require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 	require.Contains(t, res.RawBody, domain)
 }

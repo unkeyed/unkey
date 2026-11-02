@@ -25,7 +25,7 @@ func TestCreatePortalDomainRejectsInvalidHostnames(t *testing.T) {
 
 	for name, domain := range testCases {
 		t.Run(name, func(t *testing.T) {
-			res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: domain}, "portal.*.update_portal")
+			res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: domain}, f.grant("write"))
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		})
 	}

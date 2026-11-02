@@ -143,6 +143,11 @@ export function portalRows(projectPath: string): PermissionRow[] {
       path: `${portalPath}/sessions/*`,
       actions: { delete: [] },
     }),
+    permissionRow({
+      id: "portal_domain",
+      label: "Portal domains",
+      path: `${portalPath}/domains/*`,
+    }),
   ];
 }
 
