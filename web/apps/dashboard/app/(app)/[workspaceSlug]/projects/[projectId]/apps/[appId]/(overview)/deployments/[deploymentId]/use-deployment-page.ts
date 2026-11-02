@@ -48,9 +48,9 @@ export function useDeploymentPage() {
       deployment,
       status: derivedStatus,
       buildRequested,
-      domains: getDeploymentDomains(deployment, domains.data),
+      domains: getDeploymentDomains(deployment, domains.data ?? []),
       domainsLoading,
-      customDomains: customDomains.data,
+      customDomains: customDomains.data ?? [],
       currentDeploymentId: app?.currentDeploymentId ?? null,
     }),
   };

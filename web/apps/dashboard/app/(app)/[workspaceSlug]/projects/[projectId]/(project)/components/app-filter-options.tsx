@@ -16,7 +16,7 @@ export function useAppFilterOptionsWithLoading(): {
 
   const options = useMemo(
     () =>
-      apps.data.toSorted(byLatestUpdate).map((app, i) => ({
+      (apps.data ?? []).toSorted(byLatestUpdate).map((app, i) => ({
         id: i,
         appId: app.id,
         name: app.name,

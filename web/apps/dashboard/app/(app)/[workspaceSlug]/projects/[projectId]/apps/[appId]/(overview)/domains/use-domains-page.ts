@@ -11,7 +11,7 @@ const PAGE_SIZE = 25;
 const SEARCH_KEY = "search";
 
 export function useDomainsPage() {
-  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const domains = useDomains();
   const customDomains = useCustomDomains();
   const [search, setSearch] = useResourceSearch(SEARCH_KEY);
@@ -30,8 +30,8 @@ export function useDomainsPage() {
   const view = domainsView({
     isLoading: domains.isLoading || customDomains.isLoading,
     failed: domains.isError || customDomains.isError,
-    domains: domains.data,
-    customDomains: customDomains.data,
+    domains: domains.data ?? [],
+    customDomains: customDomains.data ?? [],
     environments,
     search,
     limit,

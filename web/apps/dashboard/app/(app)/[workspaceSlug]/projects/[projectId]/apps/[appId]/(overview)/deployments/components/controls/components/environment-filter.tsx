@@ -7,7 +7,7 @@ import { EnvironmentSelect } from "../../../../../../_components/environment-sel
 import { useFilters } from "../../../hooks/use-filters";
 
 export function EnvironmentFilter() {
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const { filters, updateFilters } = useFilters();
 
   const activeSlug = filters.find((f) => f.field === "environment")?.value;

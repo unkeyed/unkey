@@ -15,7 +15,7 @@ import { RuntimeOverview } from "./runtime-overview";
 export default function EnvironmentSettingsPage() {
   const { environment: slug } = useParams<{ environment: string }>();
   const {
-    data: environments,
+    data: environments = [],
     isLoading: isEnvironmentsLoading,
     isError,
     refetch,

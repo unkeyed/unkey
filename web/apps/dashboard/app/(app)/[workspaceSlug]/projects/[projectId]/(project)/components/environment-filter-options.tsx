@@ -7,7 +7,7 @@ import { useAppNameById } from "./app-filter-options";
 // Logs and requests are project-wide and every app has e.g. a "production"
 // environment, so the app name is needed to tell same-slug options apart.
 export function useEnvironmentFilterOptions(): EnvironmentFilterOption[] {
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const appNameById = useAppNameById();
 
   return useMemo(

@@ -23,7 +23,7 @@ type Args = {
 
 export function useAddDomain({ defaultEnvironmentId, onSettled, onCancel }: Args) {
   const { projectId, appId } = useAppScope();
-  const { data: customDomains } = useCustomDomains();
+  const { data: customDomains = [] } = useCustomDomains();
   const { addCustomDomain } = useCustomDomainMutations();
   const workspace = useWorkspaceNavigation();
   const form = useForm<CustomDomainFormValues>({

@@ -10,7 +10,7 @@ import {
 export function useDeployments(filter: DeploymentListFilter) {
   const environments = useEnvironments();
   const page = useDeploymentsPage(filter);
-  const environmentById = new Map(environments.data.map((e) => [e.id, e]));
+  const environmentById = new Map((environments.data ?? []).map((e) => [e.id, e]));
   return {
     rows: page.rows.map(
       (deployment): { deployment: Deployment; environment: Environment | undefined } => ({

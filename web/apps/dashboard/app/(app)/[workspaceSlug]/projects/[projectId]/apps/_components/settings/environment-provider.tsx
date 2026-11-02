@@ -47,7 +47,7 @@ export function EnvironmentSettingsProvider({
   children,
   fallback = <SettingsSkeleton />,
 }: ScopeProps) {
-  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const all = useAppEnvironmentSettings();
   const shown = productionFirst(environments).at(0);
 

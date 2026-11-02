@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadError } from "@/components/load-error";
 import { LoadingState } from "@/components/loading-state";
 import { type Deployment, useDeployment as useDeploymentById } from "@/lib/deploy-data";
 import { notFound, useParams } from "next/navigation";
@@ -31,8 +32,15 @@ export const DeploymentLayoutProvider = ({
 
   // Loads the row with its instances however old it is; the scope's polling
   // keeps it live while the deployment builds
-  const { data: resolved } = useDeploymentById(deploymentId);
+  const { data: resolved, isError, error, refetch } = useDeploymentById(deploymentId);
   if (!resolved) {
+    if (resolved === undefined && isError) {
+      return (
+        <div className="flex min-h-(--app-body-h) flex-col">
+          <LoadError title="Could not load deployment" error={error} onRetry={() => refetch()} />
+        </div>
+      );
+    }
     if (resolved === undefined) {
       return (
         <div className="flex min-h-(--app-body-h) flex-col">

@@ -43,13 +43,13 @@ export function useWarmAppHandlers(projectId: string, appId: string): WarmHandle
 }
 
 export function useWarmDeploymentHandlers(deploymentId: string): WarmHandlers {
-  const { projectId, appId } = useAppScope();
+  const { projectId } = useAppScope();
   const trpcUtils = trpc.useUtils();
   const queryClient = useQueryClient();
   const { schedule, cancel } = useDelayedWarm();
   const warm = () =>
     schedule(() => {
-      warmDeployment(queryClient, projectId, appId, deploymentId);
+      warmDeployment(queryClient, projectId, deploymentId);
       trpcUtils.deploy.deployment.steps.prefetch({ deploymentId });
     });
   return { onPointerEnter: warm, onPointerLeave: cancel, onFocusCapture: warm };

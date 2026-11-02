@@ -33,7 +33,7 @@ import { DeploymentsSkeleton } from "./deployments-skeleton";
 
 export function DeploymentsCardList() {
   const { filters, isFiltered, updateFilters } = useFilters();
-  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const { filter, cannotMatch } = useMemo(
     () => buildDeploymentListInput(filters, environments),
     [filters, environments],
@@ -70,7 +70,7 @@ function DeploymentsCardListResults({
   const { rows, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
     useDeploymentsPage(filter);
   const { projectId } = useAppScope();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const { data: app } = useApp();
   const currentDeployment = useCurrentDeployment().data ?? undefined;
   const isRolledBack = app?.isRolledBack ?? false;

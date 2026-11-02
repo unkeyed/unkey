@@ -20,14 +20,14 @@ import { DeploymentsSkeleton } from "../../deployments/components/deployments-sk
 export function RecentDeployments() {
   const workspace = useWorkspaceNavigation();
   const { projectId, appId } = useAppScope();
-  const { data: environments } = useEnvironments();
-  const { data: deployments, isLoading: isDeploymentsLoading } = useRecentDeployments({
+  const { data: environments = [] } = useEnvironments();
+  const { data: deployments = [], isLoading: isDeploymentsLoading } = useRecentDeployments({
     limit: RECENT_DEPLOYMENTS_LIMIT,
   });
   const { data: app } = useApp();
   const currentDeployment = useCurrentDeployment().data ?? undefined;
   const isRolledBack = app?.isRolledBack ?? false;
-  const { data: productionDeployments } = useProductionDeployments({ enabled: isRolledBack });
+  const { data: productionDeployments = [] } = useProductionDeployments({ enabled: isRolledBack });
   const rolledBackFromId =
     isRolledBack && currentDeployment
       ? findRolledBackFrom(productionDeployments, currentDeployment)?.id

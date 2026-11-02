@@ -30,12 +30,12 @@ export const useProjectData = () => {
           currentDeploymentId: app.data?.currentDeploymentId ?? null,
         }
       : undefined,
-    domains: domains.data,
+    domains: domains.data ?? [],
     isDomainsLoading: domains.isLoading,
     refetchDomains: domains.refetch,
-    customDomains: customDomains.data,
+    customDomains: customDomains.data ?? [],
     isCustomDomainsLoading: customDomains.isLoading,
-    environments: environments.data,
+    environments: environments.data ?? [],
     isEnvironmentsLoading: environments.isLoading,
     refetchDeployments,
   };

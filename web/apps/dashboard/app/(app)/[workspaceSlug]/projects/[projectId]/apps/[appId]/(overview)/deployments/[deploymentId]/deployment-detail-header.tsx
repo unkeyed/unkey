@@ -46,7 +46,7 @@ export function DeploymentDetailHeader() {
 }
 
 function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment }) {
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
 
   const { derivedStatus } = useDeploymentStatus(deployment);
   const [isRedeployOpen, setIsRedeployOpen] = useState(false);

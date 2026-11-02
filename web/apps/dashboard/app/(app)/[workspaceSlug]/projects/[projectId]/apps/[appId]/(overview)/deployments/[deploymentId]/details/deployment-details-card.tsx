@@ -38,11 +38,11 @@ type DeploymentDetailsCardProps = {
 export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
   const { deployment, status, pageStatus, instances, domainsLoading } = page;
   const { primary, additional } = page.domains;
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const { data: app } = useApp();
   const currentDeployment = useCurrentDeployment().data ?? undefined;
   const isRolledBack = app?.isRolledBack ?? false;
-  const { data: deployments } = useProductionDeployments({ enabled: isRolledBack });
+  const { data: deployments = [] } = useProductionDeployments({ enabled: isRolledBack });
   const isRolledBackFrom =
     isRolledBack && currentDeployment
       ? findRolledBackFrom(deployments, currentDeployment)?.id === deployment.id

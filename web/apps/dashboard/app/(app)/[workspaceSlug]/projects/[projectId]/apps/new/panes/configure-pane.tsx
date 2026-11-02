@@ -39,7 +39,7 @@ export function ConfigurePane({ source }: { source: SourceKind }) {
 function ConfigureCard({ source, savedName }: { source: SourceKind; savedName: string }) {
   const { projectId } = useNewAppFlow();
   const { appId } = useBuildSource();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const defaultsSettled = useDefaultSettingsSettled(appId);
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const { takenSlugs } = useAppLifecycle(projectId);

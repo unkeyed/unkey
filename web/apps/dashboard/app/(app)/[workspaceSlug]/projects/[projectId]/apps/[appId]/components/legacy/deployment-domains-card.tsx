@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
 import type { Domain } from "@/lib/collections";
 import {
   IconChevronDownOutline18,
@@ -24,7 +25,6 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
-import { useProjectData } from "../../(overview)/data-provider";
 import { useDeployment } from "../../(overview)/deployments/[deploymentId]/layout-provider";
 import { getDeploymentDomains, getDomainPriority } from "../domain-priority";
 import { GlowIcon } from "../glow-icon";

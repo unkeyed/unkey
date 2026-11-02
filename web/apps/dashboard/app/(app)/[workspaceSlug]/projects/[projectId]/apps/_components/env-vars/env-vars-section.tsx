@@ -8,7 +8,7 @@ import { EnvVarsToolbar, type SortOption } from "./toolbar/env-vars-toolbar";
 
 export function EnvVarsSection() {
   const { projectId, appId } = useAppScope();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const [environmentFilter, setEnvironmentFilter] = useState(ALL_ENVIRONMENTS);
   const [sortBy, setSortBy] = useState<SortOption>("last-updated");
 

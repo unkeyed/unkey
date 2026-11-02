@@ -28,7 +28,7 @@ export type PoliciesData = {
 
 export function usePoliciesData(): PoliciesData {
   const { projectId, appId } = useAppScope();
-  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
 
   const productionEnv = environments.find((e) => e.kind === ENVIRONMENT_KIND.production);
   const previewEnv = environments.find((e) => e.kind === ENVIRONMENT_KIND.preview);
@@ -78,7 +78,7 @@ export type ProductionPolicies = {
 
 export function useProductionPolicies(): ProductionPolicies {
   const { projectId, appId } = useAppScope();
-  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const productionId = environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id ?? null;
   const production = useEnvPolicies(projectId, appId, productionId);
   const policies = production.rows ?? [];

@@ -24,7 +24,7 @@ import {
 export function MetricsGlance() {
   const workspace = useWorkspaceNavigation();
   const { projectId, appId } = useAppScope();
-  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const grid = useBucketClock(GLANCE_RANGE);
   const noProduction = !isEnvironmentsLoading && !environments.some((e) => e.kind === "production");
   const sources = useMetricSources(noProduction ? null : { appId, environment: PRODUCTION, grid });

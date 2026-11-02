@@ -22,14 +22,11 @@ export const queryKeys = {
   deployments: {
     all: deploymentsRoot,
     buildLogs: (deploymentId: string) => [...deploymentsRoot, "buildLogs", deploymentId] as const,
-    // Every deployments query of a project or app starts with this, so one
+    // Every deployments query of a project starts with this, so one
     // invalidation refreshes all of them
-    scope: (projectId: string, appId: string | undefined) =>
-      appId === undefined
-        ? ([...deploymentsRoot, projectId] as const)
-        : ([...deploymentsRoot, projectId, appId] as const),
-    detail: (projectId: string, appId: string | undefined, deploymentId: string) =>
-      [...deploymentsRoot, projectId, appId ?? null, "detail", deploymentId] as const,
+    scope: (projectId: string) => [...deploymentsRoot, projectId] as const,
+    detail: (projectId: string, deploymentId: string) =>
+      [...deploymentsRoot, projectId, "detail", deploymentId] as const,
     recent: (
       projectId: string,
       appId: string | undefined,

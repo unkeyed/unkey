@@ -31,7 +31,7 @@ export function useAppEnvironmentSearchItems<TFilter extends FilterLike>({
   createFilter,
 }: UseAppEnvironmentSearchItemsParams<TFilter>): FilterSearchItem[] {
   const apps = useAppFilterOptions();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const environmentsByAppId = useMemo(() => groupEnvironmentsByApp(environments), [environments]);
   const environmentIdsByApp = useMemo(
     () =>

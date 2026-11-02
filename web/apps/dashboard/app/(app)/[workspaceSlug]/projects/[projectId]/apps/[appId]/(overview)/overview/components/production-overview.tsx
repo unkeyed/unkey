@@ -100,10 +100,10 @@ function useProductionOverview({
   openPaywall: () => void;
 }): ProductionOverviewModel {
   const { projectId, appId } = useAppScope();
-  const { data: customDomains } = useCustomDomains();
+  const { data: customDomains = [] } = useCustomDomains();
   const recent = useRecentDeployments({ limit: RECENT_DEPLOYMENTS_LIMIT });
   const production = useProductionDeployments();
-  const productionDeployments = production.data;
+  const productionDeployments = production.data ?? [];
   const workspace = useWorkspaceNavigation();
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
@@ -158,7 +158,7 @@ function useProductionOverview({
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
-  if (!recent.isLoading && recent.data.length === 0) {
+  if (recent.data?.length === 0) {
     return { kind: "no-deployments" };
   }
 
@@ -180,7 +180,7 @@ function useProductionOverview({
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { all } = getDomainPriority({
-    domains: domains.data.filter((d) => d.sticky === "live"),
+    domains: (domains.data ?? []).filter((d) => d.sticky === "live"),
     customDomains,
     environmentId: deployment.environmentId,
     deploymentId: deployment.id,

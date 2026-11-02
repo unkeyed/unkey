@@ -14,6 +14,7 @@ import { getUnkeyClient } from "@/lib/unkey-client";
 import {
   type InfiniteData,
   type QueryClient,
+  type UseQueryResult,
   useInfiniteQuery,
   useQuery,
   useQueryClient,
@@ -22,7 +23,7 @@ import type { Deployment as ApiDeployment } from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { useMemo, useSyncExternalStore } from "react";
 import { useAppScope, useDeployScope, useScopeStore } from "./context";
-import { type QueryResult, useApp, useEnvironments } from "./queries";
+import { type DeployQuery, useApp, useEnvironments } from "./queries";
 
 // Both time bounds are inclusive, as the time filter writes them
 export type DeploymentListFilter = {
@@ -76,23 +77,26 @@ export function useDeploymentsPage(filter: DeploymentListFilter): DeploymentsPag
   };
 }
 
-// A deployment of the scope by id, however old it is. Null when it does not exist.
+// A deployment of the scope by id, however old it is. Null when it does not
+// exist or belongs to another app than the scope's.
 export function useDeployment(
   deploymentId: string | null | undefined,
-): QueryResult<Deployment | null | undefined> {
+): DeployQuery<Deployment | null> {
   const { projectId, appId } = useDeployScope();
   const queryClient = useQueryClient();
   const refetchInterval = usePollInterval((data: Deployment | null | undefined) =>
     data ? [data] : [],
   );
   const query = useQuery({
-    ...deploymentDetailOptions(queryClient, projectId, appId, deploymentId ?? ""),
+    ...deploymentDetailOptions(queryClient, projectId, deploymentId ?? ""),
     enabled: Boolean(deploymentId),
     refetchInterval,
   });
+  const inScope = !query.data || appId === undefined || query.data.appId === appId;
   return {
-    data: deploymentId ? query.data : null,
+    data: deploymentId && inScope ? query.data : null,
     isLoading: query.isInitialLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,
@@ -102,14 +106,16 @@ export function useDeployment(
 // The deployment serving the app, or the project's primary app outside an app
 export function useCurrentDeployment({
   enabled = true,
-}: { enabled?: boolean } = {}): QueryResult<Deployment | null | undefined> {
+}: { enabled?: boolean } = {}): DeployQuery<Deployment | null> {
   const app = useApp();
   const currentDeploymentId = app.data?.currentDeploymentId;
   const deployment = useDeployment(enabled ? currentDeploymentId : null);
   return {
     ...deployment,
-    data: app.isLoading && currentDeploymentId === undefined ? undefined : deployment.data,
+    data: app.data === undefined ? undefined : deployment.data,
     isLoading: app.isLoading || deployment.isLoading,
+    isError: app.isError || deployment.isError,
+    error: app.error ?? deployment.error,
   };
 }
 
@@ -120,7 +126,7 @@ export function useRecentDeployments({
 }: {
   limit: number;
   enabled?: boolean;
-}): QueryResult<Deployment[]> {
+}): DeployQuery<Deployment[]> {
   const { projectId, appId } = useDeployScope();
   const queryClient = useQueryClient();
   const refetchInterval = usePollInterval((data: Deployment[] | undefined) => data ?? []);
@@ -129,13 +135,7 @@ export function useRecentDeployments({
     enabled,
     refetchInterval,
   });
-  return {
-    data: query.data ?? [],
-    isLoading: query.isInitialLoading,
-    isError: query.isError,
-    error: query.error,
-    refetch: query.refetch,
-  };
+  return listResult(query, query.isInitialLoading);
 }
 
 /**
@@ -145,11 +145,11 @@ export function useRecentDeployments({
  */
 export function useProductionDeployments({
   enabled = true,
-}: { enabled?: boolean } = {}): QueryResult<Deployment[]> {
+}: { enabled?: boolean } = {}): DeployQuery<Deployment[]> {
   const { projectId, appId } = useAppScope();
   const queryClient = useQueryClient();
   const environments = useEnvironments();
-  const productionId = environments.data.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id;
+  const productionId = environments.data?.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id;
   const refetchInterval = usePollInterval((data: Deployment[] | undefined) => data ?? []);
   const query = useQuery({
     ...recentDeploymentsOptions(
@@ -162,13 +162,7 @@ export function useProductionDeployments({
     enabled: enabled && productionId !== undefined,
     refetchInterval,
   });
-  return {
-    data: query.data ?? [],
-    isLoading: enabled && (environments.isLoading || query.isInitialLoading),
-    isError: query.isError,
-    error: query.error,
-    refetch: query.refetch,
-  };
+  return listResult(query, enabled && (environments.isLoading || query.isInitialLoading));
 }
 
 // What a visit to the deployments list without filters in the url loads first
@@ -181,11 +175,10 @@ export function warmDeploymentsPage(queryClient: QueryClient, projectId: string,
 export function deploymentDetailOptions(
   queryClient: QueryClient,
   projectId: string,
-  appId: string | undefined,
   deploymentId: string,
 ) {
   return {
-    queryKey: queryKeys.deployments.detail(projectId, appId, deploymentId),
+    queryKey: queryKeys.deployments.detail(projectId, deploymentId),
     staleTime: STALE_MS,
     retry: 3,
     queryFn: async ({ signal }: { signal?: AbortSignal }): Promise<Deployment | null> => {
@@ -201,9 +194,9 @@ export function deploymentDetailOptions(
         throw error;
       }
       const [deployment] = await withDeploymentDetails([row.data], projectId, (id) =>
-        cachedDeployment(queryClient, projectId, appId, id),
+        cachedDeployment(queryClient, projectId, id),
       );
-      return deployment && (appId === undefined || deployment.appId === appId) ? deployment : null;
+      return deployment ?? null;
     },
   };
 }
@@ -227,7 +220,7 @@ export function recentDeploymentsOptions(
         status: RECENT_STATUSES,
         limit,
       });
-      return withCachedDetails(queryClient, projectId, appId, data);
+      return withCachedDetails(queryClient, projectId, data);
     },
   };
 }
@@ -292,7 +285,7 @@ function deploymentListOptions(
         limit: PAGE_SIZE,
         cursor: pageParam,
       });
-      const rows = await withCachedDetails(queryClient, projectId, appId, data);
+      const rows = await withCachedDetails(queryClient, projectId, data);
       return { rows, nextCursor: pagination.hasMore ? pagination.cursor : undefined };
     },
   };
@@ -301,12 +294,11 @@ function deploymentListOptions(
 function cachedDeployment(
   queryClient: QueryClient,
   projectId: string,
-  appId: string | undefined,
   deploymentId: string,
 ): Deployment | undefined {
   return (
     queryClient.getQueryData<Deployment | null>(
-      queryKeys.deployments.detail(projectId, appId, deploymentId),
+      queryKeys.deployments.detail(projectId, deploymentId),
     ) ?? undefined
   );
 }
@@ -316,17 +308,13 @@ function cachedDeployment(
 async function withCachedDetails(
   queryClient: QueryClient,
   projectId: string,
-  appId: string | undefined,
   rows: ApiDeployment[],
 ): Promise<Deployment[]> {
   const deployments = await withDeploymentDetails(rows, projectId, (id) =>
-    cachedDeployment(queryClient, projectId, appId, id),
+    cachedDeployment(queryClient, projectId, id),
   );
   for (const deployment of deployments) {
-    queryClient.setQueryData(
-      queryKeys.deployments.detail(projectId, appId, deployment.id),
-      deployment,
-    );
+    queryClient.setQueryData(queryKeys.deployments.detail(projectId, deployment.id), deployment);
   }
   return deployments;
 }
@@ -379,4 +367,19 @@ export function deploymentsPollIntervalMs({
         ? POLL_IDLE_MS * 2
         : POLL_IDLE_MAX_MS;
   return Math.min(settling ? POLL_SETTLING_MS : idleMs, requestedMs ?? idleMs);
+}
+
+// Undefined until the first load or after it fails. A disabled query lists nothing.
+function listResult(
+  query: UseQueryResult<Deployment[]>,
+  isLoading: boolean,
+): DeployQuery<Deployment[]> {
+  return {
+    data: query.data ?? (isLoading || query.isError ? undefined : []),
+    isLoading,
+    isFetching: query.isFetching,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }

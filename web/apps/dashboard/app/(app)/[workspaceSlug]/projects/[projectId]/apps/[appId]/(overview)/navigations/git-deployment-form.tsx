@@ -71,7 +71,7 @@ type GitDeploymentFormProps = {
 
 export function GitDeploymentForm({ app, isOpen, onOpenChange }: GitDeploymentFormProps) {
   const { projectId, appId } = useAppScope();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const repositoryFullName = app.repositoryFullName ?? null;
   const [owner, repo] = repositoryFullName?.split("/") ?? [];
   const productionBranch = app.defaultBranch ?? "main";

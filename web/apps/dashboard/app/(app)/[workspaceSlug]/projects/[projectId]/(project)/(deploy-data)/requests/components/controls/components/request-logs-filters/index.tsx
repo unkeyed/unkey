@@ -93,7 +93,7 @@ const FILTER_ITEMS: FilterItemConfig<RequestLogsFilterValue["field"]>[] = [
 export const RequestLogsFilters = () => {
   const { filters, updateFilters } = useRequestLogsFilters();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const { data: deployments } = useRecentDeployments({
+  const { data: deployments = [] } = useRecentDeployments({
     limit: DEPLOYMENT_PICKER_LIMIT,
     enabled: isPopoverOpen,
   });

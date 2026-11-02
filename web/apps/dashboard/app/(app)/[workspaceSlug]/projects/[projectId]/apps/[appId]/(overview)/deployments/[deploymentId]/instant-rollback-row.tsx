@@ -23,7 +23,7 @@ const RollbackDialog = dynamic(
 
 export function InstantRollbackRow() {
   const { deployment } = useDeployment();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const { data: app } = useApp();
   const isRolledBack = app?.isRolledBack ?? false;
   const { gated, openPaywall, planGate } = useDeployActionGate();
@@ -35,7 +35,7 @@ export function InstantRollbackRow() {
     environment?.kind === ENVIRONMENT_KIND.production &&
     app?.currentDeploymentId === deployment.id &&
     !isRolledBack;
-  const { data: deployments } = useProductionDeployments({ enabled: isLiveProduction });
+  const { data: deployments = [] } = useProductionDeployments({ enabled: isLiveProduction });
   const target = isLiveProduction ? previousRollbackTarget(deployments, deployment) : undefined;
 
   const openRollback = (next: DeploymentSummary) => {

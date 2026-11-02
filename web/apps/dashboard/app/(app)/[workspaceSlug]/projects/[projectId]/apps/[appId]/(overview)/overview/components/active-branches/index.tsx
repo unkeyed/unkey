@@ -15,7 +15,7 @@ import { useActiveBranches } from "./use-active-branches";
 export function ActiveBranches() {
   const workspace = useWorkspaceNavigation();
   const { projectId, appId } = useAppScope();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const view = useActiveBranches();
   const { data: app } = useApp();
   const current = useCurrentDeployment();

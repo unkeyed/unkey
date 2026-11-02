@@ -10,6 +10,7 @@ import {
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { pickPrimaryApp } from "@/lib/collections/deploy/project-cards";
+import type { QueryResult } from "@/lib/loadable/loadable";
 import {
   type InitialQueryBuilder,
   and,
@@ -21,42 +22,36 @@ import {
 import { useCallback, useSyncExternalStore } from "react";
 import { useDeployScope } from "./context";
 
-// Shaped like a React Query result so the source behind a hook can change
-// without touching its callers. Lists are empty, not undefined, while loading.
-const MEMO_ENTRIES_MAX = 50;
+// Data stays undefined until the first load, so fromQuery tells loading from empty
+export type DeployQuery<T> = QueryResult<T> & { isLoading: boolean };
 
-export type QueryResult<T> = {
-  data: T;
-  isLoading: boolean;
-  isError: boolean;
-  error: unknown;
-  refetch: () => Promise<unknown>;
-};
-
-export function useProjectApps(): QueryResult<App[]> {
+export function useProjectApps(): DeployQuery<App[]> {
   const { projectId } = useDeployScope();
   const query = useLiveQuery(() => projectAppsQuery(projectId), [projectId]);
   const load = useLoadState(collection.apps.utils, refetchProjectApps, projectId);
-  return { data: query.data ?? [], isLoading: query.isLoading, ...load };
+  return liveResult(query, load);
 }
 
-// The scope's app, or the project's primary app outside an app
-export function useApp(): QueryResult<App | undefined> {
+// The scope's app, or the project's primary app outside an app. Null when it does not exist.
+export function useApp(): DeployQuery<App | null> {
   const { appId } = useDeployScope();
   const apps = useProjectApps();
   return {
     ...apps,
-    data: appId ? apps.data.find((app) => app.id === appId) : pickPrimaryApp(apps.data),
+    data:
+      apps.data === undefined
+        ? undefined
+        : ((appId ? apps.data.find((app) => app.id === appId) : pickPrimaryApp(apps.data)) ?? null),
   };
 }
 
 // The app's environments, or those of every app in the project outside an app
-export function useEnvironments(): QueryResult<Environment[]> {
+export function useEnvironments(): DeployQuery<Environment[]> {
   const { projectId, appId } = useDeployScope();
   const apps = useProjectApps();
   const appIds = appId
     ? appId
-    : apps.data
+    : (apps.data ?? [])
         .map((app) => app.id)
         .sort()
         .join(",");
@@ -65,28 +60,27 @@ export function useEnvironments(): QueryResult<Environment[]> {
     [projectId, appIds],
   );
   const load = useLoadState(collection.environments.utils, refetchScopeEnvironments, projectId);
-  return {
-    data: query.data ?? [],
-    isLoading: (appId === undefined && apps.isLoading) || query.isLoading,
-    ...load,
-  };
+  return liveResult(
+    { data: query.data, isLoading: (appId === undefined && apps.isLoading) || query.isLoading },
+    appId === undefined && apps.isError ? apps : load,
+  );
 }
 
-export function useDomains(): QueryResult<Domain[]> {
+export function useDomains(): DeployQuery<Domain[]> {
   const { projectId, appId } = useDeployScope();
   const query = useLiveQuery(() => domainsQuery(projectId, appId ?? null), [projectId, appId]);
   const load = useLoadState(collection.domains.utils, refetchScopeDomains, projectId);
-  return { data: query.data ?? [], isLoading: query.isLoading, ...load };
+  return liveResult(query, load);
 }
 
-export function useCustomDomains(): QueryResult<CustomDomain[]> {
+export function useCustomDomains(): DeployQuery<CustomDomain[]> {
   const { projectId, appId } = useDeployScope();
   const query = useLiveQuery(
     () => customDomainsQuery(projectId, appId ?? null),
     [projectId, appId],
   );
   const load = useLoadState(collection.customDomains.utils, refetchScopeCustomDomains, projectId);
-  return { data: query.data ?? [], isLoading: query.isLoading, ...load };
+  return liveResult(query, load);
 }
 
 export function useAppMutations() {
@@ -115,13 +109,9 @@ export function refetchDeployData(projectId: string) {
   ]);
 }
 
-/**
- * Each hook call site gets the same live query for the same arguments, so
- * components reading one thing share a single subscription instead of building
- * one each. An unused live query cleans itself up and restarts on next use.
- * Hovering and opening deployments adds one query per id, so only the most
- * recently used ones are kept; a component holding an evicted one keeps it.
- */
+// Each hook call site gets the same live query for the same arguments, so
+// components reading one thing share a single subscription instead of building
+// one each. An unused live query cleans itself up and restarts on next use.
 export function memoByArgs<A extends Array<string | number | null>, T>(
   create: (...args: A) => T,
 ): (...args: A) => T {
@@ -130,18 +120,10 @@ export function memoByArgs<A extends Array<string | number | null>, T>(
     const key = JSON.stringify(args);
     const cached = cache.get(key);
     if (cached !== undefined) {
-      cache.delete(key);
-      cache.set(key, cached);
       return cached;
     }
     const created = create(...args);
     cache.set(key, created);
-    if (cache.size > MEMO_ENTRIES_MAX) {
-      const [oldest] = cache.keys();
-      if (oldest !== undefined) {
-        cache.delete(oldest);
-      }
-    }
     return created;
   };
 }
@@ -234,7 +216,7 @@ function useLoadState(
   source: LoadSource,
   refetchScope: (projectId: string) => Promise<unknown>,
   projectId: string,
-): Pick<QueryResult<unknown>, "isError" | "error" | "refetch"> {
+): Pick<DeployQuery<unknown>, "isError" | "error" | "refetch"> {
   const isError = useSyncExternalStore(
     subscribeQueryCache,
     () => source.isError,
@@ -283,3 +265,17 @@ const CUSTOM_DOMAIN_MUTATIONS = {
   },
   retryDomainVerification,
 };
+
+function liveResult<T>(
+  query: { data: T[] | undefined; isLoading: boolean },
+  load: Pick<DeployQuery<unknown>, "isError" | "error" | "refetch">,
+): DeployQuery<T[]> {
+  // A collection whose load fails still marks itself ready with no rows
+  const rows = query.data ?? [];
+  return {
+    ...load,
+    data: query.isLoading || (load.isError && rows.length === 0) ? undefined : rows,
+    isLoading: query.isLoading,
+    isFetching: query.isLoading,
+  };
+}

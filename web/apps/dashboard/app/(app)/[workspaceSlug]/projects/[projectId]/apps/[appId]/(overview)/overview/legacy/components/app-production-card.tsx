@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
+import { useAppCurrentDeployment } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-app-current-deployment";
+import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-recent-deployments";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -21,9 +27,6 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { getDomainPriority } from "../../../../components/domain-priority";
 import { ActiveDeploymentCardEmpty } from "../../../../components/legacy/active-deployment-card/components/active-deployment-card-empty";
-import { useAppId, useProjectData } from "../../../data-provider";
-import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
-import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../../navigations/create-deployment-button";
 import { NewerDeploymentRow, hasVisibleBuildState } from "../../components/card-newer-deployment";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";

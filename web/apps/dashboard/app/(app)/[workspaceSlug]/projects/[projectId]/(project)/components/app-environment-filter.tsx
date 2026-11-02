@@ -21,7 +21,7 @@ export function AppEnvironmentFilter<TFilter extends FilterLike>({
   createFilter,
 }: AppEnvironmentFilterProps<TFilter>) {
   const { options: apps, isLoading: isAppsLoading } = useAppFilterOptionsWithLoading();
-  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
 
   return (
     <AppEnvironmentFilterList

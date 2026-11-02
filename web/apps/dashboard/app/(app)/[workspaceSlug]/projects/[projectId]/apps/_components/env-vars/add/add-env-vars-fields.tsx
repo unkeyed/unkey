@@ -31,7 +31,7 @@ export function useAddEnvVarsForm({
   showSaved = false,
 }: { onSaved?: () => void; showSaved?: boolean } = {}) {
   const { projectId, appId } = useAppScope();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const [environmentId, setEnvironmentId] = useState(ALL_ENVIRONMENTS);
   const targetIds = targetEnvironmentIds(
     environmentId,

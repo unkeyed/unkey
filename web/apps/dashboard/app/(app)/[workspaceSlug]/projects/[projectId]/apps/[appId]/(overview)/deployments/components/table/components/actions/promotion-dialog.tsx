@@ -21,7 +21,7 @@ export const PromotionDialog = ({
   currentDeployment,
 }: PromotionDialogProps) => {
   const { awaitLiveDeployment } = useDeployActions();
-  const { data: appDomains } = useDomains();
+  const { data: appDomains = [] } = useDomains();
   const domains = appDomains.filter(
     (d) =>
       d.deploymentId === currentDeployment.id &&

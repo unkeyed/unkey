@@ -11,7 +11,7 @@ export default function OverviewLayout({ children }: PropsWithChildren) {
   const workspace = useWorkspaceNavigation();
   const { projectId, appId } = useAppScope();
   const { data: app } = useApp();
-  const neverDeployed = app !== undefined && latestDeploymentId(app) === null;
+  const neverDeployed = app ? latestDeploymentId(app) === null : false;
   const newAppHref = routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId, appId });
 
   useEffect(() => {

@@ -33,9 +33,9 @@ export function RollbackDialog({
   currentDeployment,
 }: RollbackDialogProps) {
   const { awaitLiveDeployment } = useDeployActions();
-  const { data: customDomains } = useCustomDomains();
-  const { data: appDomains } = useDomains();
-  const { data: deployments } = useProductionDeployments();
+  const { data: customDomains = [] } = useCustomDomains();
+  const { data: appDomains = [] } = useDomains();
+  const { data: deployments = [] } = useProductionDeployments();
   const [selected, setSelected] = useState<DeploymentSummary>(targetDeployment);
   const [picking, setPicking] = useState(false);
   const pickerId = useId();

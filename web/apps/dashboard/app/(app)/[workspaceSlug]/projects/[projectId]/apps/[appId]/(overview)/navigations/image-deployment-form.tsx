@@ -43,8 +43,8 @@ type ImageDeploymentFormProps = {
 };
 
 export function ImageDeploymentForm({ app, isOpen, onOpenChange }: ImageDeploymentFormProps) {
-  const { data: environments } = useEnvironments();
-  const { data: deployments } = useRecentDeployments({
+  const { data: environments = [] } = useEnvironments();
+  const { data: deployments = [] } = useRecentDeployments({
     limit: DEPLOYMENT_PICKER_LIMIT,
     enabled: isOpen,
   });

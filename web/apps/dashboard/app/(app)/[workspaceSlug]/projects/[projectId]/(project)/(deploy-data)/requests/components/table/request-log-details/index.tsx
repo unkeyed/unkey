@@ -29,7 +29,7 @@ import type React from "react";
 export const RequestLogDetails = () => {
   const { setSelectedLog, selectedLog: log } = useRequestLogsContext();
   const { data: app } = useApp();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
 
   const handleClose = () => {
     setSelectedLog(null);

@@ -5,7 +5,7 @@ export function useAppCurrentDeployment() {
   const app = useApp();
   const currentDeployment = useCurrentDeployment();
   return {
-    app: app.data,
+    app: app.data ?? undefined,
     currentDeployment: currentDeployment.data ?? undefined,
     isRolledBack: app.data?.isRolledBack ?? false,
     isLoading: currentDeployment.isLoading,

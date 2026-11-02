@@ -20,7 +20,7 @@ export function FailureActions({
   error: string;
 }) {
   const workspace = useWorkspaceNavigation();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const [redeployOpen, setRedeployOpen] = useState(false);
   const settingsTarget = settingsTargetFor(
     error,

@@ -1,3 +1,4 @@
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
 import type { Deployment } from "@/lib/deploy-data/deployment";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
@@ -14,7 +15,6 @@ import type { Route } from "next";
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { LIMITS_DOCS_URL, limitFailure } from "../../(deployment-progress)/limit-failure";
-import { useProjectData } from "../../../../data-provider";
 import { RedeployDialog } from "../../../components/table/components/actions/redeploy-dialog";
 import type { StepsData } from "./deployment-progress";
 

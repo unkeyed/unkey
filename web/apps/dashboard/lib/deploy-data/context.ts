@@ -72,7 +72,8 @@ export function useScopeStore(): ScopeStore {
 
 export function createScopeStore() {
   let liveTarget: LiveDeploymentTarget | null = null;
-  let statusTarget: DeploymentStatusTarget | null = null;
+  // Keyed by deployment id, so awaiting one deployment does not drop another
+  let statusTargets: ReadonlyMap<string, DeploymentStatus> = new Map();
   const pollRequests: Array<{ intervalMs: number }> = [];
   const listeners = new Set<() => void>();
   const emit = () => {
@@ -89,15 +90,21 @@ export function createScopeStore() {
       };
     },
     liveTarget: () => liveTarget,
-    statusTarget: () => statusTarget,
+    statusTargets: () => statusTargets,
     requestedPollMs: () =>
       pollRequests.length === 0 ? null : Math.min(...pollRequests.map((r) => r.intervalMs)),
     setLiveTarget(target: LiveDeploymentTarget | null) {
       liveTarget = target;
       emit();
     },
-    setStatusTarget(target: DeploymentStatusTarget | null) {
-      statusTarget = target;
+    addStatusTarget({ deploymentId, status }: DeploymentStatusTarget) {
+      statusTargets = new Map(statusTargets).set(deploymentId, status);
+      emit();
+    },
+    removeStatusTarget(deploymentId: string) {
+      const next = new Map(statusTargets);
+      next.delete(deploymentId);
+      statusTargets = next;
       emit();
     },
     requestPolling(intervalMs: number): () => void {

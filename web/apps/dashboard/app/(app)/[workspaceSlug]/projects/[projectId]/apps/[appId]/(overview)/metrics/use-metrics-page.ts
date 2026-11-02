@@ -43,7 +43,7 @@ const FILTER_PARAM = {
 
 export function useMetricsPage() {
   const { projectId, appId } = useAppScope();
-  const { data: environments, isLoading: isEnvironmentsLoading } = useEnvironments();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const workspace = useWorkspaceNavigation();
   const [query, setQuery] = useQueryStates(
     {

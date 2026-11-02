@@ -33,8 +33,8 @@ const MAX_REGION_FLAGS = 3;
 export function EnvironmentsTable() {
   const { projectId, appId, hasRepository, defaultBranch } = useBuildSource();
   const environments = useEnvironments();
-  const { data: domains } = useDomains();
-  const { data: customDomains } = useCustomDomains();
+  const { data: domains = [] } = useDomains();
+  const { data: customDomains = [] } = useCustomDomains();
   const workspace = useWorkspaceNavigation();
   const settings = useAppEnvironmentSettings();
 
@@ -52,7 +52,7 @@ export function EnvironmentsTable() {
         <span />
       </div>
       <ResourceListBody>
-        {productionFirst(environments.data).map((environment) => (
+        {productionFirst(environments.data ?? []).map((environment) => (
           <EnvironmentRow
             key={environment.id}
             environment={environment}

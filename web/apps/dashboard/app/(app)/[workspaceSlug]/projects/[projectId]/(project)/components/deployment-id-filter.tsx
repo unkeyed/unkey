@@ -22,7 +22,7 @@ export function DeploymentIdFilter<T extends DeploymentFilter>({
   updateFilters,
   createDeploymentFilter,
 }: DeploymentIdFilterProps<T>) {
-  const { data: deployments } = useRecentDeployments({ limit: DEPLOYMENT_PICKER_LIMIT });
+  const { data: deployments = [] } = useRecentDeployments({ limit: DEPLOYMENT_PICKER_LIMIT });
 
   const byId = useMemo(() => new Map(deployments.map((d) => [d.id, d])), [deployments]);
 

@@ -27,7 +27,7 @@ export function warmAppPage(queryClient: QueryClient, projectId: string, appId: 
   );
   const currentDeploymentId = collection.apps.get(appId)?.currentDeploymentId;
   if (currentDeploymentId) {
-    warmDeployment(queryClient, projectId, appId, currentDeploymentId);
+    warmDeployment(queryClient, projectId, currentDeploymentId);
   }
   warmQueries(`app/${projectId}/${appId}`, () => {
     const environments = createLiveQueryCollection(environmentsQueryFor(projectId, appId));
@@ -48,12 +48,9 @@ export function warmAppPage(queryClient: QueryClient, projectId: string, appId: 
 export function warmDeployment(
   queryClient: QueryClient,
   projectId: string,
-  appId: string,
   deploymentId: string,
 ): void {
-  void queryClient.prefetchQuery(
-    deploymentDetailOptions(queryClient, projectId, appId, deploymentId),
-  );
+  void queryClient.prefetchQuery(deploymentDetailOptions(queryClient, projectId, deploymentId));
 }
 
 function warmProduction(queryClient: QueryClient, projectId: string, appId: string): void {

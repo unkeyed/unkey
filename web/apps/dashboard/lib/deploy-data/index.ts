@@ -1,4 +1,10 @@
-// The reads, polling and writes behind the app pages
+// The reads, polling and writes behind the app pages.
+//
+// Two QueryClients hold this data until the collections move to React Query.
+// Deployments live on the app's React client (useQueryClient). Apps,
+// environments, domains, custom domains and policies live on the collections
+// client in lib/collections/client.ts. Pass the React client to the deployment
+// options and warm functions. Any other client gives a second, unpolled cache.
 export { DeployDataProvider } from "./provider";
 export {
   type DeployActions,
@@ -11,7 +17,7 @@ export {
   useDeploymentsPolling,
 } from "./context";
 export {
-  type QueryResult,
+  type DeployQuery,
   policiesQueryFor,
   useApp,
   useCustomDomains,

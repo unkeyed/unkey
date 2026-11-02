@@ -27,7 +27,7 @@ export function EnvironmentSelect({
   disabled,
   ...triggerProps
 }: EnvironmentSelectProps) {
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
   const options: Option[] = [
     ...(includeAll ? [{ value: ALL_ENVIRONMENTS, label: "All environments" }] : []),
     ...productionFirst(environments).map((environment) => ({

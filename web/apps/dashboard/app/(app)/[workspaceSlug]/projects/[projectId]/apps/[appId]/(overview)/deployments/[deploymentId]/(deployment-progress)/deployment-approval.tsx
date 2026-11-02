@@ -26,7 +26,7 @@ type DeploymentApprovalProps = {
 export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentApprovalProps) {
   const { awaitDeploymentStatus } = useDeployActions();
   const { data: app } = useApp();
-  const { data: environments } = useEnvironments();
+  const { data: environments = [] } = useEnvironments();
 
   const authorize = useMutation({
     mutationFn: (deploymentId: string) =>

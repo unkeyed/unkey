@@ -75,8 +75,8 @@ function PreviewBranch() {
 
 export function EnvironmentDomains({ environment }: { environment: Environment }) {
   const { projectId, appId } = useAppScope();
-  const { data: domains } = useDomains();
-  const { data: customDomains } = useCustomDomains();
+  const { data: domains = [] } = useDomains();
+  const { data: customDomains = [] } = useCustomDomains();
   const workspace = useWorkspaceNavigation();
   const rows = environmentPanelDomains(environment, domains, customDomains, workspace.slug);
   const domainsHref = routes.projects.apps.domains({

@@ -18,7 +18,7 @@ export function useActiveBranches() {
 
   // Active branches only move when a deployment does, and a new or moving
   // deployment shows first among the newest
-  const { data: recent } = useRecentDeployments({ limit: RECENT_DEPLOYMENTS_LIMIT });
+  const { data: recent = [] } = useRecentDeployments({ limit: RECENT_DEPLOYMENTS_LIMIT });
   const recentStates = recent.map((d) => `${d.id}:${d.status}`).join(",");
   const previousStates = useRef(recentStates);
   useEffect(() => {

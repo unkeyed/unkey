@@ -104,7 +104,7 @@ const FILTER_ITEMS: FilterItemConfig<RuntimeLogsFilterField>[] = [
 export function RuntimeLogsFilters() {
   const { filters, updateFilters } = useRuntimeLogsFilters();
   const { projectId } = useDeployScope();
-  const { data: deployments } = useRecentDeployments({ limit: DEPLOYMENT_PICKER_LIMIT });
+  const { data: deployments = [] } = useRecentDeployments({ limit: DEPLOYMENT_PICKER_LIMIT });
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   // Region and instance options are only needed once the popover opens; keep
   // the rate-limited queries off the logs page critical path.
