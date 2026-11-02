@@ -97,7 +97,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
               label: namespace.name,
             }))
           : [],
-        isLoading: namespaces.isLoading || defaultProject.isLoading,
+        isLoading: namespaces.isLoading || defaultProject.isInitialLoading,
       };
     }
   }

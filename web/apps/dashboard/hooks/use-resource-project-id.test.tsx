@@ -23,7 +23,7 @@ vi.mock("@/lib/queries/projects", () => ({
       projects.isLoading || projects.isError
         ? undefined
         : projects.rows.find((p) => p.isDefault)?.id,
-    isLoading: projects.isLoading,
+    isInitialLoading: projects.isLoading,
     isError: projects.isError,
   }),
 }));

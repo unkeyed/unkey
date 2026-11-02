@@ -53,7 +53,7 @@ export function useResourceProjectId(resource: ProjectResource | null): ProjectO
       if (defaultProjectQuery.isError) {
         return unknown;
       }
-      return defaultProjectQuery.isLoading ? loading : owner(defaultProjectQuery.data);
+      return defaultProjectQuery.isInitialLoading ? loading : owner(defaultProjectQuery.data);
     })
     .with({ type: "identity" }, () => {
       if (identityQuery.isError) {
