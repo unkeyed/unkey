@@ -119,24 +119,39 @@ func runStatus(t *testing.T, args ...string) (report, string, string, error) {
 }
 
 func TestStatusVerifiesTheBrowserSession(t *testing.T) {
-	api := &fakeAPI{userID: uid.New("user")}
-	srv := setup(t, api)
-	current := saveSession(t, srv.URL, time.Now().Add(time.Hour).Unix())
-	api.sessionID = current.SessionID
+	for _, test := range []struct {
+		name   string
+		listed bool
+		detail string
+	}{
+		{name: "listed", listed: true},
+		{name: "not listed", detail: "The API accepted the session but did not list it, so the user is unknown."},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			api := &fakeAPI{userID: uid.New("user")}
+			srv := setup(t, api)
+			current := saveSession(t, srv.URL, time.Now().Add(time.Hour).Unix())
+			userID := ""
+			if test.listed {
+				api.sessionID = current.SessionID
+				userID = api.userID
+			}
 
-	got, _, stderr, err := runStatus(t)
-	require.NoError(t, err)
-	require.Empty(t, stderr)
-	require.Equal(t, report{
-		Credential:     "browser session",
-		Authentication: "verified",
-		APIURL:         srv.URL,
-		WorkspaceID:    current.WorkspaceID,
-		SessionID:      current.SessionID,
-		UserID:         api.userID,
-		Detail:         "",
-	}, got)
-	require.Equal(t, []string{"Bearer " + accessToken}, api.bearers)
+			got, _, stderr, err := runStatus(t)
+			require.NoError(t, err)
+			require.Empty(t, stderr)
+			require.Equal(t, report{
+				Credential:     "browser session",
+				Authentication: "verified",
+				APIURL:         srv.URL,
+				WorkspaceID:    current.WorkspaceID,
+				SessionID:      current.SessionID,
+				UserID:         userID,
+				Detail:         test.detail,
+			}, got)
+			require.Equal(t, []string{"Bearer " + accessToken}, api.bearers)
+		})
+	}
 }
 
 func TestStatusReportsARejectedBrowserSession(t *testing.T) {
@@ -220,6 +235,19 @@ func TestStatusWithoutCredentials(t *testing.T) {
 	require.Equal(t, "none", got.Credential)
 	require.Equal(t, "missing", got.Authentication)
 	require.Equal(t, "https://api.unkey.com", got.APIURL)
+}
+
+func TestStatusReportsCredentialErrorsAsJSON(t *testing.T) {
+	api := &fakeAPI{}
+	srv := setup(t, api)
+	saveSession(t, srv.URL, time.Now().Add(time.Hour).Unix())
+
+	got, _, _, err := runStatus(t, "--root-key=")
+	require.ErrorContains(t, err, "root key cannot be empty")
+	require.Equal(t, "unknown", got.Credential)
+	require.Equal(t, "failed", got.Authentication)
+	require.Equal(t, "root key cannot be empty", got.Detail)
+	require.Empty(t, api.bearers)
 }
 
 func TestStatusIsAvailableAsWhoami(t *testing.T) {

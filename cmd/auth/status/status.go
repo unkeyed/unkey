@@ -70,7 +70,9 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	case err != nil && cred.Source == util.SourceSession:
 		err = fmt.Errorf("could not refresh the browser session: %w", err)
 	case err != nil:
-		return err
+		if status.Credential == "" {
+			status.Credential = "unknown"
+		}
 	case cred.Source != util.SourceSession:
 		status.Authentication = "unchecked"
 		status.Detail = "The API cannot confirm a root key or report its workspace without a resource permission."
@@ -89,6 +91,9 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		return errors.Join(write(cmd, status), err)
 	}
 	status.Authentication = "verified"
+	if status.UserID == "" {
+		status.Detail = "The API accepted the session but did not list it, so the user is unknown."
+	}
 	return write(cmd, status)
 }
 
