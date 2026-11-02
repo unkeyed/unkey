@@ -136,16 +136,7 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 					"request_id":  session.RequestID(),
 					"allowed_ips": []string{"198.51.100.128/25", "2001:db8:1234::/48"},
 				})
-				require.Len(t, warnings, 1)
-				require.Equal(t, slog.LevelWarn, warnings[0].Level)
-				attrs := loggertest.FlatAttrs(warnings[0])
-				require.Equal(t, res.Body.Data.KeyId, attrs["auth.root_key_id"])
-				require.Equal(t, p.AuthorizedWorkspaceID, attrs["auth.workspace_id"])
-				require.Equal(t, session.ClientIP().String(), attrs["http.ip_address"])
-				require.Equal(t, session.RequestID(), attrs["http.request_id"])
-				for _, value := range attrs {
-					require.NotEqual(t, res.Body.Data.Key, value)
-				}
+				require.Empty(t, warnings)
 				require.Error(t, err)
 				require.Equal(t, denialsBefore.GetCounter().GetValue()+1, denialsAfter.GetCounter().GetValue())
 				code, ok := fault.GetCode(err)

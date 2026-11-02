@@ -426,16 +426,6 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 
 	if !kv.AllowedIPs.Allows(sess.ClientIP()) {
 		metrics.AuthIPAllowlistDenialsTotal.WithLabelValues().Inc()
-		logger.Warn("This IP address is not allowed to use the root key.",
-			slog.Group("auth",
-				slog.String("workspace_id", key.ForWorkspaceID.String),
-				slog.String("root_key_id", key.ID),
-			),
-			slog.Group("http",
-				slog.String("ip_address", sess.ClientIP().String()),
-				slog.String("request_id", sess.RequestID()),
-			),
-		)
 		s.auditLogBuffer.Buffer(auditlog.Event{
 			EventID:     uid.New(uid.AuditLogPrefix),
 			Time:        time.Now().UnixMilli(),
