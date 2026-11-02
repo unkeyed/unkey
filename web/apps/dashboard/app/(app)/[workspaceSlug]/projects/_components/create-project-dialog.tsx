@@ -1,15 +1,14 @@
 "use client";
 
-import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 import {
   type CreateProjectRequestSchema,
   createProjectRequestSchema,
-} from "@/lib/collections/deploy/projects";
-import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
-import { routes } from "@/lib/navigation/routes";
+  useCreateProject,
+} from "@/lib/queries/projects";
 import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DuplicateKeyError } from "@tanstack/react-db";
+import { ConflictErrorResponse } from "@unkey/api/models/errors";
 import { Button, FormInput } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -34,6 +33,7 @@ type Props = {
 export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Props) => {
   const router = useRouter();
   const [isNavigating, startNavigation] = useTransition();
+  const createProject = useCreateProject();
   const {
     register,
     handleSubmit,
@@ -52,22 +52,14 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
 
   async function onSubmit(values: CreateProjectRequestSchema) {
     try {
-      const tx = collection.projects.insert({
-        name: values.name,
-        slug: values.slug,
-        isDefault: false,
-        id: SERVER_PLACEHOLDER,
-        createdAt: Date.now(),
-      });
-      await tx.isPersisted.promise;
-      const { projectId } = tx.metadata as { projectId: string };
+      const projectId = await createProject.mutateAsync(values);
       // Keep the dialog (and its loading button) up until the new route has
       // rendered; closing immediately leaves the user staring at the old page.
       startNavigation(() => {
         router.push(routes.projects.apps.new({ workspaceSlug, projectId }));
       });
     } catch (error) {
-      if (error instanceof DuplicateKeyError) {
+      if (error instanceof ConflictErrorResponse) {
         setError("slug", {
           type: "custom",
           message: "Project with this slug already exists",

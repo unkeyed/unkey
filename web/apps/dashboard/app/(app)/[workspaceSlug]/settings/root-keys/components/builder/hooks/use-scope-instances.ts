@@ -3,10 +3,9 @@
 import type { AppEnvironmentListProps } from "@/components/deploy/app-environment-list";
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
 import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
-import { collection } from "@/lib/collections";
+import { useProjects } from "@/lib/queries/projects";
 import { useEveryNamespace } from "@/lib/queries/ratelimit-namespaces";
 import { trpc } from "@/lib/trpc/client";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { ResourceScope } from "../lib/catalogue.types";
 import { environmentLabel } from "../lib/policy-view";
 
@@ -33,15 +32,10 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
   });
   const namespaces = useEveryNamespace({ enabled: scope === "ratelimit-namespaces" });
   // Every namespace lives in the workspace default project
-  const defaultProject = useLiveQuery(
-    (q) =>
-      scope === "ratelimit-namespaces"
-        ? q
-            .from({ project: collection.projects })
-            .where(({ project }) => eq(project.isDefault, true))
-        : null,
-    [scope],
-  );
+  const defaultProject = useProjects({
+    enabled: scope === "ratelimit-namespaces",
+    select: (projects) => projects.find((p) => p.isDefault)?.id,
+  });
 
   switch (scope) {
     case "workspace":
@@ -99,7 +93,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
         isLoading: keyspaces.isLoading,
       };
     case "ratelimit-namespaces": {
-      const defaultProjectId = defaultProject.data?.at(0)?.id;
+      const defaultProjectId = defaultProject.data;
       return {
         instances: defaultProjectId
           ? (namespaces.data ?? []).map((namespace) => ({
@@ -107,7 +101,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
               label: namespace.name,
             }))
           : [],
-        isLoading: namespaces.isLoading || defaultProject.isLoading,
+        isLoading: namespaces.isLoading || defaultProject.isInitialLoading,
       };
     }
   }

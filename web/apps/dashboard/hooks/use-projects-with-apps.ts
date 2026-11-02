@@ -1,24 +1,16 @@
 "use client";
 import { collection } from "@/lib/collections";
 import { byLatestUpdate } from "@/lib/collections/deploy/project-cards";
-import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
-import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { useProjects } from "@/lib/queries/projects";
+import { inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 
 export function useProjectsWithApps({ enabled = true }: { enabled?: boolean } = {}) {
-  const projects = useLiveQuery(
-    (q) =>
-      enabled
-        ? q
-            .from({ project: collection.projects })
-            .where(({ project }) => eq(project.isDefault, false))
-        : null,
-    [enabled],
-  );
-  const projectIds = (projects.data ?? [])
-    .map((p) => p.id)
-    .filter((id) => id !== SERVER_PLACEHOLDER)
-    .sort();
+  const projects = useProjects({
+    enabled,
+    select: (all) => all.filter((p) => !p.isDefault),
+  });
+  const projectIds = (projects.data ?? []).map((p) => p.id).sort();
   const apps = useLiveQuery(
     (q) =>
       projectIds.length === 0
@@ -28,7 +20,7 @@ export function useProjectsWithApps({ enabled = true }: { enabled?: boolean } = 
   );
 
   const data = useMemo(() => {
-    if (!projects.data || projects.isLoading) {
+    if (!projects.data) {
       return undefined;
     }
     const appsByProject = Map.groupBy(apps.data ?? [], (app) => app.projectId);
@@ -41,11 +33,11 @@ export function useProjectsWithApps({ enabled = true }: { enabled?: boolean } = 
           .toSorted(byLatestUpdate)
           .map((app) => ({ id: app.id, name: app.name })),
       }));
-  }, [projects.data, projects.isLoading, apps.data]);
+  }, [projects.data, apps.data]);
 
   return {
     data,
-    isLoading: projects.isLoading || apps.isLoading,
+    isLoading: projects.isInitialLoading || apps.isLoading,
     isError: projects.isError || apps.isError,
   };
 }
