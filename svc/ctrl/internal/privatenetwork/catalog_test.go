@@ -466,7 +466,7 @@ func TestCatalogTopologyAndRebuilds(t *testing.T) {
 		{"region platform changed", rowEvent("regions", []string{region, "aws", "us"}, []string{region, "gcp", "us"}), true, true},
 		{"region deleted", rowEvent("regions", []string{region, "aws", "us"}, nil), true, true},
 		{"region id changed", rowEvent("regions", []string{region, "aws", "us"}, []string{otherRegion, "aws", "us"}), true, true},
-		{"region renamed", rowEvent("regions", []string{region, "aws", "us"}, []string{region, "aws", "eu"}), true, false},
+		{"region renamed", rowEvent("regions", []string{region, "aws", "us"}, []string{region, "aws", "eu"}), true, true},
 		{"region added", rowEvent("regions", nil, []string{region, "aws", "us"}), true, false},
 		{"region rewritten", rowEvent("regions", []string{region, "aws", "us"}, []string{region, "aws", "us"}), false, false},
 		{"cluster added", rowEvent("clusters", nil, []string{cluster, region, "cell"}), true, false},

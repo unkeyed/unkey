@@ -612,8 +612,15 @@ type PrivateNetworkConnection struct {
 	CallerDeploymentId  string                 `protobuf:"bytes,9,opt,name=caller_deployment_id,json=callerDeploymentId,proto3" json:"caller_deployment_id,omitempty"`
 	ConnectionId        string                 `protobuf:"bytes,10,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
 	ConnectionName      string                 `protobuf:"bytes,11,opt,name=connection_name,json=connectionName,proto3" json:"connection_name,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// caller_regions and target_regions are the sorted regions where the caller
+	// and the target deployment are meant to run. A cluster creates a
+	// connection's DNS only in caller regions and its Service and policy only in
+	// caller and target regions. Existing target grants retain their replacement
+	// overlap when a target moves to another region.
+	CallerRegions []string `protobuf:"bytes,12,rep,name=caller_regions,json=callerRegions,proto3" json:"caller_regions,omitempty"`
+	TargetRegions []string `protobuf:"bytes,13,rep,name=target_regions,json=targetRegions,proto3" json:"target_regions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PrivateNetworkConnection) Reset() {
@@ -721,6 +728,20 @@ func (x *PrivateNetworkConnection) GetConnectionName() string {
 		return x.ConnectionName
 	}
 	return ""
+}
+
+func (x *PrivateNetworkConnection) GetCallerRegions() []string {
+	if x != nil {
+		return x.CallerRegions
+	}
+	return nil
+}
+
+func (x *PrivateNetworkConnection) GetTargetRegions() []string {
+	if x != nil {
+		return x.TargetRegions
+	}
+	return nil
 }
 
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
@@ -2153,7 +2174,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\tcertified\x18\b \x01(\bR\tcertified\"c\n" +
 	"\x16PrivateNetworkTopology\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\rR\aversion\x12/\n" +
-	"\bclusters\x18\x02 \x03(\v2\x13.ctrl.v1.ClusterKeyR\bclusters\"\xd4\x03\n" +
+	"\bclusters\x18\x02 \x03(\v2\x13.ctrl.v1.ClusterKeyR\bclusters\"\xa2\x04\n" +
 	"\x18PrivateNetworkConnection\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -2168,7 +2189,9 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x14caller_deployment_id\x18\t \x01(\tR\x12callerDeploymentId\x12#\n" +
 	"\rconnection_id\x18\n" +
 	" \x01(\tR\fconnectionId\x12'\n" +
-	"\x0fconnection_name\x18\v \x01(\tR\x0econnectionName\"\xc7\x05\n" +
+	"\x0fconnection_name\x18\v \x01(\tR\x0econnectionName\x12%\n" +
+	"\x0ecaller_regions\x18\f \x03(\tR\rcallerRegions\x12%\n" +
+	"\x0etarget_regions\x18\r \x03(\tR\rtargetRegions\"\xc7\x05\n" +
 	"\x1dReportDeploymentStatusRequest\x12-\n" +
 	"\acluster\x18\x03 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12G\n" +
 	"\x06update\x18\x01 \x01(\v2-.ctrl.v1.ReportDeploymentStatusRequest.UpdateH\x00R\x06update\x12G\n" +

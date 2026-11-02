@@ -38,7 +38,7 @@ func cdcRules() []cdc.Rule {
 	return rules
 }
 
-var regionCallerColumns = []string{"id", "platform"}
+var regionCallerColumns = []string{"id", "platform", "name"}
 
 func sameColumns(a, b image, columns []string) bool {
 	for _, column := range columns {

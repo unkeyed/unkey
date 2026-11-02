@@ -138,6 +138,13 @@ message PrivateNetworkConnection {
   string caller_deployment_id = 9;
   string connection_id = 10;
   string connection_name = 11;
+  // caller_regions and target_regions are the sorted regions where the caller
+  // and the target deployment are meant to run. A cluster creates a
+  // connection's DNS only in caller regions and its Service and policy only in
+  // caller and target regions. Existing target grants retain their replacement
+  // overlap when a target moves to another region.
+  repeated string caller_regions = 12;
+  repeated string target_regions = 13;
 }
 
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
