@@ -101,9 +101,6 @@ jobs:
               - '.golangci.yaml'
               - 'buf.yaml'
               - 'buf.lock'
-              - '.depot/workflows/pr.yaml'
-              - '.depot/workflows/job_go.yaml'
-              - '.depot/workflows/job_detect_changes.yaml'
 
             # ClickHouse schema and related
             clickhouse:
