@@ -21,6 +21,10 @@ import { isPaymentRecovery, isPaymentRecoveryUpdate } from "@/lib/stripe/payment
 import { validateAndParseQuotas } from "@/lib/stripe/productUtils";
 import { setWorkspaceLimits } from "@/lib/stripe/setWorkspaceLimits";
 import {
+  expireSubscriptionStatus,
+  subscriptionStatusCustomer,
+} from "@/lib/stripe/subscriptionStatusCache";
+import {
   isAutomatedBillingRenewal,
   isCardUpdateOnly,
   isPaymentFailureRelatedUpdate,
@@ -405,6 +409,11 @@ export const POST = async (req: Request): Promise<Response> => {
     console.error("Webhook signature validation failed:", error);
     return new Response("Error", { status: 400 });
   }
+  const statusCustomerId = subscriptionStatusCustomer(event);
+  if (statusCustomerId) {
+    expireSubscriptionStatus(statusCustomerId);
+  }
+
   switch (event.type) {
     case "customer.subscription.updated": {
       try {
