@@ -1,7 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { queryClient } from "@/lib/collections/client";
 import {
   DEFAULT_DEPLOYMENT_STATUS_GROUPS,
   DEPLOYMENT_STATUSES,
@@ -9,36 +7,22 @@ import {
   expandDeploymentStatusGroups,
   isDeploymentSettling,
 } from "@/lib/collections/deploy/deployment-status";
-import { type Deployment, withDeploymentDetails } from "@/lib/collections/deploy/deployments";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
+import { type Deployment, withDeploymentDetails } from "@/lib/deploy-data/deployment";
 import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import {
   type InfiniteData,
-  InfiniteQueryObserver,
-  type InfiniteQueryObserverOptions,
-  type QueryKey,
-  hashKey,
-  notifyManager,
-} from "@tanstack/query-core";
-import {
-  type InitialQueryBuilder,
-  and,
-  createLiveQueryCollection,
-  eq,
-  inArray,
-  useLiveQuery,
-} from "@tanstack/react-db";
+  type QueryClient,
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import type { Deployment as ApiDeployment } from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { useAppScope, useDeployScope } from "./context";
-import {
-  type QueryResult,
-  memoByArgs,
-  refetchScopeDeployments,
-  useApp,
-  useEnvironments,
-} from "./queries";
+import { useMemo, useSyncExternalStore } from "react";
+import { useAppScope, useDeployScope, useScopeStore } from "./context";
+import { type QueryResult, useApp, useEnvironments } from "./queries";
 
 // Both time bounds are inclusive, as the time filter writes them
 export type DeploymentListFilter = {
@@ -71,40 +55,24 @@ export const PRODUCTION_LIMIT = 25;
 // The deployments list, newest first, one API cursor page at a time
 export function useDeploymentsPage(filter: DeploymentListFilter): DeploymentsPageResult {
   const { projectId, appId } = useAppScope();
-  const options = useMemo(() => {
-    const page = deploymentsPageOptions(projectId, appId, filter);
-    // This client is query-core v5 while the app's React Query hooks are v4, so the
-    // observer is driven by hand with the fields the v5 hook would set
-    return {
-      ...page,
-      queryHash: hashKey(page.queryKey),
-      throwOnError: false,
-      refetchOnReconnect: true,
-      _optimisticResults: "optimistic" as const,
-    };
-  }, [projectId, appId, filter]);
-  const [observer] = useState(() => new InfiniteQueryObserver(queryClient, options));
-  const result = observer.getOptimisticResult(options);
-  useSyncExternalStore(
-    useCallback(
-      (onChange: () => void) => observer.subscribe(notifyManager.batchCalls(onChange)),
-      [observer],
-    ),
-    () => observer.getCurrentResult(),
-    () => observer.getCurrentResult(),
+  const queryClient = useQueryClient();
+  const refetchInterval = usePollInterval((data: InfiniteData<DeploymentsPage> | undefined) =>
+    (data?.pages ?? []).flatMap((page) => page.rows),
   );
-  useEffect(() => observer.setOptions(options), [observer, options]);
-
-  const rows = useMemo(() => result.data?.pages.flatMap((page) => page.rows) ?? [], [result.data]);
+  const query = useInfiniteQuery({
+    ...deploymentListOptions(queryClient, projectId, appId, filter),
+    refetchInterval,
+  });
+  const rows = useMemo(() => query.data?.pages.flatMap((page) => page.rows) ?? [], [query.data]);
   return {
     rows,
-    isLoading: result.isLoading,
-    isError: result.isError,
-    error: result.error,
-    hasNextPage: result.hasNextPage,
-    isFetchingNextPage: result.isFetchingNextPage,
-    fetchNextPage: result.fetchNextPage,
-    refetch: result.refetch,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    hasNextPage: query.hasNextPage ?? false,
+    isFetchingNextPage: query.isFetchingNextPage,
+    fetchNextPage: query.fetchNextPage,
+    refetch: query.refetch,
   };
 }
 
@@ -113,32 +81,21 @@ export function useDeployment(
   deploymentId: string | null | undefined,
 ): QueryResult<Deployment | null | undefined> {
   const { projectId, appId } = useDeployScope();
-  const refetch = useCallback(() => refetchScopeDeployments(projectId, appId), [projectId, appId]);
-  const query = useLiveQuery(
-    () => (deploymentId ? deploymentByIdQuery(projectId, appId ?? null, deploymentId) : null),
-    [projectId, appId, deploymentId],
+  const queryClient = useQueryClient();
+  const refetchInterval = usePollInterval((data: Deployment | null | undefined) =>
+    data ? [data] : [],
   );
-  // A row another list of the scope already holds shows while its own load is in flight
-  const held =
-    query.isLoading && deploymentId ? collection.deployments.get(deploymentId) : undefined;
-  const listed =
-    held && held.projectId === projectId && (appId === undefined || held.appId === appId)
-      ? held
-      : query.isLoading && deploymentId && appId !== undefined
-        ? queryClient
-            .getQueriesData<InfiniteData<DeploymentsPage>>({
-              queryKey: queryKeys.deployments.pages(projectId, appId),
-            })
-            .flatMap(([, data]) => data?.pages ?? [])
-            .flatMap((page) => page.rows)
-            .find((row) => row.id === deploymentId)
-        : undefined;
+  const query = useQuery({
+    ...deploymentDetailOptions(queryClient, projectId, appId, deploymentId ?? ""),
+    enabled: Boolean(deploymentId),
+    refetchInterval,
+  });
   return {
-    data: deploymentId ? (query.isLoading ? listed : (query.data?.[0] ?? null)) : null,
-    isLoading: query.isLoading && listed === undefined,
+    data: deploymentId ? query.data : null,
+    isLoading: query.isInitialLoading,
     isError: query.isError,
-    error: null,
-    refetch,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 
@@ -165,17 +122,19 @@ export function useRecentDeployments({
   enabled?: boolean;
 }): QueryResult<Deployment[]> {
   const { projectId, appId } = useDeployScope();
-  const refetch = useCallback(() => refetchScopeDeployments(projectId, appId), [projectId, appId]);
-  const query = useLiveQuery(
-    () => (enabled ? recentDeploymentsQuery(projectId, appId ?? null, null, limit) : null),
-    [projectId, appId, limit, enabled],
-  );
+  const queryClient = useQueryClient();
+  const refetchInterval = usePollInterval((data: Deployment[] | undefined) => data ?? []);
+  const query = useQuery({
+    ...recentDeploymentsOptions(queryClient, projectId, appId, null, limit),
+    enabled,
+    refetchInterval,
+  });
   return {
     data: query.data ?? [],
-    isLoading: enabled && query.isLoading,
+    isLoading: query.isInitialLoading,
     isError: query.isError,
-    error: null,
-    refetch,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 
@@ -188,117 +147,95 @@ export function useProductionDeployments({
   enabled = true,
 }: { enabled?: boolean } = {}): QueryResult<Deployment[]> {
   const { projectId, appId } = useAppScope();
+  const queryClient = useQueryClient();
   const environments = useEnvironments();
   const productionId = environments.data.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id;
-  const refetch = useCallback(() => refetchScopeDeployments(projectId, appId), [projectId, appId]);
-  const query = useLiveQuery(
-    () =>
-      enabled && productionId
-        ? recentDeploymentsQuery(projectId, appId, productionId, PRODUCTION_LIMIT)
-        : null,
-    [projectId, appId, productionId, enabled],
-  );
+  const refetchInterval = usePollInterval((data: Deployment[] | undefined) => data ?? []);
+  const query = useQuery({
+    ...recentDeploymentsOptions(
+      queryClient,
+      projectId,
+      appId,
+      productionId ?? null,
+      PRODUCTION_LIMIT,
+    ),
+    enabled: enabled && productionId !== undefined,
+    refetchInterval,
+  });
   return {
     data: query.data ?? [],
-    isLoading: enabled && (environments.isLoading || query.isLoading),
+    isLoading: enabled && (environments.isLoading || query.isInitialLoading),
     isError: query.isError,
-    error: null,
-    refetch,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 
 // What a visit to the deployments list without filters in the url loads first
-export function warmDeploymentsPage(projectId: string, appId: string): void {
-  void queryClient.prefetchInfiniteQuery(deploymentsPageOptions(projectId, appId, DEFAULT_FILTER));
+export function warmDeploymentsPage(queryClient: QueryClient, projectId: string, appId: string) {
+  void queryClient.prefetchInfiniteQuery(
+    deploymentListOptions(queryClient, projectId, appId, DEFAULT_FILTER),
+  );
 }
 
-export function deploymentByIdQueryFor(
+export function deploymentDetailOptions(
+  queryClient: QueryClient,
   projectId: string,
-  appId: string | null,
+  appId: string | undefined,
   deploymentId: string,
 ) {
-  return (q: InitialQueryBuilder) =>
-    q
-      .from({ deployment: collection.deployments })
-      .where(({ deployment }) =>
-        appId
-          ? and(
-              eq(deployment.projectId, projectId),
-              eq(deployment.appId, appId),
-              eq(deployment.id, deploymentId),
-            )
-          : and(eq(deployment.projectId, projectId), eq(deployment.id, deploymentId)),
+  return {
+    queryKey: queryKeys.deployments.detail(projectId, appId, deploymentId),
+    staleTime: STALE_MS,
+    retry: 3,
+    queryFn: async ({ signal }: { signal?: AbortSignal }): Promise<Deployment | null> => {
+      let row: Awaited<
+        ReturnType<ReturnType<typeof getUnkeyClient>["deployments"]["getDeployment"]>
+      >;
+      try {
+        row = await getUnkeyClient().deployments.getDeployment({ deploymentId }, { signal });
+      } catch (error) {
+        if (error instanceof NotFoundErrorResponse) {
+          return null;
+        }
+        throw error;
+      }
+      const [deployment] = await withDeploymentDetails([row.data], projectId, (id) =>
+        cachedDeployment(queryClient, projectId, appId, id),
       );
+      return deployment && (appId === undefined || deployment.appId === appId) ? deployment : null;
+    },
+  };
 }
 
-export function recentDeploymentsQueryFor(
+export function recentDeploymentsOptions(
+  queryClient: QueryClient,
   projectId: string,
-  appId: string | null,
+  appId: string | undefined,
   environmentId: string | null,
   limit: number,
 ) {
-  return (q: InitialQueryBuilder) => {
-    let query = q
-      .from({ deployment: collection.deployments })
-      .where(({ deployment }) =>
-        and(eq(deployment.projectId, projectId), inArray(deployment.status, RECENT_STATUSES)),
-      );
-    if (appId) {
-      query = query.where(({ deployment }) => eq(deployment.appId, appId));
-    }
-    if (environmentId) {
-      query = query.where(({ deployment }) => eq(deployment.environmentId, environmentId));
-    }
-    return query.orderBy(({ deployment }) => deployment.createdAt, "desc").limit(limit);
+  return {
+    queryKey: queryKeys.deployments.recent(projectId, appId, environmentId, limit),
+    staleTime: STALE_MS,
+    retry: 3,
+    queryFn: async ({ signal }: { signal?: AbortSignal }): Promise<Deployment[]> => {
+      const { data } = await listDeployments(signal, {
+        project: projectId,
+        app: appId,
+        environment: environmentId ?? undefined,
+        status: RECENT_STATUSES,
+        limit,
+      });
+      return withCachedDetails(queryClient, projectId, appId, data);
+    },
   };
-}
-
-/** Every deployment this tab holds for the scope, in live queries or list pages. */
-export function scopeDeployments(projectId: string, appId: string | undefined): Deployment[] {
-  const rows = new Map<string, Deployment>();
-  for (const deployment of collection.deployments.values()) {
-    if (deployment.projectId === projectId && (appId === undefined || deployment.appId === appId)) {
-      rows.set(deployment.id, deployment);
-    }
-  }
-  if (appId !== undefined) {
-    const lists = queryClient.getQueriesData<InfiniteData<DeploymentsPage>>({
-      queryKey: queryKeys.deployments.pages(projectId, appId),
-      type: "active",
-    });
-    for (const [, data] of lists) {
-      for (const deployment of data?.pages.flatMap((page) => page.rows) ?? []) {
-        rows.set(deployment.id, deployment);
-      }
-    }
-  }
-  return [...rows.values()];
-}
-
-export function subscribeDeployments(onChange: () => void): () => void {
-  const subscription = collection.deployments.subscribeChanges(onChange, {
-    includeInitialState: false,
-  });
-  const unsubscribeCache = queryClient.getQueryCache().subscribe((event) => {
-    if (event.query.queryKey[0] === "deployments") {
-      onChange();
-    }
-  });
-  return () => {
-    subscription.unsubscribe();
-    unsubscribeCache();
-  };
-}
-
-// Compared before and after a poll to tell whether any row appeared or moved
-export function deploymentStates(rows: readonly Deployment[]): string {
-  return rows
-    .map((d) => `${d.id}:${d.status}:${isDeploymentSettling(d) ? 1 : 0}`)
-    .sort()
-    .join(",");
 }
 
 const PAGE_SIZE = 25;
+
+// Matches the client the collections use, so a revisit within it reads the cache
+const STALE_MS = 30_000;
 
 // Skipped pushes never deployed, so the overview and pickers leave them out
 const RECENT_STATUSES = DEPLOYMENT_STATUSES.filter((status) => status !== "skipped");
@@ -311,77 +248,135 @@ const DEFAULT_FILTER: DeploymentListFilter = {
 
 type DeploymentsPage = { rows: Deployment[]; nextCursor: string | undefined };
 
-const deploymentByIdQuery = memoByArgs(
-  (projectId: string, appId: string | null, deploymentId: string) =>
-    createLiveQueryCollection(deploymentByIdQueryFor(projectId, appId, deploymentId)),
-);
+type ListDeploymentsRequest = Parameters<
+  ReturnType<typeof getUnkeyClient>["deployments"]["listDeployments"]
+>[0];
 
-const recentDeploymentsQuery = memoByArgs(
-  (projectId: string, appId: string | null, environmentId: string | null, limit: number) =>
-    createLiveQueryCollection(recentDeploymentsQueryFor(projectId, appId, environmentId, limit)),
-);
+// A project or app deleted under the page lists nothing rather than failing
+async function listDeployments(signal: AbortSignal | undefined, request: ListDeploymentsRequest) {
+  try {
+    const response = await getUnkeyClient().deployments.listDeployments(request, { signal });
+    return response.result;
+  } catch (error) {
+    if (error instanceof NotFoundErrorResponse) {
+      return { data: [], pagination: { hasMore: false, cursor: undefined } };
+    }
+    throw error;
+  }
+}
 
-function deploymentsPageOptions(
+function deploymentListOptions(
+  queryClient: QueryClient,
   projectId: string,
   appId: string,
   filter: DeploymentListFilter,
-): InfiniteQueryObserverOptions<
-  DeploymentsPage,
-  Error,
-  InfiniteData<DeploymentsPage>,
-  QueryKey,
-  string | undefined
-> {
-  const queryKey = queryKeys.deployments.page(projectId, appId, filter);
+) {
   return {
-    queryKey,
+    queryKey: queryKeys.deployments.list(projectId, appId, filter),
+    staleTime: STALE_MS,
     retry: 3,
-    // A poll that changes nothing on screen does not re-render the list
-    notifyOnChangeProps: [
-      "data",
-      "isLoading",
-      "isError",
-      "error",
-      "hasNextPage",
-      "isFetchingNextPage",
-    ],
-    initialPageParam: undefined,
-    getNextPageParam: (page) => page.nextCursor,
-    queryFn: async ({ pageParam }) => {
-      let response: Awaited<
-        ReturnType<ReturnType<typeof getUnkeyClient>["deployments"]["listDeployments"]>
-      >;
-      try {
-        response = await getUnkeyClient().deployments.listDeployments({
-          project: projectId,
-          app: appId,
-          environment: filter.environmentId,
-          status: filter.statuses,
-          branch: filter.branches.length > 0 ? filter.branches : undefined,
-          startTime: filter.startTime,
-          // The API's end bound is exclusive
-          endTime: filter.endTime === undefined ? undefined : filter.endTime + 1,
-          limit: PAGE_SIZE,
-          cursor: pageParam,
-        });
-      } catch (error) {
-        if (error instanceof NotFoundErrorResponse) {
-          return { rows: [], nextCursor: undefined };
-        }
-        throw error;
-      }
-      const { data, pagination } = response.result;
-      const held = new Map(
-        queryClient
-          .getQueryData<InfiniteData<DeploymentsPage>>(queryKey)
-          ?.pages.flatMap((page) => page.rows.map((row) => [row.id, row] as const)),
-      );
-      const rows = await withDeploymentDetails(
-        data,
-        projectId,
-        (id) => held.get(id) ?? collection.deployments.get(id),
-      );
+    getNextPageParam: (page: DeploymentsPage) => page.nextCursor,
+    queryFn: async ({
+      pageParam,
+      signal,
+    }: { pageParam?: string; signal?: AbortSignal }): Promise<DeploymentsPage> => {
+      const { data, pagination } = await listDeployments(signal, {
+        project: projectId,
+        app: appId,
+        environment: filter.environmentId,
+        status: filter.statuses,
+        branch: filter.branches.length > 0 ? filter.branches : undefined,
+        startTime: filter.startTime,
+        // The API's end bound is exclusive
+        endTime: filter.endTime === undefined ? undefined : filter.endTime + 1,
+        limit: PAGE_SIZE,
+        cursor: pageParam,
+      });
+      const rows = await withCachedDetails(queryClient, projectId, appId, data);
       return { rows, nextCursor: pagination.hasMore ? pagination.cursor : undefined };
     },
   };
+}
+
+function cachedDeployment(
+  queryClient: QueryClient,
+  projectId: string,
+  appId: string | undefined,
+  deploymentId: string,
+): Deployment | undefined {
+  return (
+    queryClient.getQueryData<Deployment | null>(
+      queryKeys.deployments.detail(projectId, appId, deploymentId),
+    ) ?? undefined
+  );
+}
+
+// Every listed row is also cached by id, so opening one reads it without a
+// request, and a row already cached keeps details nothing could have changed
+async function withCachedDetails(
+  queryClient: QueryClient,
+  projectId: string,
+  appId: string | undefined,
+  rows: ApiDeployment[],
+): Promise<Deployment[]> {
+  const deployments = await withDeploymentDetails(rows, projectId, (id) =>
+    cachedDeployment(queryClient, projectId, appId, id),
+  );
+  for (const deployment of deployments) {
+    queryClient.setQueryData(
+      queryKeys.deployments.detail(projectId, appId, deployment.id),
+      deployment,
+    );
+  }
+  return deployments;
+}
+
+// When each query's data last changed, so the polls of a list that stays the same back off
+const lastChange = new WeakMap<object, { data: unknown; atMs: number }>();
+
+// Each deployments query polls on its own: faster while a row it holds is
+// settling, at a page's requested cadence, and slower the longer nothing changes
+function usePollInterval<T>(rowsOf: (data: T | undefined) => readonly Deployment[]) {
+  const store = useScopeStore();
+  const requestedMs = useSyncExternalStore(
+    store.subscribe,
+    store.requestedPollMs,
+    store.requestedPollMs,
+  );
+  return (data: T | undefined, query: object) => {
+    const nowMs = Date.now();
+    const seen = lastChange.get(query);
+    const changedAtMs = seen && seen.data === data ? seen.atMs : nowMs;
+    lastChange.set(query, { data, atMs: changedAtMs });
+    return deploymentsPollIntervalMs({
+      settling: rowsOf(data).some(isDeploymentSettling),
+      requestedMs,
+      msSinceChange: nowMs - changedAtMs,
+    });
+  };
+}
+
+const POLL_IDLE_MS = 20_000;
+const POLL_IDLE_MAX_MS = 60_000;
+const POLL_SETTLING_MS = 5_000;
+
+// Faster while a deployment of the query is settling. A page may ask for a
+// faster idle cadence. Idle polls back off the longer nothing changes, since a
+// page left open mostly sees no deploys: 20s, then 40s, then 60s.
+export function deploymentsPollIntervalMs({
+  settling,
+  requestedMs,
+  msSinceChange,
+}: {
+  settling: boolean;
+  requestedMs: number | null;
+  msSinceChange: number;
+}): number {
+  const idleMs =
+    msSinceChange < POLL_IDLE_MS
+      ? POLL_IDLE_MS
+      : msSinceChange < POLL_IDLE_MS * 3
+        ? POLL_IDLE_MS * 2
+        : POLL_IDLE_MAX_MS;
+  return Math.min(settling ? POLL_SETTLING_MS : idleMs, requestedMs ?? idleMs);
 }

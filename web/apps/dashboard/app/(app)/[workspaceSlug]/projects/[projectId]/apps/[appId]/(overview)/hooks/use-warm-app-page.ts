@@ -1,6 +1,7 @@
 import { useAppScope, warmAppPage, warmDeployment } from "@/lib/deploy-data";
 import { PRODUCTION, latestGrid } from "@/lib/metrics/app-metrics";
 import { trpc } from "@/lib/trpc/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
 import { ACTIVE_BRANCHES_PAGE_SIZE } from "../overview/components/active-branches/use-active-branches";
 import { GLANCE_RANGE } from "../overview/components/glance";
@@ -11,12 +12,13 @@ const WARM_DELAY_MS = 150;
 
 export function useWarmAppPage() {
   const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const { schedule, cancel } = useDelayedWarm();
 
   const warmApp = useCallback(
     (projectId: string, appId: string) =>
       schedule(() => {
-        warmAppPage(projectId, appId);
+        warmAppPage(queryClient, projectId, appId);
         trpcUtils.deploy.deployment.listActiveBranches.prefetchInfinite({
           projectId,
           appId,
@@ -28,7 +30,7 @@ export function useWarmAppPage() {
           grid: latestGrid(GLANCE_RANGE, Date.now()),
         });
       }),
-    [schedule, trpcUtils],
+    [schedule, trpcUtils, queryClient],
   );
 
   return { warmApp, cancelWarm: cancel };
@@ -43,10 +45,11 @@ export function useWarmAppHandlers(projectId: string, appId: string): WarmHandle
 export function useWarmDeploymentHandlers(deploymentId: string): WarmHandlers {
   const { projectId, appId } = useAppScope();
   const trpcUtils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const { schedule, cancel } = useDelayedWarm();
   const warm = () =>
     schedule(() => {
-      warmDeployment(projectId, appId, deploymentId);
+      warmDeployment(queryClient, projectId, appId, deploymentId);
       trpcUtils.deploy.deployment.steps.prefetch({ deploymentId });
     });
   return { onPointerEnter: warm, onPointerLeave: cancel, onFocusCapture: warm };

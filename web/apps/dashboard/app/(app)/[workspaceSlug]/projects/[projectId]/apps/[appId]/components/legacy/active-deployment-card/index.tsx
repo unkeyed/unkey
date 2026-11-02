@@ -3,8 +3,8 @@
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/legacy/env-status-badge";
 import { RegionFlag } from "@/components/region-flag";
 import { collection } from "@/lib/collections";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { summarizeCrashLoop } from "@/lib/collections/deploy/exit-reasons";
+import type { Deployment } from "@/lib/deploy-data/deployment";
 import { githubUrl } from "@/lib/github-url";
 import {
   formatCpu,

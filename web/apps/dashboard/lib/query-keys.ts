@@ -9,6 +9,7 @@ const rbacRoot = ["rbac"] as const;
 const rolesRoot = [...rbacRoot, "roles"] as const;
 const permissionsRoot = [...rbacRoot, "permissions"] as const;
 const identitiesRoot = ["identities"] as const;
+const deploymentsRoot = ["deployments"] as const;
 const apiRequestsRoot = ["logs", "apiRequests"] as const;
 const workspaceRoot = ["workspace"] as const;
 const ratelimitNamespacesRoot = ["ratelimit", "namespaces"] as const;
@@ -19,17 +20,25 @@ export const queryKeys = {
     detail: (apiId: string) => ["apis", "detail", apiId] as const,
   },
   deployments: {
-    buildLogs: (deploymentId: string) => ["deployments", "buildLogs", deploymentId] as const,
-    // Every deployments query of the collections client starts with this,
-    // collection subsets and paged lists alike
+    all: deploymentsRoot,
+    buildLogs: (deploymentId: string) => [...deploymentsRoot, "buildLogs", deploymentId] as const,
+    // Every deployments query of a project or app starts with this, so one
+    // invalidation refreshes all of them
     scope: (projectId: string, appId: string | undefined) =>
       appId === undefined
-        ? (["deployments", projectId] as const)
-        : (["deployments", projectId, appId] as const),
-    pages: (projectId: string, appId: string) =>
-      ["deployments", projectId, appId, "pages"] as const,
-    page: (projectId: string, appId: string, filter: DeploymentListFilter) =>
-      ["deployments", projectId, appId, "pages", filter] as const,
+        ? ([...deploymentsRoot, projectId] as const)
+        : ([...deploymentsRoot, projectId, appId] as const),
+    detail: (projectId: string, appId: string | undefined, deploymentId: string) =>
+      [...deploymentsRoot, projectId, appId ?? null, "detail", deploymentId] as const,
+    recent: (
+      projectId: string,
+      appId: string | undefined,
+      environmentId: string | null,
+      limit: number,
+    ) =>
+      [...deploymentsRoot, projectId, appId ?? null, "recent", { environmentId, limit }] as const,
+    list: (projectId: string, appId: string, filter: DeploymentListFilter) =>
+      [...deploymentsRoot, projectId, appId, "list", filter] as const,
   },
   identities: {
     all: identitiesRoot,

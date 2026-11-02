@@ -1,22 +1,16 @@
 "use client";
+import { trpcClient } from "@/lib/collections/client";
+import {
+  DEPLOYMENT_STATUSES,
+  type DeploymentStatus,
+} from "@/lib/collections/deploy/deployment-status";
+import { INSTANCE_STATUSES } from "@/lib/collections/deploy/instance-status";
 import type { LastExit } from "@/lib/types/deploy";
-import { getUnkeyClient } from "@/lib/unkey-client";
-import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
-import { type LoadSubsetOptions, createCollection } from "@tanstack/react-db";
 import {
   type Deployment as ApiDeployment,
   DeploymentIssueType,
 } from "@unkey/api/models/components";
-import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
-import {
-  DEPLOYMENT_STATUSES,
-  DEPLOYMENT_STATUS_LABELS,
-  type DeploymentStatus,
-} from "./deployment-status";
-import { INSTANCE_STATUSES } from "./instance-status";
-import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
 const regionSchema = z.object({
   id: z.string(),
@@ -109,8 +103,7 @@ export function hasBuildLogs(deployment: Pick<Deployment, "source" | "status">):
   return !isPrebuilt(deployment) && deployment.status !== "skipped";
 }
 
-// The fields the deployment cards, dialogs, and table cells read. Both a
-// collection row and a deployments-table row satisfy it.
+// The fields the deployment cards, dialogs, and table cells read
 export type DeploymentSummary = Pick<
   Deployment,
   | "id"
@@ -133,8 +126,7 @@ export type DeploymentSummary = Pick<
 >;
 
 // Every row reads from the public API and merges in what the API does not
-// return (parent ids, desired state, runtime details) from one tRPC call. This
-// module is the only place that fetches deployments.
+// return (parent ids, desired state, runtime details) from one tRPC call
 const API_PAGE_LIMIT = 100;
 const DEFAULT_AVATAR_URL = "https://github.com/identicons/dummy-user.png";
 
@@ -161,7 +153,7 @@ type RowDetails = Pick<
 // details, so a refetch keeps the held details instead of asking again
 const SETTLED_DETAIL_STATUSES = new Set<DeploymentStatus>(["superseded", "cancelled", "skipped"]);
 
-// Subsets of one page load resolve within milliseconds of each other, so their
+// Queries of one page load resolve within milliseconds of each other, so their
 // detail lookups wait a moment and share one request
 const DETAILS_BATCH_MS = 10;
 let detailsBatch: { ids: Set<string>; result: Promise<DeploymentDetailsById> } | null = null;
@@ -265,71 +257,6 @@ function toDeployment(
   };
 }
 
-function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operator: string) {
-  const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
-  return typeof value === "number" ? value : undefined;
-}
-
-// The same reading feeds queryKey and queryFn so the two can never disagree
-// about which server subset a live query maps to. A live query on a single id
-// loads that row on its own, however old it is.
-function readDeploymentSubset(opts: LoadSubsetOptions | undefined) {
-  const { filters, limit } = parseLoadSubsetOptions(opts);
-  const inclusiveEnd = extractNumberFilter(filters, "createdAt", "lte");
-  return {
-    limit,
-    projectId: extractStringFilter(filters, "projectId"),
-    appId: extractStringFilter(filters, "appId"),
-    deploymentId: extractStringFilter(filters, "id"),
-    statuses: extractStringValues(filters, "status").filter((s): s is DeploymentStatus =>
-      Object.hasOwn(DEPLOYMENT_STATUS_LABELS, s),
-    ),
-    environmentIds: extractStringValues(filters, "environmentId"),
-    branches: extractStringValues(filters, "gitBranch"),
-    startTime: extractNumberFilter(filters, "createdAt", "gte"),
-    endTime:
-      extractNumberFilter(filters, "createdAt", "lt") ??
-      (inclusiveEnd === undefined ? undefined : inclusiveEnd + 1),
-    // Live queries here hold a fixed window of the newest rows. Paged lists
-    // use the API cursor outside the collection, so a request past the window
-    // has nothing to load
-    isPastWindow: opts?.cursor !== undefined || (opts?.offset ?? 0) > 0,
-  };
-}
-
-type DeploymentSubset = ReturnType<typeof readDeploymentSubset> & { projectId: string };
-
-async function fetchDeploymentRows(subset: DeploymentSubset): Promise<ApiDeployment[]> {
-  try {
-    if (subset.deploymentId !== undefined) {
-      const response = await getUnkeyClient().deployments.getDeployment({
-        deploymentId: subset.deploymentId,
-      });
-      return [response.data];
-    }
-    const response = await getUnkeyClient().deployments.listDeployments({
-      project: subset.projectId,
-      app: subset.appId,
-      environment:
-        subset.appId !== undefined && subset.environmentIds.length === 1
-          ? subset.environmentIds[0]
-          : undefined,
-      status: subset.statuses.length > 0 ? subset.statuses : undefined,
-      branch:
-        subset.appId !== undefined && subset.branches.length > 0 ? subset.branches : undefined,
-      startTime: subset.startTime,
-      endTime: subset.endTime,
-      limit: Math.min(subset.limit ?? API_PAGE_LIMIT, API_PAGE_LIMIT),
-    });
-    return response.result.data;
-  } catch (error) {
-    if (error instanceof NotFoundErrorResponse) {
-      return [];
-    }
-    throw error;
-  }
-}
-
 /**
  * Merges each API row with its tRPC details. `known` returns a row already
  * held, whose details are reused when nothing can have changed them. Rows whose
@@ -361,51 +288,3 @@ export async function withDeploymentDetails(
     return detail?.projectId === projectId ? [toDeployment(row, detail, projectId)] : [];
   });
 }
-
-/**
- * Global deployments collection.
- *
- * IMPORTANT: All queries MUST filter by projectId:
- * .where(({ deployment }) => eq(deployment.projectId, projectId))
- */
-export const deployments = createCollection<Deployment, string>(
-  queryCollectionOptions({
-    queryClient,
-    // Keys start with ["deployments", projectId, appId] so a refetch can name
-    // one project or one app
-    queryKey: (opts) => {
-      const subset = readDeploymentSubset(opts);
-      return subset.projectId
-        ? [
-            "deployments",
-            subset.projectId,
-            subset.appId ?? null,
-            subset.deploymentId ?? null,
-            subset.statuses.join(",") || null,
-            subset.environmentIds.join(",") || null,
-            subset.branches.join(",") || null,
-            subset.startTime ?? null,
-            subset.endTime ?? null,
-            subset.limit ?? null,
-            subset.isPastWindow,
-          ]
-        : ["deployments"];
-    },
-    retry: 3,
-    syncMode: "on-demand",
-    queryFn: async (ctx): Promise<Deployment[]> => {
-      const subset = readDeploymentSubset(ctx.meta?.loadSubsetOptions);
-      const { projectId } = subset;
-      if (!projectId) {
-        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
-      }
-      if (subset.isPastWindow) {
-        return [];
-      }
-      const rows = await fetchDeploymentRows({ ...subset, projectId });
-      return withDeploymentDetails(rows, projectId, (id) => deployments.get(id));
-    },
-    getKey: (item) => item.id,
-    id: "deployments",
-  }),
-);

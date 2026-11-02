@@ -3,11 +3,13 @@
 import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { type App, refetchProjectApps } from "@/lib/collections/deploy/apps";
-import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
+import {
+  type CustomDomain,
+  retryDomainVerification,
+} from "@/lib/collections/deploy/custom-domains";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { pickPrimaryApp } from "@/lib/collections/deploy/project-cards";
-import { queryKeys } from "@/lib/query-keys";
 import {
   type InitialQueryBuilder,
   and,
@@ -87,11 +89,12 @@ export function useCustomDomains(): QueryResult<CustomDomain[]> {
   return { data: query.data ?? [], isLoading: query.isLoading, ...load };
 }
 
-export function refetchScopeDeployments(projectId: string, appId: string | undefined) {
-  return queryClient.refetchQueries({
-    queryKey: queryKeys.deployments.scope(projectId, appId),
-    type: "active",
-  });
+export function useAppMutations() {
+  return APP_MUTATIONS;
+}
+
+export function useCustomDomainMutations() {
+  return CUSTOM_DOMAIN_MUTATIONS;
 }
 
 export function refetchScopeDomains(projectId: string) {
@@ -102,11 +105,10 @@ export function refetchScopeCustomDomains(projectId: string) {
   return queryClient.refetchQueries({ queryKey: ["customDomains", projectId], type: "active" });
 }
 
-// Every read of the scope, after an awaited change settles
-export function refetchDeployData(projectId: string, appId: string | undefined) {
+// Every collection read of the scope, after an awaited change settles
+export function refetchDeployData(projectId: string) {
   return Promise.all([
     refetchProjectApps(projectId),
-    refetchScopeDeployments(projectId, appId),
     refetchScopeDomains(projectId),
     refetchScopeCustomDomains(projectId),
     refetchScopeEnvironments(projectId),
@@ -244,3 +246,40 @@ function useLoadState(
   );
   return { isError, error: isError ? source.lastError : null, refetch };
 }
+
+type AppChanges = Partial<Pick<App, "name" | "defaultBranch" | "imageReference">>;
+
+const APP_MUTATIONS = {
+  updateApp: (appId: string, changes: AppChanges): Promise<unknown> =>
+    collection.apps.update(appId, { optimistic: false }, (draft) => {
+      Object.assign(draft, changes);
+    }).isPersisted.promise,
+  deleteApp: (appId: string): void => {
+    collection.apps.delete(appId);
+  },
+};
+
+const CUSTOM_DOMAIN_MUTATIONS = {
+  addCustomDomain: (
+    domain: { domain: string; projectId: string; appId: string; environmentId: string },
+    workspaceSlug: string,
+  ): Promise<unknown> =>
+    collection.customDomains.insert(
+      {
+        ...domain,
+        id: crypto.randomUUID(),
+        verificationStatus: "pending",
+        dnsRecords: [],
+        verificationError: null,
+        domainConnectProvider: null,
+        domainConnectUrl: null,
+        createdAt: Date.now(),
+        updatedAt: null,
+      },
+      { metadata: { workspaceSlug } },
+    ).isPersisted.promise,
+  deleteCustomDomain: (customDomainId: string): void => {
+    collection.customDomains.delete(customDomainId);
+  },
+  retryDomainVerification,
+};

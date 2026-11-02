@@ -1,4 +1,4 @@
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { Deployment } from "@/lib/deploy-data/deployment";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import type { AppScope, AppSettingsTarget } from "@/lib/navigation/routes/projects";

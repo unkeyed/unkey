@@ -11,7 +11,7 @@ import {
   previousRollbackTarget,
   rollbackCandidates,
 } from "@/lib/collections/deploy/rollback";
-import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { useDeployment, useDeploymentsPolling } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
@@ -22,7 +22,6 @@ import { useState } from "react";
 import { getDomainPriority } from "../../../../components/domain-priority";
 import { ActiveDeploymentCardEmpty } from "../../../../components/legacy/active-deployment-card/components/active-deployment-card-empty";
 import { useAppId, useProjectData } from "../../../data-provider";
-import { appDeploymentQueryFor } from "../../../data-provider-queries";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../../navigations/create-deployment-button";
@@ -78,15 +77,9 @@ export function AppProductionCard() {
   // needs its instances, so it loads by id like the current deployment
   const fallbackDeploymentId =
     !currentDeploymentId && latestProductionDeployment ? latestProductionDeployment.id : null;
-  const fallbackDeploymentQuery = useLiveQuery(
-    (q) =>
-      fallbackDeploymentId
-        ? appDeploymentQueryFor(projectId, appId, fallbackDeploymentId)(q)
-        : null,
-    [projectId, appId, fallbackDeploymentId],
-  );
+  const fallbackDeploymentQuery = useDeployment(fallbackDeploymentId);
 
-  const deployment = currentDeployment ?? fallbackDeploymentQuery.data?.[0];
+  const deployment = currentDeployment ?? fallbackDeploymentQuery.data ?? undefined;
   const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
   const isCurrent = Boolean(currentDeployment);
   const newerDeployment =
@@ -112,7 +105,7 @@ export function AppProductionCard() {
   );
 
   const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
-  useCollectionPolling(() => collection.deployments.utils.refetch(), {
+  useDeploymentsPolling({
     intervalMs: 10_000,
     enabled:
       productionStatus === "live" ||

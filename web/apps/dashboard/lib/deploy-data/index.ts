@@ -31,7 +31,7 @@ export {
   useRecentDeployments,
   warmDeploymentsPage,
 } from "./deployments";
-export { useAppMutations, useCustomDomainMutations } from "./mutations";
+export { useAppMutations, useCustomDomainMutations } from "./queries";
 export { warmAppPage, warmDeployment } from "./warm";
 
 export {
@@ -53,7 +53,7 @@ export {
   type DeploymentSummary,
   hasBuildLogs,
   isPrebuilt,
-} from "@/lib/collections/deploy/deployments";
+} from "@/lib/deploy-data/deployment";
 export type { Domain } from "@/lib/collections/deploy/domains";
 export {
   ENVIRONMENT_KIND,
