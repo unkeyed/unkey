@@ -4,7 +4,6 @@ import { ListTableRow, listTable } from "@/components/list-views";
 import { useNearViewport } from "@/hooks/use-near-viewport";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { useWarmProjectApps } from "@/lib/queries/apps";
 import type { Project } from "@/lib/queries/projects";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Skeleton } from "@unkey/ui";
@@ -33,18 +32,16 @@ type ProjectItemProps = { project: Project; name: string };
 function useProjectListItem(project: Project, nearViewport: boolean) {
   const { apps, isLoading } = useProjectCard(project.id, { nearViewport });
   const { warmApp, cancelWarm } = useWarmAppPage();
-  const warmProjectApps = useWarmProjectApps();
-  const warmProjectAndOnlyApp = () => {
-    warmProjectApps(project.id);
+  const warmOnlyApp = () => {
     const onlyApp = apps.length === 1 ? apps[0] : undefined;
     if (onlyApp) {
       warmApp(project.id, onlyApp.id);
     }
   };
   const warm: WarmHandlers = {
-    onPointerEnter: warmProjectAndOnlyApp,
+    onPointerEnter: warmOnlyApp,
     onPointerLeave: cancelWarm,
-    onFocusCapture: warmProjectAndOnlyApp,
+    onFocusCapture: warmOnlyApp,
   };
 
   return { apps, isLoading, warm };

@@ -1,14 +1,17 @@
 "use client";
 import { byLatestUpdate } from "@/lib/collections/deploy/project-cards";
-import { useAppsOfProjects } from "@/lib/queries/apps";
+import { projectAppsOptions } from "@/lib/queries/apps";
 import { useProjects } from "@/lib/queries/projects";
+import { useQueries } from "@tanstack/react-query";
 
 export function useProjectsWithApps({ enabled = true }: { enabled?: boolean } = {}) {
   const projects = useProjects({
     enabled,
     select: (all) => all.filter((p) => !p.isDefault),
   });
-  const appQueries = useAppsOfProjects((projects.data ?? []).map((p) => p.id));
+  const appQueries = useQueries({
+    queries: (projects.data ?? []).map((p) => projectAppsOptions(p.id)),
+  });
   const appsByProject = Map.groupBy(
     appQueries.flatMap((query) => query.data ?? []),
     (app) => app.projectId,

@@ -9,13 +9,7 @@ import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import {
-  type QueryClient,
-  useMutation,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
@@ -99,19 +93,6 @@ export function useProjectApps(
     ...projectAppsOptions(projectId),
     enabled,
     refetchInterval,
-  });
-}
-
-// Loads a project's apps ahead of a click, so its page opens with them
-export function useWarmProjectApps() {
-  const queryClient = useQueryClient();
-  return (projectId: string) => void queryClient.prefetchQuery(projectAppsOptions(projectId));
-}
-
-// One query per project, so each one shares its cache with the project's own pages
-export function useAppsOfProjects(projectIds: readonly string[]) {
-  return useQueries({
-    queries: projectIds.map((projectId) => projectAppsOptions(projectId)),
   });
 }
 
@@ -205,7 +186,8 @@ export function useDeleteApp(projectId: string) {
   });
 }
 
-function projectAppsOptions(projectId: string) {
+// One query per project, so every screen listing a project shares its cache
+export function projectAppsOptions(projectId: string) {
   return {
     queryKey: queryKeys.apps.list(projectId),
     staleTime: DEPLOY_DATA_STALE_MS,
