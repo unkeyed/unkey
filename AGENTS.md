@@ -185,8 +185,8 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 ## Verification
 
-During development, choose the smallest check that proves the change. The build
-and pre-push requirements below still apply.
+Run targeted tests for the code you change. Choose the smallest check that proves
+the change. Run the full suite when the scope warrants it, not before every push.
 
 - Go source change: targeted `mise exec -- rask ./path`.
 - Go file added or imports changed: `mise run build` (includes lint).
@@ -195,13 +195,14 @@ and pre-push requirements below still apply.
 - Formatting-sensitive change: format changed files through `mise exec` or a
   scoped task. Use repository-wide `mise run fmt` only when that scope is needed.
 - Docs-only change: link/content review. Note if no formatter applies.
-- Before pushing: `mise run test`.
 - Never install tooling or build an environment to verify a change. If the
   existing checks cannot cover it, say so instead.
 
 After applicable checks pass, repeat or broaden verification only for subsequent
-changes, failures, or unresolved risks. Report failed or skipped verification
-honestly.
+changes, related failures, or unresolved risks. If tests fail for reasons unrelated
+to your changes, report the failure and proceed when asked to push. Do not
+repeatedly rerun unrelated failures or fix them unless asked. State what you
+tested and what remains unverified.
 
 ## PlanetScale and Query Insights
 
