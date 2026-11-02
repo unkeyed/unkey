@@ -6,7 +6,9 @@ import (
 	"strconv"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
 func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, error) {
@@ -37,15 +39,24 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 		}
 		item := res.GetItems()[strconv.FormatUint(row.Pk, 10)].GetSuccess()
 		if item == nil {
-			return after, fmt.Errorf("missing re-encrypted value for pk %d", row.Pk)
+			logger.Error("skipping row without a re-encrypted value", "table", "encrypted_keys", "pk", row.Pk)
+			continue
 		}
-		_, err := h.db.UpdateVaultEncryptedKey(ctx, db.UpdateVaultEncryptedKeyParams{
+		updated, err := h.db.UpdateVaultEncryptedKey(ctx, db.UpdateVaultEncryptedKeyParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,
 			Ciphertext:    item.GetEncrypted(),
 			KeyID:         item.GetKeyId(),
 		})
+		outcome := "updated"
+		switch {
+		case err != nil:
+			outcome = "error"
+		case updated == 0:
+			outcome = "conflict"
+		}
+		metrics.VaultReEncryptionsDataTotal.WithLabelValues("encrypted_keys", outcome).Inc()
 		if err != nil {
 			return after, fmt.Errorf("failed to update pk %d", row.Pk)
 		}

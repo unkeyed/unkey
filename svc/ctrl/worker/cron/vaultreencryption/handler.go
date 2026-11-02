@@ -13,10 +13,14 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-const batchSize = 100
+const (
+	batchSize      = 100
+	runAttemptsMax = 5
+)
 
 type Config struct {
 	DB db.Database
@@ -68,8 +72,11 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 				pageCtx, cancel := context.WithTimeout(rc, 30*time.Second)
 				defer cancel()
 				next, err := tables[table](pageCtx, after)
-				return next, restate.ToTerminalError(err)
-			}, restate.WithName(fmt.Sprintf("re-encrypt %s after %d", table, after.Pk)))
+				if err != nil {
+					logger.Error("failed to re-encrypt page", "table", table, "after_pk", after.Pk, "error", err)
+				}
+				return next, err
+			}, restate.WithName(fmt.Sprintf("re-encrypt %s after %d", table, after.Pk)), restate.WithMaxRetryAttempts(runAttemptsMax))
 			if err != nil {
 				failures = append(failures, fmt.Errorf("%s: %s", table, err))
 				break
@@ -84,7 +91,9 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 	if err := errors.Join(failures...); err != nil {
 		return nil, restate.ToTerminalError(err)
 	}
-	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error { return h.heartbeat.Ping(rc) }, restate.WithName("send heartbeat")); err != nil {
+	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+		return h.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat"), restate.WithMaxRetryAttempts(runAttemptsMax)); err != nil {
 		return nil, err
 	}
 	return &hydrav1.RunVaultReEncryptionResponse{}, nil

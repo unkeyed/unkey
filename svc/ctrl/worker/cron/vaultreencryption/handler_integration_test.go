@@ -3,9 +3,12 @@ package vaultreencryption_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -273,7 +276,7 @@ func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
 	require.Equal(t, "recent ciphertext", decrypted.GetPlaintext())
 }
 
-func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
+func TestReEncryptionSkipsInvalidRowsAndContinuesPaging(t *testing.T) {
 	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
@@ -316,6 +319,8 @@ func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
 	}))
 	_, err = testVault.CreateDEK(t.Context(), keyringOld)
 	require.NoError(t, err)
+	keyIDCurrentNew, err := testVault.CreateDEK(t.Context(), keyring)
+	require.NoError(t, err)
 	testVault.Clock.Tick(25 * time.Hour)
 	handler, err := vaultreencryption.New(vaultreencryption.Config{
 		DB:        database,
@@ -328,14 +333,45 @@ func TestReEncryptionRetriesFailedPageWithoutPartialWrites(t *testing.T) {
 	))
 	cronClient := hydrav1.NewCronServiceIngressClient(runtime.IngressClient, "vault-re-encryption")
 	for range 2 {
+		updatedBefore := metricCounter(t, "unkey_control_vault_reencryptions_data_total", prometheus.Labels{
+			"table":   "encrypted_keys",
+			"outcome": "updated",
+		})
+		skippedBefore := metricCounter(t, "unkey_control_vault_reencryptions_data_total", prometheus.Labels{
+			"table":   "encrypted_keys",
+			"outcome": "skipped",
+		})
 		_, err = cronClient.RunVaultReEncryption().Request(t.Context(), &hydrav1.RunVaultReEncryptionRequest{})
-		require.Error(t, err, "each invocation must retry the failed page")
+		require.NoError(t, err)
+		require.Equal(t, updatedBefore+100, metricCounter(t, "unkey_control_vault_reencryptions_data_total", prometheus.Labels{
+			"table":   "encrypted_keys",
+			"outcome": "updated",
+		}))
+		require.Equal(t, skippedBefore, metricCounter(t, "unkey_control_vault_reencryptions_data_total", prometheus.Labels{
+			"table":   "encrypted_keys",
+			"outcome": "skipped",
+		}))
+		storedInvalid, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keys[0])
+		require.NoError(t, err)
+		require.Equal(t, "invalid-base64", storedInvalid.Encrypted)
 		storedCurrent, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keys[1])
 		require.NoError(t, err)
-		require.Equal(t, current.GetEncrypted(), storedCurrent.Encrypted, "a failed batch must not write partial results")
+		require.Equal(t, keyIDCurrentNew, storedCurrent.EncryptionKeyID, "an invalid row must not block valid rows in the same page")
+		decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+			Keyring:   keyring,
+			Encrypted: storedCurrent.Encrypted,
+		})
+		require.NoError(t, err)
+		require.Equal(t, "current", decrypted.GetPlaintext())
 		stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
 		require.NoError(t, err)
-		require.Equal(t, old.GetEncrypted(), stored.Encrypted, "a failed page must not advance the cursor")
+		require.NotEqual(t, old.GetKeyId(), stored.EncryptionKeyID, "an invalid row must not block later pages")
+		decrypted, err = client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+			Keyring:   keyringOld,
+			Encrypted: stored.Encrypted,
+		})
+		require.NoError(t, err)
+		require.Equal(t, "beyond the first batch", decrypted.GetPlaintext())
 	}
 }
 
@@ -354,6 +390,143 @@ func (v *insertingVault) ReEncryptBulk(ctx context.Context, req *vaultv1.ReEncry
 		v.inserted = true
 	}
 	return v.VaultServiceClient.ReEncryptBulk(ctx, req)
+}
+
+func TestReEncryptionRetriesFailuresWithoutLosingRows(t *testing.T) {
+	for name, failure := range map[string]struct {
+		count int32
+		write bool
+	}{
+		"transient vault": {
+			count: 1,
+			write: false,
+		},
+		"persistent vault": {
+			count: 1000,
+			write: false,
+		},
+		"transient write": {
+			count: 1,
+			write: true,
+		},
+		"persistent write": {
+			count: 1000,
+			write: true,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, database.Close()) })
+			testVault := vaulttestutil.StartTestVaultWithMemory(t)
+			client := vault.NewConnectVaultServiceClient(testVault.Client)
+			keyring := uid.New(uid.WorkspacePrefix)
+			keyID := uid.New(uid.KeyPrefix)
+			encrypted, err := client.Encrypt(t.Context(), &vaultv1.EncryptRequest{
+				Keyring: keyring,
+				Data:    "retry without losing rows",
+			})
+			require.NoError(t, err)
+			require.NoError(t, pkgdb.Query.InsertKeyEncryption(t.Context(), database.RW(), pkgdb.InsertKeyEncryptionParams{
+				WorkspaceID:     keyring,
+				KeyID:           keyID,
+				Encrypted:       encrypted.GetEncrypted(),
+				EncryptionKeyID: encrypted.GetKeyId(),
+				CreatedAt:       time.Now().UnixMilli(),
+			}))
+			keyIDNew, err := testVault.CreateDEK(t.Context(), keyring)
+			require.NoError(t, err)
+			testVault.Clock.Tick(25 * time.Hour)
+			vaultFailing := &failingVault{VaultServiceClient: client}
+			databaseFailing := &failingDatabase{Database: database}
+			failuresPending := &vaultFailing.failures
+			message := "failed to re-encrypt rows"
+			if failure.write {
+				failuresPending = &databaseFailing.failures
+				message = "failed to update"
+			}
+			failuresPending.Store(failure.count)
+			handler, err := vaultreencryption.New(vaultreencryption.Config{
+				DB:        databaseFailing,
+				Vault:     vaultFailing,
+				Heartbeat: healthcheck.NewNoop(),
+			})
+			require.NoError(t, err)
+			runtime := containers.Restate(t, hydrav1.NewCronServiceServer(&cronService{handler: handler},
+				restate.WithInvocationRetryPolicy(restate.WithMaxRetryAttempts(5), restate.KillOnMaxAttempts()),
+			))
+			cronClient := hydrav1.NewCronServiceIngressClient(runtime.IngressClient, "vault-re-encryption")
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			t.Cleanup(cancel)
+			failureLabels := prometheus.Labels{
+				"table":   "encrypted_keys",
+				"outcome": "error",
+			}
+			updatedLabels := prometheus.Labels{
+				"table":   "encrypted_keys",
+				"outcome": "updated",
+			}
+			failuresBefore := metricCounter(t, "unkey_control_vault_reencryptions_data_total", failureLabels)
+			updatedBefore := metricCounter(t, "unkey_control_vault_reencryptions_data_total", updatedLabels)
+			_, err = cronClient.RunVaultReEncryption().Request(ctx, &hydrav1.RunVaultReEncryptionRequest{})
+			if failure.count > 1 {
+				require.ErrorContains(t, err, message)
+				require.NotContains(t, err.Error(), "sensitive upstream error")
+				require.Equal(t, updatedBefore, metricCounter(t, "unkey_control_vault_reencryptions_data_total", updatedLabels))
+				stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
+				require.NoError(t, err)
+				require.Equal(t, encrypted.GetEncrypted(), stored.Encrypted)
+				failuresPending.Store(0)
+				_, err = cronClient.RunVaultReEncryption().Request(ctx, &hydrav1.RunVaultReEncryptionRequest{})
+				require.NoError(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			failuresAfter := metricCounter(t, "unkey_control_vault_reencryptions_data_total", failureLabels)
+			switch {
+			case !failure.write:
+				require.Equal(t, failuresBefore, failuresAfter)
+			case failure.count == 1:
+				require.Equal(t, failuresBefore+1, failuresAfter)
+			default:
+				require.Greater(t, failuresAfter, failuresBefore)
+			}
+			require.Equal(t, updatedBefore+1, metricCounter(t, "unkey_control_vault_reencryptions_data_total", updatedLabels))
+			stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(t.Context(), database.RW(), keyID)
+			require.NoError(t, err)
+			require.Equal(t, keyIDNew, stored.EncryptionKeyID)
+			decrypted, err := client.Decrypt(t.Context(), &vaultv1.DecryptRequest{
+				Keyring:   keyring,
+				Encrypted: stored.Encrypted,
+			})
+			require.NoError(t, err)
+			require.Equal(t, "retry without losing rows", decrypted.GetPlaintext())
+		})
+	}
+}
+
+type failingVault struct {
+	vault.VaultServiceClient
+	failures atomic.Int32
+}
+
+func (v *failingVault) ReEncryptBulk(ctx context.Context, req *vaultv1.ReEncryptBulkRequest) (*vaultv1.ReEncryptBulkResponse, error) {
+	if v.failures.Add(-1) >= 0 {
+		return nil, errors.New("sensitive upstream error")
+	}
+	return v.VaultServiceClient.ReEncryptBulk(ctx, req)
+}
+
+type failingDatabase struct {
+	db.Database
+	failures atomic.Int32
+}
+
+func (d *failingDatabase) UpdateVaultEncryptedKey(ctx context.Context, params db.UpdateVaultEncryptedKeyParams) (int64, error) {
+	if d.failures.Add(-1) >= 0 {
+		return 0, errors.New("sensitive upstream error")
+	}
+	return d.Database.UpdateVaultEncryptedKey(ctx, params)
 }
 
 func TestReEncryptionWithoutVaultFailsAtInvocationNotStartup(t *testing.T) {
@@ -380,4 +553,28 @@ type cronService struct {
 
 func (s *cronService) RunVaultReEncryption(ctx restate.ObjectContext, req *hydrav1.RunVaultReEncryptionRequest) (*hydrav1.RunVaultReEncryptionResponse, error) {
 	return s.handler.Handle(ctx, req)
+}
+
+func metricCounter(t *testing.T, name string, labels prometheus.Labels) float64 {
+	t.Helper()
+	families, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+	for _, family := range families {
+		if family.GetName() != name {
+			continue
+		}
+		for _, metric := range family.GetMetric() {
+			match := len(labels) == len(metric.GetLabel())
+			for _, label := range metric.GetLabel() {
+				if labels[label.GetName()] != label.GetValue() {
+					match = false
+					break
+				}
+			}
+			if match {
+				return metric.GetCounter().GetValue()
+			}
+		}
+	}
+	return 0
 }
