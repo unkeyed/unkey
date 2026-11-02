@@ -50,13 +50,19 @@ type ReadyChart = Extract<ChartState, { status: "ready" }>;
 
 export type GlanceCellState = Exclude<ChartState, ReadyChart> | (ReadyChart & { headline: number });
 
-// A cell with no headline is empty even when its series is a run of zeros, so
-// an app with no traffic reads the same in all three cells.
+function hasSignal(chart: ReadyChart["chart"]): boolean {
+  return chart.some((point) =>
+    Object.entries(point).some(([key, value]) => key !== "originalTimestamp" && (value ?? 0) > 0),
+  );
+}
+
 export function glanceCellState(metric: GlanceMetric, sources: Sources): GlanceCellState {
   const state = cardState(sources, metric);
   if (state.status !== "ready") {
     return state;
   }
   const headline = glanceValue(metric, sources);
-  return headline === null ? { status: "empty" } : { ...state, headline };
+  return headline === null || !hasSignal(state.chart)
+    ? { status: "empty" }
+    : { ...state, headline };
 }

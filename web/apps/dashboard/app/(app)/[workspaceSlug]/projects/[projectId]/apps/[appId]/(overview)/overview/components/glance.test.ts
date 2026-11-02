@@ -56,15 +56,28 @@ describe("glanceCellState", () => {
     expect(glanceCellState("errors", sources(quiet)).status).toBe("empty");
   });
 
-  it("shows a 0% error rate when traffic had no 5xx", () => {
-    const state = glanceCellState("errors", sources(healthy));
-    expect(state.status).toBe("ready");
-    expect(state.status === "ready" && state.headline).toBe(0);
+  it("is empty for error rate when traffic had no 5xx", () => {
+    expect(glanceCellState("errors", sources(healthy)).status).toBe("empty");
   });
 
-  it("is empty for CPU with no samples, and ready for an idle instance", () => {
+  it("is empty for CPU with no samples or only idle samples", () => {
     expect(glanceCellState("cpu", sources([], [resources(0, null)])).status).toBe("empty");
-    const idle = glanceCellState("cpu", sources([], [resources(0, 0)]));
-    expect(idle.status === "ready" && idle.headline).toBe(0);
+    expect(glanceCellState("cpu", sources([], [resources(0, 0)])).status).toBe("empty");
+  });
+
+  it("shows a cell once any point is above zero", () => {
+    const sparse = sources(
+      [traffic(0, 0, 0), { ...traffic(60_000, 4 / 60, 0), errorRate: 0 }],
+      [resources(0, 0), resources(60_000, 0)],
+    );
+    const requests = glanceCellState("requests", sparse);
+    expect(requests.status === "ready" && requests.headline).toBe(4);
+    expect(glanceCellState("errors", sparse).status).toBe("empty");
+    expect(glanceCellState("cpu", sparse).status).toBe("empty");
+
+    const failing = glanceCellState("errors", sources([{ ...traffic(0, 2, 1), errorRate: 0.5 }]));
+    expect(failing.status).toBe("ready");
+    const busy = glanceCellState("cpu", sources([], [resources(0, 0), resources(60_000, 120)]));
+    expect(busy.status === "ready" && busy.headline).toBe(120);
   });
 });
