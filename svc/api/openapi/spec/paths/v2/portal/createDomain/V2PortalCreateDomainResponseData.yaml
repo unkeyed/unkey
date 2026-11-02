@@ -13,4 +13,6 @@ properties:
     description: |
       Every DNS record needed to finish setting up this domain, ready to create at your provider.
       One record routes traffic to the portal and one proves ownership. Create all of them.
+  domainConnect:
+    "$ref": "../../../../common/DomainConnect.yaml"
 additionalProperties: false

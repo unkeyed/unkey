@@ -7,6 +7,7 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { DnsRecord, DnsRecord$inboundSchema } from "./dnsrecord.js";
+import { DomainConnect, DomainConnect$inboundSchema } from "./domainconnect.js";
 
 export type V2PortalCreateDomainResponseData = {
   /**
@@ -20,6 +21,14 @@ export type V2PortalCreateDomainResponseData = {
    * One record routes traffic to the portal and one proves ownership. Create all of them.
    */
   dnsRecords: Array<DnsRecord>;
+  /**
+   * One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+   *
+   * @remarks
+   * Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+   * available and both of its fields are filled.
+   */
+  domainConnect?: DomainConnect | undefined;
 };
 
 /** @internal */
@@ -30,6 +39,7 @@ export const V2PortalCreateDomainResponseData$inboundSchema: z.ZodType<
 > = z.object({
   domainId: z.string(),
   dnsRecords: z.array(DnsRecord$inboundSchema),
+  domainConnect: DomainConnect$inboundSchema.optional(),
 });
 
 export function v2PortalCreateDomainResponseDataFromJSON(

@@ -50,6 +50,23 @@ func TestCreatePortalDomainReturnsDNSRecords(t *testing.T) {
 	require.Equal(t, f.portal.ID, call.GetPortalId())
 	require.Equal(t, domain, call.GetDomain())
 	require.Equal(t, ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY, call.GetActor().GetType())
+	require.Nil(t, res.Body.Data.DomainConnect, "absent when ctrl found no Domain Connect provider")
+}
+
+func TestCreatePortalDomainReturnsDomainConnect(t *testing.T) {
+	f := setup(t)
+	f.ctrl.AddPortalDomainFunc = func(_ context.Context, _ *ctrlv1.AddPortalDomainRequest) (*ctrlv1.AddPortalDomainResponse, error) {
+		return &ctrlv1.AddPortalDomainResponse{
+			DomainId:          uid.New(uid.PortalDomainPrefix),
+			TargetCname:       "a1b2c3d4e5f6g7h8.portal.unkey.com",
+			VerificationToken: "3ZQ8xK1mP7vT5nR2wY6bJ4hL",
+			DomainConnect:     &ctrlv1.DomainConnect{Provider: "Cloudflare", Url: "https://dash.cloudflare.com/domainconnect"},
+		}, nil
+	}
+
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, f.grant("write"))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, &openapi.DomainConnect{Provider: "Cloudflare", Url: "https://dash.cloudflare.com/domainconnect"}, res.Body.Data.DomainConnect)
 }
 
 // ctrl receives the canonical form, so the stored name and the records agree.

@@ -117,19 +117,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return customdomain.MapCtrlError(err, "create portal domain")
 	}
 
+	data := openapi.V2PortalCreateDomainResponseData{
+		DomainId: res.GetDomainId(),
+		DnsRecords: domain.DnsRecords(domain.DnsRecordsInput{
+			Domain:            domainName,
+			TargetCname:       res.GetTargetCname(),
+			VerificationToken: res.GetVerificationToken(),
+			RoutingVerified:   false,
+			OwnershipVerified: false,
+		}),
+		DomainConnect: nil,
+	}
+	if dc := res.GetDomainConnect(); dc != nil {
+		data.DomainConnect = &openapi.DomainConnect{
+			Provider: dc.GetProvider(),
+			Url:      dc.GetUrl(),
+		}
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: openapi.V2PortalCreateDomainResponseData{
-			DomainId: res.GetDomainId(),
-			DnsRecords: domain.DnsRecords(domain.DnsRecordsInput{
-				Domain:            domainName,
-				TargetCname:       res.GetTargetCname(),
-				VerificationToken: res.GetVerificationToken(),
-				RoutingVerified:   false,
-				OwnershipVerified: false,
-			}),
-		},
+		Data: data,
 	})
 }
