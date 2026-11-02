@@ -1,7 +1,7 @@
 "use client";
 
-import { useInvalidateBillingQueries } from "@/components/billing/payment-issues";
 import { announceUpgrade } from "@/components/billing/upgrade-success/upgrade-success-dialog";
+import { useInvalidateBillingQueries } from "@/hooks/use-payment-issues";
 import { currentApiProduct } from "@/lib/billing/api-plan";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";

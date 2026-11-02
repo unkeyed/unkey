@@ -1,6 +1,6 @@
 "use client";
 
-import { usePaymentIssues } from "@/components/billing/payment-issues";
+import { usePaymentIssues } from "@/hooks/use-payment-issues";
 import { currentApiProduct } from "@/lib/billing/api-plan";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";

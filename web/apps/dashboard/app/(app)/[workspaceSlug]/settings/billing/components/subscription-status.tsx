@@ -1,5 +1,5 @@
 "use client";
-import { usePayInvoice } from "@/components/billing/payment-issues";
+import { usePayInvoice } from "@/hooks/use-payment-issues";
 import { needsPaymentAction } from "@/lib/stripe/subscriptionUtils";
 import { Button, SettingCard } from "@unkey/ui";
 import type { Stripe } from "stripe";

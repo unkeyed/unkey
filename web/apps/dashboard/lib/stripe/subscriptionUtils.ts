@@ -206,3 +206,5 @@ export function needsPaymentAction(
 ): status is PaymentActionStatus {
   return PAYMENT_ACTION_STATUSES.some((s) => s === status);
 }
+
+export const SUBSCRIPTION_STATUS_TTL_MS = 5 * 60 * 1000;

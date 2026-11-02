@@ -1,6 +1,6 @@
 "use client";
 
-import { usePaymentIssues } from "@/components/billing/payment-issues";
+import { usePaymentIssues } from "@/hooks/use-payment-issues";
 import { trpc } from "@/lib/trpc/client";
 import { useState } from "react";
 import { periodCredit } from "./deploy-invoice";

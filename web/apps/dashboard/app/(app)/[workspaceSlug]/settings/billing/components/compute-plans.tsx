@@ -1,9 +1,9 @@
 "use client";
 
-import { useInvalidateBillingQueries } from "@/components/billing/payment-issues";
 import { FEATURE_ICONS } from "@/components/billing/plan-feature-icons";
 import { PlanTierIcon } from "@/components/billing/plan-tier-icons";
 import { announceUpgrade } from "@/components/billing/upgrade-success/upgrade-success-dialog";
+import { useInvalidateBillingQueries } from "@/hooks/use-payment-issues";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   type CurrentPlan,

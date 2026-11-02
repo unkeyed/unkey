@@ -1,6 +1,6 @@
 "use client";
 
-import { usePayInvoice, usePaymentIssues } from "@/components/billing/payment-issues";
+import { usePayInvoice, usePaymentIssues } from "@/hooks/use-payment-issues";
 import { formatDollars } from "@/lib/fmt";
 import type { SubscriptionProduct } from "@/lib/stripe/billingSubscriptions";
 import { IconCircleInfoOutline12, IconCubeOutline18, IconNodesOutline18 } from "@unkey/icons";

@@ -1,5 +1,5 @@
 "use client";
-import { useInvalidateBillingQueries } from "@/components/billing/payment-issues";
+import { useInvalidateBillingQueries } from "@/hooks/use-payment-issues";
 import { type CheckoutOutcome, checkoutReturnPath } from "@/lib/billing/upgrade-result";
 import { routes } from "@/lib/navigation/routes";
 import { useRouter } from "next/navigation";

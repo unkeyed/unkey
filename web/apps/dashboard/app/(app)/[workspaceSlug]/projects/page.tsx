@@ -1,7 +1,7 @@
 "use client";
 
-import { useInvalidateBillingQueries } from "@/components/billing/payment-issues";
 import { ComputeUpgradeCelebration } from "@/components/billing/upgrade-success/upgrade-success-dialog";
+import { useInvalidateBillingQueries } from "@/hooks/use-payment-issues";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { DEPLOY_CHECKOUT_ORIGINS, routes } from "@/lib/navigation/routes";
 import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";

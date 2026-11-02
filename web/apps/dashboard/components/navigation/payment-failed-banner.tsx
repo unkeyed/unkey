@@ -1,6 +1,6 @@
 "use client";
 
-import { usePayInvoice, usePaymentIssues } from "@/components/billing/payment-issues";
+import { usePayInvoice, usePaymentIssues } from "@/hooks/use-payment-issues";
 import { routes } from "@/lib/navigation/routes";
 import type { SubscriptionProduct } from "@/lib/stripe/billingSubscriptions";
 import { useWorkspace } from "@/providers/workspace-provider";

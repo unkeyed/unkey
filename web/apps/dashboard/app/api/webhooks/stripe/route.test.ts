@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/gen/proto/ctrl/v1/deployment_pb", () => ({ DeployService: {} }));
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: vi.fn() }));
-vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), unstable_cache: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 vi.mock("@/lib/auth/deactivateNonCreatorMemberships", () => ({
   deactivateNonCreatorMemberships: vi.fn(),
 }));
