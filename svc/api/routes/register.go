@@ -249,7 +249,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2RatelimitLimit.Handler{
 			DB:              svc.Database,
 			RatelimitEvents: svc.RatelimitEvents,
-			DirectAuditLogs: svc.DirectAuditLogs,
+			AuditLogBuffer:  svc.AuditLogBuffer,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
@@ -676,7 +676,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysVerifyKey.Handler{
 			DB:               svc.Database,
 			Keys:             svc.Keys,
-			DirectAuditLogs:  svc.DirectAuditLogs,
+			AuditLogBuffer:   svc.AuditLogBuffer,
 			KeyVerifications: svc.KeyVerifications,
 		},
 	)
