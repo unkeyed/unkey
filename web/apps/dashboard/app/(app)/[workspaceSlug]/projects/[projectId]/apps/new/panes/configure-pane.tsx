@@ -1,5 +1,6 @@
 "use client";
 
+import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
 import { useBuildSource } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-build-source";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -24,7 +25,6 @@ import type { SourceKind } from "../wizard-model";
 import { BranchField } from "./branch-field";
 import { ConfigBlocks, ConfigBlocksSkeleton } from "./config-blocks";
 import { ConfigureSkeleton } from "./configure-skeleton";
-import { PaneSubmit } from "./pane-actions";
 
 type DeployInput = { environment: string; name: string; branch: string | null };
 

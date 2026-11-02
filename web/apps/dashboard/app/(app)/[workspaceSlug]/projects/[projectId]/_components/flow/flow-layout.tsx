@@ -1,10 +1,6 @@
 "use client";
 
-import { Button, cn } from "@unkey/ui";
-import { type ReactNode, useState } from "react";
-import { CardFrame } from "./card";
-import { PaneFooterProvider } from "./panes/pane-actions";
-import { type Pane, cardCopy, footerlessPanes } from "./wizard-model";
+import type { ReactNode } from "react";
 
 export type Role = "previous" | "current" | "next";
 
@@ -58,38 +54,5 @@ export function ColumnGrid({ children }: { children: ReactNode }) {
     >
       {children}
     </div>
-  );
-}
-
-export function PendingFlowCard({ card, children }: { card: Pane; children: ReactNode }) {
-  const [footer, setFooter] = useState<HTMLDivElement | null>(null);
-  return (
-    <FlowViewport>
-      <FlowSplit steps={<StepAside />}>
-        <div className="relative min-h-0 flex-1 overflow-hidden">
-          <ColumnGrid>
-            <div
-              className={cn("relative col-start-1 flex min-h-0 flex-col", roleCell.current)}
-              style={{ maxHeight: COLUMN_CARD_MAX_HEIGHT }}
-            >
-              <PaneFooterProvider value={footer}>
-                <CardFrame
-                  copy={cardCopy[card]}
-                  actionsRef={setFooter}
-                  footerHidden={footerlessPanes.has(card)}
-                  back={
-                    <Button variant="outline" size="sm" disabled>
-                      Back
-                    </Button>
-                  }
-                >
-                  {children}
-                </CardFrame>
-              </PaneFooterProvider>
-            </div>
-          </ColumnGrid>
-        </div>
-      </FlowSplit>
-    </FlowViewport>
   );
 }
