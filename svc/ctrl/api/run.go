@@ -273,13 +273,14 @@ func Run(ctx context.Context, cfg Config) error {
 		Bearer:                     cfg.AuthToken,
 	})))
 	mux.Handle(ctrlv1connect.NewPortalDomainServiceHandler(portaldomain.New(portaldomain.Config{
-		Database:      database,
-		Restate:       restateClient,
-		RestateAdmin:  restateAdminClient,
-		Auditlogs:     auditlogSvc,
-		CnameDomain:   cfg.Portal.CnameDomain,
-		EnvironmentID: cfg.Portal.EnvironmentID,
-		Bearer:        cfg.AuthToken,
+		Database:                   database,
+		Restate:                    restateClient,
+		RestateAdmin:               restateAdminClient,
+		Auditlogs:                  auditlogSvc,
+		CnameDomain:                cfg.Portal.CnameDomain,
+		EnvironmentID:              cfg.Portal.EnvironmentID,
+		DomainConnectPrivateKeyPEM: dcPrivateKeyPEM,
+		Bearer:                     cfg.AuthToken,
 	})))
 	appSvc := app.New(app.Config{
 		Database:  database,

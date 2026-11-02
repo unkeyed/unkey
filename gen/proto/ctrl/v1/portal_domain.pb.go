@@ -98,8 +98,10 @@ type AddPortalDomainResponse struct {
 	// Ownership proof token the tenant publishes as a TXT record on
 	// "_unkey.<domain>" with the value "unkey-domain-verify=<token>".
 	VerificationToken string `protobuf:"bytes,4,opt,name=verification_token,json=verificationToken,proto3" json:"verification_token,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Absent when the DNS provider does not support Domain Connect.
+	DomainConnect *DomainConnect `protobuf:"bytes,5,opt,name=domain_connect,json=domainConnect,proto3" json:"domain_connect,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AddPortalDomainResponse) Reset() {
@@ -151,6 +153,13 @@ func (x *AddPortalDomainResponse) GetVerificationToken() string {
 		return x.VerificationToken
 	}
 	return ""
+}
+
+func (x *AddPortalDomainResponse) GetDomainConnect() *DomainConnect {
+	if x != nil {
+		return x.DomainConnect
+	}
+	return nil
 }
 
 type DeletePortalDomainRequest struct {
@@ -365,16 +374,17 @@ var File_ctrl_v1_portal_domain_proto protoreflect.FileDescriptor
 
 const file_ctrl_v1_portal_domain_proto_rawDesc = "" +
 	"\n" +
-	"\x1bctrl/v1/portal_domain.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\"\x9a\x01\n" +
+	"\x1bctrl/v1/portal_domain.proto\x12\actrl.v1\x1a\x13ctrl/v1/actor.proto\x1a\x1bctrl/v1/custom_domain.proto\"\x9a\x01\n" +
 	"\x16AddPortalDomainRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1b\n" +
 	"\tportal_id\x18\x02 \x01(\tR\bportalId\x12\x16\n" +
 	"\x06domain\x18\x03 \x01(\tR\x06domain\x12(\n" +
-	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x88\x01\n" +
+	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\xc7\x01\n" +
 	"\x17AddPortalDomainResponse\x12\x1b\n" +
 	"\tdomain_id\x18\x01 \x01(\tR\bdomainId\x12!\n" +
 	"\ftarget_cname\x18\x02 \x01(\tR\vtargetCname\x12-\n" +
-	"\x12verification_token\x18\x04 \x01(\tR\x11verificationToken\"\xa2\x01\n" +
+	"\x12verification_token\x18\x04 \x01(\tR\x11verificationToken\x12=\n" +
+	"\x0edomain_connect\x18\x05 \x01(\v2\x16.ctrl.v1.DomainConnectR\rdomainConnect\"\xa2\x01\n" +
 	"\x19DeletePortalDomainRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1b\n" +
 	"\tportal_id\x18\x02 \x01(\tR\bportalId\x12\x1b\n" +
@@ -414,22 +424,24 @@ var file_ctrl_v1_portal_domain_proto_goTypes = []any{
 	(*RetryPortalDomainVerificationRequest)(nil),  // 4: ctrl.v1.RetryPortalDomainVerificationRequest
 	(*RetryPortalDomainVerificationResponse)(nil), // 5: ctrl.v1.RetryPortalDomainVerificationResponse
 	(*ActorInfo)(nil),                             // 6: ctrl.v1.ActorInfo
+	(*DomainConnect)(nil),                         // 7: ctrl.v1.DomainConnect
 }
 var file_ctrl_v1_portal_domain_proto_depIdxs = []int32{
 	6, // 0: ctrl.v1.AddPortalDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
-	6, // 1: ctrl.v1.DeletePortalDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
-	6, // 2: ctrl.v1.RetryPortalDomainVerificationRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 3: ctrl.v1.PortalDomainService.AddPortalDomain:input_type -> ctrl.v1.AddPortalDomainRequest
-	2, // 4: ctrl.v1.PortalDomainService.DeletePortalDomain:input_type -> ctrl.v1.DeletePortalDomainRequest
-	4, // 5: ctrl.v1.PortalDomainService.RetryPortalDomainVerification:input_type -> ctrl.v1.RetryPortalDomainVerificationRequest
-	1, // 6: ctrl.v1.PortalDomainService.AddPortalDomain:output_type -> ctrl.v1.AddPortalDomainResponse
-	3, // 7: ctrl.v1.PortalDomainService.DeletePortalDomain:output_type -> ctrl.v1.DeletePortalDomainResponse
-	5, // 8: ctrl.v1.PortalDomainService.RetryPortalDomainVerification:output_type -> ctrl.v1.RetryPortalDomainVerificationResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	7, // 1: ctrl.v1.AddPortalDomainResponse.domain_connect:type_name -> ctrl.v1.DomainConnect
+	6, // 2: ctrl.v1.DeletePortalDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
+	6, // 3: ctrl.v1.RetryPortalDomainVerificationRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 4: ctrl.v1.PortalDomainService.AddPortalDomain:input_type -> ctrl.v1.AddPortalDomainRequest
+	2, // 5: ctrl.v1.PortalDomainService.DeletePortalDomain:input_type -> ctrl.v1.DeletePortalDomainRequest
+	4, // 6: ctrl.v1.PortalDomainService.RetryPortalDomainVerification:input_type -> ctrl.v1.RetryPortalDomainVerificationRequest
+	1, // 7: ctrl.v1.PortalDomainService.AddPortalDomain:output_type -> ctrl.v1.AddPortalDomainResponse
+	3, // 8: ctrl.v1.PortalDomainService.DeletePortalDomain:output_type -> ctrl.v1.DeletePortalDomainResponse
+	5, // 9: ctrl.v1.PortalDomainService.RetryPortalDomainVerification:output_type -> ctrl.v1.RetryPortalDomainVerificationResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_portal_domain_proto_init() }
@@ -438,6 +450,7 @@ func file_ctrl_v1_portal_domain_proto_init() {
 		return
 	}
 	file_ctrl_v1_actor_proto_init()
+	file_ctrl_v1_custom_domain_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

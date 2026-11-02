@@ -10,6 +10,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -67,6 +68,7 @@ func (s *Service) AddPortalDomain(
 
 	targetCname := fmt.Sprintf("%s.%s", uid.DNS1035(16), s.cnameDomain)
 	verificationToken := uid.Secure(24)
+	domainConnect := s.discoverDomainConnect(ctx, domain, targetCname, verificationToken)
 	domainID := uid.New(uid.PortalDomainPrefix)
 	now := time.Now().UnixMilli()
 
@@ -107,8 +109,8 @@ func (s *Service) AddPortalDomain(
 			VerificationStatus:    db.PortalDomainsVerificationStatusPending,
 			VerificationToken:     verificationToken,
 			TargetCname:           targetCname,
-			DomainConnectProvider: sql.NullString{Valid: false, String: ""},
-			DomainConnectUrl:      sql.NullString{Valid: false, String: ""},
+			DomainConnectProvider: sql.NullString{Valid: domainConnect != nil, String: domainConnect.GetProvider()},
+			DomainConnectUrl:      sql.NullString{Valid: domainConnect != nil, String: domainConnect.GetUrl()},
 			InvocationID:          sql.NullString{Valid: false, String: ""},
 			CreatedAt:             now,
 		}); txErr != nil {
@@ -155,5 +157,29 @@ func (s *Service) AddPortalDomain(
 		DomainId:          domainID,
 		TargetCname:       targetCname,
 		VerificationToken: verificationToken,
+		DomainConnect:     domainConnect,
 	}), nil
+}
+
+// discoverDomainConnect looks up a one-click setup link at the domain's DNS
+// provider. It is best effort: nil when discovery is disabled, unsupported, or
+// fails, and the tenant creates the records by hand instead.
+func (s *Service) discoverDomainConnect(ctx context.Context, domain, targetCname, verificationToken string) *ctrlv1.DomainConnect {
+	if len(s.domainConnectPrivateKeyPEM) == 0 {
+		return nil
+	}
+
+	// No redirect: portal domains have no dashboard page to return to yet.
+	result, err := domainconnect.Discover(ctx, domain, s.domainConnectPrivateKeyPEM, map[string]string{
+		"target":            targetCname,
+		"verificationToken": verificationToken,
+	}, "")
+	if err != nil {
+		logger.Warn("domain connect discovery failed", "domain", domain, "error", err)
+		return nil
+	}
+	if result == nil {
+		return nil
+	}
+	return &ctrlv1.DomainConnect{Provider: result.ProviderName, Url: result.URL}
 }

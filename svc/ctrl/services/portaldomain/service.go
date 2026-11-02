@@ -25,13 +25,14 @@ import (
 // PortalDomainService virtual object.
 type Service struct {
 	ctrlv1connect.UnimplementedPortalDomainServiceHandler
-	db            db.Database
-	restate       *restateingress.Client
-	restateAdmin  *restateadmin.Client
-	auditlogs     auditlogs.AuditLogService
-	cnameDomain   string
-	environmentID string
-	bearer        string
+	db                         db.Database
+	restate                    *restateingress.Client
+	restateAdmin               *restateadmin.Client
+	auditlogs                  auditlogs.AuditLogService
+	cnameDomain                string
+	environmentID              string
+	domainConnectPrivateKeyPEM []byte
+	bearer                     string
 }
 
 // Config holds the configuration for creating a new [Service].
@@ -50,6 +51,9 @@ type Config struct {
 	// AddPortalDomain fail, and it scopes the route a
 	// verified domain's deletion removes.
 	EnvironmentID string
+	// DomainConnectPrivateKeyPEM signs Domain Connect URLs. Empty skips
+	// discovery.
+	DomainConnectPrivateKeyPEM []byte
 	// Bearer is the preshared token callers must send in the Authorization header.
 	Bearer string
 }
@@ -64,6 +68,7 @@ func New(cfg Config) *Service {
 		auditlogs:                               cfg.Auditlogs,
 		cnameDomain:                             cfg.CnameDomain,
 		environmentID:                           cfg.EnvironmentID,
+		domainConnectPrivateKeyPEM:              cfg.DomainConnectPrivateKeyPEM,
 		bearer:                                  cfg.Bearer,
 	}
 }

@@ -2,6 +2,7 @@ syntax = "proto3";
 package ctrl.v1;
 
 import "ctrl/v1/actor.proto";
+import "ctrl/v1/custom_domain.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1";
 
@@ -20,6 +21,8 @@ message AddPortalDomainResponse {
   // Ownership proof token the tenant publishes as a TXT record on
   // "_unkey.<domain>" with the value "unkey-domain-verify=<token>".
   string verification_token = 4;
+  // Absent when the DNS provider does not support Domain Connect.
+  DomainConnect domain_connect = 5;
 }
 
 message DeletePortalDomainRequest {
