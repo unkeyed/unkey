@@ -6,9 +6,12 @@ import { getErrorMessage } from "@/lib/unkey-client";
 import { match } from "@unkey/match";
 import { Button, FormSelect, type FormSelectOption } from "@unkey/ui";
 import type { ReactNode } from "react";
-import { useFormContext, useFormState, useWatch } from "react-hook-form";
+import { useFormContext, useFormState } from "react-hook-form";
+import { useAppId, useProjectData } from "../../../data-provider";
+import { type CallerSnapshot, useTargetDeployments } from "../../hooks/use-connections-data";
+import { CALLER_KINDS } from "../../model/caller-kind";
 import type { ConnectionFormValues } from "../../model/form";
-import type { TargetDeployment } from "../../model/target";
+import { type TargetDeployment, type TargetRule, targetContextOf } from "../../model/target";
 import {
   type DeploymentOption,
   type TargetChoices,
@@ -16,35 +19,59 @@ import {
   type TargetOption,
   deploymentOptions,
   selectValueOf,
+  targetDescription,
   targetHint,
   targetOptions,
 } from "../../model/target-options";
 
 export function TargetField({
-  choices,
-  deployments,
+  caller,
+  target,
+  rule,
+  labelAction,
 }: {
-  choices: TargetChoices;
-  deployments: ListView<TargetDeployment>;
+  caller: CallerSnapshot;
+  target: { id: string; name: string };
+  rule: TargetRule;
+  labelAction?: ReactNode;
 }) {
+  const { projectId } = useProjectData();
+  const appId = useAppId();
+  const kind = caller.environment.kind;
+  const name = `targets.${kind}` as const;
   const { control, setValue } = useFormContext<ConnectionFormValues>();
-  const target = useWatch({ control, name: "target" });
-  const { errors } = useFormState({ control, name: "target" });
-  const hint = targetHint(target, errors.target?.message, choices);
-  const hintProps = hint ? HINT_PROPS[hint.tone](hint.text) : { description: TARGET_DESCRIPTION };
-  const options = targetOptions(target, choices);
-  const update = (next: ConnectionFormValues["target"]) =>
-    setValue("target", next, { shouldDirty: true, shouldValidate: errors.target !== undefined });
+  const { errors } = useFormState({ control, name });
+  const error = errors.targets?.[kind]?.message;
+  const deployments = useTargetDeployments({
+    projectId,
+    appId,
+    environmentId: caller.environment.id,
+    targetAppId: target.id,
+    known: caller.targets.deployments,
+    enabled: rule.targetType === "deployment",
+  });
+  const choices: TargetChoices = {
+    ...targetContextOf(caller, target.name),
+    targetAppId: target.id,
+    deployments: deployments.choices,
+  };
+  const description = targetDescription(rule, choices);
+  const hint = targetHint(rule, error, choices);
+  const hintProps = hint ? HINT_PROPS[hint.tone](hint.text, description) : { description };
+  const options = targetOptions(rule, choices);
+  const update = (next: TargetRule) =>
+    setValue(name, next, { shouldDirty: true, shouldValidate: error !== undefined });
 
   return (
     <div className="flex flex-col gap-2">
       <FormSelect
-        label="Target"
+        label={CALLER_KINDS[kind].fieldLabel}
+        labelAction={labelAction}
         size="sm"
         placeholder="Choose a target"
         {...hintProps}
         options={options.map(targetSelectOption)}
-        value={selectValueOf(target)}
+        value={selectValueOf(rule)}
         onValueChange={(value) => {
           const picked = options.find((candidate) => candidate.value === value);
           if (picked) {
@@ -52,11 +79,11 @@ export function TargetField({
           }
         }}
       />
-      {target.targetType === "deployment" ? (
+      {rule.targetType === "deployment" ? (
         <DeploymentPicker
-          value={target.targetDeploymentId}
+          value={rule.targetDeploymentId}
           choices={choices.deployments}
-          deployments={deployments}
+          deployments={deployments.list}
           onValueChange={(id) => update({ targetType: "deployment", targetDeploymentId: id })}
         />
       ) : null}
@@ -64,14 +91,12 @@ export function TargetField({
   );
 }
 
-const TARGET_DESCRIPTION = "Pick another environment, or pin one deployment.";
-
 const HINT_PROPS: Record<
   TargetHint["tone"],
-  (text: string) => { description: ReactNode; error?: string }
+  (text: string, description: string) => { description: ReactNode; error?: string }
 > = {
   warning: (text) => ({ description: <span className="text-warning-11">{text}</span> }),
-  error: (text) => ({ description: TARGET_DESCRIPTION, error: text }),
+  error: (text, description) => ({ description, error: text }),
 };
 
 function targetSelectOption(option: TargetOption): FormSelectOption {

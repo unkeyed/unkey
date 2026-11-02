@@ -10,13 +10,13 @@ export function ConnectionsList({
   rows,
   onEdit,
   onRemove,
-  removing,
+  removeDisabled,
   removed,
 }: {
   rows: readonly ConnectionRowModel[];
   onEdit: (connection: ListedConnection) => void;
   onRemove: (connection: ListedConnection) => void;
-  removing: boolean;
+  removeDisabled: boolean;
   removed: ReactNode;
 }) {
   return (
@@ -29,7 +29,7 @@ export function ConnectionsList({
             row={row}
             onEdit={onEdit}
             onRemove={onRemove}
-            removing={removing}
+            removeDisabled={removeDisabled}
           />
         ))}
         {removed}

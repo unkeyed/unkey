@@ -88,9 +88,10 @@ function EditFooter({
       </SlidePanelClose>
       <DeleteConnectionDialog
         targetAppName={connection.targetAppName}
+        alsoPreview={controller.alsoPreview}
         open={isRemoveConfirmOpen}
         onOpenChange={setIsRemoveConfirmOpen}
-        onConfirm={() => controller.remove(connection)}
+        onConfirm={controller.remove}
       />
     </SlidePanelFooter>
   );

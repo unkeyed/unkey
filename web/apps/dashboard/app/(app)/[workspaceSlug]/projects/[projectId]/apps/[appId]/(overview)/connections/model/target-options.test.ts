@@ -2,10 +2,13 @@ import { newId } from "@unkey/id";
 import { describe, expect, it } from "vitest";
 import type { Environment, TargetDeployment, TargetRule } from "./target";
 import {
+  TARGET_DESCRIPTION,
   type TargetChoices,
+  connectedTargets,
   deploymentOptions,
   mergeDeploymentTargets,
   selectValueOf,
+  targetDescription,
   targetHint,
   targetOptions,
 } from "./target-options";
@@ -50,6 +53,7 @@ function deployment(overrides: Partial<TargetDeployment> = {}): TargetDeployment
 
 const ready = deployment();
 const choices: TargetChoices = {
+  callerKind: "production",
   targetAppId: db,
   targetName: "db",
   environments: [dbProd, dbCanary, dbPreview, other],
@@ -97,6 +101,19 @@ describe("targetOptions", () => {
     ]);
   });
 
+  it("offers same Git branch and every target environment, production included, to previews", () => {
+    const fromPreview: TargetChoices = { ...choices, callerKind: "preview" };
+    expect(shape(automatic, fromPreview)).toEqual([
+      ["automatic", "automatic"],
+      ["environment", `env:${dbProd.id}`],
+      ["environment", `env:${dbCanary.id}`],
+      ["environment", `env:${dbPreview.id}`],
+      ["pin", "deployment"],
+    ]);
+    expect(targetOptions(automatic, fromPreview)[0]).toMatchObject({ label: "Same Git branch" });
+    expect(targetOptions(automatic, choices)[0]).toMatchObject({ label: "Production" });
+  });
+
   it("keeps production listed when production already targets it", () => {
     const current: TargetRule = { targetType: "environment", targetEnvironmentId: dbProd.id };
     expect(shape(current)).toContainEqual(["environment", `env:${dbProd.id}`]);
@@ -139,5 +156,35 @@ describe("targetHint", () => {
     expect(
       targetHint({ targetType: "deployment", targetDeploymentId: "" }, undefined, choices),
     ).toBeNull();
+  });
+});
+
+describe("targetDescription", () => {
+  it("explains same Git branch for previews and keeps the default elsewhere", () => {
+    const fromPreview: TargetChoices = { ...choices, callerKind: "preview" };
+    expect(targetDescription(automatic, fromPreview)).toBe(
+      "Each preview connects to the newest db preview on the same Git branch. If there is none, it has no target.",
+    );
+    expect(targetDescription(automatic, choices)).toBe(TARGET_DESCRIPTION);
+    expect(
+      targetDescription({ targetType: "environment", targetEnvironmentId: dbProd.id }, fromPreview),
+    ).toBe(TARGET_DESCRIPTION);
+  });
+});
+
+describe("connectedTargets", () => {
+  it("lists each connected caller with its target label", () => {
+    const targets = { environments: choices.environments, deployments: choices.deployments };
+    const callers = {
+      production: { environment: { kind: "production" as const }, targets },
+      preview: { environment: { kind: "preview" as const }, targets },
+    };
+    expect(connectedTargets(callers, { production: automatic, preview: automatic }, "db")).toEqual([
+      { kind: "production", label: "Production" },
+      { kind: "preview", label: "Same Git branch" },
+    ]);
+    expect(connectedTargets(callers, { production: automatic, preview: null }, "db")).toEqual([
+      { kind: "production", label: "Production" },
+    ]);
   });
 });

@@ -1,13 +1,18 @@
+import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
 import { match } from "@unkey/match";
+import { CALLER_KINDS } from "./caller-kind";
+import { type Callers, callerList } from "./callers";
+import type { ConnectionFormValues } from "./form";
 import {
-  AUTOMATIC_TARGET_LABEL,
   type Environment,
+  type TargetCaller,
   type TargetContext,
   type TargetDeployment,
   type TargetRule,
   describeTarget,
-  isProduction,
+  targetContextOf,
   targetError,
+  targetLabel,
 } from "./target";
 
 export type TargetChoices = TargetContext<TargetDeployment> & { targetAppId: string };
@@ -27,6 +32,8 @@ export type DeploymentOption =
 export type TargetHint = { tone: "warning" | "error"; text: string };
 
 const PIN_VALUE = "deployment";
+
+export const TARGET_DESCRIPTION = "Pick another environment, or pin one deployment.";
 
 export function mergeDeploymentTargets<T extends { id: string }>(pins: T[], choices: T[]): T[] {
   const seen = new Set<string>();
@@ -53,14 +60,19 @@ function option(shape: OptionShape, rule: TargetRule): TargetOption {
 
 export function targetOptions(current: TargetRule, choices: TargetChoices): TargetOption[] {
   const targetEnvs = choices.environments.filter((env) => env.appId === choices.targetAppId);
-  const coveredByAutomatic = targetEnvs.find(isProduction);
+  const coveredByAutomatic = targetEnvs.find(
+    (env) => env.kind === CALLER_KINDS[choices.callerKind].coveredByAutomatic,
+  );
   const currentEnvId = current.targetType === "environment" ? current.targetEnvironmentId : "";
   const deleted: TargetOption[] =
     currentEnvId !== "" && !targetEnvs.some((env) => env.id === currentEnvId)
       ? [option({ type: "deleted" }, current)]
       : [];
   return [
-    option({ type: "automatic", label: AUTOMATIC_TARGET_LABEL }, { targetType: "automatic" }),
+    option(
+      { type: "automatic", label: CALLER_KINDS[choices.callerKind].automatic.label },
+      { targetType: "automatic" },
+    ),
     ...targetEnvs
       .filter((env) => env !== coveredByAutomatic || env.id === currentEnvId)
       .map((environment) =>
@@ -110,4 +122,28 @@ export function targetHint(
   }
   const { text, unavailable } = describeTarget(target, choices);
   return unavailable ? { tone: "warning", text } : null;
+}
+
+export function targetDescription(target: TargetRule, choices: TargetChoices): string {
+  if (
+    target.targetType === "automatic" &&
+    CALLER_KINDS[choices.callerKind].automatic.explainInHint
+  ) {
+    return describeTarget(target, choices).text;
+  }
+  return TARGET_DESCRIPTION;
+}
+
+export type ConnectedTarget = { kind: EnvironmentKind; label: string };
+
+export function connectedTargets(
+  callers: Callers<TargetCaller>,
+  rules: ConnectionFormValues["targets"],
+  targetName: string,
+): ConnectedTarget[] {
+  return callerList(callers).flatMap((caller) => {
+    const kind = caller.environment.kind;
+    const rule = rules[kind];
+    return rule ? [{ kind, label: targetLabel(rule, targetContextOf(caller, targetName)) }] : [];
+  });
 }

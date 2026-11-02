@@ -13,11 +13,13 @@ import {
 
 export function DeleteConnectionDialog({
   targetAppName,
+  alsoPreview,
   open,
   onOpenChange,
   onConfirm,
 }: {
   targetAppName: string;
+  alsoPreview: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
@@ -29,7 +31,7 @@ export function DeleteConnectionDialog({
           <AlertDialogTitle>Delete the {targetAppName} connection?</AlertDialogTitle>
           <AlertDialogDescription>
             New deployments will not include this connection. Existing deployments keep their saved
-            connection.
+            connection.{alsoPreview ? " Also removes it from preview deployments." : null}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

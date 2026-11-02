@@ -51,7 +51,7 @@ describe("form steps", () => {
 describe("firstStepWithError", () => {
   it("finds the first step that holds an invalid field", () => {
     expect(firstStepWithError({})).toBeNull();
-    expect(firstStepWithError({ target: {} })).toBe("config");
+    expect(firstStepWithError({ targets: {} })).toBe("config");
     expect(firstStepWithError({ name: {}, targetAppId: {} })).toBe("app");
   });
 });

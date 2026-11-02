@@ -28,15 +28,15 @@ export function ConnectionsListHeader() {
 }
 
 export function ConnectionRow({
-  row: { connection, target },
+  row: { connection, target, alsoPreview },
   onEdit,
   onRemove,
-  removing,
+  removeDisabled,
 }: {
   row: ConnectionRowModel;
   onEdit: (connection: ListedConnection) => void;
   onRemove: (connection: ListedConnection) => void;
-  removing: boolean;
+  removeDisabled: boolean;
 }) {
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
   const variable = connectionHostVariable(connection.name);
@@ -56,7 +56,7 @@ export function ConnectionRow({
     {
       id: "delete",
       label: "Delete",
-      disabled: removing,
+      disabled: removeDisabled,
       icon: <IconTrashOutline18 className="size-3.5" />,
       onClick: (e) => {
         e.stopPropagation();
@@ -103,6 +103,7 @@ export function ConnectionRow({
       </ResourceListRow>
       <DeleteConnectionDialog
         targetAppName={connection.targetAppName}
+        alsoPreview={alsoPreview}
         open={isRemoveConfirmOpen}
         onOpenChange={setIsRemoveConfirmOpen}
         onConfirm={() => onRemove(connection)}

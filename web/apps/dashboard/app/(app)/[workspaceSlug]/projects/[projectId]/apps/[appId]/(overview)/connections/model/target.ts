@@ -2,10 +2,12 @@ import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-statu
 import {
   type Environment as CollectionEnvironment,
   ENVIRONMENT_KIND,
+  type EnvironmentKind,
 } from "@/lib/collections/deploy/environments";
 import type { AppConnection } from "@unkey/api/models/components";
 import { match } from "@unkey/match";
 import { z } from "zod";
+import { CALLER_KINDS, followsProduction } from "./caller-kind";
 
 export const targetRuleSchema = z.discriminatedUnion("targetType", [
   z.object({ targetType: z.literal("automatic") }),
@@ -37,17 +39,40 @@ export type ConnectionTargets = {
 };
 
 export type TargetContext<D extends Deployment = Deployment> = {
+  callerKind: EnvironmentKind;
   targetName: string;
   environments: Environment[];
   deployments: D[];
 };
 
-type TargetDescription = { text: string; unavailable: boolean };
+export type TargetCaller = {
+  environment: Pick<Environment, "kind">;
+  targets: Pick<ConnectionTargets, "environments" | "deployments">;
+};
 
-export const AUTOMATIC_TARGET_LABEL = "Production";
+type TargetDescription = { text: string; unavailable: boolean };
 
 export function isProduction(environment: Pick<Environment, "kind">): boolean {
   return environment.kind === ENVIRONMENT_KIND.production;
+}
+
+export function environmentOfKind<E extends Pick<Environment, "kind">>(
+  environments: readonly E[],
+  kind: EnvironmentKind,
+): E | null {
+  return environments.find((environment) => environment.kind === kind) ?? null;
+}
+
+export function targetContextOf(
+  caller: TargetCaller,
+  targetName: string,
+): TargetContext<TargetDeployment> {
+  return {
+    callerKind: caller.environment.kind,
+    targetName,
+    environments: caller.targets.environments,
+    deployments: caller.targets.deployments,
+  };
 }
 
 function available(text: string): TargetDescription {
@@ -56,10 +81,6 @@ function available(text: string): TargetDescription {
 
 function unavailable(text: string): TargetDescription {
   return { text, unavailable: true };
-}
-
-function followsProduction(targetName: string): TargetDescription {
-  return available(`Follows ${targetName}’s live production deployment, including rollbacks.`);
 }
 
 export function ruleOf(columns: TargetColumns): TargetRule {
@@ -111,7 +132,9 @@ export function targetError(rule: TargetRule): string | null {
 export function describeTarget(rule: TargetRule, context: TargetContext): TargetDescription {
   const { targetName } = context;
   return match(rule)
-    .with({ targetType: "automatic" }, () => followsProduction(targetName))
+    .with({ targetType: "automatic" }, () =>
+      available(CALLER_KINDS[context.callerKind].automatic.description(targetName)),
+    )
     .with({ targetType: "environment" }, ({ targetEnvironmentId }) => {
       const environment = context.environments.find((env) => env.id === targetEnvironmentId);
       if (!environment) {
@@ -120,7 +143,7 @@ export function describeTarget(rule: TargetRule, context: TargetContext): Target
         );
       }
       return isProduction(environment)
-        ? followsProduction(targetName)
+        ? available(followsProduction(targetName))
         : available(`Connects to ${targetName}’s latest ${environment.slug} version.`);
     })
     .with({ targetType: "deployment" }, ({ targetDeploymentId }) => {
@@ -142,7 +165,7 @@ export function describeTarget(rule: TargetRule, context: TargetContext): Target
 
 export function targetLabel(rule: TargetRule, context: TargetContext): string {
   return match(rule)
-    .with({ targetType: "automatic" }, () => AUTOMATIC_TARGET_LABEL)
+    .with({ targetType: "automatic" }, () => CALLER_KINDS[context.callerKind].automatic.label)
     .with(
       { targetType: "environment" },
       ({ targetEnvironmentId }) =>
@@ -160,13 +183,9 @@ export type ConnectionTarget = TargetDescription & { label: string };
 
 export function connectionTarget(
   connection: ListedConnection,
-  targets: ConnectionTargets,
+  caller: TargetCaller,
 ): ConnectionTarget {
   const rule = ruleOf(connection);
-  const context: TargetContext = {
-    targetName: connection.targetAppName,
-    environments: targets.environments,
-    deployments: targets.deployments,
-  };
+  const context = targetContextOf(caller, connection.targetAppName);
   return { label: targetLabel(rule, context), ...describeTarget(rule, context) };
 }

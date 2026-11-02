@@ -31,6 +31,7 @@ const deployments: Deployment[] = [
   { id: dbStopped, appId: db, environmentId: dbCanary, status: "stopped" },
 ];
 const fromProduction: TargetContext = {
+  callerKind: "production",
   targetName: "db",
   environments,
   deployments,
@@ -47,6 +48,13 @@ describe("describeTarget", () => {
   it("follows the target's live production deployment by default", () => {
     expect(describeTarget(automatic, fromProduction)).toEqual({
       text: "Follows db’s live production deployment, including rollbacks.",
+      unavailable: false,
+    });
+  });
+
+  it("follows the newest preview on the same Git branch from a preview caller", () => {
+    expect(describeTarget(automatic, { ...fromProduction, callerKind: "preview" })).toEqual({
+      text: "Each preview connects to the newest db preview on the same Git branch. If there is none, it has no target.",
       unavailable: false,
     });
   });
@@ -136,6 +144,9 @@ describe("sameRule", () => {
 describe("targetLabel", () => {
   it("names the target each rule resolves to", () => {
     expect(targetLabel(automatic, fromProduction)).toBe("Production");
+    expect(targetLabel(automatic, { ...fromProduction, callerKind: "preview" })).toBe(
+      "Same Git branch",
+    );
     expect(targetLabel(environment(dbCanary), fromProduction)).toBe("canary");
     expect(targetLabel(pinned(dbPinned), fromProduction)).toBe(dbPinned);
   });

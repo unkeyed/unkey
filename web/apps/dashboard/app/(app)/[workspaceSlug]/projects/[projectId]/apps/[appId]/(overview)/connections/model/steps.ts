@@ -10,7 +10,7 @@ export type StepsState = { open: FormStep | null; done: ReadonlySet<FormStep> };
 
 export const STEP_FIELDS: Record<FormStep, readonly (keyof ConnectionFormValues)[]> = {
   app: ["targetAppId"],
-  config: ["name", "target"],
+  config: ["name", "targets"],
   code: [],
 };
 

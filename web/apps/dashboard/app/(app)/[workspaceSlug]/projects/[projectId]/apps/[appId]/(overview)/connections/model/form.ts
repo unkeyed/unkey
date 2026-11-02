@@ -1,10 +1,13 @@
+import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import { z } from "zod";
+import { type Callers, callerList, savedIn } from "./callers";
 import { connectionNameSchema, takenNamesOf } from "./name";
+import { type ConnectionOp, type SaveIntent, planSave } from "./plan";
 import {
   type ListedConnection,
   type TargetRule,
+  isProduction,
   ruleOf,
-  sameRule,
   targetError,
   targetRuleSchema,
 } from "./target";
@@ -12,62 +15,100 @@ import {
 const formShape = z.object({
   targetAppId: z.string().min(1, "Choose an app"),
   name: z.string(),
-  target: targetRuleSchema,
+  targets: z.object({
+    production: targetRuleSchema,
+    preview: targetRuleSchema.nullable(),
+  }),
 });
 
 export type ConnectionFormValues = z.infer<typeof formShape>;
 
-export type ConnectionOp =
-  | { type: "create"; targetAppId: string; rule: TargetRule; name: string }
-  | { type: "update"; id: string; rule: TargetRule; name?: string }
-  | { type: "delete"; id: string };
+const AUTOMATIC: TargetRule = { targetType: "automatic" };
 
-function nameErrorOf(
-  values: ConnectionFormValues,
-  connections: readonly ListedConnection[],
-): string | null {
-  const parsed = connectionNameSchema.safeParse(values.name);
+function setsName(op: ConnectionOp): boolean {
+  return op.type === "create" || (op.type === "update" && op.name !== undefined);
+}
+
+export function takenNames(
+  callers: Callers,
+  targetAppId: string,
+  ops: readonly ConnectionOp[],
+): ReadonlySet<string> {
+  const naming = new Set(ops.filter(setsName).map((op) => op.environment.kind));
+  const inUse = callerList(callers)
+    .filter(({ environment }) => isProduction(environment) || naming.has(environment.kind))
+    .flatMap(({ connections }) => connections);
+  return takenNamesOf(inUse, targetAppId);
+}
+
+function nameErrorOf(name: string, taken: ReadonlySet<string>): string | null {
+  const parsed = connectionNameSchema.safeParse(name);
   if (!parsed.success) {
     return parsed.error.issues[0]?.message ?? "Enter a valid name";
   }
-  if (takenNamesOf(connections, values.targetAppId).has(parsed.data)) {
+  if (taken.has(parsed.data)) {
     return `Another connection already uses the name ${parsed.data}.`;
   }
   return null;
 }
 
-export function connectionFormSchema(connections: readonly ListedConnection[]) {
+export function connectionFormSchema(callers: Callers, intent: SaveIntent) {
   return formShape.superRefine((values, ctx) => {
-    const nameError = nameErrorOf(values, connections);
+    const taken = takenNames(callers, values.targetAppId, planSave(callers, values, intent));
+    const nameError = nameErrorOf(values.name, taken);
     if (nameError) {
       ctx.addIssue({ code: "custom", path: ["name"], message: nameError });
     }
-    const targetMessage = targetError(values.target);
-    if (targetMessage) {
-      ctx.addIssue({ code: "custom", path: ["target"], message: targetMessage });
+    for (const kind of ENVIRONMENT_KINDS) {
+      const rule = values.targets[kind];
+      const message = rule ? targetError(rule) : null;
+      if (message) {
+        ctx.addIssue({ code: "custom", path: ["targets", kind], message });
+      }
     }
   });
 }
 
-export function formValuesOf(connection: ListedConnection): ConnectionFormValues {
+const EMPTY_VALUES: ConnectionFormValues = {
+  targetAppId: "",
+  name: "",
+  targets: { production: AUTOMATIC, preview: null },
+};
+
+export function openForm(
+  connection: ListedConnection | null,
+  callers: Callers,
+): { values: ConnectionFormValues; intent: SaveIntent } {
+  if (!connection) {
+    return { values: EMPTY_VALUES, intent: { kind: "add" } };
+  }
+  const companion = savedIn(callers.preview, connection.targetAppId);
+  const targets = {
+    production: ruleOf(connection),
+    preview: companion ? ruleOf(companion) : null,
+  };
   return {
-    targetAppId: connection.targetAppId,
-    name: connection.name,
-    target: ruleOf(connection),
+    values: { targetAppId: connection.targetAppId, name: connection.name, targets },
+    intent: {
+      kind: "edit",
+      opened: { id: connection.id, name: connection.name, ...targets },
+    },
   };
 }
 
-export function planSave(
-  before: ListedConnection | null,
-  values: ConnectionFormValues,
-): ConnectionOp | null {
-  const name = values.name.trim();
-  if (!before) {
-    return { type: "create", targetAppId: values.targetAppId, rule: values.target, name };
-  }
-  const renamed = name !== before.name;
-  if (!renamed && sameRule(values.target, ruleOf(before))) {
-    return null;
-  }
-  return { type: "update", id: before.id, rule: values.target, ...(renamed ? { name } : {}) };
+export function targetsForApp(
+  callers: Callers,
+  current: ConnectionFormValues,
+  targetAppId: string,
+): ConnectionFormValues["targets"] {
+  const production = savedIn(callers.production, targetAppId);
+  const preview = savedIn(callers.preview, targetAppId);
+  const carried =
+    current.targets.preview !== null && !savedIn(callers.preview, current.targetAppId)
+      ? AUTOMATIC
+      : null;
+  return {
+    production: production ? ruleOf(production) : AUTOMATIC,
+    preview: preview ? ruleOf(preview) : carried,
+  };
 }

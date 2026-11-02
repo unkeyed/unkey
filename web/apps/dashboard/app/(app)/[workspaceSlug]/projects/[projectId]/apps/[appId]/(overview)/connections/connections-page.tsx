@@ -28,19 +28,21 @@ import { ConnectionPanel } from "./components/connection-form/connection-panel";
 import { ConnectionsList } from "./components/list";
 import { RemovedConnectionRows } from "./components/list/retained";
 import { ConnectionsListSkeleton } from "./components/list/skeleton";
-import { removalOf, useConnectionMutation } from "./hooks/use-connection-actions";
+import { useConnectionMutation } from "./hooks/use-connection-actions";
 import { useConnectionsData } from "./hooks/use-connections-data";
 import { HowConnectionsWorkPanel } from "./how-connections-work";
-import { type Environment, type ListedConnection, isProduction } from "./model/target";
+import { removalOf } from "./model/plan";
+import { type Environment, type ListedConnection, environmentOfKind } from "./model/target";
 
 type PanelState = { type: "connection"; before: ListedConnection | null } | { type: "guide" };
 
 export function ConnectionsPage() {
   const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
-  const environment = environments.find(isProduction);
+  const production = environmentOfKind(environments, "production");
+  const preview = environmentOfKind(environments, "preview");
 
-  if (!environment) {
+  if (!production) {
     return (
       <PageContainer>
         <PageHeader>
@@ -61,21 +63,25 @@ export function ConnectionsPage() {
     );
   }
 
-  return <ProductionConnections projectId={projectId} appId={appId} environment={environment} />;
+  return (
+    <AppConnections projectId={projectId} appId={appId} production={production} preview={preview} />
+  );
 }
 
-function ProductionConnections({
+function AppConnections({
   projectId,
   appId,
-  environment,
+  production,
+  preview,
 }: {
   projectId: string;
   appId: string;
-  environment: Environment;
+  production: Environment;
+  preview: Environment | null;
 }) {
-  const environmentId = environment.id;
-  const data = useConnectionsData(projectId, appId, environmentId);
-  const mutation = useConnectionMutation({ projectId, appId, environmentId });
+  const data = useConnectionsData({ projectId, appId, production, preview });
+  const callers = data.callers.status === "ready" ? data.callers.data : null;
+  const mutation = useConnectionMutation({ projectId, appId });
   const panels = useSlidePanels<PanelState>();
   const openAdd = useCallback(
     () => panels.open({ type: "connection", before: null }),
@@ -83,15 +89,18 @@ function ProductionConnections({
   );
   const editConnection = (connection: ListedConnection) =>
     panels.open({ type: "connection", before: connection });
-  const removeConnection = (connection: ListedConnection) => mutation.run(removalOf(connection));
-  const removing = mutation.pending !== null;
+  const removeConnection = (connection: ListedConnection) => {
+    if (callers) {
+      mutation.run({
+        action: "remove",
+        ops: removalOf(callers, connection.targetAppId),
+      });
+    }
+  };
+  const removeDisabled = mutation.pending !== null || !callers;
   const removed = <RemovedConnectionRows retained={data.retained} />;
   const hasRemoved = data.retained.status !== "empty" && data.retained.status !== "loading";
-  useConsumeSearchFlag(
-    "add",
-    data.snapshot.status !== "loading",
-    data.snapshot.status === "ready" ? openAdd : null,
-  );
+  useConsumeSearchFlag("add", data.callers.status !== "loading", callers ? openAdd : null);
 
   return (
     <PageContainer>
@@ -103,12 +112,7 @@ function ProductionConnections({
           <Button size="md" variant="outline" onClick={() => panels.open({ type: "guide" })}>
             How connections work
           </Button>
-          <Button
-            size="md"
-            variant="primary"
-            disabled={data.snapshot.status !== "ready"}
-            onClick={openAdd}
-          >
+          <Button size="md" variant="primary" disabled={!callers} onClick={openAdd}>
             <IconPlusOutline18 />
             Add connection
           </Button>
@@ -127,7 +131,7 @@ function ProductionConnections({
                   rows={[]}
                   onEdit={editConnection}
                   onRemove={removeConnection}
-                  removing={removing}
+                  removeDisabled={removeDisabled}
                   removed={removed}
                 />
               </ResourceListContent>
@@ -158,7 +162,7 @@ function ProductionConnections({
                 rows={rows}
                 onEdit={editConnection}
                 onRemove={removeConnection}
-                removing={removing}
+                removeDisabled={removeDisabled}
                 removed={removed}
               />
               <ListPager state={footer} noun="connections" />
@@ -171,13 +175,10 @@ function ProductionConnections({
               <HowConnectionsWorkPanel isOpen={panels.isOpen} onClose={panels.close} />
             ))
             .with({ type: "connection" }, ({ before }) =>
-              data.snapshot.status === "ready" ? (
+              callers ? (
                 <ConnectionPanel
                   key={panels.session}
-                  projectId={projectId}
-                  appId={appId}
-                  environmentId={environmentId}
-                  snapshot={data.snapshot.data}
+                  callers={callers}
                   before={before}
                   mutation={mutation}
                   isOpen={panels.isOpen}

@@ -1,14 +1,18 @@
 "use client";
 
-import { FormInput } from "@unkey/ui";
+import { EnvironmentIcon } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
+import { Badge, FormInput } from "@unkey/ui";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
 import type { ConnectionFormValues } from "../../model/form";
 import { connectionHostVariable } from "../../model/name";
+import { renameOf } from "../../model/plan";
+import type { ListedConnection } from "../../model/target";
+import type { ConnectedTarget } from "../../model/target-options";
 
-export function VariableField({ savedName }: { savedName?: string }) {
+export function VariableField({ before }: { before: ListedConnection | null }) {
   const { control, trigger } = useFormContext<ConnectionFormValues>();
   const name = useWatch({ control, name: "name" }).trim();
-  const renamed = savedName !== undefined && name !== "" && name !== savedName;
+  const renamed = renameOf(before, name) !== null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -47,8 +51,18 @@ export function VariableField({ savedName }: { savedName?: string }) {
   );
 }
 
-export function VariableSummary() {
+export function VariableSummary({ connected }: { connected: readonly ConnectedTarget[] }) {
   const { control } = useFormContext<ConnectionFormValues>();
   const name = useWatch({ control, name: "name" }).trim();
-  return <code className="truncate font-mono text-xs">{connectionHostVariable(name)}</code>;
+  return (
+    <>
+      <code className="truncate font-mono text-xs">{connectionHostVariable(name)}</code>
+      {connected.map(({ kind, label }) => (
+        <Badge key={kind} variant="secondary" size="compact" className="shrink-0 rounded-full">
+          <EnvironmentIcon kind={kind} className="size-3" />
+          {label}
+        </Badge>
+      ))}
+    </>
+  );
 }

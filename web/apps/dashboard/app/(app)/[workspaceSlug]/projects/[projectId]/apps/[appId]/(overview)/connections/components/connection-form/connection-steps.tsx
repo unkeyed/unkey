@@ -2,7 +2,7 @@
 
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { useFormContext, useFormState, useWatch } from "react-hook-form";
+import { useFormContext, useFormState } from "react-hook-form";
 import type { ConnectionFormController } from "../../hooks/use-connection-form";
 import type { ConnectionFormValues } from "../../model/form";
 import { FORM_MODES } from "../../model/mode";
@@ -10,15 +10,31 @@ import { connectionHostVariable } from "../../model/name";
 import { type FormStep, STEP_FIELDS, completeStep, openStep, stepStatus } from "../../model/steps";
 import { AppPicker } from "./app-picker";
 import { CodeSnippets } from "./code-snippets";
+import { PreviewTarget } from "./preview-target";
 import { StepCard } from "./step-card";
 import { TargetField } from "./target-field";
 import { VariableField, VariableSummary } from "./variable-field";
+import { WhoGetsCallout } from "./who-gets-callout";
 
 export function ConnectionSteps({ controller }: { controller: ConnectionFormController }) {
-  const { mode, before, steps, setSteps, target, pending, commit, pickApp } = controller;
-  const { appLocked, commitLabel, commitNeedsChanges, redeployNote } = FORM_MODES[mode];
+  const {
+    mode,
+    before,
+    steps,
+    setSteps,
+    target,
+    callers,
+    name,
+    targets,
+    connected,
+    whoGets,
+    redeployNote,
+    pending,
+    commit,
+    pickApp,
+  } = controller;
+  const { appLocked, commitLabel, commitNeedsChanges } = FORM_MODES[mode];
   const { control, trigger } = useFormContext<ConnectionFormValues>();
-  const name = useWatch({ control, name: "name" }).trim();
   const { isDirty } = useFormState({ control });
   const showCommit = !commitNeedsChanges || isDirty;
   const reopen = (step: FormStep) => () => setSteps((state) => openStep(state, step));
@@ -45,12 +61,17 @@ export function ConnectionSteps({ controller }: { controller: ConnectionFormCont
         title="Configure"
         label="Variable"
         status={stepStatus(steps, "config")}
-        summary={<VariableSummary />}
+        summary={<VariableSummary connected={connected} />}
         onOpen={reopen("config")}
       >
-        <VariableField savedName={before?.name} />
-        {controller.choices ? (
-          <TargetField choices={controller.choices} deployments={controller.deployments} />
+        <VariableField before={before} />
+        {target ? (
+          <>
+            <TargetField caller={callers.production} target={target} rule={targets.production} />
+            {callers.preview ? (
+              <PreviewTarget caller={callers.preview} target={target} rule={targets.preview} />
+            ) : null}
+          </>
         ) : null}
         <div className="flex items-center justify-between gap-2">
           {appLocked ? (
@@ -81,19 +102,24 @@ export function ConnectionSteps({ controller }: { controller: ConnectionFormCont
           <CodeSnippets variable={connectionHostVariable(name)} targetAppName={target.name} />
         ) : null}
         {showCommit ? (
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              className="px-3"
-              loading={pending?.action === mode}
-              disabled={pending !== null}
-              onClick={commit}
-            >
-              {commitLabel}
-            </Button>
-          </div>
+          <>
+            {whoGets.length > 0 ? (
+              <WhoGetsCallout variable={connectionHostVariable(name)} lines={whoGets} />
+            ) : null}
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                className="px-3"
+                loading={pending?.action === mode}
+                disabled={pending !== null}
+                onClick={commit}
+              >
+                {commitLabel}
+              </Button>
+            </div>
+          </>
         ) : null}
       </StepCard>
       {redeployNote ? <p className="text-xs text-gray-10">{redeployNote}</p> : null}
