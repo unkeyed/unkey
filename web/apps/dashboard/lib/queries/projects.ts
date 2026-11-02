@@ -1,11 +1,11 @@
 "use client";
 import { useFlag } from "@/lib/flags/provider";
+import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
-import { useEffect, useRef } from "react";
 import { z } from "zod";
 
 export const createProjectRequestSchema = z.object({
@@ -38,7 +38,6 @@ export function projectDisplayName(
   return project.isDefault ? workspaceName : project.name;
 }
 
-// Every project of the workspace, the default one first
 export function useProjects<T = Project[]>({
   select,
   enabled = true,
@@ -46,7 +45,7 @@ export function useProjects<T = Project[]>({
   const trpcUtils = trpc.useUtils();
   return useQuery({
     queryKey: queryKeys.projects.all,
-    staleTime: STALE_MS,
+    staleTime: DEPLOY_DATA_STALE_MS,
     retry: 3,
     enabled,
     select,
@@ -89,7 +88,6 @@ export function useProject(projectId: string | undefined) {
   });
 }
 
-// The projects the list and crumb show, newest first
 export function useVisibleProjects() {
   const projectsNav = useFlag("projectsNav");
   return useProjects({ select: (projects) => visibleProjects(projects, projectsNav) });
@@ -156,26 +154,9 @@ export function useRenameProject() {
   });
 }
 
-/**
- * The API only queues the delete, so a refetch right after it still lists the
- * project. The project leaves the cache when the caller unmounts instead: doing
- * it while the project's pages are mounted trips ProjectGuard's notFound()
- * before the caller's navigation lands.
- */
+// The API queues the delete, so the list can still hold the project until the workflow finishes
 export function useDeleteProject() {
   const queryClient = useQueryClient();
-  const deletedId = useRef<string | null>(null);
-  useEffect(
-    () => () => {
-      const projectId = deletedId.current;
-      if (projectId) {
-        queryClient.setQueryData<Project[]>(queryKeys.projects.all, (projects) =>
-          projects?.filter((p) => p.id !== projectId),
-        );
-      }
-    },
-    [queryClient],
-  );
   return useMutation({
     mutationFn: async (projectId: string) => {
       const request = getUnkeyClient().projects.deleteProject({ project: projectId });
@@ -189,11 +170,8 @@ export function useDeleteProject() {
       });
       await request;
     },
-    onSuccess: (_data, projectId) => {
-      deletedId.current = projectId;
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
     },
   });
 }
-
-// Matches the collections client, so projects go stale with the apps and environments they list
-const STALE_MS = 30_000;
