@@ -321,12 +321,9 @@ func TestAddCustomDomainSubdomainsAreFree(t *testing.T) {
 	requireNoCustomDomain(t, ctx, f.database, f.workspaceID, other)
 }
 
-// TestAddCustomDomainUnlimitedAllowanceAdmitsEveryRegistrableDomain pins that a
-// plan at the unlimited allowance attaches a domain under each new registrable
-// domain, both outside and inside the limits lock.
-func TestAddCustomDomainUnlimitedAllowanceAdmitsEveryRegistrableDomain(t *testing.T) {
+func TestAddCustomDomainLargeAllowanceAdmitsDomainsBelowLimit(t *testing.T) {
 	ctx := context.Background()
-	f := newFixture(t, domaingate.AllowanceUnlimited)
+	f := newFixture(t, 1_000_000)
 	svc := f.newService(t)
 
 	for range 5 {

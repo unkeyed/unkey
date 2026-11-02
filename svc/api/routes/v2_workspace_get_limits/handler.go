@@ -125,9 +125,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		customDomains := meteredLimit(int64(limits.CustomDomainsMax), float64(domaingate.AllowanceUsage(attachedDomains)))
-		if domaingate.Unlimited(limits.CustomDomainsMax) {
-			customDomains.Limit = nullable.NewNullNullable[int64]()
-		}
 		data.CustomDomainsMax = &customDomains
 	}
 
