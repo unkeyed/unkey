@@ -101,7 +101,7 @@ require (
 	k8s.io/api v0.35.3
 	k8s.io/apimachinery v0.35.3
 	k8s.io/client-go v0.35.3
-	vitess.io/vitess v0.23.4
+	vitess.io/vitess v0.23.5
 )
 
 require (
