@@ -37,7 +37,7 @@ export function useProjectsWithApps({ enabled = true }: { enabled?: boolean } = 
 
   return {
     data,
-    isLoading: projects.isInitialLoading || apps.isLoading,
+    isLoading: projects.isLoading || apps.isLoading,
     isError: projects.isError || apps.isError,
   };
 }

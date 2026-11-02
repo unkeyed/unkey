@@ -1,6 +1,6 @@
 "use client";
 
-import { useProjects } from "@/lib/queries/projects";
+import { useDefaultProjectId } from "@/lib/queries/projects";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
 
@@ -31,11 +31,7 @@ export function useResourceProjectId(resource: ProjectResource | null): ProjectO
     { enabled: Boolean(apiId) },
   );
 
-  // Every namespace lives in the workspace default project
-  const defaultProjectQuery = useProjects({
-    enabled: Boolean(namespaceId),
-    select: (projects) => projects.find((p) => p.isDefault)?.id,
-  });
+  const defaultProjectQuery = useDefaultProjectId({ enabled: Boolean(namespaceId) });
 
   const identityQuery = trpc.identity.details.useQuery(
     { identityId: identityId ?? "" },

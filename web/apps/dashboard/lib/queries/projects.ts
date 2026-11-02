@@ -88,6 +88,11 @@ export function useProject(projectId: string | undefined) {
   });
 }
 
+// Every namespace lives in the workspace default project
+export function useDefaultProjectId({ enabled }: { enabled: boolean }) {
+  return useProjects({ enabled, select: (projects) => projects.find((p) => p.isDefault)?.id });
+}
+
 export function useVisibleProjects() {
   const projectsNav = useFlag("projectsNav");
   return useProjects({ select: (projects) => visibleProjects(projects, projectsNav) });
@@ -99,25 +104,24 @@ export function visibleProjects(projects: readonly Project[], includeDefault: bo
     .toSorted((a, b) => b.createdAt - a.createdAt);
 }
 
-// Resolves to the new project's id once the list holds it, so its pages find it on arrival
+// Seeds the list with the new project, so its pages find it on arrival even if the refetch fails
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateProjectRequestSchema) => {
-      const request = getUnkeyClient().projects.createProject(
-        createProjectRequestSchema.parse(input),
-      );
-      toast.promise(request, {
+      const { data } = await toastRequest(getUnkeyClient().projects.createProject(input), {
         loading: "Creating project...",
         success: "Project created successfully",
-        error: (err) => {
-          console.error("Failed to create project", err);
-          return getErrorToast(err, "Failed to Create Project");
-        },
+        failure: "Failed to Create Project",
       });
-      return (await request).data.id;
+      return data.id;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.projects.all }),
+    onSuccess: (id, { name, slug }) => {
+      queryClient.setQueryData<Project[]>(queryKeys.projects.all, (projects) =>
+        projects?.concat({ id, name, slug, isDefault: false, createdAt: Date.now() }),
+      );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
   });
 }
 
@@ -125,19 +129,11 @@ export function useRenameProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ projectId, name }: { projectId: string; name: string }) => {
-      const request = getUnkeyClient().projects.updateProject({
-        project: projectId,
-        ...createProjectRequestSchema.pick({ name: true }).parse({ name }),
-      });
-      toast.promise(request, {
+      await toastRequest(getUnkeyClient().projects.updateProject({ project: projectId, name }), {
         loading: "Updating project...",
         success: "Project updated successfully",
-        error: (err) => {
-          console.error("Failed to update project", err);
-          return getErrorToast(err, "Failed to Update Project");
-        },
+        failure: "Failed to Update Project",
       });
-      await request;
     },
     onMutate: async ({ projectId, name }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.projects.all });
@@ -159,19 +155,30 @@ export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (projectId: string) => {
-      const request = getUnkeyClient().projects.deleteProject({ project: projectId });
-      toast.promise(request, {
+      await toastRequest(getUnkeyClient().projects.deleteProject({ project: projectId }), {
         loading: "Deleting project...",
         success: "Project deleted successfully",
-        error: (err) => {
-          console.error("Failed to delete project", err);
-          return getErrorToast(err, "Failed to Delete Project");
-        },
+        failure: "Failed to Delete Project",
       });
-      await request;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    // A refetch here could drop the project while its page is still mounted, so
+    // ProjectGuard would 404 before the redirect lands. The list refetches on mount.
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all, refetchType: "none" }),
+  });
+}
+
+function toastRequest<T>(
+  request: Promise<T>,
+  labels: { loading: string; success: string; failure: string },
+): Promise<T> {
+  toast.promise(request, {
+    loading: labels.loading,
+    success: labels.success,
+    error: (err) => {
+      console.error(labels.failure, err);
+      return getErrorToast(err, labels.failure);
     },
   });
+  return request;
 }

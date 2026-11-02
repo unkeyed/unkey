@@ -18,8 +18,11 @@ const identityCalls: QueryCall[] = [];
 type Row = { id: string; isDefault: boolean };
 
 vi.mock("@/lib/queries/projects", () => ({
-  useProjects: ({ select }: { select: (rows: Row[]) => unknown }) => ({
-    data: projects.isLoading || projects.isError ? undefined : select(projects.rows),
+  useDefaultProjectId: () => ({
+    data:
+      projects.isLoading || projects.isError
+        ? undefined
+        : projects.rows.find((p) => p.isDefault)?.id,
     isLoading: projects.isLoading,
     isError: projects.isError,
   }),

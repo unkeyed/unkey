@@ -3,7 +3,7 @@
 import type { AppEnvironmentListProps } from "@/components/deploy/app-environment-list";
 import { useProjectEnvironments } from "@/hooks/use-project-environments";
 import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
-import { useProjects } from "@/lib/queries/projects";
+import { useDefaultProjectId } from "@/lib/queries/projects";
 import { useEveryNamespace } from "@/lib/queries/ratelimit-namespaces";
 import { trpc } from "@/lib/trpc/client";
 import type { ResourceScope } from "../lib/catalogue.types";
@@ -31,11 +31,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
     enabled: scope === "keyspaces",
   });
   const namespaces = useEveryNamespace({ enabled: scope === "ratelimit-namespaces" });
-  // Every namespace lives in the workspace default project
-  const defaultProject = useProjects({
-    enabled: scope === "ratelimit-namespaces",
-    select: (projects) => projects.find((p) => p.isDefault)?.id,
-  });
+  const defaultProject = useDefaultProjectId({ enabled: scope === "ratelimit-namespaces" });
 
   switch (scope) {
     case "workspace":
@@ -101,7 +97,7 @@ export function useScopeInstances(scope: ResourceScope): ScopeInstances {
               label: namespace.name,
             }))
           : [],
-        isLoading: namespaces.isLoading || defaultProject.isInitialLoading,
+        isLoading: namespaces.isLoading || defaultProject.isLoading,
       };
     }
   }
