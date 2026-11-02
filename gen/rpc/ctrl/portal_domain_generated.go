@@ -16,6 +16,7 @@ import (
 type PortalDomainServiceClient interface {
 	AddPortalDomain(ctx context.Context, req *v1.AddPortalDomainRequest) (*v1.AddPortalDomainResponse, error)
 	DeletePortalDomain(ctx context.Context, req *v1.DeletePortalDomainRequest) (*v1.DeletePortalDomainResponse, error)
+	DeletePortalDomains(ctx context.Context, req *v1.DeletePortalDomainsRequest) (*v1.DeletePortalDomainsResponse, error)
 	RetryPortalDomainVerification(ctx context.Context, req *v1.RetryPortalDomainVerificationRequest) (*v1.RetryPortalDomainVerificationResponse, error)
 }
 
@@ -48,6 +49,19 @@ func (c *ConnectPortalDomainServiceClient) DeletePortalDomain(ctx context.Contex
 	ctx, span := tracing.Start(ctx, "PortalDomainService.DeletePortalDomain")
 	defer span.End()
 	resp, err := c.inner.DeletePortalDomain(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectPortalDomainServiceClient) DeletePortalDomains(ctx context.Context, req *v1.DeletePortalDomainsRequest) (*v1.DeletePortalDomainsResponse, error) {
+	ctx, span := tracing.Start(ctx, "PortalDomainService.DeletePortalDomains")
+	defer span.End()
+	resp, err := c.inner.DeletePortalDomains(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

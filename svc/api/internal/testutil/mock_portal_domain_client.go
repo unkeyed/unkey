@@ -17,9 +17,11 @@ type MockPortalDomainClient struct {
 	mu                                 sync.Mutex
 	AddPortalDomainFunc                func(context.Context, *ctrlv1.AddPortalDomainRequest) (*ctrlv1.AddPortalDomainResponse, error)
 	DeletePortalDomainFunc             func(context.Context, *ctrlv1.DeletePortalDomainRequest) (*ctrlv1.DeletePortalDomainResponse, error)
+	DeletePortalDomainsFunc            func(context.Context, *ctrlv1.DeletePortalDomainsRequest) (*ctrlv1.DeletePortalDomainsResponse, error)
 	RetryPortalDomainVerificationFunc  func(context.Context, *ctrlv1.RetryPortalDomainVerificationRequest) (*ctrlv1.RetryPortalDomainVerificationResponse, error)
 	AddPortalDomainCalls               []*ctrlv1.AddPortalDomainRequest
 	DeletePortalDomainCalls            []*ctrlv1.DeletePortalDomainRequest
+	DeletePortalDomainsCalls           []*ctrlv1.DeletePortalDomainsRequest
 	RetryPortalDomainVerificationCalls []*ctrlv1.RetryPortalDomainVerificationRequest
 }
 
@@ -31,6 +33,16 @@ func (m *MockPortalDomainClient) AddPortalDomain(ctx context.Context, req *ctrlv
 		return m.AddPortalDomainFunc(ctx, req)
 	}
 	return &ctrlv1.AddPortalDomainResponse{}, nil
+}
+
+func (m *MockPortalDomainClient) DeletePortalDomains(ctx context.Context, req *ctrlv1.DeletePortalDomainsRequest) (*ctrlv1.DeletePortalDomainsResponse, error) {
+	m.mu.Lock()
+	m.DeletePortalDomainsCalls = append(m.DeletePortalDomainsCalls, req)
+	m.mu.Unlock()
+	if m.DeletePortalDomainsFunc != nil {
+		return m.DeletePortalDomainsFunc(ctx, req)
+	}
+	return &ctrlv1.DeletePortalDomainsResponse{}, nil
 }
 
 func (m *MockPortalDomainClient) DeletePortalDomain(ctx context.Context, req *ctrlv1.DeletePortalDomainRequest) (*ctrlv1.DeletePortalDomainResponse, error) {

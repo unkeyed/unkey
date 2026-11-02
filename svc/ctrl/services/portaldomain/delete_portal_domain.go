@@ -30,45 +30,7 @@ func (s *Service) DeletePortalDomain(
 	s.cancelVerification(ctx, dom)
 
 	err = db.TxRetry(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		q := db.NewQueries(tx)
-
-		display := fmt.Sprintf("Deleted portal domain %s and its ACME challenge", dom.Domain)
-
-		status, txErr := q.FindPortalDomainStatusByIdForUpdate(txCtx, dom.ID)
-		if txErr != nil {
-			if db.IsNotFound(txErr) {
-				return connect.NewError(connect.CodeNotFound, fmt.Errorf("portal domain not found: %s", dom.ID))
-			}
-			return fmt.Errorf("failed to lock portal domain: %w", txErr)
-		}
-
-		// Every tenant's route shares the portal project, so the project scope
-		// cannot tell tenants apart. Only the verified row for a hostname owns its
-		// route; deleting an unverified claim must leave another tenant's in place.
-		if status == db.PortalDomainsVerificationStatusVerified {
-			env, envErr := q.FindEnvironmentById(txCtx, s.environmentID)
-			if envErr != nil {
-				return fmt.Errorf("failed to find portal environment: %w", envErr)
-			}
-			if txErr := q.DeleteFrontlineRouteByFQDNAndProject(txCtx, db.DeleteFrontlineRouteByFQDNAndProjectParams{
-				Fqdn:      dom.Domain,
-				ProjectID: env.ProjectID,
-			}); txErr != nil && !db.IsNotFound(txErr) {
-				return fmt.Errorf("failed to delete frontline route: %w", txErr)
-			}
-			display = fmt.Sprintf("Deleted portal domain %s, its ACME challenge, and its route", dom.Domain)
-		}
-
-		if txErr := q.DeleteAcmeChallengeByDomainID(txCtx, dom.ID); txErr != nil && !db.IsNotFound(txErr) {
-			return fmt.Errorf("failed to delete ACME challenge: %w", txErr)
-		}
-
-		if txErr := q.DeletePortalDomainByID(txCtx, dom.ID); txErr != nil {
-			return fmt.Errorf("failed to delete portal domain: %w", txErr)
-		}
-
-		return s.audit(txCtx, tx, req.Msg.GetActor(), dom.WorkspaceID, auditlog.PortalDomainDeleteEvent,
-			display, dom.ID, dom.PortalID, dom.Domain)
+		return s.deleteDomain(txCtx, tx, req.Msg.GetActor(), dom)
 	})
 	if err != nil {
 		if connectErr, ok := errors.AsType[*connect.Error](err); ok {
@@ -78,4 +40,46 @@ func (s *Service) DeletePortalDomain(
 	}
 
 	return connect.NewResponse(&ctrlv1.DeletePortalDomainResponse{}), nil
+}
+
+// deleteDomain removes dom, its ACME challenge, and, when it is the verified
+// row, its route, and audits the delete, all inside tx.
+func (s *Service) deleteDomain(ctx context.Context, tx db.DBTX, actor *ctrlv1.ActorInfo, dom db.PortalDomain) error {
+	q := db.NewQueries(tx)
+	display := fmt.Sprintf("Deleted portal domain %s and its ACME challenge", dom.Domain)
+
+	status, err := q.FindPortalDomainStatusByIdForUpdate(ctx, dom.ID)
+	if err != nil {
+		if db.IsNotFound(err) {
+			return connect.NewError(connect.CodeNotFound, fmt.Errorf("portal domain not found: %s", dom.ID))
+		}
+		return fmt.Errorf("failed to lock portal domain: %w", err)
+	}
+
+	// Every tenant's route shares the portal project, so the project scope
+	// cannot tell tenants apart. Only the verified row for a hostname owns its
+	// route; deleting an unverified claim must leave another tenant's in place.
+	if status == db.PortalDomainsVerificationStatusVerified {
+		env, envErr := q.FindEnvironmentById(ctx, s.environmentID)
+		if envErr != nil {
+			return fmt.Errorf("failed to find portal environment: %w", envErr)
+		}
+		if err := q.DeleteFrontlineRouteByFQDNAndProject(ctx, db.DeleteFrontlineRouteByFQDNAndProjectParams{
+			Fqdn:      dom.Domain,
+			ProjectID: env.ProjectID,
+		}); err != nil && !db.IsNotFound(err) {
+			return fmt.Errorf("failed to delete frontline route: %w", err)
+		}
+		display = fmt.Sprintf("Deleted portal domain %s, its ACME challenge, and its route", dom.Domain)
+	}
+
+	if err := q.DeleteAcmeChallengeByDomainID(ctx, dom.ID); err != nil && !db.IsNotFound(err) {
+		return fmt.Errorf("failed to delete ACME challenge: %w", err)
+	}
+
+	if err := q.DeletePortalDomainByID(ctx, dom.ID); err != nil {
+		return fmt.Errorf("failed to delete portal domain: %w", err)
+	}
+
+	return s.audit(ctx, tx, actor, dom.WorkspaceID, auditlog.PortalDomainDeleteEvent, display, dom.ID, dom.PortalID, dom.Domain)
 }

@@ -1,6 +1,6 @@
 -- name: CountPortalDomainsByPortal :one
--- Counts a portal's domains so deletePortal can refuse while any remain, since
--- a deleted portal would otherwise leave them routed and unmanageable.
+-- Counts a portal's domains so deletePortal only asks ctrl to delete them when
+-- there are any.
 SELECT COUNT(*)
 FROM portal_domains
 WHERE portal_id = sqlc.arg(portal_id)

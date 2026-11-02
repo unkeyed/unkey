@@ -266,6 +266,110 @@ func (*DeletePortalDomainResponse) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_portal_domain_proto_rawDescGZIP(), []int{3}
 }
 
+type DeletePortalDomainsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
+	PortalId      string                 `protobuf:"bytes,2,opt,name=portal_id,json=portalId,proto3" json:"portal_id,omitempty"`
+	Actor         *ActorInfo             `protobuf:"bytes,3,opt,name=actor,proto3" json:"actor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePortalDomainsRequest) Reset() {
+	*x = DeletePortalDomainsRequest{}
+	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePortalDomainsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePortalDomainsRequest) ProtoMessage() {}
+
+func (x *DeletePortalDomainsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePortalDomainsRequest.ProtoReflect.Descriptor instead.
+func (*DeletePortalDomainsRequest) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_portal_domain_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DeletePortalDomainsRequest) GetWorkspaceId() string {
+	if x != nil {
+		return x.WorkspaceId
+	}
+	return ""
+}
+
+func (x *DeletePortalDomainsRequest) GetPortalId() string {
+	if x != nil {
+		return x.PortalId
+	}
+	return ""
+}
+
+func (x *DeletePortalDomainsRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+type DeletePortalDomainsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Deleted       int32                  `protobuf:"varint,1,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeletePortalDomainsResponse) Reset() {
+	*x = DeletePortalDomainsResponse{}
+	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePortalDomainsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePortalDomainsResponse) ProtoMessage() {}
+
+func (x *DeletePortalDomainsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeletePortalDomainsResponse.ProtoReflect.Descriptor instead.
+func (*DeletePortalDomainsResponse) Descriptor() ([]byte, []int) {
+	return file_ctrl_v1_portal_domain_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *DeletePortalDomainsResponse) GetDeleted() int32 {
+	if x != nil {
+		return x.Deleted
+	}
+	return 0
+}
+
 type RetryPortalDomainVerificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkspaceId   string                 `protobuf:"bytes,1,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
@@ -278,7 +382,7 @@ type RetryPortalDomainVerificationRequest struct {
 
 func (x *RetryPortalDomainVerificationRequest) Reset() {
 	*x = RetryPortalDomainVerificationRequest{}
-	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[4]
+	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -290,7 +394,7 @@ func (x *RetryPortalDomainVerificationRequest) String() string {
 func (*RetryPortalDomainVerificationRequest) ProtoMessage() {}
 
 func (x *RetryPortalDomainVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[4]
+	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -303,7 +407,7 @@ func (x *RetryPortalDomainVerificationRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use RetryPortalDomainVerificationRequest.ProtoReflect.Descriptor instead.
 func (*RetryPortalDomainVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_portal_domain_proto_rawDescGZIP(), []int{4}
+	return file_ctrl_v1_portal_domain_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RetryPortalDomainVerificationRequest) GetWorkspaceId() string {
@@ -342,7 +446,7 @@ type RetryPortalDomainVerificationResponse struct {
 
 func (x *RetryPortalDomainVerificationResponse) Reset() {
 	*x = RetryPortalDomainVerificationResponse{}
-	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[5]
+	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -354,7 +458,7 @@ func (x *RetryPortalDomainVerificationResponse) String() string {
 func (*RetryPortalDomainVerificationResponse) ProtoMessage() {}
 
 func (x *RetryPortalDomainVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[5]
+	mi := &file_ctrl_v1_portal_domain_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -367,7 +471,7 @@ func (x *RetryPortalDomainVerificationResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use RetryPortalDomainVerificationResponse.ProtoReflect.Descriptor instead.
 func (*RetryPortalDomainVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_ctrl_v1_portal_domain_proto_rawDescGZIP(), []int{5}
+	return file_ctrl_v1_portal_domain_proto_rawDescGZIP(), []int{7}
 }
 
 var File_ctrl_v1_portal_domain_proto protoreflect.FileDescriptor
@@ -390,16 +494,23 @@ const file_ctrl_v1_portal_domain_proto_rawDesc = "" +
 	"\tportal_id\x18\x02 \x01(\tR\bportalId\x12\x1b\n" +
 	"\tdomain_id\x18\x03 \x01(\tR\bdomainId\x12(\n" +
 	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x1c\n" +
-	"\x1aDeletePortalDomainResponse\"\xad\x01\n" +
+	"\x1aDeletePortalDomainResponse\"\x86\x01\n" +
+	"\x1aDeletePortalDomainsRequest\x12!\n" +
+	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1b\n" +
+	"\tportal_id\x18\x02 \x01(\tR\bportalId\x12(\n" +
+	"\x05actor\x18\x03 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"7\n" +
+	"\x1bDeletePortalDomainsResponse\x12\x18\n" +
+	"\adeleted\x18\x01 \x01(\x05R\adeleted\"\xad\x01\n" +
 	"$RetryPortalDomainVerificationRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1b\n" +
 	"\tportal_id\x18\x02 \x01(\tR\bportalId\x12\x1b\n" +
 	"\tdomain_id\x18\x03 \x01(\tR\bdomainId\x12(\n" +
 	"\x05actor\x18\x04 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"'\n" +
-	"%RetryPortalDomainVerificationResponse2\xd1\x02\n" +
+	"%RetryPortalDomainVerificationResponse2\xb5\x03\n" +
 	"\x13PortalDomainService\x12V\n" +
 	"\x0fAddPortalDomain\x12\x1f.ctrl.v1.AddPortalDomainRequest\x1a .ctrl.v1.AddPortalDomainResponse\"\x00\x12_\n" +
-	"\x12DeletePortalDomain\x12\".ctrl.v1.DeletePortalDomainRequest\x1a#.ctrl.v1.DeletePortalDomainResponse\"\x00\x12\x80\x01\n" +
+	"\x12DeletePortalDomain\x12\".ctrl.v1.DeletePortalDomainRequest\x1a#.ctrl.v1.DeletePortalDomainResponse\"\x00\x12b\n" +
+	"\x13DeletePortalDomains\x12#.ctrl.v1.DeletePortalDomainsRequest\x1a$.ctrl.v1.DeletePortalDomainsResponse\"\x00\x12\x80\x01\n" +
 	"\x1dRetryPortalDomainVerification\x12-.ctrl.v1.RetryPortalDomainVerificationRequest\x1a..ctrl.v1.RetryPortalDomainVerificationResponse\"\x00B\x90\x01\n" +
 	"\vcom.ctrl.v1B\x11PortalDomainProtoP\x01Z1github.com/unkeyed/unkey/gen/proto/ctrl/v1;ctrlv1\xa2\x02\x03CXX\xaa\x02\aCtrl.V1\xca\x02\aCtrl\\V1\xe2\x02\x13Ctrl\\V1\\GPBMetadata\xea\x02\bCtrl::V1b\x06proto3"
 
@@ -415,33 +526,38 @@ func file_ctrl_v1_portal_domain_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_portal_domain_proto_rawDescData
 }
 
-var file_ctrl_v1_portal_domain_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ctrl_v1_portal_domain_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ctrl_v1_portal_domain_proto_goTypes = []any{
 	(*AddPortalDomainRequest)(nil),                // 0: ctrl.v1.AddPortalDomainRequest
 	(*AddPortalDomainResponse)(nil),               // 1: ctrl.v1.AddPortalDomainResponse
 	(*DeletePortalDomainRequest)(nil),             // 2: ctrl.v1.DeletePortalDomainRequest
 	(*DeletePortalDomainResponse)(nil),            // 3: ctrl.v1.DeletePortalDomainResponse
-	(*RetryPortalDomainVerificationRequest)(nil),  // 4: ctrl.v1.RetryPortalDomainVerificationRequest
-	(*RetryPortalDomainVerificationResponse)(nil), // 5: ctrl.v1.RetryPortalDomainVerificationResponse
-	(*ActorInfo)(nil),                             // 6: ctrl.v1.ActorInfo
-	(*DomainConnect)(nil),                         // 7: ctrl.v1.DomainConnect
+	(*DeletePortalDomainsRequest)(nil),            // 4: ctrl.v1.DeletePortalDomainsRequest
+	(*DeletePortalDomainsResponse)(nil),           // 5: ctrl.v1.DeletePortalDomainsResponse
+	(*RetryPortalDomainVerificationRequest)(nil),  // 6: ctrl.v1.RetryPortalDomainVerificationRequest
+	(*RetryPortalDomainVerificationResponse)(nil), // 7: ctrl.v1.RetryPortalDomainVerificationResponse
+	(*ActorInfo)(nil),                             // 8: ctrl.v1.ActorInfo
+	(*DomainConnect)(nil),                         // 9: ctrl.v1.DomainConnect
 }
 var file_ctrl_v1_portal_domain_proto_depIdxs = []int32{
-	6, // 0: ctrl.v1.AddPortalDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
-	7, // 1: ctrl.v1.AddPortalDomainResponse.domain_connect:type_name -> ctrl.v1.DomainConnect
-	6, // 2: ctrl.v1.DeletePortalDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
-	6, // 3: ctrl.v1.RetryPortalDomainVerificationRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0, // 4: ctrl.v1.PortalDomainService.AddPortalDomain:input_type -> ctrl.v1.AddPortalDomainRequest
-	2, // 5: ctrl.v1.PortalDomainService.DeletePortalDomain:input_type -> ctrl.v1.DeletePortalDomainRequest
-	4, // 6: ctrl.v1.PortalDomainService.RetryPortalDomainVerification:input_type -> ctrl.v1.RetryPortalDomainVerificationRequest
-	1, // 7: ctrl.v1.PortalDomainService.AddPortalDomain:output_type -> ctrl.v1.AddPortalDomainResponse
-	3, // 8: ctrl.v1.PortalDomainService.DeletePortalDomain:output_type -> ctrl.v1.DeletePortalDomainResponse
-	5, // 9: ctrl.v1.PortalDomainService.RetryPortalDomainVerification:output_type -> ctrl.v1.RetryPortalDomainVerificationResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	8, // 0: ctrl.v1.AddPortalDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
+	9, // 1: ctrl.v1.AddPortalDomainResponse.domain_connect:type_name -> ctrl.v1.DomainConnect
+	8, // 2: ctrl.v1.DeletePortalDomainRequest.actor:type_name -> ctrl.v1.ActorInfo
+	8, // 3: ctrl.v1.DeletePortalDomainsRequest.actor:type_name -> ctrl.v1.ActorInfo
+	8, // 4: ctrl.v1.RetryPortalDomainVerificationRequest.actor:type_name -> ctrl.v1.ActorInfo
+	0, // 5: ctrl.v1.PortalDomainService.AddPortalDomain:input_type -> ctrl.v1.AddPortalDomainRequest
+	2, // 6: ctrl.v1.PortalDomainService.DeletePortalDomain:input_type -> ctrl.v1.DeletePortalDomainRequest
+	4, // 7: ctrl.v1.PortalDomainService.DeletePortalDomains:input_type -> ctrl.v1.DeletePortalDomainsRequest
+	6, // 8: ctrl.v1.PortalDomainService.RetryPortalDomainVerification:input_type -> ctrl.v1.RetryPortalDomainVerificationRequest
+	1, // 9: ctrl.v1.PortalDomainService.AddPortalDomain:output_type -> ctrl.v1.AddPortalDomainResponse
+	3, // 10: ctrl.v1.PortalDomainService.DeletePortalDomain:output_type -> ctrl.v1.DeletePortalDomainResponse
+	5, // 11: ctrl.v1.PortalDomainService.DeletePortalDomains:output_type -> ctrl.v1.DeletePortalDomainsResponse
+	7, // 12: ctrl.v1.PortalDomainService.RetryPortalDomainVerification:output_type -> ctrl.v1.RetryPortalDomainVerificationResponse
+	9, // [9:13] is the sub-list for method output_type
+	5, // [5:9] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_portal_domain_proto_init() }
@@ -457,7 +573,7 @@ func file_ctrl_v1_portal_domain_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_portal_domain_proto_rawDesc), len(file_ctrl_v1_portal_domain_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

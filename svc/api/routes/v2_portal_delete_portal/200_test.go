@@ -50,7 +50,7 @@ func appOf(m portal.Mapping) *openapi.PortalAppId {
 func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
 	t.Helper()
 
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: &testutil.MockPortalDomainClient{}}
 	h.Register(route)
 
 	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, permissions...)
@@ -431,4 +431,41 @@ func TestDeletePortalWithInvalidMapping(t *testing.T) {
 	require.False(t, portalExists(t, h, workspace.ID, stored.ID))
 	require.Equal(t, "invalid", deleteAuditMeta(t, h, workspace.ID)["mappingType"],
 		"the audit entry records that the mapping could not be read")
+}
+
+// Deleting a portal deletes its domains through ctrl, inside the same request.
+func TestDeletePortalDeletesItsDomains(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctrl := &testutil.MockPortalDomainClient{}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: ctrl}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	headers := headersFor(h.CreateRootKey(workspace.ID, rbac.U(urn.V1{WorkspaceID: workspace.ID, Resource: "**"}, permissions.Delete).Value))
+
+	stored := h.SeedPortal(t, workspace.ID, "with-domain", "with-domain", keyspaceMapping(t, h, workspace.ID), nil, nil)
+	h.SeedPortalDomain(t, workspace.ID, stored.ID, uid.DNS1035(12)+".example.com", db.PortalDomainsVerificationStatusVerified)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.False(t, portalExists(t, h, workspace.ID, stored.ID))
+
+	require.Len(t, ctrl.DeletePortalDomainsCalls, 1)
+	require.Equal(t, workspace.ID, ctrl.DeletePortalDomainsCalls[0].GetWorkspaceId())
+	require.Equal(t, stored.ID, ctrl.DeletePortalDomainsCalls[0].GetPortalId())
+}
+
+// A portal without domains never reaches ctrl.
+func TestDeletePortalWithoutDomainsSkipsCtrl(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctrl := &testutil.MockPortalDomainClient{}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: ctrl}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	headers := headersFor(h.CreateRootKey(workspace.ID, rbac.U(urn.V1{WorkspaceID: workspace.ID, Resource: "**"}, permissions.Delete).Value))
+
+	stored := h.SeedPortal(t, workspace.ID, "no-domain", "no-domain", keyspaceMapping(t, h, workspace.ID), nil, nil)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID))
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Empty(t, ctrl.DeletePortalDomainsCalls)
 }

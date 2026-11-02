@@ -208,6 +208,48 @@ func TestDeleteVerifiedPortalDomain(t *testing.T) {
 	require.Equal(t, fmt.Sprintf("Deleted portal domain %s, its ACME challenge, and its route", f.domain), logged.Description)
 }
 
+// Deleting a portal removes every domain on it the way a single delete would,
+// and leaves domains on other portals alone.
+func TestDeletePortalDomains(t *testing.T) {
+	ctx := context.Background()
+	f := newFixture(t)
+	svc := f.newService(t)
+
+	verified := f.insertPortalDomain(t, f.workspaceID, f.domain, db.PortalDomainsVerificationStatusVerified)
+	f.insertRoute(t, f.domain)
+	f.insertChallenge(t, verified, f.workspaceID)
+	f.insertCertificate(t, f.workspaceID, f.domain)
+	pending := f.insertPortalDomain(t, f.workspaceID, randomDomain(), db.PortalDomainsVerificationStatusPending)
+
+	otherPortal := f
+	otherPortal.portalID = f.seeder.CreatePortal(ctx, f.workspaceID)
+	untouched := otherPortal.insertPortalDomain(t, f.workspaceID, randomDomain(), db.PortalDomainsVerificationStatusPending)
+
+	res, err := svc.DeletePortalDomains(ctx, authorized(&ctrlv1.DeletePortalDomainsRequest{
+		WorkspaceId: f.workspaceID,
+		PortalId:    f.portalID,
+		Actor:       testActor(),
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(2), res.Msg.GetDeleted())
+
+	for _, id := range []string{verified, pending} {
+		_, err = f.database.FindPortalDomainById(ctx, id)
+		require.True(t, db.IsNotFound(err), "domain %s must be gone, got: %v", id, err)
+	}
+	_, err = f.database.FindPortalDomainById(ctx, untouched)
+	require.NoError(t, err, "a domain on another portal must stay")
+
+	require.Equal(t, 0, f.count(t, "SELECT COUNT(*) FROM frontline_routes WHERE fully_qualified_domain_name = ?", f.domain))
+	require.Equal(t, 0, f.count(t, "SELECT COUNT(*) FROM acme_challenges WHERE domain_id = ?", verified))
+	require.Equal(t, 1, f.count(t, "SELECT COUNT(*) FROM certificates WHERE hostname = ?", f.domain),
+		"the certificate stays, as it does for a single delete")
+
+	logged := f.findAuditEvents(t, f.workspaceID, auditlog.PortalDomainDeleteEvent)
+	require.Len(t, logged, 2)
+	require.ElementsMatch(t, []string{verified, pending}, []string{logged[0].Targets[0].ID, logged[1].Targets[0].ID})
+}
+
 // Workspace B holds the verified row and its route. Workspace A's unverified
 // claim on the same hostname shares the portal project, so deleting it must
 // not touch the route.
@@ -542,6 +584,15 @@ func (f fixture) requireNoAuditLogs(t *testing.T, workspaceID string) {
 func (f fixture) findAuditEvent(t *testing.T, workspaceID string, event auditlog.AuditLogEvent) auditlog.Event {
 	t.Helper()
 
+	matches := f.findAuditEvents(t, workspaceID, event)
+	require.Len(t, matches, 1, "expected exactly one %s entry", event)
+	return matches[0]
+}
+
+// findAuditEvents returns every outbox entry carrying event.
+func (f fixture) findAuditEvents(t *testing.T, workspaceID string, event auditlog.AuditLogEvent) []auditlog.Event {
+	t.Helper()
+
 	rows, err := f.database.ListClickhouseOutboxByWorkspace(context.Background(), workspaceID)
 	require.NoError(t, err)
 
@@ -553,8 +604,7 @@ func (f fixture) findAuditEvent(t *testing.T, workspaceID string, event auditlog
 			matches = append(matches, logged)
 		}
 	}
-	require.Len(t, matches, 1, "expected exactly one %s entry", event)
-	return matches[0]
+	return matches
 }
 
 func requireCode(t *testing.T, want connect.Code, err error) {

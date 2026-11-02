@@ -103,7 +103,7 @@ If another workspace has already verified the name, publish the TXT record. When
 
 Call `portal.deleteDomain` with the portal and the `domainId`. A verified domain stops serving your portal right away. The certificate isn't revoked, and you remove the DNS records yourself.
 
-You must remove every domain before you can delete the portal. `portal.deletePortal` returns 412 while the portal still has domains.
+Deleting a portal with `portal.deletePortal` removes its domains the same way.
 
 Adding, verifying, and removing a domain write `portal.domain.create`, `portal.domain.verify`, and `portal.domain.delete` [audit log](/platform/workspace/audit-logs/event-types) entries.
 
@@ -116,5 +116,4 @@ Adding, verifying, and removing a domain write `portal.domain.create`, `portal.d
 | 404 | `err:unkey:data:domain_not_found` | The domain is not attached to that portal. |
 | 409 | `err:unkey:data:domain_already_exists` | The name is already attached to a portal or an environment in your workspace. |
 | 403 | `err:unkey:limits:portal_domain_limit_exceeded` | The workspace already holds 10 portal domains. |
-| 412 | `err:unkey:application:precondition_failed` | On portal delete: the portal still has domains. |
 | 400 | `err:unkey:application:invalid_input` | The name is malformed, a wildcard, an IP address, or not under a registrable domain. |

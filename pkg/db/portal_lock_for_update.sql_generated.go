@@ -21,8 +21,8 @@ type LockPortalForUpdateParams struct {
 }
 
 // Exclusively locks a portal for the rest of the transaction. Attaching a domain
-// in ctrl share-locks the same row, so a delete that checks for domains under
-// this lock cannot race a domain being added.
+// in ctrl share-locks the same row, so a delete that removes the portal's
+// domains under this lock cannot race a domain being added.
 //
 //	SELECT id FROM portals
 //	WHERE id = ? AND workspace_id = ?

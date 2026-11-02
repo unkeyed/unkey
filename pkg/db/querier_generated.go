@@ -80,8 +80,8 @@ type Querier interface {
 	//  FROM permissions
 	//  WHERE workspace_id = ?
 	CountPermissionsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
-	// Counts a portal's domains so deletePortal can refuse while any remain, since
-	// a deleted portal would otherwise leave them routed and unmanageable.
+	// Counts a portal's domains so deletePortal only asks ctrl to delete them when
+	// there are any.
 	//
 	//  SELECT COUNT(*)
 	//  FROM portal_domains
@@ -271,7 +271,7 @@ type Querier interface {
 	// Deletes a portal, scoped to the workspace so one workspace can never delete
 	// another's. Returns the row count so a concurrent delete that already removed
 	// the row is reported as not-found rather than as a second success. Callers
-	// must reject the delete while the portal still has domains.
+	// delete the portal's domains through ctrl first.
 	//
 	//  DELETE FROM portals
 	//  WHERE id = ?
@@ -3683,8 +3683,8 @@ type Querier interface {
 	//  FOR UPDATE
 	LockPortalForMint(ctx context.Context, db DBTX, arg LockPortalForMintParams) (LockPortalForMintRow, error)
 	// Exclusively locks a portal for the rest of the transaction. Attaching a domain
-	// in ctrl share-locks the same row, so a delete that checks for domains under
-	// this lock cannot race a domain being added.
+	// in ctrl share-locks the same row, so a delete that removes the portal's
+	// domains under this lock cannot race a domain being added.
 	//
 	//  SELECT id FROM portals
 	//  WHERE id = ? AND workspace_id = ?

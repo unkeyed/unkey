@@ -39,6 +39,9 @@ const (
 	// PortalDomainServiceDeletePortalDomainProcedure is the fully-qualified name of the
 	// PortalDomainService's DeletePortalDomain RPC.
 	PortalDomainServiceDeletePortalDomainProcedure = "/ctrl.v1.PortalDomainService/DeletePortalDomain"
+	// PortalDomainServiceDeletePortalDomainsProcedure is the fully-qualified name of the
+	// PortalDomainService's DeletePortalDomains RPC.
+	PortalDomainServiceDeletePortalDomainsProcedure = "/ctrl.v1.PortalDomainService/DeletePortalDomains"
 	// PortalDomainServiceRetryPortalDomainVerificationProcedure is the fully-qualified name of the
 	// PortalDomainService's RetryPortalDomainVerification RPC.
 	PortalDomainServiceRetryPortalDomainVerificationProcedure = "/ctrl.v1.PortalDomainService/RetryPortalDomainVerification"
@@ -48,6 +51,8 @@ const (
 type PortalDomainServiceClient interface {
 	AddPortalDomain(context.Context, *connect.Request[v1.AddPortalDomainRequest]) (*connect.Response[v1.AddPortalDomainResponse], error)
 	DeletePortalDomain(context.Context, *connect.Request[v1.DeletePortalDomainRequest]) (*connect.Response[v1.DeletePortalDomainResponse], error)
+	// Delete every domain on a portal, for a portal that is being deleted.
+	DeletePortalDomains(context.Context, *connect.Request[v1.DeletePortalDomainsRequest]) (*connect.Response[v1.DeletePortalDomainsResponse], error)
 	// Retry verification for a pending, verifying, or failed domain.
 	RetryPortalDomainVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error)
 }
@@ -75,6 +80,12 @@ func NewPortalDomainServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(portalDomainServiceMethods.ByName("DeletePortalDomain")),
 			connect.WithClientOptions(opts...),
 		),
+		deletePortalDomains: connect.NewClient[v1.DeletePortalDomainsRequest, v1.DeletePortalDomainsResponse](
+			httpClient,
+			baseURL+PortalDomainServiceDeletePortalDomainsProcedure,
+			connect.WithSchema(portalDomainServiceMethods.ByName("DeletePortalDomains")),
+			connect.WithClientOptions(opts...),
+		),
 		retryPortalDomainVerification: connect.NewClient[v1.RetryPortalDomainVerificationRequest, v1.RetryPortalDomainVerificationResponse](
 			httpClient,
 			baseURL+PortalDomainServiceRetryPortalDomainVerificationProcedure,
@@ -88,6 +99,7 @@ func NewPortalDomainServiceClient(httpClient connect.HTTPClient, baseURL string,
 type portalDomainServiceClient struct {
 	addPortalDomain               *connect.Client[v1.AddPortalDomainRequest, v1.AddPortalDomainResponse]
 	deletePortalDomain            *connect.Client[v1.DeletePortalDomainRequest, v1.DeletePortalDomainResponse]
+	deletePortalDomains           *connect.Client[v1.DeletePortalDomainsRequest, v1.DeletePortalDomainsResponse]
 	retryPortalDomainVerification *connect.Client[v1.RetryPortalDomainVerificationRequest, v1.RetryPortalDomainVerificationResponse]
 }
 
@@ -101,6 +113,11 @@ func (c *portalDomainServiceClient) DeletePortalDomain(ctx context.Context, req 
 	return c.deletePortalDomain.CallUnary(ctx, req)
 }
 
+// DeletePortalDomains calls ctrl.v1.PortalDomainService.DeletePortalDomains.
+func (c *portalDomainServiceClient) DeletePortalDomains(ctx context.Context, req *connect.Request[v1.DeletePortalDomainsRequest]) (*connect.Response[v1.DeletePortalDomainsResponse], error) {
+	return c.deletePortalDomains.CallUnary(ctx, req)
+}
+
 // RetryPortalDomainVerification calls ctrl.v1.PortalDomainService.RetryPortalDomainVerification.
 func (c *portalDomainServiceClient) RetryPortalDomainVerification(ctx context.Context, req *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error) {
 	return c.retryPortalDomainVerification.CallUnary(ctx, req)
@@ -110,6 +127,8 @@ func (c *portalDomainServiceClient) RetryPortalDomainVerification(ctx context.Co
 type PortalDomainServiceHandler interface {
 	AddPortalDomain(context.Context, *connect.Request[v1.AddPortalDomainRequest]) (*connect.Response[v1.AddPortalDomainResponse], error)
 	DeletePortalDomain(context.Context, *connect.Request[v1.DeletePortalDomainRequest]) (*connect.Response[v1.DeletePortalDomainResponse], error)
+	// Delete every domain on a portal, for a portal that is being deleted.
+	DeletePortalDomains(context.Context, *connect.Request[v1.DeletePortalDomainsRequest]) (*connect.Response[v1.DeletePortalDomainsResponse], error)
 	// Retry verification for a pending, verifying, or failed domain.
 	RetryPortalDomainVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error)
 }
@@ -133,6 +152,12 @@ func NewPortalDomainServiceHandler(svc PortalDomainServiceHandler, opts ...conne
 		connect.WithSchema(portalDomainServiceMethods.ByName("DeletePortalDomain")),
 		connect.WithHandlerOptions(opts...),
 	)
+	portalDomainServiceDeletePortalDomainsHandler := connect.NewUnaryHandler(
+		PortalDomainServiceDeletePortalDomainsProcedure,
+		svc.DeletePortalDomains,
+		connect.WithSchema(portalDomainServiceMethods.ByName("DeletePortalDomains")),
+		connect.WithHandlerOptions(opts...),
+	)
 	portalDomainServiceRetryPortalDomainVerificationHandler := connect.NewUnaryHandler(
 		PortalDomainServiceRetryPortalDomainVerificationProcedure,
 		svc.RetryPortalDomainVerification,
@@ -145,6 +170,8 @@ func NewPortalDomainServiceHandler(svc PortalDomainServiceHandler, opts ...conne
 			portalDomainServiceAddPortalDomainHandler.ServeHTTP(w, r)
 		case PortalDomainServiceDeletePortalDomainProcedure:
 			portalDomainServiceDeletePortalDomainHandler.ServeHTTP(w, r)
+		case PortalDomainServiceDeletePortalDomainsProcedure:
+			portalDomainServiceDeletePortalDomainsHandler.ServeHTTP(w, r)
 		case PortalDomainServiceRetryPortalDomainVerificationProcedure:
 			portalDomainServiceRetryPortalDomainVerificationHandler.ServeHTTP(w, r)
 		default:
@@ -162,6 +189,10 @@ func (UnimplementedPortalDomainServiceHandler) AddPortalDomain(context.Context, 
 
 func (UnimplementedPortalDomainServiceHandler) DeletePortalDomain(context.Context, *connect.Request[v1.DeletePortalDomainRequest]) (*connect.Response[v1.DeletePortalDomainResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.PortalDomainService.DeletePortalDomain is not implemented"))
+}
+
+func (UnimplementedPortalDomainServiceHandler) DeletePortalDomains(context.Context, *connect.Request[v1.DeletePortalDomainsRequest]) (*connect.Response[v1.DeletePortalDomainsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.PortalDomainService.DeletePortalDomains is not implemented"))
 }
 
 func (UnimplementedPortalDomainServiceHandler) RetryPortalDomainVerification(context.Context, *connect.Request[v1.RetryPortalDomainVerificationRequest]) (*connect.Response[v1.RetryPortalDomainVerificationResponse], error) {

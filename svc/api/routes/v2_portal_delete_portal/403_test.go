@@ -25,7 +25,7 @@ import (
 // //nolint:exhaustive and a missing case would fall through to a 500.
 func TestDeletePortalAuthorizationMatrix(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: &testutil.MockPortalDomainClient{}}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace

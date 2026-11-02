@@ -34,6 +34,16 @@ message DeletePortalDomainRequest {
 
 message DeletePortalDomainResponse {}
 
+message DeletePortalDomainsRequest {
+  string workspace_id = 1;
+  string portal_id = 2;
+  ActorInfo actor = 3;
+}
+
+message DeletePortalDomainsResponse {
+  int32 deleted = 1;
+}
+
 message RetryPortalDomainVerificationRequest {
   string workspace_id = 1;
   string portal_id = 2;
@@ -49,6 +59,9 @@ service PortalDomainService {
   rpc AddPortalDomain(AddPortalDomainRequest) returns (AddPortalDomainResponse) {}
 
   rpc DeletePortalDomain(DeletePortalDomainRequest) returns (DeletePortalDomainResponse) {}
+
+  // Delete every domain on a portal, for a portal that is being deleted.
+  rpc DeletePortalDomains(DeletePortalDomainsRequest) returns (DeletePortalDomainsResponse) {}
 
   // Retry verification for a pending, verifying, or failed domain.
   rpc RetryPortalDomainVerification(RetryPortalDomainVerificationRequest) returns (RetryPortalDomainVerificationResponse) {}
