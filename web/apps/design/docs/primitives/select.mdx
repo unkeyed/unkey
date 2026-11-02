@@ -27,3 +27,9 @@ Pass `maxRows` to `SelectContent` when the list is long or sits above other fiel
 - `multiple` takes and returns an array of values.
 - The value type follows the options, so `onValueChange` needs no narrowing.
 - Set `disabled` on an option to show it but block its selection.
+
+### Label action
+
+Pass `labelAction` to put a small control, such as a ghost `Remove` button, at the right of the label row. The row keeps its height. `labelAction` needs a `label`.
+
+<Component path="select/form-select-label-action" />

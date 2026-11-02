@@ -2,7 +2,7 @@ import { IconChevronDownOutline18 } from "@unkey/icons";
 // biome-ignore lint/style/useImportType: this package compiles JSX with the classic runtime, so React must stay a value import
 import * as React from "react";
 import { FormField } from "./form-field";
-import type { Requirement } from "./form-helpers";
+import type { LabelActionProps, Requirement } from "./form-helpers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 
 export type FormSelectOption<T extends string = string> = {
@@ -25,6 +25,7 @@ type FormSelectValueProps<T extends string> =
   | { multiple: true; value: T[]; onValueChange: (value: NoInfer<T>[]) => void };
 
 type FormSelectProps<T extends string = string> = DocumentedFormSelectProps &
+  LabelActionProps &
   FormSelectValueProps<T> & {
     options: readonly FormSelectOption<T>[];
     placeholder?: string;
@@ -43,17 +44,11 @@ type FormSelectProps<T extends string = string> = DocumentedFormSelectProps &
 
 function FormSelect<T extends string>(props: FormSelectProps<T>) {
   const {
-    label,
-    description,
-    error,
     requirement,
-    id,
-    className,
     triggerClassName,
     valueClassName,
     contentClassName,
     itemClassName,
-    descriptionPosition = "inline",
     options,
     placeholder,
     disabled,
@@ -65,15 +60,7 @@ function FormSelect<T extends string>(props: FormSelectProps<T>) {
   const items = options.map((opt) => ({ value: opt.value, label: opt.label }));
 
   return (
-    <FormField
-      label={label}
-      description={description}
-      error={error}
-      requirement={requirement}
-      id={id}
-      className={className}
-      descriptionPosition={descriptionPosition}
-    >
+    <FormField {...props}>
       {(control) => {
         const parts = (
           <>
