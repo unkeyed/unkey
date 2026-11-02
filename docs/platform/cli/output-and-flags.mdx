@@ -12,6 +12,7 @@ sources:
   - cmd/api/util/output.go
   - cmd/api/util/human.go
   - cmd/api/util/table.go
+  - cmd/api/util/tree.go
   - cmd/api/util/body.go
   - cmd/api/util/confirm.go
   - cmd/api/util/errors.go
@@ -64,18 +65,18 @@ Resource commands such as `unkey projects list` and `unkey keys get` share the f
 
 ## Output formats
 
-The default `human` format shows name-first summary tables for lists, labeled details for individual resources, and a confirmation for actions without response data. For example, `unkey projects list` shows the name, slug, and update time in a terminal:
+The default `human` format shows name-first summary tables for lists, trees for individual responses, and a confirmation for actions without response data. Trees apply to resource details, create and update results, key verification, and rate-limit checks. For example, `unkey projects list` shows the name, slug, and update time in a terminal:
 
 ```plaintext
 NAME      SLUG      UPDATED
 Payments  payments  2 hours ago
 ```
 
-Summaries use names or slugs for projects, apps, environments, domains, permissions, and roles. Lists retain IDs where you need them to identify a resource for another command. Labeled details and JSON responses retain the IDs returned by the API.
+Summaries use names or slugs for projects, apps, environments, domains, permissions, and roles. Lists retain IDs where you need them to identify a resource for another command. Trees and JSON responses retain the IDs returned by the API. Trees put the resource name first when present, followed by scalar fields, nested groups, and dates.
 
 Terminal tables show relative timestamps such as `2 hours ago`. When stdout is redirected to a file or pipe, human-readable timestamps use RFC3339 in UTC, such as `2026-10-28T12:00:00Z`. JSON timestamps keep the API's original representation.
 
-To fit the terminal width, tables shorten only display names and descriptions with an ellipsis (`…`). Identifiers, slugs, and credentials remain complete, including names used to identify resources. If the remaining columns still don't fit, the CLI prints labeled records instead of truncating identifiers. Redirected output isn't shortened. Labeled details retain exact values without width-based shortening.
+To fit the terminal width, tables shorten only display names and descriptions with an ellipsis (`…`). Identifiers, slugs, and credentials remain complete, including names used to identify resources. If the remaining columns still don't fit, the CLI prints labeled records instead of truncating identifiers. Trees wrap long values and keep the branch indentation without truncating text. Returned keys stay contiguous so you can copy them without inserted line breaks. Redirected output isn't shortened or wrapped.
 
 An empty list prints a message instead of a table:
 
@@ -87,7 +88,7 @@ Mutations start with one confirmation line, such as `✓ Updated settings` or `�
 
 ```plaintext
 ✓ Created project demo-service
-  ID:  proj_demo7Hq2Xc9
+  └─ ID: proj_demo7Hq2Xc9
 ```
 
 When the response has no data or returns assignments, the CLI shows available request targets, such as the key ID or the project, app, and environment. It does not echo credentials or variable values from the request. An asynchronous action prints a line such as `✓ Deletion requested` instead of claiming the work has finished. The check mark is green only on a color terminal. `NO_COLOR`, `CLICOLOR=0`, and `TERM=dumb` turn color off.

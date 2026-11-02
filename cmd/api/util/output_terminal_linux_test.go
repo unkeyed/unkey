@@ -103,6 +103,18 @@ func TestOutputNarrowTerminalPreservesCredentialsAndJSON(t *testing.T) {
 	var got components.V2ApisListKeysResponseBody
 	require.NoError(t, json.Unmarshal([]byte(output), &got))
 	require.Equal(t, *response, got)
+	for _, details := range []any{
+		&components.V2KeysWhoamiResponseBody{Data: response.Data[0]},
+		&components.V2KeysCreateKeyResponseBody{Data: components.V2KeysCreateKeyResponseData{KeyID: response.Data[0].KeyID, Key: plaintext}},
+	} {
+		output := captureTerminalOutput(t, 32, details)
+		require.Contains(t, output, plaintext)
+		require.NotContains(t, output, "…")
+		output = captureTerminalOutput(t, 32, details, "--json")
+		encoded, err := json.MarshalIndent(details, "", "  ")
+		require.NoError(t, err)
+		require.Equal(t, string(encoded)+"\n", output)
+	}
 }
 
 func captureTerminalOutput(t *testing.T, width uint16, response any, args ...string) string {

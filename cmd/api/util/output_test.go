@@ -14,6 +14,60 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+func TestOutputSingleObjectsUseTreesAndPreserveJSON(t *testing.T) {
+	project := components.Project{ID: uid.New(uid.ProjectPrefix), Name: "Demo Service", Slug: "demo-service", DeleteProtection: false}
+	rateID := uid.New(uid.RatelimitPrefix)
+	for _, test := range []struct {
+		name     string
+		response any
+		values   []string
+	}{
+		{
+			name: "get project", response: &components.V2ProjectsGetProjectResponseBody{Data: project},
+			values: []string{"Demo Service\n├─ ID: " + project.ID, "Slug: demo-service", "Delete protection: false"},
+		},
+		{
+			name: "update project", response: &components.V2ProjectsUpdateProjectResponseBody{Data: project},
+			values: []string{"✓ Updated project\n  Demo Service\n  ├─ ID: " + project.ID, "Slug: demo-service"},
+		},
+		{
+			name: "create project", response: &components.V2ProjectsCreateProjectResponseBody{Data: components.V2ProjectsCreateProjectResponseData{ID: project.ID}},
+			values: []string{"✓ Created project\n  └─ ID: " + project.ID},
+		},
+		{
+			name: "rate limit", response: &components.V2RatelimitLimitResponseBody{Data: components.V2RatelimitLimitResponseData{Limit: 3, Remaining: 0, Reset: 1700000000000, Success: false}},
+			values: []string{"├─ Limit: 3", "Remaining: 0", "Reset: 1700000000000", "└─ Success: false"},
+		},
+		{
+			name: "verification with nested limits",
+			response: &components.V2KeysVerifyKeyResponseBody{Data: components.V2KeysVerifyKeyResponseData{
+				Valid: false, Code: components.CodeRateLimited, Credits: new(int64(0)),
+				Ratelimits: []components.VerifyKeyRatelimitData{{ID: rateID, Name: "requests", Limit: 3, Duration: 60000, Exceeded: true, Remaining: 0, Reset: 1700000000000}},
+			}},
+			values: []string{"├─ Code: RATE_LIMITED", "Credits: 0", "Valid: false", "└─ Rate limits", "requests", rateID, "Exceeded: true", "Remaining: 0", "Reset: 1700000000000"},
+		},
+		{
+			name: "unregistered response type",
+			response: struct {
+				Data map[string]any `json:"data"`
+			}{Data: map[string]any{"authentication": "unchecked", "credential": "UNKEY_ROOT_KEY"}},
+			values: []string{"├─ Authentication: unchecked", "└─ Credential: UNKEY_ROOT_KEY"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			output := captureOutput(t, test.response)
+			for _, value := range test.values {
+				require.Contains(t, output, value)
+			}
+			for _, flag := range []string{"--json", "--output=json"} {
+				encoded, err := json.MarshalIndent(test.response, "", "  ")
+				require.NoError(t, err)
+				require.Equal(t, string(encoded)+"\n", captureOutput(t, test.response, flag))
+			}
+		})
+	}
+}
+
 func TestOutputWhoamiTreePreservesKeyDetails(t *testing.T) {
 	keyID := uid.New(uid.KeyPrefix)
 	identityID := uid.New(uid.IdentityPrefix)
@@ -38,12 +92,13 @@ func TestOutputWhoamiTreePreservesKeyDetails(t *testing.T) {
 		},
 	}
 	output := captureOutput(t, response)
-	require.True(t, strings.HasPrefix(output, `CI\n\x1b[2J`+"\nDisabled · "+keyID+"\nPrefix: demo_\n"), output)
+	require.True(t, strings.HasPrefix(output, `CI\n\x1b[2J`+"\n├─ Key ID: "+keyID+"\n"), output)
 	for _, want := range []string{
+		"Enabled: false", "Start: demo_",
 		"├─ Identity", identityID, "External ID: demo-user", "createdAt: 123",
 		"Permissions", "documents.read", "documents.list", "Roles", "reader",
 		"Remaining: 0", "Amount: 100", "Interval: monthly", "Refill day: 3",
-		"requests: 50 / 1m0s", rateID, "Auto apply: false",
+		"requests", "Limit: 50", "Duration: 1m0s", rateID, "Auto apply: false",
 		"quota: 9007199254740993", "createdAt: 456", "enabled: false", "remaining: -",
 		"└─ Dates", "Created at: 2023-11-14T22:13:20Z", "Last used at: 2023-11-14T23:13:20Z",
 		"Updated at: 2023-11-15T00:13:20Z", "Expires: 2023-11-15T01:13:20Z",
@@ -66,7 +121,8 @@ func TestOutputWhoamiTreeShowsUnlimitedCredits(t *testing.T) {
 		KeyID: uid.New(uid.KeyPrefix), Enabled: true, Credits: &components.KeyCreditsData{},
 	}}
 	output := captureOutput(t, response)
-	require.True(t, strings.HasPrefix(output, "API key\nEnabled · "), output)
+	require.True(t, strings.HasPrefix(output, "├─ Key ID: "), output)
+	require.Contains(t, output, "Enabled: true")
 	require.Contains(t, output, "Remaining: unlimited")
 	require.NotContains(t, output, "Permissions")
 	require.NotContains(t, output, "Identity")
@@ -87,7 +143,7 @@ func TestOutputDetailsPreserveValuesAndEscapeTerminalControls(t *testing.T) {
 		},
 	}
 	output := captureOutput(t, response)
-	for _, want := range []string{keyID, plaintext, "false", "Remaining:  0", "createdAt:  123", "9007199254740993", "2023-11-14T22:13:20Z", "billing", "reader", `Payments\n\x1b[2J`} {
+	for _, want := range []string{keyID, plaintext, "false", "Remaining: 0", "createdAt: 123", "9007199254740993", "2023-11-14T22:13:20Z", "billing", "reader", `Payments\n\x1b[2J`} {
 		require.Contains(t, output, want)
 	}
 	require.NotContains(t, output, requestID)
@@ -212,6 +268,8 @@ func TestOutputSummariesKeepActionableFields(t *testing.T) {
 			header, row, found := strings.Cut(output, "\n")
 			require.True(t, found)
 			require.Equal(t, test.header, strings.Join(strings.Fields(header), " "))
+			require.NotContains(t, output, "├─")
+			require.NotContains(t, output, "└─")
 			for _, value := range test.values {
 				require.Contains(t, row, value)
 			}
@@ -322,10 +380,10 @@ func TestOutputCreatedResourceNamesRequestedIdentity(t *testing.T) {
 		args []string
 		want string
 	}{
-		{"slug flag", []string{"--name=Demo Service", "--slug=demo-service"}, "✓ Created project demo-service\n  ID:  " + projectID + "\n"},
-		{"slug body", []string{`--body={"name":"Demo Service","slug":"demo-service"}`}, "✓ Created project demo-service\n  ID:  " + projectID + "\n"},
-		{"name only", []string{`--body={"name":"Demo Service"}`}, "✓ Created project Demo Service\n  ID:  " + projectID + "\n"},
-		{"control characters", []string{"--slug=demo\x1b[2J"}, "✓ Created project demo\\x1b[2J\n  ID:  " + projectID + "\n"},
+		{"slug flag", []string{"--name=Demo Service", "--slug=demo-service"}, "✓ Created project demo-service\n  └─ ID: " + projectID + "\n"},
+		{"slug body", []string{`--body={"name":"Demo Service","slug":"demo-service"}`}, "✓ Created project demo-service\n  └─ ID: " + projectID + "\n"},
+		{"name only", []string{`--body={"name":"Demo Service"}`}, "✓ Created project Demo Service\n  └─ ID: " + projectID + "\n"},
+		{"control characters", []string{"--slug=demo\x1b[2J"}, "✓ Created project demo\\x1b[2J\n  └─ ID: " + projectID + "\n"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			require.Equal(t, test.want, captureOutput(t, response, test.args...))
@@ -343,7 +401,7 @@ func TestOutputKeyVerificationDoesNotClaimMutationSuccess(t *testing.T) {
 				Data: components.V2KeysVerifyKeyResponseData{Valid: code == components.CodeValid, Code: code},
 			}
 			output := captureOutput(t, response)
-			require.True(t, strings.HasPrefix(output, "Code:"), output)
+			require.True(t, strings.HasPrefix(output, "├─ Code:"), output)
 			require.Contains(t, output, string(code))
 			require.Contains(t, output, "Valid:")
 			require.NotContains(t, output, "Done.")

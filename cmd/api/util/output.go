@@ -72,11 +72,7 @@ func Output(cmd *cli.Command, v any) error {
 		fmt.Fprintf(&output, "%s %s\n", tui.New(os.Stdout).Green("✓"), message)
 		indent = "  "
 	}
-	if _, ok := v.(*components.V2KeysWhoamiResponseBody); ok {
-		if err := writeKeyTree(&output, envelope.Data, format); err != nil {
-			return err
-		}
-	} else if rows, ok := envelope.Data.([]any); ok || (envelope.Data == nil && columns != nil) {
+	if rows, ok := envelope.Data.([]any); ok || (envelope.Data == nil && columns != nil) {
 		if message != "" {
 			writeMutationTargets(&output, cmd, request, indent)
 		}
@@ -112,8 +108,8 @@ func Output(cmd *cli.Command, v any) error {
 		} else {
 			fmt.Fprintln(&output, "Done.")
 		}
-	} else if err := writeDetails(&output, envelope.Data, indent, false); err != nil {
-		return err
+	} else {
+		writeDetails(&output, envelope.Data, indent, format)
 	}
 	if envelope.Pagination != nil && envelope.Pagination.HasMore {
 		if cursor := envelope.Pagination.GetCursor(); cursor != nil && *cursor != "" {

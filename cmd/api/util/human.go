@@ -7,65 +7,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 	"time"
 	"unicode"
 )
-
-func writeDetails(output *strings.Builder, value any, indent string, metadata bool) error {
-	object, ok := value.(map[string]any)
-	if !ok {
-		fmt.Fprintln(output, indent+cell(value))
-		return nil
-	}
-	keys := slices.Sorted(maps.Keys(object))
-	if !metadata {
-		if _, hasKey := object["key"]; hasKey {
-			if i := slices.Index(keys, "keyId"); i >= 0 {
-				keys = append([]string{"keyId"}, append(keys[:i], keys[i+1:]...)...)
-			}
-		}
-	}
-	table := tabwriter.NewWriter(output, 0, 4, 2, ' ', 0)
-	for _, key := range keys {
-		switch object[key].(type) {
-		case map[string]any, []any:
-			continue
-		default:
-			label, value := fieldLabel(key), fieldValue(key, object[key])
-			if metadata {
-				label, value = terminalText(key), cell(object[key])
-			}
-			fmt.Fprintf(table, "%s%s:\t%s\n", indent, label, value)
-		}
-	}
-	if err := table.Flush(); err != nil {
-		return err
-	}
-	for _, key := range keys {
-		switch nested := object[key].(type) {
-		case map[string]any:
-			if len(nested) == 0 {
-				fmt.Fprintf(output, "%s%s: none\n", indent, fieldLabel(key))
-				continue
-			}
-			fmt.Fprintf(output, "%s%s:\n", indent, fieldLabel(key))
-			if err := writeDetails(output, nested, indent+"  ", metadata || key == "meta"); err != nil {
-				return err
-			}
-		case []any:
-			if len(nested) == 0 {
-				fmt.Fprintf(output, "%s%s: none\n", indent, fieldLabel(key))
-				continue
-			}
-			fmt.Fprintf(output, "%s%s:\n", indent, fieldLabel(key))
-			if err := writeTable(output, nested, nil, indent+"  ", tableFormat{width: 0, now: time.Time{}}); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
 
 func fieldValue(key string, value any) string {
 	switch key {
