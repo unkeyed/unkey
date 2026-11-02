@@ -47,3 +47,8 @@ export const connections = {
   slug: "connections",
   defaultValue: false,
 } as const satisfies WorkspaceFlag;
+
+export const databases = {
+  slug: "databases",
+  defaultValue: false,
+} as const satisfies WorkspaceFlag;
