@@ -1,5 +1,6 @@
 "use client";
 
+import { PaneRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-row";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { trpc } from "@/lib/trpc/client";
 import { Github, IconChevronRightOutline18, IconCubeOutline18 } from "@unkey/icons";
@@ -8,7 +9,6 @@ import type { ReactNode } from "react";
 import { useNewAppFlow } from "../flow";
 import { CONNECT_GITHUB, useConnectGithub } from "../use-connect-github";
 import { type SourceKind, sourceCopy } from "../wizard-model";
-import { PaneRow } from "./pane-row";
 import { type SourceAction, sourceAction } from "./source/source-choice-state";
 
 const sourceIcon: Record<SourceKind, ReactNode> = {

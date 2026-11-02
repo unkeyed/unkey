@@ -1,3 +1,8 @@
+import {
+  type StepStatus,
+  stepLabel,
+  stepStatus,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/steps";
 import type { GuardMode } from "@/hooks/prevent-leave-model";
 import {
   type App,
@@ -6,10 +11,8 @@ import {
 } from "@/lib/collections/deploy/apps";
 
 export type SourceKind = "git" | "oci";
-export type Direction = "forward" | "back";
 
 export type Step = "method" | "source" | "settings";
-export type StepStatus = "done" | "current" | "todo";
 
 const STEPS: readonly Step[] = ["method", "source", "settings"];
 
@@ -126,7 +129,7 @@ export function cardView(state: WizardState, pane: Pane): CardView | null {
   return {
     card,
     previous: steps[index - 1] ?? null,
-    label: `Step ${index + 1} of ${steps.length}`,
+    label: stepLabel(index, steps.length),
   };
 }
 
@@ -228,23 +231,10 @@ export const stepTitle: Record<Step, string> = {
   settings: "Configure and deploy",
 };
 
-function stepStatus(index: number, at: number): StepStatus {
-  if (index < at) {
-    return "done";
-  }
-  return index === at ? "current" : "todo";
-}
-
 export function visibleSteps(state: WizardState): StepRow[] {
   const steps = visibleStepIds(state);
   const at = steps.indexOf(currentStep(state));
   return steps.map((id, index) => ({ id, status: stepStatus(index, at) }));
-}
-
-export function stepProgress(state: WizardState): { at: number; total: number; label: string } {
-  const steps = visibleSteps(state);
-  const at = steps.findIndex((step) => step.status === "current");
-  return { at, total: steps.length, label: `Step ${at + 1} of ${steps.length}` };
 }
 
 export function flowGuard({
