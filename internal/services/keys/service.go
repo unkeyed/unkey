@@ -4,6 +4,9 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -21,17 +24,19 @@ type Config struct {
 	Source       string
 	UsageLimiter usagelimiter.Service // Redis Counter for usage limiting
 
-	KeyCache     cache.Cache[string, db.CachedKeyData]     // Cache for key lookups with pre-parsed data
-	RootKeyCache cache.Cache[string, db.CachedRootKeyData] // Cache for root-key authentication lookups
+	KeyCache       cache.Cache[string, db.CachedKeyData]     // Cache for key lookups with pre-parsed data
+	RootKeyCache   cache.Cache[string, db.CachedRootKeyData] // Cache for root-key authentication lookups
+	AuditLogBuffer *batch.BatchProcessor[auditlog.Event]
 }
 
 type service struct {
-	db           *db.Database
-	rateLimiter  ratelimit.Service
-	usageLimiter usagelimiter.Service
-	rbac         *rbac.RBAC
-	region       string
-	source       string
+	db             *db.Database
+	rateLimiter    ratelimit.Service
+	usageLimiter   usagelimiter.Service
+	rbac           *rbac.RBAC
+	region         string
+	source         string
+	auditLogBuffer *batch.BatchProcessor[auditlog.Event]
 
 	// hash -> cached key data
 	keyCache     cache.Cache[string, db.CachedKeyData]
@@ -40,15 +45,19 @@ type service struct {
 
 // New creates a new keys service instance with the provided configuration.
 func New(config Config) (*service, error) {
+	if err := assert.NotZero(config.AuditLogBuffer, "audit log buffer is required"); err != nil {
+		return nil, err
+	}
 	return &service{
-		db:           db.New(config.DB),
-		rbac:         config.RBAC,
-		rateLimiter:  config.RateLimiter,
-		usageLimiter: config.UsageLimiter,
-		region:       config.Region,
-		source:       config.Source,
-		keyCache:     config.KeyCache,
-		rootKeyCache: config.RootKeyCache,
+		db:             db.New(config.DB),
+		rbac:           config.RBAC,
+		rateLimiter:    config.RateLimiter,
+		usageLimiter:   config.UsageLimiter,
+		region:         config.Region,
+		source:         config.Source,
+		keyCache:       config.KeyCache,
+		rootKeyCache:   config.RootKeyCache,
+		auditLogBuffer: config.AuditLogBuffer,
 	}, nil
 }
 

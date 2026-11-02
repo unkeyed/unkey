@@ -10,7 +10,13 @@ required:
   - lastUsedAt
   - expires
   - permissions
+  - ipAllowlist
 properties:
+  ipAllowlist:
+    type: array
+    description: Allowed IPv4 or IPv6 addresses and CIDR ranges. An empty list allows any IP address.
+    items:
+      type: string
   keyId:
     type: string
     description: Stable root key identifier.

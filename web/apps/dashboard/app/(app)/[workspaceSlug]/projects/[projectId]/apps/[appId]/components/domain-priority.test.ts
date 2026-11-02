@@ -1,4 +1,4 @@
-import type { CustomDomain, Domain } from "@/lib/collections";
+import type { CustomDomain, Domain } from "@/lib/deploy-data";
 import { describe, expect, test } from "vitest";
 import { getDomainPriority } from "./domain-priority";
 

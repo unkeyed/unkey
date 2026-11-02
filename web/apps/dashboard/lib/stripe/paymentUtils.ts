@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import type { PreviousAttributes } from "./subscriptionUtils";
+import { type PreviousAttributes, needsPaymentAction } from "./subscriptionUtils";
 
 /**
  * The subscription an invoice belongs to:
@@ -66,11 +66,9 @@ export async function isPaymentRecoveryUpdate(
   const changedKeys = Object.keys(previousAttributes);
 
   // Check if status changed from payment failure status to active
-  const paymentFailureStatuses = ["past_due", "unpaid", "incomplete"];
+  const previousStatus = previousAttributes.status;
   const statusRecovered =
-    changedKeys.includes("status") &&
-    paymentFailureStatuses.includes(previousAttributes.status || "") &&
-    sub.status === "active";
+    previousStatus !== undefined && needsPaymentAction(previousStatus) && sub.status === "active";
 
   // Check if latest_invoice changed (indicates payment processing)
   const invoiceChanged = changedKeys.includes("latest_invoice");

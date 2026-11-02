@@ -1,8 +1,7 @@
 "use client";
 
-import type { App } from "@/lib/collections/deploy/apps";
+import { type App, useApp, useAppScope } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
-import { useApp } from "./use-app";
 
 const SOURCES: Record<
   App["sourceType"],
@@ -16,7 +15,8 @@ const SOURCES: Record<
 export function useBuildSource(
   options: { staleTime?: number; refetchOnWindowFocus?: boolean } = {},
 ) {
-  const { projectId, appId, app } = useApp();
+  const { projectId, appId } = useAppScope();
+  const { data: app } = useApp();
   const source = app ? SOURCES[app.sourceType] : undefined;
   const installations = trpc.github.getInstallations.useQuery(
     { projectId, appId },

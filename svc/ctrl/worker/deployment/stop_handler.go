@@ -23,9 +23,10 @@ func (v *VirtualObject) StopDeployment(ctx restate.ObjectContext, req *hydrav1.S
 	}
 
 	if err := deploygate.CheckStopTarget(deploygate.StopInput{
-		Status:          deployment.Status,
-		DesiredState:    deployment.DesiredState,
-		EnvironmentKind: deployment.EnvironmentKind,
+		Status:              deployment.Status,
+		DesiredState:        deployment.DesiredState,
+		CurrentDeploymentID: deployment.CurrentDeploymentID.String,
+		DeploymentID:        deployment.ID,
 	}); err != nil {
 		return nil, gatefault.Terminal(err)
 	}

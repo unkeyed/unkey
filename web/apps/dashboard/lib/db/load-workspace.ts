@@ -31,6 +31,7 @@ export async function loadWorkspace(orgId: string) {
           logsAuditRetentionDaysMax: true,
           logdrainsMax: true,
           teamEnabled: true,
+          ipAllowlistEnabled: true,
           cpuCoresMax: true,
           cpuCoresMaxPerInstance: true,
           memoryMibMax: true,

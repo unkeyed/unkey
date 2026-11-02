@@ -9,6 +9,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+
+	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 )
 
 type ApisAuthType string
@@ -143,7 +145,6 @@ type Api struct {
 	Name             string           `db:"name"`
 	WorkspaceID      string           `db:"workspace_id"`
 	ProjectID        string           `db:"project_id"`
-	IpWhitelist      sql.NullString   `db:"ip_whitelist"`
 	AuthType         NullApisAuthType `db:"auth_type"`
 	KeyAuthID        sql.NullString   `db:"key_auth_id"`
 	CreatedAtM       int64            `db:"created_at_m"`
@@ -241,6 +242,7 @@ type Limit struct {
 	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
 	LogdrainsMax                          uint32        `db:"logdrains_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
+	IpAllowlistEnabled                    bool          `db:"ip_allowlist_enabled"`
 	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
 	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
 	MemoryMibMax                          uint32        `db:"memory_mib_max"`
@@ -309,19 +311,20 @@ type UnkeyPrincipalPermission struct {
 }
 
 type UnkeyRootKey struct {
-	Pk          uint64         `db:"pk"`
-	ID          string         `db:"id"`
-	WorkspaceID string         `db:"workspace_id"`
-	Hash        string         `db:"hash"`
-	Name        sql.NullString `db:"name"`
-	Prefix      string         `db:"prefix"`
-	Start       string         `db:"start"`
-	End         string         `db:"end"`
-	Enabled     bool           `db:"enabled"`
-	Expires     sql.NullInt64  `db:"expires"`
-	CreatedAt   int64          `db:"created_at"`
-	LastUsedAt  uint64         `db:"last_used_at"`
-	DeletedAt   sql.NullInt64  `db:"deleted_at"`
+	Pk          uint64             `db:"pk"`
+	ID          string             `db:"id"`
+	WorkspaceID string             `db:"workspace_id"`
+	Hash        string             `db:"hash"`
+	Name        sql.NullString     `db:"name"`
+	Prefix      string             `db:"prefix"`
+	Start       string             `db:"start"`
+	End         string             `db:"end"`
+	Enabled     bool               `db:"enabled"`
+	Expires     sql.NullInt64      `db:"expires"`
+	IpAllowlist dbtype.StringSlice `db:"ip_allowlist"`
+	CreatedAt   int64              `db:"created_at"`
+	LastUsedAt  uint64             `db:"last_used_at"`
+	DeletedAt   sql.NullInt64      `db:"deleted_at"`
 }
 
 type Workspace struct {

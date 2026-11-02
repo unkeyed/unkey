@@ -3,6 +3,14 @@ additionalProperties: false
 required:
   - permissions
 properties:
+  ipAllowlist:
+    type: array
+    maxItems: 100
+    description: IPv4 or IPv6 addresses and CIDR ranges allowed to use this root key. Omit to inherit the calling root key's allowlist. A caller without an IP restriction creates an unrestricted key when this field is omitted. An explicit list must stay within the caller's allowed networks; a restricted caller cannot send an empty list.
+    items:
+      type: string
+      minLength: 1
+      maxLength: 49
   name:
     type: string
     maxLength: 255

@@ -27,6 +27,7 @@ func main() {
 		Flags:       []cli.Flag{},
 		Aliases:     []string{},
 		Action:      nil,
+		OnError:     api.HandleError,
 		Name:        "unkey",
 		Usage:       "Manage your Unkey workspace",
 		Description: "Sign in with 'unkey login', then manage projects, apps, keys, and deployments.\nUse --json for scripts and --help for command options.",

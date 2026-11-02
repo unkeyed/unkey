@@ -19,6 +19,18 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_list_keys"
 )
 
+func TestListRootKeysIncludesIPAllowlist(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	workspace := h.Resources().UserWorkspace
+	key := h.CreateUnkeyRootKey(seed.CreateUnkeyRootKeyRequest{WorkspaceID: workspace.ID, IpAllowlist: []string{"198.51.100.0/25", "2001:db8::1"}})
+	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/"+key.KeyID+"#read")
+	res := call(h, route, caller, handler.Request{})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, []string{"198.51.100.0/25", "2001:db8::1"}, res.Body.Data[0].IpAllowlist)
+}
+
 // TestListRootKeysPaginatesReadableNewKeys guarantees denied keys neither
 // shorten a page nor appear in its cursor.
 func TestListRootKeysPaginatesReadableNewKeys(t *testing.T) {

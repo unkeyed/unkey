@@ -1,11 +1,10 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useDeployScope, useDeployment } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { CopyButton } from "@unkey/ui";
-import { useProjectData } from "../(overview)/data-provider";
-import { useRecentDeployments } from "../(overview)/hooks/use-recent-deployments";
 import { DottedLink } from "./dotted-link";
 
 type DeploymentIdLinkProps = {
@@ -14,10 +13,9 @@ type DeploymentIdLinkProps = {
 
 export function DeploymentIdLink({ deploymentId }: DeploymentIdLinkProps) {
   const workspace = useWorkspaceNavigation();
-  const { projectId } = useProjectData();
-  const { deployments } = useRecentDeployments();
-  // no appId means the deployment is not among the recent ones, show the id without a broken link
-  const appId = deployments.find((d) => d.id === deploymentId)?.appId;
+  const { projectId } = useDeployScope();
+  // Without a row there is no app to link into, so the id shows without a broken link
+  const appId = useDeployment(deploymentId).data?.appId;
 
   if (!appId) {
     return (

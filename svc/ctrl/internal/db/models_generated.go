@@ -985,6 +985,20 @@ type AcmeUser struct {
 	UpdatedAt       sql.NullInt64  `db:"updated_at"`
 }
 
+type Api struct {
+	Pk               uint64           `db:"pk"`
+	ID               string           `db:"id"`
+	Name             string           `db:"name"`
+	WorkspaceID      string           `db:"workspace_id"`
+	ProjectID        string           `db:"project_id"`
+	AuthType         NullApisAuthType `db:"auth_type"`
+	KeyAuthID        sql.NullString   `db:"key_auth_id"`
+	CreatedAtM       int64            `db:"created_at_m"`
+	UpdatedAtM       sql.NullInt64    `db:"updated_at_m"`
+	DeletedAtM       sql.NullInt64    `db:"deleted_at_m"`
+	DeleteProtection sql.NullBool     `db:"delete_protection"`
+}
+
 type App struct {
 	Pk                  uint64         `db:"pk"`
 	ID                  string         `db:"id"`
@@ -1234,6 +1248,7 @@ type Limit struct {
 	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
 	LogdrainsMax                          uint32        `db:"logdrains_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
+	IpAllowlistEnabled                    bool          `db:"ip_allowlist_enabled"`
 	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
 	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
 	MemoryMibMax                          uint32        `db:"memory_mib_max"`

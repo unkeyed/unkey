@@ -9,6 +9,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -117,9 +118,17 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 	deploymentID := req.GetDeploymentId()
 	return db.TxWithResult(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (swapLiveDeploymentResult, error) {
 		queries := db.NewQueries(tx)
+		// Share the stop path's locks until the live pointer is committed.
+		if _, err := queries.FindDeploymentWithApp(txCtx, deploymentID); err != nil {
+			return swapLiveDeploymentResult{}, restateutil.TerminalNotFound(err)
+		}
 		deployment, findErr := queries.FindDeploymentById(txCtx, deploymentID)
 		if findErr != nil {
 			return swapLiveDeploymentResult{}, restateutil.TerminalNotFound(findErr)
+		}
+		if deployment.DesiredState != mysqltype.DeploymentsDesiredStateRunning {
+			return swapLiveDeploymentResult{}, restate.ToTerminalError(
+				fmt.Errorf("cannot route traffic to a stopped deployment"), restate.WithErrorCode(412))
 		}
 		currentApp, findErr := queries.FindAppById(txCtx, deployment.AppID)
 		if findErr != nil {

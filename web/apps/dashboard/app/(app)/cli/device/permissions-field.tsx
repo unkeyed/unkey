@@ -225,7 +225,11 @@ function CustomPolicyPanel({
     RESOURCE_SCOPES.find((scope) => catalogueRows(editorCatalogue.catalogues[scope]).length > 0) ??
     "workspace";
   const { form, bodyRef, submit } = useRootKeyPolicyForm(
-    { name: "CLI", policies: initial.length > 0 ? initial : [newPolicy(firstScope)] },
+    {
+      name: "CLI",
+      ipAllowlist: "",
+      policies: initial.length > 0 ? initial : [newPolicy(firstScope)],
+    },
     ({ policies }) => {
       if (!canGrant(grantable, workspaceId, policies)) {
         setAttempted(true);

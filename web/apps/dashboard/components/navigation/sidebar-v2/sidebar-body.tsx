@@ -1,10 +1,10 @@
 "use client";
 
-import { warmDeploymentsTable } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider-queries";
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { usePrefetchWorkspaceUsage } from "@/hooks/use-prefetch-workspace-usage";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { warmDeploymentsPage } from "@/lib/deploy-data";
 import { useFlag } from "@/lib/flags/provider";
 import {
   buildApiLinks,
@@ -19,6 +19,7 @@ import {
 } from "@/lib/navigation/leaves-projects";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
@@ -36,6 +37,7 @@ export function SidebarBody() {
   const appV2 = useFlag("appV2");
   const { user } = useWorkspace();
   const prefetchUsage = usePrefetchWorkspaceUsage();
+  const queryClient = useQueryClient();
 
   const workspaceSectionsFor = projectsNav
     ? buildProjectsNavWorkspaceSections
@@ -59,7 +61,7 @@ export function SidebarBody() {
         return appId
           ? buildAppLinks(slug, projectId, appId, segments, { metrics: appV2 }).map((link) =>
               link.key === "deployments"
-                ? { ...link, onIntent: () => warmDeploymentsTable(projectId, appId) }
+                ? { ...link, onIntent: () => warmDeploymentsPage(queryClient, projectId, appId) }
                 : link,
             )
           : projectLinks(slug, projectId, segments);

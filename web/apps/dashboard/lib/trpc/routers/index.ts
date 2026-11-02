@@ -110,6 +110,7 @@ import { getDeployCredit } from "./stripe/getDeployCredit";
 import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
 import { getDeployPlans } from "./stripe/getDeployPlans";
 import { getDeploySubscription } from "./stripe/getDeploySubscription";
+import { getPaymentIssues } from "./stripe/getPaymentIssues";
 import { getSetupIntent } from "./stripe/getSetupIntent";
 import { getSubscriptionPaymentUrl } from "./stripe/getSubscriptionPaymentUrl";
 import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
@@ -177,6 +178,7 @@ export const router = t.router({
     getCheckoutSession,
     getSetupIntent,
     getSubscriptionPaymentUrl,
+    getPaymentIssues,
     updateWorkspaceStripeCustomer,
     subscribeDeploy,
     linkApiSubscription,

@@ -1,5 +1,8 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
+import { useAppCurrentDeployment } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-app-current-deployment";
+import { useDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-deployments";
 import { ListPager } from "@/components/list-pager";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
@@ -18,13 +21,10 @@ import {
   ResourceListContent,
 } from "@unkey/ui";
 import { useMemo } from "react";
-import { useProjectData } from "../../../data-provider";
-import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import {
   type DeploymentListFilter,
   buildDeploymentListInput,
 } from "../../hooks/deployment-list-input";
-import { useDeployments } from "../../hooks/use-deployments";
 import { useFilters } from "../../hooks/use-filters";
 import { DeploymentsSkeleton } from "../deployments-skeleton";
 import { DeploymentRow } from "./deployment-row";

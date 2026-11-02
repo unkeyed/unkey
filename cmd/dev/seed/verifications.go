@@ -12,6 +12,7 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
@@ -70,15 +71,18 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 	})
 
 	// Create key service for proper key generation
+	auditLogBuffer := batch.NewNoop[auditlog.Event]()
+	defer auditLogBuffer.Close()
 	keyService, err := keys.New(keys.Config{
-		DB:           db.ToMySQL(database),
-		RateLimiter:  nil,
-		RBAC:         nil,
-		Region:       "test",
-		UsageLimiter: nil,
-		Source:       schema.SourceAPI,
-		KeyCache:     nil,
-		RootKeyCache: nil,
+		AuditLogBuffer: auditLogBuffer,
+		DB:             db.ToMySQL(database),
+		RateLimiter:    nil,
+		RBAC:           nil,
+		Region:         "test",
+		UsageLimiter:   nil,
+		Source:         schema.SourceAPI,
+		KeyCache:       nil,
+		RootKeyCache:   nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
