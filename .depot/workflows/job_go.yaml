@@ -27,14 +27,10 @@ jobs:
       - uses: ./.depot/actions/setup-mise
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build Rask with experimental JUnit support
-        env:
-          GOBIN: ${{ runner.temp }}/rask-junit/bin
-        run: mise exec -- go install github.com/chronark/rask@e954824b2e3eea9e0bf827ee84a998fdbd1a058e
       - name: Build
         run: mise run build
       - name: Run tests
-        run: mise run --tool "github:chronark/rask@path:$RUNNER_TEMP/rask-junit" test -- --x-junit-file test-results/go.xml
+        run: mise run test -- --x-junit-file test-results/go.xml
       - name: Report Go tests
         if: ${{ !cancelled() && hashFiles('test-results/go.xml') != '' }}
         uses: depot/test-report-action@2ad5779840a9c63e884fa26f11d019768a27a941 # v1
