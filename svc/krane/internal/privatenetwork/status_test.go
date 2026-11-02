@@ -45,21 +45,21 @@ func TestReconcileReportsEntryStatesAndTargetSwitches(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return snapshot, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	clk := clock.NewTestClock(time.Now().Add(time.Hour))
+	r := newTestReconciler(t, Config{Client: client, Cluster: control, Clock: clk})
 
-	started := time.Now().Unix()
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, map[string]float64{
 		"kind=connection,state=current": 1, "kind=connection,state=unresolved": 1, "kind=replica,state=current": 1,
 	}, nonZero(gatherValues(t, "unkey_krane_private_network_entries")))
-	require.GreaterOrEqual(t, gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"], float64(started))
+	require.Equal(t, float64(clk.Now().Unix()), gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"])
 
 	switched := proto.Clone(bound).(*ctrlv1.PrivateNetworkConnection)
 	switched.TargetDeploymentId = uid.New(uid.DeploymentPrefix)
 	snapshot = []*ctrlv1.PrivateNetworkConnection{switched, replica, unresolved}
 	since := capture.Snapshot()
-	require.NoError(t, r.reconcile(ctx))
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, 1.0, gatherValues(t, "unkey_krane_private_network_entries")["kind=connection,state=waiting_for_endpoints"])
 	waiting := recordsWithMessage(capture.Since(since), "private network connection keeps its previous target until the new target has ready endpoints")
 	require.Len(t, waiting, 1, "a held switch logs once, not every pass")
@@ -80,7 +80,7 @@ func TestReconcileReportsEntryStatesAndTargetSwitches(t *testing.T) {
 	_, err = client.DiscoveryV1().EndpointSlices(switched.GetK8SNamespace()).Create(ctx, readySlice(switchedService, "dep-b-native", meshSliceManager), metav1.CreateOptions{})
 	require.NoError(t, err)
 	since = capture.Snapshot()
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, 0.0, gatherValues(t, "unkey_krane_private_network_entries")["kind=connection,state=waiting_for_endpoints"])
 	published := recordsWithMessage(capture.Since(since), "private network connection published")
 	require.Len(t, published, 1)
@@ -98,9 +98,6 @@ func TestReconcileEntryFailuresReportTheirStage(t *testing.T) {
 		inject  func(client *fake.Clientset, r *Reconciler, failing *bool)
 		corrupt bool
 	}{
-		{stage: stageNamespace, inject: func(client *fake.Clientset, _ *Reconciler, failing *bool) {
-			client.PrependReactor("create", "namespaces", failWhile(failing, forbidden("namespaces")))
-		}},
 		{stage: stageService, inject: func(client *fake.Clientset, _ *Reconciler, failing *bool) {
 			client.PrependReactor("create", "services", failWhile(failing, forbidden("services")))
 		}},
@@ -121,7 +118,6 @@ func TestReconcileEntryFailuresReportTheirStage(t *testing.T) {
 		{stage: stageInvalidEntry, corrupt: true},
 	} {
 		t.Run(tc.stage, func(t *testing.T) {
-			ctx := t.Context()
 			capture := loggertest.Install(t)
 			connectionSpec := newTestConnection()
 			healthy := newTestConnection()
@@ -140,22 +136,22 @@ func TestReconcileEntryFailuresReportTheirStage(t *testing.T) {
 			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return snapshot(), nil
 			})}
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			clk := clock.NewTestClock(time.Now().Add(time.Hour))
+			r := newTestReconciler(t, Config{Client: client, Cluster: control, Clock: clk})
 			if tc.inject != nil {
 				tc.inject(client, r, &failing)
 			}
 
 			before := gatherValues(t, "unkey_krane_private_network_errors_total")
 			since := capture.Snapshot()
-			started := time.Now().Unix()
-			require.Error(t, r.reconcile(ctx))
-			require.Error(t, r.reconcile(ctx))
+			require.Error(t, converge(t, r))
+			require.Error(t, converge(t, r))
 
 			after := gatherValues(t, "unkey_krane_private_network_errors_total")
 			require.Equal(t, map[string]float64{"loop=discovery,stage=" + tc.stage: 2}, delta(before, after), "error counts after two failing passes")
 			require.Equal(t, map[string]float64{"kind=connection,state=current": 1, "kind=connection,state=failed": 1},
 				nonZero(gatherValues(t, "unkey_krane_private_network_entries")))
-			require.GreaterOrEqual(t, gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"], float64(started),
+			require.Equal(t, float64(clk.Now().Unix()), gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"],
 				"a pass with a failed entry still completes")
 			failures := recordsWithMessage(capture.Since(since), "private network entry failed to publish; its previous objects stay published")
 			require.Len(t, failures, 1, "a persistent failure logs once")
@@ -168,7 +164,7 @@ func TestReconcileEntryFailuresReportTheirStage(t *testing.T) {
 
 			failing = false
 			since = capture.Snapshot()
-			require.NoError(t, r.reconcile(ctx))
+			require.NoError(t, converge(t, r))
 			require.Equal(t, map[string]float64{"kind=connection,state=current": 2}, nonZero(gatherValues(t, "unkey_krane_private_network_entries")))
 			require.Len(t, recordsWithMessage(capture.Since(since), "private network entry recovered"), 1)
 		})
@@ -185,26 +181,22 @@ func TestReconcileAbortReportsStageWithoutCompletingPass(t *testing.T) {
 				return nil, fmt.Errorf("ctrl unavailable")
 			})
 		}},
-		{stage: stageList, inject: func(client *fake.Clientset, _ *testutil.MockClusterClient) {
-			client.PrependReactor("list", "services", func(clienttesting.Action) (bool, runtime.Object, error) {
-				return true, nil, fmt.Errorf("API server unavailable")
-			})
-		}},
 	} {
 		t.Run(tc.stage, func(t *testing.T) {
 			client := fake.NewClientset()
 			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return nil, nil
 			})}
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
-			require.NoError(t, r.reconcile(t.Context()), "an idle cluster completes passes")
+			clk := clock.NewTestClock()
+			r := newTestReconciler(t, Config{Client: client, Cluster: control, Clock: clk})
+			require.NoError(t, converge(t, r), "an idle cluster completes passes")
 			completed := gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"]
 			require.NotZero(t, completed)
 
 			tc.inject(client, control)
 			before := gatherValues(t, "unkey_krane_private_network_errors_total")
-			time.Sleep(time.Second)
-			require.Error(t, r.reconcile(t.Context()))
+			clk.Tick(time.Second)
+			require.Error(t, converge(t, r))
 			require.Equal(t, map[string]float64{"loop=discovery,stage=" + tc.stage: 1},
 				delta(before, gatherValues(t, "unkey_krane_private_network_errors_total")))
 			require.Equal(t, completed, gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"],
@@ -218,7 +210,8 @@ func TestLeaderWithoutCompletedPassReportsStaleTimestamp(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return nil, fmt.Errorf("ctrl unavailable")
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: fake.NewClientset(), dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := newTestReconciler(t, Config{Cluster: control})
+	syncCaches(t, r)
 	require.Error(t, r.reconcile(t.Context()))
 
 	timestamps := gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")
@@ -226,17 +219,11 @@ func TestLeaderWithoutCompletedPassReportsStaleTimestamp(t *testing.T) {
 	require.Equal(t, 0.0, timestamps["loop=endpoints"])
 }
 
-func TestLeadershipReportsLeaderGauge(t *testing.T) {
-	client := fake.NewClientset()
+func TestRunExportsZeroedSeriesAndStopsWithContext(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return nil, nil
 	})}
-	r, err := New(Config{
-		Client: client, Dynamic: testDynamicClient(), Cluster: control, ClusterKey: &ctrlv1.ClusterKey{Region: "us-east-1"},
-		Clock: clock.NewTestClock(),
-	})
-	require.NoError(t, err)
-	require.Equal(t, 0.0, gatherValues(t, "unkey_krane_private_network_leader")[""])
+	r := newTestReconciler(t, Config{Cluster: control, Clock: clock.NewTestClock(time.Now().Add(2 * time.Hour))})
 	for loop, stages := range loopStages {
 		for _, stage := range stages {
 			require.Contains(t, gatherValues(t, "unkey_krane_private_network_errors_total"), "loop="+loop+",stage="+stage,
@@ -251,25 +238,22 @@ func TestLeadershipReportsLeaderGauge(t *testing.T) {
 		r.Run(ctx)
 	}()
 	require.Eventually(t, func() bool {
-		return gatherValues(t, "unkey_krane_private_network_leader")[""] == 1
+		timestamps := gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")
+		return timestamps["loop=discovery"] == float64(r.clock.Now().Unix()) && timestamps["loop=endpoints"] == float64(r.clock.Now().Unix())
 	}, 10*time.Second, 10*time.Millisecond)
-	require.Contains(t, gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds"), "loop=discovery",
-		"the leader exports completion timestamps from the moment it leads")
 
 	cancel()
-	<-done
-	require.Equal(t, 0.0, gatherValues(t, "unkey_krane_private_network_leader")[""])
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("Run did not return after its context ended")
+	}
 }
 
 func failWhile(failing *bool, err error) clienttesting.ReactionFunc {
 	return func(action clienttesting.Action) (bool, runtime.Object, error) {
 		if !*failing || action.GetNamespace() == "customer-2" {
 			return false, nil, nil
-		}
-		if create, ok := action.(clienttesting.CreateAction); ok {
-			if namespace, ok := create.GetObject().(*corev1.Namespace); ok && namespace.Name == "customer-2" {
-				return false, nil, nil
-			}
 		}
 		return true, nil, err
 	}

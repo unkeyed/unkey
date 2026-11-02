@@ -1,18 +1,19 @@
 package privatenetwork
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
@@ -21,68 +22,69 @@ import (
 )
 
 func TestCleanupRequiresTwoIndependentSnapshotIDs(t *testing.T) {
-	r, key, connections, policies, _ := cleanupFixture(t)
+	r, key, p, _ := cleanupFixture(t)
 
-	require.NoError(t, r.cleanupGrants(t.Context(), "one", nil, connections, policies, true))
-	require.Contains(t, connections, key)
-	require.NoError(t, r.cleanupGrants(t.Context(), "one", nil, connections, policies, true))
-	require.Contains(t, connections, key, "a repeated cached snapshot ID cannot confirm absence")
-	require.NoError(t, r.cleanupGrants(t.Context(), "two", nil, connections, policies, true))
-	require.NotContains(t, connections, key)
-	require.NotContains(t, policies, key)
+	require.NoError(t, cleanupWith(t, r, p, "one", nil, true))
+	require.Contains(t, p.connections, key)
+	require.NoError(t, cleanupWith(t, r, p, "one", nil, true))
+	require.Contains(t, p.connections, key, "a repeated cached snapshot ID cannot confirm absence")
+	require.NoError(t, cleanupWith(t, r, p, "two", nil, true))
+	require.NotContains(t, p.connections, key)
+	require.NotContains(t, p.policies, key)
 }
 
 func TestCleanupAbsenceConfirmationResets(t *testing.T) {
-	r, key, connections, policies, _ := cleanupFixture(t)
-	require.NoError(t, r.cleanupGrants(t.Context(), "one", nil, connections, policies, true))
-	require.NoError(t, r.cleanupGrants(t.Context(), "two", map[string]struct{}{key: {}}, connections, policies, true))
+	r, key, p, spec := cleanupFixture(t)
+	require.NoError(t, cleanupWith(t, r, p, "one", nil, true))
+	require.NoError(t, cleanupWith(t, r, p, "two", []*ctrlv1.PrivateNetworkConnection{spec}, true))
 	require.Empty(t, r.absences, "returning to wanted resets confirmation")
-	require.NoError(t, r.cleanupGrants(t.Context(), "three", nil, connections, policies, false))
+	require.NoError(t, cleanupWith(t, r, p, "three", nil, false))
 	require.Empty(t, r.absences, "an invalid snapshot cannot preserve confirmation")
-	require.NoError(t, r.cleanupGrants(t.Context(), "four", nil, connections, policies, true))
-	require.Contains(t, connections, key)
+	require.NoError(t, cleanupWith(t, r, p, "four", nil, true))
+	require.Contains(t, p.connections, key)
 }
 
 func TestCleanupRemovesOrphanPolicy(t *testing.T) {
-	r, key, _, policies, _ := cleanupFixture(t)
-	require.NoError(t, r.cleanupGrants(t.Context(), "one", nil, nil, policies, true))
-	require.NoError(t, r.cleanupGrants(t.Context(), "two", nil, nil, policies, true))
-	require.NotContains(t, policies, key)
+	r, key, p, _ := cleanupFixture(t)
+	p.connections = map[string][]*corev1.Service{}
+	require.NoError(t, cleanupWith(t, r, p, "one", nil, true))
+	require.NoError(t, cleanupWith(t, r, p, "two", nil, true))
+	require.NotContains(t, p.policies, key)
 }
 
 func TestConfirmedAbsenceCleanupPrecedesEndpointFailure(t *testing.T) {
-	r, key, connections, _, spec := cleanupFixture(t)
-	r.clusterKey = &ctrlv1.ClusterKey{}
+	r, key, p, spec := cleanupFixture(t)
+	r.clusterKey = &ctrlv1.ClusterKey{Region: testRegion}
 	r.cluster = &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t,
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "one", Complete: true, Certified: true},
 	)}
 	failing := true
-	r.client.(*fake.Clientset).PrependReactor("list", "endpointslices", func(clienttesting.Action) (bool, runtime.Object, error) {
+	r.client.(*fake.Clientset).PrependReactor("create", "endpointslices", func(clienttesting.Action) (bool, runtime.Object, error) {
 		if failing {
 			return true, nil, fmt.Errorf("endpoint API unavailable")
 		}
 		return false, nil, nil
 	})
-	require.ErrorContains(t, r.reconcile(t.Context()), "endpoint API unavailable")
-	connection := connections[key][0]
+	require.ErrorContains(t, converge(t, r), "endpoint API unavailable")
+	connection := p.connections[key][0]
 	_, err := r.client.CoreV1().Services(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
 	require.NoError(t, err, "one snapshot cannot confirm absence")
 	r.cluster = &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t,
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "two", Complete: true, Certified: true},
 	)}
-	require.ErrorContains(t, r.reconcile(t.Context()), "endpoint API unavailable")
+	require.ErrorContains(t, converge(t, r), "endpoint API unavailable")
 	_, err = r.client.CoreV1().Services(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err))
-	_, err = r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connection.Namespace).Get(t.Context(), connectionResourceName(spec), metav1.GetOptions{})
+	_, err = r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connection.Namespace).Get(t.Context(), policyName(spec), metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err))
 	failing = false
-	require.NoError(t, r.reconcile(t.Context()))
+	require.NoError(t, converge(t, r))
 	_, err = r.client.CoreV1().Services(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
 	require.True(t, apierrors.IsNotFound(err))
 }
 
 func TestCleanupDeleteErrorRetainsDNSAndRetries(t *testing.T) {
-	r, key, connections, policies, _ := cleanupFixture(t)
+	r, key, p, _ := cleanupFixture(t)
 	failing := true
 	r.dynamic.(interface {
 		PrependReactor(string, string, clienttesting.ReactionFunc)
@@ -92,19 +94,19 @@ func TestCleanupDeleteErrorRetainsDNSAndRetries(t *testing.T) {
 		}
 		return false, nil, nil
 	})
-	require.NoError(t, r.cleanupGrants(t.Context(), "one", nil, connections, policies, true))
-	require.Error(t, r.cleanupGrants(t.Context(), "two", nil, connections, policies, true))
-	require.Contains(t, connections, key)
-	require.Contains(t, policies, key)
+	require.NoError(t, cleanupWith(t, r, p, "one", nil, true))
+	require.Error(t, cleanupWith(t, r, p, "two", nil, true))
+	require.Contains(t, p.connections, key)
+	require.Contains(t, p.policies, key)
 	failing = false
-	require.NoError(t, r.cleanupGrants(t.Context(), "two", nil, connections, policies, true))
-	require.NotContains(t, connections, key)
+	require.NoError(t, cleanupWith(t, r, p, "two", nil, true))
+	require.NotContains(t, p.connections, key)
 }
 
 func TestUncertifiedSnapshotsNeverConfirmAbsence(t *testing.T) {
-	r, key, connections, _, spec := cleanupFixture(t)
-	r.clusterKey = &ctrlv1.ClusterKey{}
-	connection := connections[key][0]
+	r, key, p, spec := cleanupFixture(t)
+	r.clusterKey = &ctrlv1.ClusterKey{Region: testRegion}
+	connection := p.connections[key][0]
 	exists := func() bool {
 		t.Helper()
 		_, err := r.client.CoreV1().Services(connection.Namespace).Get(t.Context(), connection.Name, metav1.GetOptions{})
@@ -123,7 +125,7 @@ func TestUncertifiedSnapshotsNeverConfirmAbsence(t *testing.T) {
 		}
 		chunks = append(chunks, &ctrlv1.PrivateNetworkStateChunk{Version: version, SnapshotId: id, Complete: true, Total: uint64(len(present)), Certified: certified})
 		r.cluster = &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, chunks...)}
-		require.NoError(t, r.reconcile(t.Context()))
+		require.NoError(t, converge(t, r))
 	}
 
 	for _, id := range []string{"one", "two", "three"} {
@@ -142,24 +144,31 @@ func TestUncertifiedSnapshotsNeverConfirmAbsence(t *testing.T) {
 	require.False(t, exists(), "a certified absence survives the uncertified snapshots between")
 }
 
-func cleanupFixture(t *testing.T) (*Reconciler, string, map[string][]*corev1.Service, map[string]*unstructured.Unstructured, *ctrlv1.PrivateNetworkConnection) {
+func cleanupFixture(t *testing.T) (*Reconciler, string, *discoveryPass, *ctrlv1.PrivateNetworkConnection) {
 	t.Helper()
 	spec := newTestConnection()
-	r := &Reconciler{clock: clock.NewTestClock(), client: fake.NewClientset(), dynamic: testDynamicClient()}
-	service, err := r.ensureService(t.Context(), spec, discoveryName(spec.GetTargetDeploymentId(), spec.GetTargetPort()), nil)
+	r := newTestReconciler(t, Config{})
+	service, err := r.ensureService(t.Context(), spec, nil)
 	require.NoError(t, err)
-	require.NoError(t, ensureTestPolicy(t, r, t.Context(), spec, connectionResourceName(spec), nil))
-	connection, err := r.ensureConnection(t.Context(), spec, aliasName(spec), "", service, nil, "", nil)
+	require.NoError(t, ensureTestPolicy(t, r, t.Context(), spec, policyName(spec), nil))
+	connection, err := r.ensureConnection(t.Context(), spec, aliasName(spec), "", service, nil, "")
 	require.NoError(t, err)
-	policy, err := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connection.Namespace).Get(t.Context(), connectionResourceName(spec), metav1.GetOptions{})
+	syncCaches(t, r)
+	p, err := r.load()
 	require.NoError(t, err)
 	key := grantKey(connection)
-	require.Equal(t, policy.GetNamespace()+"/"+policy.GetName(), key)
-	return r, key, map[string][]*corev1.Service{key: {connection}}, map[string]*unstructured.Unstructured{key: policy}, spec
+	require.Contains(t, p.policies, key)
+	require.Len(t, p.connections[key], 1)
+	return r, key, p, spec
+}
+
+func cleanupWith(t *testing.T, r *Reconciler, p *discoveryPass, snapshotID string, wanted []*ctrlv1.PrivateNetworkConnection, confirm bool) error {
+	t.Helper()
+	return r.cleanupGrants(t.Context(), p, &ctrlv1.PrivateNetworkStateChunk{SnapshotId: snapshotID, Certified: true}, wanted, confirm)
 }
 
 func TestCleanupDNSDeleteErrorRevokesGrantFirstAndRetries(t *testing.T) {
-	r, key, connections, policies, spec := cleanupFixture(t)
+	r, key, p, spec := cleanupFixture(t)
 	failing := true
 	r.client.(*fake.Clientset).PrependReactor("delete", "services", func(clienttesting.Action) (bool, runtime.Object, error) {
 		if failing {
@@ -167,15 +176,51 @@ func TestCleanupDNSDeleteErrorRevokesGrantFirstAndRetries(t *testing.T) {
 		}
 		return false, nil, nil
 	})
-	require.NoError(t, r.cleanupGrants(t.Context(), "one", nil, connections, policies, true))
-	require.Error(t, r.cleanupGrants(t.Context(), "two", nil, connections, policies, true))
-	require.NotContains(t, policies, key, "the grant is revoked before DNS")
+	require.NoError(t, cleanupWith(t, r, p, "one", nil, true))
+	require.Error(t, cleanupWith(t, r, p, "two", nil, true))
+	require.NotContains(t, p.policies, key, "the grant is revoked before DNS")
 	require.Empty(t, effectiveFlows(t, r.dynamic.(*fakedynamic.FakeDynamicClient), spec.GetK8SNamespace()))
-	require.Contains(t, connections, key)
+	require.Contains(t, p.connections, key)
 	require.Equal(t, spec.TargetDeploymentId, resolvedDeployment(t, r.client, spec), "failed DNS deletion leaves the alias for retry")
 
 	failing = false
-	require.NoError(t, r.cleanupGrants(t.Context(), "three", nil, connections, policies, true))
-	require.NotContains(t, connections, key)
+	require.NoError(t, cleanupWith(t, r, p, "three", nil, true))
+	require.NotContains(t, p.connections, key)
 	require.Nil(t, aliasService(t, r.client, spec))
+}
+
+func TestNewLeadershipTermDoesNotInheritAbsences(t *testing.T) {
+	spec := newTestConnection()
+	client := fake.NewClientset(endpointPod(spec, "a", "10.72.0.11"))
+	snapshot := []*ctrlv1.PrivateNetworkConnection{spec}
+	var mu sync.Mutex
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		return snapshot, nil
+	})}
+	r := newTestReconciler(t, Config{Client: client, Cluster: control})
+	require.NoError(t, converge(t, r))
+	mu.Lock()
+	snapshot = nil
+	mu.Unlock()
+	require.NoError(t, converge(t, r))
+	require.NotNil(t, aliasService(t, client, spec), "the previous term saw one absence")
+
+	startLeading()
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		r.Run(ctx)
+	}()
+	require.Eventually(t, func() bool {
+		return gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"] != 0
+	}, 10*time.Second, 10*time.Millisecond)
+	cancel()
+	<-done
+
+	require.NotNil(t, aliasService(t, client, spec), "the first snapshot of a new term cannot confirm an absence")
+	_, err := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(spec.GetK8SNamespace()).Get(t.Context(), policyName(spec), metav1.GetOptions{})
+	require.NoError(t, err)
 }

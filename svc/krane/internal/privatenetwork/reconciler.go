@@ -151,6 +151,14 @@ func (r *Reconciler) reconcile(ctx context.Context) (err error) {
 	}()
 	pruneRegions := snapshot.GetTopology() != nil && topologyErr == nil && snapshot.GetCertified()
 	snapshotConnections, rejected := validateSnapshot(snapshot.GetConnections())
+	region := r.clusterKey.GetRegion()
+	runsHere := func(connectionSpec *ctrlv1.PrivateNetworkConnection) bool {
+		return slices.Contains(connectionSpec.GetCallerRegions(), region) || slices.Contains(connectionSpec.GetTargetRegions(), region)
+	}
+	snapshotConnections = slices.DeleteFunc(snapshotConnections, func(connectionSpec *ctrlv1.PrivateNetworkConnection) bool {
+		policy := policies[publishedConnectionKey(connectionSpec)]
+		return !runsHere(connectionSpec) && (policy == nil || !owned(policy.GetLabels()))
+	})
 	wanted := make(map[string]struct{}, len(snapshotConnections))
 	for _, spec := range snapshotConnections {
 		wanted[publishedConnectionKey(spec)] = struct{}{}
@@ -241,6 +249,17 @@ entries:
 		connectionName := connectionResourceName(connectionSpec)
 		connectionKey := connectionSpec.GetK8SNamespace() + "/" + connectionName
 
+		if !runsHere(connectionSpec) {
+			if err := r.ensurePolicy(ctx, connectionSpec, connectionName, nil, policies[connectionKey]); err != nil {
+				fail(connectionSpec, connectionKey, stagePolicy, err)
+				continue
+			}
+			if err := r.withdrawStaleConnections(ctx, connectionsByKey[connectionKey], nil); err != nil {
+				fail(connectionSpec, connectionKey, stageConnection, err)
+			}
+			continue
+		}
+
 		if _, exists := namespaces[connectionSpec.GetK8SNamespace()]; !exists {
 			_, err := r.client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{Name: connectionSpec.GetK8SNamespace()},
@@ -312,10 +331,16 @@ entries:
 		}
 
 		if !replicaConnection(connectionSpec) {
-			if err := r.ensurePolicy(ctx, connectionSpec, connectionName, published, policies[connectionKey]); err != nil {
+			if err := r.ensurePolicy(ctx, connectionSpec, connectionName, append(published, connectionSpec.GetTargetDeploymentId()), policies[connectionKey]); err != nil {
 				fail(connectionSpec, connectionKey, stagePolicy, err)
 				continue
 			}
+		}
+		if !slices.Contains(connectionSpec.GetCallerRegions(), region) {
+			if err := r.withdrawStaleConnections(ctx, connectionsByKey[connectionKey], nil); err != nil {
+				fail(connectionSpec, connectionKey, stageConnection, err)
+			}
+			continue
 		}
 		var endpoints []discoveryv1.EndpointSlice
 		if service != nil {

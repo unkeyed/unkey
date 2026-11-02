@@ -21,18 +21,16 @@ import (
 
 const policyTargetsAnnotation = "connections.unkey.com/targets"
 
-func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, published []string, current *unstructured.Unstructured) error {
+func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, targetsActive []string, current *unstructured.Unstructured) error {
 	client := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connectionSpec.GetK8SNamespace())
+	labelsDesired := connectionLabels(connectionSpec)
 
 	targets := make(map[string]time.Time)
 	if current != nil {
-		l := current.GetLabels()
-		if !owned(l) || l[labels.LabelKeyWorkspaceID] != connectionSpec.GetWorkspaceId() ||
-			l[labels.LabelKeyProjectID] != connectionSpec.GetProjectId() || l[labels.LabelKeyConnectionID] != connectionSpec.GetConnectionId() ||
-			l[labels.LabelKeyCallerDeploymentID] != connectionSpec.GetCallerDeploymentId() {
+		if !ownedByConnection(current.GetLabels(), connectionSpec) {
 			return fmt.Errorf("refuse to replace foreign connection policy %s", name)
 		}
-		if maps.Equal(l, connectionLabels(connectionSpec)) && connectionSpec.GetTargetDeploymentId() != "" {
+		if maps.Equal(current.GetLabels(), labelsDesired) && connectionSpec.GetTargetDeploymentId() != "" {
 			if err := json.Unmarshal([]byte(current.GetAnnotations()[policyTargetsAnnotation]), &targets); err != nil {
 				return fmt.Errorf("read connection policy targets %s: %w", name, err)
 			}
@@ -40,18 +38,18 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.Pr
 	}
 
 	if connectionSpec.GetTargetDeploymentId() != "" {
+		now := r.clock.Now()
 		for target, deadline := range targets {
-			if target == connectionSpec.GetTargetDeploymentId() {
+			if slices.Contains(targetsActive, target) {
 				continue
 			}
 			if deadline.IsZero() {
-				targets[target] = r.clock.Now().Add(privatenetwork.ReplacementOverlap)
-			} else if !r.clock.Now().Before(deadline) {
+				targets[target] = now.Add(privatenetwork.ReplacementOverlap)
+			} else if !now.Before(deadline) {
 				delete(targets, target)
 			}
 		}
-		targets[connectionSpec.GetTargetDeploymentId()] = time.Time{}
-		for _, target := range published {
+		for _, target := range targetsActive {
 			targets[target] = time.Time{}
 		}
 	}
@@ -61,11 +59,11 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.Pr
 		return fmt.Errorf("encode connection policy targets: %w", err)
 	}
 
+	caller := connectionEndpoint(connectionSpec, connectionSpec.GetCallerDeploymentId(), false)
+	ports := cilium.UnicastPorts()
 	specs := make([]interface{}, 0, 2*len(targets))
 	for _, target := range slices.Sorted(maps.Keys(targets)) {
-		caller := connectionEndpoint(connectionSpec, connectionSpec.GetCallerDeploymentId(), false)
 		peer := connectionEndpoint(connectionSpec, target, true)
-		ports := cilium.UnicastPorts()
 		specs = append(specs,
 			map[string]interface{}{
 				"endpointSelector":  caller,
@@ -95,7 +93,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.Pr
 	}}
 	desired.SetName(name)
 	desired.SetNamespace(connectionSpec.GetK8SNamespace())
-	desired.SetLabels(connectionLabels(connectionSpec))
+	desired.SetLabels(labelsDesired)
 	desired.SetAnnotations(map[string]string{policyTargetsAnnotation: string(encoded)})
 
 	if current != nil {
@@ -120,19 +118,4 @@ func connectionEndpoint(connectionSpec *ctrlv1.PrivateNetworkConnection, deploym
 		identity.AppID(connectionSpec.GetTargetAppId())
 	}
 	return cilium.DeploymentEndpoint(identity)
-}
-
-func (r *Reconciler) listPolicies(ctx context.Context) (map[string]*unstructured.Unstructured, error) {
-	policies, err := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace("").List(ctx, metav1.ListOptions{
-		LabelSelector: labels.New().ManagedByKrane().ToString(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list connection policies: %w", err)
-	}
-	result := make(map[string]*unstructured.Unstructured, len(policies.Items))
-	for i := range policies.Items {
-		policy := &policies.Items[i]
-		result[policy.GetNamespace()+"/"+policy.GetName()] = policy
-	}
-	return result, nil
 }

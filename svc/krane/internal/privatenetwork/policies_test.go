@@ -29,18 +29,21 @@ type portProto struct {
 	protocol string
 }
 
+const testRegion = "us-east-1"
+
 func newTestConnection() *ctrlv1.PrivateNetworkConnection {
 	return &ctrlv1.PrivateNetworkConnection{
 		WorkspaceId: uid.New(uid.WorkspacePrefix), ProjectId: uid.New(uid.ProjectPrefix), TargetAppId: uid.New(uid.AppPrefix), TargetAppSlug: "payments",
 		K8SNamespace: "customer-1", TargetDeploymentId: uid.New(uid.DeploymentPrefix), TargetPort: 8080, TargetEnvironmentId: uid.New(uid.EnvironmentPrefix),
 		CallerDeploymentId: uid.New(uid.DeploymentPrefix), ConnectionId: uid.New(uid.ConnectionPrefix), ConnectionName: "payments-api",
+		CallerRegions: []string{testRegion}, TargetRegions: []string{testRegion},
 	}
 }
 
 func TestConnectionPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
 	connectionSpec := newTestConnection()
 	dynamic := testDynamicClient()
-	r := &Reconciler{clock: clock.NewTestClock(), dynamic: dynamic}
+	r := newTestReconciler(t, Config{Dynamic: dynamic})
 	name := policyName(connectionSpec)
 	require.NoError(t, ensureTestPolicy(t, r, t.Context(), connectionSpec, name, nil))
 
@@ -89,7 +92,7 @@ func TestConnectionPolicyGrantsEveryUnicastPortInOneDirection(t *testing.T) {
 
 func TestConnectionPolicyReverseRequiresReciprocalConnection(t *testing.T) {
 	dynamic := testDynamicClient()
-	r := &Reconciler{clock: clock.NewTestClock(), dynamic: dynamic}
+	r := newTestReconciler(t, Config{Dynamic: dynamic})
 	forward := newTestConnection()
 	require.NoError(t, ensureTestPolicy(t, r, t.Context(), forward, policyName(forward), nil))
 	require.Equal(t, []flow{{forward.CallerDeploymentId, forward.TargetDeploymentId}}, effectiveFlows(t, dynamic, forward.GetK8SNamespace()))
@@ -103,7 +106,7 @@ func TestConnectionPolicyReverseRequiresReciprocalConnection(t *testing.T) {
 
 func TestConnectionPolicyIsNotTransitiveAndExcludesUnrelatedDeployments(t *testing.T) {
 	dynamic := testDynamicClient()
-	r := &Reconciler{clock: clock.NewTestClock(), dynamic: dynamic}
+	r := newTestReconciler(t, Config{Dynamic: dynamic})
 	aToB := newTestConnection()
 	bToC := newTestConnection()
 	bToC.WorkspaceId, bToC.ProjectId = aToB.WorkspaceId, aToB.ProjectId
@@ -123,7 +126,7 @@ func TestConnectionPolicyIsNotTransitiveAndExcludesUnrelatedDeployments(t *testi
 
 func TestSelfConnectionPeersOnlyReplicasOfCallerDeployment(t *testing.T) {
 	dynamic := testDynamicClient()
-	r := &Reconciler{clock: clock.NewTestClock(), dynamic: dynamic}
+	r := newTestReconciler(t, Config{Dynamic: dynamic})
 	self := newTestConnection()
 	self.TargetDeploymentId = self.CallerDeploymentId
 	require.NoError(t, ensureTestPolicy(t, r, t.Context(), self, policyName(self), nil))
@@ -143,7 +146,7 @@ func TestSelfConnectionPeersOnlyReplicasOfCallerDeployment(t *testing.T) {
 
 func TestConnectionPolicyObjectsAreIsolatedAndRemovedOnRevocation(t *testing.T) {
 	dynamic := testDynamicClient()
-	r := &Reconciler{clock: clock.NewTestClock(), dynamic: dynamic}
+	r := newTestReconciler(t, Config{Dynamic: dynamic})
 	first := newTestConnection()
 	second := newTestConnection()
 	second.WorkspaceId, second.ProjectId = first.WorkspaceId, first.ProjectId
@@ -166,7 +169,7 @@ func TestConnectionPolicyRetainsOldTargetUntilReplacementCoverageExpires(t *test
 	ctx := t.Context()
 	dynamic := testDynamicClient()
 	clk := clock.NewTestClock(time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC))
-	r := &Reconciler{dynamic: dynamic, clock: clk}
+	r := newTestReconciler(t, Config{Dynamic: dynamic, Clock: clk})
 	connectionSpec := newTestConnection()
 	previousDeploymentID := connectionSpec.TargetDeploymentId
 	nextDeploymentID := uid.New(uid.DeploymentPrefix)
@@ -194,7 +197,7 @@ func TestConnectionPolicyRetainsOldTargetUntilReplacementCoverageExpires(t *test
 
 func TestConnectionPolicyIgnoresTargetPortChanges(t *testing.T) {
 	dynamic := testDynamicClient()
-	r := &Reconciler{clock: clock.NewTestClock(), dynamic: dynamic}
+	r := newTestReconciler(t, Config{Dynamic: dynamic})
 	connectionSpec := newTestConnection()
 	require.NoError(t, ensureTestPolicy(t, r, t.Context(), connectionSpec, policyName(connectionSpec), nil))
 	before, err := dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connectionSpec.GetK8SNamespace()).Get(t.Context(), policyName(connectionSpec), metav1.GetOptions{})
@@ -208,7 +211,7 @@ func TestConnectionPolicyIgnoresTargetPortChanges(t *testing.T) {
 }
 
 func policyName(connectionSpec *ctrlv1.PrivateNetworkConnection) string {
-	return resourceName("unkey-pn-connection", connectionSpec.GetConnectionId()+"/"+connectionSpec.GetCallerDeploymentId())
+	return grantName(connectionSpec.GetConnectionId(), connectionSpec.GetCallerDeploymentId())
 }
 
 func ensureTestPolicy(t *testing.T, r *Reconciler, ctx context.Context, spec *ctrlv1.PrivateNetworkConnection, name string, published []string) error {
@@ -217,7 +220,7 @@ func ensureTestPolicy(t *testing.T, r *Reconciler, ctx context.Context, spec *ct
 	if err != nil {
 		current = nil
 	}
-	return r.ensurePolicy(ctx, spec, name, published, current)
+	return r.ensurePolicy(ctx, spec, name, append(published, spec.GetTargetDeploymentId()), current)
 }
 
 func policySpecs(t *testing.T, policy *unstructured.Unstructured) []map[string]interface{} {

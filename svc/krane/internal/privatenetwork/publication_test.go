@@ -38,8 +38,8 @@ func TestPublicationRetainsConnectionUntilRemoteDiscoveryIsReady(t *testing.T) {
 		return []*ctrlv1.PrivateNetworkConnection{selected, other}, nil
 	})}
 	dynamic := testDynamicClient()
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
-	require.NoError(t, r.reconcile(ctx))
+	r := newTestReconciler(t, Config{Client: client, Dynamic: dynamic, Cluster: control})
+	require.NoError(t, converge(t, r))
 	original := aliasService(t, client, selected)
 	require.NotNil(t, original)
 	previousDeployment, otherPrevious := selected.TargetDeploymentId, other.TargetDeploymentId
@@ -49,23 +49,25 @@ func TestPublicationRetainsConnectionUntilRemoteDiscoveryIsReady(t *testing.T) {
 	other.TargetDeploymentId = uid.New(uid.DeploymentPrefix)
 	_, err := client.CoreV1().Pods("customer-1").Create(ctx, endpointPod(other, "other-b", "10.72.0.33"), metav1.CreateOptions{})
 	require.NoError(t, err)
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, original, aliasService(t, client, selected), "B's empty local slice must not replace the durable A alias")
 	require.ElementsMatch(t, []flow{
 		{selected.CallerDeploymentId, previousDeployment}, {selected.CallerDeploymentId, selected.TargetDeploymentId},
 		{other.CallerDeploymentId, otherPrevious}, {other.CallerDeploymentId, other.TargetDeploymentId},
 	}, effectiveFlows(t, dynamic, "customer-1"), "the new target is granted before DNS and the published one stays granted")
+	require.NoError(t, converge(t, r))
+	require.Equal(t, original, aliasService(t, client, selected))
 	require.Equal(t, other.TargetDeploymentId, resolvedDeployment(t, client, other), "an independent connection with ready endpoints moves")
 	require.Equal(t, []string{"10.72.0.33"}, resolvedAddresses(t, client, other))
 
-	r = &Reconciler{client: client, dynamic: dynamic, cluster: control, clock: clock.NewTestClock(time.Now().Add(time.Hour))}
-	require.NoError(t, r.reconcile(ctx))
-	a, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName(previousDeployment, selected.GetTargetPort()), metav1.GetOptions{})
+	r = newTestReconciler(t, Config{Client: client, Dynamic: dynamic, Cluster: control, Clock: clock.NewTestClock(time.Now().Add(time.Hour))})
+	require.NoError(t, converge(t, r))
+	a, err := client.CoreV1().Services("customer-1").Get(ctx, privatenetwork.ServiceName(previousDeployment, selected.GetTargetPort()), metav1.GetOptions{})
 	require.NoError(t, err)
 	require.NotContains(t, a.Annotations, privatenetwork.RetireAfterAnnotation, "the Service DNS still resolves must not retire")
 	require.Contains(t, effectiveFlows(t, dynamic, "customer-1"), flow{selected.CallerDeploymentId, previousDeployment}, "a published target keeps its grant past the overlap")
 
-	b, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName(selected.TargetDeploymentId, selected.GetTargetPort()), metav1.GetOptions{})
+	b, err := client.CoreV1().Services("customer-1").Get(ctx, privatenetwork.ServiceName(selected.TargetDeploymentId, selected.GetTargetPort()), metav1.GetOptions{})
 	require.NoError(t, err)
 	ready := false
 	remote := &discoveryv1.EndpointSlice{
@@ -78,7 +80,7 @@ func TestPublicationRetainsConnectionUntilRemoteDiscoveryIsReady(t *testing.T) {
 	}
 	remote, err = client.DiscoveryV1().EndpointSlices(b.Namespace).Create(ctx, remote, metav1.CreateOptions{})
 	require.NoError(t, err)
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, original, aliasService(t, client, selected))
 
 	ready = true
@@ -96,18 +98,18 @@ func TestPublicationRetainsConnectionUntilRemoteDiscoveryIsReady(t *testing.T) {
 			tc.change(invalid)
 			_, err := client.DiscoveryV1().EndpointSlices(b.Namespace).Update(ctx, invalid, metav1.UpdateOptions{})
 			require.NoError(t, err)
-			require.NoError(t, r.reconcile(ctx))
+			require.NoError(t, converge(t, r))
 			require.Equal(t, previousDeployment, resolvedDeployment(t, client, selected))
 		})
 	}
 
 	_, err = client.DiscoveryV1().EndpointSlices(b.Namespace).Update(ctx, remote, metav1.UpdateOptions{})
 	require.NoError(t, err)
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, selected.TargetDeploymentId, resolvedDeployment(t, client, selected))
 	require.Equal(t, []string{"10.73.0.22"}, resolvedAddresses(t, client, selected))
 
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	a, err = client.CoreV1().Services("customer-1").Get(ctx, a.Name, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Contains(t, a.Annotations, privatenetwork.RetireAfterAnnotation)
@@ -124,20 +126,20 @@ func TestPublicationIgnoresReadinessOfReplacedTargetServiceIncarnation(t *testin
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{snapshot}, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
-	require.NoError(t, r.reconcile(ctx))
+	r := newTestReconciler(t, Config{Client: client, Dynamic: dynamic, Cluster: control})
+	require.NoError(t, converge(t, r))
 
 	replacement := proto.Clone(connectionSpec).(*ctrlv1.PrivateNetworkConnection)
 	replacement.TargetDeploymentId = uid.New(uid.DeploymentPrefix)
 	snapshot = replacement
-	require.NoError(t, r.reconcile(ctx))
-	stale, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName(replacement.TargetDeploymentId, replacement.GetTargetPort()), metav1.GetOptions{})
+	require.NoError(t, converge(t, r))
+	stale, err := client.CoreV1().Services("customer-1").Get(ctx, privatenetwork.ServiceName(replacement.TargetDeploymentId, replacement.GetTargetPort()), metav1.GetOptions{})
 	require.NoError(t, err)
 	_, err = client.DiscoveryV1().EndpointSlices("customer-1").Create(ctx, readySlice(stale, "imported-old-incarnation", meshSliceManager), metav1.CreateOptions{})
 	require.NoError(t, err)
 	require.NoError(t, client.CoreV1().Services("customer-1").Delete(ctx, stale.Name, metav1.DeleteOptions{}))
 
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	current, err := client.CoreV1().Services("customer-1").Get(ctx, stale.Name, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.NotEqual(t, stale.UID, current.UID)
@@ -147,8 +149,8 @@ func TestPublicationIgnoresReadinessOfReplacedTargetServiceIncarnation(t *testin
 
 	_, err = client.CoreV1().Pods("customer-1").Create(ctx, endpointPod(replacement, "b", "10.72.0.22"), metav1.CreateOptions{})
 	require.NoError(t, err)
-	require.NoError(t, r.reconcileEndpoints(ctx))
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, publishEndpoints(t, r))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, replacement.TargetDeploymentId, resolvedDeployment(t, client, connectionSpec))
 	require.Equal(t, []string{"10.72.0.22"}, resolvedAddresses(t, client, connectionSpec))
 }
@@ -177,11 +179,11 @@ func TestPublicationRejectsAnnotationThatDisagreesWithTargetService(t *testing.T
 			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return snapshot, nil
 			})}
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
-			require.NoError(t, r.reconcile(ctx))
+			r := newTestReconciler(t, Config{Client: client, Dynamic: dynamic, Cluster: control})
+			require.NoError(t, converge(t, r))
 
 			alias := aliasService(t, client, connectionSpec)
-			otherTarget, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName(otherApp.TargetDeploymentId, otherApp.GetTargetPort()), metav1.GetOptions{})
+			otherTarget, err := client.CoreV1().Services("customer-1").Get(ctx, privatenetwork.ServiceName(otherApp.TargetDeploymentId, otherApp.GetTargetPort()), metav1.GetOptions{})
 			require.NoError(t, err)
 			tamper(alias, otherTarget)
 			tampered, err := client.CoreV1().Services("customer-1").Update(ctx, alias, metav1.UpdateOptions{})
@@ -192,7 +194,7 @@ func TestPublicationRejectsAnnotationThatDisagreesWithTargetService(t *testing.T
 			_, err = client.CoreV1().Pods("customer-1").Create(ctx, endpointPod(replacement, "b", "10.72.0.22"), metav1.CreateOptions{})
 			require.NoError(t, err)
 			snapshot = []*ctrlv1.PrivateNetworkConnection{replacement, otherApp}
-			require.ErrorContains(t, r.reconcile(ctx), "connection Service")
+			require.ErrorContains(t, converge(t, r), "connection Service")
 			require.Equal(t, tampered, aliasService(t, client, connectionSpec), "a rejected alias stays as published")
 			require.NotContains(t, effectiveFlows(t, dynamic, "customer-1"), flow{connectionSpec.CallerDeploymentId, replacement.TargetDeploymentId}, "a rejected alias does not change its grant")
 			require.Contains(t, effectiveFlows(t, dynamic, "customer-1"), flow{connectionSpec.CallerDeploymentId, connectionSpec.TargetDeploymentId})
@@ -201,7 +203,6 @@ func TestPublicationRejectsAnnotationThatDisagreesWithTargetService(t *testing.T
 }
 
 func TestPublicationRenamedAliasMovesDNSAfterNewNameIsPublished(t *testing.T) {
-	ctx := t.Context()
 	connectionSpec := newTestConnection()
 	client := fake.NewClientset(endpointPod(connectionSpec, "a", "10.72.0.11"))
 	dynamic := testDynamicClient()
@@ -209,8 +210,8 @@ func TestPublicationRenamedAliasMovesDNSAfterNewNameIsPublished(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{snapshot}, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
-	require.NoError(t, r.reconcile(ctx))
+	r := newTestReconciler(t, Config{Client: client, Dynamic: dynamic, Cluster: control})
+	require.NoError(t, converge(t, r))
 
 	renamed := proto.Clone(connectionSpec).(*ctrlv1.PrivateNetworkConnection)
 	renamed.ConnectionName = "billing"
@@ -222,19 +223,18 @@ func TestPublicationRenamedAliasMovesDNSAfterNewNameIsPublished(t *testing.T) {
 		}
 		return false, nil, nil
 	})
-	require.Error(t, r.reconcile(ctx))
+	require.Error(t, converge(t, r))
 	require.Nil(t, aliasService(t, client, renamed))
 	require.Equal(t, connectionSpec.TargetDeploymentId, resolvedDeployment(t, client, connectionSpec), "the old name stays until the new name is published")
 
 	failing = false
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Nil(t, aliasService(t, client, connectionSpec))
 	require.Equal(t, connectionSpec.TargetDeploymentId, resolvedDeployment(t, client, renamed))
 	require.Equal(t, []flow{{connectionSpec.CallerDeploymentId, connectionSpec.TargetDeploymentId}}, effectiveFlows(t, dynamic, "customer-1"))
 }
 
 func TestPublicationUnresolvedTargetWithdrawsDNSAndGrant(t *testing.T) {
-	ctx := t.Context()
 	connectionSpec := newTestConnection()
 	client := fake.NewClientset(endpointPod(connectionSpec, "a", "10.72.0.11"))
 	dynamic := testDynamicClient()
@@ -242,16 +242,16 @@ func TestPublicationUnresolvedTargetWithdrawsDNSAndGrant(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{snapshot}, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
-	require.NoError(t, r.reconcile(ctx))
+	r := newTestReconciler(t, Config{Client: client, Dynamic: dynamic, Cluster: control})
+	require.NoError(t, converge(t, r))
 
 	unresolved := proto.Clone(connectionSpec).(*ctrlv1.PrivateNetworkConnection)
 	unresolved.TargetDeploymentId, unresolved.TargetPort = "", 0
 	snapshot = unresolved
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Nil(t, aliasService(t, client, connectionSpec))
 	require.Empty(t, effectiveFlows(t, dynamic, "customer-1"))
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, []string{connectionSpec.TargetDeploymentId}, retiringDeployments(t, client), "the shared Service retires once no alias resolves it")
 }
 
@@ -283,7 +283,7 @@ func resolvedTarget(t *testing.T, client kubernetes.Interface, connectionSpec *c
 	target, err := client.CoreV1().Services(alias.Namespace).Get(t.Context(), name, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, corev1.ClusterIPNone, target.Spec.ClusterIP)
-	require.Equal(t, "true", target.Annotations[ciliumGlobal])
+	require.Equal(t, "true", target.Annotations[annotationCiliumGlobal])
 	require.Equal(t, target.Labels[labels.LabelKeyDeploymentID], alias.Annotations[privatenetwork.TargetDeploymentAnnotation])
 	return target
 }
@@ -303,11 +303,11 @@ func resolvedAddresses(t *testing.T, client kubernetes.Interface, connectionSpec
 	if target == nil {
 		return nil
 	}
-	slices, err := client.DiscoveryV1().EndpointSlices(target.Namespace).List(t.Context(), metav1.ListOptions{LabelSelector: discoveryv1.LabelServiceName + "=" + target.Name})
+	endpointSlices, err := client.DiscoveryV1().EndpointSlices(target.Namespace).List(t.Context(), metav1.ListOptions{LabelSelector: discoveryv1.LabelServiceName + "=" + target.Name})
 	require.NoError(t, err)
 	var addresses []string
-	for i := range slices.Items {
-		for _, address := range privatenetwork.AppendReadyAddresses(nil, target, &slices.Items[i]) {
+	for i := range endpointSlices.Items {
+		for _, address := range privatenetwork.AppendReadyAddresses(nil, target, &endpointSlices.Items[i]) {
 			addresses = append(addresses, address.String())
 		}
 	}
@@ -351,8 +351,8 @@ func TestRegionalAliasesResolveOneRegionAndFollowTheGlobalAlias(t *testing.T) {
 		return chunkStream(t, chunks...)
 	}
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: serve("one", true, testTopology(), connectionSpec)}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Platform: "aws", Region: "us-east-1", CellId: "aws-us-east-1"}}
-	require.NoError(t, r.reconcile(ctx))
+	r := newTestReconciler(t, Config{Client: client, Dynamic: dynamic, Cluster: control, ClusterKey: &ctrlv1.ClusterKey{Platform: "aws", Region: "us-east-1", CellId: "aws-us-east-1"}})
+	require.NoError(t, converge(t, r))
 
 	shared := resolvedTarget(t, client, connectionSpec)
 	remote := readySlice(shared, "imported-eu", meshSliceManager)
@@ -366,32 +366,32 @@ func TestRegionalAliasesResolveOneRegionAndFollowTheGlobalAlias(t *testing.T) {
 	replacement := proto.Clone(connectionSpec).(*ctrlv1.PrivateNetworkConnection)
 	replacement.TargetDeploymentId = uid.New(uid.DeploymentPrefix)
 	control.StreamPrivateNetworkStateFunc = serve("two", true, testTopology(), replacement)
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, []string{"10.80.0.5"}, regionalAddresses(t, client, connectionSpec, "eu-west-1"), "regional aliases wait with the global alias")
 	require.ElementsMatch(t, []flow{{connectionSpec.CallerDeploymentId, connectionSpec.TargetDeploymentId}, {connectionSpec.CallerDeploymentId, replacement.TargetDeploymentId}},
 		effectiveFlows(t, dynamic, "customer-1"))
 
 	_, err = client.CoreV1().Pods("customer-1").Create(ctx, endpointPod(replacement, "b", "10.72.0.22"), metav1.CreateOptions{})
 	require.NoError(t, err)
-	require.NoError(t, r.reconcileEndpoints(ctx))
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, publishEndpoints(t, r))
+	require.NoError(t, converge(t, r))
 	require.Equal(t, []string{"10.72.0.22"}, resolvedAddresses(t, client, connectionSpec))
 	require.Equal(t, []string{"10.72.0.22"}, regionalAddresses(t, client, connectionSpec, "us-east-1"))
 	require.Empty(t, regionalAddresses(t, client, connectionSpec, "eu-west-1"), "a region without replicas stays published and answers no addresses")
 
 	local := &ctrlv1.PrivateNetworkTopology{Version: 1, Clusters: []*ctrlv1.ClusterKey{{Platform: "aws", Region: "us-east-1", CellId: "aws-us-east-1"}}}
 	control.StreamPrivateNetworkStateFunc = serve("three", false, local, replacement)
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.NotNil(t, regionalService(t, client, connectionSpec, "eu-west-1"), "an uncertified topology does not remove a region")
 	control.StreamPrivateNetworkStateFunc = serve("four", true, local, replacement)
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Nil(t, regionalService(t, client, connectionSpec, "eu-west-1"))
 	require.NotNil(t, regionalService(t, client, connectionSpec, "us-east-1"))
 
 	unresolved := proto.Clone(replacement).(*ctrlv1.PrivateNetworkConnection)
 	unresolved.TargetDeploymentId, unresolved.TargetPort = "", 0
 	control.StreamPrivateNetworkStateFunc = serve("five", false, local, unresolved)
-	require.NoError(t, r.reconcile(ctx))
+	require.NoError(t, converge(t, r))
 	require.Empty(t, connectionServices(t, client, "customer-1"), "an unresolved target withdraws every alias")
 }
 
@@ -421,13 +421,13 @@ func regionalAddresses(t *testing.T, client kubernetes.Interface, connectionSpec
 	require.Equal(t, target.Labels[labels.LabelKeyDeploymentID], alias.Annotations[privatenetwork.TargetDeploymentAnnotation])
 	require.Equal(t, resolvedTarget(t, client, connectionSpec).Name, target.Name, "a regional alias resolves the same deployment as the global alias")
 
-	slices, err := client.DiscoveryV1().EndpointSlices(target.Namespace).List(t.Context(), metav1.ListOptions{LabelSelector: discoveryv1.LabelServiceName + "=" + target.Name})
+	endpointSlices, err := client.DiscoveryV1().EndpointSlices(target.Namespace).List(t.Context(), metav1.ListOptions{LabelSelector: discoveryv1.LabelServiceName + "=" + target.Name})
 	require.NoError(t, err)
 	addresses := []string{}
-	for i := range slices.Items {
-		slice := slices.Items[i].DeepCopy()
+	for i := range endpointSlices.Items {
+		slice := endpointSlices.Items[i].DeepCopy()
 		slice.Endpoints = nil
-		for _, endpoint := range slices.Items[i].Endpoints {
+		for _, endpoint := range endpointSlices.Items[i].Endpoints {
 			if endpoint.Hostname != nil && *endpoint.Hostname == region {
 				slice.Endpoints = append(slice.Endpoints, endpoint)
 			}
