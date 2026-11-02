@@ -67,6 +67,21 @@ export const projectRoutes = {
     });
   },
 
+  databases: {
+    list({ database, ...scope }: ProjectScope & { database?: string }): Route {
+      return buildRoute("/[workspaceSlug]/projects/[projectId]/databases", projectParams(scope), {
+        database,
+      });
+    },
+
+    new(scope: ProjectScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/databases/new",
+        projectParams(scope),
+      );
+    },
+  },
+
   apps: {
     new({ step, appId, ...scope }: ProjectScope & { step?: string; appId?: string }): Route {
       return buildRoute("/[workspaceSlug]/projects/[projectId]/apps/new", projectParams(scope), {

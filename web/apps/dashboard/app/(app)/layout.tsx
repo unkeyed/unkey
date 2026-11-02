@@ -71,7 +71,7 @@ export default function Layout({ children }: LayoutProps) {
   // Creation wizards are focused full-screen experiences without the sidebar.
   const isCreationWizard =
     pathname === "/integrations/github/callback" ||
-    /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
+    /\/projects\/[^/]+\/(?:apps|databases)\/new$/.test(pathname) ||
     /\/settings\/logdrains\/new$/.test(pathname) ||
     pathname === routes.cli.device();
   const billingUpgrades = useBillingUIUpgrades();
