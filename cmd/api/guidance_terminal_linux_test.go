@@ -37,6 +37,9 @@ func TestGuidedProcess(t *testing.T) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+	if history := os.Getenv("UNKEY_GUIDED_HISTORY"); history != "" {
+		fmt.Fprintln(os.Stderr, history)
+	}
 	command := &cli.Command{Name: "unkey", Commands: append(ResourceCommands(), Cmd())}
 	if err := command.Run(context.Background(), append([]string{"unkey"}, args...)); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -79,7 +82,8 @@ func TestGuidedTerminalCreateAndCancellation(t *testing.T) {
 		require.NotContains(t, terminal, "Edit Name")
 		require.NotContains(t, terminal, "Edit Slug")
 		require.NotContains(t, terminal, `"name":`)
-		require.NotContains(t, out, "Guided input")
+		require.NotContains(t, terminal, "Guided input ·")
+		require.NotContains(t, out, "Review request")
 		if mode == "json" {
 			var got components.V2ProjectsCreateProjectResponseBody
 			require.NoError(t, json.Unmarshal([]byte(out), &got))
@@ -372,14 +376,27 @@ func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 	out, terminal, err := runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "Name: ", answer: "Demo Srevice\r"},
 		{expect: "Slug [demo-srevice]: ", answer: "\r"},
-		{expect: "Create project", answer: "\x1b[B\r"},
+		{expect: "Create project", answer: "\x1b[B\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "Earlier shell output")
+			require.Equal(t, 1, strings.Count(screen, "Review request"))
+			require.NotContains(t, screen, "Slug [")
+		}},
 		{expect: "Edit Name", answer: "\x1b[B\r"},
-		{expect: "Name [Demo Srevice]: ", answer: "Demo Service\r"},
-		{expect: "Edit Slug", answer: "\x1b[B\x1b[B\r"},
+		{expect: "Name [Demo Srevice]: ", answer: "Demo Service\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "Earlier shell output")
+			require.Contains(t, screen, "Review request")
+			require.NotContains(t, screen, "Continue?")
+			require.NotContains(t, screen, "Edit Slug")
+		}},
+		{expect: "Edit Slug", answer: "\x1b[B\x1b[B\r", check: func(t *testing.T, screen string) {
+			require.Equal(t, 1, strings.Count(screen, "Review request"))
+			require.Contains(t, screen, "Name: Demo Service")
+			require.NotContains(t, screen, "Demo Srevice")
+		}},
 		{expect: "Slug [demo-srevice]: ", answer: "demo-service\r"},
 		{expect: "Continue", answer: "\r"},
 		{expect: "Create project", answer: "\r"},
-	})
+	}, terminalSettings{columns: 100, rows: 40, history: "Earlier shell output"})
 	require.NoError(t, err, terminal)
 	require.Len(t, requests, 1)
 	require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service"}, <-requests)
@@ -415,6 +432,28 @@ func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 	require.Empty(t, out)
 	require.Empty(t, requests)
 	require.Contains(t, terminal, "cancelled")
+	for _, rows := range []uint16{8, 12} {
+		t.Run(fmt.Sprintf("wrapped review in %d rows", rows), func(t *testing.T) {
+			name := strings.Repeat("Demo ", 12) + "界é"
+			out, terminal, err := runGuidedTerminal(t, args, []terminalAnswer{
+				{expect: "Name: ", answer: "\r"},
+				{expect: "enter at least 1", answer: name + "👩‍💻\x7f\r", check: func(t *testing.T, screen string) {
+					require.Contains(t, screen, "Name: enter at least 1")
+					require.Contains(t, screen, "Name:\n")
+				}},
+				{expect: "Slug [", answer: "demo-service\r"},
+				{expect: "Create project", answer: "\x1b[6~", check: func(t *testing.T, screen string) {
+					require.Equal(t, 1, strings.Count(screen, "Review request"))
+					require.NotContains(t, screen, "enter at least 1")
+					require.NotContains(t, screen, "Slug [")
+				}},
+				{expect: "Create project", answer: "\r"},
+			}, terminalSettings{columns: 40, rows: rows, history: strings.Repeat("Earlier shell output\n", 30)})
+			require.NoError(t, err, terminal)
+			require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: name, Slug: "demo-service"}, <-requests)
+			require.Contains(t, out, "Project created.")
+		})
+	}
 }
 
 func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
@@ -459,7 +498,13 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 		{expect: "Edit saved answers", answer: "\x1b[B\r"},
 		{expect: "Continue", answer: "\r"},
 		{expect: "Change the rejected input", answer: "\x1b[B\x1b[B\r"},
-		{expect: "Slug [demo-service]: ", answer: "demo-service-fixed\r"},
+		{expect: "Slug [demo-service]: ", answer: "demo-service-fixed\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "Check body.slug")
+			require.Contains(t, screen, "The API rejected the input")
+			require.NotContains(t, screen, "Name: \n")
+			require.NotContains(t, screen, "Edit saved answers")
+			require.NotContains(t, screen, "Correct the request?")
+		}},
 		{expect: "Continue", answer: "\r"},
 		{expect: "Create project", answer: "\x1b[B\r"},
 		{expect: "Edit Slug", answer: "\x1b[B\x1b[B\r"},
@@ -475,7 +520,6 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 	require.Len(t, requests, 2)
 	require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service"}, <-requests)
 	require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service-fixed"}, <-requests)
-	require.Equal(t, 1, strings.Count(terminal, "\r\nName: "))
 	require.Contains(t, out, "Project created.")
 	recordGuided(t, "validation-correction-after", terminal, out)
 	out, terminal, err = runGuidedTerminal(t, args, []terminalAnswer{
@@ -548,10 +592,21 @@ func TestGuidedTerminalDoesNotRetryOtherFailures(t *testing.T) {
 type terminalAnswer struct {
 	expect string
 	answer string
+	check  func(*testing.T, string)
 }
 
-func runGuidedTerminal(t *testing.T, args []string, answers []terminalAnswer) (string, string, error) {
+type terminalSettings struct {
+	columns uint16
+	rows    uint16
+	history string
+}
+
+func runGuidedTerminal(t *testing.T, args []string, answers []terminalAnswer, settings ...terminalSettings) (string, string, error) {
 	t.Helper()
+	config := terminalSettings{columns: 100, rows: 40}
+	if len(settings) > 0 {
+		config = settings[0]
+	}
 	master, err := os.OpenFile("/dev/ptmx", os.O_RDWR|unix.O_NOCTTY, 0)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, master.Close()) })
@@ -560,13 +615,13 @@ func runGuidedTerminal(t *testing.T, args []string, answers []terminalAnswer) (s
 	require.NoError(t, err)
 	slave, err := os.OpenFile("/dev/pts/"+strconv.Itoa(number), os.O_RDWR|unix.O_NOCTTY, 0)
 	require.NoError(t, err)
-	require.NoError(t, unix.IoctlSetWinsize(int(slave.Fd()), unix.TIOCSWINSZ, &unix.Winsize{Col: 100, Row: 40}))
+	require.NoError(t, unix.IoctlSetWinsize(int(slave.Fd()), unix.TIOCSWINSZ, &unix.Winsize{Col: config.columns, Row: config.rows}))
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	t.Cleanup(cancel)
 	raw, err := json.Marshal(args)
 	require.NoError(t, err)
 	command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestGuidedProcess$")
-	command.Env = append(os.Environ(), "UNKEY_GUIDED_PROCESS=1", "UNKEY_GUIDED_ARGS="+string(raw), "UNKEY_OUTPUT=human")
+	command.Env = append(os.Environ(), "UNKEY_GUIDED_PROCESS=1", "UNKEY_GUIDED_ARGS="+string(raw), "UNKEY_OUTPUT=human", "UNKEY_GUIDED_HISTORY="+config.history)
 	command.Stdin, command.Stderr = slave, slave
 	command.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}
 	var output bytes.Buffer
@@ -600,6 +655,16 @@ func runGuidedTerminal(t *testing.T, args []string, answers []terminalAnswer) (s
 			}
 		}
 		position = terminal.Len()
+		if answer.check != nil {
+			screen := vt100.NewVT100(int(config.rows), int(config.columns))
+			_, err := screen.Write([]byte(terminal.String()))
+			require.NoError(t, err)
+			var visible strings.Builder
+			for _, row := range screen.Content {
+				visible.WriteString(strings.TrimRight(string(row), " ") + "\n")
+			}
+			answer.check(t, visible.String())
+		}
 		_, err := io.WriteString(master, answer.answer)
 		require.NoError(t, err)
 	}
