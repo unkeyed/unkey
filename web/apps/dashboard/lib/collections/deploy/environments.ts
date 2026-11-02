@@ -67,6 +67,8 @@ export const environments = createCollection<
 >(
   queryCollectionOptions({
     queryClient,
+    // The dashboard never writes environment rows
+    staleTime: 5 * 60_000,
     queryKey: (opts) => {
       const apps = appsInWhere(opts.where);
       return apps

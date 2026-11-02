@@ -82,6 +82,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			LastUsedAt:  int64(row.LastUsedAt),
 			Expires:     expires,
 			Permissions: slices.Compact(rootKeyPermissions),
+			IpAllowlist: append([]string{}, row.IpAllowlist...),
 		})
 	}
 	return s.JSON(http.StatusOK, Response{

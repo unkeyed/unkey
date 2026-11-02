@@ -1,10 +1,10 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
+import { useAppCurrentDeployment } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-app-current-deployment";
 import type { DeploymentStatus } from "@/lib/collections";
 import { DeploymentStatusLabel } from "../../../../../components/deployment-status-dot";
 import { ActiveDeploymentCard } from "../../../../../components/legacy/active-deployment-card";
-import { useProjectData } from "../../../../data-provider";
-import { useAppCurrentDeployment } from "../../../../hooks/use-app-current-deployment";
 import { InstantRollbackRow } from "../../instant-rollback-row";
 import { useDeployment } from "../../layout-provider";
 

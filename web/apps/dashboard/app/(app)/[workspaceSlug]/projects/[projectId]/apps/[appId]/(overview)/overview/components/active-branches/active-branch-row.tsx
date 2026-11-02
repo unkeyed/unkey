@@ -1,7 +1,7 @@
 "use client";
 
 import { EnvironmentBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
-import type { Deployment, DeploymentSummary, Environment } from "@/lib/collections";
+import type { Deployment, DeploymentSummary, Environment } from "@/lib/deploy-data";
 import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";

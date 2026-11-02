@@ -1,6 +1,6 @@
 "use client";
 
-import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
+import { ENVIRONMENT_KIND, type Environment } from "@/lib/deploy-data";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
   IconCircleXmarkOutline12,

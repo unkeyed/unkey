@@ -98,7 +98,7 @@ func TestGetLimitsWithComputePlan(t *testing.T) {
 	insertLogdrain(t, h, workspaceID)
 
 	now := h.Clock.Now().UTC()
-	lastMonth := now.AddDate(0, -1, 0)
+	lastMonth := time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, time.UTC)
 	insertRow(t, h, schema.BillableVerificationsPerMonthV2{Year: int16(now.Year()), Month: int8(now.Month()), WorkspaceID: workspaceID, Count: 40_000})
 	insertRow(t, h, schema.BillableRatelimitsPerMonthV2{Year: int16(now.Year()), Month: int8(now.Month()), WorkspaceID: workspaceID, Count: 2_000})
 	insertRow(t, h, schema.BillableVerificationsPerMonthV2{Year: int16(lastMonth.Year()), Month: int8(lastMonth.Month()), WorkspaceID: workspaceID, Count: 999})

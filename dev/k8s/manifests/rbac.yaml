@@ -2,12 +2,56 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: unkey-serviceaccount
+  name: krane
   namespace: unkey
-  labels:
-    app: unkey
-    component: krane
-
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: heimdall
+  namespace: unkey
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ctrl-api
+  namespace: unkey
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ctrl-worker
+  namespace: unkey
+# Local builds use Kubernetes Jobs instead of Depot.
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ctrl-worker-builds
+  namespace: unkey
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ctrl-worker-builds
+  namespace: unkey
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ctrl-worker-builds
+subjects:
+  - kind: ServiceAccount
+    name: ctrl-worker
+    namespace: unkey
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -17,76 +61,30 @@ metadata:
     app: unkey
     component: krane
 rules:
-  # Namespace management
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "create", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "delete"]
   - apiGroups: [""]
     resources: ["namespaces"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
-
-  # Pod management for VMs
+    verbs: ["create"]
   - apiGroups: [""]
     resources: ["pods"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Job management for the ctrl-worker's kubernetes build backend
-  - apiGroups: ["batch"]
-    resources: ["jobs"]
-    verbs: ["get", "list", "watch", "create", "delete"]
-
-  # Service management for VM networking
+    verbs: ["list", "watch"]
   - apiGroups: [""]
-    resources: ["services"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Deployments management for user workloads
-  - apiGroups: ["apps"]
-    resources: ["deployments", "replicasets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # StatefulSets management for gateway workloads
-  - apiGroups: ["apps"]
-    resources: ["statefulsets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Deployment CRD management
-  - apiGroups: ["kubernetes.unkey.com"]
-    resources: ["deployments", "deployments/status"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # CRD discovery
-  - apiGroups: ["apiextensions.k8s.io"]
-    resources: ["customresourcedefinitions"]
-    verbs: ["get", "list", "watch"]
-
-  # Events access for debugging
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["get", "list", "watch"]
-
-  # ServiceAccount management for per-deployment pods
-  - apiGroups: [""]
-    resources: ["serviceaccounts"]
-    verbs: ["get", "create", "update", "patch", "delete"]
-
-  # Secrets management for deployment env vars and pull secrets
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list", "create", "update", "patch", "delete"]
-
-  # CiliumNetworkPolicy management for network isolation
-  - apiGroups: ["cilium.io"]
-    resources: ["ciliumnetworkpolicies"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # HorizontalPodAutoscaler management for deployment workloads
-  - apiGroups: ["autoscaling"]
-    resources: ["horizontalpodautoscalers"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # PodDisruptionBudget management for deployment workloads
+    resources: ["secrets", "serviceaccounts"]
+    verbs: ["create", "patch"]
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
+    verbs: ["create", "patch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["create", "patch"]
+  - apiGroups: ["cilium.io"]
+    resources: ["ciliumnetworkpolicies"]
+    verbs: ["create", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -97,13 +95,12 @@ metadata:
     component: krane
 subjects:
   - kind: ServiceAccount
-    name: unkey-serviceaccount
+    name: krane
     namespace: unkey
 roleRef:
   kind: ClusterRole
   name: krane-vm-manager
   apiGroup: rbac.authorization.k8s.io
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -116,8 +113,11 @@ metadata:
 rules:
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
-    verbs: ["get", "create", "update"]
-
+    verbs: ["create"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    resourceNames: ["krane"]
+    verbs: ["get", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -129,9 +129,86 @@ metadata:
     component: krane
 subjects:
   - kind: ServiceAccount
-    name: unkey-serviceaccount
+    name: krane
     namespace: unkey
 roleRef:
   kind: Role
   name: krane-lease
   apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: heimdall
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: heimdall
+subjects:
+  - kind: ServiceAccount
+    name: heimdall
+    namespace: unkey
+roleRef:
+  kind: ClusterRole
+  name: heimdall
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+  namespace: unkey
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes/proxy"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-collector
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: unkey
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: otel-collector
+  namespace: unkey
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: otel-collector
+  namespace: unkey
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: otel-collector
+subjects:
+  - kind: ServiceAccount
+    name: otel-collector
+    namespace: unkey

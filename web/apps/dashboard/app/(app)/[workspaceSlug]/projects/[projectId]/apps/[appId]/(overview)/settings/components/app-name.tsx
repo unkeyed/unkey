@@ -1,7 +1,6 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
+import { createAppRequestSchema, useAppMutations } from "@/lib/deploy-data";
 import {
   FormInput,
   SettingsForm,
@@ -15,13 +14,11 @@ import { useSavableForm } from "../../../../_components/settings/hooks/use-setti
 const appNameSchema = createAppRequestSchema.pick({ name: true });
 
 export function AppName({ appId, name }: { appId: string; name: string }) {
+  const { updateApp } = useAppMutations();
   const { form, formProps } = useSavableForm({
     schema: appNameSchema,
     values: { name },
-    save: (values) =>
-      collection.apps.update(appId, { optimistic: false }, (draft) => {
-        draft.name = values.name;
-      }).isPersisted.promise,
+    save: (values) => updateApp(appId, { name: values.name }),
   });
 
   return (

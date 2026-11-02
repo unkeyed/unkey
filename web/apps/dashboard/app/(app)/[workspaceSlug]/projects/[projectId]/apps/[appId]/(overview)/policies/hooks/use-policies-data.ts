@@ -1,12 +1,15 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { type PolicyRow, policyListLoad } from "@/lib/collections/deploy/policies";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import {
+  ENVIRONMENT_KIND,
+  policiesQueryFor,
+  useAppScope,
+  useEnvironments,
+} from "@/lib/deploy-data";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
-import { useAppId, useProjectData } from "../../data-provider";
 import { type MergedPolicy, type PolicyEnvs, mergePolicies } from "../model/merge";
 
 export type PoliciesView =
@@ -24,8 +27,8 @@ export type PoliciesData = {
 };
 
 export function usePoliciesData(): PoliciesData {
-  const { environments, projectId, isEnvironmentsLoading } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
 
   const productionEnv = environments.find((e) => e.kind === ENVIRONMENT_KIND.production);
   const previewEnv = environments.find((e) => e.kind === ENVIRONMENT_KIND.preview);
@@ -74,8 +77,8 @@ export type ProductionPolicies = {
 };
 
 export function useProductionPolicies(): ProductionPolicies {
-  const { environments, projectId, isEnvironmentsLoading } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const productionId = environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id ?? null;
   const production = useEnvPolicies(projectId, appId, productionId);
   const policies = production.rows ?? [];
@@ -118,19 +121,7 @@ function policiesView(isError: boolean, isLoading: boolean, count: number): Poli
 
 function usePolicyRows(projectId: string, appId: string, environmentId: string | null) {
   return useLiveQuery(
-    (q) =>
-      environmentId !== null
-        ? q
-            .from({ p: collection.policies })
-            .where(({ p }) =>
-              and(
-                eq(p.projectId, projectId),
-                eq(p.appId, appId),
-                eq(p.environmentId, environmentId),
-              ),
-            )
-            .orderBy(({ p }) => p._order)
-        : null,
+    (q) => (environmentId !== null ? policiesQueryFor(projectId, appId, environmentId)(q) : null),
     [projectId, appId, environmentId],
   );
 }

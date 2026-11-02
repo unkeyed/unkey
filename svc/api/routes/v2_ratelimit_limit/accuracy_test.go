@@ -57,7 +57,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 
 									route := &handler.Handler{
 										RatelimitEvents: h.RatelimitEvents,
-										DirectAuditLogs: h.DirectAuditLogs,
+										AuditLogBuffer:  h.AuditLogBuffer,
 										Ratelimit:       h.Ratelimit,
 										DB:              h.DB,
 										NamespaceCache:  h.Caches.RatelimitNamespace,

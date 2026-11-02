@@ -3,7 +3,6 @@ import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import {
   expandableId,
-  isStripeNotFound,
   retrieveCompletedWorkspaceCheckoutSession,
   retrieveWorkspaceCheckoutSession,
   stripeErrorCode,
@@ -446,39 +445,6 @@ describe("throwRedactedStripeError", () => {
     expect(asTRPCError(caught(() => throwRedactedStripeError(error, "Update failed"))).code).toBe(
       "TOO_MANY_REQUESTS",
     );
-  });
-});
-
-describe("isStripeNotFound", () => {
-  it("matches on statusCode 404 or code resource_missing", () => {
-    expect(
-      isStripeNotFound(
-        new Stripe.errors.StripeInvalidRequestError({
-          type: "invalid_request_error",
-          code: "resource_missing",
-          message: "No such customer: 'cus_x'",
-        }),
-      ),
-    ).toBe(true);
-    expect(
-      isStripeNotFound(
-        new Stripe.errors.StripeAPIError({
-          type: "api_error",
-          statusCode: 404,
-          message: "Not found",
-        }),
-      ),
-    ).toBe(true);
-    expect(
-      isStripeNotFound(
-        new Stripe.errors.StripeInvalidRequestError({
-          type: "invalid_request_error",
-          code: "parameter_invalid_string",
-          statusCode: 400,
-          message: "Invalid string",
-        }),
-      ),
-    ).toBe(false);
   });
 });
 

@@ -4,10 +4,14 @@
 
 import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
-import { Result as SafeParseResult } from "../../types/fp.js";
-import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import type { Result as SafeParseResult } from "../../types/fp.js";
+import type { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 export type V2RootKeysListKeysResponseData = {
+  /**
+   * Allowed IPv4 or IPv6 addresses and CIDR ranges. An empty list allows any IP address.
+   */
+  ipAllowlist: Array<string>;
   /**
    * Stable root key identifier.
    */
@@ -52,6 +56,7 @@ export const V2RootKeysListKeysResponseData$inboundSchema: z.ZodType<
   z.ZodTypeDef,
   unknown
 > = z.object({
+  ipAllowlist: z.array(z.string()),
   keyId: z.string(),
   name: z.nullable(z.string()),
   start: z.string(),

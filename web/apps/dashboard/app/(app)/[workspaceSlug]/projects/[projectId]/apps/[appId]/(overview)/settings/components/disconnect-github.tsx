@@ -1,6 +1,6 @@
 "use client";
 
-import { collection } from "@/lib/collections";
+import { useDeployActions } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
 import {
   AlertDialog,
@@ -20,6 +20,7 @@ import { useBuildSource } from "../../../../_components/settings/hooks/use-build
 export function DisconnectGitHub() {
   const { appId, repositoryFullName } = useBuildSource({ staleTime: 0 });
   const utils = trpc.useUtils();
+  const { refetchApps } = useDeployActions();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [pendingRepo, setPendingRepo] = useState<string | null>(null);
 
@@ -28,7 +29,7 @@ export function DisconnectGitHub() {
       toast.success("Repository disconnected");
       await utils.github.getInstallations.invalidate();
       await utils.github.getRepoTree.invalidate();
-      await collection.apps.utils.refetch();
+      await refetchApps();
     },
     onError: (error) => {
       toast.error(error.message);

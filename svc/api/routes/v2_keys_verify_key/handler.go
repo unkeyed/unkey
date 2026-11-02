@@ -37,7 +37,7 @@ const DefaultCost = 1
 type Handler struct {
 	DB               db.Database
 	Keys             keys.KeyService
-	DirectAuditLogs  *batch.BatchProcessor[auditlog.Event]
+	AuditLogBuffer   *batch.BatchProcessor[auditlog.Event]
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 }
 
@@ -318,7 +318,7 @@ func (h *Handler) bufferAuditLog(
 		})
 	}
 
-	h.DirectAuditLogs.Buffer(auditlog.Event{
+	h.AuditLogBuffer.Buffer(auditlog.Event{
 		EventID:     uid.New(uid.AuditLogPrefix),
 		Time:        verificationTimeMillis,
 		WorkspaceID: principal.AuthorizedWorkspaceID,

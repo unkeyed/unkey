@@ -1,4 +1,4 @@
-import type { CustomDomainDnsRecord } from "@/lib/collections/deploy/custom-domains";
+import type { CustomDomainDnsRecord } from "@/lib/deploy-data";
 import { IconCircleCheckOutline18 } from "@unkey/icons";
 import { CopyButton } from "@unkey/ui";
 import { cn } from "cn";

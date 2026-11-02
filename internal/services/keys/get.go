@@ -9,7 +9,10 @@ import (
 
 	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -18,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -41,10 +45,25 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		return nil, err
 	}
 
+	logger.Set(ctx, slog.Group("auth",
+		slog.String("workspace_id", key.Key.ForWorkspaceID.String),
+		slog.String("root_key_id", key.Key.ID),
+	))
+
 	if key.Status == StatusExpired {
 		return nil, fault.New("invalid root key",
 			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
 			fault.Internal(key.message),
+			fault.Public("The provided root key is invalid."),
+		)
+	}
+
+	// Missing keys and IP-denied keys share [StatusNotFound] so callers cannot
+	// distinguish them. A fresh fault keeps the internal reason out of the public message.
+	if key.Status == StatusNotFound {
+		return nil, fault.New("invalid root key",
+			fault.Code(codes.Auth.Authentication.KeyNotFound.URN()),
+			fault.Internal(fmt.Sprintf("root key status %s from client IP %s: %s", key.Status, sess.ClientIP(), key.message)),
 			fault.Public("The provided root key is invalid."),
 		)
 	}
@@ -70,11 +89,6 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	}
 
 	key.AuthorizedWorkspaceID = key.Key.ForWorkspaceID.String
-
-	logger.Set(ctx, slog.Group("auth",
-		slog.String("workspace_id", key.AuthorizedWorkspaceID),
-		slog.String("root_key_id", key.Key.ID),
-	))
 
 	return key, nil
 }
@@ -149,6 +163,7 @@ func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string)
 			Roles:                     roles,
 			Permissions:               permissions,
 			RatelimitConfigs:          ratelimitConfigs,
+			AllowedIPs:                nil,
 		}, nil
 	}, caches.DefaultFindFirstOp)
 
@@ -201,6 +216,10 @@ func cacheUnkeyRootKey(row keysdb.FindUnkeyRootKeyForAuthenticationRow) (keysdb.
 	if err != nil {
 		return keysdb.CachedRootKeyData{}, err
 	}
+	allowedIPs, err := ipallowlist.Parse(row.IpAllowlist)
+	if err != nil {
+		return keysdb.CachedRootKeyData{}, fault.Wrap(err, fault.Internal("invalid root key allowed IPs"))
+	}
 	expires := sql.NullTime{}
 	if row.Expires.Valid {
 		expires = sql.NullTime{Time: time.UnixMilli(row.Expires.Int64), Valid: true}
@@ -217,6 +236,7 @@ func cacheUnkeyRootKey(row keysdb.FindUnkeyRootKeyForAuthenticationRow) (keysdb.
 		WorkspaceEnabled:    true,
 		ForWorkspaceEnabled: row.WorkspaceEnabled,
 		Permissions:         permissions,
+		AllowedIPs:          allowedIPs,
 	}, nil
 }
 
@@ -238,6 +258,7 @@ func cacheLegacyRootKey(row keysdb.FindLegacyRootKeyForAuthenticationRow) (keysd
 		WorkspaceEnabled:    row.WorkspaceEnabled,
 		ForWorkspaceEnabled: row.ForWorkspaceEnabled,
 		Permissions:         permissions,
+		AllowedIPs:          nil,
 	}, nil
 }
 
@@ -260,6 +281,7 @@ func asCachedKey(rootKey keysdb.CachedRootKeyData) keysdb.CachedKeyData {
 		Roles:            []string{},
 		Permissions:      rootKey.Permissions,
 		RatelimitConfigs: map[string]keysdb.KeyFindForVerificationRatelimit{},
+		AllowedIPs:       rootKey.AllowedIPs,
 	}
 }
 
@@ -376,6 +398,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		// By default we assume the key is valid unless proven otherwise
 		Status:           StatusValid,
 		ratelimitConfigs: key.RatelimitConfigs,
+		AllowedIPs:       key.AllowedIPs,
 		Roles:            key.Roles,
 		Permissions:      key.Permissions,
 		RatelimitResults: nil,
@@ -398,6 +421,40 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 
 	if key.Expires.Valid && startTime.After(key.Expires.Time) {
 		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
+		return kv, nil
+	}
+
+	if !kv.AllowedIPs.Allows(sess.ClientIP()) {
+		metrics.AuthIPAllowlistDenialsTotal.WithLabelValues().Inc()
+		s.auditLogBuffer.Buffer(auditlog.Event{
+			EventID:     uid.New(uid.AuditLogPrefix),
+			Time:        time.Now().UnixMilli(),
+			WorkspaceID: key.ForWorkspaceID.String,
+			Bucket:      auditlog.BucketUnkeyMutations,
+			Source:      auditlog.EventSourcePlatform,
+			Event:       string(auditlog.IPDeniedEvent),
+			Description: fmt.Sprintf("Root key authentication from %s denied by IP allowlist", sess.ClientIP()),
+			Actor: auditlog.EventActor{
+				Type: string(auditlog.RootKeyActor),
+				ID:   key.ID,
+				Name: key.Name.String,
+				Meta: nil,
+			},
+			RemoteIP:  sess.ClientIP().String(),
+			UserAgent: sess.UserAgent(),
+			Meta: map[string]any{
+				"request_id":  sess.RequestID(),
+				"allowed_ips": kv.AllowedIPs.Strings(),
+			},
+			Targets: []auditlog.EventTarget{{
+				Type: string(auditlog.KeyTargetType),
+				ID:   key.ID,
+				Name: key.Name.String,
+				Meta: nil,
+			}},
+			CorrelationID: "",
+		})
+		kv.setInvalid(StatusNotFound, "This IP address is not allowed to use the root key.")
 		return kv, nil
 	}
 

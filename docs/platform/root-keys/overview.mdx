@@ -56,11 +56,11 @@ Store the secret in your secret manager. You can't retrieve it again. The audit 
 
 ## Edit a root key
 
-From the key's row menu, choose **Edit root key** to change its name or permissions. Saving replaces the complete permission set, so review all policies before saving. See [Edit permissions](/platform/root-keys/configure#edit-permissions-in-the-dashboard) for dashboard and API instructions.
+From the key's row menu, choose **Edit root key** to change its name, permissions, or [IP allowlist](/platform/root-keys/configure#restrict-a-root-key-by-ip-address). IP allowlist configuration requires workspace enablement. Saving replaces the complete permission set, so review all policies before saving. See [Edit permissions](/platform/root-keys/configure#edit-permissions-in-the-dashboard) for dashboard and API instructions.
 
 ## Rotate a root key
 
-Rotating gives you a new root key with the same name and permissions, and stops the old one after a grace period.
+Rotating gives you a new root key with the same name, permissions, and IP allowlist, and stops the old one after a grace period.
 
 1. Choose **Rotate root key** from the row menu.
 2. Pick a grace period: revoke immediately, 15 minutes, 1 hour, 6 hours, or 24 hours. To keep the old key's current expiry, select **Do not expire original key**.

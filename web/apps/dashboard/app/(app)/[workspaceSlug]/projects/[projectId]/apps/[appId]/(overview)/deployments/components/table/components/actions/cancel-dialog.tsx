@@ -1,10 +1,9 @@
 "use client";
 
-import type { DeploymentSummary } from "@/lib/collections";
+import { type DeploymentSummary, useDeployActions } from "@/lib/deploy-data";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
-import { useProjectData } from "../../../../../data-provider";
 import { DeploymentCard } from "./components/deployment-card";
 
 type CancelDialogProps = {
@@ -18,7 +17,7 @@ type CancelDialogProps = {
 };
 
 export const CancelDialog = ({ isOpen, onClose, onCancelled, deployment }: CancelDialogProps) => {
-  const { awaitDeploymentStatus } = useProjectData();
+  const { awaitDeploymentStatus } = useDeployActions();
 
   const cancel = useMutation({
     mutationFn: (deploymentId: string) =>
