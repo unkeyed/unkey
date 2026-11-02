@@ -52,7 +52,7 @@ func TestCleanupRemovesOrphanPolicy(t *testing.T) {
 
 func TestConfirmedAbsenceCleanupPrecedesEndpointFailure(t *testing.T) {
 	r, key, connections, _, spec := cleanupFixture(t)
-	r.clusterKey = &ctrlv1.ClusterKey{}
+	r.clusterKey = &ctrlv1.ClusterKey{Region: testRegion}
 	r.cluster = &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t,
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "one", Complete: true, Certified: true},
 	)}
@@ -103,7 +103,7 @@ func TestCleanupDeleteErrorRetainsDNSAndRetries(t *testing.T) {
 
 func TestUncertifiedSnapshotsNeverConfirmAbsence(t *testing.T) {
 	r, key, connections, _, spec := cleanupFixture(t)
-	r.clusterKey = &ctrlv1.ClusterKey{}
+	r.clusterKey = &ctrlv1.ClusterKey{Region: testRegion}
 	connection := connections[key][0]
 	exists := func() bool {
 		t.Helper()

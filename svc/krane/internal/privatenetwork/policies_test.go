@@ -29,11 +29,14 @@ type portProto struct {
 	protocol string
 }
 
+const testRegion = "us-east-1"
+
 func newTestConnection() *ctrlv1.PrivateNetworkConnection {
 	return &ctrlv1.PrivateNetworkConnection{
 		WorkspaceId: uid.New(uid.WorkspacePrefix), ProjectId: uid.New(uid.ProjectPrefix), TargetAppId: uid.New(uid.AppPrefix), TargetAppSlug: "payments",
 		K8SNamespace: "customer-1", TargetDeploymentId: uid.New(uid.DeploymentPrefix), TargetPort: 8080, TargetEnvironmentId: uid.New(uid.EnvironmentPrefix),
 		CallerDeploymentId: uid.New(uid.DeploymentPrefix), ConnectionId: uid.New(uid.ConnectionPrefix), ConnectionName: "payments-api",
+		CallerRegions: []string{testRegion}, TargetRegions: []string{testRegion},
 	}
 }
 
@@ -217,7 +220,7 @@ func ensureTestPolicy(t *testing.T, r *Reconciler, ctx context.Context, spec *ct
 	if err != nil {
 		current = nil
 	}
-	return r.ensurePolicy(ctx, spec, name, published, current)
+	return r.ensurePolicy(ctx, spec, name, append(published, spec.GetTargetDeploymentId()), current)
 }
 
 func policySpecs(t *testing.T, policy *unstructured.Unstructured) []map[string]interface{} {

@@ -38,7 +38,7 @@ func TestPublicationRetainsConnectionUntilRemoteDiscoveryIsReady(t *testing.T) {
 		return []*ctrlv1.PrivateNetworkConnection{selected, other}, nil
 	})}
 	dynamic := testDynamicClient()
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 	original := aliasService(t, client, selected)
 	require.NotNil(t, original)
@@ -58,7 +58,7 @@ func TestPublicationRetainsConnectionUntilRemoteDiscoveryIsReady(t *testing.T) {
 	require.Equal(t, other.TargetDeploymentId, resolvedDeployment(t, client, other), "an independent connection with ready endpoints moves")
 	require.Equal(t, []string{"10.72.0.33"}, resolvedAddresses(t, client, other))
 
-	r = &Reconciler{client: client, dynamic: dynamic, cluster: control, clock: clock.NewTestClock(time.Now().Add(time.Hour))}
+	r = &Reconciler{client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}, clock: clock.NewTestClock(time.Now().Add(time.Hour))}
 	require.NoError(t, r.reconcile(ctx))
 	a, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName(previousDeployment, selected.GetTargetPort()), metav1.GetOptions{})
 	require.NoError(t, err)
@@ -124,7 +124,7 @@ func TestPublicationIgnoresReadinessOfReplacedTargetServiceIncarnation(t *testin
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{snapshot}, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 
 	replacement := proto.Clone(connectionSpec).(*ctrlv1.PrivateNetworkConnection)
@@ -177,7 +177,7 @@ func TestPublicationRejectsAnnotationThatDisagreesWithTargetService(t *testing.T
 			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return snapshot, nil
 			})}
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
+			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			require.NoError(t, r.reconcile(ctx))
 
 			alias := aliasService(t, client, connectionSpec)
@@ -209,7 +209,7 @@ func TestPublicationRenamedAliasMovesDNSAfterNewNameIsPublished(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{snapshot}, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 
 	renamed := proto.Clone(connectionSpec).(*ctrlv1.PrivateNetworkConnection)
@@ -242,7 +242,7 @@ func TestPublicationUnresolvedTargetWithdrawsDNSAndGrant(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{snapshot}, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 
 	unresolved := proto.Clone(connectionSpec).(*ctrlv1.PrivateNetworkConnection)

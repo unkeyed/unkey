@@ -2,6 +2,7 @@ package privatenetwork
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -51,7 +52,7 @@ func TestSteadyStatePolicyAPICostAt5000Connections(t *testing.T) {
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "one", Connections: connections},
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "one", Complete: true, Total: count},
 	)}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: policies, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: policies, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(t.Context()))
 	policies.ClearActions()
 	client.ClearActions()
@@ -75,7 +76,7 @@ func TestReconcileRPCErrorPreservesPublishedObjects(t *testing.T) {
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{connectionSpec}, nil
 	})
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
@@ -105,7 +106,7 @@ func TestReconcilePolicyWriteFailureDoesNotPublishNewDNSAndRetryConverges(t *tes
 			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return []*ctrlv1.PrivateNetworkConnection{current}, nil
 			})
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			if verb == "update" {
 				require.NoError(t, r.reconcile(ctx))
 				current = desired
@@ -153,7 +154,7 @@ func TestReconcilePolicyDeleteFailureRetainsDNSUntilRetry(t *testing.T) {
 	control := &testutil.MockClusterClient{}
 	snapshot := []*ctrlv1.PrivateNetworkConnection{connectionSpec}
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) { return snapshot, nil })
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 
 	failing := true
@@ -189,7 +190,7 @@ func TestReconcileConnectionPromotionRollback(t *testing.T) {
 	control := &testutil.MockClusterClient{}
 	now := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
 	clk := clock.NewTestClock(now)
-	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}, clock: clk}
+	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}, clock: clk}
 
 	for i, deployment := range []string{initial.TargetDeploymentId, replacement.TargetDeploymentId, initial.TargetDeploymentId} {
 		connectionSpec := proto.Clone(initial).(*ctrlv1.PrivateNetworkConnection)
@@ -291,7 +292,7 @@ func TestReconcileRejectsConnectionChangedDuringSnapshotFetch(t *testing.T) {
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{initial}, nil
 	})
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 	aliasName := aliasService(t, client, initial).Name
 	service, err := r.ensureService(ctx, replacement, discoveryName(replacement.GetTargetDeploymentId(), replacement.GetTargetPort()), nil)
@@ -346,7 +347,7 @@ func TestCleanupPreservesForeignResources(t *testing.T) {
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return nil, nil
 	})
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 
 	require.NoError(t, r.reconcile(ctx))
 	_, err := client.CoreV1().Services("customer-1").Get(ctx, "managed", metav1.GetOptions{})
@@ -393,7 +394,7 @@ func TestReconcileRejectsInvalidConnectionAliases(t *testing.T) {
 			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return []*ctrlv1.PrivateNetworkConnection{incompatible, valid}, nil
 			})
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 
 			require.ErrorContains(t, r.reconcile(ctx), "invalid connection name")
 
@@ -442,7 +443,7 @@ func TestReconcileFailedConnectionKeepsItsObjectsWithoutBlockingOthers(t *testin
 			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return snapshot, nil
 			})
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 
 			require.NoError(t, r.reconcile(ctx))
 			if tc.stage == "connection" {
@@ -495,7 +496,7 @@ func TestReconcileStopsWhenContextEnds(t *testing.T) {
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{first, later}, nil
 	})
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 
 	require.ErrorIs(t, r.reconcile(ctx), context.Canceled)
 	services, err := client.CoreV1().Services(later.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
@@ -554,7 +555,7 @@ func TestReconcileReplicaDiscoveryPublishesCallerDeploymentForPeers(t *testing.T
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{self}, nil
 	})
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 
 	connections := connectionServices(t, client, "customer-1")
@@ -582,7 +583,7 @@ func TestReconcileEnsuresSharedTargetOncePerPass(t *testing.T) {
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{first, second}, nil
 	})
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 	client.ClearActions()
 
@@ -643,7 +644,7 @@ func TestReconcileIncompleteSnapshotPreservesPolicyAndDNSUntilConfirmedAbsence(t
 			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return []*ctrlv1.PrivateNetworkConnection{published}, nil
 			})
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			require.NoError(t, r.reconcile(ctx))
 
 			if tc.streamErr {
@@ -681,7 +682,7 @@ func TestReconcileRetargetsOneCallerWithoutMovingAnotherCallerOfTheSameTarget(t 
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return snapshot, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.NoError(t, r.reconcile(ctx))
 	require.NotEqual(t, aliasService(t, client, first).Name, aliasService(t, client, second).Name, "callers sharing an alias get separate Services")
 
@@ -695,4 +696,136 @@ func TestReconcileRetargetsOneCallerWithoutMovingAnotherCallerOfTheSameTarget(t 
 		{second.CallerDeploymentId, first.TargetDeploymentId},
 	}, effectiveFlows(t, dynamic, "customer-1"), "the moved caller keeps its old grant during overlap; the other caller gains nothing")
 	require.Empty(t, retiringDeployments(t, client), "a target another caller still resolves stays published")
+}
+
+func TestReconcilePublishesOnlyConnectionsThatRunHere(t *testing.T) {
+	ctx := t.Context()
+	callerHere, targetHere, elsewhere := newTestConnection(), newTestConnection(), newTestConnection()
+	callerHere.TargetRegions = []string{"eu-central-1"}
+	targetHere.CallerRegions = []string{"eu-central-1"}
+	targetHere.K8SNamespace = "customer-2"
+	elsewhere.CallerRegions, elsewhere.TargetRegions = []string{"eu-central-1"}, []string{"ap-south-1"}
+	elsewhere.K8SNamespace = "customer-3"
+	snapshot := []*ctrlv1.PrivateNetworkConnection{callerHere, targetHere, elsewhere}
+	client := fake.NewClientset(endpointPod(targetHere, "a", "10.72.0.11"))
+	dynamic := testDynamicClient()
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+		return snapshot, nil
+	})}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
+	require.NoError(t, r.reconcile(ctx))
+
+	policyExists := func(spec *ctrlv1.PrivateNetworkConnection) bool {
+		_, err := dynamic.Resource(cilium.NetworkPolicyResource).Namespace(spec.GetK8SNamespace()).Get(ctx, policyName(spec), metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return false
+		}
+		require.NoError(t, err)
+		return true
+	}
+	sharedExists := func(spec *ctrlv1.PrivateNetworkConnection) bool {
+		_, err := client.CoreV1().Services(spec.GetK8SNamespace()).Get(ctx, discoveryName(spec.GetTargetDeploymentId(), spec.GetTargetPort()), metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return false
+		}
+		require.NoError(t, err)
+		return true
+	}
+
+	require.NotNil(t, aliasService(t, client, callerHere))
+	require.True(t, policyExists(callerHere))
+	require.True(t, sharedExists(callerHere))
+
+	require.Nil(t, aliasService(t, client, targetHere), "a caller elsewhere resolves its alias in its own cluster")
+	require.True(t, policyExists(targetHere), "the target's cluster must admit the remote caller")
+	require.True(t, sharedExists(targetHere), "the target's cluster exports its endpoints")
+
+	require.Nil(t, aliasService(t, client, elsewhere))
+	require.False(t, policyExists(elsewhere))
+	require.False(t, sharedExists(elsewhere))
+	_, err := client.CoreV1().Namespaces().Get(ctx, elsewhere.GetK8SNamespace(), metav1.GetOptions{})
+	require.True(t, apierrors.IsNotFound(err), "no namespace for a workspace that runs nothing here")
+
+	callerHere.CallerRegions = []string{"eu-central-1"}
+	callerHere.TargetRegions = []string{testRegion}
+	require.NoError(t, r.reconcile(ctx))
+	require.Nil(t, aliasService(t, client, callerHere), "a caller that moved away withdraws its alias here")
+	require.True(t, policyExists(callerHere))
+}
+
+func TestReconcileRegionMoveKeepsOldTargetGrantUntilOverlapEnds(t *testing.T) {
+	setup := func(t *testing.T) (*Reconciler, *clock.TestClock, *ctrlv1.PrivateNetworkConnection, func(...*ctrlv1.PrivateNetworkConnection), func() map[string]time.Time) {
+		t.Helper()
+		old := newTestConnection()
+		old.CallerRegions, old.TargetRegions = []string{"eu-central-1"}, []string{testRegion}
+		client := fake.NewClientset(endpointPod(old, "a", "10.72.0.11"))
+		dynamic := testDynamicClient()
+		var snapshot []*ctrlv1.PrivateNetworkConnection
+		control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+			return snapshot, nil
+		})}
+		clk := clock.NewTestClock(time.Date(2026, 11, 2, 12, 0, 0, 0, time.UTC))
+		r := &Reconciler{clock: clk, client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
+		publish := func(connections ...*ctrlv1.PrivateNetworkConnection) { snapshot = connections }
+		grants := func() map[string]time.Time {
+			t.Helper()
+			policy, err := dynamic.Resource(cilium.NetworkPolicyResource).Namespace(old.GetK8SNamespace()).Get(t.Context(), policyName(old), metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			require.NoError(t, err)
+			targets := map[string]time.Time{}
+			require.NoError(t, json.Unmarshal([]byte(policy.GetAnnotations()[policyTargetsAnnotation]), &targets))
+			require.Len(t, policySpecs(t, policy), 2*len(targets))
+			return targets
+		}
+		publish(old)
+		require.NoError(t, r.reconcile(t.Context()))
+		require.Equal(t, map[string]time.Time{old.GetTargetDeploymentId(): {}}, grants())
+		return r, clk, old, publish, grants
+	}
+	moved := func(old *ctrlv1.PrivateNetworkConnection) *ctrlv1.PrivateNetworkConnection {
+		replacement := proto.Clone(old).(*ctrlv1.PrivateNetworkConnection)
+		replacement.TargetDeploymentId, replacement.TargetRegions = uid.New(uid.DeploymentPrefix), []string{"eu-central-1"}
+		return replacement
+	}
+
+	t.Run("the old target stays admitted for the overlap", func(t *testing.T) {
+		r, clk, old, publish, grants := setup(t)
+		publish(moved(old))
+		deadline := clk.Now().Add(privatenetwork.ReplacementOverlap)
+		for range 3 {
+			require.NoError(t, r.reconcile(t.Context()))
+			require.Equal(t, map[string]time.Time{old.GetTargetDeploymentId(): deadline}, grants(), "certified snapshots without a local caller or target must not revoke the old grant early")
+		}
+		clk.Tick(privatenetwork.ReplacementOverlap - time.Nanosecond)
+		require.NoError(t, r.reconcile(t.Context()))
+		require.NotNil(t, grants())
+		clk.Tick(time.Nanosecond)
+		require.NoError(t, r.reconcile(t.Context()))
+		require.Nil(t, grants(), "the grant ends when the overlap ends")
+		require.NoError(t, r.reconcile(t.Context()))
+		require.Nil(t, grants())
+	})
+
+	t.Run("revoking the connection during the overlap removes the grant after two certified snapshots", func(t *testing.T) {
+		r, _, old, publish, grants := setup(t)
+		publish(moved(old))
+		require.NoError(t, r.reconcile(t.Context()))
+		require.NotNil(t, grants())
+		publish()
+		require.NoError(t, r.reconcile(t.Context()))
+		require.NotNil(t, grants(), "the first certified absence is not confirmed yet")
+		require.NoError(t, r.reconcile(t.Context()))
+		require.Nil(t, grants())
+	})
+
+	t.Run("revoking the connection removes the grant after two certified snapshots", func(t *testing.T) {
+		r, _, _, publish, grants := setup(t)
+		publish()
+		require.NoError(t, r.reconcile(t.Context()))
+		require.NotNil(t, grants())
+		require.NoError(t, r.reconcile(t.Context()))
+		require.Nil(t, grants())
+	})
 }

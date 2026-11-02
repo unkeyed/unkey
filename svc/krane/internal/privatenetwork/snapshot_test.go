@@ -119,7 +119,7 @@ func TestSnapshotRequiresCompleteStreamAndFinalTopology(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, identified("snapshot-1", tt.chunks...)...)}, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, identified("snapshot-1", tt.chunks...)...)}, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			_, err := r.snapshot(t.Context())
 			require.Error(t, err)
 		})
@@ -132,7 +132,7 @@ func TestSnapshotReturnsCompleteTopologyAndConnections(t *testing.T) {
 	r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, identified("snapshot-1",
 		&ctrlv1.PrivateNetworkStateChunk{Connections: []*ctrlv1.PrivateNetworkConnection{connection}},
 		&ctrlv1.PrivateNetworkStateChunk{Complete: true, Total: 1, Topology: topology},
-	)...)}, clusterKey: &ctrlv1.ClusterKey{}}
+	)...)}, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 
 	snapshot, err := r.snapshot(t.Context())
 	require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestSnapshotAcceptsConsistentProducerIdentityAcrossChunks(t *testing.T) {
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "snapshot-1", Connections: []*ctrlv1.PrivateNetworkConnection{first}},
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "snapshot-1", Connections: []*ctrlv1.PrivateNetworkConnection{second}},
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "snapshot-1", Complete: true, Total: 2},
-	)}, clusterKey: &ctrlv1.ClusterKey{}}
+	)}, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 
 	snapshot, err := r.snapshot(t.Context())
 	require.NoError(t, err)
@@ -165,7 +165,7 @@ func TestSnapshotRejectsMalformedProducerMetadata(t *testing.T) {
 	}
 	for name, chunks := range tests {
 		t.Run(name, func(t *testing.T) {
-			r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, chunks...)}, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, chunks...)}, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			_, err := r.snapshot(t.Context())
 			require.Error(t, err)
 		})
@@ -181,7 +181,7 @@ func TestSnapshotRejectsChunksWithoutIdentity(t *testing.T) {
 	}
 	for name, chunks := range tests {
 		t.Run(name, func(t *testing.T) {
-			r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, chunks...)}, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, chunks...)}, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			_, err := r.snapshot(t.Context())
 			require.ErrorContains(t, err, "missing its snapshot identity")
 			require.Nil(t, r.lastSnapshot)
@@ -193,7 +193,7 @@ func TestSnapshotUnchangedSuccessAndTrailingStreamFailure(t *testing.T) {
 	cached := &ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "old", Complete: true, Total: 1, Certified: true, Connections: []*ctrlv1.PrivateNetworkConnection{newTestConnection()}}
 	r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t,
 		&ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "new", Complete: true, Unchanged: true, Total: 1},
-	)}, clusterKey: &ctrlv1.ClusterKey{}, lastSnapshot: cached}
+	)}, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}, lastSnapshot: cached}
 	snapshot, err := r.snapshot(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, "new", snapshot.GetSnapshotId())
@@ -220,7 +220,7 @@ func TestSnapshotUnchangedRequiresMatchingCachedVersionAndTotals(t *testing.T) {
 		{name: "wrong total", last: cached, end: &ctrlv1.PrivateNetworkStateChunk{Version: "v1", SnapshotId: "new", Complete: true, Unchanged: true}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, tc.end)}, clusterKey: &ctrlv1.ClusterKey{}, lastSnapshot: tc.last}
+			r := &Reconciler{clock: clock.NewTestClock(), cluster: &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: chunkStream(t, tc.end)}, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}, lastSnapshot: tc.last}
 			_, err := r.snapshot(t.Context())
 			require.Error(t, err)
 		})

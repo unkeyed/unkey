@@ -36,7 +36,7 @@ func TestReconcileOmitsIneligibleSourceAddressesBeforeMeshExport(t *testing.T) {
 	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return []*ctrlv1.PrivateNetworkConnection{connectionSpec}, nil
 	})
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 
 	require.NoError(t, r.reconcile(t.Context()))
 
@@ -68,7 +68,7 @@ func TestReconcileDoesNotTreatFailedEndpointReadsAsEmptyInputs(t *testing.T) {
 				reads++
 				return true, nil, fmt.Errorf("endpoint input unavailable")
 			})
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control}
+			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			require.ErrorContains(t, r.reconcile(t.Context()), "endpoint input unavailable")
 			require.Equal(t, 1, reads)
 			require.Empty(t, connectionServices(t, client, first.GetK8SNamespace()))
@@ -136,7 +136,7 @@ func TestEndpointRefreshDoesNotWaitForControlPlane(t *testing.T) {
 	pod := endpointPod(connectionSpec, "a", "10.72.0.84")
 	client := fake.NewClientset(pod)
 	control := &testutil.MockClusterClient{}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	service, err := r.ensureService(t.Context(), connectionSpec, discoveryName(connectionSpec.GetTargetDeploymentId(), connectionSpec.GetTargetPort()), nil)
 	require.NoError(t, err)
 	require.NoError(t, r.reconcileEndpoints(t.Context()))

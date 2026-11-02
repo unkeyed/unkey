@@ -21,7 +21,7 @@ import (
 
 const policyTargetsAnnotation = "connections.unkey.com/targets"
 
-func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, published []string, current *unstructured.Unstructured) error {
+func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.PrivateNetworkConnection, name string, activeTargets []string, current *unstructured.Unstructured) error {
 	client := r.dynamic.Resource(cilium.NetworkPolicyResource).Namespace(connectionSpec.GetK8SNamespace())
 
 	targets := make(map[string]time.Time)
@@ -41,7 +41,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.Pr
 
 	if connectionSpec.GetTargetDeploymentId() != "" {
 		for target, deadline := range targets {
-			if target == connectionSpec.GetTargetDeploymentId() {
+			if slices.Contains(activeTargets, target) {
 				continue
 			}
 			if deadline.IsZero() {
@@ -50,8 +50,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, connectionSpec *ctrlv1.Pr
 				delete(targets, target)
 			}
 		}
-		targets[connectionSpec.GetTargetDeploymentId()] = time.Time{}
-		for _, target := range published {
+		for _, target := range activeTargets {
 			targets[target] = time.Time{}
 		}
 	}

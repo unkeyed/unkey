@@ -45,7 +45,7 @@ func TestReconcileReportsEntryStatesAndTargetSwitches(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return snapshot, nil
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 
 	started := time.Now().Unix()
 	require.NoError(t, r.reconcile(ctx))
@@ -140,7 +140,7 @@ func TestReconcileEntryFailuresReportTheirStage(t *testing.T) {
 			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return snapshot(), nil
 			})}
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			if tc.inject != nil {
 				tc.inject(client, r, &failing)
 			}
@@ -196,7 +196,7 @@ func TestReconcileAbortReportsStageWithoutCompletingPass(t *testing.T) {
 			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return nil, nil
 			})}
-			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			require.NoError(t, r.reconcile(t.Context()), "an idle cluster completes passes")
 			completed := gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"]
 			require.NotZero(t, completed)
@@ -218,7 +218,7 @@ func TestLeaderWithoutCompletedPassReportsStaleTimestamp(t *testing.T) {
 	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		return nil, fmt.Errorf("ctrl unavailable")
 	})}
-	r := &Reconciler{clock: clock.NewTestClock(), client: fake.NewClientset(), dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+	r := &Reconciler{clock: clock.NewTestClock(), client: fake.NewClientset(), dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 	require.Error(t, r.reconcile(t.Context()))
 
 	timestamps := gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")
