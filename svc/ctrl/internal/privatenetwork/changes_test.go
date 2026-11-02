@@ -71,8 +71,9 @@ func TestSelectionsCoverQueryColumns(t *testing.T) {
 		require.Contains(t, selected["regions"], column, "the topology reads regions.%s", column)
 	}
 	for file, alias := range map[string]string{
-		"private_network_list_replicas.sql":    "r",
-		"private_network_list_connections.sql": "target_region",
+		"private_network_list_replicas.sql":           "r",
+		"private_network_list_targets.sql":            "target_region",
+		"private_network_list_deployment_regions.sql": "r",
 	} {
 		for _, column := range columns(file, alias) {
 			require.True(t, slices.Contains(regionCallerColumns, column), "%s reads regions.%s", file, column)

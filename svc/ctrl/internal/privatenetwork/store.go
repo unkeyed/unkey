@@ -2,6 +2,7 @@ package privatenetwork
 
 import (
 	"context"
+	"maps"
 	"slices"
 	"time"
 
@@ -74,11 +75,39 @@ func (s dbStore) readCallers(ctx context.Context, platform string, deploymentIDs
 				callers[connection.GetCallerDeploymentId()] = entry
 			}
 			if len(page) < connectionPageSize {
-				return nil
+				break
 			}
 			last := page[len(page)-1]
 			params.AfterCallerDeploymentID, params.AfterConnectionID = last.GetCallerDeploymentId(), last.GetConnectionId()
 		}
+
+		deployments := set{}
+		for _, deploymentID := range active {
+			deployments.add(deploymentID)
+			for _, connection := range callers[deploymentID].connections {
+				deployments.add(connection.GetTargetDeploymentId())
+			}
+		}
+		regions := make(map[string][]string, len(deployments))
+		for chunk := range slices.Chunk(slices.Sorted(maps.Keys(deployments)), callerChunkSize) {
+			rows, err := queries.ListPrivateNetworkDeploymentRegions(txCtx, db.ListPrivateNetworkDeploymentRegionsParams{DeploymentIds: chunk, Platform: platform})
+			if err != nil {
+				return err
+			}
+			for _, row := range rows {
+				regions[row.DeploymentID] = append(regions[row.DeploymentID], row.Region)
+			}
+		}
+		for _, deploymentID := range active {
+			entry := callers[deploymentID]
+			entry.replica.CallerRegions = regions[deploymentID]
+			entry.replica.TargetRegions = regions[deploymentID]
+			for _, connection := range entry.connections {
+				connection.CallerRegions = regions[deploymentID]
+				connection.TargetRegions = regions[connection.GetTargetDeploymentId()]
+			}
+		}
+		return nil
 	})
 }
 
