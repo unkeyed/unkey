@@ -11,6 +11,7 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 const (
@@ -47,13 +48,33 @@ func MySQL(t testing.TB) MySQLConfig {
 	return configureMySQL(t, c)
 }
 
-// MySQLIsolated gives tests with database-wide queries a private MySQL instance.
-// The container is removed during test cleanup, after its connections close.
-func MySQLIsolated(t testing.TB) MySQLConfig {
+// MySQLLogicalIsolated loads the schema into a private database on the shared
+// MySQL server and drops it during cleanup. Rows and schema changes are isolated;
+// server settings and server restarts are not.
+func MySQLLogicalIsolated(t testing.TB) MySQLConfig {
 	t.Helper()
-	c, stop := startIsolatedService(t, "mysql")
-	t.Cleanup(stop)
-	return configureMySQL(t, c)
+	shared := MySQL(t)
+	dsnCfg, err := mysql.ParseDSN(shared.DSN)
+	require.NoError(t, err)
+	dsnCfg.User = "root"
+	admin, err := sql.Open("mysql", dsnCfg.FormatDSN())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, admin.Close()) })
+
+	name := uid.New(uid.TestPrefix)
+	_, err = admin.ExecContext(t.Context(), fmt.Sprintf("CREATE DATABASE `%s`", name))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, err := admin.ExecContext(context.Background(), fmt.Sprintf("DROP DATABASE `%s`", name))
+		require.NoError(t, err)
+	})
+
+	dsnCfg.DBName = name
+	hostDB, err := sql.Open("mysql", dsnCfg.FormatDSN())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, hostDB.Close()) })
+	applyMySQLSchema(t, hostDB, dsnCfg.DBName)
+	return MySQLConfig{DSN: dsnCfg.FormatDSN()}
 }
 
 func configureMySQL(t testing.TB, c Container) MySQLConfig {
@@ -79,19 +100,19 @@ func configureMySQL(t testing.TB, c Container) MySQLConfig {
 	}, 60*time.Second, 500*time.Millisecond)
 	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
 
-	applyMySQLSchema(t, hostDB)
+	applyMySQLSchema(t, hostDB, dsnCfg.DBName)
 
 	return MySQLConfig{
 		DSN: dsnCfg.FormatDSN(),
 	}
 }
 
-// applyMySQLSchema initializes the shared database schema once.
+// applyMySQLSchema initializes a database schema once.
 //
 // CI can run many test processes at the same time. The advisory lock keeps
 // non-idempotent CREATE TABLE statements from racing when those processes use
-// the same MySQL container.
-func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
+// the same database without serializing setup of independent databases.
+func applyMySQLSchema(t testing.TB, hostDB *sql.DB, databaseName string) {
 	t.Helper()
 
 	schemaStart := time.Now()
@@ -101,13 +122,14 @@ func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
 	require.NoError(t, err, "failed to pin MySQL schema connection")
 	defer func() { require.NoError(t, conn.Close()) }()
 
+	lockName := mysqlSchemaLockName + ":" + databaseName
 	var lockAcquired int
-	err = conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 60)", mysqlSchemaLockName).Scan(&lockAcquired)
+	err = conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 60)", lockName).Scan(&lockAcquired)
 	require.NoError(t, err, "failed to acquire MySQL schema lock")
 	require.Equal(t, 1, lockAcquired, "timed out acquiring MySQL schema lock")
 	defer func() {
 		var lockReleased sql.NullInt64
-		releaseErr := conn.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", mysqlSchemaLockName).Scan(&lockReleased)
+		releaseErr := conn.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", lockName).Scan(&lockReleased)
 		require.NoError(t, releaseErr, "failed to release MySQL schema lock")
 		require.True(t, lockReleased.Valid, "MySQL schema lock release returned NULL")
 		require.Equal(t, int64(1), lockReleased.Int64, "MySQL schema lock was not held by this connection")

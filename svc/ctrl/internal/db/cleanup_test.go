@@ -10,7 +10,7 @@ import (
 )
 
 func TestDeletionFindsDescendantsWithMissingParents(t *testing.T) {
-	mysql := containers.MySQLIsolated(t)
+	mysql := containers.MySQLLogicalIsolated(t)
 	database, err := db.New(mysql.DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
