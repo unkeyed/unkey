@@ -6,6 +6,7 @@ sources:
   - pkg/auditlog/events.go
   - web/internal/schema/src/auditlog.ts
   - svc/api/routes/v2_keys_verify_key/handler.go
+  - internal/services/keys/get.go
 ---
 
 Every audit log entry has one of the event names below, in the form `resource.action` (a few have an extra part, such as `portal.session.create`). Filter on them in the dashboard's **Events** menu or in a [log drain](/platform/workspace/log-drains).
@@ -57,6 +58,32 @@ Root-key lifecycle actions use separate events from API key actions.
 | `rootKey.update` | A root key's name or permissions change. |
 | `rootKey.reroll` | A root key is rerolled. |
 | `rootKey.delete` | A root key is deleted. |
+
+## Authentication
+
+Authentication denial events record blocked attempts, not successful access.
+
+| Event | Recorded when |
+| --- | --- |
+| `auth.ipAllowlistDenied` | A request uses a root key from an IP address outside its allowlist. |
+
+The event name is shared across authentication types. Root-key authentication
+emits this event. The actor and target identify the root key used in the attempt.
+Its `meta` contains:
+
+| Field | Value |
+| --- | --- |
+| `request_id` | The request ID. |
+| `allowed_ips` | The normalized IP addresses and CIDR ranges used for the allowlist check. |
+
+The event timestamp records the denial time. The top-level `remote_ip` and
+`user_agent` fields record the client IP used for the allowlist check and the
+request's user-agent header. The description also includes the source IP.
+
+Unkey sends these events directly to ClickHouse through an in-memory buffer,
+without the MySQL outbox. Delivery is best-effort: a full buffer, a failed write,
+or a process crash can lose events. The request remains denied regardless of
+event delivery. A denial does not by itself prove that a credential was compromised.
 
 ## Authorization
 

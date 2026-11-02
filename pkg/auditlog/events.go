@@ -29,6 +29,9 @@ const (
 	RootKeyUpdateEvent AuditLogEvent = "rootKey.update"
 	RootKeyDeleteEvent AuditLogEvent = "rootKey.delete"
 
+	// Authentication events
+	IPAllowlistDeniedEvent AuditLogEvent = "auth.ipAllowlistDenied"
+
 	// Ratelimit namespace events
 	RatelimitNamespaceCreateEvent AuditLogEvent = "ratelimitNamespace.create"
 	RatelimitNamespaceUpdateEvent AuditLogEvent = "ratelimitNamespace.update"

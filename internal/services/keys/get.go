@@ -11,6 +11,7 @@ import (
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -20,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
@@ -424,6 +426,44 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 
 	if !kv.AllowedIPs.Allows(sess.ClientIP()) {
 		metrics.AuthIPAllowlistDenialsTotal.WithLabelValues().Inc()
+		logger.Warn("This IP address is not allowed to use the root key.",
+			slog.Group("auth",
+				slog.String("workspace_id", key.ForWorkspaceID.String),
+				slog.String("root_key_id", key.ID),
+			),
+			slog.Group("http",
+				slog.String("ip_address", sess.ClientIP().String()),
+				slog.String("request_id", sess.RequestID()),
+			),
+		)
+		s.directAuditLogs.Buffer(auditlog.Event{
+			EventID:     uid.New(uid.AuditLogPrefix),
+			Time:        time.Now().UnixMilli(),
+			WorkspaceID: key.ForWorkspaceID.String,
+			Bucket:      auditlog.BucketUnkeyMutations,
+			Source:      auditlog.EventSourcePlatform,
+			Event:       string(auditlog.IPAllowlistDeniedEvent),
+			Description: fmt.Sprintf("Root key authentication from %s denied by IP allowlist", sess.ClientIP()),
+			Actor: auditlog.EventActor{
+				Type: string(auditlog.RootKeyActor),
+				ID:   key.ID,
+				Name: key.Name.String,
+				Meta: nil,
+			},
+			RemoteIP:  sess.ClientIP().String(),
+			UserAgent: sess.UserAgent(),
+			Meta: map[string]any{
+				"request_id":  sess.RequestID(),
+				"allowed_ips": kv.AllowedIPs.Strings(),
+			},
+			Targets: []auditlog.EventTarget{{
+				Type: string(auditlog.KeyTargetType),
+				ID:   key.ID,
+				Name: key.Name.String,
+				Meta: nil,
+			}},
+			CorrelationID: "",
+		})
 		kv.setInvalid(StatusNotFound, "This IP address is not allowed to use the root key.")
 		return kv, nil
 	}

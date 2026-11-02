@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	buildinfometrics "github.com/unkeyed/unkey/pkg/buildinfo/metrics"
@@ -211,6 +212,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	frontlineRequests := batch.NewNoop[schema.FrontlineRequest]()
 	keyVerifications := batch.NewNoop[schema.KeyVerification]()
+	var directAuditLogs *batch.BatchProcessor[auditlog.Event]
 
 	var chClient *clickhouse.Client
 	if cfg.ClickHouse.URL != "" {
@@ -220,6 +222,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if err != nil {
 			return fmt.Errorf("unable to create clickhouse: %w", err)
 		}
+		r.Defer(chClient.Close)
 
 		frontlineRequests = clickhouse.NewBuffer[schema.FrontlineRequest](chClient, clickhouse.BufferConfig{
 			Name:          "frontline_requests",
@@ -240,10 +243,23 @@ func Run(ctx context.Context, cfg Config) error {
 			OnFlushError:  nil,
 		})
 
+		directAuditLogs = clickhouse.NewAuditLogBuffer(chClient, clickhouse.BufferConfig{
+			Name:          "direct_audit_logs",
+			BatchSize:     cfg.ClickHouse.BatchSize,
+			BufferSize:    cfg.ClickHouse.BufferSize,
+			FlushInterval: 5 * time.Second,
+			Consumers:     cfg.ClickHouse.Consumers,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
+
 		// Close buffers before the connection (LIFO).
 		r.Defer(func() error { frontlineRequests.Close(); return nil })
 		r.Defer(func() error { keyVerifications.Close(); return nil })
-		r.Defer(chClient.Close)
+		r.Defer(func() error { directAuditLogs.Close(); return nil })
+	} else {
+		directAuditLogs = batch.NewNoop[auditlog.Event]()
+		r.Defer(func() error { directAuditLogs.Close(); return nil })
 	}
 
 	cacheSet, err := caches.New(caches.Config{
@@ -299,7 +315,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("unable to create proxy service: %w", err)
 	}
 
-	policyEngine, err := buildEngine(r, engineDatabase, cfg.Redis.URL, cfg.Region, keyVerifications, clk, cfg.OpenapiBodyBytesMax, cfg.OpenapiBodyBytesBudget)
+	policyEngine, err := buildEngine(r, engineDatabase, cfg.Redis.URL, cfg.Region, keyVerifications, directAuditLogs, clk, cfg.OpenapiBodyBytesMax, cfg.OpenapiBodyBytesBudget)
 	if err != nil {
 		return fmt.Errorf("unable to build policy engine: %w", err)
 	}
@@ -432,6 +448,7 @@ func buildEngine(
 	redisURL string,
 	region string,
 	keyVerifications *batch.BatchProcessor[schema.KeyVerification],
+	directAuditLogs *batch.BatchProcessor[auditlog.Event],
 	clk clock.Clock,
 	openapiBodyBytesMax int64,
 	openapiBodyBytesBudget int64,
@@ -514,14 +531,15 @@ func buildEngine(
 	r.Defer(func() error { rootKeyCache.Close(); return nil })
 
 	keyService, err := keys.New(keys.Config{
-		DB:           pkgdb.ToMySQL(database),
-		RateLimiter:  rlSvc,
-		RBAC:         rbac.New(),
-		Region:       region,
-		UsageLimiter: usageLimiter,
-		Source:       schema.SourceGateway,
-		KeyCache:     keyCache,
-		RootKeyCache: rootKeyCache,
+		DirectAuditLogs: directAuditLogs,
+		DB:              pkgdb.ToMySQL(database),
+		RateLimiter:     rlSvc,
+		RBAC:            rbac.New(),
+		Region:          region,
+		UsageLimiter:    usageLimiter,
+		Source:          schema.SourceGateway,
+		KeyCache:        keyCache,
+		RootKeyCache:    rootKeyCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)

@@ -7,6 +7,7 @@ sources:
   - pkg/auditlog/actors.go
   - pkg/auditlog/events.go
   - internal/services/auditlogs/insert.go
+  - internal/services/keys/get.go
   - svc/api/routes/v2_keys_verify_key/handler.go
   - web/apps/dashboard/lib/limits.ts
   - pkg/clickhouse/schema/025_audit_logs_raw_v1.sql
@@ -30,6 +31,11 @@ Every entry you can see is in the `unkey_mutations` bucket, the only option in t
 ## Which actions are logged
 
 Every create, update, and delete is logged, for keyspaces, keys, identities, roles, permissions, rate limit namespaces and overrides, portals, every Compute resource, and workspace and team changes. Reads aren't logged, with two exceptions: `key.verify` when a **root key** calls `keys.verifyKey`, and `ratelimit.limit` when a root key checks a rate limit. Verifications by the gateway or a portal session aren't in the audit log. They're in [analytics](/api-management/analytics/overview).
+
+Root-key requests blocked by an IP allowlist also emit
+[`auth.ipAllowlistDenied`](/platform/workspace/audit-logs/event-types#authentication).
+These events include the attempted source IP in `remote_ip` and the allowlist in `meta`.
+Delivery is best-effort and does not use the MySQL outbox.
 
 ## Reading the log
 

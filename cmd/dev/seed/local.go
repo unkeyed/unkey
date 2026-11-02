@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/keys"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -50,15 +52,18 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to connect to MySQL: %w", err)
 	}
 
+	directAuditLogs := batch.NewNoop[auditlog.Event]()
+	defer directAuditLogs.Close()
 	keyService, err := keys.New(keys.Config{
-		DB:           db.ToMySQL(database),
-		RateLimiter:  nil,
-		RBAC:         nil,
-		Region:       "local",
-		UsageLimiter: nil,
-		Source:       schema.SourceAPI,
-		KeyCache:     nil,
-		RootKeyCache: nil,
+		DirectAuditLogs: directAuditLogs,
+		DB:              db.ToMySQL(database),
+		RateLimiter:     nil,
+		RBAC:            nil,
+		Region:          "local",
+		UsageLimiter:    nil,
+		Source:          schema.SourceAPI,
+		KeyCache:        nil,
+		RootKeyCache:    nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
