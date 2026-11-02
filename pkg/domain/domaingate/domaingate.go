@@ -189,7 +189,7 @@ func CheckPortalAllowance(attached int64) error {
 
 	return fault.New(
 		"portal domain cap reached",
-		fault.Code(codes.Limits.CustomDomain.Exceeded.URN()),
+		fault.Code(codes.Limits.PortalDomain.Exceeded.URN()),
 		fault.Internal(fmt.Sprintf("workspace holds %d of %d allowed portal domains", attached, PortalDomainsMax)),
 		fault.Public(fmt.Sprintf("A workspace can hold at most %d portal domains. Remove a domain you no longer need, then retry.", PortalDomainsMax)),
 	)
