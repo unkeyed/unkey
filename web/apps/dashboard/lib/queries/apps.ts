@@ -126,19 +126,19 @@ export function refetchProjectApps(
   );
 }
 
-export function cachedProjectApps(queryClient: QueryClient, projectId: string): App[] {
+export function getProjectApps(queryClient: QueryClient, projectId: string): App[] {
   return queryClient.getQueryData<App[]>(queryKeys.apps.list(projectId)) ?? [];
 }
 
-export function cachedApp(
+export function getApp(
   queryClient: QueryClient,
   projectId: string,
   appId: string,
 ): App | undefined {
-  return cachedProjectApps(queryClient, projectId).find((app) => app.id === appId);
+  return getProjectApps(queryClient, projectId).find((app) => app.id === appId);
 }
 
-export function removeCachedApp(queryClient: QueryClient, projectId: string, appId: string) {
+export function removeApp(queryClient: QueryClient, projectId: string, appId: string) {
   queryClient.setQueryData<App[]>(queryKeys.apps.list(projectId), (apps) =>
     apps?.filter((app) => app.id !== appId),
   );
@@ -196,7 +196,7 @@ export function useDeleteApp(projectId: string) {
       const key = queryKeys.apps.list(projectId);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<App[]>(key);
-      removeCachedApp(queryClient, projectId, appId);
+      removeApp(queryClient, projectId, appId);
       return { previous };
     },
     onError: (_error, _appId, context) => {

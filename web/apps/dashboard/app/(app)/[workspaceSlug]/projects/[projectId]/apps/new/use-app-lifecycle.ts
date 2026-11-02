@@ -1,12 +1,7 @@
 "use client";
 
 import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
-import {
-  cachedApp,
-  cachedProjectApps,
-  refetchProjectApps,
-  removeCachedApp,
-} from "@/lib/queries/apps";
+import { getApp, getProjectApps, refetchProjectApps, removeApp } from "@/lib/queries/apps";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -58,7 +53,7 @@ export function useAppLifecycle(projectId: string) {
 
   const takenSlugs = (excludeAppId: string | null): ReadonlySet<string> =>
     new Set(
-      cachedProjectApps(queryClient, projectId)
+      getProjectApps(queryClient, projectId)
         .filter((app) => app.id !== excludeAppId)
         .map((app) => app.slug),
     );
@@ -99,7 +94,7 @@ export function useAppLifecycle(projectId: string) {
     });
 
   const setAppName = async (appId: string, slug: string): Promise<void> => {
-    if (cachedApp(queryClient, projectId, appId)?.slug === slug) {
+    if (getApp(queryClient, projectId, appId)?.slug === slug) {
       return;
     }
     try {
@@ -118,7 +113,7 @@ export function useAppLifecycle(projectId: string) {
         throw error;
       }
     }
-    removeCachedApp(queryClient, projectId, appId);
+    removeApp(queryClient, projectId, appId);
   };
 
   const createApp = async (baseName: string, source: AppSource): Promise<string> => {
@@ -150,11 +145,11 @@ export function useAppLifecycle(projectId: string) {
     createApp(baseName, { oci: { image } });
 
   const createGitPlaceholder = async (): Promise<string> =>
-    findReusablePlaceholder(cachedProjectApps(queryClient, projectId)) ??
+    findReusablePlaceholder(getProjectApps(queryClient, projectId)) ??
     createGitApp(provisionalAppName);
 
   const renameApp = async (appId: string, baseName: string): Promise<void> => {
-    if (cachedApp(queryClient, projectId, appId)?.slug === baseName) {
+    if (getApp(queryClient, projectId, appId)?.slug === baseName) {
       return;
     }
     await withFreeSlug(baseName, appId, (slug) =>

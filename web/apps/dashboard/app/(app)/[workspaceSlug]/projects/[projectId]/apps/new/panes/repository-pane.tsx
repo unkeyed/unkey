@@ -3,7 +3,7 @@
 import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
 import { PaneRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-row";
 import { LoadError } from "@/components/load-error";
-import { cachedApp, refetchProjectApps } from "@/lib/queries/apps";
+import { getApp, refetchProjectApps } from "@/lib/queries/apps";
 import { trpc } from "@/lib/trpc/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Github, IconChevronRightOutline18 } from "@unkey/icons";
@@ -28,7 +28,7 @@ function usePickRepository(appId: string | null) {
   const selectRepository = trpc.github.selectRepository.useMutation();
 
   const relink = async (id: string, repo: RepoItem, baseName: string) => {
-    const linked = cachedApp(queryClient, projectId, id);
+    const linked = getApp(queryClient, projectId, id);
     await selectRepository.mutateAsync({
       projectId,
       appId: id,
