@@ -19,3 +19,4 @@ CREATE TABLE `unkey_root_keys` (
 );
 
 CREATE INDEX `workspace_id_idx` ON `unkey_root_keys` (`workspace_id`);
+
