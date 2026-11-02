@@ -7,15 +7,15 @@ import {
   retryDomainVerification,
 } from "@/lib/collections/deploy/custom-domains";
 import type { Domain } from "@/lib/collections/deploy/domains";
-import type { Environment } from "@/lib/collections/deploy/environments";
 import type { QueryResult } from "@/lib/loadable/loadable";
 import { type App, refetchProjectApps, useProjectApps } from "@/lib/queries/apps";
+import { type Environment, useAppsEnvironments } from "@/lib/queries/environments";
+import { queryKeys } from "@/lib/query-keys";
 import {
   type InitialQueryBuilder,
   and,
   createLiveQueryCollection,
   eq,
-  inArray,
   useLiveQuery,
 } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
@@ -44,21 +44,14 @@ export function useApp(): DeployQuery<App | null> {
 export function useEnvironments(): DeployQuery<Environment[]> {
   const { projectId, appId } = useDeployScope();
   const apps = useProjectApps(projectId);
-  const appIds = appId
-    ? appId
-    : (apps.data ?? [])
-        .map((app) => app.id)
-        .sort()
-        .join(",");
-  const query = useLiveQuery(
-    () => (appIds === "" ? null : environmentsQuery(projectId, appIds)),
-    [projectId, appIds],
+  const environments = useAppsEnvironments(
+    appId ? [{ projectId, appId }] : (apps.data ?? []).map((app) => ({ projectId, appId: app.id })),
   );
-  const load = useLoadState(collection.environments.utils, refetchScopeEnvironments, projectId);
-  return liveResult(
-    { data: query.data, isLoading: (appId === undefined && apps.isLoading) || query.isLoading },
-    appId === undefined && apps.isError ? apps : load,
-  );
+  // Outside an app the apps name which environments to load, so their state comes first
+  if (appId === undefined && apps.data === undefined) {
+    return { ...apps, data: undefined };
+  }
+  return environments;
 }
 
 export function useDomains(): DeployQuery<Domain[]> {
@@ -96,7 +89,10 @@ export function refetchDeployData(reactQueryClient: QueryClient, projectId: stri
     refetchProjectApps(reactQueryClient, projectId),
     refetchScopeDomains(projectId),
     refetchScopeCustomDomains(projectId),
-    refetchScopeEnvironments(projectId),
+    reactQueryClient.refetchQueries({
+      queryKey: queryKeys.environments.project(projectId),
+      type: "active",
+    }),
   ]);
 }
 
@@ -143,13 +139,6 @@ export function customDomainsQueryFor(projectId: string, appId: string | null) {
       .orderBy(({ customDomain }) => customDomain.createdAt, "desc");
 }
 
-export function environmentsQueryFor(projectId: string, appIds: string) {
-  return (q: InitialQueryBuilder) =>
-    q
-      .from({ env: collection.environments })
-      .where(({ env }) => and(eq(env.projectId, projectId), inArray(env.appId, appIds.split(","))));
-}
-
 export function policiesQueryFor(projectId: string, appId: string, environmentId: string) {
   return (q: InitialQueryBuilder) =>
     q
@@ -159,10 +148,6 @@ export function policiesQueryFor(projectId: string, appId: string, environmentId
       )
       .orderBy(({ p }) => p._order);
 }
-
-const environmentsQuery = memoByArgs((projectId: string, appIds: string) =>
-  createLiveQueryCollection(environmentsQueryFor(projectId, appIds)),
-);
 
 const domainsQuery = memoByArgs((projectId: string, appId: string | null) =>
   createLiveQueryCollection(domainsQueryFor(projectId, appId)),
@@ -174,16 +159,6 @@ const customDomainsQuery = memoByArgs((projectId: string, appId: string | null) 
 
 function subscribeQueryCache(onChange: () => void): () => void {
   return queryClient.getQueryCache().subscribe(onChange);
-}
-
-// Environment keys name each app as projectId:appId
-function refetchScopeEnvironments(projectId: string) {
-  return queryClient.refetchQueries({
-    type: "active",
-    predicate: ({ queryKey }) =>
-      queryKey[0] === "environments" &&
-      queryKey.some((part) => typeof part === "string" && part.startsWith(`${projectId}:`)),
-  });
 }
 
 type LoadSource = {
