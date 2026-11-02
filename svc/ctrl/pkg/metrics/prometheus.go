@@ -120,7 +120,8 @@ var (
 			Name:      "vault_reencryptions_data_total",
 			Help:      "Data re-encryption attempts by outcome, including retries.",
 		},
-		vec.Values("table", "encrypted_keys"),
+		vec.Values("table", "encrypted_keys", "app_environment_variables", "deployments", "logdrains",
+			"certificates", "shared_secrets", "clickhouse_workspace_settings", "acme_users"),
 		vec.Values("outcome", "updated", "conflict", "error"),
 	)
 )
