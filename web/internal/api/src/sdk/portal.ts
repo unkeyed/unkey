@@ -35,7 +35,8 @@ export class Portal extends ClientSDK {
    *
    * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/*#write`.
    * Use `portals/* /domains/*#write` to attach domains to any portal in the project.
-   * Without the permission this returns **404**, not 403.
+   * Without the permission this returns **404**, not 403, unless the key can read
+   * the portal or its domains.
    */
   async createDomain(
     request: components.V2PortalCreateDomainRequestBody,

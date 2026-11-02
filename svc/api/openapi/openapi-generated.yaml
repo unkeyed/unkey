@@ -18144,7 +18144,8 @@ paths:
 
                 Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/*#write`.
                 Use `portals/*/domains/*#write` to attach domains to any portal in the project.
-                Without the permission this returns **404**, not 403.
+                Without the permission this returns **404**, not 403, unless the key can read
+                the portal or its domains.
             operationId: portal.createDomain
             requestBody:
                 content:
@@ -18178,8 +18179,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        The root key or its workspace is disabled, or the workspace already holds as many
-                        portal domains as it may.
+                        The root key or its workspace is disabled, the key can read the portal but may not
+                        attach domains to it, or the workspace already holds as many portal domains as it may.
                 "404":
                     content:
                         application/json:
