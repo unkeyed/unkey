@@ -39,13 +39,9 @@ type MySQLConfig struct {
 // The container is reused through the worktree's Docker Compose project.
 func MySQL(t testing.TB) MySQLConfig {
 	t.Helper()
-
-	containerStart := time.Now()
-
-	c := startService(t, "mysql")
-	t.Logf("  MySQL container started in %s", time.Since(containerStart))
-
-	return configureMySQL(t, c)
+	dsn, database := connectMySQL(t, mysqlUser)
+	ensureSharedMySQLSchema(t, database)
+	return MySQLConfig{DSN: dsn.FormatDSN()}
 }
 
 // MySQLLogicalIsolated loads the schema into a private database on the shared
@@ -53,38 +49,35 @@ func MySQL(t testing.TB) MySQLConfig {
 // server settings and server restarts are not.
 func MySQLLogicalIsolated(t testing.TB) MySQLConfig {
 	t.Helper()
-	shared := MySQL(t)
-	dsnCfg, err := mysql.ParseDSN(shared.DSN)
-	require.NoError(t, err)
-	dsnCfg.User = "root"
-	admin, err := sql.Open("mysql", dsnCfg.FormatDSN())
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, admin.Close()) })
+	dsn, admin := connectMySQL(t, "root")
 
-	name := uid.New(uid.TestPrefix)
-	_, err = admin.ExecContext(t.Context(), fmt.Sprintf("CREATE DATABASE `%s`", name))
+	databaseName := uid.New(uid.TestPrefix)
+	_, err := admin.ExecContext(t.Context(), fmt.Sprintf("CREATE DATABASE `%s`", databaseName))
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, err := admin.ExecContext(context.Background(), fmt.Sprintf("DROP DATABASE `%s`", name))
+		_, err := admin.ExecContext(context.Background(), fmt.Sprintf("DROP DATABASE `%s`", databaseName))
 		require.NoError(t, err)
 	})
 
-	dsnCfg.DBName = name
-	hostDB, err := sql.Open("mysql", dsnCfg.FormatDSN())
+	dsn.DBName = databaseName
+	database, err := sql.Open("mysql", dsn.FormatDSN())
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, hostDB.Close()) })
-	loadMySQLSchema(t, t.Context(), hostDB)
-	return MySQLConfig{DSN: dsnCfg.FormatDSN()}
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	loadMySQLSchema(t, t.Context(), database)
+	return MySQLConfig{DSN: dsn.FormatDSN()}
 }
 
-func configureMySQL(t testing.TB, c Container) MySQLConfig {
+func connectMySQL(t testing.TB, user string) (*mysql.Config, *sql.DB) {
 	t.Helper()
+	containerStart := time.Now()
+	container := startService(t, "mysql")
+	t.Logf("  MySQL container started in %s", time.Since(containerStart))
 
 	dsnCfg := mysql.NewConfig()
-	dsnCfg.User = mysqlUser
+	dsnCfg.User = user
 	dsnCfg.Passwd = mysqlPassword
 	dsnCfg.Net = "tcp"
-	dsnCfg.Addr = c.Addr(t, mysqlPort)
+	dsnCfg.Addr = container.Addr(t, mysqlPort)
 	dsnCfg.DBName = mysqlDatabase
 	dsnCfg.ParseTime = true
 	dsnCfg.MultiStatements = true
@@ -93,26 +86,22 @@ func configureMySQL(t testing.TB, c Container) MySQLConfig {
 	pingStart := time.Now()
 	hostDB, err := sql.Open("mysql", dsnCfg.FormatDSN())
 	require.NoError(t, err)
-	defer func() { require.NoError(t, hostDB.Close()) }()
+	t.Cleanup(func() { require.NoError(t, hostDB.Close()) })
 	require.Eventually(t, func() bool {
 		pingErr := hostDB.PingContext(context.Background())
 		return pingErr == nil
 	}, 60*time.Second, 500*time.Millisecond)
 	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
 
-	applyMySQLSchema(t, hostDB)
-
-	return MySQLConfig{
-		DSN: dsnCfg.FormatDSN(),
-	}
+	return dsnCfg, hostDB
 }
 
-// applyMySQLSchema initializes the shared database schema once.
+// ensureSharedMySQLSchema initializes the shared database schema once.
 //
 // CI can run many test processes at the same time. The advisory lock keeps
 // non-idempotent CREATE TABLE statements from racing when those processes use
 // the same database.
-func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
+func ensureSharedMySQLSchema(t testing.TB, hostDB *sql.DB) {
 	t.Helper()
 
 	schemaStart := time.Now()
