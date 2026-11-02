@@ -1126,9 +1126,7 @@ type Querier interface {
 	//  FOR UPDATE
 	FindPortalDomainStatusByIdForUpdate(ctx context.Context, id string) (PortalDomainsVerificationStatus, error)
 	// FindPrivateNetworkEnvironmentDeploymentId returns the newest deployment that
-	// was ever ready in a preview environment of the app. It reads only ever-ready
-	// rows of the environment from app_environment_ready_created_idx, newest
-	// first, and stops at the first match.
+	// was ever ready in a preview environment of the app.
 	//
 	//  SELECT candidate.id
 	//  FROM deployments candidate
@@ -1144,10 +1142,8 @@ type Querier interface {
 	//  LIMIT 1
 	FindPrivateNetworkEnvironmentDeploymentId(ctx context.Context, arg FindPrivateNetworkEnvironmentDeploymentIdParams) (string, error)
 	// FindPrivateNetworkPreviewDeploymentId returns the newest deployment that was
-	// ever ready on a git branch and fork in a preview environment of the app. It
-	// reads only ever-ready rows of the branch and fork from
-	// app_branch_fork_ready_created_idx, newest first, and stops at the first
-	// match. Without the hint MySQL may drive from the app's preview environments
+	// ever ready on a git branch and fork in a preview environment of the app.
+	// Without the hint MySQL may drive from the app's preview environments
 	// through app_environment_ready_created_idx and sort the whole branch.
 	//
 	//  SELECT candidate.id
@@ -2399,8 +2395,7 @@ type Querier interface {
 	// saved by the given caller deployments, with the saved target selection and
 	// the caller and live deployment facts that ListPrivateNetworkConnections
 	// needs to resolve it. LiveEnvironmentID is the environment of the target
-	// app's live deployment, empty when there is none. Names starting with unkey
-	// and the name self are reserved. Callers must come from
+	// app's live deployment, empty when there is none. Callers must come from
 	// ListPrivateNetworkReplicas in the same transaction, which decides which
 	// deployments are active callers. Rows are paged by (caller deployment,
 	// connection).
@@ -2450,6 +2445,17 @@ type Querier interface {
 	//  ORDER BY b.deployment_id, b.connection_id
 	//  LIMIT ?
 	ListPrivateNetworkConnectionSelections(ctx context.Context, arg ListPrivateNetworkConnectionSelectionsParams) ([]ListPrivateNetworkConnectionSelectionsRow, error)
+	// ListPrivateNetworkDeploymentRegions returns the regions on the platform where
+	// each given deployment is meant to run.
+	//
+	//  SELECT dt.deployment_id, r.name AS region
+	//  FROM deployment_topology dt
+	//  INNER JOIN regions r ON r.id = dt.region_id
+	//  WHERE dt.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//      AND dt.desired_status = 'running'
+	//      AND r.platform = ?
+	//  ORDER BY dt.deployment_id, r.name
+	ListPrivateNetworkDeploymentRegions(ctx context.Context, arg ListPrivateNetworkDeploymentRegionsParams) ([]ListPrivateNetworkDeploymentRegionsRow, error)
 	// ListPrivateNetworkReplicas returns the given deployments that are active,
 	// were created with private networking, and run on the platform. Each one
 	// resolves its own replicas under the self name and is a caller for

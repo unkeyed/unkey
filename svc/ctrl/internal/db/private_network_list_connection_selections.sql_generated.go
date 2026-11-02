@@ -90,8 +90,7 @@ type ListPrivateNetworkConnectionSelectionsRow struct {
 // saved by the given caller deployments, with the saved target selection and
 // the caller and live deployment facts that ListPrivateNetworkConnections
 // needs to resolve it. LiveEnvironmentID is the environment of the target
-// app's live deployment, empty when there is none. Names starting with unkey
-// and the name self are reserved. Callers must come from
+// app's live deployment, empty when there is none. Callers must come from
 // ListPrivateNetworkReplicas in the same transaction, which decides which
 // deployments are active callers. Rows are paged by (caller deployment,
 // connection).

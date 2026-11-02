@@ -563,4 +563,21 @@ func TestListPrivateNetworkConnections(t *testing.T) {
 		require.NoError(t, q.DeleteEnvironmentById(t.Context(), q.callerProd))
 		require.Len(t, list(t, q), 9)
 	})
+
+	t.Run("deployment regions are the sorted platform regions each one runs in", func(t *testing.T) {
+		q := newCatalog(t)
+		rows, err := q.ListPrivateNetworkDeploymentRegions(t.Context(), ListPrivateNetworkDeploymentRegionsParams{
+			DeploymentIds: []string{q.callerProdLive, q.callerCanaryOCI, q.callerWrongPlatform, uid.New(uid.DeploymentPrefix)},
+			Platform:      platform,
+		})
+		require.NoError(t, err)
+		regions := map[string][]string{}
+		for _, row := range rows {
+			regions[row.DeploymentID] = append(regions[row.DeploymentID], row.Region)
+		}
+		require.Equal(t, map[string][]string{
+			q.callerCanaryOCI: {"connection-region"},
+			q.callerProdLive:  {"connection-region", "connection-region-2"},
+		}, regions)
+	})
 }

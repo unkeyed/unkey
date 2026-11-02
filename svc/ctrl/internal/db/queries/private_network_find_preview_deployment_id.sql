@@ -1,9 +1,7 @@
 -- name: FindPrivateNetworkPreviewDeploymentId :one
 -- FindPrivateNetworkPreviewDeploymentId returns the newest deployment that was
--- ever ready on a git branch and fork in a preview environment of the app. It
--- reads only ever-ready rows of the branch and fork from
--- app_branch_fork_ready_created_idx, newest first, and stops at the first
--- match. Without the hint MySQL may drive from the app's preview environments
+-- ever ready on a git branch and fork in a preview environment of the app.
+-- Without the hint MySQL may drive from the app's preview environments
 -- through app_environment_ready_created_idx and sort the whole branch.
 SELECT candidate.id
 FROM deployments candidate FORCE INDEX (app_branch_fork_ready_created_idx)
