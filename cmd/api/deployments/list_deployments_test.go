@@ -30,5 +30,12 @@ func TestListDeployments(t *testing.T) {
 func TestListDeploymentsStatusValidation(t *testing.T) {
 	root := &cli.Command{Name: "unkey", Commands: []*cli.Command{Cmd()}}
 	err := root.Run(context.Background(), strings.Fields("unkey deployments list-deployments --status=ready,not-a-status --root-key=test"))
-	require.ErrorContains(t, err, `invalid status "not-a-status"`)
+	require.ErrorIs(t, err, cli.ErrValidationFailed)
+	var input *cli.InputError
+	require.ErrorAs(t, err, &input)
+	require.Equal(t, cli.InputErrorInvalidFlagValue, input.Kind)
+	require.Equal(t, []string{"status"}, input.Flags)
+	require.ErrorContains(t, err, "Valid choices:")
+	require.ErrorContains(t, err, "ready, failed")
+	require.NotContains(t, err.Error(), "not-a-status")
 }
