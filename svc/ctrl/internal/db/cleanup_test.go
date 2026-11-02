@@ -5,37 +5,54 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func TestDeletionFindsDescendantsWithMissingParents(t *testing.T) {
-	mysql := containers.MySQLLogicalIsolated(t)
+	mysql := containers.MySQL(t)
 	database, err := db.New(mysql.DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	ctx := t.Context()
-	for _, statement := range []string{
-		`INSERT INTO apps (id, workspace_id, project_id, name, slug, created_at)
-		 VALUES ('app', 'ws', 'project', 'app', 'app', 1)`,
-		`INSERT INTO environments (id, workspace_id, project_id, app_id, slug, created_at)
-		 VALUES ('env', 'ws', 'project', 'app', 'env', 1), ('env-orphan', 'ws', 'project', 'missing-app', 'env', 1)`,
-		`INSERT INTO deployments (id, k8s_name, workspace_id, project_id, app_id, environment_id, sentinel_config, cpu_millicores, memory_mib, encrypted_environment_variables, created_at)
-		 VALUES ('live', 'live', 'ws', 'project', 'app', 'env', '', 250, 256, '', 1),
-		 ('orphan', 'orphan', 'ws', 'project', 'app', 'missing-env', '', 250, 256, '', 1),
-		 ('deep-orphan', 'deep-orphan', 'ws', 'project', 'missing-both', 'missing-both', '', 250, 256, '', 1),
-		 ('sibling', 'sibling', 'ws', 'other-project', 'other-app', 'other-env', '', 250, 256, '', 1)`,
+	seeder := seed.New(t, database, nil)
+	workspace := seeder.CreateWorkspace(ctx)
+	projectID := uid.New(uid.ProjectPrefix)
+	appID := uid.New(uid.AppPrefix)
+	appMissingID := uid.New(uid.AppPrefix)
+	appDeepOrphanID := uid.New(uid.AppPrefix)
+	environmentID := uid.New(uid.EnvironmentPrefix)
+	environmentMissingID := uid.New(uid.EnvironmentPrefix)
+	environmentDeepOrphanID := uid.New(uid.EnvironmentPrefix)
+	seeder.CreateApp(ctx, seed.CreateAppRequest{
+		ID: appID, WorkspaceID: workspace.ID, ProjectID: projectID, Name: "app", Slug: "app",
+	})
+	for _, environment := range []seed.CreateEnvironmentRequest{
+		{ID: environmentID, WorkspaceID: workspace.ID, ProjectID: projectID, AppID: appID, Slug: "env"},
+		{ID: uid.New(uid.EnvironmentPrefix), WorkspaceID: workspace.ID, ProjectID: projectID, AppID: appMissingID, Slug: "env"},
 	} {
-		_, err := database.RW().ExecContext(ctx, statement)
-		require.NoError(t, err)
+		seeder.CreateEnvironment(ctx, environment)
 	}
-	apps, err := database.ListAppIdsByProject(ctx, db.ListAppIdsByProjectParams{ProjectID: "project"})
+	for _, deployment := range []seed.CreateDeploymentRequest{
+		{ProjectID: projectID, AppID: appID, EnvironmentID: environmentID},
+		{ProjectID: projectID, AppID: appID, EnvironmentID: environmentMissingID},
+		{ProjectID: projectID, AppID: appDeepOrphanID, EnvironmentID: environmentDeepOrphanID},
+		{ProjectID: uid.New(uid.ProjectPrefix), AppID: uid.New(uid.AppPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix)},
+	} {
+		deployment.WorkspaceID = workspace.ID
+		deployment.Status = mysqltype.DeploymentsStatusPending
+		seeder.CreateDeployment(ctx, deployment)
+	}
+	apps, err := database.ListAppIdsByProject(ctx, db.ListAppIdsByProjectParams{ProjectID: projectID})
 	require.NoError(t, err)
-	require.ElementsMatch(t, []string{"app", "missing-app", "missing-both"}, apps)
-	environments, err := database.ListEnvironmentIdsByApp(ctx, db.ListEnvironmentIdsByAppParams{AppID: "app"})
+	require.ElementsMatch(t, []string{appID, appMissingID, appDeepOrphanID}, apps)
+	environments, err := database.ListEnvironmentIdsByApp(ctx, db.ListEnvironmentIdsByAppParams{AppID: appID})
 	require.NoError(t, err)
-	require.ElementsMatch(t, []string{"env", "missing-env"}, environments)
-	environments, err = database.ListEnvironmentIdsByApp(ctx, db.ListEnvironmentIdsByAppParams{AppID: "missing-both"})
+	require.ElementsMatch(t, []string{environmentID, environmentMissingID}, environments)
+	environments, err = database.ListEnvironmentIdsByApp(ctx, db.ListEnvironmentIdsByAppParams{AppID: appDeepOrphanID})
 	require.NoError(t, err)
-	require.Equal(t, []string{"missing-both"}, environments)
+	require.Equal(t, []string{environmentDeepOrphanID}, environments)
 }
