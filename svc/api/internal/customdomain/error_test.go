@@ -42,7 +42,7 @@ func TestMapCtrlErrorRoundTripsGateOutcomes(t *testing.T) {
 		{
 			name:        "allowance exhausted",
 			connectCode: connect.CodeResourceExhausted,
-			gateErr:     domaingate.CheckAllowance(1, 1),
+			gateErr:     domaingate.CheckAllowance([]string{"api.acme.com"}, "api.other.com", 1),
 			wantCode:    codes.Limits.CustomDomain.Exceeded.URN(),
 		},
 		{
