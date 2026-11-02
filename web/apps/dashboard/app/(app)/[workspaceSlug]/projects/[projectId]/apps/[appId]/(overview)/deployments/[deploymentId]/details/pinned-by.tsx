@@ -8,8 +8,10 @@ import type { PinningApp } from "../../../connections/hooks/use-deployment-conne
 
 const SHOWN = 2;
 
-const PINNED_HINT =
-  "These apps connect to this exact deployment, so it keeps running. To release it, change their target on the Connections page and redeploy them.";
+const PINNED_HINT = {
+  one: "An app is connected to this deployment, it will continue to run until you change or delete the connection.",
+  many: "Apps are connected to this deployment, it will continue to run until you change or delete the connections.",
+};
 
 export function PinningApps({
   apps,
@@ -40,7 +42,11 @@ export function PinningApps({
       )}
       <Hint
         label="Why this deployment is pinned"
-        content={<span className="flex max-w-64">{PINNED_HINT}</span>}
+        content={
+          <span className="flex max-w-64">
+            {apps.length > 1 || truncated ? PINNED_HINT.many : PINNED_HINT.one}
+          </span>
+        }
       >
         <span className="flex shrink-0 text-gray-9">
           <IconCircleInfoOutline12 className="size-3" />
