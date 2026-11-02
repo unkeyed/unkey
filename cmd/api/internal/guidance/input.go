@@ -90,11 +90,14 @@ func Attach(command *cli.Command, legacy string) {
 		if err := form.object(ctx, schema, values, "", needsChanges); err != nil {
 			return fmt.Errorf("guided input cancelled: %w", err)
 		}
-		var request any = values
-		if array {
-			request = values["limits"]
+		_, operation, _ := strings.Cut(legacy, " ")
+		read := strings.HasPrefix(operation, "get-") || strings.HasPrefix(operation, "list-") || legacy == "keys whoami"
+		if !read {
+			if err := form.confirm(ctx, schema, values, cmd.Usage, needsChanges); err != nil {
+				return fmt.Errorf("guided input cancelled: %w", err)
+			}
 		}
-		body, err := json.Marshal(request)
+		body, err := requestJSON(values, array)
 		if err != nil {
 			return err
 		}
@@ -110,8 +113,16 @@ func Attach(command *cli.Command, legacy string) {
 		}
 		cmd.Flags = flags
 		cmd.RequireOneOf = nil
+		cmd.Action = form.recoverValidation(cmd.Action, bodyFlag, schema, values, array, needsChanges)
 		return nil
 	}
+}
+
+func requestJSON(values map[string]any, array bool) ([]byte, error) {
+	if array {
+		return json.Marshal(values["limits"])
+	}
+	return json.Marshal(values)
 }
 
 func commonFlag(name string) bool {
@@ -172,7 +183,11 @@ func flagValues(cmd *cli.Command, schema *Schema, legacy string) (map[string]any
 		case *cli.FloatFlag:
 			value = flag.Value()
 		case *cli.StringSliceFlag:
-			value = flag.Value()
+			items := make([]any, len(flag.Value()))
+			for i, item := range flag.Value() {
+				items[i] = item
+			}
+			value = items
 		default:
 			return nil, fmt.Errorf("unsupported guided flag --%s", flag.Name())
 		}
