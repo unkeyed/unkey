@@ -7,7 +7,7 @@ post:
 
     Use this endpoint when users sign up, upgrade subscription tiers, or need additional keys. Keys are cryptographically secure and unique to the specified API namespace.
 
-    **Important**: The key is returned only once. Store it immediately and provide it to your user, as it cannot be retrieved later.
+    **Important**: Store the returned key securely. Unless you create a recoverable key, the plaintext cannot be retrieved later. Recoverable keys require key encryption and permission to decrypt them.
 
     **Common use cases:**
     - Generate keys for new user registrations
@@ -38,9 +38,9 @@ post:
             "$ref": "./V2KeysCreateKeyResponseBody.yaml"
       description: "Successfully created a new API key. The response includes
         both the keyId (for reference in your system) and the full key string.
-        IMPORTANT: This is the only time the complete key is available - it cannot
-        be retrieved later. You must securely provide this key to your end user
-        immediately."
+        Store the key securely. The plaintext cannot be retrieved later unless
+        the key was created as recoverable. Retrieving a recoverable key requires
+        permission to decrypt it."
     "400":
       description: Bad request
       content:
