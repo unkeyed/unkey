@@ -15,10 +15,6 @@ export const apis = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
     workspaceId: id("workspace_id").notNull(),
     projectId: id("project_id").notNull(),
-    /**
-     * comma separated ips
-     */
-    ipWhitelist: varchar("ip_whitelist", { length: 512 }),
     authType: mysqlEnum("auth_type", ["key", "jwt"]),
     keyAuthId: id("key_auth_id").unique(),
 

@@ -2,7 +2,7 @@
 
 import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
 import { Switch } from "@/components/ui/switch";
-import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
+import { ENVIRONMENT_KINDS } from "@/lib/deploy-data";
 import { InfoTooltip } from "@unkey/ui";
 import type { Env, MergedPolicy, PolicyEnvs } from "../model/merge";
 

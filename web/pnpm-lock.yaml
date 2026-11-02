@@ -6569,8 +6569,8 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
-  dompurify@3.4.16:
-    resolution: {integrity: sha512-sqo+pNp3qRhCIpbgRi1y8Tgk27Bo2Ry7w0dC1NBeNTdZChWjz9Xb/KOoZbRP/R6pQZ80Qw8YhXw13hWWBbMRnQ==}
+  dompurify@3.4.17:
+    resolution: {integrity: sha512-B/pSlYVHQ58kqISD/yDjuJ1yfzI34m1gF4lAod2bwSRhiN4K5Cl3H8Af7hqB2PmTL911tdEudnnXn5FnhRoz0w==}
 
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
@@ -15219,7 +15219,7 @@ snapshots:
       citty: 0.2.2
       consola: 3.4.2
       cross-spawn: 7.0.6
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       dotenv: 17.4.2
       epub-gen-memory: 1.1.2
       es-module-lexer: 3.0.2
@@ -15958,7 +15958,7 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
-  dompurify@3.4.16:
+  dompurify@3.4.17:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 
@@ -17456,7 +17456,7 @@ snapshots:
       d3-sankey: 0.12.3
       dagre-d3-es: 7.0.14
       dayjs: 1.11.23
-      dompurify: 3.4.16
+      dompurify: 3.4.17
       elkjs: 0.9.3
       es-toolkit: 1.52.0
       katex: 0.16.47

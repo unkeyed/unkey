@@ -55,6 +55,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/go-containerregistry v0.20.7
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+	github.com/klauspost/compress v1.19.1
 	github.com/moby/buildkit v0.26.3
 	github.com/oapi-codegen/nullable v1.1.0
 	github.com/oapi-codegen/runtime v1.4.2
@@ -89,19 +90,19 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.15.0
 	go.opentelemetry.io/otel/sdk/metric v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
-	golang.org/x/crypto v0.54.0
-	golang.org/x/net v0.57.0
-	golang.org/x/sync v0.23.0
-	golang.org/x/sys v0.47.0
-	golang.org/x/term v0.45.0
-	golang.org/x/text v0.41.0
+	golang.org/x/crypto v0.58.0
+	golang.org/x/net v0.62.0
+	golang.org/x/sync v0.24.0
+	golang.org/x/sys v0.49.0
+	golang.org/x/term v0.47.0
+	golang.org/x/text v0.43.0
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.35.3
 	k8s.io/apimachinery v0.35.3
 	k8s.io/client-go v0.35.3
-	vitess.io/vitess v0.23.4
+	vitess.io/vitess v0.23.5
 )
 
 require (
@@ -233,7 +234,6 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.13-0.20220915233716-71ac16282d12 // indirect
 	github.com/kisielk/errcheck v1.9.0 // indirect
-	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260330125221-c963978e514e // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
@@ -346,10 +346,10 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
-	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.48.0 // indirect
+	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect

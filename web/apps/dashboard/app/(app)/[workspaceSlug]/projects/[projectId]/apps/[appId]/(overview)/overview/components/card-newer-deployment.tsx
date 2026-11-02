@@ -1,11 +1,11 @@
 "use client";
 
-import type { Deployment, DeploymentSummary } from "@/lib/collections";
 import {
   DEPLOYMENT_STATUS_LABELS,
   type DeploymentStatusGroup,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
+import type { Deployment, DeploymentSummary } from "@/lib/deploy-data";
 import { Button } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";

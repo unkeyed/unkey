@@ -9,6 +9,7 @@ SELECT
     end,
     enabled,
     expires,
+    ip_allowlist,
     created_at,
     last_used_at,
     COALESCE(

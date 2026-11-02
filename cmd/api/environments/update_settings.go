@@ -64,7 +64,7 @@ func updateSettingsCmd() *cli.Command {
 			send := func(req components.V2EnvironmentsUpdateSettingsRequestBody) error {
 				res, err := client.Environments.UpdateSettings(ctx, req)
 				if err != nil {
-					return fmt.Errorf("%s", util.FormatError(err))
+					return err
 				}
 				return util.Output(cmd, res.V2EnvironmentsUpdateSettingsResponseBody)
 			}

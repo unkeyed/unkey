@@ -1,5 +1,6 @@
 "use client";
 
+import { useAppScope } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
 import { IconCodeBranchOutline18, IconMagnifierOutline18 } from "@unkey/icons";
 import {
@@ -12,13 +13,11 @@ import {
   PopoverTrigger,
 } from "@unkey/ui";
 import { useState } from "react";
-import { useAppId, useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
 import { FilterTriggerButton } from "./filter-trigger-button";
 
 export function BranchSelect() {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
   const { filters, toggleArrayFilter } = useFilters();
   const [search, setSearch] = useState("");
   const branchesQuery = trpc.deploy.deployment.listBranches.useQuery({ projectId, appId });

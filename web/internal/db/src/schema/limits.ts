@@ -60,6 +60,8 @@ export const limits = mysqlTable("limits", {
    */
   teamEnabled: boolean("team_enabled").notNull(),
 
+  ipAllowlistEnabled: boolean("ip_allowlist_enabled").notNull().default(false),
+
   /**
    * Caps how much CPU the workspace can allocate across all running instances.
    * Unit: whole CPU cores.

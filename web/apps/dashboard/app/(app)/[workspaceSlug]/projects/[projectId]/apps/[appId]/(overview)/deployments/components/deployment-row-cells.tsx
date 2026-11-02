@@ -1,8 +1,8 @@
 "use client";
 
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
-import type { Deployment, DeploymentSummary, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import type { Deployment, DeploymentSummary, Environment } from "@/lib/deploy-data";
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";

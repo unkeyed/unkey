@@ -1,7 +1,6 @@
-import type { Deployment } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
 import { isRollbackTarget } from "@/lib/collections/deploy/rollback";
+import type { Deployment, EnvironmentKind } from "@/lib/deploy-data";
 
 type DeploymentActionContext = {
   selectedDeployment: Pick<Deployment, "id" | "status" | "desiredState">;

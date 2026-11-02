@@ -19,7 +19,7 @@ import (
 func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		DB: h.DB, Keys: h.Keys, DirectAuditLogs: h.DirectAuditLogs, KeyVerifications: h.KeyVerifications,
+		DB: h.DB, Keys: h.Keys, AuditLogBuffer: h.AuditLogBuffer, KeyVerifications: h.KeyVerifications,
 	}
 	h.Register(route)
 	workspace := h.Resources().UserWorkspace
@@ -80,7 +80,7 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		DB: h.DB, Keys: h.Keys, DirectAuditLogs: h.DirectAuditLogs, KeyVerifications: h.KeyVerifications,
+		DB: h.DB, Keys: h.Keys, AuditLogBuffer: h.AuditLogBuffer, KeyVerifications: h.KeyVerifications,
 	}
 	h.Register(route)
 	workspace := h.Resources().UserWorkspace
@@ -143,7 +143,7 @@ func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
 func TestVerifyKey_RejectsInvalidKeyspaceAllowlist(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
-		DB: h.DB, Keys: h.Keys, DirectAuditLogs: h.DirectAuditLogs, KeyVerifications: h.KeyVerifications,
+		DB: h.DB, Keys: h.Keys, AuditLogBuffer: h.AuditLogBuffer, KeyVerifications: h.KeyVerifications,
 	}
 	h.Register(route)
 	workspace := h.Resources().UserWorkspace

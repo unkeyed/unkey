@@ -17,6 +17,7 @@ const rootKey = (keyId: string): V2RootKey => ({
   lastUsedAt: 0,
   expires: null,
   permissions: [],
+  ipAllowlist: [],
 });
 
 const page = (

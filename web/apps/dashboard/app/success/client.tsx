@@ -1,8 +1,7 @@
 "use client";
-import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
+import { useInvalidateBillingQueries } from "@/hooks/use-payment-issues";
 import { type CheckoutOutcome, checkoutReturnPath } from "@/lib/billing/upgrade-result";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PlansScreen } from "../(app)/[workspaceSlug]/settings/billing/components/plans-screen";
@@ -27,8 +26,7 @@ export function SuccessClient({
   returnTo,
 }: Props) {
   const router = useRouter();
-  const trpcUtils = trpc.useUtils();
-  const invalidateWorkspace = useInvalidateWorkspaceQueries();
+  const invalidateBilling = useInvalidateBillingQueries();
   const choosingPlan = Boolean(showPlanSelection && workSpaceSlug);
   const [showModal, setShowModal] = useState(choosingPlan);
 
@@ -52,7 +50,7 @@ export function SuccessClient({
 
   const leave = async () => {
     setShowModal(false);
-    await Promise.all([trpcUtils.stripe.getBillingInfo.invalidate(), invalidateWorkspace()]);
+    await invalidateBilling();
     router.push(routes.settings.billing({ workspaceSlug: workSpaceSlug }));
   };
 

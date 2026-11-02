@@ -1,6 +1,6 @@
+import type { Deployment } from "@/lib/deploy-data/deployment";
 import type { LastExit } from "@/lib/types/deploy";
 import type { DeploymentExitReason } from "@unkey/api/models/components";
-import type { Deployment } from "./deployments";
 import { type FatalWaitingReason, isFatalWaitingReason } from "./instance-status";
 
 type ExitFacts = Pick<LastExit, "exitCode" | "signal" | "reason" | "statusReason">;
