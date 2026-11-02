@@ -74,7 +74,7 @@ func (b *resourceBrowser) pick(ctx context.Context, f *form, field string, scope
 	if b.client == nil {
 		b.client, err = util.CreateClient(ctx, b.cmd)
 		if err != nil {
-			return resourceFallback(ctx, f, field)
+			return resourceFallback(ctx, f, field, err)
 		}
 	}
 	for _, parent := range parents {
@@ -97,7 +97,7 @@ func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, que
 		}
 		page, err := load(ctx, b.client, query)
 		if err != nil {
-			return resourceFallback(ctx, f, field)
+			return resourceFallback(ctx, f, field, err)
 		}
 		options := append([]prompt.SelectOption{}, page.choices...)
 		if searchable {
@@ -161,11 +161,13 @@ func manualResource(ctx context.Context, f *form, field string) (string, error) 
 	}
 }
 
-func resourceFallback(ctx context.Context, f *form, field string) (string, error) {
+func resourceFallback(ctx context.Context, f *form, field string, cause error) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	if _, err := fmt.Fprintln(f.out, "Could not load choices. Listing may require additional permission; enter the ID manually."); err != nil {
+	name := strings.TrimSuffix(label(field), " ID")
+	name = strings.ToLower(name[:1]) + name[1:]
+	if _, err := fmt.Fprintf(f.out, "%s\n  Enter the %s ID instead.\n", util.ErrorMessage(cause), name); err != nil {
 		return "", err
 	}
 	return manualResource(ctx, f, field)
