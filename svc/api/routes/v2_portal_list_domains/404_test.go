@@ -23,8 +23,8 @@ func TestListPortalDomainsUnresolvedPortal(t *testing.T) {
 		portal      string
 		permissions []string
 	}{
-		{name: "unknown portal", portal: uid.New(uid.PortalPrefix), permissions: []string{"portal.*.read_portal"}},
-		{name: "portal in another workspace", portal: foreign.ID, permissions: []string{"portal.*.read_portal"}},
+		{name: "unknown portal", portal: uid.New(uid.PortalPrefix), permissions: []string{f.grant("read")}},
+		{name: "portal in another workspace", portal: foreign.ID, permissions: []string{f.grant("read")}},
 		{name: "no permissions", portal: f.portal.ID, permissions: []string{}},
 		{name: "create_portal only", portal: f.portal.ID, permissions: []string{"portal.*.create_portal"}},
 	}

@@ -18,7 +18,7 @@ func TestListPortalDomainsOnlyThisPortal(t *testing.T) {
 	sibling, _ := seedPortal(t, f.h, f.workspaceID)
 	f.h.SeedPortalDomain(t, f.workspaceID, sibling.ID, randomDomain(), db.PortalDomainsVerificationStatusVerified)
 
-	res := f.call(t, handler.Request{Portal: f.portal.Slug}, "portal.*.read_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.Slug}, f.grant("read"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 	statuses := map[string]openapi.DomainStatus{}
@@ -36,7 +36,7 @@ func TestListPortalDomainsOnlyThisPortal(t *testing.T) {
 func TestListPortalDomainsEmpty(t *testing.T) {
 	f := setup(t)
 
-	res := f.call(t, handler.Request{Portal: f.portal.ID}, "portal.*.read_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.ID}, f.grant("read"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotNil(t, res.Body.Data)
 	require.Empty(t, res.Body.Data)

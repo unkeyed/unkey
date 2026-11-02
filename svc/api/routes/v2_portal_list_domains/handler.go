@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/unkeyed/unkey/pkg/array"
@@ -13,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portaldomain"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -52,19 +52,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Update also grants read, so a key that creates a domain can list it. The
-	// wildcard tuples are spelled out because a stored `*` matches literally.
 	portalURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID)
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: "*", Action: rbac.ReadPortal}),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: found.ID, Action: rbac.ReadPortal}),
-		rbac.U(portalURN, permissions.Read),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: "*", Action: rbac.UpdatePortal}),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: found.ID, Action: rbac.UpdatePortal}),
-		rbac.U(portalURN, permissions.Write),
-	))
-	if err != nil {
-		return portaldomain.PortalNotFound(fmt.Sprintf("list domains denied for portal %s: %s", found.ID, fault.InternalMessage(err)))
+	permissionQuery := rbac.U(portalURN.Domain("*"), permissions.Read)
+	if err = principal.Authorize(permissionQuery); err != nil {
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			rbac.U(portalURN, permissions.Read),
+			codes.Data.Portal.NotFound.URN(),
+			portaldomain.PortalNotFoundMessage,
+		)
 	}
 
 	rows, err := db.Query.ListPortalDomainsByPortal(ctx, h.DB.RO(), db.ListPortalDomainsByPortalParams{

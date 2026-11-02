@@ -16,7 +16,7 @@ func TestListPortalDomainsRejectsMalformedPortal(t *testing.T) {
 		"malformed": "not a portal",
 	} {
 		t.Run(name, func(t *testing.T) {
-			res := f.call(t, handler.Request{Portal: portal}, "portal.*.read_portal")
+			res := f.call(t, handler.Request{Portal: portal}, f.grant("read"))
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		})
 	}

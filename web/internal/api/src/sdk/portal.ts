@@ -276,15 +276,9 @@ export class Portal extends ClientSDK {
    * @remarks
    * List the custom domains attached to a portal, with their verification status and DNS records.
    *
-   * **Required Permissions**
-   *
-   * Your root key must have one of:
-   * - `portal.*.read_portal` (to read domains on any portal in the workspace)
-   * - `portal.<portal_id>.read_portal` (to read domains on a specific portal)
-   * - `portal.*.update_portal` or `portal.<portal_id>.update_portal`, so a key that
-   *   creates a domain can poll it
-   *
-   * Without the permission this returns **404**, not 403.
+   * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/*#read`.
+   * Without the permission this returns **404**, not 403, unless the key can read
+   * the portal itself.
    */
   async listDomains(
     request: components.V2PortalListDomainsRequestBody,
