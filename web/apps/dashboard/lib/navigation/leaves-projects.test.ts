@@ -70,8 +70,10 @@ describe("projects-first workspace sections", () => {
 });
 
 describe("projects-first project links", () => {
-  it("lists the eight project sections in order", () => {
-    expect(rows(buildProjectLinks(ws, projectId, ["projects", projectId]))).toEqual([
+  it("lists the nine project sections in order", () => {
+    expect(
+      rows(buildProjectLinks(ws, projectId, ["projects", projectId], { databases: true })),
+    ).toEqual([
       { key: "apps", label: "Apps", href: "/acme/projects/proj_123", isActive: true },
       {
         key: "keyspaces",
@@ -97,6 +99,12 @@ describe("projects-first project links", () => {
         href: "/acme/projects/proj_123/identities",
         isActive: false,
       },
+      {
+        key: "databases",
+        label: "Databases",
+        href: "/acme/projects/proj_123/databases",
+        isActive: false,
+      },
       { key: "logs", label: "Logs", href: "/acme/projects/proj_123/logs", isActive: false },
       {
         key: "requests",
@@ -117,25 +125,44 @@ describe("projects-first project links", () => {
     ["keyspaces", "keyspaces"],
     ["ratelimits", "ratelimits"],
     ["identities", "identities"],
+    ["databases", "databases"],
     ["logs", "logs"],
     ["requests", "requests"],
     ["settings", "settings"],
   ])("marks %s active on its own segment", (segment, key) => {
-    const active = buildProjectLinks(ws, projectId, ["projects", projectId, segment]).filter(
-      (link) => link.isActive,
-    );
+    const active = buildProjectLinks(ws, projectId, ["projects", projectId, segment], {
+      databases: true,
+    }).filter((link) => link.isActive);
     expect(active.map((link) => link.key)).toEqual([key]);
   });
 
   it("marks authorization active on both roles and permissions", () => {
     for (const leaf of ["roles", "permissions"]) {
-      const active = buildProjectLinks(ws, projectId, [
-        "projects",
+      const active = buildProjectLinks(
+        ws,
         projectId,
-        "authorization",
-        leaf,
-      ]).filter((link) => link.isActive);
+        ["projects", projectId, "authorization", leaf],
+        { databases: true },
+      ).filter((link) => link.isActive);
       expect(active.map((link) => link.key)).toEqual(["authorization"]);
     }
+  });
+
+  it("shows Databases only when databases are enabled", () => {
+    const keys = (enabled: boolean) =>
+      buildProjectLinks(ws, projectId, ["projects", projectId], { databases: enabled }).map(
+        (link) => link.key,
+      );
+    expect(keys(false)).toEqual([
+      "apps",
+      "keyspaces",
+      "ratelimits",
+      "authorization",
+      "identities",
+      "logs",
+      "requests",
+      "settings",
+    ]);
+    expect(keys(true)).toContain("databases");
   });
 });

@@ -10,7 +10,7 @@ import {
   IconNodesOutline18,
   IconShieldKeyOutline18,
 } from "@unkey/icons";
-import { buildWorkspaceConfigLinks } from "./leaves";
+import { buildDatabasesLinks, buildWorkspaceConfigLinks } from "./leaves";
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
@@ -57,6 +57,7 @@ export function buildProjectLinks(
   slug: string,
   projectId: string,
   segments: string[],
+  { databases }: { databases: boolean },
 ): ResolvedNavLink[] {
   const page = segments[2];
   const scope = { workspaceSlug: slug, projectId };
@@ -96,6 +97,7 @@ export function buildProjectLinks(
       icon: IconFingerprintOutline18,
       isActive: page === "identities",
     },
+    ...buildDatabasesLinks(scope, page, databases),
     {
       key: "logs",
       label: "Logs",
