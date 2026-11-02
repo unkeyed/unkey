@@ -4,9 +4,12 @@ package network
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -14,10 +17,16 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
-	containerd "github.com/containerd/containerd/v2/client"
-	"github.com/containerd/containerd/v2/pkg/oci"
+	containersapi "github.com/containerd/containerd/api/services/containers/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/heimdall/internal/containerdrpc"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/anypb"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -33,23 +42,10 @@ import (
 // netns path, until kubelet GC runs RemovePodSandbox. The reader must end
 // up attached to the new netns, not stuck on the stale one.
 
-// fakeSandbox is one containerd sandbox container record. Only ID and Spec
-// are used by sandboxNetnsPath; the embedded nil interface panics loudly
-// if the code under test starts calling anything else.
+// fakeSandbox is one containerd sandbox container record.
 type fakeSandbox struct {
-	containerd.Container
 	id    string
 	netns string
-}
-
-func (f fakeSandbox) ID() string { return f.id }
-
-func (f fakeSandbox) Spec(context.Context) (*oci.Spec, error) {
-	return &oci.Spec{
-		Linux: &specs.Linux{
-			Namespaces: []specs.LinuxNamespace{{Type: specs.NetworkNamespace, Path: f.netns}},
-		},
-	}, nil
 }
 
 // fakeLink records Close so tests can prove the old TCX links were
@@ -157,7 +153,7 @@ func (n *fakeNode) gate(t *testing.T, sb fakeSandbox) *attachGate {
 func (n *fakeNode) addSandbox(id string) fakeSandbox {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	sb := fakeSandbox{Container: nil, id: id, netns: "/var/run/netns/cni-" + id}
+	sb := fakeSandbox{id: id, netns: "/var/run/netns/cni-" + id}
 	n.sandboxes = append(n.sandboxes, sb)
 	n.liveNetns[sb.netns] = true
 	n.cookies[sb.netns] = uint64(len(n.cookies) + 1)
@@ -172,14 +168,25 @@ func (n *fakeNode) stopSandbox(sb fakeSandbox) {
 	n.liveNetns[sb.netns] = false
 }
 
-func (n *fakeNode) list(context.Context, ...string) ([]containerd.Container, error) {
+func (n *fakeNode) list(context.Context, *containersapi.ListContainersRequest, ...grpc.CallOption) (*containersapi.ListContainersResponse, error) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	out := make([]containerd.Container, 0, len(n.sandboxes))
+	out := make([]*containersapi.Container, 0, len(n.sandboxes))
 	for _, sb := range n.sandboxes {
-		out = append(out, sb)
+		spec, err := json.Marshal(&specs.Spec{
+			Linux: &specs.Linux{
+				Namespaces: []specs.LinuxNamespace{{Type: specs.NetworkNamespace, Path: sb.netns}},
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, &containersapi.Container{
+			ID:   sb.id,
+			Spec: &anypb.Any{TypeUrl: "types.containerd.io/opencontainers/runtime-spec/1/Spec", Value: spec},
+		})
 	}
-	return out, nil
+	return &containersapi.ListContainersResponse{Containers: out}, nil
 }
 
 func (n *fakeNode) netnsGone(path string) bool {
@@ -408,20 +415,54 @@ func TestAttach_StableNetnsIsNotReattached(t *testing.T) {
 func TestSandboxNetnsPath(t *testing.T) {
 	node := newFakeNode()
 	r := newTestReader(t, node)
-	ctx := context.Background()
+	podUID := uid.New(uid.TestPrefix)
+	server := grpc.NewServer()
+	containersapi.RegisterContainersServer(server, &sandboxServer{node: node, podUID: podUID})
+	socket := filepath.Join(t.TempDir(), "containerd.sock")
+	listener, err := net.Listen("unix", socket)
+	require.NoError(t, err)
+	serveResult := make(chan error, 1)
+	go func() { serveResult <- server.Serve(listener) }()
+	t.Cleanup(func() {
+		server.Stop()
+		require.NoError(t, <-serveResult)
+	})
+	connection, err := containerdrpc.NewConnection(socket)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, connection.Close()) })
+	r.listSandboxes = containersapi.NewContainersClient(connection).List
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	t.Cleanup(cancel)
 
-	_, err := r.sandboxNetnsPath(ctx, "pod-1")
+	_, err = r.sandboxNetnsPath(ctx, podUID)
 	require.ErrorIs(t, err, ErrSandboxNotFound, "no sandbox records at all")
 
-	stale := node.addSandbox("sandbox-a")
+	stale := node.addSandbox(uid.New(uid.TestPrefix))
 	node.stopSandbox(stale)
-	_, err = r.sandboxNetnsPath(ctx, "pod-1")
+	_, err = r.sandboxNetnsPath(ctx, podUID)
 	require.Error(t, err)
 	require.ErrorIs(t, err, os.ErrNotExist, "only a stopped sandbox: netns gone, retry later")
 	require.False(t, errors.Is(err, ErrSandboxNotFound))
 
-	fresh := node.addSandbox("sandbox-b")
-	path, err := r.sandboxNetnsPath(ctx, "pod-1")
+	fresh := node.addSandbox(uid.New(uid.TestPrefix))
+	path, err := r.sandboxNetnsPath(ctx, podUID)
 	require.NoError(t, err)
 	require.Equal(t, fresh.netns, path, "stale record listed first must not win")
+}
+
+type sandboxServer struct {
+	containersapi.UnimplementedContainersServer
+	node   *fakeNode
+	podUID string
+}
+
+func (s *sandboxServer) List(ctx context.Context, req *containersapi.ListContainersRequest) (*containersapi.ListContainersResponse, error) {
+	if values := metadata.ValueFromIncomingContext(ctx, "containerd-namespace"); len(values) != 1 || values[0] != "k8s.io" {
+		return nil, status.Error(codes.InvalidArgument, "missing namespace")
+	}
+	expected := fmt.Sprintf(`labels."io.kubernetes.pod.uid"==%s,labels."io.cri-containerd.kind"==sandbox`, s.podUID)
+	if len(req.Filters) != 1 || req.Filters[0] != expected {
+		return nil, status.Error(codes.InvalidArgument, "incorrect sandbox filter")
+	}
+	return s.node.list(ctx, req)
 }

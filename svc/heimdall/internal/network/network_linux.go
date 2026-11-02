@@ -13,9 +13,11 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
-	containerd "github.com/containerd/containerd/v2/client"
+	containersapi "github.com/containerd/containerd/api/services/containers/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/heimdall/internal/containerdrpc"
 	"github.com/unkeyed/unkey/svc/heimdall/internal/metrics"
+	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -26,14 +28,14 @@ import (
 // file holds just the Reader interface methods and the async attach
 // worker pool.
 type linuxReader struct {
-	podCounters counterMap         // shared pinned counter map, read by Read()
-	cd          *containerd.Client // owned only for Close; lookups go through listSandboxes
+	podCounters counterMap       // shared pinned counter map, read by Read()
+	cd          *grpc.ClientConn // owned only for Close; lookups go through listSandboxes
 
 	// The three effectful steps of an attach, plus the netns liveness probe,
 	// are fields so the attach state machine can be driven in tests without
 	// containerd, CAP_BPF, or a TCX-capable kernel. NewReader wires the real
 	// implementations.
-	listSandboxes func(ctx context.Context, filters ...string) ([]containerd.Container, error)
+	listSandboxes func(context.Context, *containersapi.ListContainersRequest, ...grpc.CallOption) (*containersapi.ListContainersResponse, error)
 	netnsGone     func(path string) bool
 	attachEth0    func(netnsPath string) (coll *ebpf.Collection, egress, ingress link.Link, cookie uint64, err error)
 
@@ -140,7 +142,7 @@ func NewReader(criSocket string) (Reader, error) {
 		return nil, errors.New("cri socket required for sandbox netns resolution")
 	}
 
-	cd, err := containerd.New(criSocket, containerd.WithDefaultNamespace("k8s.io"))
+	cd, err := containerdrpc.NewConnection(criSocket)
 	if err != nil {
 		return nil, fmt.Errorf("dial containerd at %s: %w", criSocket, err)
 	}
@@ -200,7 +202,7 @@ func NewReader(criSocket string) (Reader, error) {
 	r := &linuxReader{
 		podCounters:   podCounters,
 		cd:            cd,
-		listSandboxes: cd.Containers,
+		listSandboxes: containersapi.NewContainersClient(cd).List,
 		netnsGone:     netnsFileGone,
 		// attachPodEth0 does everything netns-scoped in one locked-thread
 		// block: enters the pod netns, finds eth0, reads the netns cookie,

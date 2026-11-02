@@ -4,13 +4,15 @@ package network
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 
-	"github.com/containerd/containerd/v2/pkg/namespaces"
-	"github.com/containerd/containerd/v2/pkg/oci"
+	containersapi "github.com/containerd/containerd/api/services/containers/v1"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"google.golang.org/grpc/metadata"
 )
 
 // Label names on containerd containers, stable UAPI.
@@ -34,7 +36,7 @@ const (
 // way to find a gVisor pod's CNI netns - the pod's cgroup.procs PIDs live in
 // gVisor's internal sandbox netns, not the CNI netns where the veth lives.
 func (r *linuxReader) sandboxNetnsPath(ctx context.Context, podUID string) (string, error) {
-	ctx = namespaces.WithNamespace(ctx, "k8s.io")
+	ctx = metadata.AppendToOutgoingContext(ctx, "containerd-namespace", "k8s.io")
 
 	// containerd filter syntax quotes label keys with the full dotted name.
 	// Matching on both labels narrows the result to the one pause/sandbox
@@ -45,13 +47,13 @@ func (r *linuxReader) sandboxNetnsPath(ctx context.Context, podUID string) (stri
 		criKindLabel, criKindSandbox,
 	)
 
-	containers, err := r.listSandboxes(ctx, filter)
+	res, err := r.listSandboxes(ctx, &containersapi.ListContainersRequest{Filters: []string{filter}})
 	if err != nil {
 		logger.Debug("sandbox netns: containerd list failed", "pod_uid", podUID, "error", err.Error())
 		return "", fmt.Errorf("containerd list: %w", err)
 	}
 
-	if len(containers) == 0 {
+	if len(res.Containers) == 0 {
 		logger.Debug("sandbox netns: no containerd sandbox container for pod", "pod_uid", podUID)
 		return "", fmt.Errorf("%w: pod %s", ErrSandboxNotFound, podUID)
 	}
@@ -67,27 +69,27 @@ func (r *linuxReader) sandboxNetnsPath(ctx context.Context, podUID string) (stri
 	// has not been created yet; report ENOENT so the worker files it as
 	// benign churn and the next tick retries.
 	staleNetns := ""
-	for _, c := range containers {
-		spec, err := c.Spec(ctx)
-		if err != nil {
+	for _, c := range res.Containers {
+		var spec specs.Spec
+		if err := json.Unmarshal(c.GetSpec().GetValue(), &spec); err != nil {
 			logger.Debug("sandbox netns: failed to load OCI spec",
-				"pod_uid", podUID, "sandbox_id", c.ID(), "error", err.Error())
+				"pod_uid", podUID, "sandbox_id", c.ID, "error", err.Error())
 			continue
 		}
 		if spec.Linux == nil {
 			logger.Debug("sandbox netns: OCI spec has no linux section",
-				"pod_uid", podUID, "sandbox_id", c.ID())
+				"pod_uid", podUID, "sandbox_id", c.ID)
 			continue
 		}
-		path := networkNamespacePath(spec)
+		path := networkNamespacePath(&spec)
 		if path == "" {
 			logger.Debug("sandbox netns: OCI spec.linux.namespaces has no network entry with a path",
-				"pod_uid", podUID, "sandbox_id", c.ID(), "namespaces", spec.Linux.Namespaces)
+				"pod_uid", podUID, "sandbox_id", c.ID, "namespaces", spec.Linux.Namespaces)
 			continue
 		}
 		if r.netnsGone(path) {
 			logger.Debug("sandbox netns: skipping stopped sandbox, netns removed",
-				"pod_uid", podUID, "sandbox_id", c.ID(), "netns_path", path)
+				"pod_uid", podUID, "sandbox_id", c.ID, "netns_path", path)
 			staleNetns = path
 			continue
 		}
@@ -103,7 +105,7 @@ func (r *linuxReader) sandboxNetnsPath(ctx context.Context, podUID string) (stri
 
 // networkNamespacePath returns linux.namespaces[type=network].path from an
 // OCI spec, or "" when the spec has none (host-network sandboxes).
-func networkNamespacePath(spec *oci.Spec) string {
+func networkNamespacePath(spec *specs.Spec) string {
 	for _, ns := range spec.Linux.Namespaces {
 		if ns.Type == "network" && ns.Path != "" {
 			return ns.Path

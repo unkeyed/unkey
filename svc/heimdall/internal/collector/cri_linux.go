@@ -10,11 +10,14 @@ import (
 	"time"
 
 	eventstypes "github.com/containerd/containerd/api/events"
-	containerd "github.com/containerd/containerd/v2/client"
-	"github.com/containerd/containerd/v2/pkg/namespaces"
-	"github.com/containerd/typeurl/v2"
+	containersapi "github.com/containerd/containerd/api/services/containers/v1"
+	eventsapi "github.com/containerd/containerd/api/services/events/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/heimdall/internal/containerdrpc"
 	"github.com/unkeyed/unkey/svc/heimdall/internal/metrics"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // Labels set by the kubelet on each containerd container. We match on these
@@ -52,7 +55,7 @@ type criHandler interface {
 // TaskExit matters because the pod-level cgroup can be torn down within one
 // checkpoint_interval of termination, losing the final counter delta.
 type criWatcher struct {
-	client  *containerd.Client
+	client  *grpc.ClientConn
 	handler criHandler
 }
 
@@ -63,7 +66,7 @@ func newCRIWatcher(socketPath string, handler criHandler) (*criWatcher, error) {
 		return nil, errors.New("cri handler is required")
 	}
 
-	c, err := containerd.New(socketPath, containerd.WithDefaultNamespace("k8s.io"))
+	c, err := containerdrpc.NewConnection(socketPath)
 	if err != nil {
 		return nil, fmt.Errorf("dial containerd at %s: %w", socketPath, err)
 	}
@@ -75,7 +78,7 @@ func newCRIWatcher(socketPath string, handler criHandler) (*criWatcher, error) {
 // If the subscription breaks (containerd restart, broken pipe), Run reconnects
 // with exponential backoff until ctx is cancelled.
 func (w *criWatcher) Run(ctx context.Context) error {
-	ctx = namespaces.WithNamespace(ctx, "k8s.io")
+	ctx = metadata.AppendToOutgoingContext(ctx, "containerd-namespace", "k8s.io")
 
 	backoff := time.Second
 	const maxBackoff = 30 * time.Second
@@ -119,42 +122,30 @@ func (w *criWatcher) runOnce(parent context.Context) error {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
-	envCh, errCh := w.client.Subscribe(ctx,
-		`topic=="/tasks/start"`,
-		`topic=="/tasks/exit"`,
-	)
+	stream, err := eventsapi.NewEventsClient(w.client).Subscribe(ctx, &eventsapi.SubscribeRequest{
+		Filters: []string{`topic=="/tasks/start"`, `topic=="/tasks/exit"`},
+	})
+	if err != nil {
+		return fmt.Errorf("subscribe to containerd events: %w", err)
+	}
 
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-
-		case err := <-errCh:
-			if err == nil {
-				return io.EOF
-			}
-
+		env, err := stream.Recv()
+		if err != nil {
 			return fmt.Errorf("containerd event stream: %w", err)
-
-		case env := <-envCh:
-			if env == nil {
-				// Channel closed without an error signal.
-				return io.EOF
-			}
-
-			w.handle(ctx, env.Topic, env.Event)
 		}
+		w.handle(ctx, env.Topic, env.Event)
 	}
 }
 
 // handle decodes an event and resolves it to a pod UID before dispatching.
 // Shared between start/exit because both event types carry a ContainerID.
-func (w *criWatcher) handle(ctx context.Context, topic string, raw typeurl.Any) {
+func (w *criWatcher) handle(ctx context.Context, topic string, raw *anypb.Any) {
 	if raw == nil {
 		return
 	}
 
-	v, err := typeurl.UnmarshalAny(raw)
+	v, err := raw.UnmarshalNew()
 	if err != nil {
 		logger.Warn("failed to decode task event", "topic", topic, "error", err.Error())
 		return
@@ -200,16 +191,13 @@ func (w *criWatcher) handle(ctx context.Context, topic string, raw typeurl.Any) 
 // from its labels. Returns false if the container is gone, is the pause/infra
 // container, or lacks the expected kubelet labels.
 func (w *criWatcher) resolvePodUID(ctx context.Context, containerID string) (string, bool) {
-	container, err := w.client.LoadContainer(ctx, containerID)
+	res, err := containersapi.NewContainersClient(w.client).Get(ctx, &containersapi.GetContainerRequest{ID: containerID})
 	if err != nil {
 		// Container is already gone (common on exit events after kubelet GC).
 		return "", false
 	}
 
-	labels, err := container.Labels(ctx)
-	if err != nil {
-		return "", false
-	}
+	labels := res.GetContainer().GetLabels()
 
 	// Ignore the pause/infra container. The primary container's own Task
 	// event fires separately and is what we bill.
