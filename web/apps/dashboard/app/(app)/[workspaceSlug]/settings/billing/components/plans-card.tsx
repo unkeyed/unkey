@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaymentIssues } from "@/components/billing/payment-issues";
 import { currentApiProduct } from "@/lib/billing/api-plan";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -47,11 +48,17 @@ export function PlansCard({ isAdmin, hasPaymentMethod, workspaceSlug, billing }:
     onError: (err) => toast.error(err.message),
   });
 
+  const hasPaymentIssue = usePaymentIssues().length > 0;
   const hasPaidApiPlan = billing !== undefined && Boolean(currentApiProduct(billing));
   const emphasize = billing !== undefined && !deploySubscription?.plan && !hasPaidApiPlan;
 
   return (
-    <ItemGroup variant="outline">
+    <ItemGroup
+      variant="outline"
+      className={
+        hasPaymentIssue ? "[--plan-action-w:--spacing(44)]" : "[--plan-action-w:--spacing(20)]"
+      }
+    >
       <ItemHeader>
         <ItemContent>
           <ItemTitle>Plans</ItemTitle>

@@ -45,7 +45,7 @@ export function PaymentFailedBanner() {
         ))
         .exhaustive()}
     >
-      <span className="font-semibold">Payment failed.</span> We could not charge your card.
+      <span className="font-semibold">Payment failed.</span> Your last payment did not go through.
     </AppBanner>
   );
 }

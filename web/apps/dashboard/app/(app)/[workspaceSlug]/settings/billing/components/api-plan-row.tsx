@@ -42,7 +42,7 @@ export function ApiPlanRow({ isAdmin, emphasize, billing }: ApiPlanRowProps) {
         <ItemActions className="gap-3">
           <PlanName>{currentProduct ? currentProduct.name : "Free"}</PlanName>
           <PlanPrice feeCents={(currentProduct?.dollar ?? 0) * 100} />
-          <span className="flex w-20 justify-end">
+          <span className="flex w-(--plan-action-w) justify-end">
             <PlanRowAction
               product="api"
               paymentFailed={paymentFailed}

@@ -56,7 +56,7 @@ export function PlanTableHeader() {
       <div className="min-w-0 flex-1">Product</div>
       <div className="w-28">Plan</div>
       <div className="w-36">Price</div>
-      <div className="w-20" />
+      <div className="w-(--plan-action-w)" />
     </div>
   );
 }
@@ -71,7 +71,7 @@ export function PlanCellsSkeleton() {
       <span className="flex h-5 w-36 items-center">
         <Skeleton className="h-4 w-20" />
       </span>
-      <span className="flex w-20 justify-end">
+      <span className="flex w-(--plan-action-w) justify-end">
         <Skeleton className="h-7 w-16 rounded-md" />
       </span>
     </>
@@ -140,10 +140,41 @@ export function PlanRowAction({
   onClick: () => void;
   chooseLabel: string;
 }) {
-  if (paymentFailed) {
-    return <PayInvoiceAction isAdmin={isAdmin} product={product} />;
+  const planAction = (
+    <PlanChangeAction
+      isAdmin={isAdmin}
+      hasPlan={hasPlan}
+      emphasize={emphasize && !paymentFailed}
+      onClick={onClick}
+      chooseLabel={chooseLabel}
+    />
+  );
+
+  if (!paymentFailed) {
+    return planAction;
   }
 
+  return (
+    <span className="flex gap-2">
+      <PayInvoiceAction isAdmin={isAdmin} product={product} />
+      {planAction}
+    </span>
+  );
+}
+
+function PlanChangeAction({
+  isAdmin,
+  hasPlan,
+  emphasize,
+  onClick,
+  chooseLabel,
+}: {
+  isAdmin: boolean | undefined;
+  hasPlan: boolean;
+  emphasize: boolean;
+  onClick: () => void;
+  chooseLabel: string;
+}) {
   if (hasPlan) {
     return (
       <AdminGate isAdmin={isAdmin}>

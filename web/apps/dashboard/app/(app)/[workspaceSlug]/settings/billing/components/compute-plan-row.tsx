@@ -83,7 +83,7 @@ export function ComputePlanRow({ isAdmin, emphasize }: ComputePlanRowProps) {
             usageCreditCents={credit?.cents ?? null}
             usageCreditProrated={credit?.prorated ?? false}
           />
-          <span className="flex w-20 justify-end">
+          <span className="flex w-(--plan-action-w) justify-end">
             <PlanRowAction
               product="compute"
               paymentFailed={paymentFailed}
