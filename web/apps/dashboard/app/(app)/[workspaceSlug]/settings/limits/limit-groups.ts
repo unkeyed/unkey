@@ -148,7 +148,7 @@ function logGroup(limits: V2WorkspaceGetLimitsResponseData | undefined): LimitGr
 function customDomainsRow(customDomains: V2WorkspaceGetLimitsLimit | undefined): LimitRow {
   const text = {
     name: "Custom domains",
-    description: "Domains you can attach across all apps in this workspace.",
+    description: "Custom domains you can attach across all apps. Subdomains are unlimited.",
     breachKey: "domains",
   } as const;
 
