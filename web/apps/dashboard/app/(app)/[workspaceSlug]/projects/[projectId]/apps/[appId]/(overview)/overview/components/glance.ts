@@ -1,6 +1,7 @@
 import {
   METRIC_CATALOG,
   type MetricSource,
+  type RangePreset,
   type SourcePoint,
   type Sources,
 } from "@/lib/metrics/app-metrics";
@@ -13,6 +14,8 @@ import {
   errorRate,
   sumOf,
 } from "@/lib/metrics/views";
+
+export const GLANCE_RANGE: RangePreset = "24h";
 
 export const GLANCE_METRICS = ["requests", "errors", "cpu"] as const;
 

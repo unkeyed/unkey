@@ -1,4 +1,4 @@
-import { collection } from "@/lib/collections";
+import { useDeployActions } from "@/lib/deploy-data";
 import { trpc } from "@/lib/trpc/client";
 import { Combobox, toast } from "@unkey/ui";
 import { useMemo } from "react";
@@ -16,6 +16,7 @@ export const GitHubConnected = ({
   repoFullName: string;
 }) => {
   const utils = trpc.useUtils();
+  const { refetchApps } = useDeployActions();
 
   const { data: reposData, isLoading: isLoadingRepos } = trpc.github.listRepositories.useQuery(
     { projectId },
@@ -43,7 +44,7 @@ export const GitHubConnected = ({
       toast.success("Repository connected");
       await utils.github.getInstallations.invalidate();
       await utils.github.getRepoTree.invalidate();
-      await collection.apps.utils.refetch();
+      await refetchApps();
     },
     onError: (error) => {
       toast.error(error.message);

@@ -1,6 +1,6 @@
 "use client";
 
-import type { DeploymentSummary } from "@/lib/collections";
+import { type DeploymentSummary, useDeployActions } from "@/lib/deploy-data";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
@@ -10,7 +10,6 @@ import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui"
 import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { Avatar } from "../../../components/git-avatar";
-import { useProjectData } from "../../data-provider";
 
 type UndoRollbackDialogProps = {
   isOpen: boolean;
@@ -36,7 +35,7 @@ export function UndoRollbackDialog({
     }
   }, [isOpen]);
 
-  const { awaitLiveDeployment } = useProjectData();
+  const { awaitLiveDeployment } = useDeployActions();
   const promote = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.promoteDeployment({ deploymentId }),

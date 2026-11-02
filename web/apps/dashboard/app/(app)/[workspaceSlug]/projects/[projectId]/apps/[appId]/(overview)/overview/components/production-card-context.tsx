@@ -1,7 +1,7 @@
 "use client";
 
 import type { AppSource } from "@/components/deploy/app-source";
-import type { Deployment, DeploymentSummary } from "@/lib/collections";
+import type { Deployment, DeploymentSummary } from "@/lib/deploy-data";
 import type { Route } from "next";
 import { createContext, use } from "react";
 import type { DisplayDomain } from "../../../components/display-domain";

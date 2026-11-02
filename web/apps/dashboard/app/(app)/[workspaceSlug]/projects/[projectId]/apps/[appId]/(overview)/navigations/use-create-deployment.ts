@@ -1,15 +1,14 @@
-import { collection } from "@/lib/collections";
+import { useAppScope, useDeployActions } from "@/lib/deploy-data";
 import type { DeployGitSource } from "@/lib/deploy-ref";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
-import { useAppId, useProjectData } from "../data-provider";
 
 type DeploymentSource = { environment: string } & ({ git: DeployGitSource } | { oci: string });
 
 export function useCreateDeployment(onDeployed: () => void) {
-  const { projectId, refetchDeployments } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const { refetchDeployments, refetchApps } = useDeployActions();
 
   return useMutation({
     mutationFn: async (source: DeploymentSource) => {
@@ -24,7 +23,7 @@ export function useCreateDeployment(onDeployed: () => void) {
       toast.success("Deployment has been created");
       onDeployed();
       refetchDeployments();
-      await collection.apps.utils.refetch();
+      await refetchApps();
     },
     onError(err, variables) {
       console.error("createDeployment failed", {
