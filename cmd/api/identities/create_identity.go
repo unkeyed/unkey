@@ -54,7 +54,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 			send := func(req components.V2IdentitiesCreateIdentityRequestBody) error {
 				res, err := client.Identities.CreateIdentity(ctx, req)
 				if err != nil {
-					return fmt.Errorf("%s", util.FormatError(err))
+					return err
 				}
 				return util.Output(cmd, res.V2IdentitiesCreateIdentityResponseBody)
 			}

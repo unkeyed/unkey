@@ -48,7 +48,7 @@ spec:
       labels:
         app: heimdall
     spec:
-      serviceAccountName: unkey-serviceaccount
+      serviceAccountName: heimdall
       hostNetwork: true
       # hostPID lets heimdall see host-level PIDs when reading each pod's
       # cgroup.procs, required for resolving the pod's netns at

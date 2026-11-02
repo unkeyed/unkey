@@ -6,6 +6,7 @@ import {
 } from "@/lib/metrics/app-metrics";
 import {
   type ChartState,
+  METRIC_VIEWS,
   type MetricUnit,
   type SourceOf,
   cardState,
@@ -50,13 +51,14 @@ type ReadyChart = Extract<ChartState, { status: "ready" }>;
 
 export type GlanceCellState = Exclude<ChartState, ReadyChart> | (ReadyChart & { headline: number });
 
-// A cell with no headline is empty even when its series is a run of zeros, so
-// an app with no traffic reads the same in all three cells.
 export function glanceCellState(metric: GlanceMetric, sources: Sources): GlanceCellState {
   const state = cardState(sources, metric);
   if (state.status !== "ready") {
     return state;
   }
   const headline = glanceValue(metric, sources);
-  return headline === null ? { status: "empty" } : { ...state, headline };
+  const primary = METRIC_VIEWS[metric].primary;
+  return headline === null || !state.chart.some((p) => (p[primary] ?? 0) > 0)
+    ? { status: "empty" }
+    : { ...state, headline };
 }

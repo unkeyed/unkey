@@ -1,20 +1,28 @@
 package handler_test
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/keys/metrics"
+	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/logger/loggertest"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -24,7 +32,40 @@ import (
 
 func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 	h, route, p := newHarness(t)
+	var events []auditlog.Event
+	auditLogBuffer := batch.New(batch.Config[auditlog.Event]{
+		Name:          "ip_denial_test",
+		BatchSize:     1,
+		BufferSize:    10,
+		FlushInterval: time.Hour,
+		Consumers:     1,
+		Drop:          false,
+		Flush:         func(_ context.Context, batch []auditlog.Event) { events = append(events, batch...) },
+	})
+	t.Cleanup(auditLogBuffer.Close)
+	keyConfig := keys.Config{
+		DB:             db.ToMySQL(h.DB),
+		KeyCache:       h.Caches.VerificationKeyByHash,
+		RootKeyCache:   h.Caches.RootKeyByHash,
+		RateLimiter:    h.Ratelimit,
+		RBAC:           rbac.New(),
+		Region:         "test",
+		UsageLimiter:   h.UsageLimiter,
+		Source:         "api",
+		AuditLogBuffer: nil,
+	}
+	keyService, err := keys.New(keyConfig)
+	require.ErrorContains(t, err, "audit log buffer is required")
+	require.Nil(t, keyService)
+	keyConfig.AuditLogBuffer = auditLogBuffer
+	keyService, err = keys.New(keyConfig)
+	require.NoError(t, err)
+	metaExpected := []map[string]any{}
+	ipsExpected := []string{}
+	startedAt := time.Now().UnixMilli()
 	logs := loggertest.Install(t)
+	logger.SetSampler(logger.TailSampler{SampleRate: 0, SlowThreshold: time.Hour})
+	t.Cleanup(func() { logger.SetSampler(logger.AlwaysSample{}) })
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 	}, handler.Request{Permissions: []string{}, IpAllowlist: &[]string{"198.51.100.128/25"}})
@@ -63,26 +104,39 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 			req.RemoteAddr = test.address
 			req.Header.Set("Authorization", "Bearer "+res.Body.Data.Key)
 			req.Header.Set("X-Forwarded-For", "198.51.100.128")
+			req.Header.Set("User-Agent", "ip-denial-test")
 			session := &zen.Session{}
 			require.NoError(t, session.Init(httptest.NewRecorder(), req, 0))
 			validBefore := rootKeyVerificationCount(t, "VALID")
 			notFoundBefore := rootKeyVerificationCount(t, "NOT_FOUND")
 			var denialsBefore, denialsAfter dto.Metric
-			require.NoError(t, metrics.AuthIPAllowlistDenialsTotal.WithLabelValues().Write(&denialsBefore))
+			counter, counterErr := metrics.AuthIPAllowlistDenialsTotal.GetMetricWithLabelValues()
+			require.NoError(t, counterErr)
+			require.NoError(t, counter.Write(&denialsBefore))
 			ctx, event := logger.StartWideEvent(t.Context(), "root key authentication")
-			_, err := h.Keys.GetRootKey(ctx, session)
-			event.SetError(err)
+			snapshot := logs.Snapshot()
+			_, err := keyService.GetRootKey(ctx, session)
 			event.End()
-			attrs := loggertest.FlatAttrs(logs.Last(t))
-			require.Equal(t, res.Body.Data.KeyId, attrs["auth.root_key_id"])
-			require.Equal(t, p.AuthorizedWorkspaceID, attrs["auth.workspace_id"])
-			require.NoError(t, metrics.AuthIPAllowlistDenialsTotal.WithLabelValues().Write(&denialsAfter))
+			warnings := []slog.Record{}
+			for _, record := range logs.Since(snapshot) {
+				if record.Message == "This IP address is not allowed to use the root key." {
+					warnings = append(warnings, record)
+				}
+			}
+			require.NoError(t, counter.Write(&denialsAfter))
 			if test.allowed {
+				require.Empty(t, warnings)
 				require.NoError(t, err)
 				require.Equal(t, denialsBefore.GetCounter().GetValue(), denialsAfter.GetCounter().GetValue())
 				require.Equal(t, validBefore+1, rootKeyVerificationCount(t, "VALID"))
 				require.Equal(t, notFoundBefore, rootKeyVerificationCount(t, "NOT_FOUND"))
 			} else {
+				ipsExpected = append(ipsExpected, session.ClientIP().String())
+				metaExpected = append(metaExpected, map[string]any{
+					"request_id":  session.RequestID(),
+					"allowed_ips": []string{"198.51.100.128/25", "2001:db8:1234::/48"},
+				})
+				require.Empty(t, warnings)
 				require.Error(t, err)
 				require.Equal(t, denialsBefore.GetCounter().GetValue()+1, denialsAfter.GetCounter().GetValue())
 				code, ok := fault.GetCode(err)
@@ -95,6 +149,21 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 				require.Equal(t, validBefore, rootKeyVerificationCount(t, "VALID"))
 			}
 		})
+	}
+	auditLogBuffer.Close()
+	require.Len(t, events, len(metaExpected))
+	for i, event := range events {
+		require.Equal(t, "auth.ipDenied", event.Event)
+		require.Equal(t, p.AuthorizedWorkspaceID, event.WorkspaceID)
+		require.Equal(t, res.Body.Data.KeyId, event.Actor.ID)
+		require.Len(t, event.Targets, 1)
+		require.Equal(t, res.Body.Data.KeyId, event.Targets[0].ID)
+		require.Equal(t, ipsExpected[i], event.RemoteIP)
+		require.Equal(t, "ip-denial-test", event.UserAgent)
+		require.Equal(t, fmt.Sprintf("Root key authentication from %s denied by IP allowlist", ipsExpected[i]), event.Description)
+		require.GreaterOrEqual(t, event.Time, startedAt)
+		require.LessOrEqual(t, event.Time, time.Now().UnixMilli())
+		require.Equal(t, metaExpected[i], event.Meta)
 	}
 }
 

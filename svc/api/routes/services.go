@@ -62,8 +62,8 @@ type Services struct {
 	// KeyVerifications buffers API key outcomes and root key usage for ClickHouse.
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 
-	// DirectAuditLogs buffers high-volume audit logs that bypass the MySQL outbox.
-	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
+	// AuditLogBuffer buffers high-volume audit logs that bypass the MySQL outbox.
+	AuditLogBuffer *batch.BatchProcessor[auditlog.Event]
 
 	// Clock is the time source handlers read the current time from, so tests can
 	// drive time deterministically instead of racing the system clock.

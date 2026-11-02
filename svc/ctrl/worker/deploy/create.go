@@ -27,6 +27,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"google.golang.org/protobuf/encoding/protojson"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 const (
@@ -285,7 +286,7 @@ func (w *Workflow) validateAndBuildPayload(
 				)
 			case db.IsNotFound(err):
 				capabilities.PrivateNetworking = w.flags.IsPrivateNetworkingEnabled(runCtx, target.WorkspaceID)
-				if secrets, connections, err = w.loadSecrets(runCtx, *target, capabilities.PrivateNetworking); err != nil {
+				if secrets, connections, err = w.loadSecrets(runCtx, deploymentID, *target, capabilities.PrivateNetworking); err != nil {
 					return payload, err
 				}
 			default:
@@ -665,7 +666,7 @@ func triggerFromProto(trigger ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
 	}
 }
 
-func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRow, privateNetworking bool) ([]byte, []db.ListAppConnectionsByAppRow, error) {
+func (w *Workflow) loadSecrets(ctx context.Context, deploymentID string, target db.FindDeployTargetRow, privateNetworking bool) ([]byte, []db.ListAppConnectionsByAppRow, error) {
 	envVars, err := w.db.FindAppEnvVarsByAppAndEnv(ctx, db.FindAppEnvVarsByAppAndEnvParams{
 		AppID:         target.AppID,
 		EnvironmentID: target.EnvironmentID,
@@ -687,11 +688,11 @@ func (w *Workflow) loadSecrets(ctx context.Context, target db.FindDeployTargetRo
 		}
 	}
 
-	secrets, err := w.buildSecretsBlob(ctx, target.EnvironmentID, envVars, connections)
+	secrets, err := w.buildSecretsBlob(ctx, deploymentID, target, envVars, connections)
 	return secrets, connections, err
 }
 
-func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, envVars []db.FindAppEnvVarsByAppAndEnvRow, connections []db.ListAppConnectionsByAppRow) ([]byte, error) {
+func (w *Workflow) buildSecretsBlob(ctx context.Context, deploymentID string, target db.FindDeployTargetRow, envVars []db.FindAppEnvVarsByAppAndEnvRow, connections []db.ListAppConnectionsByAppRow) ([]byte, error) {
 	if len(envVars) == 0 && len(connections) == 0 {
 		return []byte{}, nil
 	}
@@ -707,9 +708,13 @@ func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, e
 		config.Secrets[ev.Key] = ev.Value
 	}
 
+	if len(connections) > 0 && len(k8svalidation.IsDNS1123Label(target.K8sNamespace)) != 0 {
+		return nil, restate.ToTerminalError(fmt.Errorf("workspace %s has invalid Kubernetes namespace %q", target.WorkspaceID, target.K8sNamespace))
+	}
+
 	connectionValues := make(map[string]string, len(connections))
 	for _, connection := range connections {
-		key, host := app.HostVariable(connection.Name)
+		key, host := app.HostVariable(deploymentID, connection.Name, target.K8sNamespace)
 		if !app.IsValidName(connection.Name) {
 			return nil, restate.ToTerminalError(fmt.Errorf("connection %q produces invalid or reserved environment variable %q", connection.Name, key))
 		}
@@ -722,7 +727,7 @@ func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, e
 			return nil, restate.ToTerminalError(errors.New("vault is required to snapshot app connections"))
 		}
 
-		encrypted, encryptErr := w.vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{Keyring: environmentID, Items: connectionValues})
+		encrypted, encryptErr := w.vault.EncryptBulk(ctx, &vaultv1.EncryptBulkRequest{Keyring: target.EnvironmentID, Items: connectionValues})
 		if encryptErr != nil {
 			return nil, fmt.Errorf("failed to encrypt app connection hostnames: %w", encryptErr)
 		}

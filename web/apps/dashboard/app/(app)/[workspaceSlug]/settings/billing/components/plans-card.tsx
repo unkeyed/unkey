@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { AdminGate } from "./admin-gate";
 import { ApiPlanRow } from "./api-plan-row";
 import { ComputePlanRow } from "./compute-plan-row";
-import { PlanTableHeader } from "./plan-row";
+import { PlanTable } from "./plan-row";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 
@@ -110,13 +110,11 @@ export function PlansCard({ isAdmin, hasPaymentMethod, workspaceSlug, billing }:
         </ItemActions>
       </ItemHeader>
 
-      <ItemSeparator />
-      <PlanTableHeader />
-      <ItemSeparator />
-      <ComputePlanRow isAdmin={isAdmin} emphasize={emphasize} />
-
-      <ItemSeparator />
-      <ApiPlanRow isAdmin={isAdmin} emphasize={emphasize} billing={billing} />
+      <PlanTable>
+        <ComputePlanRow isAdmin={isAdmin} emphasize={emphasize} />
+        <ItemSeparator />
+        <ApiPlanRow isAdmin={isAdmin} emphasize={emphasize} billing={billing} />
+      </PlanTable>
     </ItemGroup>
   );
 }
