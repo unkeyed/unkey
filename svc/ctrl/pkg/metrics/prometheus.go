@@ -112,4 +112,15 @@ var (
 		},
 		vec.Values("result", "success", "error"),
 	)
+
+	VaultReEncryptionsDataTotal = vec.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "vault_reencryptions_data_total",
+			Help:      "Data re-encryption attempts by outcome, including retries.",
+		},
+		vec.Values("table", "encrypted_keys"),
+		vec.Values("outcome", "updated", "conflict", "error"),
+	)
 )

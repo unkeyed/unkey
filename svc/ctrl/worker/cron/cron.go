@@ -16,6 +16,7 @@ package cron
 import (
 	"time"
 
+	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -37,6 +38,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/keyrefill"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/quotacheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/ratelimitcleanup"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -62,6 +64,7 @@ type Service struct {
 	keyRefill               *keyrefill.Handler
 	quotaCheck              *quotacheck.Handler
 	ratelimitCleanup        *ratelimitcleanup.Handler
+	vaultReEncryption       *vaultreencryption.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
@@ -95,13 +98,15 @@ type Heartbeats struct {
 	DeployBillingPush  healthcheck.Heartbeat
 	DeployBillingClose healthcheck.Heartbeat
 	DeploySpendCheck   healthcheck.Heartbeat
+	VaultReEncryption  healthcheck.Heartbeat
 }
 
 // Config holds Service dependencies. All fields except
-// SlackQuotaCheckWebhookURL are required.
+// Vault and SlackQuotaCheckWebhookURL are required.
 type Config struct {
 	// DB is the primary application database. Must not be nil.
-	DB db.Database
+	DB    db.Database
+	Vault vault.VaultServiceClient
 	// Clickhouse is the analytics database. Must not be nil — pass
 	// clickhouse.NewNoop() if unavailable.
 	Clickhouse clickhouse.ClickHouse
@@ -165,6 +170,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.Heartbeats.DeployBillingPush, "Heartbeats.DeployBillingPush must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeployBillingClose, "Heartbeats.DeployBillingClose must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.DeploySpendCheck, "Heartbeats.DeploySpendCheck must not be nil; use healthcheck.NewNoop()"),
+		assert.NotNil(cfg.Heartbeats.VaultReEncryption, "Heartbeats.VaultReEncryption must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
@@ -328,6 +334,13 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	vaultReEncryptionH, err := vaultreencryption.New(vaultreencryption.Config{
+		DB: cfg.DB, Vault: cfg.Vault, Heartbeat: cfg.Heartbeats.VaultReEncryption,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogCleanup:                auditLogCleanupH,
@@ -343,6 +356,7 @@ func New(cfg Config) (*Service, error) {
 		keyRefill:                      keyRefillH,
 		quotaCheck:                     quotaCheckH,
 		ratelimitCleanup:               ratelimitCleanupH,
+		vaultReEncryption:              vaultReEncryptionH,
 	}, nil
 }
 
@@ -448,4 +462,11 @@ func (s *Service) RunClickhouseUserReconcile(
 	req *hydrav1.RunClickhouseUserReconcileRequest,
 ) (*hydrav1.RunClickhouseUserReconcileResponse, error) {
 	return s.clickhouseUserReconcile.Handle(ctx, req)
+}
+
+func (s *Service) RunVaultReEncryption(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunVaultReEncryptionRequest,
+) (*hydrav1.RunVaultReEncryptionResponse, error) {
+	return s.vaultReEncryption.Handle(ctx, req)
 }
