@@ -10,28 +10,34 @@ import (
 )
 
 const lockLimitsByWorkspaceID = `-- name: LockLimitsByWorkspaceID :one
-SELECT cpu_cores_max, memory_mib_max, storage_mib_max
+SELECT cpu_cores_max, memory_mib_max, storage_mib_max, custom_domains_max
 FROM ` + "`" + `limits` + "`" + `
 WHERE workspace_id = ?
 FOR UPDATE
 `
 
 type LockLimitsByWorkspaceIDRow struct {
-	CpuCoresMax   uint32 `db:"cpu_cores_max"`
-	MemoryMibMax  uint32 `db:"memory_mib_max"`
-	StorageMibMax uint32 `db:"storage_mib_max"`
+	CpuCoresMax      uint32 `db:"cpu_cores_max"`
+	MemoryMibMax     uint32 `db:"memory_mib_max"`
+	StorageMibMax    uint32 `db:"storage_mib_max"`
+	CustomDomainsMax uint32 `db:"custom_domains_max"`
 }
 
-// Must be the first statement of its transaction: the quota sum that follows
-// relies on the read view opening after this lock is held
+// Must be the first statement of its transaction: the usage reads that follow
+// rely on the read view opening after this lock is held
 //
-//	SELECT cpu_cores_max, memory_mib_max, storage_mib_max
+//	SELECT cpu_cores_max, memory_mib_max, storage_mib_max, custom_domains_max
 //	FROM `limits`
 //	WHERE workspace_id = ?
 //	FOR UPDATE
 func (q *Queries) LockLimitsByWorkspaceID(ctx context.Context, workspaceID string) (LockLimitsByWorkspaceIDRow, error) {
 	row := q.db.QueryRowContext(ctx, lockLimitsByWorkspaceID, workspaceID)
 	var i LockLimitsByWorkspaceIDRow
-	err := row.Scan(&i.CpuCoresMax, &i.MemoryMibMax, &i.StorageMibMax)
+	err := row.Scan(
+		&i.CpuCoresMax,
+		&i.MemoryMibMax,
+		&i.StorageMibMax,
+		&i.CustomDomainsMax,
+	)
 	return i, err
 }

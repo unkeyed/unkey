@@ -1,5 +1,7 @@
 "use client";
 
+import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
+import { PaneRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-row";
 import { LoadError } from "@/components/load-error";
 import { collection } from "@/lib/collections";
 import { refetchProjectApps } from "@/lib/collections/deploy/apps";
@@ -12,8 +14,6 @@ import { appNameFromRepo, hasGeneratedName, isPlaceholderApp } from "../app-name
 import { NEW_APP_MUTATION_KEY, useNewAppFlow } from "../flow";
 import { newAppErrorMessage, useAppLifecycle } from "../use-app-lifecycle";
 import { CONNECT_GITHUB, useConnectGithub } from "../use-connect-github";
-import { PaneSubmit } from "./pane-actions";
-import { PaneRow } from "./pane-row";
 import { RepoNameList } from "./repository/repo-name-list";
 import { type RepoItem, resolvePickView } from "./repository/repository-view";
 
@@ -138,9 +138,7 @@ export function PickRepoPane({ appId }: { appId: string | null }) {
       >
         Can't find it? Add repositories on GitHub
       </Button>
-      {linkedRepoId !== null ? (
-        <PaneSubmit loading={false} disabled={locked} onClick={toConfigure} />
-      ) : null}
+      {linkedRepoId !== null ? <PaneSubmit disabled={locked} onClick={toConfigure} /> : null}
     </div>
   );
 

@@ -148,12 +148,6 @@ type Querier interface {
 	//  FROM `custom_domains`
 	//  WHERE domain = ?
 	CountCustomDomainsByDomain(ctx context.Context, domain string) (int64, error)
-	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
-	//
-	//  SELECT COUNT(*)
-	//  FROM custom_domains
-	//  WHERE workspace_id = ?
-	CountCustomDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	// CountDeploymentConnectionAppTargetsByConnectionId verifies deletion isolation in tests.
 	//
 	//  SELECT COUNT(*) FROM deployment_connection_app_targets WHERE connection_id = ?
@@ -2071,6 +2065,12 @@ type Querier interface {
 	//  FROM clickhouse_workspace_settings
 	//  ORDER BY workspace_id
 	ListClickhouseWorkspaceIDs(ctx context.Context) ([]string, error)
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT domain
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	ListCustomDomainNamesByWorkspace(ctx context.Context, workspaceID string) ([]string, error)
 	//ListCustomDomainsByEnvironmentID
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
@@ -2333,6 +2333,15 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
+	// Scan ciphertext without parent joins. The primary-key cursor advances
+	// past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, workspace_id AS keyring, encrypted AS ciphertext
+	//  FROM encrypted_keys
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultEncryptedKeys(ctx context.Context, arg ListVaultEncryptedKeysParams) ([]ListVaultEncryptedKeysRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -2417,10 +2426,10 @@ type Querier interface {
 	//      AND desired_state = 'running'
 	//  FOR UPDATE
 	LockDeploymentConnectionTargets(ctx context.Context, arg LockDeploymentConnectionTargetsParams) ([]LockDeploymentConnectionTargetsRow, error)
-	// Must be the first statement of its transaction: the quota sum that follows
-	// relies on the read view opening after this lock is held
+	// Must be the first statement of its transaction: the usage reads that follow
+	// rely on the read view opening after this lock is held
 	//
-	//  SELECT cpu_cores_max, memory_mib_max, storage_mib_max
+	//  SELECT cpu_cores_max, memory_mib_max, storage_mib_max, custom_domains_max
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	//  FOR UPDATE
@@ -2979,6 +2988,15 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateUnkeyRootKeysLastUsed(ctx context.Context, arg UpdateUnkeyRootKeysLastUsedParams) error
+	// Replace only the version that was read. Binary comparison protects
+	// concurrent writes even on case-insensitive database collations.
+	//
+	//  UPDATE encrypted_keys
+	//  SET encrypted = ?, encryption_key_id = ?
+	//  WHERE pk = ?
+	//    AND BINARY workspace_id = BINARY ?
+	//    AND BINARY encrypted = BINARY ?
+	UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error)
 	//UpdateWorkspaceBillingTier
 	//
 	//  UPDATE `workspace_billing`

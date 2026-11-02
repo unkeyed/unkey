@@ -107,17 +107,22 @@ func TestWithDatabase(t *testing.T) {
 
 ## Running tests
 
-During development, run tests for the package you are working on:
+Run targeted tests for the code you change:
 
 ```bash
 mise exec -- rask ./pkg/cache
 ```
 
-Before pushing, run the full test suite:
+Run the full test suite when the scope warrants it, such as changes to shared
+behavior or changes across services. It is not required before every push:
 
 ```bash
 mise run test
 ```
+
+If tests fail for reasons unrelated to your changes, report the failure and
+proceed when asked to push. Do not repeatedly rerun unrelated failures or fix
+them unless asked. State what you tested and what remains unverified.
 
 ## What is next
 

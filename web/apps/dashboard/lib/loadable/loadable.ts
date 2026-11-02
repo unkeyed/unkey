@@ -33,3 +33,7 @@ export function fromQuery<Q extends QueryResult<T>, T = Exclude<Q["data"], undef
   }
   return { status: "loading" };
 }
+
+export function readyOr<T>(view: Loadable<T>, fallback: T): T {
+  return view.status === "ready" ? view.data : fallback;
+}

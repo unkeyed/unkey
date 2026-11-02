@@ -8,7 +8,6 @@ import {
   initialWizardState,
   resolveCard,
   resumeWizard,
-  stepProgress,
   visibleSteps,
   wizardReducer,
   wizardSearchParams,
@@ -228,21 +227,6 @@ describe("visibleSteps", () => {
       "current",
       "todo",
     ]);
-  });
-});
-
-describe("stepProgress", () => {
-  it("counts only the visible steps", () => {
-    expect(stepProgress({ ...initialWizardState, source: "git", step: "source" })).toEqual({
-      at: 1,
-      total: 3,
-      label: "Step 2 of 3",
-    });
-    expect(stepProgress(withApp({ step: "settings" }))).toEqual({
-      at: 1,
-      total: 2,
-      label: "Step 2 of 2",
-    });
   });
 });
 
