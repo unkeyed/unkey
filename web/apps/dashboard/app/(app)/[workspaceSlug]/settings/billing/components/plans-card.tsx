@@ -1,6 +1,5 @@
 "use client";
 
-import { usePaymentIssues } from "@/components/billing/payment-issues";
 import { currentApiProduct } from "@/lib/billing/api-plan";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -20,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { AdminGate } from "./admin-gate";
 import { ApiPlanRow } from "./api-plan-row";
 import { ComputePlanRow } from "./compute-plan-row";
-import { PlanTableHeader } from "./plan-row";
+import { PlanTable } from "./plan-row";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
 
@@ -48,17 +47,11 @@ export function PlansCard({ isAdmin, hasPaymentMethod, workspaceSlug, billing }:
     onError: (err) => toast.error(err.message),
   });
 
-  const hasPaymentIssue = usePaymentIssues().length > 0;
   const hasPaidApiPlan = billing !== undefined && Boolean(currentApiProduct(billing));
   const emphasize = billing !== undefined && !deploySubscription?.plan && !hasPaidApiPlan;
 
   return (
-    <ItemGroup
-      variant="outline"
-      className={
-        hasPaymentIssue ? "[--plan-action-w:--spacing(44)]" : "[--plan-action-w:--spacing(20)]"
-      }
-    >
+    <ItemGroup variant="outline">
       <ItemHeader>
         <ItemContent>
           <ItemTitle>Plans</ItemTitle>
@@ -117,13 +110,11 @@ export function PlansCard({ isAdmin, hasPaymentMethod, workspaceSlug, billing }:
         </ItemActions>
       </ItemHeader>
 
-      <ItemSeparator />
-      <PlanTableHeader />
-      <ItemSeparator />
-      <ComputePlanRow isAdmin={isAdmin} emphasize={emphasize} />
-
-      <ItemSeparator />
-      <ApiPlanRow isAdmin={isAdmin} emphasize={emphasize} billing={billing} />
+      <PlanTable>
+        <ComputePlanRow isAdmin={isAdmin} emphasize={emphasize} />
+        <ItemSeparator />
+        <ApiPlanRow isAdmin={isAdmin} emphasize={emphasize} billing={billing} />
+      </PlanTable>
     </ItemGroup>
   );
 }

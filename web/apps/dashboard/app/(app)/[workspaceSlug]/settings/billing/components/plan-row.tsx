@@ -1,10 +1,22 @@
 "use client";
 
-import { usePayInvoice } from "@/components/billing/payment-issues";
+import { usePayInvoice, usePaymentIssues } from "@/components/billing/payment-issues";
 import { formatDollars } from "@/lib/fmt";
 import type { SubscriptionProduct } from "@/lib/stripe/billingSubscriptions";
 import { IconCircleInfoOutline12, IconCubeOutline18, IconNodesOutline18 } from "@unkey/icons";
-import { Badge, Button, InfoTooltip, ItemContent, ItemMedia, ItemTitle, Skeleton } from "@unkey/ui";
+import {
+  Badge,
+  Button,
+  InfoTooltip,
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemMedia,
+  ItemSeparator,
+  ItemTitle,
+  Skeleton,
+} from "@unkey/ui";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import { AdminGate } from "./admin-gate";
 
@@ -24,7 +36,7 @@ const PRODUCT_CELL: Record<
   },
 };
 
-export function PlanProductCell({
+function PlanProductCell({
   product,
   paymentFailed = false,
 }: {
@@ -50,36 +62,102 @@ export function PlanProductCell({
   );
 }
 
-export function PlanTableHeader() {
+function PlanRow({ children }: { children: ReactNode }) {
+  return <Item className="flex-wrap gap-y-2 @3xl:flex-nowrap">{children}</Item>;
+}
+
+export function PlanTable({ children }: { children: ReactNode }) {
+  const hasPaymentIssue = usePaymentIssues().length > 0;
+
   return (
-    <div className="flex items-center gap-3 bg-grayA-2 px-4 py-2 font-semibold text-3xs text-gray-9 uppercase tracking-wider">
-      <div className="min-w-0 flex-1">Product</div>
-      <div className="w-28">Plan</div>
-      <div className="w-36">Price</div>
-      <div className="w-(--plan-action-w)" />
+    <div
+      className={cn(
+        "@container flex flex-col",
+        hasPaymentIssue ? "[--plan-action-w:--spacing(44)]" : "[--plan-action-w:--spacing(20)]",
+      )}
+    >
+      <PlanTableHeader />
+      {children}
     </div>
   );
 }
 
-/** The plan, price, and action cells of a plan row while its data loads */
-export function PlanCellsSkeleton() {
+export function PlanRowLayout({
+  product,
+  paymentFailed = false,
+  name,
+  price,
+  action,
+}: {
+  product: SubscriptionProduct;
+  paymentFailed?: boolean;
+  name: ReactNode;
+  price: ReactNode;
+  action: ReactNode;
+}) {
+  return (
+    <PlanRow>
+      <PlanProductCell product={product} paymentFailed={paymentFailed} />
+      <ItemActions className="w-full flex-wrap gap-x-3 gap-y-2 pl-10 @3xl:w-auto @3xl:flex-nowrap @3xl:pl-0">
+        {name}
+        {price}
+        <span className="flex w-full justify-end @3xl:w-(--plan-action-w)">{action}</span>
+      </ItemActions>
+    </PlanRow>
+  );
+}
+
+export function PlanRowMessage({
+  product,
+  children,
+}: {
+  product: SubscriptionProduct;
+  children: ReactNode;
+}) {
+  return (
+    <PlanRow>
+      <PlanProductCell product={product} />
+      <p className="basis-full pl-10 text-sm text-gray-11 @3xl:basis-auto @3xl:pl-0">{children}</p>
+    </PlanRow>
+  );
+}
+
+export function PlanRowSkeleton({ product }: { product: SubscriptionProduct }) {
+  return (
+    <PlanRowLayout
+      product={product}
+      name={
+        <span className="flex h-5 items-center @3xl:w-28">
+          <Skeleton className="h-4 w-14" />
+        </span>
+      }
+      price={
+        <span className="flex h-5 items-center @3xl:w-36">
+          <Skeleton className="h-4 w-20" />
+        </span>
+      }
+      action={<Skeleton className="h-7 w-16 rounded-md" />}
+    />
+  );
+}
+
+function PlanTableHeader() {
   return (
     <>
-      <span className="flex h-5 w-28 items-center">
-        <Skeleton className="h-4 w-14" />
-      </span>
-      <span className="flex h-5 w-36 items-center">
-        <Skeleton className="h-4 w-20" />
-      </span>
-      <span className="flex w-(--plan-action-w) justify-end">
-        <Skeleton className="h-7 w-16 rounded-md" />
-      </span>
+      <ItemSeparator />
+      <div className="hidden items-center gap-3 bg-grayA-2 px-4 py-2 font-semibold text-3xs text-gray-9 uppercase tracking-wider @3xl:flex">
+        <div className="min-w-0 flex-1">Product</div>
+        <div className="w-28">Plan</div>
+        <div className="w-36">Price</div>
+        <div className="w-(--plan-action-w)" />
+      </div>
+      <ItemSeparator className="hidden @3xl:block" />
     </>
   );
 }
 
 export function PlanName({ children }: { children: string | null }) {
-  return <span className="w-28 truncate text-sm text-gray-11">{children ?? "—"}</span>;
+  return <span className="min-w-0 truncate text-sm text-gray-11 @3xl:w-28">{children ?? "—"}</span>;
 }
 
 export function PlanPrice({
@@ -96,11 +174,11 @@ export function PlanPrice({
   usageCreditProrated?: boolean;
 }) {
   if (feeCents === null) {
-    return <span className="w-36 text-sm text-gray-9">—</span>;
+    return <span className="text-sm text-gray-9 @3xl:w-36">—</span>;
   }
 
   return (
-    <span className="w-36 whitespace-nowrap text-sm tabular-nums">
+    <span className="whitespace-nowrap text-sm tabular-nums @3xl:w-36">
       <span className="font-medium text-gray-12">{formatDollars(feeCents)}</span>
       <span className="text-gray-10">/{interval}</span>
       {usageCreditCents === null ? null : (
@@ -155,7 +233,7 @@ export function PlanRowAction({
   }
 
   return (
-    <span className="flex gap-2">
+    <span className="flex flex-wrap justify-end gap-2 @3xl:flex-nowrap">
       <PayInvoiceAction isAdmin={isAdmin} product={product} />
       {planAction}
     </span>
