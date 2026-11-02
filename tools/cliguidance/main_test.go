@@ -52,6 +52,9 @@ func TestGeneratedSchemasCurrent(t *testing.T) {
 	for _, key := range []string{"github install-app", "workspace get-flags", "workspace get-limits"} {
 		require.Equal(t, &schemaContract{Type: "object"}, schemas[key])
 	}
+	for _, key := range []string{"root-keys create-key", "root-keys update-key"} {
+		require.NotContains(t, schemas[key].Properties, "ipAllowlist")
+	}
 	require.Contains(t, schemas, "keys whoami")
 	require.Contains(t, schemas, "root-keys create-key")
 	require.NotContains(t, schemas, "cli exchange-token")
