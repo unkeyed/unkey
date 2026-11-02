@@ -11,7 +11,6 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_domain"
 )
 
-// Read accepts update as well, so a key that creates a domain can poll it.
 func TestGetPortalDomainAuthorization(t *testing.T) {
 	f := setup(t)
 	stored := f.seedDomain(t, db.PortalDomainsVerificationStatusPending)
@@ -20,26 +19,24 @@ func TestGetPortalDomainAuthorization(t *testing.T) {
 	testCases := []struct {
 		name       string
 		permission string
-		shouldPass bool
+		status     int
 	}{
-		{name: "legacy read_portal", permission: "portal.*.read_portal", shouldPass: true},
-		{name: "legacy read_portal on this portal", permission: fmt.Sprintf("portal.%s.read_portal", f.portal.ID), shouldPass: true},
-		{name: "legacy update_portal", permission: "portal.*.update_portal", shouldPass: true},
-		{name: "urn read", permission: portalURN + "#read", shouldPass: true},
-		{name: "urn write", permission: portalURN + "#write", shouldPass: true},
-		{name: "urn admin", permission: fmt.Sprintf("unkey:v1:%s:**#*", f.workspaceID), shouldPass: true},
-		{name: "urn read on another project", permission: fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#read", f.workspaceID, uid.New(uid.ProjectPrefix), f.portal.ID), shouldPass: false},
-		{name: "legacy read on another portal", permission: fmt.Sprintf("portal.%s.read_portal", uid.New(uid.PortalPrefix)), shouldPass: false},
+		{name: "this portal's domains", permission: f.grant("read"), status: http.StatusOK},
+		{name: "this domain", permission: fmt.Sprintf("%s/domains/%s#read", portalURN, stored.ID), status: http.StatusOK},
+		{name: "every portal's domains in the project", permission: fmt.Sprintf("unkey:v1:%s:projects/%s/portals/*/domains/*#read", f.workspaceID, f.projectID), status: http.StatusOK},
+		{name: "everything under this portal", permission: portalURN + "/**#read", status: http.StatusOK},
+		{name: "admin", permission: fmt.Sprintf("unkey:v1:%s:**#*", f.workspaceID), status: http.StatusOK},
+		{name: "portal read names the missing permission", permission: portalURN + "#read", status: http.StatusForbidden},
+		{name: "domains write only", permission: f.grant("write"), status: http.StatusNotFound},
+		{name: "another domain", permission: fmt.Sprintf("%s/domains/%s#read", portalURN, uid.New(uid.PortalDomainPrefix)), status: http.StatusNotFound},
+		{name: "domains in another project", permission: fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/domains/*#read", f.workspaceID, uid.New(uid.ProjectPrefix), f.portal.ID), status: http.StatusNotFound},
+		{name: "legacy read_portal", permission: "portal.*.read_portal", status: http.StatusNotFound},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: stored.ID}, tc.permission)
-			if tc.shouldPass {
-				require.Equal(t, http.StatusOK, res.Status, "%s must authorize: %s", tc.permission, res.RawBody)
-				return
-			}
-			require.Equal(t, http.StatusNotFound, res.Status, "%s must be a masked 404: %s", tc.permission, res.RawBody)
+			require.Equal(t, tc.status, res.Status, "%s: %s", tc.permission, res.RawBody)
 		})
 	}
 }

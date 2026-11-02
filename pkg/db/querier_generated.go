@@ -1431,8 +1431,9 @@ type Querier interface {
 	//    AND workspace_id = ?
 	//  LIMIT 1
 	FindPortalByKeyspace(ctx context.Context, db DBTX, arg FindPortalByKeyspaceParams) (Portal, error)
-	// Scoped to workspace and portal so a caller cannot read a domain attached to
-	// another tenant's portal by guessing its id.
+	// Scoped to the workspace so a caller cannot read another tenant's domain by
+	// guessing its id. Callers compare portal_id with the portal they resolved,
+	// which lets this run concurrently with the portal lookup.
 	//
 	//  SELECT
 	//      id,
@@ -1453,7 +1454,6 @@ type Querier interface {
 	//  FROM portal_domains
 	//  WHERE id = ?
 	//    AND workspace_id = ?
-	//    AND portal_id = ?
 	//  LIMIT 1
 	FindPortalDomainById(ctx context.Context, db DBTX, arg FindPortalDomainByIdParams) (FindPortalDomainByIdRow, error)
 	// Reports whether any portal already claims this app, across every workspace.

@@ -2,15 +2,15 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portaldomain"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -43,35 +43,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	found, err := portaldomain.FindPortal(ctx, h.DB, principal.AuthorizedWorkspaceID, req.Portal)
+	lookup, err := portaldomain.FindPortalAndDomain(ctx, h.DB, principal.AuthorizedWorkspaceID, req.Portal, req.DomainId)
 	if err != nil {
 		return err
 	}
 
-	// Update also grants read, so a key that creates a domain can poll it. The
-	// wildcard tuples are spelled out because a stored `*` matches literally.
-	portalURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID)
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: "*", Action: rbac.ReadPortal}),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: found.ID, Action: rbac.ReadPortal}),
-		rbac.U(portalURN, permissions.Read),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: "*", Action: rbac.UpdatePortal}),
-		rbac.T(rbac.Tuple{ResourceType: rbac.Portal, ResourceID: found.ID, Action: rbac.UpdatePortal}),
-		rbac.U(portalURN, permissions.Write),
-	))
-	if err != nil {
-		return portaldomain.PortalNotFound(fmt.Sprintf("get domain denied for portal %s: %s", found.ID, fault.InternalMessage(err)))
+	portalURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(lookup.Portal.ProjectID).Portal(lookup.Portal.ID)
+	permissionQuery := rbac.U(portalURN.Domain(req.DomainId), permissions.Read)
+	if err = principal.Authorize(permissionQuery); err != nil {
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			rbac.U(portalURN, permissions.Read),
+			codes.Data.Portal.NotFound.URN(),
+			portaldomain.PortalNotFoundMessage,
+		)
 	}
-
-	row, err := portaldomain.FindDomain(ctx, h.DB, principal.AuthorizedWorkspaceID, found.ID, req.DomainId)
-	if err != nil {
-		return err
+	if lookup.DomainErr != nil {
+		return lookup.DomainErr
 	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: portaldomain.ToResponse(row),
+		Data: portaldomain.ToResponse(lookup.Domain),
 	})
 }

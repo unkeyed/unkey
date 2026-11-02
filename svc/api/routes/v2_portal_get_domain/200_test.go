@@ -14,7 +14,7 @@ func TestGetPortalDomain(t *testing.T) {
 	f := setup(t)
 	stored := f.seedDomain(t, db.PortalDomainsVerificationStatusVerifying)
 
-	res := f.call(t, handler.Request{Portal: f.portal.Slug, DomainId: stored.ID}, "portal.*.read_portal")
+	res := f.call(t, handler.Request{Portal: f.portal.Slug, DomainId: stored.ID}, f.grant("read"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
 	data := res.Body.Data

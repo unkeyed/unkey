@@ -19,7 +19,7 @@ func TestGetPortalDomainRejectsMalformedRequests(t *testing.T) {
 
 	for name, req := range testCases {
 		t.Run(name, func(t *testing.T) {
-			res := f.call(t, req, "portal.*.read_portal")
+			res := f.call(t, req, f.grant("read"))
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 		})
 	}

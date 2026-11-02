@@ -1,6 +1,7 @@
 -- name: FindPortalDomainById :one
--- Scoped to workspace and portal so a caller cannot read a domain attached to
--- another tenant's portal by guessing its id.
+-- Scoped to the workspace so a caller cannot read another tenant's domain by
+-- guessing its id. Callers compare portal_id with the portal they resolved,
+-- which lets this run concurrently with the portal lookup.
 SELECT
     id,
     workspace_id,
@@ -20,5 +21,4 @@ SELECT
 FROM portal_domains
 WHERE id = sqlc.arg(id)
   AND workspace_id = sqlc.arg(workspace_id)
-  AND portal_id = sqlc.arg(portal_id)
 LIMIT 1;

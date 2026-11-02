@@ -184,7 +184,6 @@ func (h *Harness) SeedPortalDomain(
 	row, err := db.Query.FindPortalDomainById(ctx, h.DB.RW(), db.FindPortalDomainByIdParams{
 		ID:          id,
 		WorkspaceID: workspaceID,
-		PortalID:    portalID,
 	})
 	require.NoError(t, err)
 	return row

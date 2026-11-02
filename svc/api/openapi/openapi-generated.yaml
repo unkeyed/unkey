@@ -8769,6 +8769,8 @@ components:
                     description: |
                         The DNS records this domain needs. Create each record at your DNS provider.
                         Each record has a `verified` flag showing whether Unkey has read that record back.
+                domainConnect:
+                    "$ref": "#/components/schemas/DomainConnect"
                 createdAt:
                     type: integer
                     format: int64
@@ -18645,15 +18647,10 @@ paths:
             description: |
                 Read one custom domain attached to a portal, with its verification status and DNS records.
 
-                **Required Permissions**
-
-                Your root key must have one of:
-                - `portal.*.read_portal` (to read domains on any portal in the workspace)
-                - `portal.<portal_id>.read_portal` (to read domains on a specific portal)
-                - `portal.*.update_portal` or `portal.<portal_id>.update_portal`, so a key that
-                  creates a domain can poll it
-
-                Without the permission this returns **404**, not 403.
+                Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#read`.
+                Use `portals/<portal_id>/domains/*#read` to read every domain on the portal.
+                Without the permission this returns **404**, not 403, unless the key can read
+                the portal itself.
             operationId: portal.getDomain
             requestBody:
                 content:
@@ -18733,13 +18730,20 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/UnauthorizedErrorResponse'
                     description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: |
+                        Your root key can read the portal but not its domains. The error names the missing permission.
                 "404":
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        No such portal or domain on that portal, or your root key may not read the portal.
+                        No such portal or domain on that portal, or your root key may not read either.
                 "429":
                     content:
                         application/json:

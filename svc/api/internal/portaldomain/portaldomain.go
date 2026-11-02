@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/api/internal/domain"
@@ -54,6 +55,49 @@ func PortalNotFound(detail string) error {
 	)
 }
 
+// Lookup is the portal a request names and the domain it asks for.
+//
+// DomainErr is held back rather than returned so the caller can authorize on
+// Portal first: a caller denied the portal must not learn whether a domain id
+// exists.
+type Lookup struct {
+	Portal    db.Portal
+	Domain    db.FindPortalDomainByIdRow
+	DomainErr error
+}
+
+// FindPortalAndDomain reads the portal portalRef names and the domain domainID
+// concurrently. The returned error is the portal's; a domain that is missing or
+// attached to another portal is reported in [Lookup.DomainErr].
+func FindPortalAndDomain(
+	ctx context.Context,
+	database db.Database,
+	workspaceID, portalRef, domainID string,
+) (Lookup, error) {
+	var lookup Lookup
+	var portalErr error
+	err := conc.All(ctx,
+		func(ctx context.Context) error {
+			lookup.Portal, portalErr = FindPortal(ctx, database, workspaceID, portalRef)
+			return nil
+		},
+		func(ctx context.Context) error {
+			lookup.Domain, lookup.DomainErr = findDomain(ctx, database, workspaceID, domainID)
+			return nil
+		},
+	)
+	if err != nil {
+		return Lookup{}, err
+	}
+	if portalErr != nil {
+		return Lookup{}, portalErr
+	}
+	if lookup.DomainErr == nil && lookup.Domain.PortalID != lookup.Portal.ID {
+		lookup.DomainErr = DomainNotFound(fmt.Sprintf("domain %s is not on portal %s", domainID, lookup.Portal.ID))
+	}
+	return lookup, nil
+}
+
 // FindDomain loads one domain attached to portalID. A domain on another portal
 // or in another workspace is not found.
 func FindDomain(
@@ -61,14 +105,25 @@ func FindDomain(
 	database db.Database,
 	workspaceID, portalID, domainID string,
 ) (db.FindPortalDomainByIdRow, error) {
+	row, err := findDomain(ctx, database, workspaceID, domainID)
+	if err != nil {
+		return row, err
+	}
+	if row.PortalID != portalID {
+		return db.FindPortalDomainByIdRow{}, DomainNotFound(fmt.Sprintf("domain %s is not on portal %s", domainID, portalID))
+	}
+	return row, nil
+}
+
+// findDomain loads one domain in workspaceID.
+func findDomain(ctx context.Context, database db.Database, workspaceID, domainID string) (db.FindPortalDomainByIdRow, error) {
 	row, err := db.Query.FindPortalDomainById(ctx, database.RO(), db.FindPortalDomainByIdParams{
 		ID:          domainID,
 		WorkspaceID: workspaceID,
-		PortalID:    portalID,
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return row, DomainNotFound(fmt.Sprintf("no domain %s on portal %s", domainID, portalID))
+			return row, DomainNotFound(fmt.Sprintf("no domain %s in workspace %s", domainID, workspaceID))
 		}
 		return row, fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -104,8 +159,15 @@ func ToResponse(row db.FindPortalDomainByIdRow) openapi.PortalDomain {
 			RoutingVerified:   row.CnameVerified,
 			OwnershipVerified: row.OwnershipVerified,
 		}),
-		CreatedAt: row.CreatedAt,
-		UpdatedAt: nil,
+		DomainConnect: nil,
+		CreatedAt:     row.CreatedAt,
+		UpdatedAt:     nil,
+	}
+	if row.DomainConnectProvider.Valid && row.DomainConnectUrl.Valid {
+		data.DomainConnect = &openapi.DomainConnect{
+			Provider: row.DomainConnectProvider.String,
+			Url:      row.DomainConnectUrl.String,
+		}
 	}
 	if row.VerificationError.Valid && row.VerificationError.String != "" {
 		data.VerificationError = new(row.VerificationError.String)

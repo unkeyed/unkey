@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/unkeyed/unkey/pkg/db"
@@ -54,6 +55,11 @@ func (f fixture) call(t *testing.T, req handler.Request, permissions ...string) 
 	t.Helper()
 	rootKey := f.h.CreateRootKey(f.workspaceID, permissions...)
 	return testutil.CallRoute[handler.Request, handler.Response](f.h, f.route, testutil.RootKeyHeaders(rootKey), req)
+}
+
+// grant is a URN permission on this portal's domains.
+func (f fixture) grant(action string) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/domains/*#%s", f.workspaceID, f.projectID, f.portal.ID, action)
 }
 
 func randomDomain() string {

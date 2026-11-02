@@ -46,7 +46,7 @@ func TestGetPortalDomainOutsideThePortal(t *testing.T) {
 		"another workspace":          foreignDomain.ID,
 	} {
 		t.Run(name, func(t *testing.T) {
-			res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: domainID}, "portal.*.read_portal")
+			res := f.call(t, handler.Request{Portal: f.portal.ID, DomainId: domainID}, f.grant("read"))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 			require.Contains(t, res.RawBody, "The requested domain does not exist.")
 		})
@@ -60,7 +60,7 @@ func TestGetPortalDomainForeignPortal(t *testing.T) {
 	foreignPortal, _ := seedPortal(t, f.h, other.ID)
 	foreignDomain := f.h.SeedPortalDomain(t, other.ID, foreignPortal.ID, randomDomain(), db.PortalDomainsVerificationStatusPending)
 
-	res := f.call(t, handler.Request{Portal: foreignPortal.ID, DomainId: foreignDomain.ID}, "portal.*.read_portal")
+	res := f.call(t, handler.Request{Portal: foreignPortal.ID, DomainId: foreignDomain.ID}, f.grant("read"))
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Contains(t, res.RawBody, "Portal not found.")
 }

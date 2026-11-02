@@ -2696,6 +2696,11 @@ type PortalDomain struct {
 	// Example: portal.acme.com
 	Domain string `json:"domain"`
 
+	// DomainConnect One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+	// Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+	// available and both of its fields are filled.
+	DomainConnect *DomainConnect `json:"domainConnect,omitempty"`
+
 	// Id The portal domain's ID. Pass it as `domainId` to the other portal domain operations.
 	//
 	// Example: pdom_1234abcd

@@ -7,6 +7,7 @@ import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { DnsRecord, DnsRecord$inboundSchema } from "./dnsrecord.js";
+import { DomainConnect, DomainConnect$inboundSchema } from "./domainconnect.js";
 import { DomainStatus, DomainStatus$inboundSchema } from "./domainstatus.js";
 
 export type PortalDomain = {
@@ -48,6 +49,14 @@ export type PortalDomain = {
    */
   dnsRecords: Array<DnsRecord>;
   /**
+   * One-click setup at the domain's DNS provider. Omitted entirely when the provider does not support
+   *
+   * @remarks
+   * Domain Connect or discovery failed, so the object's presence is the signal that the shortcut is
+   * available and both of its fields are filled.
+   */
+  domainConnect?: DomainConnect | undefined;
+  /**
    * Unix timestamp in milliseconds when the domain was created.
    */
   createdAt: number;
@@ -69,6 +78,7 @@ export const PortalDomain$inboundSchema: z.ZodType<
   status: DomainStatus$inboundSchema,
   verificationError: z.string().optional(),
   dnsRecords: z.array(DnsRecord$inboundSchema),
+  domainConnect: DomainConnect$inboundSchema.optional(),
   createdAt: z.number().int(),
   updatedAt: z.number().int().optional(),
 });
