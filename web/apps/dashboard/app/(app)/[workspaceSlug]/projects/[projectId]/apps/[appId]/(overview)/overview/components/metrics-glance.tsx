@@ -15,12 +15,11 @@ import { useBucketClock } from "../../hooks/use-bucket-clock";
 import {
   GLANCE,
   GLANCE_METRICS,
+  GLANCE_RANGE,
   type GlanceCellState,
   type GlanceMetric,
   glanceCellState,
 } from "./glance";
-
-const GLANCE_RANGE = "24h";
 
 export function MetricsGlance() {
   const workspace = useWorkspaceNavigation();

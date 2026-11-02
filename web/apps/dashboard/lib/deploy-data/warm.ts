@@ -11,7 +11,12 @@ import {
   recentDeploymentsQueryFor,
   warmDeploymentsPage,
 } from "./deployments";
-import { customDomainsQueryFor, domainsQueryFor, environmentsQueryFor } from "./queries";
+import {
+  customDomainsQueryFor,
+  domainsQueryFor,
+  environmentsQueryFor,
+  policiesQueryFor,
+} from "./queries";
 
 // Loads what the app overview reads first, so a click after hovering finds it loaded
 export function warmAppPage(projectId: string, appId: string): void {
@@ -32,6 +37,7 @@ export function warmAppPage(projectId: string, appId: string): void {
           createLiveQueryCollection(
             recentDeploymentsQueryFor(projectId, appId, productionId, PRODUCTION_LIMIT),
           ),
+          createLiveQueryCollection(policiesQueryFor(projectId, appId, productionId)),
         ]
       : []),
     ...(currentDeploymentId

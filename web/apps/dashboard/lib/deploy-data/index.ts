@@ -12,6 +12,7 @@ export {
 } from "./context";
 export {
   type QueryResult,
+  policiesQueryFor,
   useApp,
   useCustomDomains,
   useDomains,

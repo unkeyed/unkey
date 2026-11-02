@@ -1,10 +1,14 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import { type PolicyRow, policyListLoad } from "@/lib/collections/deploy/policies";
 import { useCollectionLoad } from "@/lib/collections/use-collection-load";
-import { ENVIRONMENT_KIND, useAppScope, useEnvironments } from "@/lib/deploy-data";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import {
+  ENVIRONMENT_KIND,
+  policiesQueryFor,
+  useAppScope,
+  useEnvironments,
+} from "@/lib/deploy-data";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { type MergedPolicy, type PolicyEnvs, mergePolicies } from "../model/merge";
 
@@ -117,19 +121,7 @@ function policiesView(isError: boolean, isLoading: boolean, count: number): Poli
 
 function usePolicyRows(projectId: string, appId: string, environmentId: string | null) {
   return useLiveQuery(
-    (q) =>
-      environmentId !== null
-        ? q
-            .from({ p: collection.policies })
-            .where(({ p }) =>
-              and(
-                eq(p.projectId, projectId),
-                eq(p.appId, appId),
-                eq(p.environmentId, environmentId),
-              ),
-            )
-            .orderBy(({ p }) => p._order)
-        : null,
+    (q) => (environmentId !== null ? policiesQueryFor(projectId, appId, environmentId)(q) : null),
     [projectId, appId, environmentId],
   );
 }

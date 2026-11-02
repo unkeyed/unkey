@@ -175,6 +175,16 @@ export function environmentsQueryFor(projectId: string, appIds: string) {
       .where(({ env }) => and(eq(env.projectId, projectId), inArray(env.appId, appIds.split(","))));
 }
 
+export function policiesQueryFor(projectId: string, appId: string, environmentId: string) {
+  return (q: InitialQueryBuilder) =>
+    q
+      .from({ p: collection.policies })
+      .where(({ p }) =>
+        and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, environmentId)),
+      )
+      .orderBy(({ p }) => p._order);
+}
+
 const projectAppsQuery = memoByArgs((projectId: string) =>
   createLiveQueryCollection((q) =>
     q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
