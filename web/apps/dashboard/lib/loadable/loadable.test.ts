@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { type QueryResult, fromQuery, mapLoadable } from "./loadable";
+import { failed, loading, ready } from "./fixtures";
+import { type QueryResult, fromQuery, mapLoadable, readyLoadable, zipLoadable } from "./loadable";
 
 function query<T>(overrides: Partial<QueryResult<T>>, refetches: string[] = []): QueryResult<T> {
   return {
@@ -90,5 +91,50 @@ describe("mapLoadable", () => {
     expect(mapLoadable({ status: "loading" }, (n: number) => n * 2)).toEqual({
       status: "loading",
     });
+  });
+});
+
+describe("readyLoadable", () => {
+  test("wraps a value with no stale failure", () => {
+    expect(readyLoadable(null)).toEqual({ status: "ready", data: null, stale: null });
+  });
+});
+
+describe("zipLoadable", () => {
+  const sum = (a: number, b: number) => a + b;
+
+  test("combines two ready values and keeps the first stale failure", () => {
+    expect(zipLoadable(ready(1), ready(2), sum)).toEqual({ status: "ready", data: 3, stale: null });
+    const stale = failed();
+    expect(zipLoadable(ready(1), { ...ready(2), stale }, sum)).toEqual({
+      status: "ready",
+      data: 3,
+      stale,
+    });
+  });
+
+  test("waits for both and reports the first failure", () => {
+    expect(zipLoadable(ready(1), loading, sum)).toEqual({ status: "loading" });
+    const failure = failed();
+    expect(zipLoadable(failure, loading, sum)).toBe(failure);
+    expect(zipLoadable(ready(1), failure, sum)).toBe(failure);
+  });
+
+  test("retries every failed side", () => {
+    const retries: string[] = [];
+    const failing = (name: string) => ({ ...failed(), retry: () => retries.push(name) });
+    const both = zipLoadable(failing("a"), failing("b"), sum);
+    if (both.status === "failed") {
+      both.retry();
+    }
+    const stale = zipLoadable(
+      { ...ready(1), stale: failing("c") },
+      { ...ready(2), stale: failing("d") },
+      sum,
+    );
+    if (stale.status === "ready") {
+      stale.stale?.retry();
+    }
+    expect(retries).toEqual(["a", "b", "c", "d"]);
   });
 });
