@@ -1,7 +1,7 @@
 "use client";
 
+import { useInvalidateBillingQueries } from "@/components/billing/payment-issues";
 import { announceUpgrade } from "@/components/billing/upgrade-success/upgrade-success-dialog";
-import { useInvalidateWorkspaceQueries } from "@/hooks/use-invalidate-workspace-queries";
 import { currentApiProduct } from "@/lib/billing/api-plan";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
@@ -28,8 +28,7 @@ type ApiPlansProps = {
 export function ApiPlans({ isAdmin, manage, usedThisMonth, onChanged }: ApiPlansProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const trpcUtils = trpc.useUtils();
-  const invalidateWorkspace = useInvalidateWorkspaceQueries();
+  const invalidateBilling = useInvalidateBillingQueries();
   const [isCancelOpen, setCancelOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isRedirecting, setRedirecting] = useState(false);
@@ -73,11 +72,7 @@ export function ApiPlans({ isAdmin, manage, usedThisMonth, onChanged }: ApiPlans
           `API plan downgrade scheduled for ${new Date(result.effectiveAt).toLocaleDateString()}`,
         );
       }
-      await Promise.all([
-        trpcUtils.stripe.getBillingInfo.invalidate(),
-        trpcUtils.stripe.getUpcomingInvoice.invalidate(),
-        invalidateWorkspace(),
-      ]);
+      await invalidateBilling();
       router.refresh();
       onChanged();
       if (result.kind === "applied") {

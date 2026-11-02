@@ -1,9 +1,54 @@
 "use client";
 
+import { usePayInvoice } from "@/components/billing/payment-issues";
 import { formatDollars } from "@/lib/fmt";
-import { IconCircleInfoOutline12 } from "@unkey/icons";
-import { Button, InfoTooltip, Skeleton } from "@unkey/ui";
+import type { SubscriptionProduct } from "@/lib/stripe/billingSubscriptions";
+import { IconCircleInfoOutline12, IconCubeOutline18, IconNodesOutline18 } from "@unkey/icons";
+import { Badge, Button, InfoTooltip, ItemContent, ItemMedia, ItemTitle, Skeleton } from "@unkey/ui";
+import type { ReactNode } from "react";
 import { AdminGate } from "./admin-gate";
+
+const PRODUCT_CELL: Record<
+  SubscriptionProduct,
+  { title: string; icon: ReactNode; mediaClassName: string }
+> = {
+  api: {
+    title: "API management",
+    icon: <IconNodesOutline18 />,
+    mediaClassName: "bg-infoA-3 text-info-11",
+  },
+  compute: {
+    title: "Compute",
+    icon: <IconCubeOutline18 />,
+    mediaClassName: "bg-orangeA-3 text-orange-11",
+  },
+};
+
+export function PlanProductCell({
+  product,
+  paymentFailed = false,
+}: {
+  product: SubscriptionProduct;
+  paymentFailed?: boolean;
+}) {
+  const cell = PRODUCT_CELL[product];
+
+  return (
+    <>
+      <ItemMedia className={cell.mediaClassName}>{cell.icon}</ItemMedia>
+      <ItemContent>
+        <ItemTitle className="flex min-w-0 items-center gap-2 overflow-hidden">
+          <span className="min-w-0 truncate">{cell.title}</span>
+          {paymentFailed ? (
+            <Badge variant="error" size="compact" className="shrink-0">
+              Payment failed
+            </Badge>
+          ) : null}
+        </ItemTitle>
+      </ItemContent>
+    </>
+  );
+}
 
 export function PlanTableHeader() {
   return (
@@ -79,18 +124,26 @@ export function PlanPrice({
 }
 
 export function PlanRowAction({
+  product,
+  paymentFailed,
   isAdmin,
   hasPlan,
   emphasize,
   onClick,
   chooseLabel,
 }: {
+  product: SubscriptionProduct;
+  paymentFailed: boolean;
   isAdmin: boolean | undefined;
   hasPlan: boolean;
   emphasize: boolean;
   onClick: () => void;
   chooseLabel: string;
 }) {
+  if (paymentFailed) {
+    return <PayInvoiceAction isAdmin={isAdmin} product={product} />;
+  }
+
   if (hasPlan) {
     return (
       <AdminGate isAdmin={isAdmin}>
@@ -113,6 +166,33 @@ export function PlanRowAction({
           onClick={onClick}
         >
           {chooseLabel}
+        </Button>
+      )}
+    </AdminGate>
+  );
+}
+
+function PayInvoiceAction({
+  isAdmin,
+  product,
+}: {
+  isAdmin: boolean | undefined;
+  product: SubscriptionProduct;
+}) {
+  const payInvoice = usePayInvoice();
+
+  return (
+    <AdminGate isAdmin={isAdmin}>
+      {(disabled) => (
+        <Button
+          variant="primary"
+          size="sm"
+          className="whitespace-nowrap"
+          disabled={disabled || payInvoice.busy}
+          loading={payInvoice.busy}
+          onClick={() => payInvoice.pay(product)}
+        >
+          Pay invoice
         </Button>
       )}
     </AdminGate>

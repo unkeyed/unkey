@@ -1,25 +1,12 @@
 "use client";
 
+import { usePaymentIssues } from "@/components/billing/payment-issues";
 import { trpc } from "@/lib/trpc/client";
-import { IconCubeOutline18 } from "@unkey/icons";
-import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@unkey/ui";
+import { Item, ItemActions } from "@unkey/ui";
 import { useState } from "react";
 import { periodCredit } from "./deploy-invoice";
-import { PlanCellsSkeleton, PlanName, PlanPrice, PlanRowAction } from "./plan-row";
+import { PlanCellsSkeleton, PlanName, PlanPrice, PlanProductCell, PlanRowAction } from "./plan-row";
 import { PlansScreen } from "./plans-screen";
-
-function ProductCell() {
-  return (
-    <>
-      <ItemMedia className="bg-orangeA-3 text-orange-11">
-        <IconCubeOutline18 />
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle className="truncate">Compute</ItemTitle>
-      </ItemContent>
-    </>
-  );
-}
 
 type ComputePlanRowProps = {
   isAdmin: boolean | undefined;
@@ -28,6 +15,7 @@ type ComputePlanRowProps = {
 
 export function ComputePlanRow({ isAdmin, emphasize }: ComputePlanRowProps) {
   const [isPlanModalOpen, setPlanModalOpen] = useState(false);
+  const paymentFailed = usePaymentIssues().includes("compute");
 
   const {
     data: subscription,
@@ -54,7 +42,7 @@ export function ComputePlanRow({ isAdmin, emphasize }: ComputePlanRowProps) {
   if (subscriptionLoading || plansLoading) {
     return (
       <Item>
-        <ProductCell />
+        <PlanProductCell product="compute" />
         <ItemActions className="gap-3">
           <PlanCellsSkeleton />
         </ItemActions>
@@ -65,7 +53,7 @@ export function ComputePlanRow({ isAdmin, emphasize }: ComputePlanRowProps) {
   if (subscriptionError || plansError) {
     return (
       <Item>
-        <ProductCell />
+        <PlanProductCell product="compute" />
         <p className="text-sm text-gray-11">
           Compute plans could not be loaded. Reload the page or contact support@unkey.com.
         </p>
@@ -86,7 +74,7 @@ export function ComputePlanRow({ isAdmin, emphasize }: ComputePlanRowProps) {
   return (
     <>
       <Item>
-        <ProductCell />
+        <PlanProductCell product="compute" paymentFailed={paymentFailed} />
         <ItemActions className="gap-3">
           <PlanName>{currentPlan ? (currentPlanOption?.name ?? currentPlan) : null}</PlanName>
           <PlanPrice
@@ -97,6 +85,8 @@ export function ComputePlanRow({ isAdmin, emphasize }: ComputePlanRowProps) {
           />
           <span className="flex w-20 justify-end">
             <PlanRowAction
+              product="compute"
+              paymentFailed={paymentFailed}
               isAdmin={isAdmin}
               hasPlan={currentPlan !== null}
               emphasize={emphasize}

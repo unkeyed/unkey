@@ -1,12 +1,12 @@
 "use client";
 
+import { usePaymentIssues } from "@/components/billing/payment-issues";
 import { currentApiProduct } from "@/lib/billing/api-plan";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { IconNodesOutline18 } from "@unkey/icons";
-import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@unkey/ui";
+import { Item, ItemActions } from "@unkey/ui";
 import { useState } from "react";
-import { PlanCellsSkeleton, PlanName, PlanPrice, PlanRowAction } from "./plan-row";
+import { PlanCellsSkeleton, PlanName, PlanPrice, PlanProductCell, PlanRowAction } from "./plan-row";
 import { PlansScreen } from "./plans-screen";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];
@@ -18,26 +18,14 @@ type ApiPlanRowProps = {
   billing: BillingInfo | undefined;
 };
 
-function ProductCell() {
-  return (
-    <>
-      <ItemMedia className="bg-infoA-3 text-info-11">
-        <IconNodesOutline18 />
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle className="truncate">API management</ItemTitle>
-      </ItemContent>
-    </>
-  );
-}
-
 export function ApiPlanRow({ isAdmin, emphasize, billing }: ApiPlanRowProps) {
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const paymentFailed = usePaymentIssues().includes("api");
 
   if (!billing) {
     return (
       <Item>
-        <ProductCell />
+        <PlanProductCell product="api" />
         <ItemActions className="gap-3">
           <PlanCellsSkeleton />
         </ItemActions>
@@ -50,12 +38,14 @@ export function ApiPlanRow({ isAdmin, emphasize, billing }: ApiPlanRowProps) {
   return (
     <>
       <Item>
-        <ProductCell />
+        <PlanProductCell product="api" paymentFailed={paymentFailed} />
         <ItemActions className="gap-3">
           <PlanName>{currentProduct ? currentProduct.name : "Free"}</PlanName>
           <PlanPrice feeCents={(currentProduct?.dollar ?? 0) * 100} />
           <span className="flex w-20 justify-end">
             <PlanRowAction
+              product="api"
+              paymentFailed={paymentFailed}
               isAdmin={isAdmin}
               hasPlan={currentProduct !== undefined}
               emphasize={emphasize}
