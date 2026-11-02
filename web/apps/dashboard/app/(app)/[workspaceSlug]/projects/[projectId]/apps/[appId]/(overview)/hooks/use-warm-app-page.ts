@@ -1,7 +1,10 @@
 import { useAppScope, warmAppPage, warmDeployment } from "@/lib/deploy-data";
+import { PRODUCTION, latestGrid } from "@/lib/metrics/app-metrics";
 import { trpc } from "@/lib/trpc/client";
 import { useCallback, useEffect, useRef } from "react";
 import { ACTIVE_BRANCHES_PAGE_SIZE } from "../overview/components/active-branches/use-active-branches";
+import { GLANCE_RANGE } from "../overview/components/glance";
+import { prefetchMetricSources } from "./use-app-metrics";
 
 // A pointer passing over a list should not warm each row it crosses
 const WARM_DELAY_MS = 150;
@@ -18,6 +21,11 @@ export function useWarmAppPage() {
           projectId,
           appId,
           limit: ACTIVE_BRANCHES_PAGE_SIZE,
+        });
+        prefetchMetricSources(trpcUtils, {
+          appId,
+          environment: PRODUCTION,
+          grid: latestGrid(GLANCE_RANGE, Date.now()),
         });
       }),
     [schedule, trpcUtils],
