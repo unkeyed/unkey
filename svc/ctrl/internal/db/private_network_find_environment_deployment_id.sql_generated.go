@@ -32,9 +32,7 @@ type FindPrivateNetworkEnvironmentDeploymentIdParams struct {
 }
 
 // FindPrivateNetworkEnvironmentDeploymentId returns the newest deployment that
-// was ever ready in a preview environment of the app. It reads only ever-ready
-// rows of the environment from app_environment_ready_created_idx, newest
-// first, and stops at the first match.
+// was ever ready in a preview environment of the app.
 //
 //	SELECT candidate.id
 //	FROM deployments candidate
