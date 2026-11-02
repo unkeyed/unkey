@@ -29,7 +29,6 @@ export {
   DEPLOYMENT_PICKER_LIMIT,
   RECENT_DEPLOYMENTS_LIMIT,
   type DeploymentListFilter,
-  type DeploymentsPageResult,
   useCurrentDeployment,
   useDeployment,
   useDeploymentsPage,

@@ -21,7 +21,7 @@ import {
 } from "@tanstack/react-query";
 import type { Deployment as ApiDeployment } from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
-import { useMemo, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { useAppScope, useDeployScope, useScopeStore } from "./context";
 import { type DeployQuery, useApp, useEnvironments } from "./queries";
 
@@ -34,17 +34,6 @@ export type DeploymentListFilter = {
   endTime?: number;
 };
 
-export type DeploymentsPageResult = {
-  rows: Deployment[];
-  isLoading: boolean;
-  isError: boolean;
-  error: unknown;
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  fetchNextPage: () => Promise<unknown>;
-  refetch: () => Promise<unknown>;
-};
-
 // Pickers that offer past deployments by id or image look this far back
 export const DEPLOYMENT_PICKER_LIMIT = 100;
 
@@ -54,27 +43,16 @@ export const RECENT_DEPLOYMENTS_LIMIT = 5;
 export const PRODUCTION_LIMIT = 25;
 
 // The deployments list, newest first, one API cursor page at a time
-export function useDeploymentsPage(filter: DeploymentListFilter): DeploymentsPageResult {
+export function useDeploymentsPage(filter: DeploymentListFilter) {
   const { projectId, appId } = useAppScope();
   const queryClient = useQueryClient();
   const refetchInterval = usePollInterval((data: InfiniteData<DeploymentsPage> | undefined) =>
     (data?.pages ?? []).flatMap((page) => page.rows),
   );
-  const query = useInfiniteQuery({
+  return useInfiniteQuery({
     ...deploymentListOptions(queryClient, projectId, appId, filter),
     refetchInterval,
   });
-  const rows = useMemo(() => query.data?.pages.flatMap((page) => page.rows) ?? [], [query.data]);
-  return {
-    rows,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error,
-    hasNextPage: query.hasNextPage ?? false,
-    isFetchingNextPage: query.isFetchingNextPage,
-    fetchNextPage: query.fetchNextPage,
-    refetch: query.refetch,
-  };
 }
 
 // A deployment of the scope by id, however old it is. Null when it does not

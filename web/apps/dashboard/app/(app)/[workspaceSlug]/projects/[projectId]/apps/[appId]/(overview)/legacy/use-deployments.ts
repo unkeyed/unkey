@@ -11,8 +11,9 @@ export function useDeployments(filter: DeploymentListFilter) {
   const environments = useEnvironments();
   const page = useDeploymentsPage(filter);
   const environmentById = new Map((environments.data ?? []).map((e) => [e.id, e]));
+  const deployments = page.data?.pages.flatMap((p) => p.rows) ?? [];
   return {
-    rows: page.rows.map(
+    rows: deployments.map(
       (deployment): { deployment: Deployment; environment: Environment | undefined } => ({
         deployment,
         environment: environmentById.get(deployment.environmentId),
@@ -20,7 +21,7 @@ export function useDeployments(filter: DeploymentListFilter) {
     ),
     isLoading: environments.isLoading || page.isLoading,
     isError: page.isError,
-    hasNextPage: page.hasNextPage,
+    hasNextPage: page.hasNextPage ?? false,
     isFetchingNextPage: page.isFetchingNextPage,
     fetchNextPage: page.fetchNextPage,
   };
