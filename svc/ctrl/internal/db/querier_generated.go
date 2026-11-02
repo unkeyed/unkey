@@ -808,7 +808,7 @@ type Querier interface {
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
 	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
-	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//      first_ready_at, ever_ready, fork_key, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
@@ -819,7 +819,7 @@ type Querier interface {
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
 	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
-	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//      first_ready_at, ever_ready, fork_key, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	//FindDeploymentForBuild
@@ -1117,39 +1117,42 @@ type Querier interface {
 	//  FOR UPDATE
 	FindPortalDomainStatusByIdForUpdate(ctx context.Context, id string) (PortalDomainsVerificationStatus, error)
 	// FindPrivateNetworkEnvironmentDeploymentId returns the newest deployment that
-	// was ever ready in a preview environment of the app. It reads
-	// app_environment_created_idx newest first and stops at the first match. The
-	// hint keeps MySQL from sorting a small environment through environment_idx.
+	// was ever ready in a preview environment of the app. It reads only ever-ready
+	// rows of the environment from app_environment_ready_created_idx, newest
+	// first, and stops at the first match.
 	//
 	//  SELECT candidate.id
-	//  FROM deployments candidate FORCE INDEX (app_environment_created_idx)
+	//  FROM deployments candidate
 	//  INNER JOIN environments target_env ON target_env.id = candidate.environment_id
 	//      AND target_env.app_id = candidate.app_id
 	//  WHERE candidate.app_id = ?
 	//      AND candidate.environment_id = ?
+	//      AND candidate.ever_ready = TRUE
 	//      AND candidate.workspace_id = ?
 	//      AND candidate.project_id = ?
 	//      AND target_env.kind = 'preview'
-	//      AND candidate.first_ready_at IS NOT NULL
 	//  ORDER BY candidate.created_at DESC, candidate.id DESC
 	//  LIMIT 1
 	FindPrivateNetworkEnvironmentDeploymentId(ctx context.Context, arg FindPrivateNetworkEnvironmentDeploymentIdParams) (string, error)
 	// FindPrivateNetworkPreviewDeploymentId returns the newest deployment that was
 	// ever ready on a git branch and fork in a preview environment of the app. It
-	// reads app_branch_created_idx newest first and stops at the first match.
+	// reads only ever-ready rows of the branch and fork from
+	// app_branch_fork_ready_created_idx, newest first, and stops at the first
+	// match. Without the hint MySQL may drive from the app's preview environments
+	// through app_environment_ready_created_idx and sort the whole branch.
 	//
 	//  SELECT candidate.id
-	//  FROM deployments candidate
+	//  FROM deployments candidate FORCE INDEX (app_branch_fork_ready_created_idx)
 	//  INNER JOIN environments candidate_env ON candidate_env.id = candidate.environment_id
 	//      AND candidate_env.app_id = candidate.app_id
 	//  WHERE candidate.app_id = ?
+	//      AND candidate.git_branch = ?
+	//      AND candidate.fork_key = ?
+	//      AND candidate.ever_ready = TRUE
 	//      AND candidate.workspace_id = ?
 	//      AND candidate.project_id = ?
-	//      AND candidate.git_branch = ?
-	//      AND COALESCE(candidate.fork_repository_full_name, '') = ?
 	//      AND candidate.source = 'git'
 	//      AND candidate_env.kind = 'preview'
-	//      AND candidate.first_ready_at IS NOT NULL
 	//  ORDER BY candidate.created_at DESC, candidate.id DESC
 	//  LIMIT 1
 	FindPrivateNetworkPreviewDeploymentId(ctx context.Context, arg FindPrivateNetworkPreviewDeploymentIdParams) (string, error)
@@ -2245,7 +2248,7 @@ type Querier interface {
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
 	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
-	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//      first_ready_at, ever_ready, fork_key, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments
 	//  WHERE environment_id = ?
 	//    AND status = ?
@@ -2408,7 +2411,7 @@ type Querier interface {
 	//      caller_env.kind AS caller_environment_kind,
 	//      caller.source AS caller_source,
 	//      COALESCE(caller.git_branch, '') AS caller_git_branch,
-	//      COALESCE(caller.fork_repository_full_name, '') AS caller_fork_repository_full_name,
+	//      caller.fork_key AS caller_fork_key,
 	//      COALESCE(target_app.current_deployment_id, '') AS live_deployment_id,
 	//      COALESCE(live_env.id, '') AS live_environment_id
 	//  FROM deployment_connections b
@@ -2420,8 +2423,6 @@ type Querier interface {
 	//      AND caller_env.app_id = caller.app_id
 	//  STRAIGHT_JOIN deployment_connection_app_targets t
 	//      ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
-	//  STRAIGHT_JOIN apps caller_app ON caller_app.id = b.app_id
-	//      AND caller_app.workspace_id = b.workspace_id AND caller_app.project_id = b.project_id
 	//  STRAIGHT_JOIN apps target_app ON target_app.id = b.resource_id
 	//      AND target_app.workspace_id = b.workspace_id AND target_app.project_id = b.project_id
 	//  STRAIGHT_JOIN workspaces w ON w.id = b.workspace_id

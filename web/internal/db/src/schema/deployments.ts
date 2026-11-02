@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   index,
   int,
   json,
@@ -138,6 +139,16 @@ export const deployments = mysqlTable(
     // connections to silently fall back to an older deployment.
     firstReadyAt: bigint("first_ready_at", { mode: "number" }),
 
+    // Indexable forms of first_ready_at and fork_repository_full_name, so
+    // private network selection reads only ever-ready rows of one branch and
+    // fork, or of one environment, instead of their whole history.
+    everReady: boolean("ever_ready")
+      .notNull()
+      .generatedAlwaysAs(sql`(first_ready_at IS NOT NULL)`, { mode: "stored" }),
+    forkKey: varchar("fork_key", { length: 256 })
+      .notNull()
+      .generatedAlwaysAs(sql`COALESCE(fork_repository_full_name, '')`, { mode: "stored" }),
+
     // What surface triggered this deployment.
     // "unknown" is used for historical rows inserted before this column existed.
     trigger: mysqlEnum("trigger", ["unknown", "github", "api", "cli", "dashboard", "unkey"])
@@ -164,13 +175,22 @@ export const deployments = mysqlTable(
     index("environment_idx").on(table.environmentId),
     index("status_idx").on(table.status),
     index("app_created_at_idx").on(table.appId, table.createdAt),
-    index("app_environment_created_idx").on(
+    index("app_environment_ready_created_idx").on(
       table.appId,
       table.environmentId,
+      table.everReady,
       table.createdAt,
       table.id,
     ),
     index("app_branch_created_idx").on(table.appId, table.gitBranch, table.createdAt, table.id),
+    index("app_branch_fork_ready_created_idx").on(
+      table.appId,
+      table.gitBranch,
+      table.forkKey,
+      table.everReady,
+      table.createdAt,
+      table.id,
+    ),
     index("desired_state_status_id_idx").on(table.desiredState, table.status, table.id),
   ],
 );

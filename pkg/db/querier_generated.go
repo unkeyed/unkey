@@ -660,7 +660,7 @@ type Querier interface {
 	//      deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state,
 	//      deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.capabilities, deployments.healthcheck,
 	//      deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status,
-	//      deployments.first_ready_at, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at
+	//      deployments.first_ready_at, deployments.ever_ready, deployments.fork_key, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at
 	//  FROM deployments
 	//  WHERE deployments.id = ?
 	//    AND EXISTS (SELECT 1 FROM projects p WHERE p.id = deployments.project_id AND p.deleted_at IS NULL)

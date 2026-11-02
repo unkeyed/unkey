@@ -1009,6 +1009,8 @@ type Deployment struct {
 	InvocationID                  sql.NullString                    `db:"invocation_id"`
 	Status                        mysqltype.DeploymentsStatus       `db:"status"`
 	FirstReadyAt                  sql.NullInt64                     `db:"first_ready_at"`
+	EverReady                     bool                              `db:"ever_ready"`
+	ForkKey                       string                            `db:"fork_key"`
 	Trigger                       DeploymentsTrigger                `db:"trigger"`
 	TriggeredBy                   sql.NullString                    `db:"triggered_by"`
 	TriggerReason                 sql.NullString                    `db:"trigger_reason"`

@@ -65,7 +65,7 @@ func (q *Queries) ListPrivateNetworkConnections(ctx context.Context, arg ListPri
 
 	selected := make([]string, len(selections))
 	previews := newNewestLookups[FindPrivateNetworkPreviewDeploymentIdParams](findPrivateNetworkPreviewDeploymentId, func(k FindPrivateNetworkPreviewDeploymentIdParams) []any {
-		return []any{k.AppID, k.WorkspaceID, k.ProjectID, k.GitBranch, k.ForkRepositoryFullName}
+		return []any{k.AppID, k.GitBranch, k.ForkKey, k.WorkspaceID, k.ProjectID}
 	})
 	environments := newNewestLookups[FindPrivateNetworkEnvironmentDeploymentIdParams](findPrivateNetworkEnvironmentDeploymentId, func(k FindPrivateNetworkEnvironmentDeploymentIdParams) []any {
 		return []any{k.AppID, k.EnvironmentID, k.WorkspaceID, k.ProjectID}
@@ -80,8 +80,7 @@ func (q *Queries) ListPrivateNetworkConnections(ctx context.Context, arg ListPri
 			} else if s.CallerSource == DeploymentsSourceGit && s.CallerGitBranch != "" {
 				previews.add(i, FindPrivateNetworkPreviewDeploymentIdParams{
 					AppID: s.AppID, WorkspaceID: s.WorkspaceID, ProjectID: s.ProjectID,
-					GitBranch:              sql.NullString{String: s.CallerGitBranch, Valid: true},
-					ForkRepositoryFullName: sql.NullString{String: s.CallerForkRepositoryFullName, Valid: true},
+					GitBranch: sql.NullString{String: s.CallerGitBranch, Valid: true}, ForkKey: s.CallerForkKey,
 				})
 			}
 		case DeploymentConnectionAppTargetsSelectionModeEnvironment:

@@ -34,6 +34,8 @@ CREATE TABLE `deployments` (
 	`invocation_id` varchar(256),
 	`status` enum('pending','starting','building','deploying','network','finalizing','ready','failed','skipped','awaiting_approval','stopped','superseded','cancelled') NOT NULL DEFAULT 'pending',
 	`first_ready_at` bigint,
+	`ever_ready` boolean GENERATED ALWAYS AS ((first_ready_at IS NOT NULL)) STORED NOT NULL,
+	`fork_key` varchar(256) GENERATED ALWAYS AS (COALESCE(fork_repository_full_name, '')) STORED NOT NULL,
 	`trigger` enum('unknown','github','api','cli','dashboard','unkey') NOT NULL DEFAULT 'unknown',
 	`triggered_by` varchar(256),
 	`trigger_reason` varchar(512),
@@ -55,9 +57,11 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);
 
 CREATE INDEX `app_created_at_idx` ON `deployments` (`app_id`,`created_at`);
 
-CREATE INDEX `app_environment_created_idx` ON `deployments` (`app_id`,`environment_id`,`created_at`,`id`);
+CREATE INDEX `app_environment_ready_created_idx` ON `deployments` (`app_id`,`environment_id`,`ever_ready`,`created_at`,`id`);
 
 CREATE INDEX `app_branch_created_idx` ON `deployments` (`app_id`,`git_branch`,`created_at`,`id`);
+
+CREATE INDEX `app_branch_fork_ready_created_idx` ON `deployments` (`app_id`,`git_branch`,`fork_key`,`ever_ready`,`created_at`,`id`);
 
 CREATE INDEX `desired_state_status_id_idx` ON `deployments` (`desired_state`,`status`,`id`);
 
