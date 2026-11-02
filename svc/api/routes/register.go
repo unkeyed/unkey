@@ -204,6 +204,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		withValidation,
 		withAuthentication,
 	}
+	middlewaresCompressed := append(protectedMiddlewares, zen.WithCompression())
 
 	// Portal routes authenticate only portal-session cookies. They share the
 	// protected stack but swap in the portal-only authenticator.
@@ -217,6 +218,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		withValidation,
 		withPortalAuthentication,
 	}
+	middlewaresPortalCompressed := append(portalMiddlewares, zen.WithCompression())
 
 	srv.RegisterRoute(publicMiddlewares, &v2Liveness.Handler{})
 
@@ -297,7 +299,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/ratelimit.listOverrides
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2RatelimitListOverrides.Handler{
 
 			DB: svc.Database,
@@ -306,7 +308,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/ratelimit.listNamespaces
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2RatelimitListNamespaces.Handler{
 			DB: svc.Database,
 		},
@@ -375,7 +377,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/identities.listIdentities
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2IdentitiesListIdentities.Handler{
 
 			DB: svc.Database,
@@ -465,7 +467,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/deployments.listBuildLogs
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2DeploymentsListBuildLogs.Handler{
 			DB:         svc.Database,
 			ClickHouse: svc.ClickHouse,
@@ -475,7 +477,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/deployments.listDeployments
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2DeploymentsListDeployments.Handler{
 			DB: svc.Database,
 		},
@@ -585,7 +587,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/permissions.listPermissions
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2PermissionsListPermissions.Handler{
 
 			DB: svc.Database,
@@ -632,7 +634,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/permissions.listRoles
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2PermissionsListRoles.Handler{
 
 			DB: svc.Database,
@@ -712,7 +714,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			LimitsCache: svc.Caches.WorkspaceLimits,
 		},
 	)
-	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysListKeys.Handler{DB: svc.Database})
+	srv.RegisterRoute(middlewaresCompressed, &v2RootKeysListKeys.Handler{DB: svc.Database})
 	srv.RegisterRoute(protectedMiddlewares, &v2RootKeysUpdateKey.Handler{
 		DB:           svc.Database,
 		Auditlogs:    svc.Auditlogs,
@@ -873,7 +875,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/logs.listApiRequests
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2LogsListApiRequests.Handler{
 			ClickHouse:  svc.ClickHouse,
 			DB:          svc.Database,
@@ -884,7 +886,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/logs.getApiRequestMetrics
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2LogsGetApiRequestMetrics.Handler{
 			ClickHouse:  svc.ClickHouse,
 			DB:          svc.Database,
@@ -898,7 +900,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/analytics.getGatewayRequests
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2AnalyticsGetGatewayRequests.Handler{
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
@@ -907,7 +909,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/analytics.getRuntimeLogs
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2AnalyticsGetRuntimeLogs.Handler{
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
 		},
@@ -915,7 +917,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/analytics.getVerifications
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2AnalyticsGetVerifications.Handler{
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
@@ -925,7 +927,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/analytics.getRatelimits
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2AnalyticsGetRatelimits.Handler{
 			DB:                         svc.Database,
 			AnalyticsConnectionManager: svc.AnalyticsConnectionManager,
@@ -997,7 +999,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/portal.listSessions
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2PortalListSessions.Handler{
 			DB:    svc.Database,
 			Clock: svc.Clock,
@@ -1019,7 +1021,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/portal.listKeys
 	srv.RegisterRoute(
-		portalMiddlewares,
+		middlewaresPortalCompressed,
 		v2PortalListKeys.New(svc.Database),
 	)
 
@@ -1037,7 +1039,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/portal.getVerifications
 	srv.RegisterRoute(
-		portalMiddlewares,
+		middlewaresPortalCompressed,
 		&v2PortalGetVerifications.Handler{
 			ClickHouse:       svc.ClickHouse,
 			Clock:            svc.Clock,
@@ -1058,7 +1060,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/projects.listProjects
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2ProjectsListProjects.Handler{
 			DB: svc.Database,
 		},
@@ -1152,7 +1154,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/apps.listApps
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2AppsListApps.Handler{
 			DB: svc.Database,
 		},
@@ -1188,7 +1190,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 
 	// v2/environments.listEnvironments
 	srv.RegisterRoute(
-		protectedMiddlewares,
+		middlewaresCompressed,
 		&v2EnvironmentsListEnvironments.Handler{
 			DB: svc.Database,
 		},
