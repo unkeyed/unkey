@@ -957,12 +957,14 @@ func TestCreateFollowsAppSource(t *testing.T) {
 // credentials.
 func TestCreateRefusesTheBuildRepository(t *testing.T) {
 	for name, image := range map[string]string{
-		"digest":                         fixtureBuildRepository + "@sha256:" + strings.Repeat("a", 64),
-		"uppercase host":                 strings.ToUpper("registry.unkey.test") + "/builds:v1",
-		"deleted project's tag":          fixtureBuildRepository + ":" + uid.New(uid.ProjectPrefix) + "-" + uid.New(uid.DeploymentPrefix),
-		"another repository's tag":       "registry.unkey.test/other:v1",
-		"another repository's digest":    "registry.unkey.test/other@sha256:" + strings.Repeat("c", 64),
-		"another repository on port 443": "Registry.Unkey.test:443/other:v1",
+		"digest":                          fixtureBuildRepository + "@sha256:" + strings.Repeat("a", 64),
+		"uppercase host":                  strings.ToUpper("registry.unkey.test") + "/builds:v1",
+		"deleted project's tag":           fixtureBuildRepository + ":" + uid.New(uid.ProjectPrefix) + "-" + uid.New(uid.DeploymentPrefix),
+		"another repository's tag":        "registry.unkey.test/other:v1",
+		"another repository's digest":     "registry.unkey.test/other@sha256:" + strings.Repeat("c", 64),
+		"another repository on port 443":  "Registry.Unkey.test:443/other:v1",
+		"another repository on port 0443": "registry.unkey.test:0443/other:v1",
+		"another repository on port 8443": "registry.unkey.test:8443/other:v1",
 	} {
 		t.Run("request image by "+name, func(t *testing.T) {
 			ctx := context.Background()
