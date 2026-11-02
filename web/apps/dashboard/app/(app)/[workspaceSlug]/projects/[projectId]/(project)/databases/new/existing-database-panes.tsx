@@ -1,7 +1,7 @@
 "use client";
 
 import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/queries/environments";
 import { IconArrowUpRightOutline12 } from "@unkey/icons";
 import { Button, Loading } from "@unkey/ui";
 import Link from "next/link";

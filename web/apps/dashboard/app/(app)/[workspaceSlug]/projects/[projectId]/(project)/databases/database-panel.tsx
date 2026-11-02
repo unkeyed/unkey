@@ -1,7 +1,7 @@
 "use client";
 
 import { environmentName } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
-import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
+import { ENVIRONMENT_KINDS } from "@/lib/queries/environments";
 import { IconArrowUpRightOutline12 } from "@unkey/icons";
 import {
   AlertBanner,
