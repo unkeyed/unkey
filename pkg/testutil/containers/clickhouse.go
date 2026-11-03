@@ -42,6 +42,8 @@ func ClickHouse(t testing.TB) ClickHouseConfig {
 		clickhouseUser, clickhousePassword, "localhost", c.Port(t, clickhouseHTTPPort))
 
 	// Connect and apply schema
+	readinessSpan := startContainerSpan(t, "containers.clickhouse.readiness")
+	defer readinessSpan.End()
 	clickhouseOpts, err := ch.ParseDSN(dsn)
 	require.NoError(t, err)
 
@@ -54,6 +56,7 @@ func ClickHouse(t testing.TB) ClickHouseConfig {
 	require.Eventually(t, func() bool {
 		return conn.Ping(ctx) == nil
 	}, 60*time.Second, 500*time.Millisecond)
+	readinessSpan.End()
 
 	applyClickHouseSchema(t, ctx, conn)
 
@@ -66,6 +69,9 @@ func ClickHouse(t testing.TB) ClickHouseConfig {
 // applyClickHouseSchema loads and executes schema files from pkg/clickhouse/schema/.
 func applyClickHouseSchema(t testing.TB, ctx context.Context, conn ch.Conn) {
 	t.Helper()
+
+	span := startContainerSpan(t, "containers.clickhouse.schema")
+	defer span.End()
 
 	// Enable experimental features needed by schema (e.g., JSON type)
 	experimentalSettings := []string{
