@@ -56,6 +56,11 @@ func (n *Noop) GetInstallationRepo(_ int64, _ string) (*RepoInfo, error) {
 	return nil, errNotConfigured
 }
 
+// GetRepoForkInfo returns an error indicating GitHub is not configured.
+func (n *Noop) GetRepoForkInfo(_ int64, _ string) (*RepoForkInfo, error) {
+	return nil, errNotConfigured
+}
+
 // CreateDeployment returns an error indicating GitHub is not configured.
 func (n *Noop) CreateDeployment(_ int64, _ string, _ string, _ string, _ string, _ bool) (int64, error) {
 	return 0, errNotConfigured

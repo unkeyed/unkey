@@ -285,6 +285,18 @@ type ghInstallationReposResponse struct {
 	Repositories []ghRepoResponse `json:"repositories"`
 }
 
+// ghRepoDetailResponse is the subset of GitHub's GET /repos/{owner}/{repo}
+// response that describes a repository's position in its fork network.
+type ghRepoDetailResponse struct {
+	Fork   bool       `json:"fork"`
+	Parent *ghRepoRef `json:"parent"`
+	Source *ghRepoRef `json:"source"`
+}
+
+type ghRepoRef struct {
+	FullName string `json:"full_name"`
+}
+
 // GetInstallationRepo returns canonical metadata only for repositories granted
 // to the installation, or nil if repo is absent from its repository list.
 func (c *Client) GetInstallationRepo(installationID int64, repo string) (*RepoInfo, error) {
@@ -312,6 +324,43 @@ func (c *Client) GetInstallationRepo(installationID int64, repo string) (*RepoIn
 			return nil, nil
 		}
 	}
+}
+
+// GetRepoForkInfo returns GitHub's fork metadata for repo ("owner/repo") using
+// the installation's credentials. It returns nil when the installation cannot
+// read the repository, so a caller never treats an unreadable repository as
+// unrelated. A missing repository (404) is also nil.
+func (c *Client) GetRepoForkInfo(installationID int64, repo string) (*RepoForkInfo, error) {
+	headers, err := c.ghHeaders(installationID)
+	if err != nil {
+		return nil, err
+	}
+
+	apiURL := fmt.Sprintf("%s/repos/%s", c.baseURL, repo)
+	status, err := requestStatus(c.httpClient, http.MethodGet, apiURL, headers)
+	if err != nil {
+		return nil, err
+	}
+	switch status {
+	case http.StatusNotFound:
+		return nil, nil
+	case http.StatusOK:
+	default:
+		return nil, fault.New(fmt.Sprintf("fork lookup for %s returned status %d", repo, status))
+	}
+
+	response, err := request[ghRepoDetailResponse](c.httpClient, http.MethodGet, apiURL, headers, nil, http.StatusOK)
+	if err != nil {
+		return nil, err
+	}
+	info := &RepoForkInfo{Fork: response.Fork}
+	if response.Parent != nil {
+		info.ParentFullName = response.Parent.FullName
+	}
+	if response.Source != nil {
+		info.SourceFullName = response.Source.FullName
+	}
+	return info, nil
 }
 
 // maxFileContentBytes bounds [Client.GetFileContents] so a large file cannot

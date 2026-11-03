@@ -124,6 +124,9 @@ const (
 	// The existing deployment was a git build but recorded no commit, so there is
 	// nothing to rebuild.
 	CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT CreateOutcome = 14
+	// The caller named a fork repository that is neither the app's connected
+	// repository nor a fork of it.
+	CreateOutcome_CREATE_OUTCOME_FORK_REPOSITORY_NOT_RELATED CreateOutcome = 15
 )
 
 // Enum value maps for CreateOutcome.
@@ -144,6 +147,7 @@ var (
 		12: "CREATE_OUTCOME_NO_IMAGE_CONFIGURED",
 		13: "CREATE_OUTCOME_NO_SOURCE",
 		14: "CREATE_OUTCOME_NO_SOURCE_COMMIT",
+		15: "CREATE_OUTCOME_FORK_REPOSITORY_NOT_RELATED",
 	}
 	CreateOutcome_value = map[string]int32{
 		"CREATE_OUTCOME_UNSPECIFIED":                 0,
@@ -161,6 +165,7 @@ var (
 		"CREATE_OUTCOME_NO_IMAGE_CONFIGURED":         12,
 		"CREATE_OUTCOME_NO_SOURCE":                   13,
 		"CREATE_OUTCOME_NO_SOURCE_COMMIT":            14,
+		"CREATE_OUTCOME_FORK_REPOSITORY_NOT_RELATED": 15,
 	}
 )
 
@@ -1372,7 +1377,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x1bCREATE_DECISION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CREATE_DECISION_DEPLOY\x10\x01\x12\x18\n" +
 	"\x14CREATE_DECISION_SKIP\x10\x02\x12\"\n" +
-	"\x1eCREATE_DECISION_AWAIT_APPROVAL\x10\x03*\xc3\x04\n" +
+	"\x1eCREATE_DECISION_AWAIT_APPROVAL\x10\x03*\xf3\x04\n" +
 	"\rCreateOutcome\x12\x1e\n" +
 	"\x1aCREATE_OUTCOME_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CREATE_OUTCOME_CREATED\x10\x01\x12\"\n" +
@@ -1389,7 +1394,8 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"*CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND\x10\v\x12&\n" +
 	"\"CREATE_OUTCOME_NO_IMAGE_CONFIGURED\x10\f\x12\x1c\n" +
 	"\x18CREATE_OUTCOME_NO_SOURCE\x10\r\x12#\n" +
-	"\x1fCREATE_OUTCOME_NO_SOURCE_COMMIT\x10\x0e*c\n" +
+	"\x1fCREATE_OUTCOME_NO_SOURCE_COMMIT\x10\x0e\x12.\n" +
+	"*CREATE_OUTCOME_FORK_REPOSITORY_NOT_RELATED\x10\x0f*c\n" +
 	"\fTeardownMode\x12\x1d\n" +
 	"\x19TEARDOWN_MODE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15TEARDOWN_MODE_ARCHIVE\x10\x01\x12\x19\n" +

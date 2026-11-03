@@ -36,6 +36,12 @@ type GitHubClient interface {
 	// only if granted to the installation, or nil if absent.
 	GetInstallationRepo(installationID int64, repo string) (*RepoInfo, error)
 
+	// GetRepoForkInfo returns GitHub's fork metadata for repo ("owner/repo")
+	// using the installation's credentials. It returns nil when the
+	// installation cannot read the repository, so an unreadable repository is
+	// never mistaken for one that is not a fork.
+	GetRepoForkInfo(installationID int64, repo string) (*RepoForkInfo, error)
+
 	// GetBranchHeadCommit retrieves the HEAD commit of a branch from a GitHub
 	// repository using the given installation's credentials.
 	GetBranchHeadCommit(installationID int64, repo string, branch string) (CommitInfo, error)
@@ -101,6 +107,22 @@ type RepoInfo struct {
 	// Private is true for private and internal repositories, which need a
 	// token to clone.
 	Private bool
+}
+
+// RepoForkInfo is the fork relationship GitHub reports for a repository. A
+// deploy may only name a repository in the app's connected repository's fork
+// network, so this is what the deploy admission checks before it lets the
+// connected app's installation credential reach another repository.
+type RepoForkInfo struct {
+	// Fork is true when GitHub marks the repository as a fork.
+	Fork bool
+
+	// ParentFullName is the repository this one was forked from directly.
+	ParentFullName string
+
+	// SourceFullName is the root of the repository's fork network. It stays
+	// fixed when a fork is itself forked, so it identifies the whole network.
+	SourceFullName string
 }
 
 // CommitInfo holds metadata about a single Git commit retrieved from the GitHub API.

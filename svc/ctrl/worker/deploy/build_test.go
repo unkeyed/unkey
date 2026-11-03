@@ -445,6 +445,10 @@ type stubGitHub struct {
 	gitmodulesAt  []string
 	// installationRepos are the repos the installation can read.
 	installationRepos map[string]githubclient.RepoInfo
+
+	// forkInfo is the fork metadata GetRepoForkInfo returns per repository.
+	forkInfo    map[string]*githubclient.RepoForkInfo
+	forkInfoErr error
 }
 
 func (s *stubGitHub) GetFileContents(_ int64, repo, ref, path string) ([]byte, bool, error) {
@@ -464,6 +468,17 @@ func (s *stubGitHub) GetInstallationRepo(_ int64, repo string) (*githubclient.Re
 		return nil, nil
 	}
 	return &info, nil
+}
+
+func (s *stubGitHub) GetRepoForkInfo(_ int64, repo string) (*githubclient.RepoForkInfo, error) {
+	if s.forkInfoErr != nil {
+		return nil, s.forkInfoErr
+	}
+	info, ok := s.forkInfo[repo]
+	if !ok {
+		return nil, nil
+	}
+	return info, nil
 }
 
 func (s *stubGitHub) IsRepoPublic(repo string) (bool, error) {
