@@ -1,8 +1,8 @@
 "use client";
 
-import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { refetchProjectApps, useProjectApps } from "@/lib/queries/apps";
 import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,7 +66,7 @@ export function DeployDataProvider({
           trpcUtils.deploy.deployment.listActiveBranches.invalidate();
           trpcUtils.deploy.deployment.listBranches.invalidate();
         },
-        refetchApps: () => refetchProjectApps(projectId),
+        refetchApps: () => refetchProjectApps(queryClient, projectId),
       },
     };
   }, [projectId, appId, trpcUtils, queryClient]);
@@ -106,7 +106,7 @@ function DeployDataScheduler() {
     app.isRolledBack === liveTarget.rolledBack;
 
   const refetchAll = useCallback(() => {
-    refetchDeployData(projectId);
+    refetchDeployData(queryClient, projectId);
     queryClient.invalidateQueries({ queryKey: queryKeys.deployments.scope(projectId) });
   }, [queryClient, projectId]);
   const settleLive = useCallback(
@@ -125,9 +125,9 @@ function DeployDataScheduler() {
   );
   useSettle(liveTarget, liveReached, settleLive);
 
-  useCollectionPolling(() => refetchProjectApps(projectId), {
-    intervalMs: liveTarget !== null ? POLL_AWAITING_MS : POLL_APPS_IDLE_MS,
+  useProjectApps(projectId, {
     enabled: appId !== undefined,
+    refetchInterval: liveTarget !== null ? POLL_AWAITING_MS : POLL_APPS_IDLE_MS,
   });
   useCollectionPolling(() => refetchScopeCustomDomains(projectId), {
     intervalMs: POLL_CUSTOM_DOMAINS_MS,

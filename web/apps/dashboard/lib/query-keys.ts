@@ -22,6 +22,9 @@ export const queryKeys = {
   projects: {
     all: ["projects"] as const,
   },
+  apps: {
+    list: (projectId: string) => ["apps", projectId] as const,
+  },
   deployments: {
     all: deploymentsRoot,
     buildLogs: (deploymentId: string) => [...deploymentsRoot, "buildLogs", deploymentId] as const,

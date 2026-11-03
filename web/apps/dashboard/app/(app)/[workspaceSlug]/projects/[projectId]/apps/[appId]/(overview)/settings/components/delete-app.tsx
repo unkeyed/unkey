@@ -1,8 +1,9 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useApp, useAppMutations, useAppScope } from "@/lib/deploy-data";
+import { useApp, useAppScope } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
+import { useDeleteApp } from "@/lib/queries/apps";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import {
@@ -22,7 +23,7 @@ import { z } from "zod";
 export function DeleteApp() {
   const { projectId, appId } = useAppScope();
   const { data: app } = useApp();
-  const { deleteApp } = useAppMutations();
+  const deleteApp = useDeleteApp(projectId);
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -50,7 +51,7 @@ export function DeleteApp() {
   const isValid = watch("name") === appName;
 
   const onSubmit = (_values: FormValues) => {
-    deleteApp(appId);
+    deleteApp.mutate(appId);
     setIsDialogOpen(false);
     router.push(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
   };

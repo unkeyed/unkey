@@ -1,13 +1,9 @@
 import { ListViews } from "@/components/list-views";
 import { ResourceSearchInput, useListSearch } from "@/components/resource-search-input";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { GRID_PAGE_SIZE } from "@/lib/list-limits";
 import { useShowMore } from "@/lib/loadable/list";
 import { projectDisplayName, useVisibleProjects } from "@/lib/queries/projects";
-import { queryKeys } from "@/lib/query-keys";
-import { useQueryClient } from "@tanstack/react-query";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import { AlertBanner, AlertBannerActions, AlertBannerDescription, Button } from "@unkey/ui";
 import { useState } from "react";
@@ -23,8 +19,7 @@ export function ProjectsList() {
   const { gated } = useDeployGate();
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const workspace = useWorkspaceNavigation();
-  const projects = useVisibleProjects();
-  const queryClient = useQueryClient();
+  const projects = useVisibleProjects({ refetchInterval: IDLE_POLL_MS });
   const search = useListSearch();
   const needle = search.toLowerCase();
   const list = useShowMore({
@@ -37,15 +32,6 @@ export function ProjectsList() {
     search,
     pageSize: GRID_PAGE_SIZE,
   });
-
-  useCollectionPolling(
-    () =>
-      Promise.all([
-        queryClient.refetchQueries({ queryKey: queryKeys.projects.all, type: "active" }),
-        collection.apps.utils.refetch(),
-      ]),
-    { intervalMs: IDLE_POLL_MS, enabled: true },
-  );
 
   return (
     <ListViews

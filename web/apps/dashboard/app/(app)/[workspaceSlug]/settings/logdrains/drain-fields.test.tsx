@@ -35,7 +35,7 @@ vi.mock("@/hooks/use-project-environments", () => ({
     isError: sourceState.environmentsFailed,
   }),
 }));
-vi.mock("@/hooks/use-projects-with-apps", () => ({
+vi.mock("@/lib/queries/projects", () => ({
   useProjectsWithApps: () => ({
     data: sourceState.empty
       ? []

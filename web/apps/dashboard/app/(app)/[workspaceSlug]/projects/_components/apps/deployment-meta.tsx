@@ -2,7 +2,7 @@ import {
   type DeploymentStatusGroup,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
-import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
+import type { ProjectApp } from "@/lib/queries/apps";
 import { match } from "@unkey/match";
 import { type RelativePrecision, useElapsed } from "@unkey/ui";
 import { cn } from "cn";

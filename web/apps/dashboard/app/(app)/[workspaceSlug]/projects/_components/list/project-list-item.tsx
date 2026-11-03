@@ -8,7 +8,6 @@ import type { Project } from "@/lib/queries/projects";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Skeleton } from "@unkey/ui";
 import { DeployedAgo } from "../../[projectId]/_components/apps-list/app-source";
-import { warmProjectPage } from "../../[projectId]/_components/apps-list/queries";
 import {
   type WarmHandlers,
   useWarmAppPage,
@@ -33,17 +32,16 @@ type ProjectItemProps = { project: Project; name: string };
 function useProjectListItem(project: Project, nearViewport: boolean) {
   const { apps, isLoading } = useProjectCard(project.id, { nearViewport });
   const { warmApp, cancelWarm } = useWarmAppPage();
-  const warmProjectAndOnlyApp = () => {
-    warmProjectPage(project.id);
+  const warmOnlyApp = () => {
     const onlyApp = apps.length === 1 ? apps[0] : undefined;
     if (onlyApp) {
       warmApp(project.id, onlyApp.id);
     }
   };
   const warm: WarmHandlers = {
-    onPointerEnter: warmProjectAndOnlyApp,
+    onPointerEnter: warmOnlyApp,
     onPointerLeave: cancelWarm,
-    onFocusCapture: warmProjectAndOnlyApp,
+    onFocusCapture: warmOnlyApp,
   };
 
   return { apps, isLoading, warm };
