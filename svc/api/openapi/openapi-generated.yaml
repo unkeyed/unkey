@@ -5565,6 +5565,7 @@ components:
             required:
                 - id
                 - userId
+                - kind
                 - permissions
                 - createdAt
                 - lastUsedAt
@@ -5574,8 +5575,16 @@ components:
                     type: string
                 userId:
                     type: string
+                kind:
+                    $ref: '#/components/schemas/V2CliSessionKind'
                 deviceName:
                     type: string
+                    description: The CLI machine's hostname, or the OAuth client's self-reported name for mcp sessions.
+                oauthClientId:
+                    type: string
+                    description: |
+                        Client ID metadata document URL of the OAuth client that holds the session. Present only for mcp sessions.
+                        deviceName then holds the client's self-reported name, so show this URL's host next to it.
                 permissions:
                     type: array
                     items:
@@ -5594,6 +5603,12 @@ components:
                     type: integer
                     format: int64
                     description: Unix millisecond time the session was revoked. Omitted when the session is still active.
+        V2CliSessionKind:
+            type: string
+            enum:
+                - cli
+                - mcp
+            description: How the session was created. cli is unkey login. mcp is an MCP client that signed in through OAuth.
         V2CliStartDeviceLoginResponseData:
             type: object
             required:

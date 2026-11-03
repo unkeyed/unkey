@@ -1,6 +1,9 @@
 package clidevice
 
-import "github.com/unkeyed/unkey/pkg/auth/principal"
+import (
+	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/db"
+)
 
 // StartRequest is an unauthenticated cli.startDeviceLogin call.
 type StartRequest struct {
@@ -99,12 +102,15 @@ type ListRequest struct {
 
 // SessionInfo is one row in the sessions list. Token hashes are not included.
 type SessionInfo struct {
-	ID          string
-	UserID      string
-	DeviceName  string
-	Permissions []string
-	CreatedAt   int64
-	LastUsedAt  int64
-	ExpiresAt   int64
-	RevokedAt   int64
+	ID         string
+	UserID     string
+	Kind       db.UserDeviceSessionsKind
+	DeviceName string
+	// OAuthClientID is set when an OAuth client holds the session.
+	OAuthClientID string
+	Permissions   []string
+	CreatedAt     int64
+	LastUsedAt    int64
+	ExpiresAt     int64
+	RevokedAt     int64
 }

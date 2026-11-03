@@ -1,16 +1,16 @@
 lockVersion: 2.0.0
 id: dd266259-e27e-4ada-9a56-5846bef9afd5
 management:
-  docChecksum: 1861a1a5d8659e77218fd657457e645a
+  docChecksum: 7bc4d54709671dcc600744549ebb5fcb
   docVersion: 2.0.0
   speakeasyVersion: 1.790.1
   generationVersion: 2.918.1
   releaseVersion: 0.0.0
   configChecksum: 8908dd0e19872a58e24ce04ef1523f49
 persistentEdits:
-  generation_id: d5309f1d-59a1-445a-afe1-1a9094e62984
-  pristine_commit_hash: 40e10e8c87b3f6eaba9355f2e16d746e9e8c793a
-  pristine_tree_hash: 3a4620c39ce752af146d244585386b37f04cfee2
+  generation_id: 7debdd2e-794a-426e-8786-6f0249ada863
+  pristine_commit_hash: 2601e87448b30af764d9970601d50500972a0b7a
+  pristine_tree_hash: 6a9e548761525ec2b38bbde97b1957a780c9ed51
 features:
   go:
     additionalDependencies: 0.1.0
@@ -167,8 +167,8 @@ trackedFiles:
     pristine_git_object: 579a292e3e4915002ba3dfcfb48e9b4fdc6688c0
   docs/models/components/v2clilistsessionssession.md:
     id: cc917f00ee01
-    last_write_checksum: sha1:487de09b7bd639284b188b60cf0d169741093743
-    pristine_git_object: 2682c94ebe3584e17a7fabd8feef357f34765a51
+    last_write_checksum: sha1:7c20f224506742c2ee1c811fff50f34eec4d86eb
+    pristine_git_object: 5a3a30be1a0069d6ac8c9a2591576797bc21fab9
   docs/models/components/v2clirevokesessionrequestbody.md:
     id: df806d4ed474
     last_write_checksum: sha1:a40503e4bc4a8cc7db430fd8f948dbcdbfc88714
@@ -177,6 +177,10 @@ trackedFiles:
     id: 86546ddd1661
     last_write_checksum: sha1:4f63a61bf09f4653ffb1fda2fa5527ef936f2598
     pristine_git_object: d90d43a9a3e5a6cb3687447de9c2db61ebf82c11
+  docs/models/components/v2clisessionkind.md:
+    id: 382f550a169a
+    last_write_checksum: sha1:1717fd78e4cfac10469c45c14dfd3caab08e31e2
+    pristine_git_object: d0895ec8362e03afb62b390076b9cdab3879a556
   docs/models/components/v2clistartdeviceloginrequestbody.md:
     id: 72fe1ce91a6d
     last_write_checksum: sha1:c869cf9bc862a650d0956e3793dc76554a329462
@@ -391,8 +395,8 @@ trackedFiles:
     pristine_git_object: 3c5ea79a836aaa08b5b68333f08a8db9b26f921b
   models/components/v2clilistsessionssession.go:
     id: 564f82944155
-    last_write_checksum: sha1:2cd4999ef82617d7196b33dc7e59adb6c2082ee8
-    pristine_git_object: b4954547451d99f13400a555c57f575c41def86c
+    last_write_checksum: sha1:5eab3ab4d872d4ff10063ecf8ae82aa03470a350
+    pristine_git_object: 9b44882f23ffe8549060405ed3ee90fdd506a259
   models/components/v2clirevokesessionrequestbody.go:
     id: cc12e89c9e54
     last_write_checksum: sha1:444235890c76729e31f338c0beaf414b67230211
@@ -401,6 +405,10 @@ trackedFiles:
     id: 3094c301d88b
     last_write_checksum: sha1:a484fbd28e9cf138ce40dd9d594364fe2e5211f6
     pristine_git_object: 2f26f706ae72049723de281ba7b717eb3fbe50eb
+  models/components/v2clisessionkind.go:
+    id: 0bfab7f5bc8e
+    last_write_checksum: sha1:bedca22be118aee86e8b38aeecbfd654f4e25d7f
+    pristine_git_object: 9d04db7675d7d8859d0d01a3bc733560fd3a5897
   models/components/v2clistartdeviceloginrequestbody.go:
     id: d506ea1dec0f
     last_write_checksum: sha1:0c7b65fae2881b5ad8b609f5b755574c88159c7b

@@ -1,4 +1,4 @@
-import { bigint, index, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { bigint, index, json, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
@@ -10,6 +10,7 @@ export const userDeviceSessions = mysqlTable(
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     userId: caseSensitiveVarchar("user_id", { length: 256 }).notNull(),
+    kind: mysqlEnum("kind", ["cli", "mcp"]).notNull().default("cli"),
     userName: varchar("user_name", { length: 256 }),
     permissions: json("permissions").$type<string[]>().notNull(),
     deviceName: varchar("device_name", { length: 512 }),

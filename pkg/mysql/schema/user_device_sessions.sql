@@ -3,6 +3,7 @@ CREATE TABLE `user_device_sessions` (
 	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`user_id` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL,
+	`kind` enum('cli','mcp') NOT NULL DEFAULT 'cli',
 	`user_name` varchar(256),
 	`permissions` json NOT NULL,
 	`device_name` varchar(512),

@@ -16,6 +16,7 @@ INSERT INTO user_device_sessions (
     id,
     workspace_id,
     user_id,
+    kind,
     user_name,
     permissions,
     device_name,
@@ -27,6 +28,7 @@ INSERT INTO user_device_sessions (
     oauth_client_id,
     audience
 ) VALUES (
+    ?,
     ?,
     ?,
     ?,
@@ -44,19 +46,20 @@ INSERT INTO user_device_sessions (
 `
 
 type InsertUserDeviceSessionParams struct {
-	ID               string          `db:"id"`
-	WorkspaceID      string          `db:"workspace_id"`
-	UserID           string          `db:"user_id"`
-	UserName         sql.NullString  `db:"user_name"`
-	Permissions      json.RawMessage `db:"permissions"`
-	DeviceName       sql.NullString  `db:"device_name"`
-	RefreshTokenHash string          `db:"refresh_token_hash"`
-	RefreshFamily    string          `db:"refresh_family"`
-	CreatedAt        int64           `db:"created_at"`
-	LastUsedAt       int64           `db:"last_used_at"`
-	ExpiresAt        int64           `db:"expires_at"`
-	OauthClientID    sql.NullString  `db:"oauth_client_id"`
-	Audience         sql.NullString  `db:"audience"`
+	ID               string                 `db:"id"`
+	WorkspaceID      string                 `db:"workspace_id"`
+	UserID           string                 `db:"user_id"`
+	Kind             UserDeviceSessionsKind `db:"kind"`
+	UserName         sql.NullString         `db:"user_name"`
+	Permissions      json.RawMessage        `db:"permissions"`
+	DeviceName       sql.NullString         `db:"device_name"`
+	RefreshTokenHash string                 `db:"refresh_token_hash"`
+	RefreshFamily    string                 `db:"refresh_family"`
+	CreatedAt        int64                  `db:"created_at"`
+	LastUsedAt       int64                  `db:"last_used_at"`
+	ExpiresAt        int64                  `db:"expires_at"`
+	OauthClientID    sql.NullString         `db:"oauth_client_id"`
+	Audience         sql.NullString         `db:"audience"`
 }
 
 // InsertUserDeviceSession
@@ -65,6 +68,7 @@ type InsertUserDeviceSessionParams struct {
 //	    id,
 //	    workspace_id,
 //	    user_id,
+//	    kind,
 //	    user_name,
 //	    permissions,
 //	    device_name,
@@ -76,6 +80,7 @@ type InsertUserDeviceSessionParams struct {
 //	    oauth_client_id,
 //	    audience
 //	) VALUES (
+//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -95,6 +100,7 @@ func (q *Queries) InsertUserDeviceSession(ctx context.Context, db DBTX, arg Inse
 		arg.ID,
 		arg.WorkspaceID,
 		arg.UserID,
+		arg.Kind,
 		arg.UserName,
 		arg.Permissions,
 		arg.DeviceName,

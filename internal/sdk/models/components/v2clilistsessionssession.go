@@ -3,12 +3,19 @@
 package components
 
 type V2CliListSessionsSession struct {
-	ID          string   `json:"id"`
-	UserID      string   `json:"userId"`
-	DeviceName  *string  `json:"deviceName,omitzero"`
-	Permissions []string `json:"permissions"`
-	CreatedAt   int64    `json:"createdAt"`
-	LastUsedAt  int64    `json:"lastUsedAt"`
+	ID     string `json:"id"`
+	UserID string `json:"userId"`
+	// How the session was created. cli is unkey login. mcp is an MCP client that signed in through OAuth.
+	Kind V2CliSessionKind `json:"kind"`
+	// The CLI machine's hostname, or the OAuth client's self-reported name for mcp sessions.
+	DeviceName *string `json:"deviceName,omitzero"`
+	// Client ID metadata document URL of the OAuth client that holds the session. Present only for mcp sessions.
+	// deviceName then holds the client's self-reported name, so show this URL's host next to it.
+	//
+	OauthClientID *string  `json:"oauthClientId,omitzero"`
+	Permissions   []string `json:"permissions"`
+	CreatedAt     int64    `json:"createdAt"`
+	LastUsedAt    int64    `json:"lastUsedAt"`
 	// Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
 	ExpiresAt int64 `json:"expiresAt"`
 	// Unix millisecond time the session was revoked. Omitted when the session is still active.
@@ -29,11 +36,25 @@ func (v *V2CliListSessionsSession) GetUserID() string {
 	return v.UserID
 }
 
+func (v *V2CliListSessionsSession) GetKind() V2CliSessionKind {
+	if v == nil {
+		return V2CliSessionKind("")
+	}
+	return v.Kind
+}
+
 func (v *V2CliListSessionsSession) GetDeviceName() *string {
 	if v == nil {
 		return nil
 	}
 	return v.DeviceName
+}
+
+func (v *V2CliListSessionsSession) GetOauthClientID() *string {
+	if v == nil {
+		return nil
+	}
+	return v.OauthClientID
 }
 
 func (v *V2CliListSessionsSession) GetPermissions() []string {

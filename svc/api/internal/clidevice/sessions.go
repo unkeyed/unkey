@@ -112,7 +112,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		actor := auditactor.FromPrincipal(req.Principal)
 		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
 			Event:         auditlog.CLISessionRevokeEvent,
-			Display:       "Revoked CLI session " + row.ID,
+			Display:       "Revoked " + strings.ToUpper(string(row.Kind)) + " session " + row.ID,
 			WorkspaceID:   row.WorkspaceID,
 			ActorType:     actor.Type,
 			ActorID:       actor.ID,
@@ -168,14 +168,16 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 			return nil, err
 		}
 		info := SessionInfo{
-			ID:          row.ID,
-			UserID:      row.UserID,
-			DeviceName:  row.DeviceName.String,
-			Permissions: permissions,
-			CreatedAt:   row.CreatedAt,
-			LastUsedAt:  row.LastUsedAt,
-			ExpiresAt:   row.ExpiresAt,
-			RevokedAt:   0,
+			ID:            row.ID,
+			UserID:        row.UserID,
+			Kind:          row.Kind,
+			DeviceName:    row.DeviceName.String,
+			OAuthClientID: row.OauthClientID.String,
+			Permissions:   permissions,
+			CreatedAt:     row.CreatedAt,
+			LastUsedAt:    row.LastUsedAt,
+			ExpiresAt:     row.ExpiresAt,
+			RevokedAt:     0,
 		}
 		if row.RevokedAt.Valid {
 			info.RevokedAt = row.RevokedAt.Int64

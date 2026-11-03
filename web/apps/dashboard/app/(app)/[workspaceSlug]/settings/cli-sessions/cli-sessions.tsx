@@ -4,12 +4,13 @@ import { ListPager } from "@/components/list-pager";
 import { LoadError } from "@/components/load-error";
 import type { User } from "@/lib/auth/types";
 import { type CliSession, listCliSessions, revokeCliSession } from "@/lib/cli/device-api";
+import { oauthClientOf } from "@/lib/cli/oauth-client";
 import { listOf } from "@/lib/loadable/list";
 import { fromQuery } from "@/lib/loadable/loadable";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IconLaptop2Outline18, IconTerminalOutline18 } from "@unkey/icons";
+import { IconLaptop2Outline18, IconSparkle3Outline18, IconTerminalOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   AlertDialog,
@@ -46,7 +47,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "cn";
-import { Fragment, useState } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 
 type SessionState = "active" | "expired" | "revoked";
 
@@ -55,6 +56,15 @@ const STATES: Record<SessionState, { badge: string | null; label: string }> = {
   expired: { badge: "Expired", label: "Expired" },
   revoked: { badge: "Revoked", label: "Revoked" },
 };
+
+const KINDS: Record<CliSession["kind"], { badge: string; icon: ReactNode }> = {
+  cli: { badge: "CLI", icon: <IconLaptop2Outline18 /> },
+  mcp: { badge: "MCP", icon: <IconSparkle3Outline18 /> },
+};
+
+function sessionName(session: CliSession): string {
+  return oauthClientOf(session)?.name ?? session.deviceName ?? "Unknown device";
+}
 
 function sessionState(session: CliSession): SessionState {
   if (session.revokedAt) {
@@ -197,15 +207,27 @@ function SessionItem({
   const state = sessionState(session);
   const { badge, label } = STATES[state];
   const endsAt = session.revokedAt ?? session.expiresAt;
+  const kind = KINDS[session.kind];
+  const client = oauthClientOf(session);
+  const name = sessionName(session);
 
   return (
     <Item>
-      <ItemMedia className="bg-grayA-3 text-gray-11">
-        <IconLaptop2Outline18 />
-      </ItemMedia>
+      <ItemMedia className="bg-grayA-3 text-gray-11">{kind.icon}</ItemMedia>
       <ItemContent>
-        <ItemTitle>{session.deviceName || "Unknown device"}</ItemTitle>
+        <ItemTitle className="flex items-center gap-2">
+          <span className="truncate">{name}</span>
+          <Badge variant="secondary" size="sm">
+            {kind.badge}
+          </Badge>
+        </ItemTitle>
         <ItemDescription>
+          {client ? (
+            <>
+              <span>via {client.host}</span>
+              {" · "}
+            </>
+          ) : null}
           {match(owner)
             .with("hidden", () => null)
             .with("unknown", () => (
@@ -236,7 +258,7 @@ function SessionItem({
           <Button
             type="button"
             variant="outline"
-            aria-label={`Revoke ${session.deviceName || "unknown device"}`}
+            aria-label={`Revoke ${name}`}
             disabled={disabled}
             onClick={onRevoke}
           >
@@ -273,7 +295,7 @@ function RevokeSessionDialog({
           <AlertDialogTitle>Revoke this session?</AlertDialogTitle>
           <AlertDialogDescription>
             <span className="font-medium text-gray-12">
-              {session?.deviceName || "This unknown device"}
+              {session ? sessionName(session) : null}
             </span>{" "}
             loses access right away.
           </AlertDialogDescription>
@@ -339,7 +361,7 @@ function CliSessionsEmpty() {
             <code className="rounded-md bg-grayA-3 px-1.5 py-0.5 font-mono text-xs text-gray-12">
               unkey login
             </code>{" "}
-            to start one.
+            or connect an MCP client to start one.
           </EmptyStateDescription>
         </EmptyStateHeader>
       </EmptyState>

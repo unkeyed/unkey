@@ -111,8 +111,10 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		}, nil
 	}
 
+	kind := db.UserDeviceSessionsKindCli
 	var clientID, resource string
 	if row.Oauth != nil {
+		kind = db.UserDeviceSessionsKindMcp
 		clientID = row.Oauth.ClientID
 		resource = row.Oauth.Resource
 	}
@@ -153,6 +155,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			ID:               sessionID,
 			WorkspaceID:      workspace.ID,
 			UserID:           locked.ApproverUserID.String,
+			Kind:             kind,
 			UserName:         locked.ApproverName,
 			Permissions:      permsJSON,
 			DeviceName:       locked.DeviceName,

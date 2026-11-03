@@ -142,6 +142,7 @@ export * from "./v2clilistsessionsresponsedata.js";
 export * from "./v2clilistsessionssession.js";
 export * from "./v2clirevokesessionrequestbody.js";
 export * from "./v2clirevokesessionresponsebody.js";
+export * from "./v2clisessionkind.js";
 export * from "./v2clistartdeviceloginrequestbody.js";
 export * from "./v2clistartdeviceloginresponsebody.js";
 export * from "./v2clistartdeviceloginresponsedata.js";

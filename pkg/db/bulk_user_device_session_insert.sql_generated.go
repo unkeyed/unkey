@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertUserDeviceSession is the base query for bulk insert
-const bulkInsertUserDeviceSession = `INSERT INTO user_device_sessions ( id, workspace_id, user_id, user_name, permissions, device_name, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at, oauth_client_id, audience ) VALUES %s`
+const bulkInsertUserDeviceSession = `INSERT INTO user_device_sessions ( id, workspace_id, user_id, kind, user_name, permissions, device_name, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at, oauth_client_id, audience ) VALUES %s`
 
 // InsertUserDeviceSessions performs bulk insert in a single query
 func (q *BulkQueries) InsertUserDeviceSessions(ctx context.Context, db DBTX, args []InsertUserDeviceSessionParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertUserDeviceSessions(ctx context.Context, db DBTX, arg
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertUserDeviceSession, strings.Join(valueClauses, ", "))
@@ -32,6 +32,7 @@ func (q *BulkQueries) InsertUserDeviceSessions(ctx context.Context, db DBTX, arg
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.UserID)
+		allArgs = append(allArgs, arg.Kind)
 		allArgs = append(allArgs, arg.UserName)
 		allArgs = append(allArgs, arg.Permissions)
 		allArgs = append(allArgs, arg.DeviceName)

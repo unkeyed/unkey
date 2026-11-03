@@ -1356,6 +1356,48 @@ func (ns NullUnkeyPrincipalPermissionsPrincipalType) Value() (driver.Value, erro
 	return string(ns.UnkeyPrincipalPermissionsPrincipalType), nil
 }
 
+type UserDeviceSessionsKind string
+
+const (
+	UserDeviceSessionsKindCli UserDeviceSessionsKind = "cli"
+	UserDeviceSessionsKindMcp UserDeviceSessionsKind = "mcp"
+)
+
+func (e *UserDeviceSessionsKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UserDeviceSessionsKind(s)
+	case string:
+		*e = UserDeviceSessionsKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UserDeviceSessionsKind: %T", src)
+	}
+	return nil
+}
+
+type NullUserDeviceSessionsKind struct {
+	UserDeviceSessionsKind UserDeviceSessionsKind
+	Valid                  bool // Valid is true if UserDeviceSessionsKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUserDeviceSessionsKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.UserDeviceSessionsKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UserDeviceSessionsKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUserDeviceSessionsKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UserDeviceSessionsKind), nil
+}
+
 type AcmeChallenge struct {
 	Pk            uint64                      `db:"pk"`
 	DomainID      string                      `db:"domain_id"`
@@ -2171,23 +2213,24 @@ type UnkeyRootKey struct {
 }
 
 type UserDeviceSession struct {
-	Pk                       uint64          `db:"pk"`
-	ID                       string          `db:"id"`
-	WorkspaceID              string          `db:"workspace_id"`
-	UserID                   string          `db:"user_id"`
-	UserName                 sql.NullString  `db:"user_name"`
-	Permissions              json.RawMessage `db:"permissions"`
-	DeviceName               sql.NullString  `db:"device_name"`
-	RefreshTokenHash         string          `db:"refresh_token_hash"`
-	PreviousRefreshTokenHash sql.NullString  `db:"previous_refresh_token_hash"`
-	RefreshFamily            string          `db:"refresh_family"`
-	RotatedAt                sql.NullInt64   `db:"rotated_at"`
-	CreatedAt                int64           `db:"created_at"`
-	LastUsedAt               int64           `db:"last_used_at"`
-	ExpiresAt                int64           `db:"expires_at"`
-	RevokedAt                sql.NullInt64   `db:"revoked_at"`
-	OauthClientID            sql.NullString  `db:"oauth_client_id"`
-	Audience                 sql.NullString  `db:"audience"`
+	Pk                       uint64                 `db:"pk"`
+	ID                       string                 `db:"id"`
+	WorkspaceID              string                 `db:"workspace_id"`
+	UserID                   string                 `db:"user_id"`
+	Kind                     UserDeviceSessionsKind `db:"kind"`
+	UserName                 sql.NullString         `db:"user_name"`
+	Permissions              json.RawMessage        `db:"permissions"`
+	DeviceName               sql.NullString         `db:"device_name"`
+	RefreshTokenHash         string                 `db:"refresh_token_hash"`
+	PreviousRefreshTokenHash sql.NullString         `db:"previous_refresh_token_hash"`
+	RefreshFamily            string                 `db:"refresh_family"`
+	RotatedAt                sql.NullInt64          `db:"rotated_at"`
+	CreatedAt                int64                  `db:"created_at"`
+	LastUsedAt               int64                  `db:"last_used_at"`
+	ExpiresAt                int64                  `db:"expires_at"`
+	RevokedAt                sql.NullInt64          `db:"revoked_at"`
+	OauthClientID            sql.NullString         `db:"oauth_client_id"`
+	Audience                 sql.NullString         `db:"audience"`
 }
 
 type Workspace struct {

@@ -234,6 +234,13 @@ func TestOAuthCodeFlowIssuesASessionScopedToTheGrant(t *testing.T) {
 	require.Equal(t, client.ID, session.OauthClientID.String)
 	require.Equal(t, testResource, session.Audience.String)
 	require.Equal(t, client.Name, session.DeviceName.String)
+
+	listed, err := svc.List(t.Context(), ListRequest{Principal: developerPrincipal(workspace, userID)})
+	require.NoError(t, err)
+	require.Len(t, listed, 1)
+	require.Equal(t, db.UserDeviceSessionsKindMcp, listed[0].Kind)
+	require.Equal(t, client.ID, listed[0].OAuthClientID)
+	require.Equal(t, client.Name, listed[0].DeviceName)
 }
 
 func TestOAuthWithoutResourceIssuesOnlyTheAPIAudience(t *testing.T) {

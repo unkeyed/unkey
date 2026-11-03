@@ -2,6 +2,7 @@ type: object
 required:
   - id
   - userId
+  - kind
   - permissions
   - createdAt
   - lastUsedAt
@@ -11,8 +12,16 @@ properties:
     type: string
   userId:
     type: string
+  kind:
+    $ref: ./V2CliSessionKind.yaml
   deviceName:
     type: string
+    description: The CLI machine's hostname, or the OAuth client's self-reported name for mcp sessions.
+  oauthClientId:
+    type: string
+    description: |
+      Client ID metadata document URL of the OAuth client that holds the session. Present only for mcp sessions.
+      deviceName then holds the client's self-reported name, so show this URL's host next to it.
   permissions:
     type: array
     items:

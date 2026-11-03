@@ -40,17 +40,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permissions = []string{}
 		}
 		item := openapi.V2CliListSessionsSession{
-			Id:          row.ID,
-			UserId:      row.UserID,
-			DeviceName:  nil,
-			Permissions: permissions,
-			CreatedAt:   row.CreatedAt,
-			LastUsedAt:  row.LastUsedAt,
-			ExpiresAt:   row.ExpiresAt,
-			RevokedAt:   nil,
+			Id:            row.ID,
+			UserId:        row.UserID,
+			Kind:          openapi.V2CliSessionKind(row.Kind),
+			DeviceName:    nil,
+			OauthClientId: nil,
+			Permissions:   permissions,
+			CreatedAt:     row.CreatedAt,
+			LastUsedAt:    row.LastUsedAt,
+			ExpiresAt:     row.ExpiresAt,
+			RevokedAt:     nil,
 		}
 		if row.DeviceName != "" {
 			item.DeviceName = &row.DeviceName
+		}
+		if row.OAuthClientID != "" {
+			item.OauthClientId = &row.OAuthClientID
 		}
 		if row.RevokedAt != 0 {
 			revokedAt := row.RevokedAt

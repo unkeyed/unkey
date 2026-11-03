@@ -598,6 +598,8 @@ func TestRevokeAndListAreScopedToTheCaller(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, sessions, 1)
 	require.Equal(t, teammate.SessionID, sessions[0].ID)
+	require.Equal(t, db.UserDeviceSessionsKindCli, sessions[0].Kind)
+	require.Empty(t, sessions[0].OAuthClientID)
 
 	sessions, err = svc.List(t.Context(), ListRequest{Principal: adminPrincipal(workspace, uid.New(uid.TestPrefix))})
 	require.NoError(t, err)
