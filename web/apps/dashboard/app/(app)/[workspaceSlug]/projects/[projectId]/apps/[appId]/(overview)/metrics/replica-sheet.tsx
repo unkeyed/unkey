@@ -10,6 +10,8 @@ import type { LastExit } from "@/lib/types/deploy";
 import { match } from "@unkey/match";
 import {
   Card,
+  DetailList,
+  DetailRow,
   EmptyState,
   EmptyStateDescription,
   EmptyStateHeader,
@@ -60,12 +62,10 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
             <SlidePanelCloseButton />
           </SlidePanelHeader>
           <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6">
-            <dl className="flex flex-col divide-y divide-grayA-4 rounded-lg border border-grayA-4">
-              <DetailRow label="Status">
-                <span className="text-gray-12">{PHASE[sheet.status].label}</span>
-              </DetailRow>
+            <DetailList>
+              <DetailRow label="Status">{PHASE[sheet.status].label}</DetailRow>
               <DetailRow label="Region">
-                <span className="flex items-center gap-1.5 text-gray-12">
+                <span className="flex items-center gap-1.5">
                   <RegionFlag region={sheet.region} size="xs" shape="circle" />
                   {regionInfo(sheet.region).city}
                   <span className="font-mono text-xs text-gray-10">{sheet.region}</span>
@@ -79,7 +79,7 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
                 />
               </DetailRow>
               {sheet.lastExit && <LastExitRow lastExit={sheet.lastExit} />}
-            </dl>
+            </DetailList>
             {isStopped(sheet.status) && sheet.usage.status === "ready" && (
               <p {...outdatedProps(sheet.outdated, "text-xs text-gray-11")}>
                 This instance has stopped. Its last recorded usage is below.
@@ -116,15 +116,6 @@ function Section({
       </div>
       {children}
     </Card>
-  );
-}
-
-function DetailRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid grid-cols-[112px_minmax(0,1fr)] items-start gap-4 px-4 py-3 text-sm">
-      <dt className="font-medium text-gray-10">{label}</dt>
-      <dd className="min-w-0">{children}</dd>
-    </div>
   );
 }
 

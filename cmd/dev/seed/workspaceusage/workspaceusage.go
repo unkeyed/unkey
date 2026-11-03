@@ -315,8 +315,9 @@ func replaceDeployments(ctx context.Context, tx db.DBTX, t target, reserved rese
 }
 
 func replaceCustomDomains(ctx context.Context, tx db.DBTX, t target, count int, now int64) error {
-	suffix := "." + marker + ".test"
-	if _, err := tx.ExecContext(ctx, "DELETE FROM custom_domains WHERE workspace_id = ? AND domain LIKE ?", t.workspaceID, "%"+suffix); err != nil {
+	// The allowance counts registrable domains, so each seeded name needs its own.
+	suffix := "-" + marker + ".test"
+	if _, err := tx.ExecContext(ctx, "DELETE FROM custom_domains WHERE workspace_id = ? AND domain LIKE ?", t.workspaceID, "%"+marker+".test"); err != nil {
 		return fmt.Errorf("failed to clear seeded custom domains: %w", err)
 	}
 	for i := range count {

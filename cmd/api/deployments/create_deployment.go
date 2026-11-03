@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/deployments
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V3DeploymentsCreateDeploymentResponseBody)
+				return util.Output(ctx, cmd, res.V3DeploymentsCreateDeploymentResponseBody)
 			}
 
 			req := components.V3DeploymentsCreateDeploymentRequestBody{
@@ -111,7 +111,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/deployments
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V3DeploymentsCreateDeploymentResponseBody)
+			return util.Output(ctx, cmd, res.V3DeploymentsCreateDeploymentResponseBody)
 		},
 	}
 }

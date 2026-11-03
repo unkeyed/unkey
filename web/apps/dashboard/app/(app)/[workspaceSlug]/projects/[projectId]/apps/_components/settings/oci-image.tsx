@@ -1,6 +1,7 @@
 "use client";
 
-import { ociImageReferenceSchema, useAppMutations } from "@/lib/deploy-data";
+import { useDeployScope } from "@/lib/deploy-data";
+import { ociImageReferenceSchema, useUpdateApp } from "@/lib/queries/apps";
 import {
   FormInput,
   SettingsForm,
@@ -17,11 +18,12 @@ const ociImageFormSchema = z.object({
 });
 
 export function OCIImage({ appId, imageReference }: { appId: string; imageReference: string }) {
-  const { updateApp } = useAppMutations();
+  const updateApp = useUpdateApp(useDeployScope().projectId);
   const { form, formProps } = useSavableForm({
     schema: ociImageFormSchema,
     values: { imageReference },
-    save: (values) => updateApp(appId, { imageReference: values.imageReference }),
+    save: (values) =>
+      updateApp.mutateAsync({ appId, changes: { imageReference: values.imageReference } }),
   });
 
   return (

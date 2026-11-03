@@ -54,7 +54,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/workspace/ge
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2WorkspaceGetUsageResponseBody)
+				return util.Output(ctx, cmd, res.V2WorkspaceGetUsageResponseBody)
 			}
 
 			req := components.V2WorkspaceGetUsageRequestBody{
@@ -72,7 +72,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/workspace/ge
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2WorkspaceGetUsageResponseBody)
+			return util.Output(ctx, cmd, res.V2WorkspaceGetUsageResponseBody)
 		},
 	}
 }

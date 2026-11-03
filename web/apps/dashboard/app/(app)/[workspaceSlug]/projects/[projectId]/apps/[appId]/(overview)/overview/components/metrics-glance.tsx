@@ -88,7 +88,10 @@ function GlanceCell({ metric, state }: { metric: GlanceMetric; state: GlanceCell
                 wave="gentle"
                 height={56}
                 message={
-                  <Badge variant="secondary" className="border-grayA-4 bg-gray-1 text-gray-10">
+                  <Badge
+                    variant="secondary"
+                    className="border-grayA-4 bg-gray-1 text-gray-10 pointer-events-none"
+                  >
                     No data
                   </Badge>
                 }

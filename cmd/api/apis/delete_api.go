@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/del
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete API %q and invalidate all its keys?", req.APIID)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete API %q and invalidate all its keys?", req.APIID)); err != nil {
 				return err
 			}
 
@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/del
 				return err
 			}
 
-			return util.Output(cmd, res.V2ApisDeleteAPIResponseBody)
+			return util.Output(ctx, cmd, res.V2ApisDeleteAPIResponseBody)
 		},
 	}
 }

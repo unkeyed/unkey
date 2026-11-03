@@ -1,7 +1,7 @@
+import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
 import { FormField, Skeleton } from "@unkey/ui";
 import type { SourceKind } from "../wizard-model";
 import { ConfigBlocksSkeleton } from "./config-blocks";
-import { PaneSubmit } from "./pane-actions";
 
 function FieldSkeleton({ label }: { label: string }) {
   return <FormField label={label}>{() => <Skeleton className="h-9 rounded-md" />}</FormField>;
@@ -15,7 +15,7 @@ export function ConfigureSkeleton({ source }: { source: SourceKind | null }) {
         {source === "git" ? <FieldSkeleton label="Branch" /> : null}
       </div>
       <ConfigBlocksSkeleton />
-      <PaneSubmit loading={false} disabled onClick={() => undefined}>
+      <PaneSubmit disabled onClick={() => undefined}>
         Deploy
       </PaneSubmit>
     </div>

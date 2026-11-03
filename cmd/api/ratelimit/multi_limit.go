@@ -51,14 +51,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RatelimitMultiLimitResponseBody)
+				return util.Output(ctx, cmd, res.V2RatelimitMultiLimitResponseBody)
 			}
 			send := func(limits []components.V2RatelimitLimitRequestBody) error {
 				res, err := client.Ratelimit.MultiLimit(ctx, limits)
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RatelimitMultiLimitResponseBody)
+				return util.Output(ctx, cmd, res.V2RatelimitMultiLimitResponseBody)
 			}
 			var limits []components.V2RatelimitLimitRequestBody
 			if err := json.Unmarshal([]byte(cmd.String("limits")), &limits); err != nil {

@@ -36,14 +36,14 @@ func getDeploymentCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsGetDeploymentResponseBody)
+				return util.Output(ctx, cmd, res.V2DeploymentsGetDeploymentResponseBody)
 			}
 			req := components.V2DeploymentsGetDeploymentRequestBody{DeploymentID: cmd.String("deployment-id")}
 			res, err := client.Deployments.GetDeployment(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DeploymentsGetDeploymentResponseBody)
+			return util.Output(ctx, cmd, res.V2DeploymentsGetDeploymentResponseBody)
 		},
 	}
 }

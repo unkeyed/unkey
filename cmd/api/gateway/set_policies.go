@@ -51,14 +51,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/set
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2GatewaySetPoliciesResponseBody)
+				return util.Output(ctx, cmd, res.V2GatewaySetPoliciesResponseBody)
 			}
 			send := func(req components.V2GatewaySetPoliciesRequestBody) error {
 				res, err := client.Gateway.SetPolicies(ctx, req)
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2GatewaySetPoliciesResponseBody)
+				return util.Output(ctx, cmd, res.V2GatewaySetPoliciesResponseBody)
 			}
 			var policies []components.Policy
 			rawPolicies := cmd.String("policies")

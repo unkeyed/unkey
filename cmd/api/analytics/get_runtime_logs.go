@@ -41,7 +41,7 @@ For full documentation, see https://www.unkey.com/docs/platform/analytics/get-ru
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AnalyticsGetRuntimeLogsResponseBody)
+				return util.Output(ctx, cmd, res.V2AnalyticsGetRuntimeLogsResponseBody)
 			}
 
 			res, err := client.Analytics.GetRuntimeLogs(ctx, components.V2AnalyticsGetRuntimeLogsRequestBody{
@@ -50,7 +50,7 @@ For full documentation, see https://www.unkey.com/docs/platform/analytics/get-ru
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AnalyticsGetRuntimeLogsResponseBody)
+			return util.Output(ctx, cmd, res.V2AnalyticsGetRuntimeLogsResponseBody)
 		},
 	}
 }

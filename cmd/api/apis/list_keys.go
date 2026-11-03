@@ -59,7 +59,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/lis
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2ApisListKeysResponseBody)
+				return util.Output(ctx, cmd, res.V2ApisListKeysResponseBody)
 			}
 
 			req := components.V2ApisListKeysRequestBody{
@@ -88,7 +88,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/lis
 				return err
 			}
 
-			return util.Output(cmd, res.V2ApisListKeysResponseBody)
+			return util.Output(ctx, cmd, res.V2ApisListKeysResponseBody)
 		},
 	}
 }

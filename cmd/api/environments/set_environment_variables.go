@@ -42,14 +42,14 @@ func setEnvironmentVariablesCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsSetEnvironmentVariablesResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsSetEnvironmentVariablesResponseBody)
 			}
 			send := func(req components.V2EnvironmentsSetEnvironmentVariablesRequestBody) error {
 				res, err := client.Environments.SetEnvironmentVariables(ctx, req)
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsSetEnvironmentVariablesResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsSetEnvironmentVariablesResponseBody)
 			}
 			var variables []components.EnvironmentVariableInput
 			if err := json.Unmarshal([]byte(cmd.String("variables")), &variables); err != nil {

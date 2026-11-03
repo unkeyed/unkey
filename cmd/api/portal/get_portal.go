@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/get-
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PortalGetPortalResponseBody)
+				return util.Output(ctx, cmd, res.V2PortalGetPortalResponseBody)
 			}
 			var req components.V2PortalGetPortalRequestBodyUnion
 			if portal := cmd.String("portal"); portal != "" {
@@ -83,7 +83,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/get-
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2PortalGetPortalResponseBody)
+			return util.Output(ctx, cmd, res.V2PortalGetPortalResponseBody)
 		},
 	}
 }

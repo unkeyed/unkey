@@ -123,6 +123,10 @@ service CronService {
   // desired allowed-table fingerprint changes. Key is the fixed slug
   // "clickhouse-user-reconcile" so Restate state survives worker releases.
   rpc RunClickhouseUserReconcile(RunClickhouseUserReconcileRequest) returns (RunClickhouseUserReconcileResponse) {}
+
+  // RunVaultReEncryption scans all MySQL ciphertext, one table at a time. Key is
+  // "vault-re-encryption"; cursors survive retries and subsequent cron ticks.
+  rpc RunVaultReEncryption(RunVaultReEncryptionRequest) returns (RunVaultReEncryptionResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -233,3 +237,6 @@ message RunClickhouseUserReconcileResponse {
   // the desired grants have not changed since the last successful run.
   int32 users_reconfigured = 1;
 }
+
+message RunVaultReEncryptionRequest {}
+message RunVaultReEncryptionResponse {}

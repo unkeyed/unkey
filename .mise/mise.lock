@@ -111,38 +111,38 @@ url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Windows-x86
 url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895506"
 
 [[tools."github:chronark/rask"]]
-version = "0.7.0"
+version = "0.9.0"
 backend = "github:chronark/rask"
 
 [tools."github:chronark/rask"."platforms.linux-arm64"]
-checksum = "sha256:ad51081326d860fdc6fd5157b0bd64874267bfddd9d796fbd70e29e762e283c8"
-url = "https://github.com/chronark/rask/releases/download/v0.7.0/rask_0.7.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/597367763"
+checksum = "sha256:091784957a7c1f78f4f9b6e24cb18470e1906a7a8eed299d69baf4fbd28fdb52"
+url = "https://github.com/chronark/rask/releases/download/v0.9.0/rask_0.9.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/705473208"
 
 [tools."github:chronark/rask"."platforms.linux-arm64-musl"]
-checksum = "sha256:ad51081326d860fdc6fd5157b0bd64874267bfddd9d796fbd70e29e762e283c8"
-url = "https://github.com/chronark/rask/releases/download/v0.7.0/rask_0.7.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/597367763"
+checksum = "sha256:091784957a7c1f78f4f9b6e24cb18470e1906a7a8eed299d69baf4fbd28fdb52"
+url = "https://github.com/chronark/rask/releases/download/v0.9.0/rask_0.9.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/705473208"
 
 [tools."github:chronark/rask"."platforms.linux-x64"]
-checksum = "sha256:b8716012b94e02a519a7eeac57e5f348317a16761b6cee51c7a7318bfce6afe0"
-url = "https://github.com/chronark/rask/releases/download/v0.7.0/rask_0.7.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/597367762"
+checksum = "sha256:c9eec8e1fbb3e1983756d86f66c8b0b99dbb2005916033fe275b91b585a6e7fa"
+url = "https://github.com/chronark/rask/releases/download/v0.9.0/rask_0.9.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/705473206"
 
 [tools."github:chronark/rask"."platforms.linux-x64-musl"]
-checksum = "sha256:b8716012b94e02a519a7eeac57e5f348317a16761b6cee51c7a7318bfce6afe0"
-url = "https://github.com/chronark/rask/releases/download/v0.7.0/rask_0.7.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/597367762"
+checksum = "sha256:c9eec8e1fbb3e1983756d86f66c8b0b99dbb2005916033fe275b91b585a6e7fa"
+url = "https://github.com/chronark/rask/releases/download/v0.9.0/rask_0.9.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/705473206"
 
 [tools."github:chronark/rask"."platforms.macos-arm64"]
-checksum = "sha256:06ed77af700531d8b1760b3853c0ca42b071f6dbd60dd5f23263ac7e58259bc4"
-url = "https://github.com/chronark/rask/releases/download/v0.7.0/rask_0.7.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/597367765"
+checksum = "sha256:7a472769fb798e2c782d46ed6e6dfe99348ccb0d33fa9d356b121e899c532a5e"
+url = "https://github.com/chronark/rask/releases/download/v0.9.0/rask_0.9.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/705473209"
 
 [tools."github:chronark/rask"."platforms.macos-x64"]
-checksum = "sha256:3da9ad945c861ba81be42ef1b9550eb51dd9bd6e4c7e7212260e5b741c736d77"
-url = "https://github.com/chronark/rask/releases/download/v0.7.0/rask_0.7.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/597367776"
+checksum = "sha256:2215d30466d66109e8e744222ed28dcfd22c256819f2fd630f078482fbbdf912"
+url = "https://github.com/chronark/rask/releases/download/v0.9.0/rask_0.9.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/chronark/rask/releases/assets/705473210"
 
 [[tools."github:dprint/dprint"]]
 version = "0.51.1"

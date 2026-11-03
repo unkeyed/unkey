@@ -33,6 +33,7 @@ vi.mock("@/hooks/use-workspace-navigation", () => ({
 }));
 vi.mock("@/lib/deploy-data", () => ({
   RECENT_DEPLOYMENTS_LIMIT: 5,
+  useLiveTarget: () => null,
   useAppScope: () => ({ projectId: "proj_backend", appId: "app_container" }),
   useEnvironments: () => ({ data: [{ id: "env_preview", slug: "preview" }], isLoading: false }),
   useRecentDeployments: () => ({ data: state.deployments, isLoading: false }),

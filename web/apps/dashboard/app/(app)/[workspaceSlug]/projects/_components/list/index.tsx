@@ -1,12 +1,9 @@
 import { ListViews } from "@/components/list-views";
 import { ResourceSearchInput, useListSearch } from "@/components/resource-search-input";
-import { useVisibleProjects } from "@/hooks/use-visible-projects";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { projectDisplayName } from "@/lib/collections/deploy/projects";
-import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { GRID_PAGE_SIZE } from "@/lib/list-limits";
 import { useShowMore } from "@/lib/loadable/list";
+import { projectDisplayName, useVisibleProjects } from "@/lib/queries/projects";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import { AlertBanner, AlertBannerActions, AlertBannerDescription, Button } from "@unkey/ui";
 import { useState } from "react";
@@ -22,11 +19,11 @@ export function ProjectsList() {
   const { gated } = useDeployGate();
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const workspace = useWorkspaceNavigation();
-  const projects = useVisibleProjects();
+  const projects = useVisibleProjects({ refetchInterval: IDLE_POLL_MS });
   const search = useListSearch();
   const needle = search.toLowerCase();
   const list = useShowMore({
-    all: projects.data.map((project) => ({
+    all: (projects.data ?? []).map((project) => ({
       project,
       name: projectDisplayName(project, workspace.name),
     })),
@@ -35,11 +32,6 @@ export function ProjectsList() {
     search,
     pageSize: GRID_PAGE_SIZE,
   });
-
-  useCollectionPolling(
-    () => Promise.all([collection.projects.utils.refetch(), collection.apps.utils.refetch()]),
-    { intervalMs: IDLE_POLL_MS, enabled: true },
-  );
 
   return (
     <ListViews

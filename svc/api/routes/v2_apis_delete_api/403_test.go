@@ -76,17 +76,17 @@ func TestAuthorizationErrors(t *testing.T) {
 			ApiId: api.ID,
 		}
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
 			req,
 		)
 
-		require.Equal(t, 403, res.Status)
+		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
+		require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 	})
 
 	// Test case for wrong workspace
@@ -146,8 +146,8 @@ func TestDeleteApi_ForbiddenForOtherKeyspaceGrant(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, grant))},
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{ApiId: api.ID})
-	require.Equal(t, http.StatusForbidden, res.Status)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{ApiId: api.ID})
+	require.Equal(t, http.StatusNotFound, res.Status)
 
 	notDeleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 	require.NoError(t, err)

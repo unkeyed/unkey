@@ -1,6 +1,8 @@
+import { LIVE_BADGE_CLASS } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import type { DeploymentSummary } from "@/lib/deploy-data";
 import { shortenId } from "@/lib/shorten-id";
 import {
+  IconCloudOutline12,
   IconCodeBranchOutline18,
   IconCodeCommitOutline18,
   IconLayers2Outline18,
@@ -22,12 +24,16 @@ export const DeploymentCard = ({ deployment, isCurrent }: DeploymentCardProps) =
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-12 font-semibold font-mono">{deployment.id}</span>
-            <Badge
-              variant={isCurrent ? "success" : "primary"}
-              className={`px-1.5 capitalize ${isCurrent ? "text-successA-11" : "text-grayA-11"}`}
-            >
-              {isCurrent ? "Current" : deployment.status}
-            </Badge>
+            {isCurrent ? (
+              <span className={LIVE_BADGE_CLASS}>
+                <IconCloudOutline12 className="shrink-0" />
+                Current
+              </span>
+            ) : (
+              <Badge variant="primary" className="px-1.5 capitalize text-grayA-11">
+                {deployment.status}
+              </Badge>
+            )}
           </div>
           <DeploymentDescription deployment={deployment} isCurrent={isCurrent} />
         </div>

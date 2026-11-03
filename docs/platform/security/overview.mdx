@@ -36,7 +36,7 @@ You still run your API, unless you deploy it on Compute. You still decide the HT
 
 Two controls apply to the workspace itself, separate from how keys are stored.
 
-**Access is scoped.** A root key only works in the workspace that issued it, and every endpoint needs a specific permission. Dashboard users are either an admin or a developer. A developer who tries an admin-only action gets `This action requires admin privileges.` See [Team](/platform/workspace/team).
+**Access is scoped.** A root key only works in the workspace that issued it, and every endpoint needs a specific permission. Dashboard users are either an admin or a developer. Developers can see admin-only settings such as billing and the workspace name but can't change them, and **Root Keys** is hidden from them. See [Team](/platform/workspace/team).
 
 **Changes are audited.** Changes made in the dashboard appear in the audit log with who made them, the event, and a description. For example, renaming a workspace logs `workspace.update`. How long entries are kept depends on your plan. See [Limits](/platform/billing/limits).
 
@@ -52,7 +52,7 @@ Two controls apply to the workspace itself, separate from how keys are stored.
   <Card title="Delete protection" icon="shield-halved" href="/platform/security/delete-protection">
     A flag that blocks deleting a keyspace, <Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip>, or app until you turn it off.
   </Card>
-  <Card title="Two-factor authentication" icon="mobile-screen" href="/platform/workspace/two-factor-auth">
+  <Card title="Two-factor authentication" icon="mobile-screen" href="/platform/workspace/team#two-factor-authentication">
     Enroll a second factor on your own account.
   </Card>
 </Columns>

@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/mig
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysMigrateKeysResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysMigrateKeysResponseBody)
 			}
 
 			send := func(req components.V2KeysMigrateKeysRequestBody) error {
@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/mig
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysMigrateKeysResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysMigrateKeysResponseBody)
 			}
 			var keys []components.V2KeysMigrateKeyData
 			if v := cmd.String("keys"); v != "" {

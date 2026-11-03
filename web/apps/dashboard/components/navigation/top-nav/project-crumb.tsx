@@ -1,10 +1,9 @@
 "use client";
 
 import type { ProjectOwner } from "@/hooks/use-resource-project-id";
-import { useVisibleProjects } from "@/hooks/use-visible-projects";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { projectDisplayName } from "@/lib/collections/deploy/projects";
 import { routes } from "@/lib/navigation/routes";
+import { projectDisplayName, useVisibleProjects } from "@/lib/queries/projects";
 import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";

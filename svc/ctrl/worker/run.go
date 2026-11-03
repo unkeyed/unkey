@@ -50,6 +50,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/domainverify"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubstatus"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/githubwebhook"
@@ -403,15 +404,14 @@ func Run(ctx context.Context, cfg Config) error {
 		DB: database,
 	}), restate.WithIngressPrivate(true),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~1 hour total.
-		// Scraping is best-effort (fire-and-forget from deploy); bound retries to avoid
-		// wasting resources on permanently broken endpoints. Pause (not kill) on
-		// exhaustion so any future compensation logic can run via re-entry.
+		// Scraping is best-effort (fire-and-forget from deploy) and has no
+		// compensation, so kill on exhaustion instead of leaving paused invocations.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialRetryInterval(1*time.Minute),
 			restate.WithRetryIntervalFactor(2.0),
 			restate.WithMaxRetryInterval(10*time.Minute),
 			restate.WithMaxRetryAttempts(10),
-			restate.PauseOnMaxAttempts(),
+			restate.KillOnMaxAttempts(),
 		),
 	))
 
@@ -476,6 +476,7 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,
+		Resolver:    domainverify.SystemResolver{},
 		CnameDomain: cfg.CnameDomain,
 	}),
 		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
@@ -495,7 +496,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if clk == nil {
 		clk = clock.New()
 	}
-	domainCache, domainCacheErr := cache.New(cache.Config[string, db.CustomDomain]{
+	domainCache, domainCacheErr := cache.New(cache.Config[string, db.FindVerifiedDomainByHostnameRow]{
 		Fresh:     5 * time.Minute,
 		Stale:     10 * time.Minute,
 		MaxSize:   10000,
@@ -598,6 +599,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// options below mirror each task's pre-consolidation behavior.
 	cronSvc, err := cron.New(cron.Config{
 		DB:                        database,
+		Vault:                     vaultClient,
 		Clickhouse:                ch,
 		Clock:                     clk,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
@@ -625,6 +627,7 @@ func Run(ctx context.Context, cfg Config) error {
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
+			VaultReEncryption:  cronHeartbeat(cfg.Heartbeat.VaultReEncryptionURL),
 		},
 	})
 	if err != nil {
@@ -762,7 +765,15 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	cronVaultReEncryptionRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
+		ConfigureHandler("RunVaultReEncryption", cronVaultReEncryptionRetry).
 		ConfigureHandler("RunBuildLimitSync", cronBuildLimitSyncRetry).
 		ConfigureHandler("RunKeyLastUsedSync", restate.WithJournalRetention(time.Hour), restate.WithIdempotencyRetention(time.Hour), cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).

@@ -9392,9 +9392,10 @@ components:
                         - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
                 customDomainsMax:
                     description: |
-                        Custom domains across all apps. `current` is the custom domains attached
-                        now. `limit` is `null` when the plan has no limit. Present only with a
-                        Compute plan.
+                        Custom domains across all apps. Subdomains are unlimited, so
+                        `api.acme.com`, `app.acme.com`, and `acme.com` together count as one
+                        custom domain. `current` is the custom domains counted now. `limit` is `null` when
+                        the plan has no limit. Present only with a Compute plan.
                     allOf:
                         - "$ref": "#/components/schemas/V2WorkspaceGetLimitsLimit"
             additionalProperties: false
@@ -18287,9 +18288,9 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of:
-                - `portal.*.delete_portal` (to delete any portal in the workspace)
-                - `portal.<portal_id>.delete_portal` (to delete a specific portal)
+                Your root key must have `delete` permission on
+                `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>`.
+                A broader grant, such as `unkey:v1:<workspace_id>:**#delete`, also permits deletion.
 
                 A root key that cannot read the portal gets **404**. One that can read it
                 but lacks the permission gets **403**.
