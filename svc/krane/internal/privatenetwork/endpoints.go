@@ -87,6 +87,25 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
+func (r *Reconciler) initializeEndpoints(ctx context.Context, service *corev1.Service) error {
+	r.endpointMu.Lock()
+	defer r.endpointMu.Unlock()
+
+	pods, err := r.client.CoreV1().Pods(service.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.New().ManagedByKrane().ComponentDeployment().DeploymentID(service.Labels[labels.LabelKeyDeploymentID]).ToString(),
+	})
+	if err != nil {
+		return fmt.Errorf("list local private network Pods: %w", err)
+	}
+	slices, err := r.client.DiscoveryV1().EndpointSlices(service.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: discoveryv1.LabelManagedBy + "=" + sourceSliceManager + "," + discoveryv1.LabelServiceName + "=" + service.Name,
+	})
+	if err != nil {
+		return fmt.Errorf("list source EndpointSlices: %w", err)
+	}
+	return r.ensureEndpoints(ctx, service, pods.Items, slices.Items)
+}
+
 func (r *Reconciler) localPods(ctx context.Context) ([]corev1.Pod, error) {
 	pods, err := r.client.CoreV1().Pods("").List(ctx, metav1.ListOptions{
 		LabelSelector: labels.New().ManagedByKrane().ComponentDeployment().ToString(),

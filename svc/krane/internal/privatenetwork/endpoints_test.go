@@ -11,6 +11,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
@@ -50,6 +51,44 @@ func TestReconcileOmitsIneligibleSourceAddressesBeforeMeshExport(t *testing.T) {
 	require.Equal(t, []string{"10.72.0.87"}, slices.Items[0].Endpoints[0].Addresses)
 }
 
+func TestReconcilePublishesConnectionsAfterConcurrentEndpointRefresh(t *testing.T) {
+	first, second := newTestConnection(), newTestConnection()
+	second.WorkspaceId, second.ProjectId = first.WorkspaceId, first.ProjectId
+	second.TargetAppId, second.TargetEnvironmentId = first.TargetAppId, first.TargetEnvironmentId
+	unready := endpointPod(second, "b", "10.72.0.12")
+	client := fake.NewClientset(endpointPod(first, "a", "10.72.0.11"), unready, endpointPod(second, "c", "10.72.0.13"))
+	assignServiceUIDs(client)
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+		return []*ctrlv1.PrivateNetworkConnection{first, second}, nil
+	})}
+	policies := testDynamicClient()
+	r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: policies, cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
+	for _, connectionSpec := range []*ctrlv1.PrivateNetworkConnection{first, second} {
+		_, err := r.ensureService(t.Context(), connectionSpec, discoveryName(connectionSpec.GetTargetDeploymentId(), connectionSpec.GetTargetPort()), nil)
+		require.NoError(t, err)
+	}
+
+	refreshed := false
+	policies.PrependReactor("create", cilium.NetworkPolicyResource.Resource, func(clienttesting.Action) (bool, runtime.Object, error) {
+		if !refreshed {
+			refreshed = true
+			unready.Status.Conditions[0].Status = corev1.ConditionFalse
+			if _, err := client.CoreV1().Pods(unready.Namespace).UpdateStatus(t.Context(), unready, metav1.UpdateOptions{}); err != nil {
+				return true, nil, err
+			}
+			if err := r.reconcileEndpoints(t.Context()); err != nil {
+				return true, nil, err
+			}
+		}
+		return false, nil, nil
+	})
+
+	require.NoError(t, r.reconcile(t.Context()))
+	require.True(t, refreshed)
+	require.Equal(t, []string{"10.72.0.11"}, resolvedAddresses(t, client, first))
+	require.Equal(t, []string{"10.72.0.13"}, resolvedAddresses(t, client, second))
+}
+
 func TestReconcileDoesNotTreatFailedEndpointReadsAsEmptyInputs(t *testing.T) {
 	for _, resource := range []string{"pods", "endpointslices"} {
 		t.Run(resource, func(t *testing.T) {
@@ -60,17 +99,17 @@ func TestReconcileDoesNotTreatFailedEndpointReadsAsEmptyInputs(t *testing.T) {
 			control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 				return []*ctrlv1.PrivateNetworkConnection{first, second}, nil
 			})}
-			reads := 0
 			client.PrependReactor("list", resource, func(action clienttesting.Action) (bool, runtime.Object, error) {
-				if resource == "endpointslices" && action.(clienttesting.ListAction).GetListRestrictions().Labels.String() != discoveryv1.LabelManagedBy+"="+sourceSliceManager {
-					return false, nil, nil
+				if resource == "endpointslices" {
+					manager, _ := action.(clienttesting.ListAction).GetListRestrictions().Labels.RequiresExactMatch(discoveryv1.LabelManagedBy)
+					if manager != sourceSliceManager {
+						return false, nil, nil
+					}
 				}
-				reads++
 				return true, nil, fmt.Errorf("endpoint input unavailable")
 			})
 			r := &Reconciler{clock: clock.NewTestClock(), client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{Region: testRegion}}
 			require.ErrorContains(t, r.reconcile(t.Context()), "endpoint input unavailable")
-			require.Equal(t, 1, reads)
 			require.Empty(t, connectionServices(t, client, first.GetK8SNamespace()))
 			for _, action := range client.Actions() {
 				require.False(t, action.Matches("create", "endpointslices"), "failed reads must not publish empty slices")

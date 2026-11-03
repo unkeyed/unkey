@@ -195,10 +195,6 @@ func (r *Reconciler) reconcile(ctx context.Context) (err error) {
 
 	desiredServices := make(map[string]struct{}, len(snapshotConnections))
 	ensuredServices := make(map[string]struct{}, len(snapshotConnections))
-	var pods []corev1.Pod
-	var sourceSlices map[string][]discoveryv1.EndpointSlice
-	var endpointInputsErr error
-	endpointInputsLoaded := false
 	entries := make(map[string]entryStatus, len(snapshot.GetConnections()))
 	var untracked []entryStatus
 	retain := func(connectionKey string) {
@@ -289,19 +285,7 @@ entries:
 				}
 				servicesByKey[serviceKey] = ensuredService
 				if needsEndpointEnsure {
-					r.endpointMu.Lock()
-					if !endpointInputsLoaded {
-						pods, endpointInputsErr = r.localPods(ctx)
-						if endpointInputsErr == nil {
-							sourceSlices, endpointInputsErr = r.sourceSlices(ctx)
-						}
-						endpointInputsLoaded = true
-					}
-					err = endpointInputsErr
-					if err == nil {
-						err = r.ensureEndpoints(ctx, ensuredService, pods, sourceSlices[serviceKey])
-					}
-					r.endpointMu.Unlock()
+					err = r.initializeEndpoints(ctx, ensuredService)
 				}
 				if err != nil {
 					fail(connectionSpec, connectionKey, stageEndpointSlice, err)
