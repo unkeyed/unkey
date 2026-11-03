@@ -12,6 +12,10 @@ import { ApiCard, ApiRow, KEYSPACE_TABLE } from "./api-list-item";
 import { EmptyKeyspaces } from "./empty-keyspaces";
 import { useFilters } from "./hooks/use-filters";
 
+function apiListOf<Row>(page: { apiList: Row[] }) {
+  return page.apiList;
+}
+
 export function ApiListClient({ workspaceSlug }: { workspaceSlug: string }) {
   const searchParams = useSearchParams();
   const isNewApi = searchParams?.get("new") === "true";
@@ -25,10 +29,7 @@ export function ApiListClient({ workspaceSlug }: { workspaceSlug: string }) {
       keepPreviousData: true,
     },
   );
-  const list = searchedListOf(
-    useInfiniteList(query, (page) => page.apiList),
-    search,
-  );
+  const list = searchedListOf(useInfiniteList(query, apiListOf), search);
 
   return (
     <ListViews

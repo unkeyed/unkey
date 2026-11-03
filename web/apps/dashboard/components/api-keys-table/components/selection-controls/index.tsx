@@ -9,7 +9,7 @@ import {
   IconTriangleWarningOutline18,
   IconXmarkOutline18,
 } from "@unkey/icons";
-import { Button, ConfirmPopover } from "@unkey/ui";
+import { Button, ConfirmPopover, ControlsSelectionPortal } from "@unkey/ui";
 import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
@@ -96,110 +96,93 @@ export const SelectionControls = ({
 
   return (
     <MotionProvider>
-      <AnimatePresence>
-        {selectedKeys.size > 0 && (
-          <m.div
-            key="selection-controls"
-            className="border-b w-full overflow-hidden"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{
-              opacity: 1,
-              height: "auto",
-              transition: {
-                height: { duration: 0.3, ease: "easeOut" },
-                opacity: { duration: 0.3, ease: "easeOut" },
-              },
-            }}
-            exit={{
-              opacity: 0,
-              height: 0,
-              transition: {
-                opacity: { duration: 0.2, ease: "easeIn" },
-                height: { duration: 0.3, ease: "easeIn" },
-              },
-            }}
-          >
-            <div className="flex flex-col gap-3 w-full p-[18px]">
-              <div className="flex justify-between items-center w-full">
-                <div className="items-center flex gap-2">
-                  <AnimatedCounter value={selectedKeys.size} />
-                  <div className="text-gray-9 text-sm leading-6">selected</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-12 font-medium text-sm"
-                    onClick={() => setIsBatchEditExternalIdOpen(true)}
-                  >
-                    <IconArrowsOppositeDirectionYOutline18 /> Change External ID
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-12 font-medium text-sm"
-                    disabled={
-                      getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading
-                    }
-                    loading={updateKeyStatus.isLoading}
-                    onClick={() => {
-                      const keyIds = Array.from(selectedKeys);
-                      if (keyIds.length === 0) {
-                        return;
-                      }
-                      updateKeyStatus.mutate({
-                        enabled: true,
-                        keyIds,
-                      });
-                    }}
-                  >
-                    <IconCircleCheckOutline18 />
-                    Enable key
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-12 font-medium text-sm"
-                    disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
-                    loading={updateKeyStatus.isLoading}
-                    onClick={handleDisableButtonClick}
-                    ref={disableButtonRef}
-                  >
-                    <IconBanOutline18 />
-                    Disable key
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-gray-12 font-medium text-sm"
-                    disabled={deleteKey.isLoading}
-                    loading={deleteKey.isLoading}
-                    onClick={handleDeleteButtonClick}
-                    ref={deleteButtonRef}
-                  >
-                    <IconTrashOutline18 />
-                    Delete key
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="[&_svg]:size-[14px] ml-3"
-                    onClick={() => setSelectedKeys(new Set())}
-                  >
-                    <IconXmarkOutline18 />
-                  </Button>
-                </div>
+      <ControlsSelectionPortal>
+        <AnimatePresence>
+          {selectedKeys.size > 0 && (
+            <m.div
+              key="selection-controls"
+              className="flex min-w-0 flex-1 items-center justify-between gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }}
+              exit={{ opacity: 0, transition: { duration: 0.15, ease: "easeIn" } }}
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <AnimatedCounter value={selectedKeys.size} />
+                <div className="text-gray-9 text-sm">selected</div>
+                {recentlyUsedCount > 0 && (
+                  <div className="flex min-w-0 items-center gap-1.5 text-warning-11 text-sm">
+                    <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
+                    <span className="truncate">{recentlyUsedSummary}</span>
+                  </div>
+                )}
               </div>
-              {recentlyUsedCount > 0 && (
-                <div className="flex items-center gap-2 text-warning-11 text-sm leading-6">
-                  <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
-                  <span>{recentlyUsedSummary}</span>
-                </div>
-              )}
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-12 font-medium text-sm"
+                  onClick={() => setIsBatchEditExternalIdOpen(true)}
+                >
+                  <IconArrowsOppositeDirectionYOutline18 /> Change External ID
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-12 font-medium text-sm"
+                  disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
+                  loading={updateKeyStatus.isLoading}
+                  onClick={() => {
+                    const keyIds = Array.from(selectedKeys);
+                    if (keyIds.length === 0) {
+                      return;
+                    }
+                    updateKeyStatus.mutate({
+                      enabled: true,
+                      keyIds,
+                    });
+                  }}
+                >
+                  <IconCircleCheckOutline18 />
+                  Enable key
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-12 font-medium text-sm"
+                  disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
+                  loading={updateKeyStatus.isLoading}
+                  onClick={handleDisableButtonClick}
+                  ref={disableButtonRef}
+                >
+                  <IconBanOutline18 />
+                  Disable key
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-12 font-medium text-sm"
+                  disabled={deleteKey.isLoading}
+                  loading={deleteKey.isLoading}
+                  onClick={handleDeleteButtonClick}
+                  ref={deleteButtonRef}
+                >
+                  <IconTrashOutline18 />
+                  Delete key
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="[&_svg]:size-[14px]"
+                  onClick={() => setSelectedKeys(new Set())}
+                  aria-label="Clear selection"
+                >
+                  <IconXmarkOutline18 />
+                </Button>
+              </div>
+            </m.div>
+          )}
+        </AnimatePresence>
+      </ControlsSelectionPortal>
 
       <ConfirmPopover
         isOpen={isDisableConfirmOpen}

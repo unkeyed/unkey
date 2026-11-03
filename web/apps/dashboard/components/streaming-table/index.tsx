@@ -12,6 +12,7 @@ type StreamingTableProps<T> = {
   columns: Column<T>[];
   keyExtractor: (item: T) => string | number;
   rowClassName?: (item: T) => string;
+  striped?: boolean;
   renderSkeletonCell: (col: Column<T>) => ReactNode;
   isLoading?: boolean;
   fixedHeight?: number;
@@ -23,6 +24,7 @@ export function StreamingTable<T>({
   columns,
   keyExtractor,
   rowClassName,
+  striped = false,
   renderSkeletonCell,
   isLoading = false,
   fixedHeight = 500,
@@ -111,10 +113,14 @@ export function StreamingTable<T>({
                   ))}
                 </tr>
               ))
-            : data.map((item) => (
+            : data.map((item, index) => (
                 <tr
                   key={keyExtractor(item)}
-                  className={cn("transition-colors", rowClassName?.(item))}
+                  className={cn(
+                    "transition-colors",
+                    striped && index % 2 === 1 && "bg-grayA-2",
+                    rowClassName?.(item),
+                  )}
                   style={{ height: `${ROW_HEIGHT_PX}px` }}
                 >
                   {columns.map((col, idx) => (

@@ -66,3 +66,4 @@ export * from "./components/data-table";
 export * from "./lib/utils";
 export * from "./lib/cva";
 export { formatTimestamp, isSameDay, type TimestampStyle } from "./lib/time";
+export { formatCompactNumber } from "./lib/format";

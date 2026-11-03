@@ -1,29 +1,10 @@
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
+import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
 import { cn } from "cn";
 import { isMostlyBlocked } from "./calculate-blocked-percentage";
 
-type StatusStyle = {
-  base: string;
-  hover: string;
-  selected: string;
-  badge: {
-    default: string;
-    selected: string;
-  };
-  focus: string;
-};
-
-export const STATUS_STYLES = {
-  success: {
-    base: "text-grayA-9",
-    hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
-    selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
-    badge: {
-      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
-      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
-    },
-    focus: "focus:ring-gray-7",
-  },
+export const RATELIMIT_OVERVIEW_STYLES = {
+  success: STATUS_STYLES,
   blocked: {
     base: "text-orange-11",
     hover: "hover:bg-orange-3",
@@ -32,12 +13,14 @@ export const STATUS_STYLES = {
       default: "bg-orange-4 text-orange-11 group-hover:bg-orange-5",
       selected: "bg-orange-5 text-orange-11 hover:bg-orange-5",
     },
-    focus: "focus:ring-orange-7",
+    focusRing: "focus:ring-orange-7",
   },
-};
+} satisfies Record<"success" | "blocked", StatusStyle>;
 
 export const getStatusStyle = (log: RatelimitOverviewLog): StatusStyle => {
-  return isMostlyBlocked(log) ? STATUS_STYLES.blocked : STATUS_STYLES.success;
+  return isMostlyBlocked(log)
+    ? RATELIMIT_OVERVIEW_STYLES.blocked
+    : RATELIMIT_OVERVIEW_STYLES.success;
 };
 
 export const getRowClassName = (
@@ -54,7 +37,7 @@ export const getRowClassName = (
     hasMoreBlocked ? "bg-orange-2" : "",
     "group rounded-md",
     "focus:outline-hidden focus:ring-1",
-    style.focus,
+    style.focusRing,
     isSelected && style.selected,
     selectedLog && {
       "opacity-50 z-0": !isSelected,

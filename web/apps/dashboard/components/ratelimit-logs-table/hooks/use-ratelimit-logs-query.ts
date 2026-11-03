@@ -1,17 +1,15 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
-import {
-  PAGINATED_LIST_PREFETCH_OPTIONS,
-  PAGINATED_LIST_QUERY_OPTIONS,
-  computeTotalPages,
-  paginationFilterKey,
-  useFallbackTotalPages,
-  usePaginatedNavigation,
-  usePaginatedPage,
-} from "@/hooks/use-paginated-list-query";
+import { useLoadMoreList } from "@/hooks/use-load-more-list";
+import { paginationFilterKey } from "@/hooks/use-paginated-list-query";
+import { getTimestampFromRelative } from "@/lib/duration";
+import { trpcClient } from "@/lib/trpc/client";
 import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { SortingState } from "@tanstack/react-table";
+import { getQueryKey } from "@trpc/react-query";
+import type { inferRouterOutputs } from "@trpc/server";
 import type {
   RatelimitLog,
   RatelimitLogEnrichment,
@@ -85,11 +83,18 @@ function toEnrichedLog(
 }
 
 function enrichLogs(
-  logs: RatelimitLog[],
+  logs: readonly RatelimitLog[],
   enrichmentMap: Map<string, RatelimitLogEnrichment>,
 ): EnrichedRatelimitLog[] {
   return logs.map((log) => toEnrichedLog(log, enrichmentMap.get(log.request_id)));
 }
+
+type RatelimitLogsPage = inferRouterOutputs<Router>["ratelimit"]["logs"]["query"];
+
+const NO_ENRICHMENT = new Map<string, RatelimitLogEnrichment>();
+const rowsOf = (response: RatelimitLogsPage) => enrichLogs(response.ratelimitLogs, NO_ENRICHMENT);
+const requestIdOf = (log: RatelimitLog) => log.request_id;
+const totalOf = (response: RatelimitLogsPage) => response.total;
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
@@ -129,38 +134,14 @@ export function useRatelimitLogsQuery({
   // (TanStack is configured for single sort), defaults to newest-first.
   const [sorting, setSorting] = useQueryState("sort", sortingParser);
 
-  // Stable string key from filter content plus the query-time anchor. When
-  // either changes we reset pagination and clear the realtime/enrichment
-  // buffers, since cached rows no longer belong to the new result set.
   const filtersKey = useMemo(
     () => `${paginationFilterKey(filters)}|ts:${timestamp}`,
     [filters, timestamp],
   );
 
-  // Sort changes also reset pagination (the current OFFSET is only meaningful
-  // relative to the current ordering), but unlike a filter change the result
-  // *set* is unchanged, so the realtime/enrichment buffers are left intact —
-  // the buffer-flush effect below keys off filtersKey alone.
-  const sortKey = useMemo(
-    () => sorting.map((sort) => `${sort.id}:${sort.desc ? "desc" : "asc"}`).join("|"),
-    [sorting],
-  );
-
-  const { page, setPage } = usePaginatedPage(`${filtersKey}|sort:${sortKey}`);
-
-  // Live tail only operates on page 1 and pagination is disabled while live, so
-  // force the queried page to 1 whenever polling is active. Together with the
-  // reset-key transition in usePaginatedPage this keeps the query, realtime
-  // gating, and URL in sync without firing a stale request for whatever page
-  // was last viewed.
-  const queryPage = startPolling ? 1 : page;
-
-  // Real-time logs only apply on the first page while polling is active
   const activeRealtimeLogsMap = useMemo(() => {
-    return startPolling && queryPage === 1
-      ? realtimeLogsMap
-      : new Map<string, EnrichedRatelimitLog>();
-  }, [startPolling, queryPage, realtimeLogsMap]);
+    return startPolling ? realtimeLogsMap : new Map<string, EnrichedRatelimitLog>();
+  }, [startPolling, realtimeLogsMap]);
 
   const realtimeLogs = useMemo(() => {
     return sortLogs(Array.from(activeRealtimeLogsMap.values()));
@@ -183,7 +164,7 @@ export function useRatelimitLogsQuery({
   }, [sorting, startPolling]);
 
   const queryParams = useMemo(() => {
-    const params: RatelimitQueryLogsPayload = {
+    const params: Omit<RatelimitQueryLogsPayload, "page"> = {
       limit,
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
@@ -192,9 +173,9 @@ export function useRatelimitLogsQuery({
       status: { filters: [] },
       namespaceId,
       since: "",
-      page: queryPage,
       sorts,
     };
+    let since = "";
 
     filters.forEach((filter) => {
       switch (filter.field) {
@@ -235,20 +216,20 @@ export function useRatelimitLogsQuery({
             console.error("Since filter value type has to be 'string'");
             return;
           }
-          params.since = filter.value;
+          since = filter.value;
           break;
         }
       }
     });
 
-    return params;
-  }, [filters, limit, namespaceId, timestamp, queryPage, sorts]);
+    if (since) {
+      params.startTime = getTimestampFromRelative(since, timestamp);
+      params.endTime = timestamp;
+    }
 
-  // Flush the realtime + enrichment buffers when filters or the time window
-  // change — cached rows no longer belong to the new result set. The page reset
-  // itself (synchronous queryPage plus the setPage(1) commit) is owned by
-  // usePaginatedPage; this effect only handles the feature-specific buffers,
-  // and deliberately ignores sort changes, which keep the result set intact.
+    return params;
+  }, [filters, limit, namespaceId, timestamp, sorts]);
+
   const prevFiltersKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (prevFiltersKeyRef.current === null) {
@@ -263,29 +244,20 @@ export function useRatelimitLogsQuery({
     }
   }, [filtersKey]);
 
-  // Main query for historical data (page-based)
-  const {
-    data: logData,
-    isLoading,
-    isFetching,
-  } = trpc.ratelimit.logs.query.useQuery(queryParams, PAGINATED_LIST_QUERY_OPTIONS);
-
   // Fetch enrichment data for a batch of logs
   const fetchEnrichment = useCallback(
-    async (logs: RatelimitLog[]) => {
+    async (logs: readonly RatelimitLog[]) => {
       if (logs.length === 0) {
         return;
       }
 
-      const unenrichedIds = logs
-        .filter((log) => !enrichmentMapRef.current.has(log.request_id))
-        .map((log) => log.request_id);
-
-      if (unenrichedIds.length === 0) {
+      const unenrichedLogs = logs.filter((log) => !enrichmentMapRef.current.has(log.request_id));
+      if (unenrichedLogs.length === 0) {
         return;
       }
+      const unenrichedIds = unenrichedLogs.map((log) => log.request_id);
 
-      const times = logs.map((l) => l.time);
+      const times = unenrichedLogs.map((l) => l.time);
       const minTime = Math.min(...times);
       const maxTime = Math.max(...times);
 
@@ -327,60 +299,36 @@ export function useRatelimitLogsQuery({
 
   // Derive enriched historical logs from query data; re-derive when enrichment updates
   // biome-ignore lint/correctness/useExhaustiveDependencies: enrichmentVersion triggers re-merge when the ref updates
-  const historicalLogsMap = useMemo(() => {
-    const map = new Map<string, EnrichedRatelimitLog>();
-    if (logData) {
-      for (const log of enrichLogs(logData.ratelimitLogs, enrichmentMapRef.current)) {
-        map.set(log.request_id, log);
-      }
-    }
-    return map;
-  }, [logData, enrichmentVersion]);
+  const enrichRows = useCallback(
+    (logs: readonly EnrichedRatelimitLog[]) =>
+      logs.map((log) => {
+        const enrichment = enrichmentMapRef.current.get(log.request_id);
+        return enrichment && !log.isEnriched ? toEnrichedLog(log, enrichment) : log;
+      }),
+    [enrichmentVersion],
+  );
 
-  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
-
-  // When the ClickHouse count query fails the tRPC handler returns `total:
-  // null`. Falling back to `hasMore = page is full` keeps pagination usable
-  // (the previous infinite-query path derived `hasMore` the same way) instead
-  // of collapsing to `totalPages = 1` and hiding the footer.
-  const pageRowCount = logData?.ratelimitLogs.length ?? 0;
-  const knownTotal = logData?.total ?? null;
-  const totalCount =
-    knownTotal !== null ? Math.max(0, knownTotal) : (queryPage - 1) * limit + pageRowCount;
-  // useFallbackTotalPages owns the last-non-empty-page memory and drops it when
-  // filtersKey changes, so the whole count-outage rule stays in one place.
-  const fallbackTotalPages = useFallbackTotalPages({
-    isFetching,
-    hasData: logData != null,
-    pageRowCount,
-    queryPage,
-    limit,
-    resetKey: filtersKey,
+  const list = useLoadMoreList({
+    queryKey: getQueryKey(trpc.ratelimit.logs.query, queryParams, "infinite"),
+    fetchPage: (page, signal) =>
+      trpcClient.ratelimit.logs.query.query({ ...queryParams, page }, { signal }),
+    rowsOf,
+    idOf: requestIdOf,
+    mapRows: enrichRows,
+    totalOf,
+    pageSize: limit,
+    paused: startPolling,
   });
-  const totalPages =
-    knownTotal !== null ? computeTotalPages(totalCount, limit) : fallbackTotalPages;
-
-  // `enabled: !startPolling` suspends the clamp and the adjacent-page prefetch
-  // while live, where the view is pinned to page 1 and the footer is hidden.
-  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
-    data: logData,
-    page: queryPage,
-    totalPages,
-    setPage,
-    isLoading,
-    isFetching,
-    queryParams,
-    prefetch: (params) =>
-      queryClient.ratelimit.logs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
-    enabled: !startPolling,
-  });
+  const historicalLogs = list.table.rows;
+  const historicalIds = useMemo(() => new Set(historicalLogs.map(requestIdOf)), [historicalLogs]);
 
   // Fetch enrichment whenever new historical data arrives
   useEffect(() => {
-    if (logData) {
-      fetchEnrichment(logData.ratelimitLogs);
+    const unenriched = historicalLogs.filter((log) => !log.isEnriched);
+    if (unenriched.length > 0) {
+      fetchEnrichment(unenriched);
     }
-  }, [logData, fetchEnrichment]);
+  }, [historicalLogs, fetchEnrichment]);
 
   // Re-merge enrichment into realtime logs when enrichment changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: enrichmentVersion triggers the re-merge when the ref updates
@@ -404,7 +352,6 @@ export function useRatelimitLogsQuery({
     });
   }, [enrichmentVersion]);
 
-  // Query for new logs (polling) — only on page 1
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
@@ -418,7 +365,7 @@ export function useRatelimitLogsQuery({
       // Build the list of new logs outside the updater to avoid mutation inside React setState
       const newLogs: RatelimitLog[] = [];
       for (const log of result.ratelimitLogs) {
-        if (realtimeLogsMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
+        if (realtimeLogsMap.has(log.request_id) || historicalIds.has(log.request_id)) {
           continue;
         }
         newLogs.push(log);
@@ -472,20 +419,19 @@ export function useRatelimitLogsQuery({
     queryClient,
     limit,
     pollIntervalMs,
-    historicalLogsMap,
+    historicalIds,
     realtimeLogsMap,
     realtimeLogs,
     historicalLogs,
     fetchEnrichment,
   ]);
 
-  // Set up polling effect — only poll on page 1
   useEffect(() => {
-    if (startPolling && queryPage === 1) {
+    if (startPolling) {
       const interval = setInterval(pollForNewLogs, pollIntervalMs);
       return () => clearInterval(interval);
     }
-  }, [startPolling, queryPage, pollForNewLogs, pollIntervalMs]);
+  }, [startPolling, pollForNewLogs, pollIntervalMs]);
 
   // Reset realtime logs when polling stops
   useEffect(() => {
@@ -494,30 +440,10 @@ export function useRatelimitLogsQuery({
     }
   }, [startPolling]);
 
-  // When live tail turns on, snap the URL back to page 1. queryPage already
-  // forces 1 synchronously; this commits it to URL state on the rising edge of
-  // startPolling so the page state reflects what the user is actually viewing.
-  const prevStartPollingRef = useRef(startPolling);
-  useEffect(() => {
-    const justEnabled = startPolling && !prevStartPollingRef.current;
-    prevStartPollingRef.current = startPolling;
-    if (justEnabled) {
-      setPage(1);
-    }
-  }, [startPolling, setPage]);
-
   return {
     realtimeLogs,
-    historicalLogs,
-    totalCount,
-    isLoading: isInitialLoading,
-    isFetching,
-    isNavigating,
-    isPolling: startPolling,
-    page: queryPage,
-    pageSize: limit,
-    totalPages,
-    onPageChange,
+    table: list.table,
+    totalCount: list.totalCount,
     sorting,
     onSortingChange: setSorting,
   };

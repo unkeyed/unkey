@@ -1,13 +1,19 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { listApiRequests, toApiRequestsFilters } from "@/lib/api-request-logs";
+import { shownTotalOf, tableStateOf, useInfiniteList } from "@/lib/loadable/list";
 import { queryKeys } from "@/lib/query-keys";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useFilters } from "../../../hooks/use-filters";
+import { useRequestTotal } from "../../charts/hooks/use-fetch-timeseries";
 
 const PAGE_SIZE = 50;
 const LIVE_POLL_INTERVAL_MS = 2_000;
+
+type ApiRequestsPage = Awaited<ReturnType<typeof listApiRequests>>;
+
+const logsOf = (page: ApiRequestsPage) => page.logs;
 
 export function useLogsQuery({ isLive }: { isLive: boolean }) {
   const { filters } = useFilters();
@@ -50,10 +56,9 @@ export function useLogsQuery({ isLive }: { isLive: boolean }) {
     refetchInterval: LIVE_POLL_INTERVAL_MS,
   });
 
-  const historicalLogs = useMemo(
-    () => pages.data?.pages.flatMap((page) => page.logs) ?? [],
-    [pages.data],
-  );
+  const table = tableStateOf(useInfiniteList(pages, logsOf));
+  const historicalLogs = table.rows;
+  const requestTotal = useRequestTotal();
 
   const realtimeLogs = useMemo(() => {
     if (!isLive) {
@@ -65,10 +70,11 @@ export function useLogsQuery({ isLive }: { isLive: boolean }) {
 
   return {
     realtimeLogs,
-    historicalLogs,
-    isLoading: pages.isLoading,
-    hasMore: pages.hasNextPage,
-    loadMore: pages.fetchNextPage,
-    isLoadingMore: pages.isFetchingNextPage,
+    table,
+    totalCount: shownTotalOf({
+      loaded: historicalLogs.length,
+      total: requestTotal,
+      hasMore: pages.hasNextPage === true,
+    }),
   };
 }

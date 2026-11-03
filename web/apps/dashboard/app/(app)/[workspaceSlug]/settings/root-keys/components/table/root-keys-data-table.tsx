@@ -16,11 +16,11 @@ import {
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateTitle,
-  PaginationFooter,
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
   Skeleton,
+  TablePager,
   TimestampInfo,
 } from "@unkey/ui";
 import { cn } from "cn";
@@ -73,14 +73,12 @@ export function RootKeysDataTable({
         onCreate={onCreate}
         list={list}
       />
-      <PaginationFooter
-        hide={totalPages <= 1}
+      <TablePager
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
-        itemLabel="Root Keys"
         loading={isInitialLoading}
         disabled={isNavigating}
       />

@@ -18,7 +18,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
+  TablePager,
   buttonVariants,
 } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
@@ -201,23 +201,20 @@ export const KeysList = ({
           </EmptyState>
         }
       />
-      <PaginationFooter
+      <TablePager
         mode="cursor"
         page={page}
         rowCount={keys.length}
         hasNextPage={hasNextPage}
         onPageChange={handlePageChange}
-        itemLabel={keys.length === 1 ? "key" : "keys"}
         loading={isInitialLoading}
         disabled={isNavigating}
-        headerContent={
-          <SelectionControls
-            selectedKeys={selectedKeys}
-            setSelectedKeys={setSelectedKeys}
-            keys={keys}
-            getSelectedKeysState={getSelectedKeysState}
-          />
-        }
+      />
+      <SelectionControls
+        selectedKeys={selectedKeys}
+        setSelectedKeys={setSelectedKeys}
+        keys={keys}
+        getSelectedKeysState={getSelectedKeysState}
       />
     </>
   );

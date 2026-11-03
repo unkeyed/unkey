@@ -1,17 +1,23 @@
+import { usePageVirtualizer } from "@/hooks/use-page-virtualizer";
 import {
   IconCaretDownOutline12,
   IconCaretExpandYOutline18,
   IconCaretUpOutline12,
   IconCircleCaretRightOutline18,
 } from "@unkey/icons";
-import { Skeleton, StickySlot, usePinnedTableHeader } from "@unkey/ui";
+import {
+  Skeleton,
+  StickySlot,
+  TableLoadMore,
+  stripeIndexOf,
+  useLiveStripeShift,
+  usePinnedTableHeader,
+} from "@unkey/ui";
 import { cn } from "cn";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { VirtualTableEmptyState } from "./components/empty-state";
-import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
-import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
 const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
@@ -40,14 +46,12 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
     isLoading = false,
     config: userConfig,
     onRowClick,
-    onLoadMore,
     emptyState,
     keyExtractor,
     rowClassName,
     selectedClassName,
     selectedItem,
-    isFetchingNextPage,
-    loadMoreFooterProps,
+    loadMore,
     renderSkeletonRow,
     onRowMouseEnter,
     onRowMouseLeave,
@@ -87,6 +91,10 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
   const hasHeaders = columns.some((col) => col.header);
 
   const tableData = useTableData<TTableData>(realtimeData, historicData);
+  const liveShift = useLiveStripeShift(realtimeData, (row) => String(keyExtractor(row)));
+  const liveStripe = { count: realtimeData.length, shift: liveShift };
+  const isStripedAt = (index: number) =>
+    config.striped && stripeIndexOf(tableData.stripeSlotAt(index), liveStripe) % 2 === 1;
 
   // Dynamic row sizing for expandable rows
   const getItemSize = useMemo(() => {
@@ -117,13 +125,14 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
     virtualizer,
     listRef,
     items: virtualItems,
-  } = useVirtualData({
-    totalDataLength: tableData.getTotalLength(),
-    isLoading,
-    config,
-    onLoadMore,
-    isFetchingNextPage,
-    getItemSize,
+  } = usePageVirtualizer<Element>({
+    count: isLoading ? config.loadingRows : tableData.getTotalLength(),
+    estimateSize: useCallback(
+      (index: number) => (getItemSize ? getItemSize(index) : config.rowHeight),
+      [config.rowHeight, getItemSize],
+    ),
+    overscan: config.overscan,
+    gap: 4,
   });
 
   const tableClassName = cn(
@@ -315,6 +324,7 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
                       className={cn(
                         "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
                         config.rowBorders && "border-b",
+                        isStripedAt(virtualRow.index) && "bg-grayA-2",
                         rowClassName?.(typedItem),
                         selectedClassName?.(typedItem, isSelected),
                       )}
@@ -386,6 +396,7 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
                     className={cn(
                       "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
                       config.rowBorders && "border-b",
+                      isStripedAt(virtualRow.index) && "bg-grayA-2",
                       rowClassName?.(typedItem),
                       selectedClassName?.(typedItem, isSelected),
                     )}
@@ -421,15 +432,7 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
             {emptyState ?? <VirtualTableEmptyState />}
           </div>
         )}
-        {!isEmpty && loadMoreFooterProps && (
-          <LoadMoreFooter
-            {...loadMoreFooterProps}
-            onLoadMore={onLoadMore}
-            isFetchingNextPage={isFetchingNextPage}
-            totalVisible={virtualItems.length}
-            totalCount={tableData.getTotalLength()}
-          />
-        )}
+        {!isEmpty && loadMore && <TableLoadMore {...loadMore} loadedCount={historicData.length} />}
       </div>
     </div>
   );

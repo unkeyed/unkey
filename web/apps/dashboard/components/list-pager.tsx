@@ -1,21 +1,15 @@
 "use client";
 
-import type { ListFooterState } from "@/lib/loadable/list";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { match } from "@unkey/match";
 import {
   Button,
+  FOOTER_ERROR_COPY,
+  type ListFooterState,
   ResourceListFooter,
   type ResourceListFooterVariant,
   ResourceListShowMore,
 } from "@unkey/ui";
-
-type ErrorReason = Extract<ListFooterState, { kind: "error" }>["reason"];
-
-const ERROR_COPY: Record<ErrorReason, (noun: string) => string> = {
-  refresh: (noun) => `We couldn't refresh ${noun}.`,
-  loadMore: (noun) => `We couldn't load more ${noun}.`,
-};
 
 export function ListPager({
   state,
@@ -42,7 +36,7 @@ export function ListPager({
       <ResourceListFooter variant={variant}>
         <div className="flex items-center gap-3">
           <span role="alert" className="text-error-11 text-sm">
-            {getErrorMessage(error, ERROR_COPY[reason](noun))}
+            {getErrorMessage(error, FOOTER_ERROR_COPY[reason](noun))}
           </span>
           <Button
             size="md"

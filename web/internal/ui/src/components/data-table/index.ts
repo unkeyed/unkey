@@ -9,7 +9,6 @@ export type {
   DataTableColumnMeta,
   ColumnWidth,
   LayoutMode,
-  LoadMoreFooterProps,
   SeparatorItem,
   TableDataItem,
 } from "./types";
@@ -77,15 +76,22 @@ export type { SortableHeaderProps } from "./components/headers";
 export { SkeletonRow } from "./components/rows";
 
 // Footer components
-export { LoadMoreFooter, PaginationControls, PaginationFooter } from "./components/footer";
-export type { LoadMoreFooterComponentProps } from "./components/footer/load-more-footer";
+export {
+  FOOTER_ERROR_COPY,
+  PaginationControls,
+  TableLoadMore,
+  TablePager,
+} from "./components/footer";
+export type { TableLoadMoreProps } from "./components/footer/table-load-more";
+export type { FooterKind, ListFooterState } from "./components/footer/types";
 export type { PaginationControlsProps } from "./components/footer/pagination-controls";
-export type { PaginationFooterProps } from "./components/footer/pagination-footer";
+export type { TablePagerProps } from "./components/footer/table-pager";
 
 // Utility components
 export { RealtimeSeparator } from "./components/utils/realtime-separator";
 
 // Utils
 export { calculateColumnWidth } from "./utils/column-width";
-export { getPageNumbers } from "./utils/get-page-numbers";
 export { getSelectableRowClassName } from "./utils/get-selectable-row-class";
+export { stripeIndexOf, useLiveStripeShift } from "./utils/stripe";
+export type { StripeSlot } from "./utils/stripe";

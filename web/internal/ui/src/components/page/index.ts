@@ -1,3 +1,4 @@
+export * from "./controls-slots";
 export * from "./page-body";
 export * from "./page-container";
 export * from "./page-header";

@@ -1,22 +1,23 @@
 "use client";
 
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/hooks/use-runtime-logs-filters";
-import {
-  PAGINATED_LIST_PREFETCH_OPTIONS,
-  PAGINATED_LIST_QUERY_OPTIONS,
-} from "@/hooks/use-paginated-list-query";
+import { useLoadMoreList } from "@/hooks/use-load-more-list";
+import { PAGINATED_LIST_QUERY_OPTIONS } from "@/hooks/use-paginated-list-query";
 import { getTimestampFromRelative } from "@/lib/duration";
 import {
   type RuntimeLogsFilterValue,
   parseRuntimeLogsAttributeMatch,
 } from "@/lib/schemas/runtime-logs.filter.schema";
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
+import { trpcClient } from "@/lib/trpc/client";
 import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
+import { getQueryKey } from "@trpc/react-query";
+import type { inferRouterOutputs } from "@trpc/server";
 import { useParams } from "next/navigation";
-import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { attachRowKeys, getLogKey } from "../utils/get-row-class";
+import { type RuntimeLogRow, attachRowKeys, getLogKey } from "../utils/get-row-class";
 
 type UseRuntimeLogsQueryParams = {
   limit?: number;
@@ -28,7 +29,10 @@ type UseRuntimeLogsQueryParams = {
 };
 
 const REALTIME_DATA_LIMIT = 100;
-const PREFETCH_PAGES_AHEAD = 2;
+
+type RuntimeLogsPage = inferRouterOutputs<Router>["deploy"]["runtimeLogs"]["query"];
+
+const rowsOf = (response: RuntimeLogsPage): RuntimeLogRow[] => response.logs;
 
 function toAttributesQuery(
   filter: RuntimeLogsFilterValue | undefined,
@@ -57,29 +61,11 @@ export function useRuntimeLogsQuery({
   const { filters } = useRuntimeLogsFilters();
   const queryClient = trpc.useUtils();
 
-  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1));
-  const normalizedPage = Math.max(1, page);
-
-  // A change of the filters or of the refresh signal resets the window anchor,
-  // sets the page to 1, and clears the realtime buffer.
   const resetKey = useMemo(
     () =>
       `${filters.map((f) => `${f.field}:${f.operator}:${f.value}`).join("|")}|r:${refreshNonce}`,
     [filters, refreshNonce],
   );
-
-  // A reset is pending when the key changed but the effect below hasn't committed
-  // setPage(1) yet. We force page 1 synchronously here because the render that
-  // observes the change still sees the old normalizedPage — feeding that to the
-  // query would fire one stale request for the previous page against the new
-  // window before setPage(1) commits.
-  const prevResetKeyRef = useRef<string | null>(null);
-  const isResetting = prevResetKeyRef.current !== null && resetKey !== prevResetKeyRef.current;
-
-  // Live mode is a "tail the newest logs" view: it shows page 1 only and streams
-  // inserts in via the realtime buffer — pagination is disabled (see the consumer,
-  // which hides the footer). A pending reset also pins the effective page to 1.
-  const effectivePage = startPolling || isResetting ? 1 : normalizedPage;
 
   // Pinned upper bound of the historical window. Offset pagination over a live
   // time series only stays stable if the window does not slide between page
@@ -88,7 +74,6 @@ export function useRuntimeLogsQuery({
 
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, RuntimeLog>());
 
-  // The realtime buffer is only surfaced in live mode (which is always page 1).
   const activeRealtimeLogsMap = useMemo(() => {
     return startPolling ? realtimeLogsMap : new Map<string, RuntimeLog>();
   }, [startPolling, realtimeLogsMap]);
@@ -156,7 +141,6 @@ export function useRuntimeLogsQuery({
       appId: appIdFilters,
       deploymentId: deploymentIdFilters,
       limit,
-      page: effectivePage,
       // Total comes from the window-keyed query below; skip the per-page count(*).
       includeTotal: false,
       startTime: timeWindow.startTime,
@@ -169,12 +153,14 @@ export function useRuntimeLogsQuery({
       instanceId: instanceIdFilters.length > 0 ? { filters: instanceIdFilters } : null,
       environmentId: environmentIdFilters.length > 0 ? { filters: environmentIdFilters } : null,
     };
-  }, [filters, limit, params.projectId, effectivePage, timeWindow]);
+  }, [filters, limit, params.projectId, timeWindow]);
 
-  const { data, isLoading, error, isFetching } = trpc.deploy.runtimeLogs.query.useQuery(
-    queryInput,
-    PAGINATED_LIST_QUERY_OPTIONS,
-  );
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setQueryTime(Date.now());
+    setRealtimeLogsMap(new Map());
+  }
 
   // The total is the same for every page in the current window, so fetch it once
   // (page 1, limit 1) and reuse it instead of counting per page. Re-runs when the
@@ -183,83 +169,25 @@ export function useRuntimeLogsQuery({
     () => ({ ...queryInput, page: 1, limit: 1, includeTotal: true }),
     [queryInput],
   );
-  const { data: totalData, isFetching: isTotalFetching } = trpc.deploy.runtimeLogs.query.useQuery(
-    totalQueryInput,
-    {
-      ...PAGINATED_LIST_QUERY_OPTIONS,
-      enabled: !startPolling,
-    },
-  );
+  const totalQuery = trpc.deploy.runtimeLogs.query.useQuery(totalQueryInput, {
+    ...PAGINATED_LIST_QUERY_OPTIONS,
+    enabled: !startPolling,
+  });
+  const total = totalQuery.isPreviousData ? null : (totalQuery.data?.total ?? null);
 
-  // Keyed page rows; the live poll dedups incoming rows against this map.
-  const historicalLogsMap = useMemo(() => {
-    const map = new Map<string, RuntimeLog>();
-    if (data) {
-      data.logs.forEach((log) => {
-        map.set(getLogKey(log), log);
-      });
-    }
-    return map;
-  }, [data]);
+  const list = useLoadMoreList({
+    queryKey: getQueryKey(trpc.deploy.runtimeLogs.query, queryInput, "infinite"),
+    fetchPage: (page, signal) =>
+      trpcClient.deploy.runtimeLogs.query.query({ ...queryInput, page }, { signal }),
+    rowsOf,
+    mapRows: attachRowKeys,
+    total,
+    pageSize: limit,
+    paused: startPolling,
+  });
+  const historicalLogs = list.table.rows;
+  const historicalKeys = useMemo(() => new Set(historicalLogs.map(getLogKey)), [historicalLogs]);
 
-  // Server page verbatim (no content dedup); attachRowKeys only makes React keys unique.
-  const historicalLogs = useMemo(() => attachRowKeys(data?.logs ?? []), [data]);
-
-  const totalCount = totalData?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-
-  // Commit the reset signalled synchronously above: advance the ref, snap to
-  // page 1, re-anchor the window, and drop the realtime buffer.
-  useEffect(() => {
-    if (prevResetKeyRef.current === null) {
-      prevResetKeyRef.current = resetKey;
-      return;
-    }
-    if (resetKey !== prevResetKeyRef.current) {
-      prevResetKeyRef.current = resetKey;
-      setPage(1);
-      setQueryTime(Date.now());
-      setRealtimeLogsMap(new Map());
-    }
-  }, [resetKey, setPage]);
-
-  // Entering live mode pins the view to page 1; clear any stale page param so
-  // leaving live mode doesn't drop the user on a page that no longer makes sense.
-  useEffect(() => {
-    if (startPolling && page !== 1) {
-      setPage(1);
-    }
-  }, [startPolling, page, setPage]);
-
-  // Clamp page once the count resolves (off while live). The `totalData == null`
-  // guard stops a deep-linked ?page=3 from snapping to 1 before the count returns.
-  useEffect(() => {
-    if (startPolling || totalData == null) {
-      return;
-    }
-    if (effectivePage > totalPages) {
-      setPage(totalPages);
-    }
-  }, [startPolling, totalData, effectivePage, totalPages, setPage]);
-
-  // Prefetch the next few pages for snappy navigation (skipped while live).
-  useEffect(() => {
-    if (startPolling) {
-      return;
-    }
-    for (let i = 1; i <= PREFETCH_PAGES_AHEAD; i++) {
-      const nextPage = effectivePage + i;
-      if (nextPage > totalPages) {
-        break;
-      }
-      queryClient.deploy.runtimeLogs.query.prefetch(
-        { ...queryInput, page: nextPage },
-        PAGINATED_LIST_PREFETCH_OPTIONS,
-      );
-    }
-  }, [startPolling, effectivePage, totalPages, queryInput, queryClient.deploy.runtimeLogs.query]);
-
-  // Poll for new logs (page 1 only).
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
@@ -283,7 +211,7 @@ export function useRuntimeLogsQuery({
         for (const log of result.logs) {
           const key = getLogKey(log);
           // Skip if it already exists in either buffer.
-          if (newMap.has(key) || historicalLogsMap.has(key)) {
+          if (newMap.has(key) || historicalKeys.has(key)) {
             continue;
           }
 
@@ -310,7 +238,7 @@ export function useRuntimeLogsQuery({
     queryClient,
     limit,
     pollIntervalMs,
-    historicalLogsMap,
+    historicalKeys,
     realtimeLogs,
     historicalLogs,
   ]);
@@ -355,36 +283,10 @@ export function useRuntimeLogsQuery({
     }
   }, [startPolling]);
 
-  const onPageChange = useCallback(
-    (newPage: number) => {
-      if (newPage < 1 || newPage > totalPages) {
-        return;
-      }
-      setPage(newPage);
-    },
-    [totalPages, setPage],
-  );
-
-  const isInitialLoading = isLoading && !data;
-  const isNavigating = isFetching && !isInitialLoading;
-
-  // Hold the footer in its loading state until the separate count first resolves,
-  // so it doesn't flash out when rows arrive before the total. `isFetching` (not
-  // `=== undefined`) so an errored/disabled count reports done, not stuck.
-  const isCountLoading = isTotalFetching && totalData === undefined;
-
   return {
     realtimeLogs,
-    historicalLogs,
-    totalCount,
-    error,
-    isLoading: isInitialLoading,
-    isCountLoading,
-    isNavigating,
-    page: effectivePage,
-    pageSize: limit,
-    totalPages,
-    onPageChange,
+    table: list.table,
+    totalCount: list.totalCount,
   };
 }
 

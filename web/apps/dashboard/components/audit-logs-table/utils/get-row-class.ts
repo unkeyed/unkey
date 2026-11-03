@@ -1,4 +1,5 @@
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
 import { cn } from "cn";
 
 export const getEventType = (event: string): "create" | "update" | "delete" | "other" => {
@@ -25,8 +26,8 @@ export const getEventType = (event: string): "create" | "update" | "delete" | "o
 
 export const AUDIT_STATUS_STYLES = {
   create: {
-    base: "text-grayA-9",
-    hover: "hover:bg-success-3",
+    base: "text-gray-12",
+    hover: "hover:text-gray-12 hover:bg-success-3",
     selected: "bg-success-3 text-success-11",
     badge: {
       default: "bg-success-4 text-success-11 group-hover:bg-success-5",
@@ -35,8 +36,8 @@ export const AUDIT_STATUS_STYLES = {
     focusRing: "focus:ring-success-7",
   },
   update: {
-    base: "text-grayA-9",
-    hover: "hover:bg-warning-3",
+    base: "text-gray-12",
+    hover: "hover:text-gray-12 hover:bg-warning-3",
     selected: "bg-warning-3 text-warning-11",
     badge: {
       default: "bg-warning-4 text-warning-11 group-hover:bg-warning-5",
@@ -45,8 +46,8 @@ export const AUDIT_STATUS_STYLES = {
     focusRing: "focus:ring-warning-7",
   },
   delete: {
-    base: "text-grayA-9",
-    hover: "hover:bg-orange-3",
+    base: "text-gray-12",
+    hover: "hover:text-gray-12 hover:bg-orange-3",
     selected: "bg-orange-3 text-orange-11",
     badge: {
       default: "bg-orange-4 text-orange-11 group-hover:bg-orange-5",
@@ -54,17 +55,8 @@ export const AUDIT_STATUS_STYLES = {
     },
     focusRing: "focus:ring-orange-7",
   },
-  other: {
-    base: "text-grayA-9",
-    hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
-    selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
-    badge: {
-      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
-      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
-    },
-    focusRing: "focus:ring-gray-7",
-  },
-};
+  other: STATUS_STYLES,
+} satisfies Record<ReturnType<typeof getEventType>, StatusStyle>;
 
 export const getAuditStatusStyle = (item: AuditLog) => {
   const eventType = getEventType(item.auditLog.event);

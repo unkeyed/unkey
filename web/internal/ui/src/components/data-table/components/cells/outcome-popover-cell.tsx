@@ -1,6 +1,7 @@
 "use client";
 import { IconChevronRightOutline18 } from "@unkey/icons";
 import type * as React from "react";
+import { formatCompactNumber } from "../../../../lib/format";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
 import { Button } from "../../../buttons/button";
@@ -14,10 +15,6 @@ export function formatOutcomeName(outcome: string): string {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
-}
-
-export function formatCompactNumber(n: number): string {
-  return Intl.NumberFormat("en", { notation: "compact" }).format(n);
 }
 
 export const OUTCOME_BACKGROUND_COLORS: Record<string, string> = {

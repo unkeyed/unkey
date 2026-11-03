@@ -6,6 +6,7 @@ import {
   getRowClassName,
   useKeyDetailsLogsQuery,
 } from "@/components/key-details-logs-table";
+import { EmptyOrLoadError } from "@/components/load-error";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { RowSelectionState } from "@tanstack/react-table";
@@ -20,7 +21,6 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
 } from "@unkey/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
@@ -34,17 +34,7 @@ type Props = {
 
 export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelect }: Props) => {
   const { isLive } = useKeyDetailsLogsContext();
-  const {
-    realtimeLogs,
-    historicalLogs,
-    isLoading,
-    isNavigating,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    onPageChange,
-  } = useKeyDetailsLogsQuery({
+  const { realtimeLogs, table, totalCount } = useKeyDetailsLogsQuery({
     keyId,
     keyspaceId,
     startPolling: isLive,
@@ -113,11 +103,17 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
   return (
     <div className="flex flex-col md:flex-1">
       <DataTable
-        data={historicalLogs}
+        data={table.rows}
         realtimeData={realtimeLogs}
         columns={columns}
         getRowId={(log) => log.request_id}
-        isLoading={isLoading}
+        isLoading={table.isLoading}
+        loadMore={{
+          singular: "request",
+          plural: "requests",
+          state: table.footer,
+          totalCount,
+        }}
         onRowClick={onLogSelect}
         onRowMouseEnter={handleRowHover}
         onRowMouseLeave={handleRowMouseLeave}
@@ -125,43 +121,35 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         rowClassName={(log) => getRowClassName(log, selectedLog)}
         enableRowSelection={true}
         rowSelection={rowSelection}
-        config={{ rowHeight: 26, layout: "classic", rowBorders: false }}
+        config={{ rowHeight: 26, layout: "classic", rowBorders: false, striped: true }}
         emptyState={
-          <EmptyState frame="none">
-            <EmptyStateIcon>
-              <IconArrowsOppositeDirectionYOutline18 />
-            </EmptyStateIcon>
-            <EmptyStateHeader>
-              <EmptyStateTitle>Key Verification Logs</EmptyStateTitle>
-              <EmptyStateDescription>
-                No verification logs found for this key. When this API key is used, details about
-                each verification attempt will appear here.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-            <EmptyStateActions>
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="sm">
-                  <IconBookBookmarkOutline18 />
-                  Documentation
-                </Button>
-              </a>
-            </EmptyStateActions>
-          </EmptyState>
+          <EmptyOrLoadError failure={table.failure} title="Could not load requests">
+            <EmptyState frame="none">
+              <EmptyStateIcon>
+                <IconArrowsOppositeDirectionYOutline18 />
+              </EmptyStateIcon>
+              <EmptyStateHeader>
+                <EmptyStateTitle>Key Verification Logs</EmptyStateTitle>
+                <EmptyStateDescription>
+                  No verification logs found for this key. When this API key is used, details about
+                  each verification attempt will appear here.
+                </EmptyStateDescription>
+              </EmptyStateHeader>
+              <EmptyStateActions>
+                <a
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" size="sm">
+                    <IconBookBookmarkOutline18 />
+                    Documentation
+                  </Button>
+                </a>
+              </EmptyStateActions>
+            </EmptyState>
+          </EmptyOrLoadError>
         }
-      />
-      <PaginationFooter
-        page={page}
-        pageSize={pageSize}
-        totalPages={totalPages}
-        totalCount={totalCount}
-        onPageChange={onPageChange}
-        itemLabel="logs"
-        loading={isLoading}
-        disabled={isNavigating}
       />
     </div>
   );

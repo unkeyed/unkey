@@ -17,7 +17,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
+  TablePager,
   getSelectableRowClassName,
 } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
@@ -112,19 +112,16 @@ export const RolesList = () => {
           containerPadding: "px-0",
         }}
       />
-      <PaginationFooter
+      <TablePager
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
-        itemLabel="roles"
-        hide={isInitialLoading}
+        loading={isInitialLoading}
         disabled={isNavigating}
-        headerContent={
-          <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
-        }
       />
+      <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
       {selectedRole && (
         <EditRole
           role={selectedRole}

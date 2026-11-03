@@ -1,4 +1,5 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { shownTotalOf, tableStateOf, useInfiniteList } from "@/lib/loadable/list";
 import { trpc } from "@/lib/trpc/client";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { useQueryTime } from "@/providers/query-time-provider";
@@ -11,6 +12,9 @@ import type { IdentityLogsPayload } from "../query-logs.schema";
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
 
+const logsOf = (page: { logs: IdentityLog[] }) => page.logs;
+const requestIdOf = (log: IdentityLog) => log.request_id;
+
 type UseIdentityLogsQueryProps = {
   identityId: string;
   startPolling?: boolean;
@@ -22,9 +26,7 @@ export const useIdentityLogsQuery = ({
   startPolling = false,
   pollIntervalMs = 2000,
 }: UseIdentityLogsQueryProps) => {
-  const [historicalLogsMap, setHistoricalLogsMap] = useState(() => new Map<string, IdentityLog>());
   const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, IdentityLog>());
-  const [totalCount, setTotalCount] = useState(0);
 
   const { filters } = useFilters();
   const queryClient = trpc.useUtils();
@@ -33,8 +35,6 @@ export const useIdentityLogsQuery = ({
   const realtimeLogs = useMemo(() => {
     return sortLogs(Array.from(realtimeLogsMap.values()));
   }, [realtimeLogsMap]);
-
-  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
 
   const queryParams = useMemo(() => {
     const params: IdentityLogsPayload = {
@@ -109,19 +109,22 @@ export const useIdentityLogsQuery = ({
   }, [filters, timestamp, identityId]);
 
   // Main query for historical data
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    trpc.identity.logs.query.useInfiniteQuery(queryParams, {
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-      refetchInterval: false,
-      staleTime: Number.POSITIVE_INFINITY,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-      trpc: {
-        context: {
-          skipBatch: true,
-        },
+  const query = trpc.identity.logs.query.useInfiniteQuery(queryParams, {
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    refetchInterval: false,
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    trpc: {
+      context: {
+        skipBatch: true,
       },
-    });
+    },
+  });
+
+  const table = tableStateOf(useInfiniteList(query, logsOf, { idOf: requestIdOf }));
+  const historicalLogs = table.rows;
+  const historicalIds = useMemo(() => new Set(historicalLogs.map(requestIdOf)), [historicalLogs]);
 
   // Query for new logs (polling)
   const pollForNewLogs = useCallback(async () => {
@@ -144,7 +147,7 @@ export const useIdentityLogsQuery = ({
 
         for (const log of result.logs) {
           // Skip if exists in either map
-          if (newMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
+          if (newMap.has(log.request_id) || historicalIds.has(log.request_id)) {
             continue;
           }
 
@@ -166,7 +169,7 @@ export const useIdentityLogsQuery = ({
     } catch (error) {
       console.error("Error polling for new identity logs:", error);
     }
-  }, [queryParams, queryClient, pollIntervalMs, historicalLogsMap, realtimeLogs, historicalLogs]);
+  }, [queryParams, queryClient, pollIntervalMs, historicalIds, realtimeLogs, historicalLogs]);
 
   // Set up polling effect
   useEffect(() => {
@@ -176,23 +179,6 @@ export const useIdentityLogsQuery = ({
     }
   }, [startPolling, pollForNewLogs, pollIntervalMs]);
 
-  // Update historical logs effect
-  useEffect(() => {
-    if (data) {
-      const newMap = new Map<string, IdentityLog>();
-      data.pages.forEach((page) => {
-        page.logs.forEach((log) => {
-          newMap.set(log.request_id, log);
-        });
-      });
-      setHistoricalLogsMap(newMap);
-
-      if (data.pages.length > 0) {
-        setTotalCount(data.pages[0].total);
-      }
-    }
-  }, [data]);
-
   // Reset realtime logs effect
   useEffect(() => {
     if (!startPolling) {
@@ -200,21 +186,14 @@ export const useIdentityLogsQuery = ({
     }
   }, [startPolling]);
 
-  const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   return {
     realtimeLogs,
-    historicalLogs,
-    isLoading,
-    isLoadingMore: isFetchingNextPage,
-    loadMore,
-    hasMore: hasNextPage,
-    totalCount,
-    isPolling: startPolling,
+    table,
+    totalCount: shownTotalOf({
+      loaded: historicalLogs.length,
+      total: query.data?.pages[0]?.total ?? null,
+      hasMore: query.hasNextPage === true,
+    }),
   };
 };
 

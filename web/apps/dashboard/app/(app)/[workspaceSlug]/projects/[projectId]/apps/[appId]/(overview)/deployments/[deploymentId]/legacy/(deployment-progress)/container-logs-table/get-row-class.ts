@@ -30,11 +30,6 @@ export function getContainerLogRowClass(log: ContainerLogRow): string {
         "focus:ring-warning-7",
       );
     default:
-      return cn(
-        ...baseClasses,
-        "text-grayA-9",
-        "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
-        "focus:ring-gray-7",
-      );
+      return cn(...baseClasses, "text-gray-12", "hover:bg-grayA-3", "focus:ring-gray-7");
   }
 }

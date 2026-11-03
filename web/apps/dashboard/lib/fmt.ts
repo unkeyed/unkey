@@ -1,6 +1,4 @@
-export function formatNumber(n: number): string {
-  return Intl.NumberFormat("en", { notation: "compact" }).format(n);
-}
+export { formatCompactNumber as formatNumber } from "@unkey/ui/src/lib/format";
 
 export function plural(count: number, noun: string): string {
   return `${count.toLocaleString("en")} ${noun}${count === 1 ? "" : "s"}`;

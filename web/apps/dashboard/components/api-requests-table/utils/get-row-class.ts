@@ -1,19 +1,10 @@
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
-import type { StatusStyle } from "@unkey/ui";
+import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
 import { cn } from "cn";
 import { getErrorSeverity } from "./calculate-blocked-percentage";
 
-export const SEVERITY_STYLES = {
-  success: {
-    base: "text-grayA-9",
-    hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
-    selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
-    badge: {
-      default: "bg-gray-3 text-grayA-11 group-hover:bg-gray-5",
-      selected: "bg-gray-5 text-grayA-12 hover:bg-gray-5",
-    },
-    focusRing: "focus:ring-gray-7",
-  },
+const SEVERITY_STYLES = {
+  success: STATUS_STYLES,
   warning: {
     base: "text-warning-11 bg-warning-2",
     hover: "hover:text-warning-11 hover:bg-warning-3",
@@ -44,7 +35,7 @@ export const SEVERITY_STYLES = {
     },
     focusRing: "focus:ring-error-7",
   },
-};
+} satisfies Record<"success" | "warning" | "moderate" | "error", StatusStyle>;
 
 // Get status style based on error severity
 export const getStatusStyle = (log: KeysOverviewLog): StatusStyle => {

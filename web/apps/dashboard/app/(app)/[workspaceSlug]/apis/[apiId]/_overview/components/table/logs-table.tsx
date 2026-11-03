@@ -17,7 +17,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
+  TablePager,
   buttonVariants,
 } from "@unkey/ui";
 import { useCallback, useMemo, useRef } from "react";
@@ -31,6 +31,7 @@ const TABLE_CONFIG: DataTableConfig = {
   containerPadding: "px-2",
   tableLayout: "fixed",
   loadingRows: 10,
+  striped: true,
 };
 
 type Props = {
@@ -137,13 +138,12 @@ export const KeysOverviewLogsTable = ({ apiId, setSelectedLog, log: selectedLog 
           </EmptyState>
         }
       />
-      <PaginationFooter
+      <TablePager
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
-        itemLabel="keys"
         loading={isLoading}
         disabled={isNavigating}
       />

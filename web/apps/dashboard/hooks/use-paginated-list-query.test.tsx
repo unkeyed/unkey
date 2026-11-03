@@ -31,12 +31,10 @@ vi.mock("nuqs", async (importOriginal) => {
 });
 
 import {
-  computeFallbackTotalPages,
   computeTotalPages,
   normalizePageSize,
   paginationFilterKey,
   paginationSortKey,
-  useFallbackTotalPages,
   usePaginatedListQuery,
   usePaginatedNavigation,
   usePaginatedPage,
@@ -692,159 +690,6 @@ describe("normalizePageSize", () => {
     expect(normalizePageSize(Number.POSITIVE_INFINITY, 50, 200)).toBe(50);
     expect(normalizePageSize(0, 50, 200)).toBe(50);
     expect(normalizePageSize(-10, 50, 200)).toBe(50);
-  });
-});
-
-// computeFallbackTotalPages drives the clamp when the server cannot return a
-// total count. The guarantees: Next reaches exactly one page past proven data,
-// an overshoot snaps back to the last real page (page 1 for a stale deep
-// link), and an in-flight fetch never re-triggers the collapse under
-// keepPreviousData, which would cascade the clamp toward page 1.
-describe("computeFallbackTotalPages", () => {
-  const base = { isFetching: false, hasData: true, limit: 50, lastNonEmptyPage: 1 };
-
-  it("advertises one page ahead only while the current page is full", () => {
-    expect(computeFallbackTotalPages({ ...base, pageRowCount: 50, queryPage: 2 })).toBe(3);
-    expect(computeFallbackTotalPages({ ...base, pageRowCount: 20, queryPage: 2 })).toBe(2);
-  });
-
-  it("snaps a settled empty page back to the last page seen with rows", () => {
-    // Boundary-aligned data: pages 1-3 full, Next reached the empty page 4.
-    expect(
-      computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 4, lastNonEmptyPage: 3 }),
-    ).toBe(3);
-  });
-
-  it("never reports a total at or above the current empty page", () => {
-    // A racy lastNonEmptyPage must not leave the user stranded on the empty page.
-    expect(
-      computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 4, lastNonEmptyPage: 9 }),
-    ).toBe(3);
-  });
-
-  it("snaps a stale deep link that never saw data back to page 1", () => {
-    expect(computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 999 })).toBe(1);
-  });
-
-  it("holds the current page while its fetch is in flight", () => {
-    // keepPreviousData shows the previous page's empty result during the
-    // fetch; collapsing here would cascade the clamp 4 -> 3 -> 2 -> 1.
-    expect(
-      computeFallbackTotalPages({
-        ...base,
-        isFetching: true,
-        pageRowCount: 0,
-        queryPage: 3,
-        lastNonEmptyPage: 3,
-      }),
-    ).toBe(3);
-  });
-
-  it("keeps a pre-data render at the current page so the clamp stays quiet", () => {
-    expect(
-      computeFallbackTotalPages({
-        ...base,
-        isFetching: true,
-        hasData: false,
-        pageRowCount: 0,
-        queryPage: 5,
-      }),
-    ).toBe(5);
-  });
-
-  it("treats an empty first page as a single page", () => {
-    expect(computeFallbackTotalPages({ ...base, pageRowCount: 0, queryPage: 1 })).toBe(1);
-  });
-
-  it("does not advertise a page ahead off the previous page's rows mid-fetch", () => {
-    // On page 4 with page 3's full result still on screen (keepPreviousData).
-    // Crediting those 50 rows to page 4 would report totalPages 5 and let a
-    // second Next click jump to page 5, skipping page 4 entirely — and since
-    // page 4 is then never observed, lastNonEmptyPage stays 3 and the empty
-    // branch above later clamps back to 3, past a page that did have rows.
-    expect(
-      computeFallbackTotalPages({
-        ...base,
-        isFetching: true,
-        pageRowCount: 50,
-        queryPage: 4,
-        lastNonEmptyPage: 3,
-      }),
-    ).toBe(4);
-  });
-
-  it("keeps a proven page reachable while an overshoot is in flight", () => {
-    // Mid-fetch on page 9 after page 3 was proven: the total must not collapse
-    // below the last proven page, or the clamp would fire before the response
-    // lands and strand the user behind data that exists.
-    expect(
-      computeFallbackTotalPages({
-        ...base,
-        isFetching: true,
-        pageRowCount: 0,
-        queryPage: 1,
-        lastNonEmptyPage: 3,
-      }),
-    ).toBe(3);
-  });
-});
-
-// useFallbackTotalPages wraps computeFallbackTotalPages with the observed-page
-// memory the caller used to own. The invariants: a page is only remembered once
-// its fetch settles with rows, and the memory is dropped when the reset key
-// changes, since rows seen under the old filters prove nothing about the new.
-describe("useFallbackTotalPages", () => {
-  const base = { hasData: true, limit: 50, resetKey: "filters-a" };
-
-  it("remembers a settled non-empty page and snaps a later empty page back to it", () => {
-    const { result, rerender } = renderHook(
-      (props: Parameters<typeof useFallbackTotalPages>[0]) => useFallbackTotalPages(props),
-      { initialProps: { ...base, isFetching: true, pageRowCount: 0, queryPage: 1 } },
-    );
-
-    // Page 3 settles with a full result: reachable one page ahead.
-    rerender({ ...base, isFetching: false, pageRowCount: 50, queryPage: 3 });
-    expect(result.current).toBe(4);
-
-    // Page 4 comes back empty: snap back to the last page seen with rows.
-    rerender({ ...base, isFetching: false, pageRowCount: 0, queryPage: 4 });
-    expect(result.current).toBe(3);
-  });
-
-  it("does not remember a page whose fetch has not settled", () => {
-    const { result, rerender } = renderHook(
-      (props: Parameters<typeof useFallbackTotalPages>[0]) => useFallbackTotalPages(props),
-      { initialProps: { ...base, isFetching: true, pageRowCount: 0, queryPage: 1 } },
-    );
-
-    // Rows on screen belong to the previous page, so page 4 is not proven.
-    rerender({ ...base, isFetching: true, pageRowCount: 50, queryPage: 4 });
-    expect(result.current).toBe(4);
-
-    // Page 4 settles empty: nothing was ever proven, so collapse to page 1.
-    rerender({ ...base, isFetching: false, pageRowCount: 0, queryPage: 4 });
-    expect(result.current).toBe(1);
-  });
-
-  it("drops the remembered page when the reset key changes", () => {
-    const { result, rerender } = renderHook(
-      (props: Parameters<typeof useFallbackTotalPages>[0]) => useFallbackTotalPages(props),
-      { initialProps: { ...base, isFetching: true, pageRowCount: 0, queryPage: 1 } },
-    );
-
-    rerender({ ...base, isFetching: false, pageRowCount: 50, queryPage: 3 });
-    expect(result.current).toBe(4);
-
-    // New filters: usePaginatedPage has already snapped the page to 1, and the
-    // old page-3 memory must not survive into the new result set.
-    rerender({
-      ...base,
-      resetKey: "filters-b",
-      isFetching: true,
-      pageRowCount: 0,
-      queryPage: 1,
-    });
-    expect(result.current).toBe(1);
   });
 });
 

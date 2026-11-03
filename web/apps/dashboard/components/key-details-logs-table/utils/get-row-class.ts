@@ -1,28 +1,9 @@
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
+import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
 import { cn } from "cn";
 
-export type StatusStyle = {
-  base: string;
-  hover: string;
-  selected: string;
-  badge: {
-    default: string;
-    selected: string;
-  };
-  focusRing: string;
-};
-
-export const STATUS_STYLES = {
-  success: {
-    base: "text-grayA-9",
-    hover: "hover:text-grayA-11 hover:bg-grayA-3 dark:hover:text-grayA-12",
-    selected: "text-grayA-12 bg-grayA-3",
-    badge: {
-      default: "bg-grayA-3 text-grayA-9 group-hover:bg-grayA-4",
-      selected: "bg-grayA-4 text-grayA-11",
-    },
-    focusRing: "focus:ring-gray-7",
-  },
+export const OUTCOME_STYLES = {
+  success: STATUS_STYLES,
   warning: {
     base: "text-warningA-11 bg-warning-2",
     hover: "hover:text-warningA-11 hover:bg-warningA-3",
@@ -53,9 +34,9 @@ export const STATUS_STYLES = {
     },
     focusRing: "focus:ring-error-7",
   },
-};
+} satisfies Record<"success" | "warning" | "blocked" | "error", StatusStyle>;
 
-export const categorizeSeverity = (outcome: string): keyof typeof STATUS_STYLES => {
+export const categorizeSeverity = (outcome: string): keyof typeof OUTCOME_STYLES => {
   switch (outcome) {
     case "VALID":
       return "success";
@@ -75,7 +56,7 @@ export const categorizeSeverity = (outcome: string): keyof typeof STATUS_STYLES 
 
 export const getStatusStyle = (log: KeyDetailsLog): StatusStyle => {
   const severity = categorizeSeverity(log.outcome);
-  return STATUS_STYLES[severity];
+  return OUTCOME_STYLES[severity];
 };
 
 export const getRowClassName = (log: KeyDetailsLog, selectedLog: KeyDetailsLog | null): string => {

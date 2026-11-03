@@ -17,7 +17,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
+  TablePager,
   getSelectableRowClassName,
 } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
@@ -113,18 +113,16 @@ export const PermissionsList = () => {
           containerPadding: "px-0",
         }}
       />
-      <PaginationFooter
+      <TablePager
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
-        headerContent={
-          <SelectionControls
-            selectedPermissions={selectedPermissions}
-            setSelectedPermissions={setSelectedPermissions}
-          />
-        }
+      />
+      <SelectionControls
+        selectedPermissions={selectedPermissions}
+        setSelectedPermissions={setSelectedPermissions}
       />
       {selectedPermission && (
         <EditPermission

@@ -1,5 +1,6 @@
 import type * as React from "react";
 import { cn } from "../../lib/utils";
+import { ControlsSlotProvider } from "./controls-slots";
 import { STICKY_ROOT_CLASS_NAME } from "./sticky-stack";
 
 type PageWidth = "default" | "full";
@@ -14,6 +15,7 @@ type PageWidth = "default" | "full";
 function PageContainer({
   width = "default",
   className,
+  children,
   ...props
 }: React.ComponentProps<"div"> & { width?: PageWidth }) {
   return (
@@ -25,7 +27,9 @@ function PageContainer({
         className,
       )}
       {...props}
-    />
+    >
+      <ControlsSlotProvider>{children}</ControlsSlotProvider>
+    </div>
   );
 }
 

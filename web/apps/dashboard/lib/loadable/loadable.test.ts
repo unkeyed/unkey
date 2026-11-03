@@ -28,6 +28,7 @@ describe("fromQuery", () => {
       status: "failed",
       error,
       retry: expect.any(Function),
+      retrying: false,
     });
     if (result.status === "failed") {
       result.retry();
@@ -94,12 +95,22 @@ describe("blockerOf", () => {
     const first = new Error("domains");
     const result = blockerOf([
       { status: "loading" },
-      { status: "failed", error: first, retry: () => retries.push("domains") },
+      { status: "failed", error: first, retrying: false, retry: () => retries.push("domains") },
       ready,
-      { status: "failed", error: new Error("custom"), retry: () => retries.push("custom") },
+      {
+        status: "failed",
+        error: new Error("custom"),
+        retrying: false,
+        retry: () => retries.push("custom"),
+      },
     ]);
 
-    expect(result).toEqual({ status: "failed", error: first, retry: expect.any(Function) });
+    expect(result).toEqual({
+      status: "failed",
+      error: first,
+      retrying: false,
+      retry: expect.any(Function),
+    });
     if (result?.status === "failed") {
       result.retry();
     }

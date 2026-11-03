@@ -10,7 +10,7 @@ import {
 } from "react";
 import { cn } from "../../lib/utils";
 import { StickySlot } from "../page/sticky-slot";
-import { LoadMoreFooter } from "./components/footer/load-more-footer";
+import { TableLoadMore } from "./components/footer/table-load-more";
 import { SkeletonRow } from "./components/rows/skeleton-row";
 import { DataTableEmptyState } from "./components/utils/empty-state";
 import { RealtimeSeparator } from "./components/utils/realtime-separator";
@@ -20,6 +20,7 @@ import { usePinnedTableHeader } from "./hooks/use-pinned-table-header";
 import { useRealtimeData } from "./hooks/use-realtime-data";
 import type { DataTableProps } from "./types";
 import { calculateColumnWidth } from "./utils/column-width";
+import { stripeIndexOf, useLiveStripeShift } from "./utils/stripe";
 
 function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPadding: boolean }) {
   return (
@@ -52,7 +53,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
     selectedItem,
     config: userConfig,
     emptyState,
-    loadMoreFooterProps,
+    loadMore,
     rowClassName,
     selectedClassName,
     enableKeyboardNav = true,
@@ -97,6 +98,10 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
 
   // Build a Set of realtime row IDs for separator boundary detection
   const realtimeIds = useMemo(() => new Set(realtimeData.map(getRowId)), [realtimeData, getRowId]);
+  const liveStripe = {
+    count: realtimeData.length,
+    shift: useLiveStripeShift(realtimeData, getRowId),
+  };
 
   // Keyboard navigation handler
   const handleKeyDown = useCallback(
@@ -226,14 +231,27 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
               : // Data rows — iterate TanStack's sorted row model for correct ordering
                 (() => {
                   let separatorInserted = realtimeData.length === 0;
+                  let realtimeSeen = 0;
                   return table.getRowModel().rows.flatMap((tableRow, index) => {
                     const typedItem = tableRow.original;
                     const rowId = tableRow.id;
                     const isSelected = selectedItem ? getRowId(selectedItem) === rowId : false;
                     const elements: ReactNode[] = [];
+                    const isRealtime = realtimeIds.has(rowId);
+                    const stripeIndex = stripeIndexOf(
+                      {
+                        live: isRealtime,
+                        position: isRealtime ? realtimeSeen : index - realtimeSeen,
+                      },
+                      liveStripe,
+                    );
+                    if (isRealtime) {
+                      realtimeSeen++;
+                    }
+                    const isStriped = config.striped && stripeIndex % 2 === 1;
 
                     // Insert separator at boundary between realtime and historic items
-                    if (!separatorInserted && !realtimeIds.has(rowId)) {
+                    if (!separatorInserted && !isRealtime) {
                       separatorInserted = true;
                       elements.push(
                         <Fragment key="separator">
@@ -275,6 +293,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                           className={cn(
                             "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-none focus:ring-1",
                             config.rowBorders && "border-b",
+                            isStriped && "bg-grayA-2",
                             rowClassName?.(typedItem),
                             selectedClassName?.(typedItem, isSelected),
                           )}
@@ -324,6 +343,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                             className={cn(
                               "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-none focus:ring-1",
                               config.rowBorders && "border-b",
+                              isStriped && "bg-grayA-2",
                               rowClassName?.(typedItem),
                               selectedClassName?.(typedItem, isSelected),
                             )}
@@ -352,21 +372,15 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                 })()}
           </tbody>
         </table>
+        {!isEmpty && loadMore ? (
+          <TableLoadMore {...loadMore} loadedCount={historicData.length} />
+        ) : null}
         {isEmpty && (
           <div className="flex-1 flex items-center justify-center">
             {emptyState ?? <DataTableEmptyState />}
           </div>
         )}
       </div>
-
-      {/* Legacy load more footer */}
-      {!isEmpty && loadMoreFooterProps && (
-        <LoadMoreFooter
-          {...loadMoreFooterProps}
-          totalVisible={tableDataHelper.data.length}
-          totalCount={tableDataHelper.getTotalLength()}
-        />
-      )}
     </div>
   );
 }

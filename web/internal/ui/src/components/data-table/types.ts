@@ -1,5 +1,6 @@
 import type { ColumnDef, RowSelectionState, SortingState } from "@tanstack/react-table";
 import type { ReactNode } from "react";
+import type { TableLoadMoreProps } from "./components/footer/table-load-more";
 
 /**
  * Column width configuration options
@@ -64,23 +65,10 @@ export interface DataTableConfig {
   rowBorders: boolean; // Default: false
   containerPadding: string; // Default: "px-2"
   tableLayout: "fixed" | "auto"; // Default: "fixed"
+  striped: boolean;
 
   // Loading
   loadingRows: number; // Default: 10
-}
-
-/**
- * Load more footer configuration
- */
-export interface LoadMoreFooterProps {
-  itemLabel?: string;
-  buttonText?: string;
-  countInfoText?: ReactNode;
-  headerContent?: ReactNode;
-  hasMore: boolean;
-  hide?: boolean;
-  onLoadMore?: () => void;
-  isFetchingNextPage?: boolean;
 }
 
 /**
@@ -88,12 +76,12 @@ export interface LoadMoreFooterProps {
  */
 export interface DataTableProps<TData> {
   // Data (required)
-  data: TData[];
+  data: readonly TData[];
   columns: DataTableColumnDef<TData>[];
   getRowId: (row: TData) => string;
 
   // Real-time data (optional)
-  realtimeData?: TData[];
+  realtimeData?: readonly TData[];
 
   // State management (optional, controlled)
   sorting?: SortingState;
@@ -121,7 +109,7 @@ export interface DataTableProps<TData> {
 
   // UI customization (optional)
   emptyState?: ReactNode;
-  loadMoreFooterProps?: LoadMoreFooterProps;
+  loadMore?: TableLoadMoreProps;
   rowClassName?: (row: TData) => string;
   selectedClassName?: (row: TData, isSelected: boolean) => string;
 

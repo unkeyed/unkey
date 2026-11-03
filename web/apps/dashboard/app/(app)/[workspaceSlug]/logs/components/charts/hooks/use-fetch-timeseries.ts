@@ -16,23 +16,23 @@ import { useFilters } from "../../../hooks/use-filters";
 
 const LIVE_REFRESH_INTERVAL_MS = 10_000;
 
-export const useFetchTimeseries = () => {
+function useTimeseriesQueryOptions() {
   const { filters } = useFilters();
   const { queryTime: timestamp } = useQueryTime();
   const { isLive } = useLogsContext();
 
   // The aggregates have no request id, so the chart ignores that filter
-  const apiFilters = useMemo(() => {
-    const { requestId: _requestId, ...timeseriesFilters } = toApiRequestsFilters(filters, {
+  const { apiFilters, hasRequestId } = useMemo(() => {
+    const { requestId, ...timeseriesFilters } = toApiRequestsFilters(filters, {
       startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
     });
-    return timeseriesFilters;
+    return { apiFilters: timeseriesFilters, hasRequestId: requestId !== undefined };
   }, [filters, timestamp]);
 
-  const { data, isLoading, isError } = useQuery({
+  const options = {
     queryKey: queryKeys.logs.apiRequests.metrics(apiFilters, isLive),
-    queryFn: async ({ signal }) => {
+    queryFn: async ({ signal }: { signal?: AbortSignal }) => {
       // Live mode keeps the start and grows the window to now, like the table
       const gte = apiFilters.time?.gte;
       const time = isLive && gte !== undefined ? { gte, lte: Date.now() } : apiFilters.time;
@@ -42,6 +42,16 @@ export const useFetchTimeseries = () => {
       );
       return data;
     },
+    refetchInterval: isLive ? LIVE_REFRESH_INTERVAL_MS : false,
+  } as const;
+  return { apiFilters, options, matchesListRows: !isLive && !hasRequestId };
+}
+
+export const useFetchTimeseries = () => {
+  const { apiFilters, options } = useTimeseriesQueryOptions();
+
+  const { data, isLoading, isError } = useQuery({
+    ...options,
     select: (points) => {
       // Points have no gaps, so two of them give the bucket width. A single
       // point spans the whole window
@@ -68,7 +78,6 @@ export const useFetchTimeseries = () => {
         })),
       };
     },
-    refetchInterval: isLive ? LIVE_REFRESH_INTERVAL_MS : false,
     onError(error) {
       toast.error(
         (error instanceof Error && error.message) || "Could not load logs timeseries data.",
@@ -78,6 +87,15 @@ export const useFetchTimeseries = () => {
 
   return { ...data, isLoading, isError };
 };
+
+export function useRequestTotal(): number | null {
+  const { options, matchesListRows } = useTimeseriesQueryOptions();
+  const { data } = useQuery({
+    ...options,
+    select: (points) => points.reduce((sum, point) => sum + point.total, 0),
+  });
+  return matchesListRows ? (data ?? null) : null;
+}
 
 function isTimeseriesGranularity(value: string): value is TimeseriesGranularity {
   return value in TIMESERIES_GRANULARITIES;

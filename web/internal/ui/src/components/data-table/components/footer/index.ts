@@ -1,3 +1,4 @@
-export { LoadMoreFooter } from "./load-more-footer";
 export { PaginationControls } from "./pagination-controls";
-export { PaginationFooter } from "./pagination-footer";
+export { TableLoadMore } from "./table-load-more";
+export { TablePager } from "./table-pager";
+export { FOOTER_ERROR_COPY } from "./types";

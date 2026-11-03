@@ -2,7 +2,7 @@
 import { AnimatedCounter } from "@/components/api-keys-table/components/selection-controls";
 import { MotionProvider } from "@/components/motion-provider";
 import { IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
-import { Button, ConfirmPopover } from "@unkey/ui";
+import { Button, ConfirmPopover, ControlsSelectionPortal } from "@unkey/ui";
 import { AnimatePresence, m } from "framer-motion";
 import { useRef, useState } from "react";
 
@@ -33,35 +33,21 @@ export const TableDeleteSelectionControls = ({
 
   return (
     <MotionProvider>
-      <AnimatePresence>
-        {selectedCount > 0 && (
-          <m.div
-            key="selection-controls"
-            className="border-b w-full overflow-hidden"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{
-              opacity: 1,
-              height: "auto",
-              transition: {
-                height: { duration: 0.3, ease: "easeOut" },
-                opacity: { duration: 0.3, ease: "easeOut" },
-              },
-            }}
-            exit={{
-              opacity: 0,
-              height: 0,
-              transition: {
-                opacity: { duration: 0.2, ease: "easeIn" },
-                height: { duration: 0.3, ease: "easeIn" },
-              },
-            }}
-          >
-            <div className="flex justify-between items-center w-full p-[18px]">
-              <div className="items-center flex gap-2">
-                <AnimatedCounter value={selectedCount} />
-                <div className="text-gray-9 text-sm leading-6">selected</div>
-              </div>
+      <ControlsSelectionPortal>
+        <AnimatePresence>
+          {selectedCount > 0 && (
+            <m.div
+              key="selection-controls"
+              className="flex min-w-0 flex-1 items-center justify-between gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }}
+              exit={{ opacity: 0, transition: { duration: 0.15, ease: "easeIn" } }}
+            >
               <div className="flex items-center gap-2">
+                <AnimatedCounter value={selectedCount} />
+                <div className="text-gray-9 text-sm">selected</div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -77,17 +63,17 @@ export const TableDeleteSelectionControls = ({
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="[&_svg]:size-[14px] ml-3"
+                  className="[&_svg]:size-[14px]"
                   onClick={onClearSelection}
                   aria-label="Clear selection"
                 >
                   <IconXmarkOutline18 />
                 </Button>
               </div>
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+            </m.div>
+          )}
+        </AnimatePresence>
+      </ControlsSelectionPortal>
 
       <ConfirmPopover
         isOpen={isDeleteConfirmOpen}

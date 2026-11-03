@@ -57,11 +57,12 @@ export function IdentitiesList() {
   return <IdentityResults key={normalizedSearch} search={normalizedSearch} />;
 }
 
+function identitiesOf<Row>(page: { identities: Row[] }) {
+  return page.identities;
+}
+
 function IdentityResults({ search }: { search: string }) {
-  const view = searchedListOf(
-    useInfiniteList(useIdentities({ search }), (page) => page.identities),
-    search,
-  );
+  const view = searchedListOf(useInfiniteList(useIdentities({ search }), identitiesOf), search);
 
   return match(view)
     .with({ status: "failed" }, ({ error, retry }) => (

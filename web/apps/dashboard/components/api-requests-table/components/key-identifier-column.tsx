@@ -115,7 +115,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
       ) : (
         <div
           title={`${log.key_id} (deleted)`}
-          className="font-mono font-medium truncate flex items-center text-grayA-9"
+          className="font-mono font-medium truncate flex items-center text-grayA-11"
         >
           {shortenId(log.key_id)}
         </div>

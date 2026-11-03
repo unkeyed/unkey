@@ -7,14 +7,14 @@ import type { TableDataItem } from "../types";
  */
 export const useRealtimeData = <TData>(
   getRowId: (row: TData) => string,
-  realtimeData: TData[] = [],
-  historicData: TData[] = [],
+  realtimeData: readonly TData[] = [],
+  historicData: readonly TData[] = [],
 ) => {
   return useMemo(() => {
     // If no realtime data, return historic data as-is
     if (realtimeData.length === 0) {
       return {
-        data: historicData,
+        data: [...historicData],
         getTotalLength: () => historicData.length,
         getItemAt: (index: number): TableDataItem<TData> | undefined => historicData[index],
       };

@@ -1,9 +1,10 @@
 "use client";
 import { IconBanOutline12 } from "@unkey/icons";
 import type * as React from "react";
+import { formatCompactNumber } from "../../../../lib/format";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
-import { OutcomePopoverCell, formatCompactNumber } from "./outcome-popover-cell";
+import { OutcomePopoverCell } from "./outcome-popover-cell";
 
 export interface InvalidCountCellProps {
   count: number;

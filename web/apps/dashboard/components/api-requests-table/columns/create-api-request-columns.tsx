@@ -5,19 +5,24 @@ import {
   Badge,
   type DataTableColumnDef,
   InvalidCountCell,
+  STATUS_STYLES,
   SortableHeader,
   TimestampInfo,
 } from "@unkey/ui";
 import { cn } from "cn";
 import { KeyIdentifierColumn } from "../components/key-identifier-column";
 import { getErrorPercentage, getSuccessPercentage } from "../utils/calculate-blocked-percentage";
-import { SEVERITY_STYLES, getStatusStyle } from "../utils/get-row-class";
+import { getStatusStyle } from "../utils/get-row-class";
 
-const TruncatedTextCell = ({ value }: { value: string }) => (
+const TruncatedTextCell = ({ value }: { value?: string | null }) => (
   <div data-sentry-mask className="flex items-center font-mono">
-    <div className="w-full max-w-37.5 truncate whitespace-nowrap" title={value}>
-      {value}
-    </div>
+    {value ? (
+      <div className="w-full max-w-37.5 truncate whitespace-nowrap" title={value}>
+        {value}
+      </div>
+    ) : (
+      <span className="text-grayA-11">—</span>
+    )}
   </div>
 );
 
@@ -59,7 +64,7 @@ export const createApiRequestColumns = ({
     meta: {
       width: "15%",
     },
-    cell: ({ row }) => <TruncatedTextCell value={row.original.key_details?.name || "—"} />,
+    cell: ({ row }) => <TruncatedTextCell value={row.original.key_details?.name} />,
   },
   {
     id: API_REQUEST_COLUMN_IDS.EXTERNAL_ID.id,
@@ -69,7 +74,7 @@ export const createApiRequestColumns = ({
       width: "15%",
     },
     cell: ({ row }) => (
-      <TruncatedTextCell value={row.original.key_details?.identity?.external_id || "—"} />
+      <TruncatedTextCell value={row.original.key_details?.identity?.external_id} />
     ),
   },
   {
@@ -93,9 +98,7 @@ export const createApiRequestColumns = ({
           <Badge
             className={cn(
               "px-1.5 rounded-md font-mono whitespace-nowrap",
-              isSelected
-                ? SEVERITY_STYLES.success.badge.selected
-                : SEVERITY_STYLES.success.badge.default,
+              isSelected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default,
             )}
             title={`${log.valid_count.toLocaleString()} Valid requests (${successPercentage.toFixed(1)}%)`}
           >

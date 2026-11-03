@@ -32,6 +32,7 @@ export const DeploymentContainerLogsTable = ({ logs, isLoading }: Props) => {
       columns={containerLogColumns}
       keyExtractor={(log) => `${log.time}-${log.instance_id}-${log.region}-${log.severity}`}
       rowClassName={getContainerLogRowClass}
+      striped
       renderSkeletonCell={(col) => {
         switch (col.key) {
           case "log":

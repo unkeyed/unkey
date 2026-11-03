@@ -4,11 +4,17 @@ import { LogsTableAction } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespa
 import { formatNumber } from "@/lib/fmt";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import { IconBanOutline12 } from "@unkey/icons";
-import { Badge, type DataTableColumnDef, SortableHeader, TimestampInfo } from "@unkey/ui";
+import {
+  Badge,
+  type DataTableColumnDef,
+  STATUS_STYLES,
+  SortableHeader,
+  TimestampInfo,
+} from "@unkey/ui";
 import { cn } from "cn";
 import { IdentifierColumn } from "../components/identifier-column";
 import { InlineFilter } from "../components/inline-filter";
-import { STATUS_STYLES, getStatusStyle } from "../utils/get-row-class";
+import { RATELIMIT_OVERVIEW_STYLES, getStatusStyle } from "../utils/get-row-class";
 
 type CreateColumnsOptions = {
   namespaceId: string;
@@ -54,9 +60,7 @@ export const createRatelimitsOverviewColumns = ({
           <Badge
             className={cn(
               "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-              isSelected
-                ? STATUS_STYLES.success.badge.selected
-                : STATUS_STYLES.success.badge.default,
+              isSelected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default,
             )}
             title={`${log.passed_count.toLocaleString()} Passed requests`}
           >
@@ -117,7 +121,7 @@ export const createRatelimitsOverviewColumns = ({
         <Badge
           className={cn(
             "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-            isSelected ? STATUS_STYLES.success.badge.selected : STATUS_STYLES.success.badge.default,
+            isSelected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default,
           )}
           title={`${log.passed_tokens.toLocaleString()} passed tokens`}
         >
@@ -138,7 +142,7 @@ export const createRatelimitsOverviewColumns = ({
       const log = row.original;
       const isSelected = row.getIsSelected();
       const blockedTokens = Math.max(log.total_tokens - log.passed_tokens, 0);
-      const style = blockedTokens > 0 ? STATUS_STYLES.blocked : STATUS_STYLES.success;
+      const style = blockedTokens > 0 ? RATELIMIT_OVERVIEW_STYLES.blocked : STATUS_STYLES;
       return (
         <Badge
           className={cn(

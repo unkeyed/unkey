@@ -59,7 +59,7 @@ export const containerLogColumns: Column<ContainerLogRow>[] = [
     render: (log) => (
       <div className="my-2 flex items-center gap-1.5">
         <RegionFlag region={log.region} size="xs" shape="circle" />
-        <span className="font-mono text-xs text-gray-11">{log.region}</span>
+        <span className="font-mono text-xs">{log.region}</span>
       </div>
     ),
   },

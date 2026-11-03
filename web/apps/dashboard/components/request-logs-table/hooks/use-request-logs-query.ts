@@ -1,20 +1,18 @@
 "use client";
 
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
-import {
-  PAGINATED_LIST_PREFETCH_OPTIONS,
-  PAGINATED_LIST_QUERY_OPTIONS,
-  computeTotalPages,
-  paginationFilterKey,
-  usePaginatedNavigation,
-  usePaginatedPage,
-} from "@/hooks/use-paginated-list-query";
+import { useLoadMoreList } from "@/hooks/use-load-more-list";
+import { paginationFilterKey } from "@/hooks/use-paginated-list-query";
 import { useDeployScope } from "@/lib/deploy-data";
 import { getTimestampFromRelative } from "@/lib/duration";
+import { trpcClient } from "@/lib/trpc/client";
 import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
+import { getQueryKey } from "@trpc/react-query";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type UseRequestLogsQueryParams = {
   limit?: number;
@@ -27,6 +25,12 @@ type UseRequestLogsQueryParams = {
 
 const REALTIME_DATA_LIMIT = 100;
 
+type RequestLogsPage = inferRouterOutputs<Router>["deploy"]["requestLogs"]["query"];
+
+const rowsOf = (response: RequestLogsPage) => response.logs;
+const totalOf = (response: RequestLogsPage) => response.total;
+const requestIdOf = (log: RequestLogsResponse) => log.request_id;
+
 export function useRequestLogsQuery({
   limit = 50,
   startPolling = false,
@@ -37,22 +41,10 @@ export function useRequestLogsQuery({
   const { filters } = useRequestLogsFilters();
   const queryClient = trpc.useUtils();
 
-  // A change of the filters or of the refresh signal resets the page, the window
-  // anchor, and the realtime buffer.
   const resetKey = useMemo(
     () => `${paginationFilterKey(filters)}|r:${refreshNonce}`,
     [filters, refreshNonce],
   );
-
-  // usePaginatedPage owns the URL page and the synchronous reset-to-1 on a
-  // resetKey change, so `page` is already 1 on the render that first observes
-  // one — no stale request for the previous page against the new window.
-  const { page, setPage } = usePaginatedPage(resetKey);
-
-  // Live mode is a "tail the newest logs" view: it shows page 1 only and streams
-  // inserts in via the realtime buffer — pagination is disabled (see the consumer,
-  // which hides the footer).
-  const effectivePage = startPolling ? 1 : page;
 
   // Pinned upper bound of the historical window. Offset pagination over a live
   // time series only stays stable if the window does not slide between page
@@ -63,7 +55,6 @@ export function useRequestLogsQuery({
     () => new Map<string, RequestLogsResponse>(),
   );
 
-  // The realtime buffer is only surfaced in live mode (which is always page 1).
   const activeRealtimeLogsMap = useMemo(() => {
     return startPolling ? realtimeLogsMap : new Map<string, RequestLogsResponse>();
   }, [startPolling, realtimeLogsMap]);
@@ -129,7 +120,6 @@ export function useRequestLogsQuery({
       deploymentId: deploymentIdFilters,
       environmentId: environmentIdFilters,
       limit,
-      page: effectivePage,
       startTime: timeWindow.startTime,
       endTime: timeWindow.endTime,
       since: null,
@@ -140,69 +130,28 @@ export function useRequestLogsQuery({
       requestId: valuesFor("requestId"),
       region: valuesFor("region"),
     };
-  }, [filters, limit, projectId, effectivePage, timeWindow]);
+  }, [filters, limit, projectId, timeWindow]);
 
-  const { data, isLoading, error, isFetching } = trpc.deploy.requestLogs.query.useQuery(
-    queryInput,
-    PAGINATED_LIST_QUERY_OPTIONS,
-  );
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
+    setQueryTime(Date.now());
+    setRealtimeLogsMap(new Map());
+  }
 
-  const historicalLogsMap = useMemo(() => {
-    const map = new Map<string, RequestLogsResponse>();
-    if (data) {
-      data.logs.forEach((log) => {
-        map.set(log.request_id, log);
-      });
-    }
-    return map;
-  }, [data]);
-
-  const historicalLogs = useMemo(() => Array.from(historicalLogsMap.values()), [historicalLogsMap]);
-
-  const totalCount = data?.total ?? 0;
-  const totalPages = computeTotalPages(totalCount, limit);
-
-  // Feature-specific half of the reset: re-anchor the window and drop the
-  // realtime buffer. usePaginatedPage owns the page half off the same resetKey;
-  // both fire in the same commit. Skips the mount pass so a first-load
-  // deep link keeps its anchor.
-  const prevResetKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevResetKeyRef.current === null) {
-      prevResetKeyRef.current = resetKey;
-      return;
-    }
-    if (resetKey !== prevResetKeyRef.current) {
-      prevResetKeyRef.current = resetKey;
-      setQueryTime(Date.now());
-      setRealtimeLogsMap(new Map());
-    }
-  }, [resetKey]);
-
-  // Entering live mode pins the view to page 1; clear any stale page param so
-  // leaving live mode doesn't drop the user on a page that no longer makes sense.
-  useEffect(() => {
-    if (startPolling && page !== 1) {
-      setPage(1);
-    }
-  }, [startPolling, page, setPage]);
-
-  // `enabled: !startPolling` suspends the clamp and the adjacent-page prefetch
-  // while live, where the view is pinned to page 1 and the footer is hidden.
-  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
-    data,
-    page: effectivePage,
-    totalPages,
-    setPage,
-    isLoading,
-    isFetching,
-    queryParams: queryInput,
-    prefetch: (params) =>
-      queryClient.deploy.requestLogs.query.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
-    enabled: !startPolling,
+  const list = useLoadMoreList({
+    queryKey: getQueryKey(trpc.deploy.requestLogs.query, queryInput, "infinite"),
+    fetchPage: (page, signal) =>
+      trpcClient.deploy.requestLogs.query.query({ ...queryInput, page }, { signal }),
+    rowsOf,
+    idOf: requestIdOf,
+    totalOf,
+    pageSize: limit,
+    paused: startPolling,
   });
+  const historicalLogs = list.table.rows;
+  const historicalIds = useMemo(() => new Set(historicalLogs.map(requestIdOf)), [historicalLogs]);
 
-  // Poll for new logs (page 1 only).
   const pollForNewLogs = useCallback(async () => {
     try {
       const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
@@ -223,7 +172,7 @@ export function useRequestLogsQuery({
 
         for (const log of result.logs) {
           // Skip if it already exists in either buffer.
-          if (newMap.has(log.request_id) || historicalLogsMap.has(log.request_id)) {
+          if (newMap.has(log.request_id) || historicalIds.has(log.request_id)) {
             continue;
           }
 
@@ -245,15 +194,7 @@ export function useRequestLogsQuery({
     } catch (error) {
       console.error("Error polling for new logs:", error);
     }
-  }, [
-    queryInput,
-    queryClient,
-    limit,
-    pollIntervalMs,
-    historicalLogsMap,
-    realtimeLogs,
-    historicalLogs,
-  ]);
+  }, [queryInput, queryClient, limit, pollIntervalMs, historicalIds, realtimeLogs, historicalLogs]);
 
   useEffect(() => {
     if (startPolling) {
@@ -271,15 +212,8 @@ export function useRequestLogsQuery({
 
   return {
     realtimeLogs,
-    historicalLogs,
-    totalCount,
-    error,
-    isLoading: isInitialLoading,
-    isNavigating,
-    page: effectivePage,
-    pageSize: limit,
-    totalPages,
-    onPageChange,
+    table: list.table,
+    totalCount: list.totalCount,
   };
 }
 

@@ -22,15 +22,6 @@ export const PAGINATED_LIST_PREFETCH_OPTIONS = {
 
 // ---------------------------------------------------------------------------
 // Primitives
-//
-// Shared machinery for every server-paginated list view. Two stateful hooks —
-// `usePaginatedPage` (URL `page` + reset-to-page-1) and `usePaginatedNavigation`
-// (clamp guard, adjacent-page prefetch, bounds-checked `onPageChange`) — plus
-// the count helpers (`computeTotalPages`, `computeFallbackTotalPages`,
-// `useFallbackTotalPages`, `normalizePageSize`) and reset-key builders
-// (`paginationFilterKey`, `paginationSortKey`). Hooks with the common
-// sort/filter shape use `usePaginatedListQuery` below; hooks with a bespoke sort
-// surface, time window, or polling compose these primitives directly.
 // ---------------------------------------------------------------------------
 
 // Owns the URL `page` param and reset-to-page-1. `resetKey` is a stable string
@@ -160,81 +151,6 @@ export function usePaginatedNavigation<TParams extends { page: number }>({
 // Derive totalPages from a total count and page size, never below 1.
 export function computeTotalPages(totalCount: number, pageSize: number) {
   return Math.max(1, Math.ceil(totalCount / pageSize));
-}
-
-// Derive totalPages when the server returns no total count (e.g. a failed count
-// query). Advertise one page ahead only while the current page is full, so Next
-// stays available exactly as far as data is proven. An out-of-range page shows
-// up only once it comes back empty; reporting the last page seen with rows then
-// lets the clamp snap back to it — or to page 1 for a stale deep link that never
-// saw data (lastNonEmptyPage stays 1 until a settled response has rows). See the
-// isFetching branches below for the keepPreviousData handling.
-export function computeFallbackTotalPages(args: {
-  isFetching: boolean;
-  hasData: boolean;
-  pageRowCount: number;
-  queryPage: number;
-  limit: number;
-  lastNonEmptyPage: number;
-}) {
-  const { isFetching, hasData, pageRowCount, queryPage, limit, lastNonEmptyPage } = args;
-  const isEmptyPageBeyondFirst = !isFetching && hasData && pageRowCount === 0 && queryPage > 1;
-  if (isEmptyPageBeyondFirst) {
-    return Math.min(lastNonEmptyPage, queryPage - 1);
-  }
-  // Mid-fetch, keepPreviousData still shows the PREVIOUS page's rows, so the
-  // `pageRowCount >= limit` test below would credit them to the in-flight page
-  // and advertise a page-ahead nothing was observed at — letting a double Next
-  // click skip the in-flight page entirely. Hold the total at what is already
-  // proven until the response settles; Next re-enables one commit later.
-  if (isFetching) {
-    return Math.max(queryPage, lastNonEmptyPage);
-  }
-  return queryPage + (pageRowCount >= limit ? 1 : 0);
-}
-
-// Stateful companion to computeFallbackTotalPages: owns the lastNonEmptyPage
-// memory so the count-outage rule lives in one place. `resetKey` is the caller's
-// page reset key; when it changes the memory is dropped, since rows seen under
-// the old inputs say nothing about the new ones.
-export function useFallbackTotalPages(args: {
-  isFetching: boolean;
-  hasData: boolean;
-  pageRowCount: number;
-  queryPage: number;
-  limit: number;
-  resetKey: string;
-}) {
-  const { isFetching, hasData, pageRowCount, queryPage, limit, resetKey } = args;
-
-  const lastNonEmptyPageRef = useRef(1);
-
-  // Reset during render, not in an effect: totalPages is derived below on this
-  // same render (queryPage is already 1 here), so deferring would pair the new
-  // page with the old memory. A ref is safe despite a possibly-discarded render
-  // because the reset is idempotent.
-  const prevResetKeyRef = useRef(resetKey);
-  if (prevResetKeyRef.current !== resetKey) {
-    prevResetKeyRef.current = resetKey;
-    lastNonEmptyPageRef.current = 1;
-  }
-
-  // Same isFetching reasoning as above: rows on screen during a fetch belong to
-  // the previous page and must not mark the in-flight page as non-empty.
-  useEffect(() => {
-    if (!isFetching && pageRowCount > 0) {
-      lastNonEmptyPageRef.current = queryPage;
-    }
-  }, [isFetching, pageRowCount, queryPage]);
-
-  return computeFallbackTotalPages({
-    isFetching,
-    hasData,
-    pageRowCount,
-    queryPage,
-    limit,
-    lastNonEmptyPage: lastNonEmptyPageRef.current,
-  });
 }
 
 // Clamp a caller-supplied page size into [1, maxPageSize], falling back to the

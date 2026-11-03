@@ -1,4 +1,5 @@
 import type { FilterValue } from "@/components/logs/validation/filter.types";
+import { DEFAULT_OPTIONS } from "./constants";
 
 type TimeField = "startTime" | "endTime" | "since";
 
@@ -45,4 +46,10 @@ export function withTimeRange<Filter extends FilterValue>(
     }
   }
   return next;
+}
+
+export function describeTimeWindow(values: TimeValues, sinceDefault: string): string {
+  const since = values.since ?? (values.startTime === undefined ? sinceDefault : undefined);
+  const display = DEFAULT_OPTIONS.find((option) => option.value === since)?.display;
+  return display ? `in the ${display.toLowerCase()}` : "in this time range";
 }

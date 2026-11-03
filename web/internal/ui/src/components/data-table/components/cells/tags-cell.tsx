@@ -71,7 +71,7 @@ const TagTooltipContent = ({ tag }: { tag: string }) => {
 
 export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: TagsCellProps) => {
   if (!tags || tags.length === 0) {
-    return <span className="text-gray-8">—</span>;
+    return <span className="text-grayA-11">—</span>;
   }
 
   return (

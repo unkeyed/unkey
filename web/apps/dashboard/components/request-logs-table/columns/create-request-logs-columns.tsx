@@ -50,7 +50,7 @@ export const createRequestLogsColumns = (): DataTableColumnDef<RequestLogsRespon
     cell: ({ row }) => (
       <div className="flex items-center gap-1.5">
         <RegionFlag region={row.original.region} size="xs" shape="circle" />
-        <span className="font-mono text-xs text-gray-11">{row.original.region}</span>
+        <span className="font-mono text-xs">{row.original.region}</span>
       </div>
     ),
   },
