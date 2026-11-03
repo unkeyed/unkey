@@ -1,5 +1,6 @@
 import { MotionProvider } from "@/components/motion-provider";
 import { IconXmarkOutline12 } from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
 import { cn } from "cn";
 import { AnimatePresence, m } from "framer-motion";
 
@@ -60,6 +61,7 @@ export function SelectedItemsList<T extends BaseItem>({
           <AnimatePresence mode="popLayout">
             {items.map((item) => {
               const canRemove = !disabled && (!isItemRemovable || isItemRemovable(item));
+              const badge = renderBadge?.(item);
               const itemProps = enableTransitions
                 ? {
                     layout: true,
@@ -79,7 +81,7 @@ export function SelectedItemsList<T extends BaseItem>({
                 <ItemComponent
                   key={item.id}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 bg-raised border rounded-md text-xs w-full",
+                    "flex items-center gap-2 px-3 py-1.5 bg-raised border rounded-md text-xs w-full cursor-default",
                     itemHeight,
                   )}
                   {...itemProps}
@@ -87,15 +89,18 @@ export function SelectedItemsList<T extends BaseItem>({
                   <div className="border rounded-sm flex items-center justify-center bg-gray-4 shrink-0 size-5">
                     {renderIcon(item)}
                   </div>
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="font-medium text-gray-12 text-left truncate max-w-[60px]"
-                        title={item.name}
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <InfoTooltip
+                        content={renderPrimaryText(item)}
+                        asChild
+                        position={{ align: "start", side: "top" }}
                       >
-                        {renderPrimaryText(item)}
-                      </span>
-                      <span className="truncate z-auto">{renderBadge?.(item)}</span>
+                        <span className="font-medium text-gray-12 text-left truncate min-w-0">
+                          {renderPrimaryText(item)}
+                        </span>
+                      </InfoTooltip>
+                      {badge ? <span className="shrink-0">{badge}</span> : null}
                     </div>
                     <span className="text-gray-9 text-2xs font-mono truncate">
                       {renderSecondaryText(item)}
