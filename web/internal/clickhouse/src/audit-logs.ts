@@ -8,7 +8,7 @@ const EMPTY_JSON = "{}";
 
 export const auditLogsRequestSchema = z.object({
   workspaceId: z.string(),
-  bucketId: z.string(),
+  bucket: z.string(),
   limit: z.int(),
   offset: z.int(),
   startTime: z.int(),
@@ -21,15 +21,16 @@ export type AuditLogsRequest = z.infer<typeof auditLogsRequestSchema>;
 
 const auditLogJsonLookupSchema = z.object({
   workspaceId: z.string(),
-  bucketId: z.string(),
+  bucket: z.string(),
   times: z.array(z.int()),
   eventIds: z.array(z.string()),
 });
 
-// workspace_id is omitted because it always equals the filter value.
+type AuditLogJsonLookup = z.infer<typeof auditLogJsonLookupSchema>;
+
+// workspace_id and bucket are omitted because they always equal the filter values.
 export const auditLogRow = z.object({
   eventId: z.string(),
-  bucket: z.string(),
   time: z.int(),
   event: z.string(),
   description: z.string(),
@@ -69,7 +70,7 @@ export function getAuditLogs(ch: Querier) {
     // can push event/actor predicates into the set/bloom skip indexes.
     const conditions = [
       "workspace_id = {workspaceId: String}",
-      "bucket = {bucketId: String}",
+      "bucket = {bucket: String}",
       "time BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
     ];
     if (args.events.length > 0) {
@@ -87,7 +88,6 @@ export function getAuditLogs(ch: Querier) {
       query: `
         SELECT
           event_id AS eventId,
-          bucket,
           time,
           event,
           description,
@@ -122,7 +122,7 @@ export function getAuditLogs(ch: Querier) {
           ) AS targets
         FROM ${TABLE}
         WHERE workspace_id = {workspaceId: String}
-          AND bucket = {bucketId: String}
+          AND bucket = {bucket: String}
           AND time IN {times: Array(Int64)}
           AND (time, event_id) IN (
             SELECT
@@ -182,12 +182,7 @@ export function getLatestAuditLogByTarget(ch: Querier) {
 
 async function loadAuditLogPage(
   pageQuery: (args: AuditLogsRequest) => Promise<Result<AuditLogPageRow[], QueryError>>,
-  jsonQuery: (args: {
-    workspaceId: string;
-    bucketId: string;
-    times: number[];
-    eventIds: string[];
-  }) => Promise<Result<AuditLogJsonRow[], QueryError>>,
+  jsonQuery: (args: AuditLogJsonLookup) => Promise<Result<AuditLogJsonRow[], QueryError>>,
   args: AuditLogsRequest,
 ): Promise<Result<AuditLogRow[], QueryError>> {
   const page = await pageQuery(args);
@@ -200,7 +195,7 @@ async function loadAuditLogPage(
 
   const json = await jsonQuery({
     workspaceId: args.workspaceId,
-    bucketId: args.bucketId,
+    bucket: args.bucket,
     times: page.val.map((row) => row.time),
     eventIds: page.val.map((row) => row.eventId),
   });
