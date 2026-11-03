@@ -133,6 +133,8 @@ func startRestate(t *testing.T, report func(format string, args ...any), service
 		baseURL: cfg.AdminURL,
 		http:    &http.Client{Timeout: 10 * time.Second}, //nolint:exhaustruct // Defaults are sufficient for tests.
 	}
+	adminSpan := startContainerSpan(t, "containers.restate.admin_wait")
+	defer adminSpan.End()
 	deadline := time.Now().Add(restateAdminReadyTimeout)
 	nextStateCheck := time.Now().Add(2 * time.Second)
 	for {
@@ -164,6 +166,7 @@ func startRestate(t *testing.T, report func(format string, args ...any), service
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+	adminSpan.End()
 
 	restateSrv := restateServer.NewRestate()
 	for _, service := range services {
@@ -183,6 +186,8 @@ func startRestate(t *testing.T, report func(format string, args ...any), service
 	worker.Start()
 
 	workerPort := workerListener.Addr().(*net.TCPAddr).Port
+	registrationSpan := startContainerSpan(t, "containers.restate.registration")
+	defer registrationSpan.End()
 	registerCtx, registerCancel := context.WithTimeout(t.Context(), 30*time.Second)
 	err = admin.registerDeployment(
 		registerCtx,
@@ -190,10 +195,13 @@ func startRestate(t *testing.T, report func(format string, args ...any), service
 	)
 	registerCancel()
 	require.NoError(t, err)
+	registrationSpan.End()
 
 	// Registration only proves Restate reached the worker. A keyed invocation
 	// additionally proves the partition processor took leadership, which is
 	// what a Send needs to make progress instead of queueing silently.
+	readinessSpan := startContainerSpan(t, "containers.restate.readiness")
+	defer readinessSpan.End()
 	readinessCtx, readinessCancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer readinessCancel()
 	require.Eventually(t, func() bool {

@@ -84,6 +84,8 @@ func connectMySQL(t testing.TB, user string) (*mysql.Config, *sql.DB) {
 	dsnCfg.Logger = &mysql.NopLogger{}
 
 	pingStart := time.Now()
+	readinessSpan := startContainerSpan(t, "containers.mysql.readiness")
+	defer readinessSpan.End()
 	hostDB, err := sql.Open("mysql", dsnCfg.FormatDSN())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, hostDB.Close()) })
@@ -91,6 +93,7 @@ func connectMySQL(t testing.TB, user string) (*mysql.Config, *sql.DB) {
 		pingErr := hostDB.PingContext(context.Background())
 		return pingErr == nil
 	}, 60*time.Second, 500*time.Millisecond)
+	readinessSpan.End()
 	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
 
 	return dsnCfg, hostDB
@@ -106,6 +109,8 @@ func ensureSharedMySQLSchema(t testing.TB, hostDB *sql.DB) {
 
 	schemaStart := time.Now()
 	ctx := context.Background()
+	lockSpan := startContainerSpan(t, "containers.mysql.schema_lock")
+	defer lockSpan.End()
 
 	conn, err := hostDB.Conn(ctx)
 	require.NoError(t, err, "failed to pin MySQL schema connection")
@@ -115,6 +120,7 @@ func ensureSharedMySQLSchema(t testing.TB, hostDB *sql.DB) {
 	err = conn.QueryRowContext(ctx, "SELECT GET_LOCK(?, 60)", mysqlSchemaLockName).Scan(&lockAcquired)
 	require.NoError(t, err, "failed to acquire MySQL schema lock")
 	require.Equal(t, 1, lockAcquired, "timed out acquiring MySQL schema lock")
+	lockSpan.End()
 	defer func() {
 		var lockReleased sql.NullInt64
 		releaseErr := conn.QueryRowContext(context.Background(), "SELECT RELEASE_LOCK(?)", mysqlSchemaLockName).Scan(&lockReleased)
@@ -122,6 +128,9 @@ func ensureSharedMySQLSchema(t testing.TB, hostDB *sql.DB) {
 		require.True(t, lockReleased.Valid, "MySQL schema lock release returned NULL")
 		require.Equal(t, int64(1), lockReleased.Int64, "MySQL schema lock was not held by this connection")
 	}()
+
+	schemaSpan := startContainerSpan(t, "containers.mysql.schema")
+	defer schemaSpan.End()
 
 	if mysqlTableExists(t, ctx, conn, mysqlSchemaMarkerTable) {
 		t.Logf("  MySQL schema already loaded in %s", time.Since(schemaStart))
