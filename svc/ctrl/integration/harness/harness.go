@@ -122,8 +122,8 @@ func WithClock(c clock.Clock) Option {
 	}
 }
 
-// WithIsolatedMySQL gives the harness a private MySQL instance instead of the
-// shared one. Use it for handlers that scan every workspace, such as fleet-wide
+// WithIsolatedMySQL gives the harness a private database on the shared MySQL
+// server. Use it for handlers that scan every workspace, such as fleet-wide
 // cron jobs, so rows left by other tests cannot change the result.
 func WithIsolatedMySQL() Option {
 	return func(o *harnessOpts) {
@@ -197,7 +197,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		defer wg.Done()
 		s := time.Now()
 		if o.isolatedMySQL {
-			mysqlCfg = containers.MySQLIsolated(t)
+			mysqlCfg = containers.MySQLLogicalIsolated(t)
 		} else {
 			mysqlCfg = containers.MySQL(t)
 		}

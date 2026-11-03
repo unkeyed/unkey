@@ -7,7 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -24,7 +27,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.delete_identity")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Identity("*"), permissions.Delete).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -57,7 +60,7 @@ func TestDeleteIdentityNotFound(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Try to delete it using external ID with a key from different workspace
-		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.delete_identity")
+		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, rbac.U(urn.New().Workspace("*").Project("*").Identity("*"), permissions.Delete).Value)
 		differentHeaders := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", differentWorkspaceKey)},

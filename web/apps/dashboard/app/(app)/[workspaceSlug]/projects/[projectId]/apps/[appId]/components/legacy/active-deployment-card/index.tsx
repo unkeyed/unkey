@@ -3,10 +3,10 @@
 import { EnvStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/legacy/env-status-badge";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
 import { RegionFlag } from "@/components/region-flag";
-import { collection } from "@/lib/collections";
 import { summarizeCrashLoop } from "@/lib/collections/deploy/exit-reasons";
 import type { Deployment } from "@/lib/deploy-data/deployment";
 import { githubUrl } from "@/lib/github-url";
+import { useProjectApps } from "@/lib/queries/apps";
 import {
   formatCpu,
   formatCpuParts,
@@ -15,7 +15,6 @@ import {
   formatStorage,
   formatStorageParts,
 } from "@/lib/utils/deployment-formatters";
-import { eq, useLiveQuery } from "@tanstack/react-db";
 import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Card, InfoTooltip, TimestampInfo } from "@unkey/ui";
@@ -58,10 +57,7 @@ export function ActiveDeploymentCard({
   const { projectId } = useProjectData();
   // Repo connections are per-app; the project-level repositoryFullName is
   // just some app's connection in this project.
-  const appsQuery = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
-  );
+  const appsQuery = useProjectApps(projectId);
   const repoFullName = (appsQuery.data ?? []).find(
     (a) => a.id === deployment?.appId,
   )?.repositoryFullName;

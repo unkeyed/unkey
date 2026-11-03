@@ -50,7 +50,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RatelimitSetOverrideResponseBody)
+				return util.Output(ctx, cmd, res.V2RatelimitSetOverrideResponseBody)
 			}
 
 			res, err := client.Ratelimit.SetOverride(ctx, components.V2RatelimitSetOverrideRequestBody{
@@ -62,7 +62,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2RatelimitSetOverrideResponseBody)
+			return util.Output(ctx, cmd, res.V2RatelimitSetOverrideResponseBody)
 		},
 	}
 }

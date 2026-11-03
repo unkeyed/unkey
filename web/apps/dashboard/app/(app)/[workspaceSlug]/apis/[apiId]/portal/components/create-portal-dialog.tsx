@@ -157,7 +157,7 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
             type="submit"
             form="create-portal-form"
             variant="primary"
-            size="xlg"
+            size="md"
             className="w-full"
             disabled={isSubmitting}
             loading={isSubmitting}
@@ -165,7 +165,6 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
           >
             Enable portal
           </Button>
-          <div className="text-xs text-gray-9">You can change both later</div>
         </div>
       }
     >

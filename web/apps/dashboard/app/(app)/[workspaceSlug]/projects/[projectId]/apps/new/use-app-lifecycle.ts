@@ -1,10 +1,10 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
+import { getApp, getProjectApps, refetchProjectApps, removeApp } from "@/lib/queries/apps";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
 import type { AppGitCreateInput } from "@unkey/api/models/components";
 import { ConflictErrorResponse, NotFoundErrorResponse } from "@unkey/api/models/errors";
@@ -49,11 +49,12 @@ function isApiError(
 
 export function useAppLifecycle(projectId: string) {
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
 
   const takenSlugs = (excludeAppId: string | null): ReadonlySet<string> =>
     new Set(
-      collection.apps.toArray
-        .filter((app) => app.projectId === projectId && app.id !== excludeAppId)
+      getProjectApps(queryClient, projectId)
+        .filter((app) => app.id !== excludeAppId)
         .map((app) => app.slug),
     );
 
@@ -64,7 +65,7 @@ export function useAppLifecycle(projectId: string) {
   ): Promise<T> => {
     for (let attempt = 0; attempt < MAX_NAME_ATTEMPTS; attempt++) {
       if (attempt > 0) {
-        await refetchProjectApps(projectId);
+        await refetchProjectApps(queryClient, projectId);
       }
       try {
         return await write(uniqueAppName(baseName, takenSlugs(excludeAppId)));
@@ -93,7 +94,7 @@ export function useAppLifecycle(projectId: string) {
     });
 
   const setAppName = async (appId: string, slug: string): Promise<void> => {
-    if (collection.apps.get(appId)?.slug === slug) {
+    if (getApp(queryClient, projectId, appId)?.slug === slug) {
       return;
     }
     try {
@@ -101,7 +102,7 @@ export function useAppLifecycle(projectId: string) {
     } catch (error) {
       throw isApiError(error, ConflictErrorResponse) ? new AppNameTakenError() : error;
     }
-    await refetchProjectApps(projectId);
+    await refetchProjectApps(queryClient, projectId);
   };
 
   const deleteApp = async (appId: string): Promise<void> => {
@@ -112,9 +113,7 @@ export function useAppLifecycle(projectId: string) {
         throw error;
       }
     }
-    if (collection.apps.has(appId)) {
-      collection.apps.utils.writeDelete(appId);
-    }
+    removeApp(queryClient, projectId, appId);
   };
 
   const createApp = async (baseName: string, source: AppSource): Promise<string> => {
@@ -130,10 +129,10 @@ export function useAppLifecycle(projectId: string) {
     });
     void applyDefaults(appId);
     try {
-      await refetchProjectApps(projectId, { throwOnError: true });
+      await refetchProjectApps(queryClient, projectId, { throwOnError: true });
     } catch (error) {
       await deleteApp(appId).catch(() => undefined);
-      await refetchProjectApps(projectId).catch(() => undefined);
+      await refetchProjectApps(queryClient, projectId).catch(() => undefined);
       throw error;
     }
     return appId;
@@ -146,17 +145,17 @@ export function useAppLifecycle(projectId: string) {
     createApp(baseName, { oci: { image } });
 
   const createGitPlaceholder = async (): Promise<string> =>
-    findReusablePlaceholder(collection.apps.toArray.filter((app) => app.projectId === projectId)) ??
+    findReusablePlaceholder(getProjectApps(queryClient, projectId)) ??
     createGitApp(provisionalAppName);
 
   const renameApp = async (appId: string, baseName: string): Promise<void> => {
-    if (collection.apps.get(appId)?.slug === baseName) {
+    if (getApp(queryClient, projectId, appId)?.slug === baseName) {
       return;
     }
     await withFreeSlug(baseName, appId, (slug) =>
       getUnkeyClient().apps.updateApp({ project: projectId, app: appId, name: slug, slug }),
     );
-    await refetchProjectApps(projectId);
+    await refetchProjectApps(queryClient, projectId);
   };
 
   return {

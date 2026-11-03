@@ -74,14 +74,21 @@ func TestGuidedTerminalCreateAndCancellation(t *testing.T) {
 		out, terminal, err := runGuidedTerminal(t, args, []terminalAnswer{
 			{expect: "? Name ", answer: "Demo Service\r"},
 			{expect: "? Slug (demo-service) ", answer: "\r"},
-			{expect: "Create project", answer: "\r"},
+			{expect: "❯ Create project\r\n  Edit…\r\n  Cancel", answer: "\r", check: func(t *testing.T, screen string) {
+				require.NotContains(t, screen, "? Create project")
+				require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+				if mode == "human" {
+					recordGuided(t, "heading-free-create", screen, "")
+				}
+			}},
 		})
 		require.NoError(t, err, terminal)
 		require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service"}, <-requests)
 		require.Contains(t, terminal, "✓ Name: Demo Service\r\n✓ Slug: demo-service")
 		require.NotRegexp(t, "\x1b\\[[0-9;]*m", terminal)
-		require.NotContains(t, terminal, "Edit Name")
-		require.NotContains(t, terminal, "Edit Slug")
+		require.NotContains(t, terminal, "Change Name")
+		require.NotContains(t, terminal, "Change Slug")
+		require.Contains(t, terminal, "Edit…")
 		require.NotContains(t, terminal, `"name":`)
 		require.NotContains(t, strings.ToLower(terminal), "guided")
 		require.NotContains(t, out, "✓ Name")
@@ -111,7 +118,7 @@ func TestGuidedTerminalCreateAndCancellation(t *testing.T) {
 	require.Empty(t, out)
 	require.Contains(t, terminal, "cancelled")
 	out, terminal, err = runGuidedTerminal(t, append([]string{"projects", "update", "--project=demo"}, flags...), []terminalAnswer{
-		{expect: "Choose a field to update", answer: "\x03"},
+		{expect: "❯ Set Name", answer: "\x03"},
 	})
 	require.Error(t, err)
 	require.Empty(t, out)
@@ -153,7 +160,10 @@ func TestGuidedTerminalColorAndLineMode(t *testing.T) {
 	out, terminal, err := runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name: ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service): ", answer: "\r"},
-		{expect: "  3. Cancel\r\nEnter a number between 1 and 3 (default 1): ", answer: "4\r1\r"},
+		{expect: "  3. Cancel\r\nEnter a number between 1 and 3 (default 1): ", answer: "4\r1\r", check: func(t *testing.T, screen string) {
+			require.NotContains(t, screen, "? Create project")
+			require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+		}},
 	}, terminalSettings{columns: 100, rows: 40, env: []string{"TERM=dumb", "NO_COLOR="}})
 	require.NoError(t, err, terminal)
 	require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: "Demo Service", Slug: "demo-service"}, <-requests)
@@ -183,10 +193,9 @@ func TestGuidedTerminalUpdatePreservesPatch(t *testing.T) {
 		"keys", "update", "--key-id=" + keyID, "--enabled=false", "--expires=0", "--roles=", "--interactive",
 		"--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
 	}, []terminalAnswer{
-		{expect: "Additional settings", answer: "\x1b[B\r"},
-		{expect: "Clear (null)", answer: "\x1b[B\r"},
-		{expect: "Additional settings", answer: "\r"},
-		{expect: "Update key", answer: "\r"},
+		{expect: "❯ Update key", answer: "\x1b[B\r"},
+		{expect: "? Name", answer: "\x1b[B\r"},
+		{expect: "❯ Update key", answer: "\r"},
 	})
 	require.NoError(t, err, terminal)
 	require.Equal(t, components.V2KeysUpdateKeyRequestBody{
@@ -194,6 +203,109 @@ func TestGuidedTerminalUpdatePreservesPatch(t *testing.T) {
 	}, <-requests)
 	require.Contains(t, out, "✓ Updated key")
 	recordGuided(t, "update-after", terminal, out)
+}
+
+func TestGuidedTerminalTargetOnlyUpdateUsesOneMenu(t *testing.T) {
+	requests := make(chan components.V2ProjectsUpdateProjectRequestBody, 2)
+	projectID := uid.New(uid.ProjectPrefix)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v2/projects.listProjects" {
+			w.Header().Set("Content-Type", "application/json")
+			if err := json.NewEncoder(w).Encode(components.V2ProjectsListProjectsResponseBody{
+				Data: []components.Project{
+					{ID: uid.New(uid.ProjectPrefix), Name: "Other project"},
+					{ID: projectID, Name: "Current project"},
+				},
+			}); err != nil {
+				t.Error(err)
+			}
+			return
+		}
+		if r.URL.Path != "/v2/projects.updateProject" {
+			t.Errorf("unexpected endpoint: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		var request components.V2ProjectsUpdateProjectRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		requests <- request
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(components.V2ProjectsUpdateProjectResponseBody{
+			Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+		}); err != nil {
+			t.Error(err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	out, terminal, err := runGuidedTerminal(t, []string{
+		"projects", "update", "--project=" + projectID,
+		"--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
+	}, []terminalAnswer{
+		{expect: "❯ Set Name\r\n  Set Slug\r\n  Set Delete protection\r\n  Change Project\r\n  Cancel", answer: "\r", check: func(t *testing.T, screen string) {
+			require.Empty(t, requests)
+			require.Contains(t, screen, "❯ Set Name\n  Set Slug\n  Set Delete protection\n  Change Project\n  Cancel")
+			require.NotContains(t, screen, "❯ Update project")
+			require.NotContains(t, screen, "  Update project")
+			require.NotContains(t, screen, "? Update project")
+			require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+			recordGuided(t, "heading-free-update-before-changes", screen, "")
+		}},
+		{expect: "? Name ", answer: "Updated service\r"},
+		{expect: "❯ Update project\r\n  Change Name\r\n  Set Slug\r\n  Set Delete protection\r\n  Change Project\r\n  Cancel", answer: "\x1b[A\x1b[A\r", check: func(t *testing.T, screen string) {
+			require.Empty(t, requests)
+			require.Contains(t, screen, "✓ Name: Updated service")
+			require.Contains(t, screen, "❯ Update project\n  Change Name\n  Set Slug\n  Set Delete protection\n  Change Project\n  Cancel")
+			require.NotContains(t, screen, "? Update project")
+			require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+			recordGuided(t, "heading-free-update-after-changes", screen, "")
+		}},
+		{expect: "? Project\r\n  Filter results or enter a value", answer: "\x1b", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "❯ Current project ("+projectID+")")
+			recordGuided(t, "repick-project", screen, "")
+		}},
+		{expect: "❯ Update project", answer: "\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "✓ Name: Updated service")
+			require.Contains(t, screen, projectID)
+		}},
+	})
+	require.NoError(t, err, terminal)
+	require.Len(t, requests, 1)
+	require.Equal(t, components.V2ProjectsUpdateProjectRequestBody{
+		Project: projectID, Name: new("Updated service"),
+	}, <-requests)
+	require.Contains(t, out, "✓ Updated project")
+	require.NotContains(t, terminal, "Keep changes")
+	require.NotContains(t, terminal, "Review and confirm")
+	require.NotContains(t, terminal, "Edit fields")
+	out, terminal, err = runGuidedTerminal(t, []string{
+		"projects", "update", "--project=" + projectID,
+		"--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
+	}, []terminalAnswer{
+		{expect: "(default 1): ", answer: "\r", check: func(t *testing.T, screen string) {
+			require.Empty(t, requests)
+			require.Contains(t, screen, "1. Set Name")
+			require.NotContains(t, screen, "Update project")
+			require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+		}},
+		{expect: "? Name: ", answer: "Updated service\r"},
+		{expect: "(default 1): ", answer: "\r", check: func(t *testing.T, screen string) {
+			require.Empty(t, requests)
+			require.Contains(t, screen, "1. Update project")
+			require.Contains(t, screen, "✓ Name: Updated service")
+			require.NotContains(t, screen, "? Update project")
+			require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+		}},
+	}, terminalSettings{columns: 100, rows: 40, env: []string{"TERM=dumb"}})
+	require.NoError(t, err, terminal)
+	require.Len(t, requests, 1)
+	require.Equal(t, components.V2ProjectsUpdateProjectRequestBody{
+		Project: projectID, Name: new("Updated service"),
+	}, <-requests)
+	require.Contains(t, out, "✓ Updated project")
+	require.NotContains(t, terminal, "\x1b")
 }
 
 func TestGuidedTerminalSearchAndPlainList(t *testing.T) {
@@ -221,9 +333,9 @@ func TestGuidedTerminalSearchAndPlainList(t *testing.T) {
 	require.Contains(t, out, "No projects found.")
 	require.Nil(t, (<-requests).Search)
 	out, terminal, err = runGuidedTerminal(t, append(args, "--interactive"), []terminalAnswer{
-		{expect: "Additional settings", answer: "\x1b[A\r"},
+		{expect: "? Additional settings", answer: "\x1b[A\r"},
 		{expect: "? Search ", answer: "Demo\r"},
-		{expect: "Additional settings", answer: "\r"},
+		{expect: "? Additional settings", answer: "\r"},
 	})
 	require.NoError(t, err, terminal)
 	require.Equal(t, new("Demo"), (<-requests).Search)
@@ -267,13 +379,13 @@ func TestGuidedTerminalPickerSearchPaginationAndDeleteCancellation(t *testing.T)
 	out, terminal, err := runGuidedTerminal(t, []string{
 		"projects", "delete", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
 	}, []terminalAnswer{
-		{expect: "Browse existing resources", answer: "\r"},
-		{expect: "No resources found", answer: "\r"},
-		{expect: "? Search ", answer: "Demo\r"},
-		{expect: "Next page", answer: "\x1b[B\r"},
-		{expect: "Demo Service (", answer: "\r"},
-		{expect: "Delete project", answer: "\r"},
-		{expect: "[y/N]: ", answer: "n\r"},
+		{expect: "No resources found", answer: "Demo\x1b[B\r"},
+		{expect: "Next page", answer: "\r"},
+		{expect: "Demo Service · demo-service (", answer: "\r"},
+		{expect: "❯ Cancel", answer: "\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "Demo Service · demo-service ("+projectID+")")
+			require.NotContains(t, screen, "Continue")
+		}},
 	})
 	require.Error(t, err)
 	require.Empty(t, out)
@@ -287,6 +399,298 @@ func TestGuidedTerminalPickerSearchPaginationAndDeleteCancellation(t *testing.T)
 	require.Equal(t, new("demo-next-page"), page.Cursor)
 	require.Empty(t, mutations)
 	recordGuided(t, "picker-cancel-after", terminal, out)
+}
+
+func TestGuidedTerminalPickerValidatesManualValue(t *testing.T) {
+	requests := make(chan components.V2ProjectsDeleteProjectRequestBody, 2)
+	var lists atomic.Int64
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v2/projects.listProjects":
+			lists.Add(1)
+			if err := json.NewEncoder(w).Encode(components.V2ProjectsListProjectsResponseBody{
+				Meta:       components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+				Data:       []components.Project{},
+				Pagination: components.Pagination{HasMore: false},
+			}); err != nil {
+				t.Error(err)
+			}
+		case "/v2/projects.deleteProject":
+			var request components.V2ProjectsDeleteProjectRequestBody
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				t.Error(err)
+				return
+			}
+			requests <- request
+			w.WriteHeader(http.StatusAccepted)
+			if err := json.NewEncoder(w).Encode(components.V2ProjectsDeleteProjectResponseBody{
+				Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+			}); err != nil {
+				t.Error(err)
+			}
+		default:
+			t.Errorf("unexpected endpoint: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+	out, terminal, err := runGuidedTerminal(t, []string{
+		"projects", "delete", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
+	}, []terminalAnswer{
+		{expect: "? Project · No resources found\r\n  Enter a value", answer: "zz"},
+		{expect: "? Project · No resources found\r\n  zz\r\n❯ Use: zz", answer: "\r"},
+		{expect: "Enter at least 3 characters", answer: "\x15valid-project", check: func(t *testing.T, screen string) {
+			require.Empty(t, requests)
+			require.EqualValues(t, 1, lists.Load())
+			require.Contains(t, screen, "Use: zz")
+		}},
+		{expect: "? Project · No resources found\r\n  valid-project\r\n❯ Use: valid-project", answer: "\r"},
+		{expect: "❯ Cancel", answer: "\x1b[B\r", check: func(t *testing.T, screen string) {
+			require.Empty(t, requests)
+			require.Contains(t, screen, "✓ Project: valid-project")
+			require.NotContains(t, screen, "✓ Project: zz")
+		}},
+	})
+	require.NoError(t, err, terminal)
+	require.Contains(t, terminal, "Enter at least 3 characters")
+	require.EqualValues(t, 1, lists.Load())
+	require.Len(t, requests, 1)
+	require.Equal(t, components.V2ProjectsDeleteProjectRequestBody{Project: "valid-project"}, <-requests)
+	require.Equal(t, "✓ Deletion requested\n  Project: valid-project\n", out)
+}
+
+func TestGuidedDomainPickerConfirmsOnlyTheFinalTarget(t *testing.T) {
+	for _, mode := range []string{"select", "manual", "edit", "back", "cancel", "yes", "denied", "narrow", "human", "human-edit"} {
+		t.Run(mode, func(t *testing.T) {
+			domainID := uid.New(uid.DomainPrefix)
+			requests := make(chan components.V2DomainsDeleteDomainRequestBody, 2)
+			var lists atomic.Int64
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/v2/domains.listDomains":
+					lists.Add(1)
+					var request components.V2DomainsListDomainsRequestBody
+					if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+						t.Error(err)
+						return
+					}
+					if request.Project != nil || request.App != nil || request.Environment != nil {
+						t.Error("domain browsing must not require parent scope")
+					}
+					if mode == "denied" {
+						w.WriteHeader(http.StatusForbidden)
+						return
+					}
+					if err := json.NewEncoder(w).Encode(components.V2DomainsListDomainsResponseBody{
+						Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+						Data: []components.Domain{
+							{ID: uid.New(uid.DomainPrefix), Domain: "preview.example.com", Status: components.DomainStatusPending},
+							{ID: domainID, Domain: "api.example.com", Status: components.DomainStatusVerified},
+						},
+					}); err != nil {
+						t.Error(err)
+					}
+				case "/v2/domains.deleteDomain":
+					var request components.V2DomainsDeleteDomainRequestBody
+					if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+						t.Error(err)
+						return
+					}
+					requests <- request
+					if err := json.NewEncoder(w).Encode(components.V2DomainsDeleteDomainResponseBody{
+						Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+					}); err != nil {
+						t.Error(err)
+					}
+				default:
+					t.Errorf("unexpected endpoint: %s", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			t.Cleanup(server.Close)
+			args := []string{"domains", "delete", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL, "--json"}
+			if strings.HasPrefix(mode, "human") {
+				args = args[:len(args)-1]
+			}
+			answers := []terminalAnswer{{expect: "? Domain\r\n  Filter results or enter a value", answer: "api.\r"}}
+			expected := domainID
+			if mode == "manual" {
+				expected = "custom.example.com"
+				answers[0].answer = expected + "\r"
+			}
+			if mode == "denied" {
+				expected = "custom.example.com"
+				answers = []terminalAnswer{{expect: "? Domain ", answer: expected + "\r"}}
+			}
+			if mode == "edit" || mode == "back" || mode == "human-edit" {
+				answer := "\x1b"
+				if mode == "edit" || mode == "human-edit" {
+					expected = "changed.example.com"
+					answer = expected + "\r"
+				}
+				answers = append(answers,
+					terminalAnswer{expect: "❯ Cancel", answer: "\x1b[A\r"},
+					terminalAnswer{expect: "  Delete domain\r\n  Change Domain\r\n❯ Cancel", answer: "\x1b[A\r", check: func(t *testing.T, screen string) {
+						require.Empty(t, requests)
+						require.NotContains(t, screen, "? Delete domain")
+						require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+					}},
+					terminalAnswer{expect: "? Domain\r\n  Filter results or enter a value", answer: answer, check: func(t *testing.T, screen string) {
+						require.Contains(t, screen, "❯ api.example.com ("+domainID+")")
+						require.NotContains(t, screen, "! Delete domain")
+						recordGuided(t, "repick-domain", screen, "")
+					}},
+				)
+			}
+			if mode == "yes" {
+				args = append(args, "--yes")
+			}
+			answer := "\x1b[B\r"
+			if mode == "cancel" {
+				answer = "\r"
+			}
+			answers = append(answers, terminalAnswer{expect: "❯ Cancel", answer: answer, check: func(t *testing.T, screen string) {
+				require.Empty(t, requests)
+				require.Contains(t, screen, expected)
+				require.Equal(t, 1, strings.Count(screen, "✓ Domain:"), screen)
+				require.Contains(t, screen, "❯ Cancel")
+				require.Contains(t, screen, "Edit…")
+				require.NotContains(t, screen, "Continue")
+				require.NotContains(t, screen, "[y/N]")
+				require.NotContains(t, screen, "? Delete domain")
+				require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+				warningTarget := expected
+				if expected == domainID {
+					warningTarget = "api.example.com (" + domainID + ")"
+					require.Contains(t, screen, "api.example.com")
+				}
+				warning := fmt.Sprintf("Delete domain %q and stop serving traffic to it?", warningTarget)
+				require.Contains(t, strings.Join(strings.Fields(screen), " "), warning)
+				if mode == "edit" || mode == "human-edit" {
+					require.NotContains(t, screen, domainID)
+					require.NotContains(t, screen, "api.example.com")
+					require.NotContains(t, screen, "Change Domain")
+				}
+				if mode == "human" {
+					recordGuided(t, "delete-review-screen", screen, "")
+				}
+			}})
+			settings := terminalSettings{columns: 100, rows: 24}
+			if mode == "narrow" {
+				settings.columns, settings.rows = 40, 12
+			}
+			out, terminal, err := runGuidedTerminal(t, args, answers, settings)
+			if mode == "cancel" {
+				require.Error(t, err)
+				require.Empty(t, requests)
+				require.Empty(t, out)
+			} else {
+				require.NoError(t, err, terminal)
+				require.Len(t, requests, 1)
+				require.Equal(t, expected, (<-requests).Domain)
+				var response components.V2DomainsDeleteDomainResponseBody
+				if mode == "human" {
+					require.Equal(t, "✓ Deleted domain\n  Domain: api.example.com ("+domainID+")\n", out)
+				} else if mode == "human-edit" {
+					require.Equal(t, "✓ Deleted domain\n  Domain: changed.example.com\n", out)
+					require.NotContains(t, out, domainID)
+				} else {
+					require.NoError(t, json.Unmarshal([]byte(out), &response))
+				}
+				visible := vt100.NewVT100(int(settings.rows), int(settings.columns))
+				_, err := visible.Write([]byte(terminal))
+				require.NoError(t, err)
+				for _, row := range visible.Content {
+					require.NotContains(t, string(row), "! Delete domain")
+				}
+			}
+			require.NotContains(t, terminal, "[y/N]")
+			require.NotContains(t, terminal, "Review and confirm")
+			require.NotContains(t, terminal, "Keep changes")
+			if mode == "edit" || mode == "back" || mode == "human-edit" {
+				require.EqualValues(t, 2, lists.Load())
+			} else {
+				require.EqualValues(t, 1, lists.Load())
+			}
+			recordGuided(t, "domain-"+mode, terminal, out)
+		})
+	}
+}
+
+func TestGuidedTerminalDestructiveEnterCancels(t *testing.T) {
+	for _, test := range []struct {
+		term     string
+		expanded bool
+	}{
+		{term: "xterm-256color"},
+		{term: "xterm-256color", expanded: true},
+		{term: "dumb"},
+		{term: "dumb", expanded: true},
+	} {
+		for _, yes := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/expanded=%t/yes=%t", test.term, test.expanded, yes), func(t *testing.T) {
+				var requests atomic.Int64
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					requests.Add(1)
+					w.WriteHeader(http.StatusInternalServerError)
+				}))
+				t.Cleanup(server.Close)
+				domain := "api.example.com"
+				args := []string{
+					"domains", "delete", "--domain=" + domain, "--interactive",
+					"--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
+				}
+				if yes {
+					args = append(args, "--yes")
+				}
+				ready := "❯ Cancel"
+				edit := "\x1b[A\r"
+				if test.term == "dumb" {
+					ready = "(default 3): "
+					edit = "2\r"
+				}
+				var answers []terminalAnswer
+				if test.expanded {
+					answers = append(answers, terminalAnswer{expect: ready, answer: edit})
+				}
+				answers = append(answers, terminalAnswer{
+					expect: ready, answer: "\r", check: func(t *testing.T, screen string) {
+						require.Zero(t, requests.Load())
+						require.Contains(t, screen, fmt.Sprintf("Delete domain %q and stop serving traffic to it?", domain))
+						require.NotContains(t, screen, "? Delete domain")
+						require.NotRegexp(t, `(?m)^\s*\?\s*$`, screen)
+						if test.expanded {
+							require.Contains(t, screen, "Change Domain")
+						} else {
+							require.Contains(t, screen, "Edit…")
+						}
+						if test.term == "dumb" {
+							require.Contains(t, screen, "3. Cancel")
+							require.Contains(t, screen, "(default 3):")
+						} else {
+							require.Contains(t, screen, "❯ Cancel")
+						}
+						if !yes {
+							recordGuided(t, fmt.Sprintf("heading-free-delete-%s-expanded-%t", test.term, test.expanded), screen, "")
+						}
+					},
+				})
+				out, terminal, err := runGuidedTerminal(t, args, answers, terminalSettings{columns: 100, rows: 40, env: []string{"TERM=" + test.term}})
+				require.Error(t, err)
+				require.Contains(t, terminal, "cancelled")
+				require.NotContains(t, terminal, "Error:")
+				require.NotContains(t, terminal, "failed.")
+				require.Empty(t, out)
+				require.Zero(t, requests.Load())
+				require.NotContains(t, terminal, "[y/N]")
+				if test.term == "dumb" {
+					require.NotContains(t, terminal, "\x1b")
+				}
+			})
+		}
+	}
 }
 
 func TestGuidedTerminalSecretIsHiddenAndPreserved(t *testing.T) {
@@ -312,8 +716,7 @@ func TestGuidedTerminalSecretIsHiddenAndPreserved(t *testing.T) {
 		"keys", "verify", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
 	}, []terminalAnswer{
 		{expect: "Input is hidden", answer: secret + "\r"},
-		{expect: "Additional settings", answer: "\r"},
-		{expect: "Verify key", answer: "\r"},
+		{expect: "❯ Verify key", answer: "\r"},
 	})
 	require.NoError(t, err, terminal)
 	require.Equal(t, secret, (<-requests).Key)
@@ -404,9 +807,9 @@ func TestGuidedTerminalDeploymentUsesOneOptionalSource(t *testing.T) {
 	require.Empty(t, terminal)
 	require.Nil(t, (<-requests).Oci)
 	_, terminal, err = runGuidedTerminal(t, append(args, "--interactive"), []terminalAnswer{
-		{expect: "Additional settings", answer: "\x1b[A\r"},
+		{expect: "❯ Create deployment", answer: "\x1b[B\x1b[B\x1b[B\r"},
 		{expect: "? OCI › Image ", answer: "ghcr.io/example/demo:v1\r"},
-		{expect: "Create deployment", answer: "\r"},
+		{expect: "❯ Create deployment", answer: "\r"},
 	})
 	require.NoError(t, err, terminal)
 	request := <-requests
@@ -439,8 +842,7 @@ func TestGuidedTerminalPolicyMergesCompositeFlag(t *testing.T) {
 		"gateway", "policies", "update", "--project=demo", "--app=demo-app", "--environment=preview", "--policy-id=" + policyID,
 		"--policy=" + string(policy), "--interactive", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
 	}, []terminalAnswer{
-		{expect: "Additional settings", answer: "\r"},
-		{expect: "Update policy", answer: "\r"},
+		{expect: "❯ Update policy", answer: "\r"},
 	})
 	require.NoError(t, err, terminal)
 	request := <-requests
@@ -477,30 +879,27 @@ func TestGuidedTerminalListSummaryTracksEdits(t *testing.T) {
 		"keys", "update", "--key-id=" + keyID, "--ratelimits=" + string(raw), "--enabled=false", "--interactive",
 		"--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
 	}, []terminalAnswer{
-		{expect: "Additional settings", answer: "\r"},
-		{expect: "Update key", answer: "\x1b[B\r"},
-		{expect: "Edit or continue", answer: "\x1b[A\x1b[A\r"},
-		{expect: "Change value", answer: "\r"},
-		{expect: "Keep this list", answer: "\x1b[B\x1b[B\r"},
-		{expect: "Remove item", answer: "\x1b[B\r"},
-		{expect: "Keep this list", answer: "\x1b[B\r", check: func(t *testing.T, screen string) {
+		{expect: "❯ Update key", answer: "\x1b[A\x1b[A\x1b[A\x1b[A\r"},
+		{expect: "? Ratelimits", answer: "\r"},
+		{expect: "? Ratelimits", answer: "\x1b[B\x1b[B\r"},
+		{expect: "? Item", answer: "\x1b[B\r"},
+		{expect: "? Ratelimits", answer: "\x1b[B\r", check: func(t *testing.T, screen string) {
 			require.Contains(t, screen, "Name: tokens")
 			require.NotContains(t, screen, "Name: requests")
 			require.NotContains(t, screen, "Item 2")
 			require.NotContains(t, screen, "Clear (null)")
 		}},
 		{expect: "? Ratelimits #2 › Name ", answer: "events\r"},
-		{expect: "Auto apply", answer: "\r"},
-		{expect: "Duration", answer: "2000\r"},
-		{expect: "Limit", answer: "7\r"},
-		{expect: "Keep this list", answer: "\r", check: func(t *testing.T, screen string) {
+		{expect: "? Ratelimits #2 › Auto apply", answer: "\r"},
+		{expect: "? Ratelimits #2 › Duration", answer: "2000\r"},
+		{expect: "? Ratelimits #2 › Limit", answer: "7\r"},
+		{expect: "? Ratelimits", answer: "\r", check: func(t *testing.T, screen string) {
 			require.Contains(t, screen, "Name: tokens")
 			require.Contains(t, screen, "Name: events")
 			require.NotContains(t, screen, "Name: requests")
 			require.NotContains(t, screen, "Clear (null)")
 		}},
-		{expect: "Edit or continue", answer: "\r"},
-		{expect: "Update key", answer: "\r"},
+		{expect: "❯ Update key", answer: "\r"},
 	}, terminalSettings{columns: 100, rows: 40})
 	require.NoError(t, err, terminal)
 	require.Len(t, requests, 1)
@@ -536,26 +935,25 @@ func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 	out, terminal, err := runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name ", answer: "Demo Srevice\r"},
 		{expect: "? Slug (demo-srevice) ", answer: "\r"},
-		{expect: "Create project", answer: "\x1b[B\r", check: func(t *testing.T, screen string) {
+		{expect: "❯ Create project", answer: "\x1b[B\r", check: func(t *testing.T, screen string) {
 			require.Contains(t, screen, "Earlier shell output")
 			require.Equal(t, 1, strings.Count(screen, "✓ Slug: demo-srevice"))
 			require.NotContains(t, screen, "? Slug")
 		}},
-		{expect: "Edit Name", answer: "\x1b[B\r"},
+		{expect: "❯ Create project\r\n  Change Name\r\n  Change Slug", answer: "\x1b[B\r"},
 		{expect: "? Name (Demo Srevice) ", answer: "Demo Service\r", check: func(t *testing.T, screen string) {
 			require.Contains(t, screen, "Earlier shell output")
 			require.Contains(t, screen, "✓ Name: Demo Srevice")
 			require.NotContains(t, screen, "Continue?")
-			require.NotContains(t, screen, "Edit Slug")
+			require.NotContains(t, screen, "Change Slug")
 		}},
-		{expect: "Edit Slug", answer: "\x1b[B\x1b[B\r", check: func(t *testing.T, screen string) {
+		{expect: "❯ Create project", answer: "\x1b[B\x1b[B\r", check: func(t *testing.T, screen string) {
 			require.Equal(t, 1, strings.Count(screen, "✓ Name"))
 			require.Contains(t, screen, "✓ Name: Demo Service")
 			require.NotContains(t, screen, "Demo Srevice")
 		}},
 		{expect: "? Slug (demo-srevice) ", answer: "demo-service\r"},
-		{expect: "Continue", answer: "\r"},
-		{expect: "Create project", answer: "\r"},
+		{expect: "❯ Create project", answer: "\r"},
 	}, terminalSettings{columns: 100, rows: 40, history: "Earlier shell output"})
 	require.NoError(t, err, terminal)
 	require.Len(t, requests, 1)
@@ -565,7 +963,7 @@ func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 	out, terminal, err = runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service) ", answer: "\r"},
-		{expect: "Create project", answer: "\x03"},
+		{expect: "❯ Create project", answer: "\x03"},
 	})
 	require.Error(t, err)
 	require.Empty(t, out)
@@ -581,12 +979,12 @@ func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 	require.Contains(t, visible.String(), "✓ Name: Demo Service\n✓ Slug: demo-service")
 	require.Contains(t, visible.String(), "cancelled")
 	require.NotContains(t, visible.String(), "Create project")
-	require.NotContains(t, visible.String(), "Edit Name")
-	require.NotContains(t, visible.String(), "Edit Slug")
+	require.NotContains(t, visible.String(), "Change Name")
+	require.NotContains(t, visible.String(), "Change Slug")
 	out, terminal, err = runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service) ", answer: "\r"},
-		{expect: "Create project", answer: "\x1b[A\r"},
+		{expect: "❯ Create project", answer: "\x1b[A\r"},
 	})
 	require.Error(t, err)
 	require.Empty(t, out)
@@ -601,11 +999,11 @@ func TestGuidedTerminalReviewEditsAndCancellation(t *testing.T) {
 					require.Contains(t, screen, "✗ Enter a value\n? Name\n")
 				}},
 				{expect: "? Slug (", answer: "demo-service\r"},
-				{expect: "Create project", answer: "\x1b[6~", check: func(t *testing.T, screen string) {
+				{expect: "❯ Create project", answer: "\x1b[6~", check: func(t *testing.T, screen string) {
 					require.NotContains(t, screen, "Enter a value")
 					require.NotContains(t, screen, "? Slug")
 				}},
-				{expect: "Create project", answer: "\r"},
+				{expect: "❯ Create project", answer: "\r"},
 			}, terminalSettings{columns: 40, rows: rows, history: strings.Repeat("Earlier shell output\n", 30)})
 			require.NoError(t, err, terminal)
 			require.Equal(t, components.V2ProjectsCreateProjectRequestBody{Name: name, Slug: "demo-service"}, <-requests)
@@ -652,10 +1050,13 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 	out, terminal, err := runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service) ", answer: "\r"},
-		{expect: "Create project", answer: "\r"},
-		{expect: "Edit answers", answer: "\x1b[B\r"},
-		{expect: "Continue", answer: "\r"},
-		{expect: "Nothing changed", answer: "\x1b[B\x1b[B\r"},
+		{expect: "❯ Create project", answer: "\r"},
+		{expect: "? Edit your answers and try again?", answer: "\x1b[B\r"},
+		{expect: "❯ Create project", answer: "\r"},
+		{expect: "❯ Create project", answer: "\x1b[B\x1b[B\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "Nothing changed")
+			require.Len(t, requests, 1)
+		}},
 		{expect: "? Slug (demo-service) ", answer: "demo-service-fixed\r", check: func(t *testing.T, screen string) {
 			require.Contains(t, screen, "  Slug: Use a different slug.")
 			require.Contains(t, screen, "✗ Couldn't create project")
@@ -663,16 +1064,15 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 			require.NotContains(t, screen, "Edit answers")
 			require.NotContains(t, screen, "Edit your answers and try again?")
 		}},
-		{expect: "Continue", answer: "\r"},
-		{expect: "Create project", answer: "\x1b[B\r"},
-		{expect: "Edit Slug", answer: "\x1b[B\x1b[B\r"},
+		{expect: "❯ Create project", answer: "\x1b[B\x1b[B\r"},
 		{expect: "? Slug (demo-service-fixed) ", answer: "demo-service\r"},
-		{expect: "Continue", answer: "\r"},
-		{expect: "Create project", answer: "\r"},
-		{expect: "Edit Slug", answer: "\x1b[B\x1b[B\r"},
+		{expect: "❯ Create project", answer: "\r"},
+		{expect: "❯ Create project", answer: "\x1b[B\x1b[B\r", check: func(t *testing.T, screen string) {
+			require.Contains(t, screen, "Nothing changed")
+			require.Len(t, requests, 1)
+		}},
 		{expect: "? Slug (demo-service) ", answer: "demo-service-fixed\r"},
-		{expect: "Continue", answer: "\r"},
-		{expect: "Create project", answer: "\r"},
+		{expect: "❯ Create project", answer: "\r"},
 	})
 	require.NoError(t, err, terminal)
 	require.Len(t, requests, 2)
@@ -683,8 +1083,8 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 	out, terminal, err = runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service) ", answer: "\r"},
-		{expect: "Create project", answer: "\r"},
-		{expect: "Edit answers", answer: "\r"},
+		{expect: "❯ Create project", answer: "\r"},
+		{expect: "? Edit your answers and try again?", answer: "\r"},
 	})
 	require.Error(t, err)
 	require.Empty(t, out)
@@ -694,17 +1094,17 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 	out, terminal, err = runGuidedTerminal(t, args, []terminalAnswer{
 		{expect: "? Name ", answer: "Demo Service\r"},
 		{expect: "? Slug (demo-service) ", answer: "\r"},
-		{expect: "Create project", answer: "\r"},
-		{expect: "Edit answers", answer: "\x1b[B\r"},
-		{expect: "Edit Slug", answer: "\x1b[B\x1b[B\r"},
+		{expect: "❯ Create project", answer: "\r"},
+		{expect: "? Edit your answers and try again?", answer: "\x1b[B\r"},
+		{expect: "❯ Create project", answer: "\x1b[B\x1b[B\r"},
 		{expect: "? Slug (demo-service) ", answer: "demo-service-fixed\r"},
-		{expect: "Continue", answer: "\r"},
-		{expect: "Create project", answer: "\x1b[A\r"},
+		{expect: "❯ Create project", answer: "\x1b[A\r"},
 	})
 	require.Error(t, err)
 	require.Empty(t, out)
 	require.Len(t, requests, 1)
-	require.Contains(t, terminal, "cancelled")
+	require.Contains(t, terminal, "cancelled; no further request was sent")
+	require.NotContains(t, terminal, "Error:")
 	<-requests
 	out, terminal, err = runGuidedTerminal(t, append(args, "--name=Demo Service", "--slug=demo-service", "--no-input"), nil)
 	require.Error(t, err)
@@ -738,7 +1138,9 @@ func TestGuidedTerminalDoesNotRetryOtherFailures(t *testing.T) {
 			out, terminal, err := runGuidedTerminal(t, []string{
 				"projects", "create", "--name=Demo Service", "--slug=demo-service", "--interactive",
 				"--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL,
-			}, []terminalAnswer{{expect: "Create project", answer: "\r"}})
+			}, []terminalAnswer{
+				{expect: "❯ Create project", answer: "\r"},
+			})
 			require.Error(t, err)
 			require.Empty(t, out)
 			require.Equal(t, int64(1), requests.Load())

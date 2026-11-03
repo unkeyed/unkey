@@ -233,7 +233,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
               type="button"
               variant="primary"
               color="danger"
-              size="xlg"
+              size="md"
               className="w-full"
               loading={disablePortal.isLoading}
               loadingLabel="Disabling customer portal"
@@ -248,7 +248,6 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
             >
               Disable portal
             </Button>
-            <div className="text-xs text-gray-9">You can re-enable it at any time</div>
           </div>
         }
       >

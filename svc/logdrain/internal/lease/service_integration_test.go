@@ -28,7 +28,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	nodeTimeMillis := nodeTime.UnixMilli()
 	testClock := clock.NewTestClock(nodeTime)
 	// Acquisition scans all workspaces, so unique drain IDs cannot isolate this test.
-	mysqlConfig := containers.MySQLIsolated(t)
+	mysqlConfig := containers.MySQLLogicalIsolated(t)
 	database, err := db.New(mysqlConfig.DSN, sqlcomment.ForService("logdrain-lease-integration-test", "test"))
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

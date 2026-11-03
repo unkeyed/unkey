@@ -5,8 +5,7 @@ import {
   type StepNavModel,
   StepNavView,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/step-nav";
-import { collection } from "@/lib/collections";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { useProjectApps } from "@/lib/queries/apps";
 import {
   Github,
   IconCubeOutline18,
@@ -40,14 +39,7 @@ function stepIcons(source: SourceKind | null): Record<Step, Icon> {
 
 function useStepViews(projectId: string, state: WizardState): FlowStep<Step>[] {
   const appId = state.appId ?? "";
-  const { data } = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
-    [projectId, appId],
-  );
-  const app = data.at(0);
+  const app = useProjectApps(projectId).data?.find((a) => a.id === appId);
   const { source } = state;
   const chosen: Record<Step, string | null> = {
     method: source ? sourceCopy[source].sourceLabel : null,

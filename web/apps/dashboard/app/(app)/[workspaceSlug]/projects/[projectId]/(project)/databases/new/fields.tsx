@@ -4,7 +4,7 @@ import {
   EnvironmentIcon,
   environmentName,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/queries/environments";
 import {
   FormField,
   Select,

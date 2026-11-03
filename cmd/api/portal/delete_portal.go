@@ -51,14 +51,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/dele
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete portal %q and revoke its sessions?", req.Portal)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete portal %q and revoke its sessions?", req.Portal)); err != nil {
 				return err
 			}
 			res, err := client.Portal.DeletePortal(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2PortalDeletePortalResponseBody)
+			return util.Output(ctx, cmd, res.V2PortalDeletePortalResponseBody)
 		},
 	}
 }

@@ -46,7 +46,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/get
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysWhoamiResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysWhoamiResponseBody)
 			}
 
 			req := components.V2KeysWhoamiRequestBody{
@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/get
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2KeysWhoamiResponseBody)
+			return util.Output(ctx, cmd, res.V2KeysWhoamiResponseBody)
 		},
 	}
 }

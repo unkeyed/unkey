@@ -42,7 +42,7 @@ func listEnvironmentVariablesCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsListEnvironmentVariablesResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsListEnvironmentVariablesResponseBody)
 			}
 			req := components.V2EnvironmentsListEnvironmentVariablesRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Limit: nil, Cursor: nil}
 			if v := cmd.Int64("limit"); v != 0 {
@@ -55,7 +55,7 @@ func listEnvironmentVariablesCmd() *cli.Command {
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2EnvironmentsListEnvironmentVariablesResponseBody)
+			return util.Output(ctx, cmd, res.V2EnvironmentsListEnvironmentVariablesResponseBody)
 		},
 	}
 }

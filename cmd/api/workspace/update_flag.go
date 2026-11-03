@@ -44,7 +44,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/workspace/up
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2WorkspaceUpdateFlagResponseBody)
+				return util.Output(ctx, cmd, res.V2WorkspaceUpdateFlagResponseBody)
 			}
 
 			req := components.V2WorkspaceUpdateFlagRequestBody{
@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/workspace/up
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2WorkspaceUpdateFlagResponseBody)
+			return util.Output(ctx, cmd, res.V2WorkspaceUpdateFlagResponseBody)
 		},
 	}
 }

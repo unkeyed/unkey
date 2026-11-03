@@ -3,10 +3,9 @@
 import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
 import { PaneRow } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-row";
 import { LoadError } from "@/components/load-error";
-import { collection } from "@/lib/collections";
-import { refetchProjectApps } from "@/lib/collections/deploy/apps";
+import { getApp, refetchProjectApps } from "@/lib/queries/apps";
 import { trpc } from "@/lib/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Github, IconChevronRightOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, ItemGroup } from "@unkey/ui";
@@ -25,10 +24,11 @@ function usePickRepository(appId: string | null) {
   const { projectId, dispatch, ensureApp } = useNewAppFlow();
   const { createGitApp, renameApp } = useAppLifecycle(projectId);
   const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const selectRepository = trpc.github.selectRepository.useMutation();
 
   const relink = async (id: string, repo: RepoItem, baseName: string) => {
-    const linked = collection.apps.get(id);
+    const linked = getApp(queryClient, projectId, id);
     await selectRepository.mutateAsync({
       projectId,
       appId: id,
@@ -40,7 +40,7 @@ function usePickRepository(appId: string | null) {
     await Promise.all([
       linked && (isPlaceholderApp(linked) || hasGeneratedName(linked))
         ? renameApp(id, baseName)
-        : refetchProjectApps(projectId),
+        : refetchProjectApps(queryClient, projectId),
       utils.github.getInstallations.invalidate({ projectId, appId: id }),
     ]);
     return id;

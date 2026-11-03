@@ -51,10 +51,10 @@ export function DeploymentDialog({
             type="submit"
             form={formId}
             variant="primary"
-            size="xlg"
+            size="md"
             disabled={!canSubmit || isSubmitting}
             loading={isSubmitting}
-            className="w-full rounded-lg"
+            className="w-full"
           >
             {submitLabel}
           </Button>

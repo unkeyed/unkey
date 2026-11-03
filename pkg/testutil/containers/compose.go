@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sys/unix"
 )
 
@@ -105,12 +106,16 @@ func (c Container) logs(lines int) string {
 func startService(t testing.TB, service string) Container {
 	t.Helper()
 
+	span := startContainerSpan(t, "containers.compose.up_wait", attribute.String("container.service", service))
+	defer span.End()
+
 	project := composeProjectName()
 	upArgs := []string{"-f", composeFile(), "-p", project, "up", "-d", "--wait", "--wait-timeout", "60", service}
 	var out []byte
 	var err error
 	deadline := time.Now().Add(90 * time.Second)
-	for {
+	for attempt := 1; ; attempt++ {
+		span.SetAttributes(attribute.Int("compose.attempts", attempt))
 		ctx, cancel := context.WithTimeout(context.Background(), 75*time.Second)
 		cmd := exec.CommandContext(ctx, "docker", append([]string{"compose"}, upArgs...)...)
 		out, err = cmd.CombinedOutput()
@@ -141,6 +146,9 @@ func startService(t testing.TB, service string) Container {
 func startIsolatedService(t testing.TB, service string) (Container, func()) {
 	t.Helper()
 
+	span := startContainerSpan(t, "containers.compose.isolated.start", attribute.String("container.service", service))
+	defer span.End()
+
 	reapIsolatedOnce.Do(func() { reapAbandonedIsolatedProjects(t, service) })
 
 	project := fmt.Sprintf(
@@ -170,6 +178,9 @@ func startIsolatedService(t testing.TB, service string) (Container, func()) {
 // are left alone.
 func reapAbandonedIsolatedProjects(t testing.TB, service string) {
 	t.Helper()
+
+	span := startContainerSpan(t, "containers.compose.isolated.reap", attribute.String("container.service", service))
+	defer span.End()
 
 	prefix := fmt.Sprintf("%s-%s-", composeProjectName(), service)
 
@@ -234,6 +245,10 @@ func removeComposeProject(project string) {
 
 func composeServicePort(t testing.TB, project string, service string, port int) int {
 	t.Helper()
+
+	span := startContainerSpan(t, "containers.compose.port",
+		attribute.String("container.service", service), attribute.Int("container.port", port))
+	defer span.End()
 
 	outText := runDockerCompose(t, "-f", composeFile(), "-p", project, "port", service, strconv.Itoa(port))
 	hostPort, err := composePort(outText)

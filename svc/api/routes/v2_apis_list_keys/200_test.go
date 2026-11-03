@@ -32,7 +32,7 @@ func (d laggingDatabase) RO() *db.Replica {
 func TestListKeysRoutesReadsByRevalidateFlag(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
-	replicaConfig := containers.MySQLIsolated(t)
+	replicaConfig := containers.MySQLLogicalIsolated(t)
 	replica, err := db.New(db.Config{
 		PrimaryDSN:  replicaConfig.DSN,
 		ReadOnlyDSN: "",

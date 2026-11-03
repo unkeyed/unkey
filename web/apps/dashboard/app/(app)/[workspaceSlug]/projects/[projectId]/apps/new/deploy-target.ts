@@ -1,4 +1,4 @@
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/queries/environments";
 import type { SourceKind } from "./wizard-model";
 
 type TargetEnvironment = { slug: string; kind: EnvironmentKind };

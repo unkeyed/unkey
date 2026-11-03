@@ -42,7 +42,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PermissionsGetRoleResponseBody)
+				return util.Output(ctx, cmd, res.V2PermissionsGetRoleResponseBody)
 			}
 
 			res, err := client.Permissions.GetRole(ctx, components.V2PermissionsGetRoleRequestBody{
@@ -51,7 +51,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2PermissionsGetRoleResponseBody)
+			return util.Output(ctx, cmd, res.V2PermissionsGetRoleResponseBody)
 		},
 	}
 }

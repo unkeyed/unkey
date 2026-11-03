@@ -146,10 +146,8 @@
                 "group": "Workspace",
                 "pages": [
                   "platform/workspace/overview",
-                  "platform/workspace/settings",
-                  "platform/workspace/log-drains",
                   "platform/workspace/team",
-                  "platform/workspace/two-factor-auth"
+                  "platform/workspace/log-drains"
                 ]
               },
               {
@@ -1218,6 +1216,14 @@
   },
   "redirects": [
     {
+      "destination": "/platform/workspace/overview#general-settings",
+      "source": "/platform/workspace/settings"
+    },
+    {
+      "destination": "/platform/workspace/team#two-factor-authentication",
+      "source": "/platform/workspace/two-factor-auth"
+    },
+    {
       "destination": "/platform/root-keys/permission-reference",
       "source": "/platform/root-keys/permissions-legacy"
     },
@@ -1886,7 +1892,7 @@
       "source": "/platform/workspaces/quotas"
     },
     {
-      "destination": "/platform/workspace/settings",
+      "destination": "/platform/workspace/overview#general-settings",
       "source": "/platform/workspaces/settings"
     },
     {

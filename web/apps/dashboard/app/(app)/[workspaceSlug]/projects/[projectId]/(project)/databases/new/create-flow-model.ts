@@ -1,4 +1,4 @@
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/queries/environments";
 import {
   CLUSTERS,
   type Cluster,

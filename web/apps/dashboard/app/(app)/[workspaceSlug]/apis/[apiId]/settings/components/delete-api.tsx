@@ -105,16 +105,13 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               form="delete-api-form"
               variant="primary"
               color="danger"
-              size="xlg"
+              size="md"
               disabled={api.deleteProtection || !isValid || deleteApi.isLoading}
               loading={deleteApi.isLoading}
               className="w-full"
             >
               Delete Keyspace
             </Button>
-            <div className="text-gray-9 text-xs">
-              This action cannot be undone – proceed with caution
-            </div>
           </div>
         }
       >

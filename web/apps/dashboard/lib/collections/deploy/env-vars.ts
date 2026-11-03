@@ -7,11 +7,12 @@ import {
 import { createCollection } from "@tanstack/react-db";
 
 import { plural } from "@/lib/fmt";
+import { trpcClient } from "@/lib/trpc/client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
+import { queryClient } from "../client";
 import { cachedAppEnvironmentIds } from "./app-environments";
 import { trackSave } from "./pending-redeploy";
 import { extractStringFilter } from "./utils";

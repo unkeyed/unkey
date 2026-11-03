@@ -137,7 +137,7 @@ func TestGetFlagsDatabaseFailure(t *testing.T) {
 
 func newRoute(t *testing.T, h *testutil.Harness) (*handler.Handler, db.Database) {
 	t.Helper()
-	config := containers.MySQLIsolated(t)
+	config := containers.MySQLLogicalIsolated(t)
 	database, err := db.New(db.Config{PrimaryDSN: config.DSN, ReadOnlyDSN: "", Tags: sqlcomment.Disabled()})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

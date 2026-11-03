@@ -1,9 +1,9 @@
 "use client";
 
-import { type DeploymentSummary, useDeployActions } from "@/lib/deploy-data";
+import { type DeploymentSummary, toastWhenSettled, useDeployActions } from "@/lib/deploy-data";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import { DeploymentCard } from "./components/deployment-card";
 
 type WakeDialogProps = {
@@ -17,21 +17,23 @@ export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => 
   const wake = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.startDeployment({ deploymentId }),
-    onSuccess: () => {
-      awaitDeploymentStatus({ deploymentId: deployment.id, status: "ready" });
-      onClose();
-    },
+    onSuccess: onClose,
   });
 
   const handleWake = () => {
-    toast.promise(wake.mutateAsync(deployment.id), {
-      loading: "Waking deployment...",
-      success: "Deployment is ready",
-      error: (err) => ({
-        message: "Failed to wake deployment",
-        description: getErrorMessage(err),
-      }),
-    });
+    toastWhenSettled(
+      wake
+        .mutateAsync(deployment.id)
+        .then(() => awaitDeploymentStatus({ deploymentId: deployment.id, status: "ready" })),
+      {
+        loading: "Waking deployment...",
+        success: { message: "Deployment is ready" },
+        failure: (err) => ({
+          message: "Failed to wake deployment",
+          description: getErrorMessage(err),
+        }),
+      },
+    );
   };
 
   return (
@@ -43,11 +45,11 @@ export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => 
       footer={
         <Button
           variant="primary"
-          size="xlg"
+          size="md"
           onClick={handleWake}
           disabled={wake.isLoading}
           loading={wake.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Wake deployment
         </Button>
