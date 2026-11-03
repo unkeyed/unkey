@@ -414,6 +414,33 @@ type LogdrainDeliveryV1 struct {
 	Error             string `ch:"error" json:"error"`
 }
 
+// McpToolCallV1 is one tools/call handled by svc/mcp. Internal analytics
+// only. It never holds tool arguments or results, which can contain
+// plaintext keys and customer data.
+//
+//unkey:table default.mcp_tool_calls_raw_v1
+type McpToolCallV1 struct {
+	RequestID string `ch:"request_id" json:"request_id"`
+	Time      int64  `ch:"time" json:"time"`
+	Toolset   string `ch:"toolset" json:"toolset"`
+	// Mount is the URL path the client connected to, canonical or legacy.
+	Mount      string `ch:"mount" json:"mount"`
+	Tool       string `ch:"tool" json:"tool"`
+	Outcome    string `ch:"outcome" json:"outcome"`
+	HttpStatus int32  `ch:"http_status" json:"http_status"`
+	ErrorType  string `ch:"error_type" json:"error_type"`
+	LatencyMs  int64  `ch:"latency_ms" json:"latency_ms"`
+	AuthKind   string `ch:"auth_kind" json:"auth_kind"`
+	// WorkspaceID is set only for OAuth calls the API answered with 2xx.
+	// Root key calls are attributed by joining ApiRequestID to
+	// api_requests_raw_v2.request_id.
+	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
+	SessionID     string `ch:"session_id" json:"session_id"`
+	ApiRequestID  string `ch:"api_request_id" json:"api_request_id"`
+	ClientName    string `ch:"client_name" json:"client_name"`
+	ClientVersion string `ch:"client_version" json:"client_version"`
+}
+
 // RuntimeLogV1 represents one customer deployment log line in
 // runtime_logs_raw_v1. Vector is the only production writer of this table;
 // Go code uses this struct to seed tests and backfills. ClickHouse assigns

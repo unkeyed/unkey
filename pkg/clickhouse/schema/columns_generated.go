@@ -103,6 +103,16 @@ func (LogdrainDeliveryV1) InsertColumns() string {
 }
 
 // Table implements [Row].
+func (McpToolCallV1) Table() string {
+	return "default.mcp_tool_calls_raw_v1"
+}
+
+// InsertColumns implements [Row]; derived from McpToolCallV1's ch tags.
+func (McpToolCallV1) InsertColumns() string {
+	return "`request_id`, `time`, `toolset`, `mount`, `tool`, `outcome`, `http_status`, `error_type`, `latency_ms`, `auth_kind`, `workspace_id`, `session_id`, `api_request_id`, `client_name`, `client_version`"
+}
+
+// Table implements [Row].
 func (RuntimeLogV1) Table() string {
 	return "default.runtime_logs_raw_v1"
 }
