@@ -276,7 +276,7 @@ Omitting `permissions` leaves the existing permissions unchanged. Sending `"perm
 
 An IP allowlist limits the source addresses that can authenticate with a root key. It accepts IPv4 addresses, IPv6 addresses, and CIDR ranges. It restricts your service's calls to Unkey, not the end users whose API keys your service verifies. For applications hosted on Compute, use a [firewall policy](/compute/gateway/firewall) to restrict incoming client addresses.
 
-IP allowlists are a paid add-on. Contact [support@unkey.com](mailto:support@unkey.com) to add them to your workspace. Until the add-on is enabled, the dashboard shows a disabled field with a **Contact support** link.
+IP allowlists are a paid add-on. Contact [support@unkey.com](mailto:support@unkey.com) to add them to your workspace. Until the add-on is enabled, the **IP allowlist** row shows an **Add-on** badge with **Contact support to upgrade** and **Learn more** buttons. A root key that already has a saved list shows that list with an **Enforced** badge. You cannot edit it.
 
 If the add-on is later disabled, root keys with saved allowlists still reject requests from addresses outside those lists. You cannot edit or clear the lists through the dashboard or API while the add-on is disabled.
 
