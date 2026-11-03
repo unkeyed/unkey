@@ -15,29 +15,33 @@ SET encrypted = ?,
     encryption_key_id = ?
 WHERE pk = ?
   AND workspace_id = ?
+  AND BINARY encrypted = BINARY ?
 `
 
 type UpdateEncryptedKeyParams struct {
-	Ciphertext string `db:"ciphertext"`
-	KeyID      string `db:"key_id"`
-	Pk         uint64 `db:"pk"`
-	Keyring    string `db:"keyring"`
+	Ciphertext    string `db:"ciphertext"`
+	KeyID         string `db:"key_id"`
+	Pk            uint64 `db:"pk"`
+	Keyring       string `db:"keyring"`
+	CiphertextOld string `db:"ciphertext_old"`
 }
 
-// API key plaintext is immutable. The cron serializes re-encryption writes.
-// Keys deleted during re-encryption remain deleted.
+// UpdateEncryptedKey replaces only the exact ciphertext that was read.
+// Binary comparison preserves concurrent changes on case-insensitive collations.
 //
 //	UPDATE encrypted_keys
 //	SET encrypted = ?,
 //	    encryption_key_id = ?
 //	WHERE pk = ?
 //	  AND workspace_id = ?
+//	  AND BINARY encrypted = BINARY ?
 func (q *Queries) UpdateEncryptedKey(ctx context.Context, arg UpdateEncryptedKeyParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateEncryptedKey,
 		arg.Ciphertext,
 		arg.KeyID,
 		arg.Pk,
 		arg.Keyring,
+		arg.CiphertextOld,
 	)
 	if err != nil {
 		return 0, err

@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunVaultReEncrypt
 		}
 		for {
 			next, err := restate.Run(ctx, func(rc restate.RunContext) (cursor, error) {
-				pageCtx, cancel := context.WithTimeout(rc, 30*time.Second)
+				pageCtx, cancel := context.WithTimeout(rc, 60*time.Second)
 				defer cancel()
 				next, err := tables[table](pageCtx, after)
 				if err != nil {

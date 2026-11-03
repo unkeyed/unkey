@@ -34,10 +34,11 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 			return after, fmt.Errorf("failed to re-encrypt pk %d", row.Pk)
 		}
 		updated, err := h.db.UpdateEncryptedKey(ctx, db.UpdateEncryptedKeyParams{
-			Pk:         row.Pk,
-			Keyring:    row.Keyring,
-			Ciphertext: item.GetEncrypted(),
-			KeyID:      item.GetKeyId(),
+			Pk:            row.Pk,
+			Keyring:       row.Keyring,
+			CiphertextOld: row.Ciphertext,
+			Ciphertext:    item.GetEncrypted(),
+			KeyID:         item.GetKeyId(),
 		})
 		recordReEncryption("encrypted_keys", updated, err)
 		if err != nil {

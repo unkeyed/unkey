@@ -106,8 +106,7 @@ func skipRow(ctx context.Context, table string, pk uint64, err error) bool {
 	if ctx.Err() != nil {
 		return false
 	}
-	code := connect.CodeOf(err)
-	if code == connect.CodeInternal || code == connect.CodeInvalidArgument {
+	if connect.CodeOf(err) == connect.CodeInvalidArgument {
 		logger.Error("skipping row that could not be re-encrypted", "table", table, "pk", pk)
 		return true
 	}

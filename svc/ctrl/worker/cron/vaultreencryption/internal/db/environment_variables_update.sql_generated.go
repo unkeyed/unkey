@@ -14,7 +14,7 @@ UPDATE app_environment_variables
 SET value = ?
 WHERE pk = ?
   AND environment_id = ?
-  AND value = ?
+  AND BINARY value = BINARY ?
 `
 
 type UpdateEnvironmentVariableParams struct {
@@ -25,13 +25,13 @@ type UpdateEnvironmentVariableParams struct {
 }
 
 // UpdateEnvironmentVariable preserves concurrent changes by matching the
-// keyring and old ciphertext using column collations, without changing business metadata.
+// keyring and exact old ciphertext, without changing business metadata.
 //
 //	UPDATE app_environment_variables
 //	SET value = ?
 //	WHERE pk = ?
 //	  AND environment_id = ?
-//	  AND value = ?
+//	  AND BINARY value = BINARY ?
 func (q *Queries) UpdateEnvironmentVariable(ctx context.Context, arg UpdateEnvironmentVariableParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateEnvironmentVariable,
 		arg.Ciphertext,

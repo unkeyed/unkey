@@ -14,7 +14,7 @@ UPDATE shared_secrets
 SET encrypted = ?, encryption_key_id = ?
 WHERE pk = ?
   AND workspace_id = ?
-  AND encrypted = ?
+  AND BINARY encrypted = BINARY ?
 `
 
 type UpdateSharedSecretParams struct {
@@ -26,13 +26,13 @@ type UpdateSharedSecretParams struct {
 }
 
 // UpdateSharedSecret atomically replaces ciphertext and encryption-key
-// metadata only when the keyring and old ciphertext still match using column collations.
+// metadata only when the keyring and exact old ciphertext still match.
 //
 //	UPDATE shared_secrets
 //	SET encrypted = ?, encryption_key_id = ?
 //	WHERE pk = ?
 //	  AND workspace_id = ?
-//	  AND encrypted = ?
+//	  AND BINARY encrypted = BINARY ?
 func (q *Queries) UpdateSharedSecret(ctx context.Context, arg UpdateSharedSecretParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateSharedSecret,
 		arg.Ciphertext,

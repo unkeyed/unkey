@@ -14,7 +14,7 @@ UPDATE acme_users
 SET encrypted_key = ?
 WHERE pk = ?
   AND workspace_id = ?
-  AND encrypted_key = ?
+  AND BINARY encrypted_key = BINARY ?
 `
 
 type UpdateAcmeUserParams struct {
@@ -25,13 +25,13 @@ type UpdateAcmeUserParams struct {
 }
 
 // UpdateAcmeUser preserves concurrent changes by matching the keyring and
-// old ciphertext using column collations, without changing ACME registration metadata.
+// exact old ciphertext, without changing ACME registration metadata.
 //
 //	UPDATE acme_users
 //	SET encrypted_key = ?
 //	WHERE pk = ?
 //	  AND workspace_id = ?
-//	  AND encrypted_key = ?
+//	  AND BINARY encrypted_key = BINARY ?
 func (q *Queries) UpdateAcmeUser(ctx context.Context, arg UpdateAcmeUserParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateAcmeUser,
 		arg.Ciphertext,

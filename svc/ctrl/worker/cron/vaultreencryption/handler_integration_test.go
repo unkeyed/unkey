@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/prometheus/client_golang/prometheus"
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
@@ -825,24 +826,32 @@ func (v *insertingVault) Decrypt(ctx context.Context, req *vaultv1.DecryptReques
 
 func TestReEncryptionRetriesFailuresWithoutLosingRows(t *testing.T) {
 	for name, failure := range map[string]struct {
-		count int32
-		write bool
+		count     int32
+		operation string
 	}{
-		"transient vault": {
-			count: 1,
-			write: false,
+		"transient decrypt": {
+			count:     1,
+			operation: "decrypt",
 		},
-		"persistent vault": {
-			count: 1000,
-			write: false,
+		"persistent decrypt": {
+			count:     1000,
+			operation: "decrypt",
+		},
+		"transient encrypt": {
+			count:     1,
+			operation: "encrypt",
+		},
+		"persistent encrypt": {
+			count:     1000,
+			operation: "encrypt",
 		},
 		"transient write": {
-			count: 1,
-			write: true,
+			count:     1,
+			operation: "write",
 		},
 		"persistent write": {
-			count: 1000,
-			write: true,
+			count:     1000,
+			operation: "write",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -870,9 +879,12 @@ func TestReEncryptionRetriesFailuresWithoutLosingRows(t *testing.T) {
 			testVault.Clock.Tick(25 * time.Hour)
 			vaultFailing := &failingVault{VaultServiceClient: client}
 			databaseFailing := &failingDatabase{DBTX: database.RW()}
-			failuresPending := &vaultFailing.failures
+			failuresPending := &vaultFailing.decryptFailures
 			message := "failed to re-encrypt pk"
-			if failure.write {
+			if failure.operation == "encrypt" {
+				failuresPending = &vaultFailing.encryptFailures
+			}
+			if failure.operation == "write" {
 				failuresPending = &databaseFailing.failures
 				message = "failed to update"
 			}
@@ -915,7 +927,7 @@ func TestReEncryptionRetriesFailuresWithoutLosingRows(t *testing.T) {
 			}
 			failuresAfter := metricCounter(t, "unkey_control_vault_reencryptions_data_total", failureLabels)
 			switch {
-			case !failure.write:
+			case failure.operation != "write":
 				require.Equal(t, failuresBefore, failuresAfter)
 			case failure.count == 1:
 				require.Equal(t, failuresBefore+1, failuresAfter)
@@ -938,14 +950,22 @@ func TestReEncryptionRetriesFailuresWithoutLosingRows(t *testing.T) {
 
 type failingVault struct {
 	vault.VaultServiceClient
-	failures atomic.Int32
+	decryptFailures atomic.Int32
+	encryptFailures atomic.Int32
 }
 
 func (v *failingVault) Decrypt(ctx context.Context, req *vaultv1.DecryptRequest) (*vaultv1.DecryptResponse, error) {
-	if v.failures.Add(-1) >= 0 {
-		return nil, errors.New("sensitive upstream error")
+	if v.decryptFailures.Add(-1) >= 0 {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("sensitive upstream error"))
 	}
 	return v.VaultServiceClient.Decrypt(ctx, req)
+}
+
+func (v *failingVault) Encrypt(ctx context.Context, req *vaultv1.EncryptRequest) (*vaultv1.EncryptResponse, error) {
+	if v.encryptFailures.Add(-1) >= 0 {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("sensitive upstream error"))
+	}
+	return v.VaultServiceClient.Encrypt(ctx, req)
 }
 
 type failingDatabase struct {

@@ -14,7 +14,7 @@ UPDATE clickhouse_workspace_settings
 SET password_encrypted = ?
 WHERE pk = ?
   AND workspace_id = ?
-  AND password_encrypted = ?
+  AND BINARY password_encrypted = BINARY ?
 `
 
 type UpdateClickhouseSettingParams struct {
@@ -25,13 +25,13 @@ type UpdateClickhouseSettingParams struct {
 }
 
 // UpdateClickhouseSetting preserves concurrent changes by matching the
-// keyring and old ciphertext using column collations, without changing query limits.
+// keyring and exact old ciphertext, without changing query limits.
 //
 //	UPDATE clickhouse_workspace_settings
 //	SET password_encrypted = ?
 //	WHERE pk = ?
 //	  AND workspace_id = ?
-//	  AND password_encrypted = ?
+//	  AND BINARY password_encrypted = BINARY ?
 func (q *Queries) UpdateClickhouseSetting(ctx context.Context, arg UpdateClickhouseSettingParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateClickhouseSetting,
 		arg.Ciphertext,

@@ -37,10 +37,11 @@ func TestUpdateEncryptedKeyPreservesRowOwnershipAndDeletions(t *testing.T) {
 		stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(ctx, database, keys[i])
 		require.NoError(t, err)
 		updates = append(updates, db.UpdateEncryptedKeyParams{
-			Pk:         stored.Pk,
-			Keyring:    keyring,
-			Ciphertext: fmt.Sprintf("ciphertext-%d'\\value", i),
-			KeyID:      uid.New(uid.TestPrefix),
+			Pk:            stored.Pk,
+			Keyring:       keyring,
+			CiphertextOld: "before",
+			Ciphertext:    fmt.Sprintf("ciphertext-%d'\\value", i),
+			KeyID:         uid.New(uid.TestPrefix),
 		})
 	}
 	require.NoError(t, pkgdb.Query.InsertKey(ctx, database, pkgdb.InsertKeyParams{
@@ -76,12 +77,24 @@ func TestUpdateEncryptedKeyPreservesRowOwnershipAndDeletions(t *testing.T) {
 		require.Equal(t, updates[i].KeyID, stored.EncryptionKeyID)
 	}
 
+	stale := updates[0]
+	stale.Ciphertext = "stale replacement"
+	stale.KeyID = uid.New(uid.TestPrefix)
+	updated, err := queries.UpdateEncryptedKey(ctx, stale)
+	require.NoError(t, err)
+	require.Zero(t, updated, "a stale re-encryption must not overwrite a newer ciphertext")
+	stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(ctx, database, keys[0])
+	require.NoError(t, err)
+	require.Equal(t, updates[0].Ciphertext, stored.Encrypted)
+	require.Equal(t, updates[0].KeyID, stored.EncryptionKeyID)
+
 	invalid := updates[0]
+	invalid.CiphertextOld = updates[0].Ciphertext
 	invalid.Ciphertext = strings.Repeat("x", 1025)
 	invalid.KeyID = uid.New(uid.TestPrefix)
 	_, err = queries.UpdateEncryptedKey(ctx, invalid)
 	require.Error(t, err)
-	stored, err := pkgdb.Query.FindKeyEncryptionByKeyID(ctx, database, keys[0])
+	stored, err = pkgdb.Query.FindKeyEncryptionByKeyID(ctx, database, keys[0])
 	require.NoError(t, err)
 	require.Equal(t, updates[0].Ciphertext, stored.Encrypted, "a failed statement must preserve the row")
 	require.Equal(t, updates[0].KeyID, stored.EncryptionKeyID)

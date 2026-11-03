@@ -14,7 +14,7 @@ UPDATE certificates
 SET encrypted_private_key = ?
 WHERE pk = ?
   AND workspace_id = ?
-  AND encrypted_private_key = ?
+  AND BINARY encrypted_private_key = BINARY ?
 `
 
 type UpdateCertificateParams struct {
@@ -25,13 +25,13 @@ type UpdateCertificateParams struct {
 }
 
 // UpdateCertificate preserves concurrent changes by matching the keyring
-// and old ciphertext using column collations, without changing certificate metadata.
+// and exact old ciphertext, without changing certificate metadata.
 //
 //	UPDATE certificates
 //	SET encrypted_private_key = ?
 //	WHERE pk = ?
 //	  AND workspace_id = ?
-//	  AND encrypted_private_key = ?
+//	  AND BINARY encrypted_private_key = BINARY ?
 func (q *Queries) UpdateCertificate(ctx context.Context, arg UpdateCertificateParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateCertificate,
 		arg.Ciphertext,

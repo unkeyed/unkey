@@ -82,31 +82,31 @@ type Querier interface {
 	//  LIMIT ?
 	ListSharedSecrets(ctx context.Context, arg ListSharedSecretsParams) ([]ListSharedSecretsRow, error)
 	// UpdateAcmeUser preserves concurrent changes by matching the keyring and
-	// old ciphertext using column collations, without changing ACME registration metadata.
+	// exact old ciphertext, without changing ACME registration metadata.
 	//
 	//  UPDATE acme_users
 	//  SET encrypted_key = ?
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
-	//    AND encrypted_key = ?
+	//    AND BINARY encrypted_key = BINARY ?
 	UpdateAcmeUser(ctx context.Context, arg UpdateAcmeUserParams) (int64, error)
 	// UpdateCertificate preserves concurrent changes by matching the keyring
-	// and old ciphertext using column collations, without changing certificate metadata.
+	// and exact old ciphertext, without changing certificate metadata.
 	//
 	//  UPDATE certificates
 	//  SET encrypted_private_key = ?
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
-	//    AND encrypted_private_key = ?
+	//    AND BINARY encrypted_private_key = BINARY ?
 	UpdateCertificate(ctx context.Context, arg UpdateCertificateParams) (int64, error)
 	// UpdateClickhouseSetting preserves concurrent changes by matching the
-	// keyring and old ciphertext using column collations, without changing query limits.
+	// keyring and exact old ciphertext, without changing query limits.
 	//
 	//  UPDATE clickhouse_workspace_settings
 	//  SET password_encrypted = ?
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
-	//    AND password_encrypted = ?
+	//    AND BINARY password_encrypted = BINARY ?
 	UpdateClickhouseSetting(ctx context.Context, arg UpdateClickhouseSettingParams) (int64, error)
 	// UpdateDeployment preserves concurrent changes by matching the keyring
 	// using its column collation and the entire old blob, without changing business metadata.
@@ -117,23 +117,24 @@ type Querier interface {
 	//    AND environment_id = ?
 	//    AND encrypted_environment_variables = ?
 	UpdateDeployment(ctx context.Context, arg UpdateDeploymentParams) (int64, error)
-	// API key plaintext is immutable. The cron serializes re-encryption writes.
-	// Keys deleted during re-encryption remain deleted.
+	// UpdateEncryptedKey replaces only the exact ciphertext that was read.
+	// Binary comparison preserves concurrent changes on case-insensitive collations.
 	//
 	//  UPDATE encrypted_keys
 	//  SET encrypted = ?,
 	//      encryption_key_id = ?
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
+	//    AND BINARY encrypted = BINARY ?
 	UpdateEncryptedKey(ctx context.Context, arg UpdateEncryptedKeyParams) (int64, error)
 	// UpdateEnvironmentVariable preserves concurrent changes by matching the
-	// keyring and old ciphertext using column collations, without changing business metadata.
+	// keyring and exact old ciphertext, without changing business metadata.
 	//
 	//  UPDATE app_environment_variables
 	//  SET value = ?
 	//  WHERE pk = ?
 	//    AND environment_id = ?
-	//    AND value = ?
+	//    AND BINARY value = BINARY ?
 	UpdateEnvironmentVariable(ctx context.Context, arg UpdateEnvironmentVariableParams) (int64, error)
 	// UpdateLogdrain preserves concurrent changes by matching the keyring using
 	// its column collation and the entire old config, without changing lease or delivery metadata.
@@ -145,13 +146,13 @@ type Querier interface {
 	//    AND config = ?
 	UpdateLogdrain(ctx context.Context, arg UpdateLogdrainParams) (int64, error)
 	// UpdateSharedSecret atomically replaces ciphertext and encryption-key
-	// metadata only when the keyring and old ciphertext still match using column collations.
+	// metadata only when the keyring and exact old ciphertext still match.
 	//
 	//  UPDATE shared_secrets
 	//  SET encrypted = ?, encryption_key_id = ?
 	//  WHERE pk = ?
 	//    AND workspace_id = ?
-	//    AND encrypted = ?
+	//    AND BINARY encrypted = BINARY ?
 	UpdateSharedSecret(ctx context.Context, arg UpdateSharedSecretParams) (int64, error)
 }
 
