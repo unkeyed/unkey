@@ -54,7 +54,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/del
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AppsDeleteAppResponseBody)
+			return util.Output(ctx, cmd, res.V2AppsDeleteAppResponseBody)
 		},
 	}
 }

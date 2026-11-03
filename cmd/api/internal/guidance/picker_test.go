@@ -55,7 +55,7 @@ func TestResourcePickerSearchResetsCursorAndPagingIsExplicit(t *testing.T) {
 	script := &pickerScript{t: t, answers: []string{"browse", "next", "search", "needle", "id:" + foundID}}
 	var output bytes.Buffer
 	f := &form{prompt: script, out: &output}
-	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", map[string]any{})
+	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", map[string]any{}, &Schema{Type: "string"})
 	require.NoError(t, err)
 	require.True(t, handled)
 	require.Equal(t, foundID, value)
@@ -82,13 +82,13 @@ func TestResourcePickerManualNeedsNeitherCredentialsNorParentReads(t *testing.T)
 			script := &pickerScript{t: t, answers: []string{"manual", "", id}}
 			var output bytes.Buffer
 			f := &form{prompt: script, out: &output}
-			value, handled, err := resourcePicker(t.Context(), nil, "")(t.Context(), f, field, map[string]any{})
+			value, handled, err := resourcePicker(t.Context(), nil, "")(t.Context(), f, field, map[string]any{}, &Schema{Type: "string"})
 			require.NoError(t, err)
 			require.True(t, handled)
 			require.Equal(t, id, value)
 			require.Empty(t, script.answers)
 			require.Len(t, script.menus, 1)
-			require.Contains(t, output.String(), "Enter an ID")
+			require.Contains(t, output.String(), "Enter a value")
 		})
 	}
 }
@@ -96,7 +96,7 @@ func TestResourcePickerManualNeedsNeitherCredentialsNorParentReads(t *testing.T)
 func TestResourcePickerUnsupportedTargetsLeaveTextPromptToForm(t *testing.T) {
 	for _, field := range []string{"apiId", "portalId", "portal", "keyspaceId", "permissionId", "identityId", "namespaceId", "overrideId", "domainId", "id", "unknown"} {
 		t.Run(field, func(t *testing.T) {
-			value, handled, err := resourcePicker(t.Context(), nil, "")(t.Context(), nil, field, nil)
+			value, handled, err := resourcePicker(t.Context(), nil, "")(t.Context(), nil, field, nil, &Schema{Type: "string"})
 			require.NoError(t, err)
 			require.False(t, handled)
 			require.Empty(t, value)
@@ -117,12 +117,12 @@ func TestResourcePickerListFailureShowsSanitizedReason(t *testing.T) {
 	script := &pickerScript{t: t, answers: []string{"browse", id}}
 	var output bytes.Buffer
 	f := &form{prompt: script, out: &output}
-	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", nil)
+	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", nil, &Schema{Type: "string"})
 	require.NoError(t, err)
 	require.True(t, handled)
 	require.Equal(t, id, value)
 	require.Empty(t, script.answers)
-	require.Equal(t, "Permission denied: "+secret+"\\x1b[31m\n  Enter the project ID instead.\n", output.String())
+	require.Equal(t, "Permission denied: "+secret+"\\x1b[31m\n  Enter a value manually instead.\n", output.String())
 }
 
 func TestResourcePickerScopesNeverBecomeRequestFields(t *testing.T) {
@@ -229,9 +229,9 @@ func TestResourcePickerKeysScopeAndSecretRedaction(t *testing.T) {
 				require.Equal(t, apiID, request["apiId"])
 				require.Equal(t, false, request["decrypt"])
 			}
-			require.Equal(t, []prompt.SelectOption{{Key: "id:" + keyID, Label: "CI (" + keyID + ")"}, {Key: "manual", Label: "Enter ID manually"}}, script.menus[1])
+			require.Equal(t, []prompt.SelectOption{{Key: "id:" + keyID, Label: "CI · " + start + "… (" + keyID + ")"}, {Key: "manual", Label: "Enter a value manually"}}, script.menus[1])
 			require.NotContains(t, fmt.Sprint(script.menus)+output.String(), secret)
-			require.NotContains(t, fmt.Sprint(script.menus)+output.String(), start)
+			require.Contains(t, fmt.Sprint(script.menus)+output.String(), start)
 			require.NotContains(t, fmt.Sprint(script.menus)+output.String(), end)
 		})
 	}
@@ -253,7 +253,7 @@ func TestResourcePickerEmptyListAllowsManualEntryAndSearchClear(t *testing.T) {
 	script := &pickerScript{t: t, answers: []string{"browse", "search", "missing", "search", "", "manual", id}}
 	var output bytes.Buffer
 	f := &form{prompt: script, out: &output}
-	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", nil)
+	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", nil, &Schema{Type: "string"})
 	require.NoError(t, err)
 	require.True(t, handled)
 	require.Equal(t, id, value)
@@ -275,7 +275,7 @@ func TestResourcePickerCancellationDoesNotOfferManualFallback(t *testing.T) {
 	script := &pickerScript{t: t, answers: []string{"browse"}}
 	var output bytes.Buffer
 	f := &form{prompt: script, out: &output}
-	value, handled, err := resourcePicker(ctx, cmd, "projects update-project")(ctx, f, "project", nil)
+	value, handled, err := resourcePicker(ctx, cmd, "projects update-project")(ctx, f, "project", nil, &Schema{Type: "string"})
 	require.ErrorIs(t, err, context.Canceled)
 	require.True(t, handled)
 	require.Empty(t, value)
@@ -341,7 +341,7 @@ func TestResourcePickerResourceMappingsStopAfterSelection(t *testing.T) {
 				var output bytes.Buffer
 				f := &form{prompt: script, out: &output}
 				before := maps.Clone(test.scope)
-				value, handled, err := resourcePicker(t.Context(), cmd, "")(t.Context(), f, field, test.scope)
+				value, handled, err := resourcePicker(t.Context(), cmd, "")(t.Context(), f, field, test.scope, &Schema{Type: "string"})
 				require.NoError(t, err)
 				require.True(t, handled)
 				require.Equal(t, id, value)
@@ -639,6 +639,7 @@ func TestResourcePickerMappingsMatchCurrentSchemas(t *testing.T) {
 		"app":          {"apps get-app"},
 		"appId":        {"portal create-portal", "portal get-portal", "portal update-portal"},
 		"environment":  {"environments get-environment"},
+		"variables":    {"environments remove-environment-variables"},
 		"keyId":        {"keys get-key", "root-keys update-key"},
 		"permission":   {"permissions get-permission"},
 		"role":         {"permissions get-role"},
@@ -669,6 +670,50 @@ func TestResourcePickerMappingsMatchCurrentSchemas(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestResourcePickerVariablePaginationKeepsScopeAndOnlyNames(t *testing.T) {
+	cursor := uid.New(uid.TestPrefix)
+	secret := "fictional-variable-value-not-for-display"
+	requests := make(chan components.V2EnvironmentsListEnvironmentVariablesRequestBody, 2)
+	cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/environments.listEnvironmentVariables" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		var request components.V2EnvironmentsListEnvironmentVariablesRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		requests <- request
+		name := "FIRST_NAME"
+		if request.Cursor != nil {
+			name = "SECOND_NAME"
+		}
+		pickerRespond(t, w, components.V2EnvironmentsListEnvironmentVariablesResponseBody{
+			Data:       []components.EnvironmentVariable{{Key: name, Kind: components.EnvironmentVariableKindRecoverable, Value: &secret, Description: &secret}},
+			Pagination: components.Pagination{HasMore: request.Cursor == nil, Cursor: &cursor},
+		})
+	})
+	script := &pickerScript{t: t, answers: []string{"add", "browse", "next", "id:SECOND_NAME", "done"}}
+	var output bytes.Buffer
+	f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), cmd, "environments remove-environment-variables")}
+	schema, ok := Lookup("environments remove-environment-variables")
+	require.True(t, ok)
+	values := map[string]any{"project": "fictional-project", "app": "fictional-app", "environment": "fictional-preview"}
+	require.NoError(t, f.object(t.Context(), schema, values, "", false))
+	require.Equal(t, []any{"SECOND_NAME"}, values["variables"])
+	require.Empty(t, script.answers)
+	require.Len(t, requests, 2)
+	first, second := <-requests, <-requests
+	require.Equal(t, components.V2EnvironmentsListEnvironmentVariablesRequestBody{
+		Project: "fictional-project", App: "fictional-app", Environment: "fictional-preview", Limit: new(int64(20)),
+	}, first)
+	first.Cursor = &cursor
+	require.Equal(t, first, second)
+	require.NotContains(t, fmt.Sprint(script.menus)+output.String(), secret)
 }
 
 type pickerScript struct {

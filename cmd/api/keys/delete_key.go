@@ -65,7 +65,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/del
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2KeysDeleteKeyResponseBody)
+			return util.Output(ctx, cmd, res.V2KeysDeleteKeyResponseBody)
 		},
 	}
 }

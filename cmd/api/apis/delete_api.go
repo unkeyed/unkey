@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/del
 				return err
 			}
 
-			return util.Output(cmd, res.V2ApisDeleteAPIResponseBody)
+			return util.Output(ctx, cmd, res.V2ApisDeleteAPIResponseBody)
 		},
 	}
 }

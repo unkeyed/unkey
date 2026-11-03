@@ -99,7 +99,7 @@ func TestConfirmWithoutCallbackRequiresExplicitConsent(t *testing.T) {
 			if test.allow {
 				require.NoError(t, err)
 			} else {
-				require.EqualError(t, err, "cancelled")
+				require.EqualError(t, err, "cancelled; no request was sent")
 			}
 		})
 	}

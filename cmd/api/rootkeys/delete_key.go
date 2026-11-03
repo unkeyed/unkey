@@ -51,7 +51,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/de
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2RootKeysDeleteKeyResponseBody)
+			return util.Output(ctx, cmd, res.V2RootKeysDeleteKeyResponseBody)
 		},
 	}
 }

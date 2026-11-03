@@ -47,7 +47,7 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 				{Key: "cancel", Label: "Cancel"}, {Key: "edit", Label: "Edit answers"},
 			})
 			if promptErr != nil {
-				return cancelled(promptErr, "cancelled; no request was sent")
+				return cancelled(promptErr, "cancelled; no further request was sent")
 			}
 			if choice != "edit" {
 				return err
@@ -63,7 +63,7 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 					action: cmd.Usage, warning: "", expanded: true, destructive: destructive,
 				})
 				if err != nil && !errors.Is(err, errReviewEdited) {
-					return cancelled(err, "cancelled; no request was sent")
+					return cancelled(err, "cancelled; no further request was sent")
 				}
 				updated, err := requestJSON(values, array)
 				if err != nil {

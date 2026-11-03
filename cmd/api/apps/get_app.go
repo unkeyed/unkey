@@ -45,14 +45,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/get
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AppsGetAppResponseBody)
+				return util.Output(ctx, cmd, res.V2AppsGetAppResponseBody)
 			}
 			req := components.V2AppsGetAppRequestBody{Project: cmd.String("project"), App: cmd.String("app")}
 			res, err := client.Apps.GetApp(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AppsGetAppResponseBody)
+			return util.Output(ctx, cmd, res.V2AppsGetAppResponseBody)
 		},
 	}
 }

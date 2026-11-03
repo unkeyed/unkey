@@ -13,6 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -35,6 +36,14 @@ func TestResourceCommandsCoverLegacyEndpoints(t *testing.T) {
 					require.NotContains(t, output, "[arguments...]")
 					if invocation == path {
 						require.NotContains(t, output, "unkey api ")
+					}
+					for _, flag := range command.Flags {
+						if util.IsCommonFlag(flag.Name()) || flag.Name() == "body" {
+							continue
+						}
+						requestFlag := strings.Index(output, "--"+flag.Name()+" ")
+						require.NotEqual(t, -1, requestFlag, flag.Name())
+						require.Less(t, requestFlag, strings.Index(output, "--root-key "), flag.Name())
 					}
 				})
 			}

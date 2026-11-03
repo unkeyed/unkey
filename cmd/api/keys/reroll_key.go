@@ -71,7 +71,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rer
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysRerollKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysRerollKeyResponseBody)
 			}
 
 			req := components.V2KeysRerollKeyRequestBody{
@@ -83,7 +83,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rer
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2KeysRerollKeyResponseBody)
+			return util.Output(ctx, cmd, res.V2KeysRerollKeyResponseBody)
 		},
 	}
 }

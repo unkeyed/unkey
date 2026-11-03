@@ -38,7 +38,7 @@ func Confirm(ctx context.Context, cmd *cli.Command, question string) error {
 	}
 	answer, err := bufio.NewReader(io.LimitReader(os.Stdin, 16)).ReadString('\n')
 	if err == io.EOF {
-		return fmt.Errorf("cancelled")
+		return &CancellationError{Message: "cancelled; no request was sent"}
 	}
 	if err != nil {
 		return fmt.Errorf("read confirmation: %w", err)
@@ -47,7 +47,7 @@ func Confirm(ctx context.Context, cmd *cli.Command, question string) error {
 	case "y", "yes":
 		return nil
 	default:
-		return fmt.Errorf("cancelled")
+		return &CancellationError{Message: "cancelled; no request was sent"}
 	}
 }
 

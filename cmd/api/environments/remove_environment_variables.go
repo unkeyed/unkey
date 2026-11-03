@@ -48,7 +48,7 @@ func removeEnvironmentVariablesCmd() *cli.Command {
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2EnvironmentsRemoveEnvironmentVariablesResponseBody)
+			return util.Output(ctx, cmd, res.V2EnvironmentsRemoveEnvironmentVariablesResponseBody)
 		},
 	}
 }

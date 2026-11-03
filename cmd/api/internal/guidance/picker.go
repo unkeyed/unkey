@@ -15,9 +15,9 @@ import (
 	"golang.org/x/term"
 )
 
-func resourcePicker(_ context.Context, cmd *cli.Command, legacy string) func(context.Context, *form, string, map[string]any) (string, bool, error) {
+func resourcePicker(_ context.Context, cmd *cli.Command, legacy string) func(context.Context, *form, string, map[string]any, *Schema) (string, bool, error) {
 	browser := resourceBrowser{cmd: cmd, legacy: legacy, client: nil}
-	return func(ctx context.Context, f *form, field string, values map[string]any) (string, bool, error) {
+	return func(ctx context.Context, f *form, field string, values map[string]any, schema *Schema) (string, bool, error) {
 		load, _, _ := resourceSource(field, legacy)
 		if load == nil {
 			return "", false, nil
@@ -28,7 +28,7 @@ func resourcePicker(_ context.Context, cmd *cli.Command, legacy string) func(con
 				scope[name] = text
 			}
 		}
-		value, err := browser.pick(ctx, f, field, scope)
+		value, err := browser.pick(ctx, f, field, scope, schema)
 		return value, true, err
 	}
 }
@@ -52,13 +52,13 @@ type resourcePage struct {
 
 type resourceLoader func(context.Context, *unkey.Unkey, resourceQuery) (resourcePage, error)
 
-func (b *resourceBrowser) pick(ctx context.Context, f *form, field string, scope map[string]string) (string, error) {
+func (b *resourceBrowser) pick(ctx context.Context, f *form, field string, scope map[string]string, schema *Schema) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	load, parents, searchable := resourceSource(field, b.legacy)
 	if load == nil {
-		return manualResource(ctx, f, field)
+		return manualResource(ctx, f, field, schema)
 	}
 	if field == "deploymentId" {
 		switch {
@@ -71,13 +71,13 @@ func (b *resourceBrowser) pick(ctx context.Context, f *form, field string, scope
 	if f.screen == nil {
 		choice, err := f.prompt.SelectOrdered(label(field), []prompt.SelectOption{
 			{Key: "browse", Label: "Browse existing resources"},
-			{Key: "manual", Label: "Enter ID manually"},
+			{Key: "manual", Label: "Enter a value manually"},
 		})
 		if err != nil {
 			return "", err
 		}
 		if choice == "manual" {
-			return manualResource(ctx, f, field)
+			return manualResource(ctx, f, field, schema)
 		}
 		if choice != "browse" {
 			return "", fmt.Errorf("invalid resource selection")
@@ -87,7 +87,7 @@ func (b *resourceBrowser) pick(ctx context.Context, f *form, field string, scope
 			if scope[parent] != "" {
 				continue
 			}
-			choice, err := f.screen.Resource(label(field), []prompt.SelectOption{{Key: "browse", Label: "Choose " + label(parent) + " to browse"}}, false, scope[field])
+			choice, err := f.screen.Resource(label(field), []prompt.SelectOption{{Key: "browse", Label: "Choose " + label(parent) + " to browse"}}, false, scope[field], schema)
 			if err != nil {
 				return "", err
 			}
@@ -101,23 +101,25 @@ func (b *resourceBrowser) pick(ctx context.Context, f *form, field string, scope
 		var err error
 		b.client, err = util.CreateClient(ctx, b.cmd)
 		if err != nil {
-			return resourceFallback(ctx, f, field, err)
+			return resourceFallback(ctx, f, field, schema, err)
 		}
 	}
 	for _, parent := range parents {
 		if scope[parent] != "" {
 			continue
 		}
-		value, err := b.pick(ctx, f, parent, scope)
+		var parentSchema Schema
+		parentSchema.Type, parentSchema.MinLength = "string", 1
+		value, err := b.pick(ctx, f, parent, scope, &parentSchema)
 		if err != nil {
 			return "", err
 		}
 		scope[parent] = value
 	}
-	return b.browse(ctx, f, field, resourceQuery{scope: scope, cursor: nil, search: nil}, load, searchable)
+	return b.browse(ctx, f, field, resourceQuery{scope: scope, cursor: nil, search: nil}, load, searchable, schema)
 }
 
-func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, query resourceQuery, load resourceLoader, searchable bool) (value string, err error) {
+func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, query resourceQuery, load resourceLoader, searchable bool, schema *Schema) (value string, err error) {
 	if f.screen != nil {
 		state, err := term.MakeRaw(f.screen.fd)
 		if err != nil {
@@ -141,7 +143,7 @@ func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, que
 			if errors.Is(err, errInterrupted) || errors.Is(err, context.Canceled) {
 				return "", err
 			}
-			return resourceFallback(ctx, f, field, err)
+			return resourceFallback(ctx, f, field, schema, err)
 		}
 		options := append([]prompt.SelectOption{}, page.choices...)
 		if searchable && f.screen == nil {
@@ -151,7 +153,7 @@ func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, que
 			options = append(options, prompt.SelectOption{Key: "next", Label: "Next page"})
 		}
 		if f.screen == nil {
-			options = append(options, prompt.SelectOption{Key: "manual", Label: "Enter ID manually"})
+			options = append(options, prompt.SelectOption{Key: "manual", Label: "Enter a value manually"})
 		} else if query.search != nil {
 			options = append(options, prompt.SelectOption{Key: "clear", Label: "Clear search"})
 		}
@@ -163,7 +165,7 @@ func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, que
 		if f.screen == nil {
 			choice, err = f.prompt.SelectOrdered(question, options)
 		} else {
-			choice, err = f.screen.Resource(question, options, searchable, query.scope[field])
+			choice, err = f.screen.Resource(question, options, searchable, query.scope[field], schema)
 		}
 		if err != nil {
 			return "", err
@@ -179,7 +181,7 @@ func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, que
 		case "clear":
 			query.search, query.cursor = nil, nil
 		case "manual":
-			return manualResource(ctx, f, field)
+			return manualResource(ctx, f, field, schema)
 		case "search":
 			if !searchable {
 				return "", fmt.Errorf("search is not supported for this resource")
@@ -209,7 +211,7 @@ func (b *resourceBrowser) browse(ctx context.Context, f *form, field string, que
 	}
 }
 
-func manualResource(ctx context.Context, f *form, field string) (string, error) {
+func manualResource(ctx context.Context, f *form, field string, schema *Schema) (string, error) {
 	for {
 		if err := ctx.Err(); err != nil {
 			return "", err
@@ -218,25 +220,29 @@ func manualResource(ctx context.Context, f *form, field string) (string, error) 
 		if err != nil {
 			return "", err
 		}
-		if value = strings.TrimSpace(value); value != "" {
+		value = strings.TrimSpace(value)
+		_, err = scalarValue(schema, value)
+		if err == nil && value != "" {
 			return value, nil
 		}
-		if _, err := fmt.Fprintln(f.out, "Enter an ID to continue."); err != nil {
+		message := "Enter a value to continue."
+		if err != nil {
+			message = validationMessage(err)
+		}
+		if _, err := fmt.Fprintln(f.out, message); err != nil {
 			return "", err
 		}
 	}
 }
 
-func resourceFallback(ctx context.Context, f *form, field string, cause error) (string, error) {
+func resourceFallback(ctx context.Context, f *form, field string, schema *Schema, cause error) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	name := strings.TrimSuffix(label(field), " ID")
-	name = strings.ToLower(name[:1]) + name[1:]
-	if _, err := fmt.Fprintf(f.out, "%s\n  Enter the %s ID instead.\n", util.ErrorMessage(cause), name); err != nil {
+	if _, err := fmt.Fprintf(f.out, "%s\n  Enter a value manually instead.\n", util.ErrorMessage(cause)); err != nil {
 		return "", err
 	}
-	return manualResource(ctx, f, field)
+	return manualResource(ctx, f, field, schema)
 }
 
 func resourceSource(field, legacy string) (resourceLoader, []string, bool) {
@@ -251,6 +257,10 @@ func resourceSource(field, legacy string) (resourceLoader, []string, bool) {
 		}
 	case "environment":
 		return listEnvironments, []string{"project", "app"}, false
+	case "variables":
+		if legacy == "environments remove-environment-variables" {
+			return listEnvironmentVariables, []string{"project", "app", "environment"}, false
+		}
 	case "keyId":
 		if strings.HasPrefix(legacy, "root-keys ") {
 			return listRootKeys, nil, false
@@ -318,7 +328,11 @@ func listProjects(ctx context.Context, client *unkey.Unkey, query resourceQuery)
 	}
 	body := res.V2ProjectsListProjectsResponseBody
 	return resourceResults(body.GetData(), body.GetPagination(), func(item components.Project) prompt.SelectOption {
-		return resourceOption(item.ID, item.Name)
+		name := item.Name
+		if item.Slug != "" && item.Slug != name {
+			name += " · " + item.Slug
+		}
+		return resourceOption(item.ID, name)
 	}), nil
 }
 
@@ -357,6 +371,9 @@ func listKeys(ctx context.Context, client *unkey.Unkey, query resourceQuery) (re
 		if item.Name != nil && *item.Name != "" {
 			name = *item.Name
 		}
+		if item.Start != "" {
+			name += " · " + item.Start + "…"
+		}
 		return resourceOption(item.KeyID, name)
 	}), nil
 }
@@ -371,6 +388,9 @@ func listRootKeys(ctx context.Context, client *unkey.Unkey, query resourceQuery)
 		name := "Unnamed root key"
 		if item.Name != nil && *item.Name != "" {
 			name = *item.Name
+		}
+		if item.Start != "" {
+			name += " · " + item.Start + "…"
 		}
 		return resourceOption(item.KeyID, name)
 	}), nil
@@ -468,5 +488,19 @@ func listPolicies(ctx context.Context, client *unkey.Unkey, query resourceQuery)
 	}
 	return resourceResults(res.V2GatewayListPoliciesResponseBody.GetData(), components.Pagination{Cursor: nil, HasMore: false}, func(item components.PolicyResponse) prompt.SelectOption {
 		return resourceOption(item.ID, item.Name)
+	}), nil
+}
+
+func listEnvironmentVariables(ctx context.Context, client *unkey.Unkey, query resourceQuery) (resourcePage, error) {
+	res, err := client.Environments.ListEnvironmentVariables(ctx, components.V2EnvironmentsListEnvironmentVariablesRequestBody{
+		Project: query.scope["project"], App: query.scope["app"], Environment: query.scope["environment"],
+		Limit: new(int64(20)), Cursor: query.cursor,
+	})
+	if err != nil {
+		return resourcePage{}, err
+	}
+	body := res.V2EnvironmentsListEnvironmentVariablesResponseBody
+	return resourceResults(body.GetData(), body.GetPagination(), func(item components.EnvironmentVariable) prompt.SelectOption {
+		return resourceOption(item.Key, "")
 	}), nil
 }

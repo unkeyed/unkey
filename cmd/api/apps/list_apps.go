@@ -47,7 +47,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/lis
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AppsListAppsResponseBody)
+				return util.Output(ctx, cmd, res.V2AppsListAppsResponseBody)
 			}
 			req := components.V2AppsListAppsRequestBody{Project: cmd.String("project"), Limit: new(cmd.Int64("limit")), Cursor: nil, Search: nil}
 			if v := cmd.String("cursor"); v != "" {
@@ -60,7 +60,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apps/lis
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AppsListAppsResponseBody)
+			return util.Output(ctx, cmd, res.V2AppsListAppsResponseBody)
 		},
 	}
 }

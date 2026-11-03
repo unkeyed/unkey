@@ -68,13 +68,13 @@ Resource commands such as `unkey projects list` and `unkey keys get` share the f
 The default `human` format shows name-first summary tables for lists, trees for individual responses, and a confirmation for actions without response data. Trees apply to resource details, create and update results, key verification, and rate-limit checks. For example, `unkey projects list` shows the name, slug, and update time in a terminal:
 
 ```plaintext
-Name      Slug      Updated
+NAME      SLUG      UPDATED
 Payments  payments  2 hours ago
 ```
 
 Summaries use names or slugs for projects, apps, environments, domains, permissions, and roles. Lists retain IDs where you need them to identify a resource for another command. Trees and JSON responses retain the IDs returned by the API. Trees put the resource name first when present, followed by scalar fields, nested groups, and dates.
 
-Terminal tables use compact aligned rows, bold primary values, and muted headers and dates. Status colors supplement the text labels. Terminal timestamps are relative, such as `2 hours ago`. When stdout is redirected to a file or pipe, headers remain uppercase and human-readable timestamps use RFC3339 in UTC, such as `2026-10-28T12:00:00Z`. JSON timestamps keep the API's original representation.
+Terminal tables use compact aligned rows, plain names, and muted uppercase headers and dates. Status colors supplement the text labels without status dots. Terminal timestamps are relative, such as `2 hours ago`. When stdout is redirected to a file or pipe, headers remain uppercase and human-readable timestamps use RFC3339 in UTC, such as `2026-10-28T12:00:00Z`. JSON timestamps keep the API's original representation.
 
 To fit the terminal width, tables shorten only display names and descriptions with an ellipsis (`…`). Identifiers, slugs, and credentials remain complete, including names used to identify resources. If the remaining columns still don't fit, the CLI prints labeled records instead of truncating identifiers. Trees wrap long values and keep the branch indentation without truncating text. Returned keys stay contiguous so you can copy them without inserted line breaks. Redirected output isn't shortened or wrapped.
 
@@ -92,6 +92,8 @@ Mutations start with one confirmation line, such as `✓ Updated settings` or `�
 ```
 
 When the response has no data or returns assignments, the CLI shows available request targets, such as the key ID or the project, app, and environment. It does not echo credentials or variable values from the request. An asynchronous action prints a line such as `✓ Deletion requested` instead of claiming the work has finished. The check mark is green only on a color terminal. `NO_COLOR`, `CLICOLOR=0`, and `TERM=dumb` turn color off.
+
+After guided selection, target lines include the selected resource's label and ID. Targets entered manually remain unchanged. JSON output does not include these display labels.
 
 Clearing role or permission assignments prints `✓ Updated roles` or `✓ Updated permissions`, followed by `No roles assigned.` or `No permissions assigned.` An empty list operation still prints `No roles found.` or `No permissions found.`
 
@@ -174,13 +176,17 @@ This correction flow applies to the API's `invalid_input` 400 response with fiel
 
 ### Choose existing resources
 
-Resource selectors show existing resources and a text input together. Use the arrow keys to choose a result, type to filter the loaded results, or enter a custom value and select **Use**. The CLI does not submit a target until you select it. Browsing is available for projects, apps, environments, keys, root keys, permissions, roles, identities, rate limit namespaces and overrides, deployments, domains, and gateway policies. Selectors without a browser, such as API IDs, use text input. On Windows or with `TERM=dumb`, choose **Browse existing resources** or **Enter ID manually** first.
+Resource selectors show existing resources and a text input together. Use the arrow keys to choose a result, type to filter the loaded results, or enter a custom value and select **Use**. The CLI does not submit a target until you select it. Browsing is available for projects, apps, environments, keys, root keys, permissions, roles, identities, rate limit namespaces and overrides, deployments, domains, and gateway policies. Selectors without a browser, such as API IDs, use text input. On Windows or with `TERM=dumb`, choose **Browse existing resources** or **Enter a value manually** first.
+
+Project choices include slugs. Key choices include their start prefix, not the complete key or its end. Environment-variable removal offers existing variable names within the selected project, app, and environment. Variable values never appear in this picker.
+
+If a custom value fails validation in the combined picker, the input stays editable and the list does not reload. Result counts include resources only, not **Use**, **Search all for**, or **Next page** actions.
 
 In the combined picker, Esc clears the filter. With an empty filter, Esc returns from editing a selected resource without discarding your other answers. At the first selection, it cancels the command. Ctrl+C always cancels. When you edit a resource, its current ID is highlighted if it appears in the loaded results.
 
 Browsing asks for parent scope only when the list endpoint requires it. Domains and deployments can be listed across the workspace. **Search all for** sends your text to the API where the list endpoint supports search. Typing alone does not send a search request. **Clear search** removes the filter. **Next page** uses the API's pagination cursor when more results are available.
 
-Manual ID entry doesn't require list permission. If loading choices fails, the CLI falls back to manual entry. The final request still requires the endpoint's permissions.
+Manual entry doesn't require list permission. If loading choices fails, the CLI falls back to manual entry. The final request still requires the endpoint's permissions.
 
 ### Keep scripts noninteractive
 
@@ -195,7 +201,7 @@ unkey projects create --name=Demo --slug=demo \
 
 ## Find command options
 
-Use `--help` to list commands or read a command's flags, requirements, and examples. Help works without credentials or API requests.
+Use `--help` to list commands or read a command's flags, requirements, and examples. Request flags appear before shared controls such as authentication and output options. Help works without credentials or API requests.
 
 ```bash
 unkey --help
@@ -250,6 +256,8 @@ Resource commands write results to stdout. Confirmation prompts, secret-storage 
 ## Errors and exit codes
 
 A failed command writes its error to stderr and exits with status 1. Resource action errors start with `Error: unkey <command> failed.` and give recovery guidance. API errors include a labeled `Request ID:` when the response provides one, even without `--debug`. These diagnostics never become part of stdout or its JSON response.
+
+Cancellation also exits with status 1, but prints `cancelled; no request was sent` without the failure banner. Cancelling while editing an API-rejected request says `no further request was sent` instead.
 
 | Status | Message |
 | --- | --- |

@@ -44,13 +44,13 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DomainsVerifyDomainResponseBody)
+				return util.Output(ctx, cmd, res.V2DomainsVerifyDomainResponseBody)
 			}
 			res, err := client.Domains.VerifyDomain(ctx, components.V2DomainsVerifyDomainRequestBody{Domain: cmd.String("domain")})
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DomainsVerifyDomainResponseBody)
+			return util.Output(ctx, cmd, res.V2DomainsVerifyDomainResponseBody)
 		},
 	}
 }

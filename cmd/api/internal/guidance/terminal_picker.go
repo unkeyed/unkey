@@ -54,7 +54,7 @@ func (f *terminalForm) discardResourceInput() error {
 	return errors.Join(err, flushTerminalInput(f.fd))
 }
 
-func (f *terminalForm) Resource(label string, options []prompt.SelectOption, searchable bool, current string) (value string, err error) {
+func (f *terminalForm) Resource(label string, options []prompt.SelectOption, searchable bool, current string, schema *Schema) (value string, err error) {
 	state, err := term.MakeRaw(f.fd)
 	if err != nil {
 		return "", err
@@ -62,6 +62,7 @@ func (f *terminalForm) Resource(label string, options []prompt.SelectOption, sea
 	defer func() { err = errors.Join(err, term.Restore(f.fd, state)) }()
 	defer f.pending.Reset()
 	input := ""
+	problem := ""
 	selected := 0
 	f.page = 0
 	filterable := false
@@ -76,10 +77,12 @@ func (f *terminalForm) Resource(label string, options []prompt.SelectOption, sea
 			return "", err
 		}
 		choices := []prompt.SelectOption{}
+		resources := 0
 		for _, option := range options {
 			if strings.HasPrefix(option.Key, "id:") {
 				if strings.Contains(strings.ToLower(option.Label), strings.ToLower(input)) {
 					choices = append(choices, option)
+					resources++
 				}
 			} else if input == "" {
 				choices = append(choices, option)
@@ -98,10 +101,16 @@ func (f *terminalForm) Resource(label string, options []prompt.SelectOption, sea
 			shown = "Enter a value"
 			if filterable {
 				shown = "Filter results or enter a value"
+				if visibleWidth(shown) > f.width-3 {
+					shown = "Filter or enter a value"
+				}
 			}
 			shown = f.palette.hint(shown)
 		}
 		lines = append(lines, "  "+shown)
+		if problem != "" {
+			lines = append(lines, "  "+f.palette.problem(problem))
+		}
 		visible := min(len(choices), max(1, f.height/2-4))
 		top := min(max(0, selected-visible+1), len(choices)-visible)
 		for i := top; i < top+visible; i++ {
@@ -115,14 +124,16 @@ func (f *terminalForm) Resource(label string, options []prompt.SelectOption, sea
 		if len(choices) == 0 {
 			lines = append(lines, "  "+f.palette.hint("No resources found. Enter a value."))
 		}
-		hints := []string{"↑/↓ choose · Enter select"}
-		if filterable {
-			hints = append(hints, "type to filter")
+		hints := []string{}
+		if len(options) != 1 || options[0].Key != "browse" {
+			count := quantity(resources, "resource", "resources")
+			if top < resources && visible < resources {
+				count = fmt.Sprintf("%d–%d of %s", top+1, min(top+visible, resources), count)
+			}
+			hints = append(hints, count)
 		}
-		if visible < len(choices) {
-			hints = append(hints, fmt.Sprintf("%d–%d of %d", top+1, top+visible, len(choices)))
-		}
-		lines = append(lines, "  "+f.palette.hint(strings.Join(hints, " · ")), "  "+f.palette.hint(cancelHint))
+		hints = append(hints, navigationHint)
+		lines = append(lines, f.footer(hints...)...)
 		if err := f.draw(lines, 1, 2+uniseg.StringWidth(input)); err != nil {
 			return "", err
 		}
@@ -130,6 +141,7 @@ func (f *terminalForm) Resource(label string, options []prompt.SelectOption, sea
 		if err != nil {
 			return "", err
 		}
+		problem = ""
 		switch key {
 		case "\x1b":
 			if input == "" {
@@ -138,7 +150,12 @@ func (f *terminalForm) Resource(label string, options []prompt.SelectOption, sea
 			input, selected = "", 0
 		case "\r", "\n":
 			if len(choices) > 0 {
-				f.answered, f.selected = true, true
+				if text, manual := strings.CutPrefix(choices[selected].Key, "manual:"); manual {
+					if _, err := scalarValue(schema, text); err != nil {
+						problem = validationMessage(err)
+						continue
+					}
+				}
 				return choices[selected].Key, nil
 			}
 		case "\x1b[A", "\x10":
@@ -174,13 +191,29 @@ func resourceRow(option prompt.SelectOption, width int) string {
 	id := terminalSafe(strings.TrimPrefix(option.Key, "id:"))
 	suffix := " (" + id + ")"
 	if visibleWidth(suffix)+1 >= width {
-		prefix, rest := splitColumns(id, max(1, width-1))
-		if rest != "" {
-			return prefix + "…"
-		}
-		return id
+		return truncateMiddle(id, width)
 	}
 	name := strings.TrimSuffix(option.Label, suffix)
-	prefix, _ := splitColumns(name, width-visibleWidth(suffix)-1)
+	return truncateMiddle(name, width-visibleWidth(suffix)) + suffix
+}
+
+func truncateMiddle(text string, width int) string {
+	if visibleWidth(text) <= width {
+		return text
+	}
+	prefix, _ := splitColumns(text, max(0, (width-1)/2))
+	suffixWidth := max(0, width-visibleWidth(prefix)-1)
+	var clusters []string
+	graphemes := uniseg.NewGraphemes(text)
+	for graphemes.Next() {
+		clusters = append(clusters, graphemes.Str())
+	}
+	suffix := ""
+	for i := len(clusters) - 1; i >= 0; i-- {
+		if visibleWidth(clusters[i])+visibleWidth(suffix) > suffixWidth {
+			break
+		}
+		suffix = clusters[i] + suffix
+	}
 	return prefix + "…" + suffix
 }

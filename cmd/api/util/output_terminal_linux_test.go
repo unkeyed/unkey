@@ -245,7 +245,7 @@ func captureTerminalOutput(t *testing.T, width uint16, response any, args ...str
 	t.Cleanup(func() { os.Stdout = original })
 	cmd := &cli.Command{
 		Name: "test", Flags: []cli.Flag{OutputFlag(), cli.Bool("json", "JSON output")},
-		Action: func(_ context.Context, cmd *cli.Command) error { return Output(cmd, response) },
+		Action: func(ctx context.Context, cmd *cli.Command) error { return Output(ctx, cmd, response) },
 	}
 	err = cmd.Run(t.Context(), append([]string{"test"}, args...))
 	os.Stdout = original

@@ -43,7 +43,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2IdentitiesGetIdentityResponseBody)
+				return util.Output(ctx, cmd, res.V2IdentitiesGetIdentityResponseBody)
 			}
 
 			res, err := client.Identities.GetIdentity(ctx, components.V2IdentitiesGetIdentityRequestBody{
@@ -52,7 +52,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2IdentitiesGetIdentityResponseBody)
+			return util.Output(ctx, cmd, res.V2IdentitiesGetIdentityResponseBody)
 		},
 	}
 }

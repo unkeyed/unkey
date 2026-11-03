@@ -182,7 +182,7 @@ func TestPickerNormalLoadAndDeniedListManualEntry(t *testing.T) {
 			t.Cleanup(server.Close)
 			p := startPickerPTY(t, []string{"projects", "get", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL}, 80)
 			if denied {
-				p.expect("Enter the project ID instead")
+				p.expect("Enter a value manually instead")
 				p.send(id + "\r")
 			} else {
 				p.expect(id)
@@ -273,10 +273,15 @@ type pickerPTY struct {
 	transcript strings.Builder
 	position   int
 	columns    int
+	rows       int
 }
 
-func startPickerPTY(t *testing.T, args []string, columns uint16) *pickerPTY {
+func startPickerPTY(t *testing.T, args []string, columns uint16, rows ...uint16) *pickerPTY {
 	t.Helper()
+	height := uint16(24)
+	if len(rows) > 0 {
+		height = rows[0]
+	}
 	master, err := os.OpenFile("/dev/ptmx", os.O_RDWR|unix.O_NOCTTY, 0)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, master.Close()) })
@@ -285,7 +290,7 @@ func startPickerPTY(t *testing.T, args []string, columns uint16) *pickerPTY {
 	require.NoError(t, err)
 	slave, err := os.OpenFile("/dev/pts/"+strconv.Itoa(number), os.O_RDWR|unix.O_NOCTTY, 0)
 	require.NoError(t, err)
-	require.NoError(t, unix.IoctlSetWinsize(int(slave.Fd()), unix.TIOCSWINSZ, &unix.Winsize{Col: columns, Row: 24}))
+	require.NoError(t, unix.IoctlSetWinsize(int(slave.Fd()), unix.TIOCSWINSZ, &unix.Winsize{Col: columns, Row: height}))
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	raw, err := json.Marshal(args)
 	require.NoError(t, err)
@@ -295,7 +300,7 @@ func startPickerPTY(t *testing.T, args []string, columns uint16) *pickerPTY {
 	command.SysProcAttr = &syscall.SysProcAttr{Setsid: true, Setctty: true, Ctty: 0}
 	var output bytes.Buffer
 	command.Stdout = &output
-	p := &pickerPTY{t: t, ctx: ctx, master: master, chunks: make(chan string, 256), done: make(chan struct{}), columns: int(columns)}
+	p := &pickerPTY{t: t, ctx: ctx, master: master, chunks: make(chan string, 256), done: make(chan struct{}), columns: int(columns), rows: int(height)}
 	require.NoError(t, command.Start())
 	require.NoError(t, slave.Close())
 	go func() {
@@ -365,7 +370,7 @@ func (p *pickerPTY) observe(duration time.Duration) {
 
 func (p *pickerPTY) screen() string {
 	p.t.Helper()
-	screen := vt100.NewVT100(24, p.columns)
+	screen := vt100.NewVT100(p.rows, p.columns)
 	_, err := screen.Write([]byte(p.transcript.String()))
 	require.NoError(p.t, err)
 	var visible strings.Builder

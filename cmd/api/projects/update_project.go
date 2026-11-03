@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2ProjectsUpdateProjectResponseBody)
+				return util.Output(ctx, cmd, res.V2ProjectsUpdateProjectResponseBody)
 			}
 			req := components.V2ProjectsUpdateProjectRequestBody{Project: cmd.String("project"), Slug: nil, Name: nil, DeleteProtection: nil}
 			if v := cmd.String("slug"); v != "" {
@@ -64,7 +64,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2ProjectsUpdateProjectResponseBody)
+			return util.Output(ctx, cmd, res.V2ProjectsUpdateProjectResponseBody)
 		},
 	}
 }

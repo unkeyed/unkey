@@ -68,7 +68,7 @@ For full documentation, see https://www.unkey.com/docs/compute/cli/deployments/l
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsListBuildLogsResponseBody)
+				return util.Output(ctx, cmd, res.V2DeploymentsListBuildLogsResponseBody)
 			}
 
 			req := components.V2DeploymentsListBuildLogsRequestBody{
@@ -91,7 +91,7 @@ For full documentation, see https://www.unkey.com/docs/compute/cli/deployments/l
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DeploymentsListBuildLogsResponseBody)
+			return util.Output(ctx, cmd, res.V2DeploymentsListBuildLogsResponseBody)
 		},
 	}
 }

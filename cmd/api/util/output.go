@@ -3,8 +3,10 @@ package util
 import (
 	"bytes"
 	"cmp"
+	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"time"
@@ -18,7 +20,7 @@ import (
 
 // Output defaults to human-readable data. JSON preserves the full API envelope;
 // debug diagnostics go to stderr, never into piped results.
-func Output(cmd *cli.Command, v any) error {
+func Output(ctx context.Context, cmd *cli.Command, v any) error {
 	raw, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -74,7 +76,22 @@ func Output(cmd *cli.Command, v any) error {
 	}
 	if rows, ok := envelope.Data.([]any); ok || (envelope.Data == nil && columns != nil) {
 		if message != "" {
-			writeMutationTargets(&output, cmd, request, indent)
+			writeMutationTargets(ctx, &output, cmd, request, indent)
+		}
+		switch v.(type) {
+		case *components.V2ApisListKeysResponseBody, *components.V2RootKeysListKeysResponseBody:
+			for _, row := range rows {
+				key, ok := row.(map[string]any)
+				if !ok {
+					return fmt.Errorf("expected a key, got %T", row)
+				}
+				if key["name"] == nil || key["name"] == "" {
+					key["name"] = "Unnamed key"
+					if _, root := v.(*components.V2RootKeysListKeysResponseBody); root {
+						key["name"] = "Unnamed root key"
+					}
+				}
+			}
 		}
 		if _, ok := v.(*components.V2EnvironmentsListEnvironmentVariablesResponseBody); ok {
 			for _, row := range rows {
@@ -102,7 +119,7 @@ func Output(cmd *cli.Command, v any) error {
 		}
 	} else if envelope.Data == nil || emptyObject(envelope.Data) {
 		if message != "" {
-			writeMutationTargets(&output, cmd, request, indent)
+			writeMutationTargets(ctx, &output, cmd, request, indent)
 		} else if _, ok := v.(*components.V2WorkspaceGetFlagsResponseBody); ok {
 			fmt.Fprintln(&output, "No workspace flags found.")
 		} else {
@@ -319,7 +336,21 @@ func requestValue(cmd *cli.Command, request map[string]any, field, flag string) 
 	return cmd.String(flag)
 }
 
-func writeMutationTargets(output *strings.Builder, cmd *cli.Command, request map[string]any, indent string) {
+// ResourceLabel ties a selected display label to the exact request value.
+type ResourceLabel struct {
+	Value string
+	Label string
+}
+
+// WithResourceLabels supplies selected names for human output without changing JSON.
+func WithResourceLabels(ctx context.Context, labels map[string]ResourceLabel) context.Context {
+	return context.WithValue(ctx, resourceLabelsKey{}, maps.Clone(labels))
+}
+
+type resourceLabelsKey struct{}
+
+func writeMutationTargets(ctx context.Context, output *strings.Builder, cmd *cli.Command, request map[string]any, indent string) {
+	labels, _ := ctx.Value(resourceLabelsKey{}).(map[string]ResourceLabel)
 	for _, selector := range []struct{ field, flag string }{
 		{"project", "project"},
 		{"app", "app"},
@@ -338,6 +369,9 @@ func writeMutationTargets(output *strings.Builder, cmd *cli.Command, request map
 		{"slug", "slug"},
 	} {
 		if value := requestValue(cmd, request, selector.field, selector.flag); value != "" {
+			if selected, ok := labels[selector.field]; ok && selected.Value == value {
+				value = selected.Label
+			}
 			fmt.Fprintf(output, "%s%s: %s\n", indent, fieldLabel(selector.field), terminalText(value))
 		}
 	}

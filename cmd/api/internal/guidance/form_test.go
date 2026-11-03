@@ -78,7 +78,7 @@ func TestFormsRejectInvalidValuesBeforeAcceptingInput(t *testing.T) {
 func TestResourceInputValidatesManualValues(t *testing.T) {
 	schema, ok := Lookup("projects delete-project")
 	require.True(t, ok)
-	answers := &pickerScript{t: t, answers: []string{"manual", "zz", "manual", "demo-project"}}
+	answers := &pickerScript{t: t, answers: []string{"manual", "zz", "demo-project"}}
 	var output bytes.Buffer
 	f := form{
 		prompt: answers, out: &output,
@@ -286,4 +286,20 @@ func TestWrapWordsBreaksAtSpacesAndKeepsStyle(t *testing.T) {
 	head, rest = wrapWords("\x1b[36mproj_demo7Hq2Xc9\x1b[0m", 8)
 	require.Equal(t, "\x1b[36mproj_dem\x1b[0m", head)
 	require.Equal(t, "\x1b[36mo7Hq2Xc9\x1b[0m", rest)
+}
+
+func TestResourceRowsPreserveFullIDsAndNameSuffixes(t *testing.T) {
+	id := uid.New(uid.ProjectPrefix)
+	for _, name := range []string{"Fictional-service-production-east", "Fictional-service-production-west", "界界界界界界界界界-east"} {
+		row := resourceRow(resourceOption(id, name), 36)
+		require.LessOrEqual(t, visibleWidth(row), 36)
+		require.Contains(t, row, id)
+		require.Contains(t, row, "…")
+		require.Contains(t, row, name[len(name)-4:])
+	}
+	idLong := uid.New(uid.ProjectPrefix) + uid.New(uid.TestPrefix)
+	row := resourceRow(resourceOption(idLong, "Fictional project"), 20)
+	require.LessOrEqual(t, visibleWidth(row), 20)
+	require.Contains(t, row, "…")
+	require.Contains(t, row, idLong[len(idLong)-5:])
 }

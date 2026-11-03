@@ -340,9 +340,9 @@ func TestGuidedTerminalPickerSearchPaginationAndDeleteCancellation(t *testing.T)
 	}, []terminalAnswer{
 		{expect: "No resources found", answer: "Demo\x1b[B\r"},
 		{expect: "Next page", answer: "\r"},
-		{expect: "Demo Service (", answer: "\r"},
+		{expect: "Demo Service · demo-service (", answer: "\r"},
 		{expect: "? Delete project", answer: "\r", check: func(t *testing.T, screen string) {
-			require.Contains(t, screen, "Demo Service ("+projectID+")")
+			require.Contains(t, screen, "Demo Service · demo-service ("+projectID+")")
 			require.NotContains(t, screen, "Continue")
 		}},
 	})
@@ -399,9 +399,10 @@ func TestGuidedTerminalPickerValidatesManualValue(t *testing.T) {
 	}, []terminalAnswer{
 		{expect: "? Project · No resources found\r\n  Enter a value", answer: "zz"},
 		{expect: "? Project · No resources found\r\n  zz\r\n❯ Use: zz", answer: "\r"},
-		{expect: "? Project · No resources found\r\n  Enter a value", answer: "valid-project", check: func(t *testing.T, screen string) {
+		{expect: "Enter at least 3 characters", answer: "\x15valid-project", check: func(t *testing.T, screen string) {
 			require.Empty(t, requests)
-			require.EqualValues(t, 2, lists.Load())
+			require.EqualValues(t, 1, lists.Load())
+			require.Contains(t, screen, "Use: zz")
 		}},
 		{expect: "? Project · No resources found\r\n  valid-project\r\n❯ Use: valid-project", answer: "\r"},
 		{expect: "? Delete project", answer: "\x1b[B\r", check: func(t *testing.T, screen string) {
@@ -411,14 +412,15 @@ func TestGuidedTerminalPickerValidatesManualValue(t *testing.T) {
 		}},
 	})
 	require.NoError(t, err, terminal)
-	require.Contains(t, terminal, "enter at least 3 characters")
+	require.Contains(t, terminal, "Enter at least 3 characters")
+	require.EqualValues(t, 1, lists.Load())
 	require.Len(t, requests, 1)
 	require.Equal(t, components.V2ProjectsDeleteProjectRequestBody{Project: "valid-project"}, <-requests)
 	require.Equal(t, "✓ Deletion requested\n  Project: valid-project\n", out)
 }
 
 func TestGuidedDomainPickerConfirmsOnlyTheFinalTarget(t *testing.T) {
-	for _, mode := range []string{"select", "manual", "edit", "back", "cancel", "yes", "denied", "narrow"} {
+	for _, mode := range []string{"select", "manual", "edit", "back", "cancel", "yes", "denied", "narrow", "human", "human-edit"} {
 		t.Run(mode, func(t *testing.T) {
 			domainID := uid.New(uid.DomainPrefix)
 			requests := make(chan components.V2DomainsDeleteDomainRequestBody, 2)
@@ -468,6 +470,9 @@ func TestGuidedDomainPickerConfirmsOnlyTheFinalTarget(t *testing.T) {
 			}))
 			t.Cleanup(server.Close)
 			args := []string{"domains", "delete", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL, "--json"}
+			if strings.HasPrefix(mode, "human") {
+				args = args[:len(args)-1]
+			}
 			answers := []terminalAnswer{{expect: "? Domain\r\n  Filter results or enter a value", answer: "api.\r"}}
 			expected := domainID
 			if mode == "manual" {
@@ -478,9 +483,9 @@ func TestGuidedDomainPickerConfirmsOnlyTheFinalTarget(t *testing.T) {
 				expected = "custom.example.com"
 				answers = []terminalAnswer{{expect: "? Domain ", answer: expected + "\r"}}
 			}
-			if mode == "edit" || mode == "back" {
+			if mode == "edit" || mode == "back" || mode == "human-edit" {
 				answer := "\x1b"
-				if mode == "edit" {
+				if mode == "edit" || mode == "human-edit" {
 					expected = "changed.example.com"
 					answer = expected + "\r"
 				}
@@ -516,10 +521,13 @@ func TestGuidedDomainPickerConfirmsOnlyTheFinalTarget(t *testing.T) {
 				}
 				warning := fmt.Sprintf("Delete domain %q and stop serving traffic to it?", warningTarget)
 				require.Contains(t, strings.Join(strings.Fields(screen), " "), warning)
-				if mode == "edit" {
+				if mode == "edit" || mode == "human-edit" {
 					require.NotContains(t, screen, domainID)
 					require.NotContains(t, screen, "api.example.com")
 					require.NotContains(t, screen, "Change Domain")
+				}
+				if mode == "human" {
+					recordGuided(t, "delete-review-screen", screen, "")
 				}
 			}})
 			settings := terminalSettings{columns: 100, rows: 24}
@@ -536,12 +544,25 @@ func TestGuidedDomainPickerConfirmsOnlyTheFinalTarget(t *testing.T) {
 				require.Len(t, requests, 1)
 				require.Equal(t, expected, (<-requests).Domain)
 				var response components.V2DomainsDeleteDomainResponseBody
-				require.NoError(t, json.Unmarshal([]byte(out), &response))
+				if mode == "human" {
+					require.Equal(t, "✓ Deleted domain\n  Domain: api.example.com ("+domainID+")\n", out)
+				} else if mode == "human-edit" {
+					require.Equal(t, "✓ Deleted domain\n  Domain: changed.example.com\n", out)
+					require.NotContains(t, out, domainID)
+				} else {
+					require.NoError(t, json.Unmarshal([]byte(out), &response))
+				}
+				visible := vt100.NewVT100(int(settings.rows), int(settings.columns))
+				_, err := visible.Write([]byte(terminal))
+				require.NoError(t, err)
+				for _, row := range visible.Content {
+					require.NotContains(t, string(row), "! Delete domain")
+				}
 			}
 			require.NotContains(t, terminal, "[y/N]")
 			require.NotContains(t, terminal, "Review and confirm")
 			require.NotContains(t, terminal, "Keep changes")
-			if mode == "edit" || mode == "back" {
+			if mode == "edit" || mode == "back" || mode == "human-edit" {
 				require.EqualValues(t, 2, lists.Load())
 			} else {
 				require.EqualValues(t, 1, lists.Load())
@@ -569,8 +590,12 @@ func TestGuidedTerminalDestructiveEnterCancels(t *testing.T) {
 				if yes {
 					args = append(args, "--yes")
 				}
+				ready := "❯ Cancel"
+				if term == "dumb" {
+					ready = "(default 3): "
+				}
 				out, terminal, err := runGuidedTerminal(t, args, []terminalAnswer{
-					{expect: "? Delete domain", answer: "\r", check: func(t *testing.T, screen string) {
+					{expect: ready, answer: "\r", check: func(t *testing.T, screen string) {
 						require.Zero(t, requests.Load())
 						require.Contains(t, screen, fmt.Sprintf("Delete domain %q and stop serving traffic to it?", domain))
 						if term == "dumb" {
@@ -583,6 +608,8 @@ func TestGuidedTerminalDestructiveEnterCancels(t *testing.T) {
 				}, terminalSettings{columns: 100, rows: 40, env: []string{"TERM=" + term}})
 				require.Error(t, err)
 				require.Contains(t, terminal, "cancelled")
+				require.NotContains(t, terminal, "Error:")
+				require.NotContains(t, terminal, "failed.")
 				require.Empty(t, out)
 				require.Zero(t, requests.Load())
 				require.NotContains(t, terminal, "[y/N]")
@@ -1004,7 +1031,8 @@ func TestGuidedTerminalValidationCorrectionIsExplicit(t *testing.T) {
 	require.Error(t, err)
 	require.Empty(t, out)
 	require.Len(t, requests, 1)
-	require.Contains(t, terminal, "cancelled")
+	require.Contains(t, terminal, "cancelled; no further request was sent")
+	require.NotContains(t, terminal, "Error:")
 	<-requests
 	out, terminal, err = runGuidedTerminal(t, append(args, "--name=Demo Service", "--slug=demo-service", "--no-input"), nil)
 	require.Error(t, err)
