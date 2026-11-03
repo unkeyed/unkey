@@ -63,53 +63,21 @@ func (q *Queries) ListPrivateNetworkConnections(ctx context.Context, arg ListPri
 		return nil, err
 	}
 
-	selected := make([]string, len(selections))
-	previews := newNewestLookups[FindPrivateNetworkPreviewDeploymentIdParams](findPrivateNetworkPreviewDeploymentId, func(k FindPrivateNetworkPreviewDeploymentIdParams) []any {
-		return []any{k.AppID, k.GitBranch, k.ForkKey, k.WorkspaceID, k.ProjectID}
-	})
-	environments := newNewestLookups[FindPrivateNetworkEnvironmentDeploymentIdParams](findPrivateNetworkEnvironmentDeploymentId, func(k FindPrivateNetworkEnvironmentDeploymentIdParams) []any {
-		return []any{k.AppID, k.EnvironmentID, k.WorkspaceID, k.ProjectID}
-	})
-	for i, s := range selections {
-		switch s.SelectionMode {
-		case DeploymentConnectionAppTargetsSelectionModeDeployment:
-			selected[i] = s.TargetDeploymentID
-		case DeploymentConnectionAppTargetsSelectionModeAutomatic:
-			if s.CallerEnvironmentKind == mysqltype.EnvironmentKindProduction {
-				selected[i] = s.LiveDeploymentID
-			} else if s.CallerSource == DeploymentsSourceGit && s.CallerGitBranch != "" {
-				previews.add(i, FindPrivateNetworkPreviewDeploymentIdParams{
-					AppID: s.AppID, WorkspaceID: s.WorkspaceID, ProjectID: s.ProjectID,
-					GitBranch: sql.NullString{String: s.CallerGitBranch, Valid: true}, ForkKey: sql.NullString{String: s.CallerForkKey, Valid: true},
-				})
-			}
-		case DeploymentConnectionAppTargetsSelectionModeEnvironment:
-			if s.TargetEnvironmentID == "" {
-				break
-			}
-			if s.LiveEnvironmentID == s.TargetEnvironmentID {
-				selected[i] = s.LiveDeploymentID
-			} else {
-				environments.add(i, FindPrivateNetworkEnvironmentDeploymentIdParams{
-					AppID: s.AppID, EnvironmentID: s.TargetEnvironmentID, WorkspaceID: s.WorkspaceID, ProjectID: s.ProjectID,
-				})
-			}
-		}
-	}
-	if err := previews.resolve(ctx, q.db, selected); err != nil {
-		return nil, err
-	}
-	if err := environments.resolve(ctx, q.db, selected); err != nil {
+	deploymentIDs, err := q.selectPrivateNetworkDeployments(ctx, selections)
+	if err != nil {
 		return nil, err
 	}
 
-	ids := slices.Compact(slices.Sorted(slices.Values(selected)))
+	ids := slices.Compact(slices.Sorted(slices.Values(deploymentIDs)))
 	if len(ids) > 0 && ids[0] == "" {
 		ids = ids[1:]
 	}
 	targets := make(map[string]ListPrivateNetworkTargetsRow, len(ids))
 	if len(ids) > 0 {
-		rows, err := q.ListPrivateNetworkTargets(ctx, ListPrivateNetworkTargetsParams{DeploymentIds: ids, Platform: arg.Platform})
+		rows, err := q.ListPrivateNetworkTargets(ctx, ListPrivateNetworkTargetsParams{
+			DeploymentIds: ids,
+			Platform:      arg.Platform,
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -119,68 +87,144 @@ func (q *Queries) ListPrivateNetworkConnections(ctx context.Context, arg ListPri
 	}
 
 	connections := make([]ListPrivateNetworkConnectionsRow, 0, len(selections))
-	for i, s := range selections {
+	for index, selection := range selections {
 		connection := ListPrivateNetworkConnectionsRow{
-			WorkspaceID: s.WorkspaceID, ProjectID: s.ProjectID, AppID: s.AppID, AppSlug: s.AppSlug, K8sNamespace: s.K8sNamespace,
-			DeploymentID: "", Port: 0, EnvironmentID: "",
-			CallerDeploymentID: s.CallerDeploymentID, ConnectionID: s.ConnectionID, ConnectionName: s.ConnectionName,
+			WorkspaceID:        selection.WorkspaceID,
+			ProjectID:          selection.ProjectID,
+			AppID:              selection.AppID,
+			AppSlug:            selection.AppSlug,
+			K8sNamespace:       selection.K8sNamespace,
+			DeploymentID:       "",
+			Port:               0,
+			EnvironmentID:      "",
+			CallerDeploymentID: selection.CallerDeploymentID,
+			ConnectionID:       selection.ConnectionID,
+			ConnectionName:     selection.ConnectionName,
 		}
-		if target, ok := targets[selected[i]]; ok && target.AppID == s.AppID && target.WorkspaceID == s.WorkspaceID && target.ProjectID == s.ProjectID {
-			connection.DeploymentID, connection.Port, connection.EnvironmentID = target.ID, target.Port, target.EnvironmentID
+		if target, ok := targets[deploymentIDs[index]]; ok &&
+			target.AppID == selection.AppID &&
+			target.WorkspaceID == selection.WorkspaceID &&
+			target.ProjectID == selection.ProjectID {
+			connection.DeploymentID = target.ID
+			connection.Port = target.Port
+			connection.EnvironmentID = target.EnvironmentID
 		}
 		connections = append(connections, connection)
 	}
 	return connections, nil
 }
 
-type newestLookups[K comparable] struct {
-	lookup     string
-	args       func(K) []any
-	keys       []K
-	slots      map[K]int
-	selections map[int]int
-}
+func (q *Queries) selectPrivateNetworkDeployments(ctx context.Context, selections []ListPrivateNetworkConnectionSelectionsRow) ([]string, error) {
+	previews := newDeploymentLookupBatch(findPrivateNetworkPreviewDeploymentId, func(params FindPrivateNetworkPreviewDeploymentIdParams) []any {
+		return []any{params.AppID, params.GitBranch, params.ForkKey, params.WorkspaceID, params.ProjectID}
+	})
+	environments := newDeploymentLookupBatch(findPrivateNetworkEnvironmentDeploymentId, func(params FindPrivateNetworkEnvironmentDeploymentIdParams) []any {
+		return []any{params.AppID, params.EnvironmentID, params.WorkspaceID, params.ProjectID}
+	})
 
-func newNewestLookups[K comparable](lookup string, args func(K) []any) *newestLookups[K] {
-	return &newestLookups[K]{lookup: lookup, args: args, keys: nil, slots: map[K]int{}, selections: map[int]int{}}
-}
+	deploymentIDs := make([]string, len(selections))
+	for index, selection := range selections {
+		switch selection.SelectionMode {
+		case DeploymentConnectionAppTargetsSelectionModeDeployment:
+			deploymentIDs[index] = selection.TargetDeploymentID
 
-func (l *newestLookups[K]) add(selection int, key K) {
-	slot, ok := l.slots[key]
-	if !ok {
-		slot = len(l.keys)
-		l.slots[key] = slot
-		l.keys = append(l.keys, key)
+		case DeploymentConnectionAppTargetsSelectionModeAutomatic:
+			if selection.CallerEnvironmentKind == mysqltype.EnvironmentKindProduction {
+				deploymentIDs[index] = selection.LiveDeploymentID
+				continue
+			}
+			if selection.CallerSource != DeploymentsSourceGit || selection.CallerGitBranch == "" {
+				continue
+			}
+			previews.add(index, FindPrivateNetworkPreviewDeploymentIdParams{
+				AppID:       selection.AppID,
+				GitBranch:   sql.NullString{String: selection.CallerGitBranch, Valid: true},
+				ForkKey:     sql.NullString{String: selection.CallerForkKey, Valid: true},
+				WorkspaceID: selection.WorkspaceID,
+				ProjectID:   selection.ProjectID,
+			})
+
+		case DeploymentConnectionAppTargetsSelectionModeEnvironment:
+			if selection.TargetEnvironmentID == "" {
+				continue
+			}
+			if selection.LiveEnvironmentID == selection.TargetEnvironmentID {
+				deploymentIDs[index] = selection.LiveDeploymentID
+				continue
+			}
+			environments.add(index, FindPrivateNetworkEnvironmentDeploymentIdParams{
+				AppID:         selection.AppID,
+				EnvironmentID: selection.TargetEnvironmentID,
+				WorkspaceID:   selection.WorkspaceID,
+				ProjectID:     selection.ProjectID,
+			})
+		}
 	}
-	l.selections[selection] = slot
+	if err := previews.resolveInto(ctx, q.db, deploymentIDs); err != nil {
+		return nil, err
+	}
+	if err := environments.resolveInto(ctx, q.db, deploymentIDs); err != nil {
+		return nil, err
+	}
+	return deploymentIDs, nil
 }
 
-func (l *newestLookups[K]) resolve(ctx context.Context, db DBTX, selected []string) error {
-	if len(l.keys) == 0 {
+type deploymentLookupBatch[K comparable] struct {
+	query            string
+	queryArgs        func(K) []any
+	keys             []K
+	indexByKey       map[K]int
+	indexBySelection map[int]int
+}
+
+func newDeploymentLookupBatch[K comparable](query string, queryArgs func(K) []any) *deploymentLookupBatch[K] {
+	return &deploymentLookupBatch[K]{
+		query:            query,
+		queryArgs:        queryArgs,
+		keys:             nil,
+		indexByKey:       make(map[K]int),
+		indexBySelection: make(map[int]int),
+	}
+}
+
+func (batch *deploymentLookupBatch[K]) add(selectionIndex int, key K) {
+	lookupIndex, ok := batch.indexByKey[key]
+	if !ok {
+		lookupIndex = len(batch.keys)
+		batch.indexByKey[key] = lookupIndex
+		batch.keys = append(batch.keys, key)
+	}
+	batch.indexBySelection[selectionIndex] = lookupIndex
+}
+
+func (batch *deploymentLookupBatch[K]) resolveInto(ctx context.Context, db DBTX, deploymentIDs []string) error {
+	if len(batch.keys) == 0 {
 		return nil
 	}
+
 	var query strings.Builder
 	var params []any
-	for slot, key := range l.keys {
-		if slot > 0 {
+	for lookupIndex, key := range batch.keys {
+		if lookupIndex > 0 {
 			query.WriteString(" UNION ALL ")
 		}
-		query.WriteString("SELECT " + strconv.Itoa(slot) + " AS slot, newest.id FROM (" + l.lookup + ") AS newest")
-		params = append(params, l.args(key)...)
+		query.WriteString("SELECT " + strconv.Itoa(lookupIndex) + " AS slot, newest.id FROM (" + batch.query + ") AS newest")
+		params = append(params, batch.queryArgs(key)...)
 	}
+
 	rows, err := db.QueryContext(ctx, query.String(), params...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-	ids := make([]string, len(l.keys))
+	ids := make([]string, len(batch.keys))
 	for rows.Next() {
-		var slot int
+		var lookupIndex int
 		var id string
-		if err := rows.Scan(&slot, &id); err != nil {
+		if err := rows.Scan(&lookupIndex, &id); err != nil {
 			return err
 		}
-		ids[slot] = id
+		ids[lookupIndex] = id
 	}
 	if err := rows.Close(); err != nil {
 		return err
@@ -188,8 +232,9 @@ func (l *newestLookups[K]) resolve(ctx context.Context, db DBTX, selected []stri
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	for selection, slot := range l.selections {
-		selected[selection] = ids[slot]
+
+	for selectionIndex, lookupIndex := range batch.indexBySelection {
+		deploymentIDs[selectionIndex] = ids[lookupIndex]
 	}
 	return nil
 }
