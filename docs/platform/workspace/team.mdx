@@ -33,23 +33,38 @@ Developers can see most admin-only settings but can't change them. The workspace
 
 Compute Pro, Compute Business, and every paid API tier include team members. On Free or Compute Starter, **Settings > Team** shows **Invite your team** with an **Upgrade** button instead of the member list. See [Plans](/platform/billing/plans).
 
-If the workspace loses team access, Unkey deactivates every membership except the oldest one, which belongs to whoever created the workspace. That happens when a paid API tier ends without Compute Pro or Business, or when a workspace on the free API tier moves from Compute Pro or Business to Starter or cancels Compute.
+A workspace loses team access when it no longer has a plan that includes team members:
+
+- A paid API tier ends, and the workspace isn't on Compute Pro or Business.
+- The workspace is on the free API tier and moves from Compute Pro or Business to Compute Starter, or cancels Compute entirely.
+
+When that happens, Unkey deactivates every membership except the oldest one, which belongs to whoever created the workspace.
 
 ## Manage members
 
-From the member table on **Settings > Team**, admins can invite people by email address, choose Admin or Developer, change a member's role, and remove members. Other roles see **Admin access required** instead of the table.
+Admins manage members from the table on **Settings > Team**. Other roles see **Admin access required** instead of the table.
 
 <Frame>
   <img src="/images/dashboard/platform--workspace-team--members.png" alt="Team settings page listing workspace members with their roles and last active times, and an Invite user button" />
 </Frame>
 
+### Invite someone
+
+Click **Invite user**, enter their email address, and choose **Admin** or **Developer**. Invitations expire. If one shows as expired, send a new one.
+
+### Change a role
+
+Open the **⋯** menu on the member's row and choose **Edit role**. Pick the new role from the dropdown and click **Save**.
+
 <Frame>
-  <img src="/images/dashboard/platform--workspace-team--edit-role.png" alt="Edit role dialog for a member with the role dropdown open" />
+  <img src="/images/dashboard/platform--workspace-team--edit-role.png" alt="Edit role dialog with the role dropdown set to Developer, and Save and Cancel buttons" />
 </Frame>
 
-Invitations expire. If one shows as expired, send a new one.
+### Remove someone
 
-Removing a member ends their dashboard access. Anything they created stays, and root keys keep working because they belong to the workspace, not to a person. To leave a workspace, ask an admin to remove you.
+Open the **⋯** menu on the member's row and choose **Remove user**. They lose dashboard access, but anything they created stays. Root keys keep working because they belong to the workspace, not to a person.
+
+To leave a workspace yourself, ask an admin to remove you.
 
 ## Two-factor authentication
 
