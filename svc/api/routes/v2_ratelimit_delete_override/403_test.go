@@ -21,7 +21,12 @@ import (
 func TestDeleteOverrideMasksUnauthorizedResources(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
-	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.Resources().UserWorkspace.ID}).ProjectID
+	projectID := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		Name:        "Override authorization",
+		Slug:        uid.New(uid.TestPrefix),
+	}).ID
 
 	// Create a namespace in the default workspace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
