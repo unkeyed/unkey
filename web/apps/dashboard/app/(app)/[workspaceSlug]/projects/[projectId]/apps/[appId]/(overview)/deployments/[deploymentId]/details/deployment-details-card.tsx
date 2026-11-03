@@ -22,7 +22,11 @@ import {
 import type { ReactNode } from "react";
 import { StatusDot } from "../../../../components/deployment-status-dot";
 import { DottedLink } from "../../../../components/dotted-link";
-import { EnvironmentBadge, badgeRollout } from "../../../../components/environment-badge";
+import {
+  EnvironmentBadge,
+  badgeRollout,
+  useLiveSwitch,
+} from "../../../../components/environment-badge";
 import { useBuildDuration } from "../../components/deployment-duration";
 import { InstantRollbackRow } from "../instant-rollback-row";
 import type { DeploymentPage } from "../use-deployment-page";
@@ -51,6 +55,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
 
   const environment = environments.find((e) => e.id === deployment.environmentId);
   const isCurrent = app?.currentDeploymentId === deployment.id;
+  const liveSwitch = useLiveSwitch(currentDeployment?.id, isRolledBack)(deployment.id);
   const duration = useBuildDuration(status, deployment.createdAt, deployment.buildEndedAt);
 
   return (
@@ -85,7 +90,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
             {environment ? (
               <EnvironmentBadge
                 environment={environment}
-                rollout={badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom })}
+                rollout={badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom, liveSwitch })}
                 liveSince={isCurrent ? (app?.updatedAt ?? null) : null}
               />
             ) : (

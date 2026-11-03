@@ -3,8 +3,8 @@
 import { ListTableRow, listTable } from "@/components/list-views";
 import { useNearViewport } from "@/hooks/use-near-viewport";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Project } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
+import type { Project } from "@/lib/queries/projects";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Skeleton } from "@unkey/ui";
 import { DeployedAgo } from "../../[projectId]/_components/apps-list/app-source";

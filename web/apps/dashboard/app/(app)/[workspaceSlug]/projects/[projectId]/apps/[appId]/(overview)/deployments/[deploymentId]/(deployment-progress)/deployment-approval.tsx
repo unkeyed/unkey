@@ -32,7 +32,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.authorizeDeployment({ deploymentId }),
     onSuccess: () => {
-      awaitDeploymentStatus({ deploymentId: deployment.id, status: "pending" });
+      void awaitDeploymentStatus({ deploymentId: deployment.id, status: "pending" });
       onClose();
     },
   });

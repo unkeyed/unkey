@@ -1,14 +1,15 @@
 "use client";
 
-import { type DeploymentSummary, useDeployActions } from "@/lib/deploy-data";
+import { type DeploymentSummary, toastWhenSettled, useDeployActions } from "@/lib/deploy-data";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { IconCodeBranchOutline18, IconLayers2Outline18 } from "@unkey/icons";
+import { IconCloudOutline12, IconCodeBranchOutline18, IconLayers2Outline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
+import { Button, DialogContainer, TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import { useEffect, useState } from "react";
+import { LIVE_BADGE_CLASS } from "../../../components/environment-badge";
 import { Avatar } from "../../../components/git-avatar";
 
 type UndoRollbackDialogProps = {
@@ -39,19 +40,27 @@ export function UndoRollbackDialog({
   const promote = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
-    onSuccess: (_result, deploymentId) => {
-      awaitLiveDeployment({ deploymentId, rolledBack: false });
-      toast.success("Rollback undone", {
-        description: "Automatic production deploys have resumed.",
-      });
-      onClose();
-    },
-    onError: (error) => {
-      toast.error("Failed to undo rollback", {
-        description: getErrorMessage(error),
-      });
-    },
+    onSuccess: onClose,
   });
+
+  const handleUndo = () => {
+    toastWhenSettled(
+      promote
+        .mutateAsync(selectedId)
+        .then(() => awaitLiveDeployment({ deploymentId: selectedId, rolledBack: false })),
+      {
+        loading: "Undoing rollback...",
+        success: {
+          message: "Rollback undone",
+          description: "Automatic production deploys have resumed.",
+        },
+        failure: (error) => ({
+          message: "Failed to undo rollback",
+          description: getErrorMessage(error),
+        }),
+      },
+    );
+  };
 
   return (
     <DialogContainer
@@ -66,7 +75,7 @@ export function UndoRollbackDialog({
           className="w-full"
           loading={promote.isLoading}
           disabled={promote.isLoading}
-          onClick={() => promote.mutate(selectedId)}
+          onClick={handleUndo}
         >
           Undo rollback
         </Button>
@@ -77,7 +86,11 @@ export function UndoRollbackDialog({
           Choose the deployment to make live. The selected deployment is promoted to production and
           automatic deploys resume.
         </p>
-        <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto">
+        <div
+          role="radiogroup"
+          aria-label="Deployment to make live"
+          className="flex flex-col gap-2 max-h-[320px] overflow-y-auto"
+        >
           {deployments.map((deployment) => (
             <DeploymentOption
               key={deployment.id}
@@ -118,14 +131,20 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
     .exhaustive();
 
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <div
       className={cn(
-        "w-full text-left rounded-2xl border p-3 transition-colors",
+        "relative w-full rounded-2xl border p-3 transition-colors",
         selected ? "border-grayA-8 bg-grayA-2" : "hover:border-strong",
       )}
     >
+      <button
+        type="button"
+        role="radio"
+        aria-checked={selected}
+        aria-label={`Deployment ${shortenId(deployment.id)}`}
+        onClick={onSelect}
+        className="absolute inset-0 rounded-2xl"
+      />
       <div className="flex items-start gap-3">
         <span
           className={cn(
@@ -139,22 +158,21 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex items-baseline gap-2">{description}</div>
             {isCurrent && (
-              <Badge variant="success" size="sm" className="shrink-0">
+              <span className={LIVE_BADGE_CLASS}>
+                <IconCloudOutline12 className="shrink-0" />
                 Current
-              </Badge>
+              </span>
             )}
           </div>
           <div className="mt-1.5 flex items-center gap-3 text-xs text-grayA-9 min-w-0">
             <DeploymentSource deployment={deployment} />
-            <TimestampInfo
-              value={deployment.createdAt}
-              displayType="relative"
-              className="ml-auto"
-            />
+            <span className="relative z-10 ml-auto">
+              <TimestampInfo value={deployment.createdAt} displayType="relative" />
+            </span>
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
