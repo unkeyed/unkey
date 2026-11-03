@@ -144,6 +144,22 @@ func TestListProjectsFiltersInsufficientPermissions(t *testing.T) {
 			name:       "wrong workspace",
 			permission: fmt.Sprintf("%s#read", urn.New().Workspace(otherWorkspace.ID).Project("*")),
 		},
+		{
+			name:       "key read does not grant project read",
+			permission: fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Key("*")),
+		},
+		{
+			name:       "identity read does not grant project read",
+			permission: fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project("*").Identity("*")),
+		},
+		{
+			name:       "keyspace logs do not grant project read",
+			permission: fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project("*").Keyspace("*").Logs()),
+		},
+		{
+			name:       "namespace logs do not grant project read",
+			permission: fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project("*").RatelimitNamespace("*").Logs()),
+		},
 	}
 
 	for _, testCase := range testCases {

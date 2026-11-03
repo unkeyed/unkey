@@ -1,9 +1,9 @@
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useMeasuredWidth } from "@/hooks/use-measured-width";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
 import { plural } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
+import type { ProjectApp } from "@/lib/queries/apps";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip, Skeleton } from "@unkey/ui";
 import Link from "next/link";

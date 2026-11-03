@@ -71,11 +71,11 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
       footer={
         <Button
           variant="primary"
-          size="xlg"
+          size="md"
           onClick={handleRedeploy}
           disabled={redeploy.isLoading}
           loading={redeploy.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Redeploy
         </Button>

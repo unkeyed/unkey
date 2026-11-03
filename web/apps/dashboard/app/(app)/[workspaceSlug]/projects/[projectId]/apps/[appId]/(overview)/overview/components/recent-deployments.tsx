@@ -1,5 +1,6 @@
 "use client";
 
+import { useLiveSwitch } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import {
@@ -32,6 +33,7 @@ export function RecentDeployments() {
     isRolledBack && currentDeployment
       ? findRolledBackFrom(productionDeployments, currentDeployment)?.id
       : undefined;
+  const liveSwitchOf = useLiveSwitch(currentDeployment?.id, isRolledBack);
 
   return (
     <ResourceList>
@@ -62,6 +64,7 @@ export function RecentDeployments() {
                 currentDeployment={currentDeployment}
                 isRolledBack={isRolledBack}
                 isRolledBackFrom={deployment.id === rolledBackFromId}
+                liveSwitch={liveSwitchOf(deployment.id)}
                 liveSince={app?.updatedAt ?? null}
                 href={routes.projects.apps.deployment({
                   workspaceSlug: workspace.slug,

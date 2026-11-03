@@ -1,7 +1,7 @@
 "use client";
 
 import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/queries/environments";
 import { IconCircleInfoOutline12, IconPenWriting3Outline18, Mysql, Postgres } from "@unkey/icons";
 import {
   Alert,

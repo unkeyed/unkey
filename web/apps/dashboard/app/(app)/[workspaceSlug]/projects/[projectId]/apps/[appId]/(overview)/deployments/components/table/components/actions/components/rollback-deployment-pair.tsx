@@ -1,5 +1,6 @@
 "use client";
 
+import { LIVE_BADGE_CLASS } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
 import { deploymentTitle } from "@/lib/collections/deploy/deployment-title";
 import type { DeploymentSummary } from "@/lib/deploy-data";
@@ -56,7 +57,7 @@ function Meta({ deployment }: { deployment: DeploymentSummary }) {
 
 function RollbackBadge({ kind }: { kind: "current" | "previous" | "newer" }) {
   return kind === "current" ? (
-    <span className="inline-flex h-5.5 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 text-xs leading-none border-transparent bg-info-11 text-white dark:bg-info-9 dark:text-gray-1">
+    <span className={LIVE_BADGE_CLASS}>
       <IconCloudOutline12 className="shrink-0" />
       Current
     </span>

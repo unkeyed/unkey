@@ -291,7 +291,7 @@ func TestFindUnrevokedCLISessionByRefreshFamily(t *testing.T) {
 func TestDeleteExpiredCLISessionsRemovesOnlyExpiredRows(t *testing.T) {
 	skipWithoutDatabase(t)
 	ctx := context.Background()
-	database := openCLILoginDB(t, containers.MySQLIsolated(t))
+	database := openCLILoginDB(t, containers.MySQLLogicalIsolated(t))
 	now := time.Now().UnixMilli()
 	workspaceID := uid.New(uid.WorkspacePrefix)
 

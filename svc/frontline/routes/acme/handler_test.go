@@ -37,7 +37,7 @@ func TestHandleChecksBothDomainTables(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	dsn := containers.MySQLIsolated(t).DSN
+	dsn := containers.MySQLLogicalIsolated(t).DSN
 	querier, closeDB, err := db.New(dsn, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, closeDB()) })

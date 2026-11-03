@@ -16,25 +16,16 @@ const apiCalls: QueryCall[] = [];
 const identityCalls: QueryCall[] = [];
 
 type Row = { id: string; isDefault: boolean };
-type Stage = {
-  rows: Row[];
-  where: (predicate: (row: { project: Row }) => boolean) => Stage;
-};
 
-function stage(current: Row[]): Stage {
-  return {
-    rows: current,
-    where: (predicate) => stage(current.filter((row) => predicate({ project: row }))),
-  };
-}
-
-vi.mock("@/lib/collections", () => ({ collection: { projects: {} } }));
-vi.mock("@tanstack/react-db", () => ({
-  eq: (left: unknown, right: unknown) => left === right,
-  useLiveQuery: (build: (q: { from: () => Stage }) => Stage | null) => {
-    const built = build({ from: () => stage(projects.rows) });
-    return { data: built?.rows, isLoading: projects.isLoading, isError: projects.isError };
-  },
+vi.mock("@/lib/queries/projects", () => ({
+  useDefaultProjectId: () => ({
+    data:
+      projects.isLoading || projects.isError
+        ? undefined
+        : projects.rows.find((p) => p.isDefault)?.id,
+    isInitialLoading: projects.isLoading,
+    isError: projects.isError,
+  }),
 }));
 
 vi.mock("@/lib/trpc/client", () => ({

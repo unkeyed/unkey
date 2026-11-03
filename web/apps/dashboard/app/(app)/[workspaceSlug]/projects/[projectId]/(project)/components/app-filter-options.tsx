@@ -1,7 +1,7 @@
 "use client";
 
-import { byLatestUpdate } from "@/lib/collections/deploy/project-cards";
-import { useProjectApps } from "@/lib/deploy-data";
+import { useDeployScope } from "@/lib/deploy-data";
+import { useProjectApps } from "@/lib/queries/apps";
 import { useMemo } from "react";
 
 export function useAppFilterOptions(): AppFilterOption[] {
@@ -12,11 +12,11 @@ export function useAppFilterOptionsWithLoading(): {
   options: AppFilterOption[];
   isLoading: boolean;
 } {
-  const apps = useProjectApps();
+  const apps = useProjectApps(useDeployScope().projectId);
 
   const options = useMemo(
     () =>
-      (apps.data ?? []).toSorted(byLatestUpdate).map((app, i) => ({
+      (apps.data ?? []).map((app, i) => ({
         id: i,
         appId: app.id,
         name: app.name,
@@ -25,7 +25,7 @@ export function useAppFilterOptionsWithLoading(): {
     [apps.data],
   );
 
-  return { options, isLoading: apps.isLoading };
+  return { options, isLoading: apps.isInitialLoading };
 }
 
 export function useAppNameById(): Map<string, string> {
