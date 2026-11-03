@@ -34,6 +34,8 @@ spec:
               value: "http://localhost:7070"
             - name: API_URL
               value: "http://api:7070"
+            - name: CLICKHOUSE_URL
+              value: "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
           ports:
             - name: http
               containerPort: 7095

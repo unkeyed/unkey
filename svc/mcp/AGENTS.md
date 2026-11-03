@@ -23,3 +23,7 @@ and reads its config from environment variables ([config.go](config.go)).
 - Tool arguments are forwarded as the request body without validation; the
   API's 400 is the error the model should see. API failures are tool results
   with `isError`, never Go errors.
+- Every tools/call writes one internal ClickHouse row,
+  `mcp_tool_calls_raw_v1` ([analytics.go](internal/gateway/analytics.go)).
+  Never store arguments or results: they can hold plaintext keys. Record a
+  claimed workspace only after the API answered 2xx to that token.

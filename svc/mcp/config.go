@@ -22,15 +22,19 @@ type Config struct {
 	// metadata, from OAUTH_ISSUER. Defaults to APIURL. It must equal the API's
 	// OAuth issuer.
 	OAuthIssuer string
+	// ClickHouseURL receives one analytics row per tool call, from
+	// CLICKHOUSE_URL. Empty disables analytics.
+	ClickHouseURL string
 }
 
 // ConfigFromEnv reads [Config] through getenv, normally [os.Getenv].
 func ConfigFromEnv(getenv func(string) string) (Config, error) {
 	cfg := Config{
-		Port:        8080,
-		PublicURL:   strings.TrimSuffix(getenv("PUBLIC_URL"), "/"),
-		APIURL:      strings.TrimSuffix(getenv("API_URL"), "/"),
-		OAuthIssuer: getenv("OAUTH_ISSUER"),
+		Port:          8080,
+		PublicURL:     strings.TrimSuffix(getenv("PUBLIC_URL"), "/"),
+		APIURL:        strings.TrimSuffix(getenv("API_URL"), "/"),
+		OAuthIssuer:   getenv("OAUTH_ISSUER"),
+		ClickHouseURL: getenv("CLICKHOUSE_URL"),
 	}
 	if raw := getenv("PORT"); raw != "" {
 		port, err := strconv.Atoi(raw)

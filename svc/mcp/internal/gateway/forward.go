@@ -18,9 +18,22 @@ import (
 // responseBytesMax caps how much of an API response is returned to the model.
 const responseBytesMax = 4 << 20
 
-// apiResponse is what one forwarded call produced. Status is 0 when no HTTP
+// outcome classifies a tool call for analytics.
+type outcome string
+
+const (
+	outcomeOK             outcome = "ok"
+	outcomeAPIError       outcome = "api_error"
+	outcomeTransportError outcome = "transport_error"
+	// outcomeRejected means svc/mcp refused the arguments and never called
+	// the API.
+	outcomeRejected outcome = "rejected"
+)
+
+// apiResponse is what one tool call produced. Status is 0 when no HTTP
 // response arrived, and err then says why.
 type apiResponse struct {
+	outcome   outcome
 	status    int
 	body      []byte
 	requestID string
@@ -31,7 +44,7 @@ type apiResponse struct {
 // callTool is the only tool handler: every tool is this function bound to a
 // different [tools.Tool]. API failures become tool results the model can read
 // and react to, never Go errors, which clients surface as protocol failures.
-func (g *gateway) callTool(tool tools.Tool) mcp.ToolHandler {
+func (g *gateway) callTool(m mount, tool tools.Tool) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		if req.Extra == nil {
 			return nil, errors.New("tool call without HTTP request headers")
@@ -41,13 +54,19 @@ func (g *gateway) callTool(tool tools.Tool) mcp.ToolHandler {
 			return nil, fmt.Errorf("gate admitted a request without a usable credential: %w", err)
 		}
 
-		body, err := requestBody(tool, req.Params.Arguments)
-		if err != nil {
-			return errorResult("Invalid tool arguments: " + err.Error()), nil
-		}
-		response := g.forward(ctx, credential, tool, body)
+		start := g.cfg.Clock.Now()
+		response := g.call(ctx, credential, tool, req.Params.Arguments)
+		g.cfg.Calls.Buffer(callRow(m, tool, credential, req, response, start, g.cfg.Clock.Now().Sub(start)))
 		return response.result(), nil
 	}
+}
+
+func (g *gateway) call(ctx context.Context, credential caller.Credential, tool tools.Tool, arguments json.RawMessage) apiResponse {
+	body, err := requestBody(tool, arguments)
+	if err != nil {
+		return apiResponse{outcome: outcomeRejected, status: 0, body: nil, requestID: "", errorType: "", err: err}
+	}
+	return g.forward(ctx, credential, tool, body)
 }
 
 // requestBody turns tool arguments into the API request body. Arguments are
@@ -104,7 +123,10 @@ func (g *gateway) forward(ctx context.Context, credential caller.Credential, too
 			Type string `json:"type"`
 		} `json:"error"`
 	}
-	response := apiResponse{status: res.StatusCode, body: responseBody, requestID: "", errorType: "", err: nil}
+	response := apiResponse{outcome: outcomeOK, status: res.StatusCode, body: responseBody, requestID: "", errorType: "", err: nil}
+	if res.StatusCode >= http.StatusBadRequest {
+		response.outcome = outcomeAPIError
+	}
 	if json.Unmarshal(responseBody, &envelope) == nil {
 		response.requestID = envelope.Meta.RequestID
 		if envelope.Error != nil {
@@ -115,18 +137,24 @@ func (g *gateway) forward(ctx context.Context, credential caller.Credential, too
 }
 
 func failedResponse(status int, err error) apiResponse {
-	return apiResponse{status: status, body: nil, requestID: "", errorType: "", err: err}
+	return apiResponse{outcome: outcomeTransportError, status: status, body: nil, requestID: "", errorType: "", err: err}
 }
 
 // result returns the API's JSON envelope verbatim, including meta.requestId
 // and the error object, so the model sees what an SDK user would.
 func (r apiResponse) result() *mcp.CallToolResult {
-	if r.err != nil {
+	switch r.outcome {
+	case outcomeRejected:
+		return errorResult("Invalid tool arguments: " + r.err.Error())
+	case outcomeTransportError:
 		return errorResult("The Unkey API call failed: " + r.err.Error())
-	}
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{&mcp.TextContent{Text: string(r.body)}},
-		IsError: r.status >= http.StatusBadRequest,
+	case outcomeOK, outcomeAPIError:
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{&mcp.TextContent{Text: string(r.body)}},
+			IsError: r.outcome == outcomeAPIError,
+		}
+	default:
+		return errorResult(fmt.Sprintf("unknown tool call outcome %q", r.outcome))
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/mcp/internal/caller"
 	"github.com/unkeyed/unkey/svc/mcp/internal/tools"
@@ -36,6 +37,15 @@ type Config struct {
 	Version    string
 	HTTPClient *http.Client
 	Clock      clock.Clock
+	// Calls receives one row per tools/call. It must drop rather than block
+	// when full.
+	Calls CallRecorder
+}
+
+// CallRecorder is satisfied by the ClickHouse buffer and by its no-op
+// stand-in when ClickHouse is not configured.
+type CallRecorder interface {
+	Buffer(row schema.McpToolCallV1)
 }
 
 // mount is one URL path that serves a toolset. Canonical and legacy paths
@@ -69,8 +79,8 @@ func New(cfg Config, registry *tools.Registry) (http.Handler, error) {
 	if caller.Origin(cfg.APIURL) == "" {
 		return nil, fmt.Errorf("API URL %q must be absolute", cfg.APIURL)
 	}
-	if cfg.Issuer == "" || cfg.HTTPClient == nil || cfg.Clock == nil {
-		return nil, errors.New("issuer, HTTP client and clock are required")
+	if cfg.Issuer == "" || cfg.HTTPClient == nil || cfg.Clock == nil || cfg.Calls == nil {
+		return nil, errors.New("issuer, HTTP client, clock and call recorder are required")
 	}
 
 	g := &gateway{cfg: cfg, origin: caller.Origin(cfg.PublicURL), registry: registry}
@@ -127,7 +137,7 @@ func (g *gateway) mcpHandler(m mount) http.Handler {
 			Title:       tool.Title,
 			Description: tool.Description,
 			InputSchema: tool.InputSchema,
-		}, g.callTool(tool))
+		}, g.callTool(m, tool))
 	}
 	streamable := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return server }, &mcp.StreamableHTTPOptions{
 		Stateless:                    true,
