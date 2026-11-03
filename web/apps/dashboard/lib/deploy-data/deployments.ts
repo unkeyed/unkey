@@ -94,6 +94,7 @@ export function useCurrentDeployment({
     isLoading: app.isLoading || deployment.isLoading,
     isError: app.isError || deployment.isError,
     error: app.error ?? deployment.error,
+    refetch: app.isError ? app.refetch : deployment.refetch,
   };
 }
 
