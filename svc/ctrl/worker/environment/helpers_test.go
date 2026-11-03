@@ -32,7 +32,7 @@ const stopDelay = 300 * time.Millisecond
 
 // fixture is one production environment with three ready deployments.
 // live owns the sticky routes and a commit route; the others are candidates.
-// The seeder has no helper for routes or the app's live pointer, so the fixture
+// The seeder has no helper for routes or the environment's live pointer, so the fixture
 // writes those rows itself.
 type fixture struct {
 	ctx         context.Context
@@ -181,12 +181,6 @@ func (f *fixture) moveStickyRoutes(t *testing.T, deploymentID string) {
 
 func (f *fixture) setLive(t *testing.T, deploymentID string, rolledBack bool) {
 	t.Helper()
-	require.NoError(t, f.db.UpdateAppDeployments(f.ctx, db.UpdateAppDeploymentsParams{
-		CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
-		IsRolledBack:        rolledBack,
-		UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		AppID:               f.app.ID,
-	}))
 	require.NoError(t, f.db.UpdateEnvironmentDeployments(f.ctx, db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
 		IsRolledBack:        rolledBack,
@@ -249,10 +243,6 @@ func (f *fixture) requireDesiredStateAfterStopDelay(t *testing.T, deploymentID s
 
 func (f *fixture) requireLive(t *testing.T, deploymentID string, rolledBack bool) {
 	t.Helper()
-	app, err := f.db.FindAppById(f.ctx, f.app.ID)
-	require.NoError(t, err)
-	require.Equal(t, deploymentID, app.CurrentDeploymentID.String, "app current_deployment_id")
-	require.Equal(t, rolledBack, app.IsRolledBack, "app is_rolled_back")
 	environment, err := f.db.FindEnvironmentById(f.ctx, f.env.ID)
 	require.NoError(t, err)
 	require.Equal(t, deploymentID, environment.CurrentDeploymentID.String, "environment current_deployment_id")

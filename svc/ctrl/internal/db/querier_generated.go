@@ -10,25 +10,6 @@ import (
 )
 
 type Querier interface {
-	// Clears apps.current_deployment_id when it still points at the given
-	// deployment. Teardown calls this before stopping an app's current deployment so
-	// the DeploymentService current-deployment guard permits the change; gating on
-	// the deployment id makes it a safe no-op if a concurrent deploy already
-	// re-pointed current_deployment_id at something else.
-	//
-	//  UPDATE apps
-	//  SET current_deployment_id = NULL,
-	//      updated_at = ?
-	//  WHERE id = ?
-	//    AND current_deployment_id = ?
-	ClearAppCurrentDeployment(ctx context.Context, arg ClearAppCurrentDeploymentParams) error
-	//ClearAppCurrentDeploymentByEnvironment
-	//
-	//  UPDATE apps a
-	//  JOIN deployments d ON d.id = a.current_deployment_id
-	//  SET a.current_deployment_id = NULL, a.updated_at = ?
-	//  WHERE d.environment_id = ?
-	ClearAppCurrentDeploymentByEnvironment(ctx context.Context, arg ClearAppCurrentDeploymentByEnvironmentParams) error
 	// Gated on the deployment id so it is a no-op if a concurrent deploy already
 	// re-pointed current_deployment_id at something else.
 	//
@@ -2761,19 +2742,6 @@ type Querier interface {
 	//  LEFT JOIN projects p ON p.id = e.project_id
 	//  ORDER BY e.pk
 	ScanEnvironmentsForCleanup(ctx context.Context, arg ScanEnvironmentsForCleanupParams) ([]ScanEnvironmentsForCleanupRow, error)
-	// Restores an app's current deployment on resume (the inverse of
-	// ClearAppCurrentDeployment, which teardown uses on suspend). Sets only
-	// current_deployment_id and updated_at_m; leaves is_rolled_back untouched.
-	// Guarded on the pointer still being unset: if anything promoted a new
-	// current deployment between suspend and resume, restoring the suspension
-	// record would silently roll the app back to the old version.
-	//
-	//  UPDATE `apps`
-	//  SET current_deployment_id = ?,
-	//      updated_at = ?
-	//  WHERE id = ?
-	//    AND current_deployment_id IS NULL
-	SetAppCurrentDeployment(ctx context.Context, arg SetAppCurrentDeploymentParams) error
 	// Guarded on the pointer still being unset, so restoring a suspension record
 	// never overwrites a deployment promoted in the meantime.
 	//
@@ -2899,15 +2867,6 @@ type Querier interface {
 	//  SET name = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateAppConnectionName(ctx context.Context, arg UpdateAppConnectionNameParams) error
-	//UpdateAppDeployments
-	//
-	//  UPDATE apps
-	//  SET
-	//    current_deployment_id = ?,
-	//    is_rolled_back = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateAppDeployments(ctx context.Context, arg UpdateAppDeploymentsParams) error
 	//UpdateClickhouseWorkspaceSettingsLimits
 	//
 	//  UPDATE `clickhouse_workspace_settings`

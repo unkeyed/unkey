@@ -4078,15 +4078,6 @@ type Querier interface {
 	//    AND app_id = ?
 	//    AND environment_id = ?
 	UpdateAppBuildSettings(ctx context.Context, db DBTX, arg UpdateAppBuildSettingsParams) error
-	//UpdateAppDeployments
-	//
-	//  UPDATE apps
-	//  SET
-	//    current_deployment_id = ?,
-	//    is_rolled_back = ?,
-	//    updated_at = ?
-	//  WHERE id = ?
-	UpdateAppDeployments(ctx context.Context, db DBTX, arg UpdateAppDeploymentsParams) error
 	// Updates only the columns whose *_specified flag is 1, preserving all others.
 	// sentinel_config is intentionally absent from the SET list so it is preserved
 	// without a prior read. healthcheck and openapi_spec_path are clearable (narg).

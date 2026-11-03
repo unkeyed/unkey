@@ -23,11 +23,10 @@ type restoreCheck struct {
 	Eligible      bool
 	Reason        string
 	EnvironmentID string
-	AppID         string
 }
 
 func staleRestore(reason string) restoreCheck {
-	return restoreCheck{Eligible: false, Reason: reason, EnvironmentID: "", AppID: ""}
+	return restoreCheck{Eligible: false, Reason: reason, EnvironmentID: ""}
 }
 
 // restoreEntry is one suspended deployment and the environment or, for records
@@ -131,7 +130,7 @@ func (v *VirtualObject) Resume(ctx restate.ObjectContext, _ *hydrav1.ResumeReque
 			if environment.CurrentDeploymentID.Valid && environment.CurrentDeploymentID.String != "" {
 				return staleRestore("a newer current deployment was promoted while suspended"), nil
 			}
-			return restoreCheck{Eligible: true, Reason: "", EnvironmentID: d.EnvironmentID, AppID: d.AppID}, nil
+			return restoreCheck{Eligible: true, Reason: "", EnvironmentID: d.EnvironmentID}, nil
 		}, restate.WithName("verify restore "+deploymentID))
 		if err != nil {
 			return nil, fmt.Errorf("verify restore for deployment %s: %w", deploymentID, err)
@@ -166,17 +165,7 @@ func (v *VirtualObject) Resume(ctx restate.ObjectContext, _ *hydrav1.ResumeReque
 				if eErr != nil {
 					return false, eErr
 				}
-				if !environment.CurrentDeploymentID.Valid || environment.CurrentDeploymentID.String != deploymentID {
-					return false, nil
-				}
-				if err := queries.SetAppCurrentDeployment(txCtx, db.SetAppCurrentDeploymentParams{
-					DeploymentID: sql.NullString{Valid: true, String: deploymentID},
-					UpdatedAt:    now,
-					AppID:        check.AppID,
-				}); err != nil {
-					return false, err
-				}
-				return true, nil
+				return environment.CurrentDeploymentID.Valid && environment.CurrentDeploymentID.String == deploymentID, nil
 			})
 		}, restate.WithName("restore current "+deploymentID))
 		if err != nil {
