@@ -21,7 +21,7 @@ export const DefaultDialogHeader = ({ title, subTitle, className }: DefaultDialo
     <ShadcnDialogHeader
       className={cn("space-y-0 border-b bg-raised px-4.5 pt-3.75 pb-4 pr-12", className)}
     >
-      <ShadcnDialogTitle className="text-[1rem] leading-6">{title}</ShadcnDialogTitle>
+      <ShadcnDialogTitle className="text-base leading-6">{title}</ShadcnDialogTitle>
       {subTitle && <ShadcnDialogDescription>{subTitle}</ShadcnDialogDescription>}
     </ShadcnDialogHeader>
   );
