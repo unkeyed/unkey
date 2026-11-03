@@ -1,0 +1,77 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp
+  namespace: unkey
+  labels:
+    app: mcp
+    component: unkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp
+  template:
+    metadata:
+      labels:
+        app: mcp
+        component: unkey
+    spec:
+      containers:
+        - name: mcp
+          image: unkey/mcp:dev
+          imagePullPolicy: Never
+          env:
+            - name: PORT
+              value: "7095"
+            # MCP clients reach svc/mcp and the API through Tilt's port
+            # forwards, so OAuth resources and the issuer use localhost URLs.
+            # Tool calls go to the API inside the cluster.
+            - name: PUBLIC_URL
+              value: "http://localhost:7095"
+            - name: OAUTH_ISSUER
+              value: "http://localhost:7070"
+            - name: API_URL
+              value: "http://api:7070"
+          ports:
+            - name: http
+              containerPort: 7095
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 1
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp
+  namespace: unkey
+  labels:
+    app: mcp
+    component: unkey
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 7095
+      targetPort: 7095
+      protocol: TCP
+  selector:
+    app: mcp
