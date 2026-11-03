@@ -23,11 +23,12 @@ The app or keyspace it served is untouched, and its slug becomes free for a new 
 
 Required Permissions
 
-Your root key must have one of:
-- portal.*.delete_portal (to delete any portal in the workspace)
-- portal.<portal_id>.delete_portal (to delete a specific portal)
+Your root key must have delete permission on
+unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>.
+A broader grant, such as unkey:v1:<workspace_id>:**#delete, also permits deletion.
 
-Without the permission this returns 404, not 403.
+A root key that cannot read the portal gets 404. One that can read it
+but lacks the permission gets 403.
 
 For full documentation, see https://www.unkey.com/docs/api-reference/portal/delete-portal` + util.Disclaimer,
 		Examples: []string{
