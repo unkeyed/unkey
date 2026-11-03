@@ -78,6 +78,7 @@ export const DeleteNamespaceDialog = ({
         isOpen={isModalOpen}
         onOpenChange={onOpenChange}
         title="Delete Namespace"
+        subTitle="Permanently delete this namespace. This cannot be undone."
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button
@@ -85,16 +86,13 @@ export const DeleteNamespaceDialog = ({
               form="delete-namespace-form" // Connect to form ID
               variant="primary"
               color="danger"
-              size="xlg"
+              size="md"
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
-              className="w-full rounded-lg"
+              className="w-full"
             >
               Delete Namespace
             </Button>
-            <div className="text-gray-9 text-xs">
-              This action cannot be undone – proceed with caution
-            </div>
           </div>
         }
       >

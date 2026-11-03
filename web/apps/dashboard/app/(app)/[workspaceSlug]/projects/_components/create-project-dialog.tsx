@@ -98,16 +98,13 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
             type="submit"
             form="create-project-form"
             variant="primary"
-            size="xlg"
+            size="md"
             disabled={isBusy || !isValid}
             loading={isBusy}
-            className="w-full rounded-lg"
+            className="w-full"
           >
             Create Project
           </Button>
-          <div className="text-gray-9 text-xs">
-            You'll be redirected to your new project after creation
-          </div>
         </div>
       }
     >

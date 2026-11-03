@@ -82,16 +82,13 @@ export function DeleteProject({ project }: { project: Project }) {
               form="delete-project-form"
               variant="primary"
               color="danger"
-              size="xlg"
-              className="w-full rounded-lg"
+              size="md"
+              className="w-full"
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
             >
               Delete project
             </Button>
-            <div className="text-gray-9 text-xs">
-              This action cannot be undone – proceed with caution
-            </div>
           </div>
         }
       >

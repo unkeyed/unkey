@@ -58,7 +58,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-[560px] rounded-2xl! p-0 gap-0 overflow-hidden"
+        className="max-w-[560px] p-0 gap-0 overflow-hidden"
         style={{
           background:
             "radial-gradient(circle at 5% 15%, var(--color-grayA-3) 0%, transparent 20%), var(--color-gray-1)",

@@ -33,7 +33,7 @@ export function SecretKeyDialog({
     >
       <DialogContent
         preventOutsideClose
-        className="w-full max-w-[560px] gap-4 rounded-2xl! border-grayA-4 p-6"
+        className="w-full max-w-[560px] gap-4 border-grayA-4 p-6 pt-4"
       >
         <DialogTitle>{title}</DialogTitle>
         <p className="text-sm leading-5 text-gray-11">

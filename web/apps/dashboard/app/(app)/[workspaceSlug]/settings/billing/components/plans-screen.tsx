@@ -125,7 +125,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="group/plans top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none bg-background p-0 transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-ending-style:scale-100 data-starting-style:scale-100 data-ending-style:duration-150 motion-reduce:transition-none sm:rounded-none [&>button[aria-label='Close_dialog']]:top-8 [&>button[aria-label='Close_dialog']]:right-8">
+      <DialogContent className="group/plans top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-hidden bg-background p-0 transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-ending-style:scale-100 data-starting-style:scale-100 data-ending-style:duration-150 motion-reduce:transition-none [&>button[aria-label='Close_dialog']]:top-8 [&>button[aria-label='Close_dialog']]:right-8">
         <div className="h-full overflow-y-auto">
           <div className="overflow-clip">
             <Tabs

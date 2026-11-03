@@ -77,8 +77,8 @@ export function DeleteApp() {
               form="delete-app-form"
               variant="primary"
               color="danger"
-              size="xlg"
-              className="w-full rounded-lg"
+              size="md"
+              className="w-full"
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
             >

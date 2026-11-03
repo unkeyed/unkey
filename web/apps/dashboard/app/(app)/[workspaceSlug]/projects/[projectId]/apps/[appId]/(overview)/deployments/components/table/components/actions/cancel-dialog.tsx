@@ -46,11 +46,11 @@ export const CancelDialog = ({ isOpen, onClose, onCancelled, deployment }: Cance
       footer={
         <Button
           variant="destructive"
-          size="xlg"
+          size="md"
           onClick={handleCancel}
           disabled={cancel.isLoading}
           loading={cancel.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Cancel deployment
         </Button>

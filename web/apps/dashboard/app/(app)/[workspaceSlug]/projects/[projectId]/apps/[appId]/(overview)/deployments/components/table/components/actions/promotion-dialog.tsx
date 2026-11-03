@@ -59,11 +59,11 @@ export const PromotionDialog = ({
       footer={
         <Button
           variant="primary"
-          size="xlg"
+          size="md"
           onClick={handlePromotion}
           disabled={promote.isLoading}
           loading={promote.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Promote target deployment
         </Button>
