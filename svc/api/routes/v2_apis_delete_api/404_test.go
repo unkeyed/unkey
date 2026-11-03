@@ -16,6 +16,32 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_delete_api"
 )
 
+func TestDeleteAPIHidesUnreadableExistence(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		Caches:    h.Caches,
+	}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:projects/*#read", workspace.ID))
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+	absent := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{ApiId: uid.New(uid.APIPrefix)})
+	require.Equal(t, http.StatusNotFound, absent.Status)
+	existing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{ApiId: api.ID})
+	require.Equal(t, absent.Status, existing.Status, "received: %s", existing.RawBody)
+	require.Equal(t, absent.Body.Error, existing.Body.Error)
+	require.NotContains(t, existing.RawBody, api.KeyAuthID.String)
+	notDeleted, err := db.Query.FindApiByID(context.Background(), h.DB.RO(), api.ID)
+	require.NoError(t, err)
+	require.False(t, notDeleted.DeletedAtM.Valid)
+}
+
 func TestNotFoundErrors(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
