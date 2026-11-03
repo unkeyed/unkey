@@ -19,7 +19,7 @@ export function fromQuery<Q extends QueryResult<T>, T = Exclude<Q["data"], undef
   query: Q,
 ): Loadable<T> {
   const retry = () => {
-    void query.refetch();
+    query.refetch().catch(() => {});
   };
   if (query.data !== undefined) {
     return {
@@ -36,4 +36,23 @@ export function fromQuery<Q extends QueryResult<T>, T = Exclude<Q["data"], undef
 
 export function readyOr<T>(view: Loadable<T>, fallback: T): T {
   return view.status === "ready" ? view.data : fallback;
+}
+
+export type Blocker = { status: "loading" } | ({ status: "failed" } & Failure);
+
+export function blockerOf(views: ReadonlyArray<Loadable<unknown>>): Blocker | null {
+  const failed = views.flatMap((view) => (view.status === "failed" ? [view] : []));
+  const first = failed.at(0);
+  if (first) {
+    return {
+      status: "failed",
+      error: first.error,
+      retry: () => {
+        for (const view of failed) {
+          view.retry();
+        }
+      },
+    };
+  }
+  return views.some((view) => view.status === "loading") ? { status: "loading" } : null;
 }

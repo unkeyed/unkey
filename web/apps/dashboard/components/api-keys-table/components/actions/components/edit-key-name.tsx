@@ -103,14 +103,13 @@ export const EditKeyName = ({ keyDetails, isOpen, onClose }: EditKeyNameProps) =
                 type="submit"
                 form="edit-key-name-form"
                 variant="primary"
-                size="xlg"
-                className="w-full rounded-lg"
+                size="md"
+                className="w-full"
                 disabled={!isValid || isSubmitting}
                 loading={key.isLoading}
               >
                 {isSubmitting ? "Saving..." : "Update key name"}
               </Button>
-              <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
           }
         >

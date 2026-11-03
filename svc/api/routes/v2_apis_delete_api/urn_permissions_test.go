@@ -110,7 +110,11 @@ func TestDeleteAPIRejectsNonmatchingURNPermission(t *testing.T) {
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}, handler.Request{ApiId: target.ID})
-			require.Equal(t, http.StatusForbidden, res.Status, "received: %s", res.RawBody)
+			status := http.StatusNotFound
+			if tc.name == "action" {
+				status = http.StatusForbidden
+			}
+			require.Equal(t, status, res.Status, "received: %s", res.RawBody)
 
 			notDeleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), target.ID)
 			require.NoError(t, err)
@@ -176,11 +180,11 @@ func TestDeleteAPIUsesKeyspaceProjectForURNPermission(t *testing.T) {
 		permission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", workspace.ID, api.ProjectID, api.KeyAuthID.String)
 		rootKey := h.CreateRootKey(workspace.ID, permission)
 
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 		}, handler.Request{ApiId: api.ID})
-		require.Equal(t, http.StatusForbidden, res.Status, "received: %s", res.RawBody)
+		require.Equal(t, http.StatusNotFound, res.Status, "received: %s", res.RawBody)
 
 		notDeleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
 		require.NoError(t, err)
@@ -250,11 +254,11 @@ func TestDeleteAPIWithoutKeyspaceRejectsDeletion(t *testing.T) {
 	} {
 		t.Run(permission, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, permission)
-			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}, handler.Request{ApiId: api.ID})
-			require.Equal(t, http.StatusForbidden, res.Status, "received: %s", res.RawBody)
+			require.Equal(t, http.StatusNotFound, res.Status, "received: %s", res.RawBody)
 		})
 	}
 

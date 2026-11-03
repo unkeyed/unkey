@@ -93,7 +93,7 @@ func TestDeleteProtectionWithReplicaLag(t *testing.T) {
 		WorkspaceID: api.WorkspaceID,
 	})
 
-	replicaConfig := containers.MySQLIsolated(t)
+	replicaConfig := containers.MySQLLogicalIsolated(t)
 	replica, err := db.New(db.Config{
 		PrimaryDSN: replicaConfig.DSN,
 		Tags:       sqlcomment.Disabled(),

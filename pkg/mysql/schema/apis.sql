@@ -18,3 +18,4 @@ CREATE TABLE `apis` (
 CREATE INDEX `workspace_id_idx` ON `apis` (`workspace_id`);
 
 CREATE INDEX `apis_project_id_idx` ON `apis` (`project_id`);
+

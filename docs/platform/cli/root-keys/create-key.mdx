@@ -34,6 +34,10 @@ unkey root-keys create --permissions=<permissions> [flags]
   Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration. The flag accepts an integer. Use `--body` to send `expires: null`.
 </ParamField>
 
+<ParamField body="--ip-allowlist" type="string[]">
+  IPv4 or IPv6 addresses and CIDR ranges allowed to use this root key. Omit to inherit the calling root key's allowlist. A caller without an IP restriction creates an unrestricted key when this flag is omitted. Pass comma-separated values. An explicit list must stay within the caller's allowed networks. A restricted caller cannot pass an empty `--ip-allowlist=`.
+</ParamField>
+
 <ParamField body="--name" type="string">
   Optional name for the root key.
 </ParamField>

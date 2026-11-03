@@ -11,7 +11,6 @@ import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type DeploymentSummary, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import {
   findRolledBackFrom,
   previousRollbackTarget,
@@ -19,6 +18,7 @@ import {
 } from "@/lib/collections/deploy/rollback";
 import { useDeployment, useDeploymentsPolling } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
+import { ENVIRONMENT_KIND } from "@/lib/queries/environments";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Card } from "@unkey/ui";

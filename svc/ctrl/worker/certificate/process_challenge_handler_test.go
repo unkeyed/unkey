@@ -51,7 +51,7 @@ func TestProcessChallengeMissingDomainDoesNotRetry(t *testing.T) {
 
 func TestProcessChallengeRejectsWorkspaceThatLostTheDomain(t *testing.T) {
 	ctx := t.Context()
-	mysqlCfg := containers.MySQLIsolated(t)
+	mysqlCfg := containers.MySQL(t)
 	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

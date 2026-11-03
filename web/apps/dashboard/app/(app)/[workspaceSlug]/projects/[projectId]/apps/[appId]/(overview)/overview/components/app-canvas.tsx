@@ -16,6 +16,7 @@ import type { Deployment, DeploymentSummary } from "@/lib/deploy-data";
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {
+  Github,
   IconClockOutline18,
   IconCodeBranchOutline18,
   IconCubeOutline18,
@@ -179,7 +180,7 @@ function AppNode() {
   const summary = summarizeInstances(deployment);
   const regions = groupInstancesByRegion(deployment).map((r) => r.name);
   const image = imageRefOf(deployment)?.note ?? null;
-  const commit = commitRefOf(deployment);
+  const commit = deployment.source === "git" ? commitRefOf(deployment) : null;
   const replacedRef = replaced && REF_OF_SOURCE[replaced.source](replaced);
   const replacedChip = replacedRef ? <RefChip value={replacedRef} replaced /> : undefined;
 
@@ -203,8 +204,6 @@ function AppNode() {
               label="Branch"
               value={deployment.gitBranch || "—"}
               fullValue={deployment.gitBranch || undefined}
-              mono
-              hint={commit ? <RefChip value={commit} /> : undefined}
               detail={replacedChip}
             />
           ))
@@ -226,13 +225,12 @@ function AppNode() {
                   icon={<IconCodeBranchOutline18 />}
                   label="Default branch"
                   value={canvas.defaultBranch}
-                  mono
                 />
               )}
             </>
           ))
           .exhaustive()}
-        {stamp && <DeployedRow stamp={stamp} />}
+        {stamp && <DeployedRow stamp={stamp} commit={commit} />}
         <RowItem
           icon={<IconEarthOutline18 />}
           label="Regions"
@@ -250,7 +248,7 @@ function AppNode() {
   );
 }
 
-type Ref = { shown: string; mono: boolean; code: string; note: string | null };
+type Ref = { shown: string; code: string; note: string | null };
 
 function commitRefOf(deployment: DeploymentSummary): Ref | null {
   if (!deployment.gitCommitSha) {
@@ -258,7 +256,7 @@ function commitRefOf(deployment: DeploymentSummary): Ref | null {
   }
   const code = deployment.gitCommitSha.slice(0, 7);
   const note = deployment.gitCommitMessage || null;
-  return { shown: note ?? code, mono: note === null, code, note };
+  return { shown: note ?? code, code, note };
 }
 
 function imageRefOf(deployment: DeploymentSummary): Ref | null {
@@ -267,7 +265,7 @@ function imageRefOf(deployment: DeploymentSummary): Ref | null {
     return null;
   }
   const code = imageRefTag(image);
-  return { shown: code, mono: true, code, note: image };
+  return { shown: code, code, note: image };
 }
 
 const REF_OF_SOURCE: Record<Deployment["source"], (deployment: DeploymentSummary) => Ref | null> = {
@@ -276,21 +274,26 @@ const REF_OF_SOURCE: Record<Deployment["source"], (deployment: DeploymentSummary
   unknown: () => null,
 };
 
+function RefTooltip({ value, replaced = false }: { value: Ref; replaced?: boolean }) {
+  const { code, note } = value;
+  return (
+    <span data-sentry-mask className="flex max-w-80 flex-col gap-0.5">
+      {replaced && <span className="opacity-70">Replaced</span>}
+      <span className={cn("flex min-w-0 gap-1.5", replaced && "line-through")}>
+        <span className="shrink-0">{code}</span>
+        {note && <span className="truncate">{note}</span>}
+      </span>
+    </span>
+  );
+}
+
 function RefChip({ value, replaced = false }: { value: Ref; replaced?: boolean }) {
-  const { shown, mono, code, note } = value;
+  const { shown, code, note } = value;
   return (
     <InfoTooltip
       asChild
       position={{ side: "top" }}
-      content={
-        <span data-sentry-mask className="flex max-w-80 flex-col gap-0.5">
-          {replaced && <span className="opacity-70">Replaced</span>}
-          <span className={cn("flex min-w-0 gap-1.5", replaced && "line-through")}>
-            <span className="shrink-0 font-mono">{code}</span>
-            {note && <span className="truncate">{note}</span>}
-          </span>
-        </span>
-      }
+      content={<RefTooltip value={value} replaced={replaced} />}
     >
       <button
         type="button"
@@ -298,7 +301,6 @@ function RefChip({ value, replaced = false }: { value: Ref; replaced?: boolean }
         aria-label={[replaced && "Replaced", code, note].filter(Boolean).join(" ")}
         className={cn(
           "relative z-10 block min-w-0 max-w-full cursor-default truncate rounded-sm text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7",
-          mono && "font-mono",
           replaced && "line-through",
         )}
       >
@@ -308,7 +310,22 @@ function RefChip({ value, replaced = false }: { value: Ref; replaced?: boolean }
   );
 }
 
-function DeployedRow({ stamp }: { stamp: DeployStamp }) {
+function CommitIcon({ commit }: { commit: Ref }) {
+  return (
+    <InfoTooltip asChild position={{ side: "top" }} content={<RefTooltip value={commit} />}>
+      <button
+        type="button"
+        data-sentry-mask
+        aria-label={["Commit", commit.code, commit.note].filter(Boolean).join(" ")}
+        className="relative z-10 flex shrink-0 cursor-default rounded-sm text-gray-12 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 [&_svg]:size-3"
+      >
+        <Github />
+      </button>
+    </InfoTooltip>
+  );
+}
+
+function DeployedRow({ stamp, commit }: { stamp: DeployStamp; commit: Ref | null }) {
   const { actor } = stamp;
   return (
     <RowItem
@@ -316,6 +333,7 @@ function DeployedRow({ stamp }: { stamp: DeployStamp }) {
       label={stamp.verb}
       value={
         <span className="flex min-w-0 items-center gap-1.5">
+          {commit && <CommitIcon commit={commit} />}
           <TimestampInfo
             value={stamp.at}
             displayType="relative"
@@ -413,8 +431,20 @@ function PoliciesErrorNode({ onRetry, retrying }: { onRetry: () => void; retryin
   );
 }
 
-function PoliciesLoadingNode() {
-  return <Skeleton className="h-31 w-full rounded-lg" />;
+export function PoliciesLoadingNode() {
+  return (
+    <Node>
+      <NodeHeader
+        icon={<IconShieldKeyOutline18 />}
+        name={<Skeleton className="inline-block h-3 w-16 rounded align-middle" />}
+      />
+      <Rows>
+        <IconRow icon={<IconShieldKeyOutline18 />}>
+          <Skeleton className="inline-block h-3 w-3/4 rounded align-middle" />
+        </IconRow>
+      </Rows>
+    </Node>
+  );
 }
 
 type AppStatus = {

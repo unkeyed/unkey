@@ -11,6 +11,7 @@ import (
 
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 const (
@@ -38,32 +39,45 @@ type MySQLConfig struct {
 // The container is reused through the worktree's Docker Compose project.
 func MySQL(t testing.TB) MySQLConfig {
 	t.Helper()
+	dsn, database := connectMySQL(t, mysqlUser)
+	ensureSharedMySQLSchema(t, database)
+	return MySQLConfig{DSN: dsn.FormatDSN()}
+}
 
+// MySQLLogicalIsolated loads the schema into a private database on the shared
+// MySQL server and drops it during cleanup. Rows and schema changes are isolated;
+// server settings and server restarts are not.
+func MySQLLogicalIsolated(t testing.TB) MySQLConfig {
+	t.Helper()
+	dsn, admin := connectMySQL(t, "root")
+
+	databaseName := uid.New(uid.TestPrefix)
+	_, err := admin.ExecContext(t.Context(), fmt.Sprintf("CREATE DATABASE `%s`", databaseName))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, err := admin.ExecContext(context.Background(), fmt.Sprintf("DROP DATABASE `%s`", databaseName))
+		require.NoError(t, err)
+	})
+
+	dsn.DBName = databaseName
+	database, err := sql.Open("mysql", dsn.FormatDSN())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	loadMySQLSchema(t, t.Context(), database)
+	return MySQLConfig{DSN: dsn.FormatDSN()}
+}
+
+func connectMySQL(t testing.TB, user string) (*mysql.Config, *sql.DB) {
+	t.Helper()
 	containerStart := time.Now()
-
-	c := startService(t, "mysql")
+	container := startService(t, "mysql")
 	t.Logf("  MySQL container started in %s", time.Since(containerStart))
 
-	return configureMySQL(t, c)
-}
-
-// MySQLIsolated gives tests with database-wide queries a private MySQL instance.
-// The container is removed during test cleanup, after its connections close.
-func MySQLIsolated(t testing.TB) MySQLConfig {
-	t.Helper()
-	c, stop := startIsolatedService(t, "mysql")
-	t.Cleanup(stop)
-	return configureMySQL(t, c)
-}
-
-func configureMySQL(t testing.TB, c Container) MySQLConfig {
-	t.Helper()
-
 	dsnCfg := mysql.NewConfig()
-	dsnCfg.User = mysqlUser
+	dsnCfg.User = user
 	dsnCfg.Passwd = mysqlPassword
 	dsnCfg.Net = "tcp"
-	dsnCfg.Addr = c.Addr(t, mysqlPort)
+	dsnCfg.Addr = container.Addr(t, mysqlPort)
 	dsnCfg.DBName = mysqlDatabase
 	dsnCfg.ParseTime = true
 	dsnCfg.MultiStatements = true
@@ -72,26 +86,22 @@ func configureMySQL(t testing.TB, c Container) MySQLConfig {
 	pingStart := time.Now()
 	hostDB, err := sql.Open("mysql", dsnCfg.FormatDSN())
 	require.NoError(t, err)
-	defer func() { require.NoError(t, hostDB.Close()) }()
+	t.Cleanup(func() { require.NoError(t, hostDB.Close()) })
 	require.Eventually(t, func() bool {
 		pingErr := hostDB.PingContext(context.Background())
 		return pingErr == nil
 	}, 60*time.Second, 500*time.Millisecond)
 	t.Logf("  MySQL ready for connections in %s", time.Since(pingStart))
 
-	applyMySQLSchema(t, hostDB)
-
-	return MySQLConfig{
-		DSN: dsnCfg.FormatDSN(),
-	}
+	return dsnCfg, hostDB
 }
 
-// applyMySQLSchema initializes the shared database schema once.
+// ensureSharedMySQLSchema initializes the shared database schema once.
 //
 // CI can run many test processes at the same time. The advisory lock keeps
 // non-idempotent CREATE TABLE statements from racing when those processes use
-// the same MySQL container.
-func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
+// the same database.
+func ensureSharedMySQLSchema(t testing.TB, hostDB *sql.DB) {
 	t.Helper()
 
 	schemaStart := time.Now()
@@ -124,6 +134,13 @@ func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
 		return
 	}
 
+	loadMySQLSchema(t, ctx, conn)
+	markMySQLSchema(t, ctx, conn)
+	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
+}
+
+func loadMySQLSchema(t testing.TB, ctx context.Context, database mysqlSchemaDB) {
+	t.Helper()
 	schemaDir := schemaPath()
 	entries, err := os.ReadDir(schemaDir)
 	require.NoError(t, err)
@@ -133,11 +150,9 @@ func applyMySQLSchema(t testing.TB, hostDB *sql.DB) {
 		}
 		data, readErr := os.ReadFile(filepath.Join(schemaDir, entry.Name()))
 		require.NoError(t, readErr)
-		_, execErr := conn.ExecContext(ctx, string(data))
+		_, execErr := database.ExecContext(ctx, string(data))
 		require.NoError(t, execErr, "failed to apply %s", entry.Name())
 	}
-	markMySQLSchema(t, ctx, conn)
-	t.Logf("  MySQL schema loaded in %s", time.Since(schemaStart))
 }
 
 // mysqlTableExists reports whether a table exists in the current database.
