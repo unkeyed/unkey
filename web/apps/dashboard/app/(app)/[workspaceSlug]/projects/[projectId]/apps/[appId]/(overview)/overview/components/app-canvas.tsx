@@ -14,6 +14,8 @@ import {
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
 import type { Deployment, DeploymentSummary } from "@/lib/deploy-data";
 import { imageRefTag } from "@/lib/docker-image-ref";
+import { useConnectionsEnabled } from "@/lib/flags/use-connections-enabled";
+import { trpc } from "@/lib/trpc/client";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {
   Github,
@@ -54,6 +56,7 @@ import {
   RowItem,
   Rows,
 } from "./canvas/nodes";
+import { ConnectionsNode } from "./connections-node";
 import { type DeployStamp, useProductionCard } from "./production-card-context";
 import {
   type DeploymentDisplayStatus,
@@ -65,10 +68,16 @@ import {
 const NODE_ROW_LIMIT = 3;
 
 export function AppCanvas() {
-  const { canvas } = useProductionCard();
-  const { domains, domainsHref, addDomainHref, policiesHref, addPolicyHref } = canvas;
+  const { canvas, deployment } = useProductionCard();
+  const { domains, domainsHref, addDomainHref, policiesHref, addPolicyHref, connectionsHref } =
+    canvas;
   const { policies, view, retry, isRetrying } = useProductionPolicies();
   const listed = view.type === "list";
+  const connectionsEnabled = useConnectionsEnabled();
+  const connections = trpc.deploy.deployment.listConnections.useQuery(
+    { projectId: deployment.projectId, deploymentId: deployment.id },
+    { enabled: connectionsEnabled },
+  );
 
   return (
     <Canvas label="App canvas">
@@ -82,7 +91,7 @@ export function AppCanvas() {
       <Group icon={<IconCubeOutline18 />} label="App">
         <AppNode />
       </Group>
-      <HFlow empty={!listed} />
+      <HFlow empty={!listed && !(connectionsEnabled && connections.data?.connections.length)} />
       <Group
         icon={<IconGridOutline18 />}
         label={listed ? `Services · ${policies.length}` : "Services"}
@@ -100,6 +109,7 @@ export function AppCanvas() {
           ))
           .with("list", () => <PoliciesNode policies={policies} href={policiesHref} />)
           .exhaustive()}
+        {connectionsEnabled && <ConnectionsNode query={connections} href={connectionsHref} />}
       </Group>
     </Canvas>
   );

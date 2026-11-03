@@ -6,6 +6,7 @@ import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { warmDeploymentsPage } from "@/lib/deploy-data";
 import { useFlag } from "@/lib/flags/provider";
+import { useConnectionsEnabled } from "@/lib/flags/use-connections-enabled";
 import { useDatabasesEnabled } from "@/lib/flags/use-databases-enabled";
 import {
   buildApiLinks,
@@ -36,6 +37,7 @@ export function SidebarBody() {
   const portalManagement = useFlag("portalManagement");
   const projectsNav = useFlag("projectsNav");
   const appV2 = useFlag("appV2");
+  const connectionsEnabled = useConnectionsEnabled();
   const databasesEnabled = useDatabasesEnabled();
   const { user } = useWorkspace();
   const prefetchUsage = usePrefetchWorkspaceUsage();
@@ -63,7 +65,10 @@ export function SidebarBody() {
       case "project": {
         const { projectId, appId } = context;
         return appId
-          ? buildAppLinks(slug, projectId, appId, segments, { metrics: appV2 }).map((link) =>
+          ? buildAppLinks(slug, projectId, appId, segments, {
+              metrics: appV2,
+              connections: connectionsEnabled,
+            }).map((link) =>
               link.key === "deployments"
                 ? { ...link, onIntent: () => warmDeploymentsPage(queryClient, projectId, appId) }
                 : link,
