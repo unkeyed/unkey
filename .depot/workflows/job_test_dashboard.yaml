@@ -14,7 +14,10 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Test
-        run: mise run test-web -- --filter=@unkey/dashboard
+        id: test
+        run: |
+          set -o pipefail
+          mise run test-web -- --filter=@unkey/dashboard 2>&1 | tee test.log
         env:
           CI: 1
           NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,3 +47,9 @@ jobs:
           VAULT_URL: "http://localhost:8060"
           VAULT_TOKEN: "not-empty"
           AUTH_PROVIDER: "local"
+      - name: Triage flaky test
+        if: failure() && steps.test.outcome == 'failure'
+        uses: ./.depot/actions/triage-flaky-test
+        with:
+          amp-api-key: ${{ secrets.AMP_FLAKY_TRIAGE_API_KEY }}
+          log-file: test.log

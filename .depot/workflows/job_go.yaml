@@ -30,6 +30,15 @@ jobs:
       - name: Build
         run: mise run build
       - name: Run tests
+        id: test
         env:
           RASK_AXIOM_TRACE_TOKEN: ${{ secrets.RASK_AXIOM_TRACE_TOKEN }}
-        run: mise run test
+        run: |
+          set -o pipefail
+          mise run test 2>&1 | tee test.log
+      - name: Triage flaky test
+        if: failure() && steps.test.outcome == 'failure'
+        uses: ./.depot/actions/triage-flaky-test
+        with:
+          amp-api-key: ${{ secrets.AMP_FLAKY_TRIAGE_API_KEY }}
+          log-file: test.log
