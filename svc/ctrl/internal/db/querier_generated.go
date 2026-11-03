@@ -808,7 +808,7 @@ type Querier interface {
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
 	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
-	//      first_ready_at, ever_ready, fork_key, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
@@ -819,7 +819,7 @@ type Querier interface {
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
 	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
-	//      first_ready_at, ever_ready, fork_key, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	//FindDeploymentForBuild
@@ -1120,12 +1120,12 @@ type Querier interface {
 	// was ever ready in a preview environment of the app.
 	//
 	//  SELECT candidate.id
-	//  FROM deployments candidate
+	//  FROM deployments candidate FORCE INDEX (app_environment_ready_created_idx)
 	//  INNER JOIN environments target_env ON target_env.id = candidate.environment_id
 	//      AND target_env.app_id = candidate.app_id
 	//  WHERE candidate.app_id = ?
 	//      AND candidate.environment_id = ?
-	//      AND candidate.ever_ready = TRUE
+	//      AND (candidate.first_ready_at IS NOT NULL) = TRUE
 	//      AND candidate.workspace_id = ?
 	//      AND candidate.project_id = ?
 	//      AND target_env.kind = 'preview'
@@ -1143,8 +1143,8 @@ type Querier interface {
 	//      AND candidate_env.app_id = candidate.app_id
 	//  WHERE candidate.app_id = ?
 	//      AND candidate.git_branch = ?
-	//      AND candidate.fork_key = ?
-	//      AND candidate.ever_ready = TRUE
+	//      AND (CASE WHEN candidate.fork_repository_full_name IS NULL THEN '' ELSE candidate.fork_repository_full_name END) = ?
+	//      AND (candidate.first_ready_at IS NOT NULL) = TRUE
 	//      AND candidate.workspace_id = ?
 	//      AND candidate.project_id = ?
 	//      AND candidate.source = 'git'
@@ -2244,7 +2244,7 @@ type Querier interface {
 	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
 	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
-	//      first_ready_at, ever_ready, fork_key, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 	//  FROM deployments
 	//  WHERE environment_id = ?
 	//    AND status = ?
@@ -2406,7 +2406,7 @@ type Querier interface {
 	//      caller_env.kind AS caller_environment_kind,
 	//      caller.source AS caller_source,
 	//      COALESCE(caller.git_branch, '') AS caller_git_branch,
-	//      caller.fork_key AS caller_fork_key,
+	//      COALESCE(caller.fork_repository_full_name, '') AS caller_fork_key,
 	//      COALESCE(target_app.current_deployment_id, '') AS live_deployment_id,
 	//      COALESCE(live_env.id, '') AS live_environment_id
 	//  FROM deployment_connections b

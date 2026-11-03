@@ -22,7 +22,7 @@ SELECT
     caller_env.kind AS caller_environment_kind,
     caller.source AS caller_source,
     COALESCE(caller.git_branch, '') AS caller_git_branch,
-    caller.fork_key AS caller_fork_key,
+    COALESCE(caller.fork_repository_full_name, '') AS caller_fork_key,
     COALESCE(target_app.current_deployment_id, '') AS live_deployment_id,
     COALESCE(live_env.id, '') AS live_environment_id
 FROM deployment_connections b

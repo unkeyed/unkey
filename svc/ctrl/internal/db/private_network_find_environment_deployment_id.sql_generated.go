@@ -11,12 +11,12 @@ import (
 
 const findPrivateNetworkEnvironmentDeploymentId = `-- name: FindPrivateNetworkEnvironmentDeploymentId :one
 SELECT candidate.id
-FROM deployments candidate
+FROM deployments candidate FORCE INDEX (app_environment_ready_created_idx)
 INNER JOIN environments target_env ON target_env.id = candidate.environment_id
     AND target_env.app_id = candidate.app_id
 WHERE candidate.app_id = ?
     AND candidate.environment_id = ?
-    AND candidate.ever_ready = TRUE
+    AND (candidate.first_ready_at IS NOT NULL) = TRUE
     AND candidate.workspace_id = ?
     AND candidate.project_id = ?
     AND target_env.kind = 'preview'
@@ -35,12 +35,12 @@ type FindPrivateNetworkEnvironmentDeploymentIdParams struct {
 // was ever ready in a preview environment of the app.
 //
 //	SELECT candidate.id
-//	FROM deployments candidate
+//	FROM deployments candidate FORCE INDEX (app_environment_ready_created_idx)
 //	INNER JOIN environments target_env ON target_env.id = candidate.environment_id
 //	    AND target_env.app_id = candidate.app_id
 //	WHERE candidate.app_id = ?
 //	    AND candidate.environment_id = ?
-//	    AND candidate.ever_ready = TRUE
+//	    AND (candidate.first_ready_at IS NOT NULL) = TRUE
 //	    AND candidate.workspace_id = ?
 //	    AND candidate.project_id = ?
 //	    AND target_env.kind = 'preview'

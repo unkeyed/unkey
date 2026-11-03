@@ -17,8 +17,8 @@ INNER JOIN environments candidate_env ON candidate_env.id = candidate.environmen
     AND candidate_env.app_id = candidate.app_id
 WHERE candidate.app_id = ?
     AND candidate.git_branch = ?
-    AND candidate.fork_key = ?
-    AND candidate.ever_ready = TRUE
+    AND (CASE WHEN candidate.fork_repository_full_name IS NULL THEN '' ELSE candidate.fork_repository_full_name END) = ?
+    AND (candidate.first_ready_at IS NOT NULL) = TRUE
     AND candidate.workspace_id = ?
     AND candidate.project_id = ?
     AND candidate.source = 'git'
@@ -30,7 +30,7 @@ LIMIT 1
 type FindPrivateNetworkPreviewDeploymentIdParams struct {
 	AppID       string         `db:"app_id"`
 	GitBranch   sql.NullString `db:"git_branch"`
-	ForkKey     string         `db:"fork_key"`
+	ForkKey     sql.NullString `db:"fork_key"`
 	WorkspaceID string         `db:"workspace_id"`
 	ProjectID   string         `db:"project_id"`
 }
@@ -46,8 +46,8 @@ type FindPrivateNetworkPreviewDeploymentIdParams struct {
 //	    AND candidate_env.app_id = candidate.app_id
 //	WHERE candidate.app_id = ?
 //	    AND candidate.git_branch = ?
-//	    AND candidate.fork_key = ?
-//	    AND candidate.ever_ready = TRUE
+//	    AND (CASE WHEN candidate.fork_repository_full_name IS NULL THEN '' ELSE candidate.fork_repository_full_name END) = ?
+//	    AND (candidate.first_ready_at IS NOT NULL) = TRUE
 //	    AND candidate.workspace_id = ?
 //	    AND candidate.project_id = ?
 //	    AND candidate.source = 'git'

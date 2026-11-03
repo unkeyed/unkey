@@ -80,7 +80,7 @@ func (q *Queries) ListPrivateNetworkConnections(ctx context.Context, arg ListPri
 			} else if s.CallerSource == DeploymentsSourceGit && s.CallerGitBranch != "" {
 				previews.add(i, FindPrivateNetworkPreviewDeploymentIdParams{
 					AppID: s.AppID, WorkspaceID: s.WorkspaceID, ProjectID: s.ProjectID,
-					GitBranch: sql.NullString{String: s.CallerGitBranch, Valid: true}, ForkKey: s.CallerForkKey,
+					GitBranch: sql.NullString{String: s.CallerGitBranch, Valid: true}, ForkKey: sql.NullString{String: s.CallerForkKey, Valid: true},
 				})
 			}
 		case DeploymentConnectionAppTargetsSelectionModeEnvironment:
