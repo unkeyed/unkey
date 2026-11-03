@@ -103,9 +103,12 @@ export const keys = mysqlTable(
     // groups by key_auth_id. key_auth_id_deleted_at_idx does not carry
     // workspace_id, so the replica reads the row of every key in the workspace
     // to evaluate the filter, which takes 100s+ on a large keyspace.
-    workspaceKeyAuthAndDeletedIndex: index(
-      "idx_keys_on_workspace_id_key_auth_id_deleted_at",
-    ).on(table.workspaceId, table.keyAuthId, table.deletedAtM, table.id),
+    workspaceKeyAuthAndDeletedIndex: index("idx_keys_on_workspace_id_key_auth_id_deleted_at").on(
+      table.workspaceId,
+      table.keyAuthId,
+      table.deletedAtM,
+      table.id,
+    ),
     // Dashboard's keys-overview pagination sorts by last_used_at DESC under
     // (key_auth_id, deletedAtM IS NULL) — without this, the list falls back
     // to filesort and the p99 blows up to ~8s on busy keyspaces.
