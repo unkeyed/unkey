@@ -42,12 +42,6 @@ type Querier interface {
 	//  FROM clickhouse_outbox
 	//  WHERE workspace_id = ?
 	CountClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
-	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
-	//
-	//  SELECT COUNT(*)
-	//  FROM custom_domains
-	//  WHERE workspace_id = ?
-	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	// CountIdentitiesByWorkspace counts every identity row in a workspace,
 	// including soft-deleted ones. Intended for tests.
 	//
@@ -342,11 +336,11 @@ type Querier interface {
 	//FindApiByID
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
-	FindApiByID(ctx context.Context, db DBTX, id string) (FindApiByIDRow, error)
+	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	// FindApiByIDForUpdate locks the API so mutation checks remain valid until commit.
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ? FOR UPDATE
-	FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) (FindApiByIDForUpdateRow, error)
+	FindApiByIDForUpdate(ctx context.Context, db DBTX, id string) (Api, error)
 	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
 	// apis.key_auth_id is unique, so each keyspace resolves to at most one api and project.
 	//
@@ -1016,7 +1010,6 @@ type Querier interface {
 	//    b.plan,
 	//    b.plan_override,
 	//    CAST((SELECT COUNT(*) FROM `logdrains` ld WHERE ld.`workspace_id` = l.`workspace_id`) AS SIGNED) AS `logdrains_count`,
-	//    CAST((SELECT COUNT(*) FROM `custom_domains` cd WHERE cd.`workspace_id` = l.`workspace_id`) AS SIGNED) AS `custom_domains_count`,
 	//    CAST(COALESCE(a.`total_cpu_millicores`, 0) AS SIGNED) AS `total_cpu_millicores`,
 	//    CAST(COALESCE(a.`total_memory_mib`, 0) AS SIGNED) AS `total_memory_mib`,
 	//    CAST(COALESCE(a.`total_storage_mib`, 0) AS SIGNED) AS `total_storage_mib`
@@ -1658,6 +1651,7 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
+	//      ip_allowlist,
 	//      created_at,
 	//      last_used_at,
 	//      deleted_at
@@ -1677,6 +1671,7 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
+	//      ip_allowlist,
 	//      created_at,
 	//      last_used_at,
 	//      deleted_at
@@ -2624,8 +2619,10 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
+	//      ip_allowlist,
 	//      created_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2823,6 +2820,12 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT domain
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	ListCustomDomainNamesByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]string, error)
 	// ListCustomDomains filters by IDs resolved at the most specific supplied scope.
 	// An empty scope lists the workspace. Callers authorize each returned domain.
 	//
@@ -3506,6 +3509,7 @@ type Querier interface {
 	//      end,
 	//      enabled,
 	//      expires,
+	//      ip_allowlist,
 	//      created_at,
 	//      last_used_at,
 	//      COALESCE(
@@ -4147,6 +4151,11 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND workspace_id = ?
 	UpdateHorizontalAutoscalingPolicy(ctx context.Context, db DBTX, arg UpdateHorizontalAutoscalingPolicyParams) error
+	// UpdateIPAllowlistEnabled changes workspace access to IP allowlist configuration.
+	// Existing key restrictions remain enforced when configuration is disabled.
+	//
+	//  UPDATE limits SET ip_allowlist_enabled = ? WHERE workspace_id = ?
+	UpdateIPAllowlistEnabled(ctx context.Context, db DBTX, arg UpdateIPAllowlistEnabledParams) error
 	//UpdateIdentity
 	//
 	//  UPDATE `identities`
@@ -4358,6 +4367,10 @@ type Querier interface {
 	//      enabled = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE enabled
+	//      END,
+	//      ip_allowlist = CASE
+	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
+	//          ELSE ip_allowlist
 	//      END
 	//  WHERE id = ?
 	//      AND workspace_id = ?

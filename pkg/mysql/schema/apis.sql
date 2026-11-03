@@ -4,7 +4,6 @@ CREATE TABLE `apis` (
 	`name` varchar(256) NOT NULL,
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`project_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
-	`ip_whitelist` varchar(512),
 	`auth_type` enum('key','jwt'),
 	`key_auth_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	`created_at_m` bigint NOT NULL DEFAULT 0,

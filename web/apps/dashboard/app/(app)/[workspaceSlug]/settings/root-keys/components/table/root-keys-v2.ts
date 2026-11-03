@@ -6,6 +6,8 @@ export type RootKey = {
   name: string | null;
   start: string;
   end: string;
+  enabled: boolean;
+  expires: number | null;
   createdAt: number;
   lastUsedAt: number;
   lastUpdatedAt: number | null;
@@ -39,6 +41,8 @@ function toRootKey(rootKey: V2RootKey): RootKey {
     name: rootKey.name,
     start: rootKey.start,
     end: rootKey.end,
+    enabled: rootKey.enabled,
+    expires: rootKey.expires,
     createdAt: rootKey.createdAt,
     lastUsedAt: rootKey.lastUsedAt,
     lastUpdatedAt: null,

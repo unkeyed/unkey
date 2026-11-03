@@ -94,11 +94,12 @@ export type V2WorkspaceGetLimitsResponseData = {
    */
   autoscalingReplicasMax?: V2WorkspaceGetLimitsLimit | undefined;
   /**
-   * Custom domains across all apps. `current` is the custom domains attached
+   * Custom domains across all apps. Subdomains are unlimited, so
    *
    * @remarks
-   * now. `limit` is `null` when the plan has no limit. Present only with a
-   * Compute plan.
+   * `api.acme.com`, `app.acme.com`, and `acme.com` together count as one
+   * custom domain. `current` is the custom domains counted now. `limit` is `null` when
+   * the plan has no limit. Present only with a Compute plan.
    */
   customDomainsMax?: V2WorkspaceGetLimitsLimit | undefined;
 };

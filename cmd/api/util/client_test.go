@@ -144,6 +144,7 @@ func TestExplicitConfigBeatsTheCLISession(t *testing.T) {
 	}
 	require.NoError(t, cmd.Run(context.Background(), []string{"unkey", "--config", custom}))
 	require.Equal(t, "unkey_from_file", got.Key)
+	require.Equal(t, SourceConfig, got.Source)
 	require.Empty(t, got.APIURL)
 }
 
@@ -177,6 +178,7 @@ func TestCLISessionUsesItsOwnAPIURL(t *testing.T) {
 	}
 	require.NoError(t, cmd.Run(context.Background(), []string{"unkey"}))
 	require.Equal(t, "access_from_session", got.Key)
+	require.Equal(t, SourceSession, got.Source)
 	require.Equal(t, "http://127.0.0.1:8787", got.APIURL)
 }
 
@@ -221,6 +223,7 @@ func TestCommandWithoutAConfigFlagUsesTheKeychainRootKey(t *testing.T) {
 	got, err := resolve(t, []cli.Flag{RootKeyFlag(), APIURLFlag()}, &rootKeyStore{secret: "unkey_from_chain"}, "unkey")
 	require.NoError(t, err)
 	require.Equal(t, "unkey_from_chain", got.Key)
+	require.Equal(t, SourceSavedRootKey, got.Source)
 	require.Empty(t, got.APIURL)
 }
 
@@ -235,6 +238,7 @@ func TestRootKeyFlagBeatsTheCLISession(t *testing.T) {
 	got, err := resolve(t, apiFlags(), &rootKeyStore{}, "unkey", "--root-key", "unkey_from_flag")
 	require.NoError(t, err)
 	require.Equal(t, "unkey_from_flag", got.Key)
+	require.Equal(t, SourceRootKeyFlag, got.Source)
 	require.Empty(t, got.APIURL)
 }
 
@@ -249,6 +253,7 @@ func TestEnvRootKeyBeatsTheCLISession(t *testing.T) {
 	got, err := resolve(t, apiFlags(), &rootKeyStore{}, "unkey")
 	require.NoError(t, err)
 	require.Equal(t, "unkey_from_env", got.Key)
+	require.Equal(t, SourceRootKeyEnv, got.Source)
 	require.Empty(t, got.APIURL)
 }
 
@@ -263,6 +268,7 @@ func TestCLISessionBeatsTheKeychainRootKey(t *testing.T) {
 	got, err := resolve(t, apiFlags(), &rootKeyStore{secret: "unkey_from_chain"}, "unkey")
 	require.NoError(t, err)
 	require.Equal(t, "access_from_session", got.Key)
+	require.Equal(t, SourceSession, got.Source)
 	require.Equal(t, "http://127.0.0.1:8787", got.APIURL)
 }
 
@@ -277,6 +283,7 @@ func TestEnvAPIURLSkipsASessionForAnotherHost(t *testing.T) {
 	got, err := resolve(t, apiFlags(), &rootKeyStore{secret: "unkey_from_chain"}, "unkey")
 	require.NoError(t, err)
 	require.Equal(t, "unkey_from_chain", got.Key)
+	require.Equal(t, SourceSavedRootKey, got.Source)
 	require.Empty(t, got.APIURL)
 }
 

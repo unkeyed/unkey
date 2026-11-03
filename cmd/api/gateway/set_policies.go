@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/set
 			send := func(req components.V2GatewaySetPoliciesRequestBody) error {
 				res, err := client.Gateway.SetPolicies(ctx, req)
 				if err != nil {
-					return fmt.Errorf("%s", util.FormatError(err))
+					return err
 				}
 				return util.Output(cmd, res.V2GatewaySetPoliciesResponseBody)
 			}

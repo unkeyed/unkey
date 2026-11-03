@@ -148,12 +148,6 @@ type Querier interface {
 	//  FROM `custom_domains`
 	//  WHERE domain = ?
 	CountCustomDomainsByDomain(ctx context.Context, domain string) (int64, error)
-	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
-	//
-	//  SELECT COUNT(*)
-	//  FROM custom_domains
-	//  WHERE workspace_id = ?
-	CountCustomDomainsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	// CountDeploymentConnectionAppTargetsByConnectionId verifies deletion isolation in tests.
 	//
 	//  SELECT COUNT(*) FROM deployment_connection_app_targets WHERE connection_id = ?
@@ -544,7 +538,7 @@ type Querier interface {
 	//FindApiByID
 	//
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
-	FindApiByID(ctx context.Context, id string) (FindApiByIDRow, error)
+	FindApiByID(ctx context.Context, id string) (Api, error)
 	//FindAppBuildSettingByAppEnv
 	//
 	//  SELECT app_build_settings.pk, app_build_settings.workspace_id, app_build_settings.app_id, app_build_settings.environment_id, app_build_settings.dockerfile, app_build_settings.docker_context, app_build_settings.build_command, app_build_settings.watch_paths, app_build_settings.auto_deploy, app_build_settings.created_at, app_build_settings.updated_at
@@ -676,17 +670,6 @@ type Querier interface {
 	//  ORDER BY (verification_status = 'verified') DESC, updated_at DESC, pk DESC
 	//  LIMIT 1
 	FindCustomDomainByDomain(ctx context.Context, domain string) (CustomDomain, error)
-	//FindCustomDomainByDomainOrWildcard
-	//
-	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
-	//  WHERE domain IN (?, ?)
-	//  ORDER BY
-	//      CASE WHEN domain = ? THEN 0 ELSE 1 END,
-	//      (verification_status = 'verified') DESC,
-	//      updated_at DESC,
-	//      pk DESC
-	//  LIMIT 1
-	FindCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
@@ -728,6 +711,7 @@ type Querier interface {
 	//  SELECT
 	//      p.workspace_id AS workspace_id,
 	//      w.slug AS workspace_slug,
+	//      w.k8s_namespace AS k8s_namespace,
 	//      p.id AS project_id,
 	//      a.id AS app_id,
 	//      a.source_type AS source_type,
@@ -1072,7 +1056,7 @@ type Querier interface {
 	FindLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeysByHashesParams) ([]FindLeakedKeysByHashesRow, error)
 	//FindLimitsByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
+	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, ip_allowlist_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
@@ -1152,14 +1136,78 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE platform = ? AND name = ? LIMIT 1
 	FindRegionByPlatformAndName(ctx context.Context, arg FindRegionByPlatformAndNameParams) (Region, error)
-	//FindVerifiedCustomDomainByDomainExcludingWorkspace
+	// Resolves a hostname to its verified row in custom_domains or portal_domains so
+	// certificate issuance never acts on a pending competing claim. Verification
+	// revokes contested claims first; if two verified rows ever coexist, the most
+	// recently changed one wins.
 	//
-	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
-	//  WHERE domain = ?
-	//    AND workspace_id != ?
-	//    AND verification_status = 'verified'
+	// Example: if 'app.example.com' is verified in custom_domains (updated Monday)
+	// and in portal_domains (updated Tuesday), the portal_domains row is returned.
+	//
+	//  SELECT d.id, d.workspace_id, d.domain
+	//  FROM (
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.workspace_id, portal_domains.domain,
+	//          COALESCE(portal_domains.updated_at, portal_domains.created_at) AS changed_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.domain = ?
+	//        AND portal_domains.verification_status = 'verified'
+	//  ) AS d
+	//  ORDER BY d.changed_at DESC, d.id DESC
 	//  LIMIT 1
-	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
+	FindVerifiedDomainByHostname(ctx context.Context, arg FindVerifiedDomainByHostnameParams) (FindVerifiedDomainByHostnameRow, error)
+	// Resolves an ACME challenge hostname to a verified domain row, preferring an
+	// exact match in either domain table over a custom_domains wildcard. Portal
+	// domains are never wildcards, so only custom_domains is checked for one.
+	//
+	// Example: for 'api.example.com' with wildcard '*.example.com', a verified
+	// 'api.example.com' row in either table wins over a verified '*.example.com'.
+	//
+	//  SELECT d.id, d.workspace_id, d.domain
+	//  FROM (
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain, 0 AS is_wildcard,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.workspace_id, portal_domains.domain, 0 AS is_wildcard,
+	//          COALESCE(portal_domains.updated_at, portal_domains.created_at) AS changed_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.domain = ?
+	//        AND portal_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain, 1 AS is_wildcard,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//  ) AS d
+	//  ORDER BY d.is_wildcard ASC, d.changed_at DESC, d.id DESC
+	//  LIMIT 1
+	FindVerifiedDomainByHostnameOrWildcard(ctx context.Context, arg FindVerifiedDomainByHostnameOrWildcardParams) (FindVerifiedDomainByHostnameOrWildcardRow, error)
+	// Finds another workspace's verified claim on a hostname in custom_domains or
+	// portal_domains, so ownership contention spans both tables. source names the
+	// table holding the claim, which is where a takeover must revoke it.
+	//
+	//  SELECT 'custom' AS source, custom_domains.id, custom_domains.workspace_id
+	//  FROM custom_domains
+	//  WHERE custom_domains.domain = ?
+	//    AND custom_domains.workspace_id != ?
+	//    AND custom_domains.verification_status = 'verified'
+	//  UNION ALL
+	//  SELECT 'portal' AS source, portal_domains.id, portal_domains.workspace_id
+	//  FROM portal_domains
+	//  WHERE portal_domains.domain = ?
+	//    AND portal_domains.workspace_id != ?
+	//    AND portal_domains.verification_status = 'verified'
+	//  LIMIT 1
+	FindVerifiedDomainClaimExcludingWorkspace(ctx context.Context, arg FindVerifiedDomainClaimExcludingWorkspaceParams) (FindVerifiedDomainClaimExcludingWorkspaceRow, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Used by the Deploy cancel path to read the
 	// current plan and Stripe subscription. When a workspace is already being
@@ -2070,6 +2118,12 @@ type Querier interface {
 	//  FROM clickhouse_workspace_settings
 	//  ORDER BY workspace_id
 	ListClickhouseWorkspaceIDs(ctx context.Context) ([]string, error)
+	// Covered by unique_domain_workspace_idx, which leads on workspace_id.
+	//
+	//  SELECT domain
+	//  FROM custom_domains
+	//  WHERE workspace_id = ?
+	ListCustomDomainNamesByWorkspace(ctx context.Context, workspaceID string) ([]string, error)
 	//ListCustomDomainsByEnvironmentID
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
@@ -2151,10 +2205,21 @@ type Querier interface {
 	//  UNION
 	//  SELECT deployments.environment_id AS id FROM deployments WHERE deployments.app_id = ?
 	ListEnvironmentIdsByApp(ctx context.Context, arg ListEnvironmentIdsByAppParams) ([]string, error)
-	//ListExecutableChallenges
+	// Lists challenges waiting for issuance or within 30 days of expiry, for deploy
+	// and portal domains alike. Only verified domain rows qualify, so a challenge
+	// left behind by a failed or revoked domain is never issued.
 	//
-	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
-	//  JOIN custom_domains d ON dc.domain_id = d.id
+	//  SELECT dc.workspace_id, dc.challenge_type, d.domain
+	//  FROM acme_challenges dc
+	//  JOIN (
+	//      SELECT custom_domains.id, custom_domains.domain, custom_domains.created_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.domain, portal_domains.created_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.verification_status = 'verified'
+	//  ) AS d ON dc.domain_id = d.id
 	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
@@ -2332,6 +2397,15 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
+	// Scan ciphertext without parent joins. The primary-key cursor advances
+	// past unchanged rows without depending on encryption metadata.
+	//
+	//  SELECT pk, workspace_id AS keyring, encrypted AS ciphertext
+	//  FROM encrypted_keys
+	//  WHERE pk > ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListVaultEncryptedKeys(ctx context.Context, arg ListVaultEncryptedKeysParams) ([]ListVaultEncryptedKeysRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by
@@ -2416,10 +2490,10 @@ type Querier interface {
 	//      AND desired_state = 'running'
 	//  FOR UPDATE
 	LockDeploymentConnectionTargets(ctx context.Context, arg LockDeploymentConnectionTargetsParams) ([]LockDeploymentConnectionTargetsRow, error)
-	// Must be the first statement of its transaction: the quota sum that follows
-	// relies on the read view opening after this lock is held
+	// Must be the first statement of its transaction: the usage reads that follow
+	// rely on the read view opening after this lock is held
 	//
-	//  SELECT cpu_cores_max, memory_mib_max, storage_mib_max
+	//  SELECT cpu_cores_max, memory_mib_max, storage_mib_max, custom_domains_max
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	//  FOR UPDATE
@@ -2978,6 +3052,15 @@ type Querier interface {
 	//  WHERE id IN (/*SLICE:key_ids*/?)
 	//    AND last_used_at < ?
 	UpdateUnkeyRootKeysLastUsed(ctx context.Context, arg UpdateUnkeyRootKeysLastUsedParams) error
+	// Replace only the version that was read. Binary comparison protects
+	// concurrent writes even on case-insensitive database collations.
+	//
+	//  UPDATE encrypted_keys
+	//  SET encrypted = ?, encryption_key_id = ?
+	//  WHERE pk = ?
+	//    AND BINARY workspace_id = BINARY ?
+	//    AND BINARY encrypted = BINARY ?
+	UpdateVaultEncryptedKey(ctx context.Context, arg UpdateVaultEncryptedKeyParams) (int64, error)
 	//UpdateWorkspaceBillingTier
 	//
 	//  UPDATE `workspace_billing`

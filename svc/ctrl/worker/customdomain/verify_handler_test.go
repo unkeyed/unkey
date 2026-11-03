@@ -25,13 +25,13 @@ func (missingRowDB) FindCustomDomainById(_ context.Context, _ string) (db.Custom
 	return db.CustomDomain{}, sql.ErrNoRows
 }
 
-// AddCustomDomain submits the workflow inside the transaction that inserts the
-// domain row, so the first attempts can run before the commit lands. Within
+// An older control-api submits the workflow inside the transaction that inserts
+// the domain row, so the first attempts can run before the commit lands. Within
 // rowVisibilityGrace a missing row must surface as a retryable error, not a
 // terminal one: terminal here would kill the workflow for good and strand the
 // row in `pending` once the commit does land.
 func TestVerifyDomainToleratesRowNotYetVisible(t *testing.T) {
-	svc := New(Config{DB: missingRowDB{}, CnameDomain: "cname.unkey.local"})
+	svc := New(Config{DB: missingRowDB{}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 	mockCtx := mocks.NewMockContext(t)
 	mockCtx.EXPECT().Key().Return("dom_notyetvisible")
@@ -44,7 +44,7 @@ func TestVerifyDomainToleratesRowNotYetVisible(t *testing.T) {
 }
 
 // Past the grace window a missing row can only mean deletion (DeleteCustomDomain,
-// environment cascade, or a create whose commit failed after the submit), and the
+// environment cascade, or a create removed because its submit failed), and the
 // workflow must terminate instead of retrying against nothing for 24 hours. The
 // window is exclusive: an attempt landing exactly on the boundary already
 // terminates, pinning the `<` so the window cannot quietly become one retry wider.
@@ -54,7 +54,7 @@ func TestVerifyDomainTerminatesWhenRowStaysMissing(t *testing.T) {
 		"exactly on the boundary": rowVisibilityGrace,
 	} {
 		t.Run(name, func(t *testing.T) {
-			svc := New(Config{DB: missingRowDB{}, CnameDomain: "cname.unkey.local"})
+			svc := New(Config{DB: missingRowDB{}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 			mockCtx := mocks.NewMockContext(t)
 			mockCtx.EXPECT().Key().Return("dom_staysmissing")
@@ -109,7 +109,7 @@ func TestVerifyDomainOldRowDoesNotTimeOut(t *testing.T) {
 		ID:        domainID,
 		Domain:    "retry.example.com",
 		CreatedAt: time.Now().Add(-2 * maxVerificationDuration).UnixMilli(),
-	}}, CnameDomain: "cname.unkey.local"})
+	}}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 	mockCtx := mocks.NewMockContext(t)
 	mockCtx.EXPECT().Key().Return(domainID)
@@ -129,7 +129,7 @@ func TestVerifyDomainOldInvocationTimesOut(t *testing.T) {
 		ID:        domainID,
 		Domain:    "timeout.example.com",
 		CreatedAt: time.Now().UnixMilli(),
-	}}, CnameDomain: "cname.unkey.local"})
+	}}, Resolver: nil, CnameDomain: "cname.unkey.local"})
 
 	mockCtx := mocks.NewMockContext(t)
 	mockCtx.EXPECT().Key().Return(domainID)

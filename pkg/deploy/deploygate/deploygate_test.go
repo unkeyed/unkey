@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	dbtype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 )
 
 func TestWorkspaceGate(t *testing.T) {
@@ -167,8 +168,11 @@ func TestCheckStopTarget(t *testing.T) {
 	requireCode(t, codes.App.Precondition.DeploymentIsStopping, CheckStopTarget(draining))
 
 	prod := running
-	prod.EnvironmentKind = dbtype.EnvironmentKindProduction
-	requireCode(t, codes.App.Precondition.DeploymentIsProduction, CheckStopTarget(prod))
+	prod.DeploymentID = uid.New(uid.DeploymentPrefix)
+	prod.CurrentDeploymentID = uid.New(uid.DeploymentPrefix)
+	require.NoError(t, CheckStopTarget(prod))
+	prod.CurrentDeploymentID = prod.DeploymentID
+	requireCode(t, codes.App.Precondition.DeploymentIsCurrent, CheckStopTarget(prod))
 }
 
 func TestCheckStartTarget(t *testing.T) {

@@ -33,7 +33,10 @@ function limitFeatures(plan: DeployPlan): PlanFeature[] {
     features.push({ kind: "domains", label: "Unlimited custom domains" });
   } else if (limits.customDomainsMax > 0) {
     const max = limits.customDomainsMax;
-    features.push({ kind: "domains", label: `${max} custom domain${max === 1 ? "" : "s"}` });
+    features.push({
+      kind: "domains",
+      label: `${max} custom domain${max === 1 ? "" : "s"}, unlimited subdomains`,
+    });
   }
   features.push(
     {

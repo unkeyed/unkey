@@ -1,21 +1,30 @@
 "use client";
 
-import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
+import {
+  DeploymentStatusDot,
+  StatusDot,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import {
   EnvironmentBadge,
+  type LiveSwitch,
   badgeRollout,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { LastExitText } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/last-exit";
-import type { Deployment, Environment } from "@/lib/collections";
-import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import {
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+  deploymentStatusColor,
+} from "@/lib/collections/deploy/deployment-status";
 import { summarizeExit } from "@/lib/collections/deploy/exit-reasons";
 import { latestExit } from "@/lib/collections/deploy/last-exit";
+import { type Deployment, type Environment, useAwaitedStatus } from "@/lib/deploy-data";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
-import { useState } from "react";
+import { memo, useState } from "react";
+import { useWarmDeploymentHandlers } from "../../hooks/use-warm-app-page";
 import { DeploymentApproval } from "../[deploymentId]/(deployment-progress)/deployment-approval";
 import { DeploymentDuration } from "./deployment-duration";
 import {
@@ -35,25 +44,33 @@ type DeploymentRowProps = {
   currentDeployment: Deployment | undefined;
   isRolledBack: boolean;
   isRolledBackFrom: boolean;
+  liveSwitch: LiveSwitch;
   liveSince: number | null;
   href: Route;
 };
 
-export function DeploymentRow({
+export const DeploymentRow = memo(function DeploymentRow({
   deployment,
   environment,
   repoFullName,
   currentDeployment,
   isRolledBack,
   isRolledBackFrom,
+  liveSwitch,
   liveSince,
   href,
 }: DeploymentRowProps) {
   const [approvalOpen, setApprovalOpen] = useState(false);
+  const warmHandlers = useWarmDeploymentHandlers(deployment.id);
   const needsApproval = deployment.status === "awaiting_approval";
   const isCurrent = currentDeployment?.id === deployment.id;
-  const rollout = badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom });
-  const statusLabel = DEPLOYMENT_STATUS_LABELS[deployment.status];
+  const rollout = badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom, liveSwitch });
+  const awaitedStatus = useAwaitedStatus(deployment.id);
+  const pendingLabel =
+    awaitedStatus !== undefined && awaitedStatus !== deployment.status
+      ? AWAITED_STATUS_LABELS[awaitedStatus]
+      : undefined;
+  const statusLabel = pendingLabel ?? DEPLOYMENT_STATUS_LABELS[deployment.status];
   const isGit = deployment.source === "git";
   const image = deployment.requestedImage ?? deployment.resolvedImage;
   const title = isGit ? deployment.gitCommitMessage : null;
@@ -63,7 +80,7 @@ export function DeploymentRow({
       : latestExit(deployment.instances.map((i) => i.lastExit));
 
   return (
-    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
+    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors [contain-intrinsic-size:auto_45px] [content-visibility:auto] hover:bg-grayA-2">
       {needsApproval ? (
         <button
           type="button"
@@ -74,6 +91,7 @@ export function DeploymentRow({
       ) : (
         <Link
           href={href}
+          {...warmHandlers}
           className="absolute inset-0 z-10"
           aria-label={`Deployment ${shortenId(deployment.id)} ${statusLabel}`}
         />
@@ -104,7 +122,11 @@ export function DeploymentRow({
       </span>
 
       <span className="flex min-w-0 shrink-0 items-center gap-2 md:w-44">
-        <DeploymentStatusDot status={deployment.status} />
+        {pendingLabel ? (
+          <StatusDot colorClass={deploymentStatusColor(deployment.status)} pulse />
+        ) : (
+          <DeploymentStatusDot status={deployment.status} />
+        )}
         <span className="truncate text-sm font-medium text-gray-12">{statusLabel}</span>
         <DeploymentDuration
           status={deployment.status}
@@ -147,4 +169,12 @@ export function DeploymentRow({
       </span>
     </ResourceListItem>
   );
-}
+});
+
+// What a row shows while a stop, wake or cancel waits for its status. An approved
+// deployment can move past pending before a poll sees it, so approval has no label.
+const AWAITED_STATUS_LABELS: Partial<Record<DeploymentStatus, string>> = {
+  stopped: "Stopping",
+  ready: "Waking",
+  cancelled: "Cancelling",
+};

@@ -1,4 +1,5 @@
 import type { UsagePeriod } from "@/app/(app)/[workspaceSlug]/settings/usage/period";
+import type { DeploymentListFilter } from "@/lib/deploy-data";
 import type {
   V2LogsGetApiRequestMetricsFilters,
   V2LogsListApiRequestsFilters,
@@ -8,6 +9,7 @@ const rbacRoot = ["rbac"] as const;
 const rolesRoot = [...rbacRoot, "roles"] as const;
 const permissionsRoot = [...rbacRoot, "permissions"] as const;
 const identitiesRoot = ["identities"] as const;
+const deploymentsRoot = ["deployments"] as const;
 const apiRequestsRoot = ["logs", "apiRequests"] as const;
 const workspaceRoot = ["workspace"] as const;
 const ratelimitNamespacesRoot = ["ratelimit", "namespaces"] as const;
@@ -17,8 +19,33 @@ export const queryKeys = {
   apis: {
     detail: (apiId: string) => ["apis", "detail", apiId] as const,
   },
+  projects: {
+    all: ["projects"] as const,
+  },
+  apps: {
+    list: (projectId: string) => ["apps", projectId] as const,
+  },
+  environments: {
+    project: (projectId: string) => ["environments", projectId] as const,
+    app: (projectId: string, appId: string) => ["environments", projectId, appId] as const,
+  },
   deployments: {
-    buildLogs: (deploymentId: string) => ["deployments", "buildLogs", deploymentId] as const,
+    all: deploymentsRoot,
+    buildLogs: (deploymentId: string) => [...deploymentsRoot, "buildLogs", deploymentId] as const,
+    // Every deployments query of a project starts with this, so one
+    // invalidation refreshes all of them
+    scope: (projectId: string) => [...deploymentsRoot, projectId] as const,
+    detail: (projectId: string, deploymentId: string) =>
+      [...deploymentsRoot, projectId, "detail", deploymentId] as const,
+    recent: (
+      projectId: string,
+      appId: string | undefined,
+      environmentId: string | null,
+      limit: number,
+    ) =>
+      [...deploymentsRoot, projectId, appId ?? null, "recent", { environmentId, limit }] as const,
+    list: (projectId: string, appId: string, filter: DeploymentListFilter) =>
+      [...deploymentsRoot, projectId, appId, "list", filter] as const,
   },
   identities: {
     all: identitiesRoot,

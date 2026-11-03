@@ -20,3 +20,12 @@ func DefaultFindFirstOp(err error) cache.Op {
 	// this is a noop in the cache
 	return cache.Noop
 }
+
+// FoundOnlyOp caches rows but never a miss, for lookups whose row can start
+// matching moments after a miss and must be seen immediately.
+func FoundOnlyOp(err error) cache.Op {
+	if err == nil {
+		return cache.WriteValue
+	}
+	return cache.Noop
+}

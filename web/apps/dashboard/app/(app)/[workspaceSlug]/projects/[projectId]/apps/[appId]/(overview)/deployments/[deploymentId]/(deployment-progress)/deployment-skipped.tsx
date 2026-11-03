@@ -1,5 +1,6 @@
 "use client";
 
+import { useAppScope } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import {
   IconBanOutline18,
@@ -12,13 +13,11 @@ import {
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useAppId, useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
 import { DeploymentStep } from "./deployment-step";
 
 export function DeploymentSkipped() {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
   const { deployment } = useDeployment();
   const params = useParams();
   const workspaceSlug = params.workspaceSlug as string;

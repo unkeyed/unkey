@@ -15,6 +15,7 @@ export type EditableRootKeyDraft = {
   start: string;
   name: string;
   policies: Policy[];
+  ipAllowlist: string[];
 };
 
 export type LegacyRootKeyDraft = {
@@ -73,6 +74,13 @@ export function useRootKeyDraft(
         grants: data.permissions,
       };
     }
-    return { kind: "editable", keyId: data.keyId, start: data.start, name, policies };
+    return {
+      kind: "editable",
+      keyId: data.keyId,
+      start: data.start,
+      name,
+      policies,
+      ipAllowlist: data.ipAllowlist,
+    };
   }, [data, workspace.id]);
 }

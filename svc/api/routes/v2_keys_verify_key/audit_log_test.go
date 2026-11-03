@@ -37,7 +37,7 @@ func TestVerifyKey_WritesRootKeyAuditLog(t *testing.T) {
 	route := &handler.Handler{
 		DB:               h.DB,
 		Keys:             h.Keys,
-		DirectAuditLogs:  h.DirectAuditLogs,
+		AuditLogBuffer:   h.AuditLogBuffer,
 		KeyVerifications: h.KeyVerifications,
 	}
 	h.Register(route)

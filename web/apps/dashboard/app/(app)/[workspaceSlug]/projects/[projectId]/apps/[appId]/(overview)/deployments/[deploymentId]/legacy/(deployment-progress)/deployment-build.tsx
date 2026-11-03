@@ -1,12 +1,12 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
 import { routes } from "@/lib/navigation/routes";
 import { IconHammer2Outline18 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DeploymentStep } from "../../(deployment-progress)/deployment-step";
-import { useProjectData } from "../../../../data-provider";
 import { useDeployment } from "../../layout-provider";
 import { DeploymentBuildLogs } from "./build-logs/deployment-build-logs";
 

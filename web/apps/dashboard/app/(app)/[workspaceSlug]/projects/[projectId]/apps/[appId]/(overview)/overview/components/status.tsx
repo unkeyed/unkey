@@ -4,8 +4,8 @@ import {
   type DeploymentStatusGroup,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { summarizeInstances } from "@/lib/collections/deploy/instance-status";
+import type { Deployment } from "@/lib/deploy-data";
 
 export type StatusBadgeVariant = "primary" | "success" | "error" | "warning";
 

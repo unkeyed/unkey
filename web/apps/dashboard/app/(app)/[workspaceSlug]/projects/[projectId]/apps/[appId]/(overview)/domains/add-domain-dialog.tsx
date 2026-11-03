@@ -1,6 +1,6 @@
 "use client";
 
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Environment } from "@/lib/deploy-data";
 import { Button, DialogContainer, FormInput, FormSelect } from "@unkey/ui";
 import { Controller } from "react-hook-form";
 import { EnvironmentLabel } from "../../../_components/environment-label";
@@ -49,7 +49,7 @@ export function AddDomainDialog({
       title="Add custom domain"
       subTitle="The domain serves the environment you choose."
       footer={
-        <div className="flex w-full items-center justify-between gap-3">
+        <div className="flex w-full items-center justify-end gap-2">
           <Button variant="outline" size="md" onClick={close} disabled={isSubmitting}>
             Cancel
           </Button>
@@ -58,7 +58,6 @@ export function AddDomainDialog({
             form="add-custom-domain"
             variant="primary"
             size="md"
-            className="px-3"
             disabled={watch("domain").trim() === ""}
             loading={isSubmitting}
           >

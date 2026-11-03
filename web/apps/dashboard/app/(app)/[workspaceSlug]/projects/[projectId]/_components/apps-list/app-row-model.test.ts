@@ -1,5 +1,5 @@
 import { appSource } from "@/components/deploy/app-source";
-import type { App } from "@/lib/collections/deploy/apps";
+import type { App } from "@/lib/queries/apps";
 import { describe, expect, test } from "vitest";
 import { filterApps, toAppRow } from "./app-row-model";
 

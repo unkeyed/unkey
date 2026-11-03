@@ -9,7 +9,21 @@ import (
 
 // parse processes command line arguments and executes the appropriate action
 // This handles flag parsing, subcommand routing, and help display
-func (c *Command) parse(ctx context.Context, args []string) error {
+func (c *Command) parse(ctx context.Context, args []string) (err error) {
+	dispatched := false
+	argsUnparsed := args
+	defer func() {
+		if err == nil || dispatched {
+			return
+		}
+		for command := c; command != nil; command = command.parent {
+			if command.OnError != nil {
+				err = command.OnError(ctx, c, argsUnparsed, err)
+				return
+			}
+		}
+	}()
+
 	// Initialize flagMap if not already done
 	c.initFlagMap()
 
@@ -49,7 +63,7 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 			for _, name := range args[i+1:] {
 				next := target.findCommand(name)
 				if next == nil {
-					return fmt.Errorf("unknown command: %s", name)
+					return &InputError{Kind: InputErrorUnknownCommand, Flags: nil, message: fmt.Sprintf("unknown command: %s", name), cause: nil}
 				}
 				target = next
 			}
@@ -62,6 +76,7 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 		// Note: single "-" is treated as a positional arg (commonly means stdin)
 		if !strings.HasPrefix(arg, "-") || arg == "-" {
 			if subcmd := c.findCommand(arg); subcmd != nil {
+				dispatched = true
 				return subcmd.parse(ctx, args[i+1:]) //nolint: gosec
 			}
 
@@ -70,8 +85,12 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 				for j, cmd := range c.Commands {
 					availableCommands[j] = cmd.Name
 				}
-				return fmt.Errorf("unknown command: %s\nAvailable commands: %s",
-					arg, strings.Join(availableCommands, ", "))
+				return &InputError{
+					Kind:    InputErrorUnknownCommand,
+					Flags:   nil,
+					message: fmt.Sprintf("unknown command: %s\nAvailable commands: %s", arg, strings.Join(availableCommands, ", ")),
+					cause:   nil,
+				}
 			}
 
 			// Collect positional arg and continue parsing flags
@@ -84,6 +103,7 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 			return err
 		}
 	}
+	argsUnparsed = nil
 
 	// Store parsed arguments
 	c.args = commandArgs
@@ -91,8 +111,25 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	// Reject positional arguments unless the command explicitly accepts them
 	if len(commandArgs) > 0 && !c.AcceptsArgs {
 		availableFlags := c.getAvailableFlags()
-		return fmt.Errorf("command %q does not accept positional arguments, got: %s\nAvailable flags: %s",
-			c.Name, commandArgs[0], availableFlags)
+		return fmt.Errorf("command %q does not accept positional arguments\nAvailable flags: %s",
+			c.Name, availableFlags)
+	}
+
+	for _, flag := range c.Flags {
+		if enum, ok := flag.(*EnumFlag); ok && enum.envErr != nil {
+			return enum.envErr
+		}
+	}
+
+	if c.Prepare != nil {
+		if err := c.validateFlagConflicts(); err != nil {
+			return err
+		}
+		if err := c.Prepare(ctx, c); err != nil {
+			return err
+		}
+		c.flagMap = nil
+		c.initFlagMap()
 	}
 
 	// Validate all required flags are present
@@ -181,17 +218,21 @@ func (c *Command) parseFlag(args []string, i *int) error {
 	flag, exists := c.flagMap[flagName]
 	if !exists {
 		availableFlags := c.getAvailableFlags()
-		return fmt.Errorf("unknown flag: %s\nAvailable flags: %s", flagName, availableFlags)
+		return &InputError{
+			Kind: InputErrorUnknownFlag, Flags: []string{flagName},
+			message: fmt.Sprintf("unknown flag: %s\nAvailable flags: %s", flagName, availableFlags),
+			cause:   nil,
+		}
 	}
 
 	// Handle boolean flags specially - they don't require values
 	if bf, ok := flag.(*BoolFlag); ok {
 		if hasValue {
 			// --bool-flag=true/false format
-			return bf.Parse(flagValue)
+			return parseFlagValue(bf, flagValue)
 		} else {
 			// --bool-flag format (implies true)
-			return bf.Parse("")
+			return parseFlagValue(bf, "")
 		}
 	}
 
@@ -199,14 +240,18 @@ func (c *Command) parseFlag(args []string, i *int) error {
 	if !hasValue {
 		// Value should be in next argument
 		if *i+1 >= len(args) {
-			return fmt.Errorf("flag %s requires a value", flagName)
+			return &InputError{
+				Kind: InputErrorMissingFlagValue, Flags: []string{flagName},
+				message: fmt.Sprintf("flag %s requires a value", flagName),
+				cause:   nil,
+			}
 		}
 		*i++ // Move to next argument
 		flagValue = args[*i]
 	}
 
 	// Parse the flag value
-	return flag.Parse(flagValue)
+	return parseFlagValue(flag, flagValue)
 }
 
 func (c *Command) initFlagMap() {
@@ -219,17 +264,27 @@ func (c *Command) initFlagMap() {
 	}
 }
 
-// validateRequiredFlags checks that all required flags have been set and that
-// every RequireOneOf group has exactly one of its flags set.
-func (c *Command) validateRequiredFlags() error {
+func (c *Command) validateFlagConflicts() error {
 	// Validate command definitions before invocation requirements.
 	for _, group := range c.RequireOneOf {
 		if len(group) == 0 {
 			return fmt.Errorf("RequireOneOf group cannot be empty")
 		}
+		var flagsSet []string
 		for _, name := range group {
-			if _, ok := c.flagMap[name]; !ok {
+			flag, ok := c.flagMap[name]
+			if !ok {
 				return fmt.Errorf("RequireOneOf references unknown flag: %s", name)
+			}
+			if flag.HasValue() {
+				flagsSet = append(flagsSet, name)
+			}
+		}
+		if len(flagsSet) > 1 {
+			return &InputError{
+				Kind: InputErrorConflictingFlags, Flags: flagsSet,
+				message: fmt.Sprintf("exactly one of --%s is required", strings.Join(group, " or --")),
+				cause:   nil,
 			}
 		}
 	}
@@ -247,14 +302,30 @@ func (c *Command) validateRequiredFlags() error {
 				return fmt.Errorf("flag --%s references unknown mutually exclusive flag: %s", flag.Name(), otherName)
 			}
 			if flag.IsSet() && other.IsSet() {
-				return fmt.Errorf("flags --%s and --%s are mutually exclusive", flag.Name(), otherName)
+				return &InputError{
+					Kind: InputErrorConflictingFlags, Flags: []string{flag.Name(), otherName},
+					message: fmt.Sprintf("flags --%s and --%s are mutually exclusive", flag.Name(), otherName),
+					cause:   nil,
+				}
 			}
 		}
 	}
+	return nil
+}
 
+// validateRequiredFlags checks that all required flags have been set and that
+// every RequireOneOf group has exactly one of its flags set.
+func (c *Command) validateRequiredFlags() error {
+	if err := c.validateFlagConflicts(); err != nil {
+		return err
+	}
 	for _, flag := range c.Flags {
 		if flag.Required() && !flag.HasValue() && !c.requirementWaived(flag) {
-			return fmt.Errorf("required flag missing: %s", flag.Name())
+			return &InputError{
+				Kind: InputErrorMissingRequiredFlag, Flags: []string{flag.Name()},
+				message: fmt.Sprintf("required flag missing: %s", flag.Name()),
+				cause:   nil,
+			}
 		}
 	}
 
@@ -271,7 +342,11 @@ func (c *Command) validateRequiredFlags() error {
 			}
 		}
 		if set != 1 && !(set == 0 && allWaived) {
-			return fmt.Errorf("exactly one of --%s is required", strings.Join(group, " or --"))
+			return &InputError{
+				Kind: InputErrorMissingRequiredFlag, Flags: slices.Clone(group),
+				message: fmt.Sprintf("exactly one of --%s is required", strings.Join(group, " or --")),
+				cause:   nil,
+			}
 		}
 	}
 

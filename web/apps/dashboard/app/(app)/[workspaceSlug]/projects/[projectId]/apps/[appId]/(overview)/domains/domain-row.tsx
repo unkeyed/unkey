@@ -1,10 +1,9 @@
 "use client";
-import { collection } from "@/lib/collections";
 import {
   type CustomDomain,
   type VerificationStatus,
-  retryDomainVerification,
-} from "@/lib/collections/deploy/custom-domains";
+  useCustomDomainMutations,
+} from "@/lib/deploy-data";
 import {
   IconChevronDownOutline12,
   IconCircleCheckOutline18,
@@ -154,12 +153,13 @@ function CustomDomainRow({
   onToggle: () => void;
 }) {
   const { customDomain: domain, hostname } = display;
+  const { deleteCustomDomain, retryDomainVerification } = useCustomDomainMutations();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleDelete = () => {
-    collection.customDomains.delete(domain.id);
+    deleteCustomDomain(domain.id);
   };
 
   const handleRetry = async () => {

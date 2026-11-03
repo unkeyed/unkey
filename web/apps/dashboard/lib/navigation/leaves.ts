@@ -4,6 +4,7 @@ import {
   IconBracketsCurlyOutline18,
   IconChartActivityOutline18,
   IconCubeOutline18,
+  IconDatabaseOutline18,
   IconEarthOutline18,
   IconFingerprintOutline18,
   IconGaugeOutline18,
@@ -117,10 +118,30 @@ export function buildWorkspaceConfigLinks(
   ];
 }
 
+export function buildDatabasesLinks(
+  scope: { workspaceSlug: string; projectId: string },
+  page: string | undefined,
+  enabled: boolean,
+): ResolvedNavLink[] {
+  if (!enabled) {
+    return [];
+  }
+  return [
+    {
+      key: "databases",
+      label: "Databases",
+      href: routes.projects.databases.list(scope),
+      icon: IconDatabaseOutline18,
+      isActive: page === "databases",
+    },
+  ];
+}
+
 export function buildProjectLinks(
   slug: string,
   projectId: string,
   segments: string[],
+  { databases }: { databases: boolean },
 ): ResolvedNavLink[] {
   const page = segments[2];
   const scope = { workspaceSlug: slug, projectId };
@@ -132,6 +153,7 @@ export function buildProjectLinks(
       icon: IconCubeOutline18,
       isActive: !page,
     },
+    ...buildDatabasesLinks(scope, page, databases),
     {
       key: "logs",
       label: "Logs",

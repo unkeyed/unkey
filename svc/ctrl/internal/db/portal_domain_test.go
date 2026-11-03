@@ -18,9 +18,7 @@ func TestPortalDomainUniqueness(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	// Isolated so the schema is applied fresh: the shared container skips
-	// re-applying it once marked, and may predate portal_domains.
-	mysqlCfg := containers.MySQLIsolated(t)
+	mysqlCfg := containers.MySQL(t)
 	database, err := New(mysqlCfg.DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

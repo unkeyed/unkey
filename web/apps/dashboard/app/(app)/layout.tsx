@@ -2,6 +2,7 @@
 
 import { UpgradeSuccessDialog } from "@/components/billing/upgrade-success/upgrade-success-dialog";
 import { ComputePausedBanner } from "@/components/navigation/compute-paused-banner";
+import { PaymentFailedBanner } from "@/components/navigation/payment-failed-banner";
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
 import { TopNav } from "@/components/navigation/top-nav";
@@ -70,7 +71,7 @@ export default function Layout({ children }: LayoutProps) {
   // Creation wizards are focused full-screen experiences without the sidebar.
   const isCreationWizard =
     pathname === "/integrations/github/callback" ||
-    /\/projects\/[^/]+\/apps\/new$/.test(pathname) ||
+    /\/projects\/[^/]+\/(?:apps|databases)\/new$/.test(pathname) ||
     /\/settings\/logdrains\/new$/.test(pathname) ||
     pathname === routes.cli.device();
   const billingUpgrades = useBillingUIUpgrades();
@@ -126,6 +127,7 @@ export default function Layout({ children }: LayoutProps) {
       </Suspense>
       <div data-app-shell className="min-h-dvh w-full flex flex-col bg-background">
         <div className="sticky top-0 z-20">
+          <PaymentFailedBanner />
           <ComputePausedBanner />
           <TopNav />
         </div>

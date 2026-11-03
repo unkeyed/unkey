@@ -1,8 +1,9 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
+import { useApp, useAppScope } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
+import { useDeleteApp } from "@/lib/queries/apps";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import {
@@ -18,10 +19,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useApp } from "../../../../_components/settings/hooks/use-app";
 
 export function DeleteApp() {
-  const { projectId, appId, app } = useApp();
+  const { projectId, appId } = useAppScope();
+  const { data: app } = useApp();
+  const deleteApp = useDeleteApp(projectId);
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -49,7 +51,7 @@ export function DeleteApp() {
   const isValid = watch("name") === appName;
 
   const onSubmit = (_values: FormValues) => {
-    collection.apps.delete(appId);
+    deleteApp.mutate(appId);
     setIsDialogOpen(false);
     router.push(routes.projects.detail({ workspaceSlug: workspace.slug, projectId }));
   };
@@ -76,8 +78,8 @@ export function DeleteApp() {
               form="delete-app-form"
               variant="primary"
               color="danger"
-              size="xlg"
-              className="w-full rounded-lg"
+              size="md"
+              className="w-full"
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
             >

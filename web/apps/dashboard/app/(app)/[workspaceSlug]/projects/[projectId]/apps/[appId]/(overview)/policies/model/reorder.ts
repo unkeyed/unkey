@@ -1,5 +1,5 @@
-import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
 import type { PolicyRow } from "@/lib/collections/deploy/policies";
+import { ENVIRONMENT_KINDS } from "@/lib/deploy-data";
 import type { Env, MergedPolicy } from "./merge";
 
 type PolicyListOrder = { env: Env; rows: PolicyRow[] };

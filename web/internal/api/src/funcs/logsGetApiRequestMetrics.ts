@@ -54,7 +54,6 @@ export function logsGetApiRequestMetrics(
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.UnprocessableEntityErrorResponse
-    | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | errors.ServiceUnavailableErrorResponse
     | UnkeyError
@@ -86,7 +85,6 @@ async function $do(
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
       | errors.UnprocessableEntityErrorResponse
-      | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | errors.ServiceUnavailableErrorResponse
       | UnkeyError
@@ -188,7 +186,6 @@ async function $do(
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.UnprocessableEntityErrorResponse
-    | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | errors.ServiceUnavailableErrorResponse
     | UnkeyError
@@ -208,7 +205,6 @@ async function $do(
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(422, errors.UnprocessableEntityErrorResponse$inboundSchema),
-    M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema),
     M.jsonErr(500, errors.InternalServerErrorResponse$inboundSchema),
     M.jsonErr(503, errors.ServiceUnavailableErrorResponse$inboundSchema),
     M.fail("4XX"),
