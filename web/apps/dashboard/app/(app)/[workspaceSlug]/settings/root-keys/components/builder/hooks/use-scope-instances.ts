@@ -1,7 +1,7 @@
 "use client";
 
 import type { AppEnvironmentListProps } from "@/components/deploy/app-environment-list";
-import { useProjectEnvironments } from "@/hooks/use-project-environments";
+import { useProjectEnvironments } from "@/lib/queries/environments";
 import { useDefaultProjectId, useProjectsWithApps } from "@/lib/queries/projects";
 import { useEveryNamespace } from "@/lib/queries/ratelimit-namespaces";
 import { trpc } from "@/lib/trpc/client";

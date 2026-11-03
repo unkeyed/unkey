@@ -1,5 +1,4 @@
 "use client";
-import { trpcClient } from "@/lib/collections/client";
 import {
   type DeploymentStatus,
   isDeploymentInFlight,
@@ -8,6 +7,7 @@ import { trackSave } from "@/lib/collections/deploy/pending-redeploy";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
+import { trpcClient } from "@/lib/trpc/client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";

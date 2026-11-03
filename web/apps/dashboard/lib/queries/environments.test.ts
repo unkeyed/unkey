@@ -2,8 +2,10 @@ import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { newId } from "@unkey/id";
 import { describe, expect, it, vi } from "vitest";
 
-const listAppEnvironments = vi.fn();
-vi.mock("@/lib/collections/deploy/app-environments", () => ({ listAppEnvironments }));
+const listEnvironments = vi.fn();
+vi.mock("@/lib/unkey-client", () => ({
+  getUnkeyClient: () => ({ environments: { listEnvironments } }),
+}));
 
 const { loadAppEnvironments } = await import("./environments");
 
@@ -12,16 +14,19 @@ describe("loadAppEnvironments", () => {
     const projectId = newId("project");
     const appId = newId("app");
     const production = { id: newId("environment"), slug: "production", kind: "production" };
-    listAppEnvironments.mockResolvedValue([production]);
+    listEnvironments.mockResolvedValue({ data: [production] });
 
     expect(await loadAppEnvironments(projectId, appId)).toEqual([
       { ...production, projectId, appId },
     ]);
-    expect(listAppEnvironments).toHaveBeenCalledWith(projectId, appId);
+    expect(listEnvironments).toHaveBeenCalledWith(
+      { project: projectId, app: appId },
+      { signal: undefined },
+    );
   });
 
   it("lists nothing for an app that no longer exists", async () => {
-    listAppEnvironments.mockRejectedValue(
+    listEnvironments.mockRejectedValue(
       new NotFoundErrorResponse(
         {
           meta: { requestId: newId("request") },
