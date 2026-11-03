@@ -270,17 +270,17 @@ func (s *Service) onVerificationSuccess(
 	return &hydrav1.VerifyDomainResponse{}, nil
 }
 
-// createFrontlineRoute routes dom's hostname to its app. If no deployment
+// createFrontlineRoute routes dom's hostname to its environment. If no deployment
 // exists yet, the route is assigned when the first deployment happens.
 func (s *Service) createFrontlineRoute(ctx context.Context, dom db.CustomDomain, nowMs int64) error {
-	app, err := s.db.FindAppById(ctx, dom.AppID)
+	environment, err := s.db.FindEnvironmentById(ctx, dom.EnvironmentID)
 	if err != nil {
-		return fault.Wrap(err, fault.Internal("failed to find app for frontline route"))
+		return fault.Wrap(err, fault.Internal("failed to find environment for frontline route"))
 	}
 
 	deploymentID := ""
-	if app.CurrentDeploymentID.Valid {
-		deploymentID = app.CurrentDeploymentID.String
+	if environment.CurrentDeploymentID.Valid {
+		deploymentID = environment.CurrentDeploymentID.String
 	}
 
 	return domainverify.CreateRoute(ctx, s.db, domainverify.Route{

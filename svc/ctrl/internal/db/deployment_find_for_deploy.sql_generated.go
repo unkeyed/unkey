@@ -19,8 +19,8 @@ SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status,
        d.github_deployment_id, d.pr_number,
        w.slug AS workspace_slug,
        p.slug AS project_slug,
-       a.slug AS app_slug, a.is_rolled_back AS app_is_rolled_back,
-       e.slug AS environment_slug, e.kind AS environment_kind
+       a.slug AS app_slug,
+       e.slug AS environment_slug, e.kind AS environment_kind, e.is_rolled_back AS environment_is_rolled_back
 FROM deployments d
 JOIN workspaces w ON w.id = d.workspace_id
 JOIN projects p ON p.id = d.project_id
@@ -30,29 +30,29 @@ WHERE d.id = ?
 `
 
 type FindDeploymentForDeployRow struct {
-	ID                     string                      `db:"id"`
-	WorkspaceID            string                      `db:"workspace_id"`
-	ProjectID              string                      `db:"project_id"`
-	AppID                  string                      `db:"app_id"`
-	EnvironmentID          string                      `db:"environment_id"`
-	Status                 mysqltype.DeploymentsStatus `db:"status"`
-	CreatedAt              int64                       `db:"created_at"`
-	Port                   int32                       `db:"port"`
-	CpuMillicores          int32                       `db:"cpu_millicores"`
-	MemoryMib              int32                       `db:"memory_mib"`
-	StorageMib             uint32                      `db:"storage_mib"`
-	GitCommitSha           sql.NullString              `db:"git_commit_sha"`
-	GitBranch              sql.NullString              `db:"git_branch"`
-	ForkRepositoryFullName sql.NullString              `db:"fork_repository_full_name"`
-	Trigger                DeploymentsTrigger          `db:"trigger"`
-	GithubDeploymentID     sql.NullInt64               `db:"github_deployment_id"`
-	PrNumber               sql.NullInt64               `db:"pr_number"`
-	WorkspaceSlug          string                      `db:"workspace_slug"`
-	ProjectSlug            string                      `db:"project_slug"`
-	AppSlug                string                      `db:"app_slug"`
-	AppIsRolledBack        bool                        `db:"app_is_rolled_back"`
-	EnvironmentSlug        string                      `db:"environment_slug"`
-	EnvironmentKind        mysqltype.EnvironmentKind   `db:"environment_kind"`
+	ID                      string                      `db:"id"`
+	WorkspaceID             string                      `db:"workspace_id"`
+	ProjectID               string                      `db:"project_id"`
+	AppID                   string                      `db:"app_id"`
+	EnvironmentID           string                      `db:"environment_id"`
+	Status                  mysqltype.DeploymentsStatus `db:"status"`
+	CreatedAt               int64                       `db:"created_at"`
+	Port                    int32                       `db:"port"`
+	CpuMillicores           int32                       `db:"cpu_millicores"`
+	MemoryMib               int32                       `db:"memory_mib"`
+	StorageMib              uint32                      `db:"storage_mib"`
+	GitCommitSha            sql.NullString              `db:"git_commit_sha"`
+	GitBranch               sql.NullString              `db:"git_branch"`
+	ForkRepositoryFullName  sql.NullString              `db:"fork_repository_full_name"`
+	Trigger                 DeploymentsTrigger          `db:"trigger"`
+	GithubDeploymentID      sql.NullInt64               `db:"github_deployment_id"`
+	PrNumber                sql.NullInt64               `db:"pr_number"`
+	WorkspaceSlug           string                      `db:"workspace_slug"`
+	ProjectSlug             string                      `db:"project_slug"`
+	AppSlug                 string                      `db:"app_slug"`
+	EnvironmentSlug         string                      `db:"environment_slug"`
+	EnvironmentKind         mysqltype.EnvironmentKind   `db:"environment_kind"`
+	EnvironmentIsRolledBack bool                        `db:"environment_is_rolled_back"`
 }
 
 // FindDeploymentForDeploy
@@ -63,8 +63,8 @@ type FindDeploymentForDeployRow struct {
 //	       d.github_deployment_id, d.pr_number,
 //	       w.slug AS workspace_slug,
 //	       p.slug AS project_slug,
-//	       a.slug AS app_slug, a.is_rolled_back AS app_is_rolled_back,
-//	       e.slug AS environment_slug, e.kind AS environment_kind
+//	       a.slug AS app_slug,
+//	       e.slug AS environment_slug, e.kind AS environment_kind, e.is_rolled_back AS environment_is_rolled_back
 //	FROM deployments d
 //	JOIN workspaces w ON w.id = d.workspace_id
 //	JOIN projects p ON p.id = d.project_id
@@ -95,9 +95,9 @@ func (q *Queries) FindDeploymentForDeploy(ctx context.Context, id string) (FindD
 		&i.WorkspaceSlug,
 		&i.ProjectSlug,
 		&i.AppSlug,
-		&i.AppIsRolledBack,
 		&i.EnvironmentSlug,
 		&i.EnvironmentKind,
+		&i.EnvironmentIsRolledBack,
 	)
 	return i, err
 }

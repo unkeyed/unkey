@@ -45,7 +45,7 @@ func TestRollbackDeploymentDerivesSource(t *testing.T) {
 		EnvironmentID: setup.Environment.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
-	setCurrentDeployment(t, h, setup.App.ID, live.ID)
+	setCurrentDeployment(t, h, setup.Environment.ID, live.ID)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
 		DeploymentId: previous.ID,

@@ -103,11 +103,11 @@ func TestGetDeploymentAvailableActionsFollowPermissions(t *testing.T) {
 		EnvironmentID: setup.Environment.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
-	require.NoError(t, db.Query.UpdateAppDeployments(t.Context(), h.DB.RW(), db.UpdateAppDeploymentsParams{
+	require.NoError(t, db.Query.UpdateEnvironmentDeployments(t.Context(), h.DB.RW(), db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{String: live.ID, Valid: true},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		AppID:               setup.App.ID,
+		EnvironmentID:       setup.Environment.ID,
 	}))
 
 	other := h.CreateDeployment(seed.CreateDeploymentRequest{

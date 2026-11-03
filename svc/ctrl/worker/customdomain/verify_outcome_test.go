@@ -62,10 +62,10 @@ func (r fakeResolver) LookupHost(_ context.Context, name string) ([]string, erro
 type verifyDB struct {
 	db.Database
 
-	row       db.CustomDomain
-	app       db.App
-	ownership *db.UpdateCustomDomainOwnershipParams
-	failed    *db.UpdateCustomDomainFailedParams
+	row         db.CustomDomain
+	environment db.Environment
+	ownership   *db.UpdateCustomDomainOwnershipParams
+	failed      *db.UpdateCustomDomainFailedParams
 
 	// claims are verified rows other workspaces hold for the same hostname.
 	claims []otherClaim
@@ -89,7 +89,7 @@ func newVerifyDB(row db.CustomDomain) *verifyDB {
 	return &verifyDB{
 		Database:       nil,
 		row:            row,
-		app:            db.App{ID: row.AppID, CurrentDeploymentID: sql.NullString{Valid: true, String: "d_live"}}, //nolint:exhaustruct
+		environment:    db.Environment{ID: row.EnvironmentID, CurrentDeploymentID: sql.NullString{Valid: true, String: "d_live"}}, //nolint:exhaustruct
 		ownership:      nil,
 		failed:         nil,
 		claims:         nil,
@@ -161,8 +161,8 @@ func (f *verifyDB) DeleteAcmeChallengeByDomainID(_ context.Context, domainID str
 	return nil
 }
 
-func (f *verifyDB) FindAppById(_ context.Context, _ string) (db.App, error) {
-	return f.app, nil
+func (f *verifyDB) FindEnvironmentById(_ context.Context, _ string) (db.Environment, error) {
+	return f.environment, nil
 }
 
 func (f *verifyDB) InsertFrontlineRoute(_ context.Context, arg db.InsertFrontlineRouteParams) error {

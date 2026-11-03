@@ -22,7 +22,7 @@ import (
 // The workflow key is the deployment id: Deploy runs once per key, and
 // readiness arrives through a durable promise that NotifyInstancesReady
 // resolves, so the run keeps no state. The contended pointer,
-// apps.current_deployment_id, is serialized inside
+// environments.current_deployment_id, is serialized inside
 // RoutingService.SwapLiveDeployment, which is keyed by environment id.
 // Promotion and rollback live on EnvironmentService, keyed by environment id.
 //
@@ -158,7 +158,7 @@ func (c *deployWorkflowIngressClient) Handle() ingress.InvocationHandle[*DeployR
 // The workflow key is the deployment id: Deploy runs once per key, and
 // readiness arrives through a durable promise that NotifyInstancesReady
 // resolves, so the run keeps no state. The contended pointer,
-// apps.current_deployment_id, is serialized inside
+// environments.current_deployment_id, is serialized inside
 // RoutingService.SwapLiveDeployment, which is keyed by environment id.
 // Promotion and rollback live on EnvironmentService, keyed by environment id.
 //
@@ -233,12 +233,12 @@ func NewDeployWorkflowServer(srv DeployWorkflowServer, opts ...sdk_go.ServiceDef
 type DeployTeardownServiceClient interface {
 	// Teardown stops every running deployment in the workspace and polls until
 	// they drain, forcing completion after a grace timeout so a stuck pod can't
-	// block the caller forever. Clears apps.current_deployment_id for any app
-	// whose current deployment it stops, so the DeploymentService guard permits
+	// block the caller forever. Clears environments.current_deployment_id for
+	// any environment whose current deployment it stops, so the DeploymentService guard permits
 	// the state change. Idempotent.
 	Teardown(opts ...sdk_go.ClientOption) sdk_go.Client[*TeardownRequest, *TeardownResponse]
 	// Resume reverses a SUSPEND: it brings the workspace's suspended deployments
-	// back to running and restores each app's current deployment from the record
+	// back to running and restores each environment's current deployment from the record
 	// Teardown(SUSPEND) saved. Idempotent: a no-op when the workspace was not
 	// suspended (no record).
 	Resume(opts ...sdk_go.ClientOption) sdk_go.Client[*ResumeRequest, *ResumeResponse]
@@ -280,12 +280,12 @@ func (c *deployTeardownServiceClient) Resume(opts ...sdk_go.ClientOption) sdk_go
 type DeployTeardownServiceIngressClient interface {
 	// Teardown stops every running deployment in the workspace and polls until
 	// they drain, forcing completion after a grace timeout so a stuck pod can't
-	// block the caller forever. Clears apps.current_deployment_id for any app
-	// whose current deployment it stops, so the DeploymentService guard permits
+	// block the caller forever. Clears environments.current_deployment_id for
+	// any environment whose current deployment it stops, so the DeploymentService guard permits
 	// the state change. Idempotent.
 	Teardown() ingress.Requester[*TeardownRequest, *TeardownResponse]
 	// Resume reverses a SUSPEND: it brings the workspace's suspended deployments
-	// back to running and restores each app's current deployment from the record
+	// back to running and restores each environment's current deployment from the record
 	// Teardown(SUSPEND) saved. Idempotent: a no-op when the workspace was not
 	// suspended (no record).
 	Resume() ingress.Requester[*ResumeRequest, *ResumeResponse]
@@ -324,12 +324,12 @@ func (c *deployTeardownServiceIngressClient) Resume() ingress.Requester[*ResumeR
 type DeployTeardownServiceServer interface {
 	// Teardown stops every running deployment in the workspace and polls until
 	// they drain, forcing completion after a grace timeout so a stuck pod can't
-	// block the caller forever. Clears apps.current_deployment_id for any app
-	// whose current deployment it stops, so the DeploymentService guard permits
+	// block the caller forever. Clears environments.current_deployment_id for
+	// any environment whose current deployment it stops, so the DeploymentService guard permits
 	// the state change. Idempotent.
 	Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error)
 	// Resume reverses a SUSPEND: it brings the workspace's suspended deployments
-	// back to running and restores each app's current deployment from the record
+	// back to running and restores each environment's current deployment from the record
 	// Teardown(SUSPEND) saved. Idempotent: a no-op when the workspace was not
 	// suspended (no record).
 	Resume(ctx sdk_go.ObjectContext, req *ResumeRequest) (*ResumeResponse, error)

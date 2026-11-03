@@ -98,7 +98,7 @@ type StartInput struct {
 	SpendSuspended  bool
 }
 
-// isCurrent reports whether the target is the app's current (live) deployment.
+// isCurrent reports whether the target is the environment's current (live) deployment.
 func isCurrent(currentDeploymentID, deploymentID string) bool {
 	return currentDeploymentID != "" && currentDeploymentID == deploymentID
 }
@@ -106,7 +106,7 @@ func isCurrent(currentDeploymentID, deploymentID string) bool {
 // The *FailureReason enums are the internal discriminator each Check* builds its
 // fault from; they are also the source of the caller-facing message strings.
 
-// TargetFailureReason is why a deployment cannot become the app's current
+// TargetFailureReason is why a deployment cannot become the environment's current
 // deployment (promote/rollback). TargetOK means it is eligible.
 type TargetFailureReason int
 

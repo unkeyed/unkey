@@ -34,7 +34,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 		ID: uid.New(uid.DeploymentPrefix), WorkspaceID: setup.Workspace.ID, ProjectID: setup.Project.ID,
 		AppID: setup.App.ID, EnvironmentID: setup.Environment.ID, Status: mysqltype.DeploymentsStatusReady,
 	})
-	setCurrentDeployment(t, h, setup.App.ID, live.ID)
+	setCurrentDeployment(t, h, setup.Environment.ID, live.ID)
 	target := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID: uid.New(uid.DeploymentPrefix), WorkspaceID: setup.Workspace.ID, ProjectID: setup.Project.ID,
 		AppID: setup.App.ID, EnvironmentID: setup.Environment.ID, Status: mysqltype.DeploymentsStatusReady,

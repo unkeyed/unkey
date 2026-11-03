@@ -190,7 +190,7 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 }
 
 // ApplyDesiredState updates the deployment and its topology in each region.
-// It does not check whether this is the app's current deployment. Resume needs
+// It does not check whether this is the environment's current deployment. Resume needs
 // this so it can start a suspended deployment before making it current.
 // Use ChangeDesiredState when the update needs that check.
 func ApplyDesiredState(ctx restate.ObjectContext, database db.Database, deploymentID string, desiredState mysqltype.DeploymentsDesiredState, topologyStatus db.DeploymentTopologyDesiredStatus) error {

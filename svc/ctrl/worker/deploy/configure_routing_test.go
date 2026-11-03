@@ -101,11 +101,11 @@ func TestConfigureRoutingKeepsLiveRouteOnRolledBackApp(t *testing.T) {
 	require.Contains(t, initial.ReassignRouteIDs, routeDeployment(t, db.FrontlineRoutesStickyLive).ID,
 		"a production deployment of an app that is not rolled back promotes the live route")
 
-	require.NoError(t, database.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
+	require.NoError(t, database.UpdateEnvironmentDeployments(ctx, db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{String: rolledBackTo.ID, Valid: true},
 		IsRolledBack:        true,
 		UpdatedAt:           sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		AppID:               fixture.appID,
+		EnvironmentID:       fixture.environmentID,
 	}))
 
 	next := createMainDeployment()

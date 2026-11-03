@@ -20,8 +20,8 @@ SELECT
   a.slug AS app_slug,
   e.slug AS environment_slug,
   e.kind AS environment_kind,
-  a.current_deployment_id AS app_current_deployment_id,
-  a.is_rolled_back AS app_is_rolled_back
+  e.current_deployment_id AS environment_current_deployment_id,
+  e.is_rolled_back AS environment_is_rolled_back
 FROM deployments d
 JOIN projects p ON d.project_id = p.id
 JOIN environments e ON d.environment_id = e.id
@@ -36,13 +36,13 @@ type ListDeploymentEnvAndAppStateParams struct {
 }
 
 type ListDeploymentEnvAndAppStateRow struct {
-	DeploymentID           string                    `db:"deployment_id"`
-	ProjectSlug            string                    `db:"project_slug"`
-	AppSlug                string                    `db:"app_slug"`
-	EnvironmentSlug        string                    `db:"environment_slug"`
-	EnvironmentKind        mysqltype.EnvironmentKind `db:"environment_kind"`
-	AppCurrentDeploymentID sql.NullString            `db:"app_current_deployment_id"`
-	AppIsRolledBack        bool                      `db:"app_is_rolled_back"`
+	DeploymentID                   string                    `db:"deployment_id"`
+	ProjectSlug                    string                    `db:"project_slug"`
+	AppSlug                        string                    `db:"app_slug"`
+	EnvironmentSlug                string                    `db:"environment_slug"`
+	EnvironmentKind                mysqltype.EnvironmentKind `db:"environment_kind"`
+	EnvironmentCurrentDeploymentID sql.NullString            `db:"environment_current_deployment_id"`
+	EnvironmentIsRolledBack        bool                      `db:"environment_is_rolled_back"`
 }
 
 // ListDeploymentEnvAndAppState
@@ -53,8 +53,8 @@ type ListDeploymentEnvAndAppStateRow struct {
 //	  a.slug AS app_slug,
 //	  e.slug AS environment_slug,
 //	  e.kind AS environment_kind,
-//	  a.current_deployment_id AS app_current_deployment_id,
-//	  a.is_rolled_back AS app_is_rolled_back
+//	  e.current_deployment_id AS environment_current_deployment_id,
+//	  e.is_rolled_back AS environment_is_rolled_back
 //	FROM deployments d
 //	JOIN projects p ON d.project_id = p.id
 //	JOIN environments e ON d.environment_id = e.id
@@ -87,8 +87,8 @@ func (q *Queries) ListDeploymentEnvAndAppState(ctx context.Context, db DBTX, arg
 			&i.AppSlug,
 			&i.EnvironmentSlug,
 			&i.EnvironmentKind,
-			&i.AppCurrentDeploymentID,
-			&i.AppIsRolledBack,
+			&i.EnvironmentCurrentDeploymentID,
+			&i.EnvironmentIsRolledBack,
 		); err != nil {
 			return nil, err
 		}

@@ -31,8 +31,8 @@ func TestStopProductionDeploymentProtectsLiveDeployment(t *testing.T) {
 		EnvironmentID: environment.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
-	require.NoError(t, f.database.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
-		AppID:               f.appID,
+	require.NoError(t, f.database.UpdateEnvironmentDeployments(ctx, db.UpdateEnvironmentDeploymentsParams{
+		EnvironmentID:       environment.ID,
 		CurrentDeploymentID: sql.NullString{String: dep.ID, Valid: true},
 	}))
 	client := hydrav1.NewDeploymentServiceIngressClient(f.client, dep.ID)
@@ -54,8 +54,8 @@ func TestStopProductionDeploymentProtectsLiveDeployment(t *testing.T) {
 		EnvironmentID: environment.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
-	require.NoError(t, f.database.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
-		AppID:               f.appID,
+	require.NoError(t, f.database.UpdateEnvironmentDeployments(ctx, db.UpdateEnvironmentDeploymentsParams{
+		EnvironmentID:       environment.ID,
 		CurrentDeploymentID: sql.NullString{String: replacement.ID, Valid: true},
 	}))
 	_, err = client.StopDeployment().Request(ctx, request)

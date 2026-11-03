@@ -63,8 +63,8 @@ func TestDeployTeardown_NoRunningDeployments(t *testing.T) {
 }
 
 // TestDeployTeardown_ClearsCurrentAndStops verifies the core teardown behavior:
-// the running deployment is stopped even though it is the app's current
-// deployment. Teardown clears apps.current_deployment_id first, so the
+// the running deployment is stopped even though it is the environment's current
+// deployment. Teardown clears environments.current_deployment_id first, so the
 // DeploymentService guard (which refuses to touch the current deployment) passes
 // on its own and the desired-state change applies.
 //
@@ -84,13 +84,13 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
-	// Make the deployment its app's current deployment so we exercise the
+	// Make the deployment its environment's current deployment so we exercise the
 	// guard-bypass-by-clearing path.
-	err := h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
+	err := h.DB.UpdateEnvironmentDeployments(ctx, db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{Valid: true, String: dep.ID},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: h.Now()},
-		AppID:               dep.AppID,
+		EnvironmentID:       dep.EnvironmentID,
 	})
 	require.NoError(t, err)
 
@@ -125,9 +125,9 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 	require.False(t, resp.GetDrained(), "no krane to drain, so the grace timeout forces completion")
 
 	// current_deployment_id is cleared synchronously by teardown.
-	app, err := h.DB.FindAppById(ctx, dep.AppID)
+	environment, err := h.DB.FindEnvironmentById(ctx, dep.EnvironmentID)
 	require.NoError(t, err)
-	require.False(t, app.CurrentDeploymentID.Valid, "current_deployment_id should be cleared")
+	require.False(t, environment.CurrentDeploymentID.Valid, "current_deployment_id should be cleared")
 
 	// The desired-state change is applied asynchronously by the DeploymentService
 	// VO, so poll for it. ARCHIVE maps to desired_state 'stopped'.
@@ -177,8 +177,8 @@ func TestDeployTeardown_NoInstancesDrainsImmediately(t *testing.T) {
 }
 
 // TestDeployTeardown_SuspendThenResume verifies the resumable half of teardown:
-// SUSPEND records the app's current deployment and stops it, then Resume brings
-// it back to running and restores apps.current_deployment_id from that record.
+// SUSPEND records the environment's current deployment and stops it, then Resume brings
+// it back to running and restores environments.current_deployment_id from that record.
 func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
@@ -190,12 +190,12 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
-	// Make the deployment its app's current deployment so SUSPEND records it.
-	err := h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
+	// Make the deployment its environment's current deployment so SUSPEND records it.
+	err := h.DB.UpdateEnvironmentDeployments(ctx, db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{Valid: true, String: dep.ID},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: h.Now()},
-		AppID:               dep.AppID,
+		EnvironmentID:       dep.EnvironmentID,
 	})
 	require.NoError(t, err)
 
@@ -207,9 +207,9 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	require.Equal(t, int32(1), suspendResp.GetDeploymentsStopped())
 
 	// current_deployment_id is cleared synchronously by teardown.
-	app, err := h.DB.FindAppById(ctx, dep.AppID)
+	environment, err := h.DB.FindEnvironmentById(ctx, dep.EnvironmentID)
 	require.NoError(t, err)
-	require.False(t, app.CurrentDeploymentID.Valid, "current_deployment_id should be cleared on suspend")
+	require.False(t, environment.CurrentDeploymentID.Valid, "current_deployment_id should be cleared on suspend")
 
 	// SUSPEND maps to desired_state 'stopped', applied asynchronously.
 	require.Eventually(t, func() bool {
@@ -222,10 +222,10 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	require.Equal(t, int32(1), resumeResp.GetDeploymentsResumed())
 
 	// Resume restores current_deployment_id synchronously.
-	app, err = h.DB.FindAppById(ctx, dep.AppID)
+	environment, err = h.DB.FindEnvironmentById(ctx, dep.EnvironmentID)
 	require.NoError(t, err)
-	require.True(t, app.CurrentDeploymentID.Valid, "current_deployment_id should be restored on resume")
-	require.Equal(t, dep.ID, app.CurrentDeploymentID.String)
+	require.True(t, environment.CurrentDeploymentID.Valid, "current_deployment_id should be restored on resume")
+	require.Equal(t, dep.ID, environment.CurrentDeploymentID.String)
 
 	// The deployment is back to desired_state 'running'.
 	require.Eventually(t, func() bool {

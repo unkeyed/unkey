@@ -16,9 +16,9 @@ service RoutingService {
   rpc AssignFrontlineRoutes(AssignFrontlineRoutesRequest) returns (AssignFrontlineRoutesResponse) {}
 
   // SwapLiveDeployment atomically reassigns the given frontline routes AND
-  // updates apps.current_deployment_id to point at the target deployment,
-  // returning the previously-live deployment ID. Setting set_rollback_flag
-  // toggles apps.is_rolled_back. The caller is responsible for any follow-up
+  // updates environments.current_deployment_id to point at the target
+  // deployment, returning the previously-live deployment ID. Setting
+  // set_rollback_flag toggles environments.is_rolled_back. The caller is responsible for any follow-up
   // work like scheduling the previous deployment to stop.
   rpc SwapLiveDeployment(SwapLiveDeploymentRequest) returns (SwapLiveDeploymentResponse) {}
 }
@@ -41,8 +41,8 @@ message ReassignedFrontlineRoute {
 message SwapLiveDeploymentRequest {
   string deployment_id = 1;
   repeated string frontline_route_ids = 2;
-  // If true, sets apps.is_rolled_back = true (rollback semantics).
-  // If false, clears apps.is_rolled_back to false (deploy / promote semantics).
+  // If true, sets environments.is_rolled_back = true (rollback semantics).
+  // If false, clears environments.is_rolled_back (deploy / promote semantics).
   bool set_rollback_flag = 3;
   // Automatic deployments set this to prevent stale builds from replacing a
   // newer deployment or undoing a rollback. Manual rollback and promote

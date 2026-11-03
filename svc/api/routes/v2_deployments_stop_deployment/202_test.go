@@ -36,8 +36,8 @@ func TestStopDeployment(t *testing.T) {
 				EnvironmentID: setup.Environment.ID,
 				Status:        mysqltype.DeploymentsStatusReady,
 			})
-			require.NoError(t, db.Query.UpdateAppDeployments(t.Context(), h.DB.RW(), db.UpdateAppDeploymentsParams{
-				AppID:               setup.App.ID,
+			require.NoError(t, db.Query.UpdateEnvironmentDeployments(t.Context(), h.DB.RW(), db.UpdateEnvironmentDeploymentsParams{
+				EnvironmentID:       setup.Environment.ID,
 				CurrentDeploymentID: sql.NullString{String: live.ID, Valid: true},
 			}))
 

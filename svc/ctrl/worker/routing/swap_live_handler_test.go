@@ -97,7 +97,7 @@ func TestSwapRejectsStoppedDeployment(t *testing.T) {
 		SetRollbackFlag: true,
 	})
 	require.Error(t, err)
-	current, err := database.FindAppById(ctx, app.ID)
+	current, err := database.FindEnvironmentById(ctx, environment.ID)
 	require.NoError(t, err)
 	require.False(t, current.CurrentDeploymentID.Valid)
 }

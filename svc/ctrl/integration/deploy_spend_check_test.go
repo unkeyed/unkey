@@ -76,13 +76,13 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
-	// Make the deployment its app's current deployment so SUSPEND records it and
+	// Make the deployment its environment's current deployment so SUSPEND records it and
 	// resume restores it.
-	err := h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
+	err := h.DB.UpdateEnvironmentDeployments(ctx, db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{Valid: true, String: dep.ID},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: h.Now()},
-		AppID:               dep.AppID,
+		EnvironmentID:       dep.EnvironmentID,
 	})
 	require.NoError(t, err)
 
@@ -110,7 +110,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	// Teardown clears current_deployment_id synchronously; the desired-state
 	// change to stopped is applied asynchronously by the DeploymentService VO.
 	require.Eventually(t, func() bool {
-		app, getErr := h.DB.FindAppById(ctx, dep.AppID)
+		app, getErr := h.DB.FindEnvironmentById(ctx, dep.EnvironmentID)
 		if getErr != nil || app.CurrentDeploymentID.Valid {
 			return false
 		}
@@ -155,7 +155,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	// Resume restores current_deployment_id and brings desired_state back to
 	// running (the latter via the DeploymentService VO, asynchronously).
 	require.Eventually(t, func() bool {
-		app, getErr := h.DB.FindAppById(ctx, dep.AppID)
+		app, getErr := h.DB.FindEnvironmentById(ctx, dep.EnvironmentID)
 		if getErr != nil || !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != dep.ID {
 			return false
 		}

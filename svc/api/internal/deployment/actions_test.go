@@ -69,10 +69,10 @@ func TestAvailableActions(t *testing.T) {
 				},
 				Deployment: db.ListDeploymentsRow{ID: self, Status: tc.status, DesiredState: tc.desiredState, ProjectID: uid.New(uid.ProjectPrefix), AppID: uid.New(uid.AppPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix)},
 				State: db.ListDeploymentEnvAndAppStateRow{
-					EnvironmentSlug:        tc.envSlug,
-					EnvironmentKind:        tc.envKind,
-					AppCurrentDeploymentID: sql.NullString{Valid: tc.current != "", String: tc.current},
-					AppIsRolledBack:        tc.rolledBack,
+					EnvironmentSlug:                tc.envSlug,
+					EnvironmentKind:                tc.envKind,
+					EnvironmentCurrentDeploymentID: sql.NullString{Valid: tc.current != "", String: tc.current},
+					EnvironmentIsRolledBack:        tc.rolledBack,
 				},
 			})
 			require.Equal(t, tc.want, got)
@@ -91,9 +91,9 @@ func TestAvailableActionsFollowPermissions(t *testing.T) {
 	readDeployment := rbac.U(environment.Deployment("*"), permissions.Read).Value
 
 	production := db.ListDeploymentEnvAndAppStateRow{
-		EnvironmentSlug:        "production",
-		EnvironmentKind:        mysqltype.EnvironmentKindProduction,
-		AppCurrentDeploymentID: sql.NullString{Valid: true, String: uid.New(uid.DeploymentPrefix)},
+		EnvironmentSlug:                "production",
+		EnvironmentKind:                mysqltype.EnvironmentKindProduction,
+		EnvironmentCurrentDeploymentID: sql.NullString{Valid: true, String: uid.New(uid.DeploymentPrefix)},
 	}
 	preview := db.ListDeploymentEnvAndAppStateRow{
 		EnvironmentSlug: "preview",

@@ -5,8 +5,8 @@ SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status,
        d.github_deployment_id, d.pr_number,
        w.slug AS workspace_slug,
        p.slug AS project_slug,
-       a.slug AS app_slug, a.is_rolled_back AS app_is_rolled_back,
-       e.slug AS environment_slug, e.kind AS environment_kind
+       a.slug AS app_slug,
+       e.slug AS environment_slug, e.kind AS environment_kind, e.is_rolled_back AS environment_is_rolled_back
 FROM deployments d
 JOIN workspaces w ON w.id = d.workspace_id
 JOIN projects p ON p.id = d.project_id

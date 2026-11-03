@@ -1,7 +1,7 @@
 -- name: ListRunningDeploymentsByBranch :many
 -- ListRunningDeploymentsByBranch returns deployments in the same app,
 -- environment, and branch whose desired state is running, excluding one
--- deployment id, the app's current deployment, and deployments from another
+-- deployment id, the environment's current deployment, and deployments from another
 -- source fork. Pinned deployments are included.
 SELECT d.id
 FROM deployments d
@@ -16,6 +16,6 @@ WHERE d.git_branch <=> sqlc.arg(git_branch)
   AND d.desired_state = 'running'
   AND d.id != sqlc.arg(not_deployment_id)
   AND NOT EXISTS (
-      SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.current_deployment_id = d.id
+      SELECT 1 FROM environments e WHERE e.id = d.environment_id AND e.current_deployment_id = d.id
   )
 ORDER BY d.created_at ASC;

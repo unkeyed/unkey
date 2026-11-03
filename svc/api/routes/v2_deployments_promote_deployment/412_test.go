@@ -147,7 +147,7 @@ func TestPromoteDeploymentAlreadyLive(t *testing.T) {
 		EnvironmentID: setup.Environment.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
-	setCurrentDeployment(t, h, setup.App.ID, live.ID)
+	setCurrentDeployment(t, h, setup.Environment.ID, live.ID)
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: live.ID})
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
@@ -170,7 +170,7 @@ func TestPromoteDeploymentRequiresComputePlan(t *testing.T) {
 		EnvironmentID: setup.Environment.ID,
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
-	setCurrentDeployment(t, h, setup.App.ID, live.ID)
+	setCurrentDeployment(t, h, setup.Environment.ID, live.ID)
 	target := h.CreateDeployment(seed.CreateDeploymentRequest{
 		ID:            uid.New(uid.DeploymentPrefix),
 		WorkspaceID:   setup.Workspace.ID,

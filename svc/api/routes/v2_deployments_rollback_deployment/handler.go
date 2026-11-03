@@ -71,16 +71,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// The rollback source is derived from the app's current live pointer, not
+	// The rollback source is derived from the environment's live pointer, not
 	// trusted from input. The ctrl workflow re-validates, so a concurrent promotion
 	// that moves the pointer fails the rollback rather than swapping traffic onto a
 	// stale source.
-	app, err := db.Query.FindAppById(ctx, h.DB.RW(), dep.AppID)
+	environment, err := db.Query.FindEnvironmentById(ctx, h.DB.RW(), dep.EnvironmentID)
 	if err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to load app for rollback source derivation"),
+			fault.Internal("failed to load environment for rollback source derivation"),
 			fault.Public("Failed to resolve the current live deployment."),
 		)
 	}
@@ -89,13 +89,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Status:              dep.Status,
 		DesiredState:        dep.DesiredState,
 		EnvironmentKind:     dep.EnvironmentKind,
-		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		CurrentDeploymentID: environment.CurrentDeploymentID.String,
 		DeploymentID:        dep.ID,
 	}); err != nil {
 		return err
 	}
 
-	source, err := deployment.FindDeployment(ctx, h.DB, principal.AuthorizedWorkspaceID, app.CurrentDeploymentID.String)
+	source, err := deployment.FindDeployment(ctx, h.DB, principal.AuthorizedWorkspaceID, environment.CurrentDeploymentID.String)
 	if err != nil {
 		return err
 	}
