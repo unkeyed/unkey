@@ -147,7 +147,7 @@ func (f *form) field(ctx context.Context, schema *Schema, values map[string]any,
 		}
 	}
 	defaultValue := ""
-	if previous, present := values[name]; present && previous != nil && !schema.Secret && !strings.HasSuffix(path, ".value") {
+	if previous, present := values[name]; present && previous != nil && !schema.Secret {
 		switch previous.(type) {
 		case string, bool, json.Number, int, int64, float64:
 			text := fmt.Sprint(previous)
@@ -259,7 +259,7 @@ func (f *form) scalar(schema *Schema, path, defaultValue string) (any, error) {
 	for {
 		var text string
 		var err error
-		if schema.Secret || strings.HasSuffix(path, ".value") {
+		if schema.Secret {
 			text, err = f.prompt.Secret(label(path))
 		} else {
 			text, err = f.prompt.String(label(path), defaultValue)

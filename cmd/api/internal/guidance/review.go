@@ -343,7 +343,7 @@ func (f *form) summary(p palette, schema *Schema, values map[string]any, path st
 }
 
 func summary(p palette, schema *Schema, values map[string]any, path string) string {
-	fields, ok := reviewValue(schema, values, path).(map[string]any)
+	fields, ok := reviewValue(schema, values).(map[string]any)
 	if !ok || len(fields) == 0 {
 		return ""
 	}
@@ -404,8 +404,8 @@ func reviewScalar(value any) string {
 	return terminalSafe(fmt.Sprint(value))
 }
 
-func reviewValue(schema *Schema, value any, path string) any {
-	if schema == nil || schema.Secret || strings.HasSuffix(path, ".value") || schema.Type == "any" {
+func reviewValue(schema *Schema, value any) any {
+	if schema == nil || schema.Secret || schema.Type == "any" {
 		return "[hidden]"
 	}
 	switch value := value.(type) {
@@ -419,13 +419,13 @@ func reviewValue(schema *Schema, value any, path string) any {
 		}
 		result := make(map[string]any, len(value))
 		for name, child := range value {
-			result[name] = reviewValue(properties[name], child, path+"."+name)
+			result[name] = reviewValue(properties[name], child)
 		}
 		return result
 	case []any:
 		result := make([]any, len(value))
 		for i, child := range value {
-			result[i] = reviewValue(schema.Items, child, fmt.Sprintf("%s[%d]", path, i+1))
+			result[i] = reviewValue(schema.Items, child)
 		}
 		return result
 	default:
