@@ -36,6 +36,8 @@ export const SelectableNameCell = ({
           )}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
         >
           {!isSelected && !isHovered && (
             <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -48,7 +50,6 @@ export const SelectableNameCell = ({
               "size-4 [&_svg]:size-3",
               !isSelected && !isHovered && "opacity-0 focus-visible:opacity-100",
             )}
-            onClick={(e) => e.stopPropagation()}
             onCheckedChange={onCheckedChange}
             aria-label={`Select ${name}`}
           />
