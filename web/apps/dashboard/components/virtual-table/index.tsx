@@ -177,8 +177,6 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
                     key={column.key}
                     className={cn(
                       "text-sm font-medium text-gray-12 py-1 text-left relative",
-                      hasPadding &&
-                        "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
                       column.headerClassName,
                       column.cellClassName,
                     )}
