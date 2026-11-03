@@ -153,18 +153,18 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	DeleteEnvVarsByEnvironmentId(ctx context.Context, db DBTX, arg DeleteEnvVarsByEnvironmentIdParams) error
-	//DeleteExpiredCLISessions
-	//
-	//  DELETE FROM cli_sessions
-	//  WHERE expires_at < ?
-	//  LIMIT 100
-	DeleteExpiredCLISessions(ctx context.Context, db DBTX, expiredBefore int64) (int64, error)
 	//DeleteExpiredDeviceAuthorizations
 	//
 	//  DELETE FROM device_authorizations
 	//  WHERE expires_at < ?
 	//  LIMIT 100
 	DeleteExpiredDeviceAuthorizations(ctx context.Context, db DBTX, expiredBefore int64) (int64, error)
+	//DeleteExpiredDeviceSessions
+	//
+	//  DELETE FROM device_sessions
+	//  WHERE expires_at < ?
+	//  LIMIT 100
+	DeleteExpiredDeviceSessions(ctx context.Context, db DBTX, expiredBefore int64) (int64, error)
 	//DeleteGithubRepoConnectionsByAppId
 	//
 	//  DELETE FROM github_repo_connections WHERE app_id = ?
@@ -490,69 +490,6 @@ type Querier interface {
 	//  FROM app_source_oci
 	//  WHERE app_id = ?
 	FindAppSourceOciByAppId(ctx context.Context, db DBTX, appID string) (AppSourceOci, error)
-	//FindCLISessionByID
-	//
-	//  SELECT
-	//      pk,
-	//      id,
-	//      workspace_id,
-	//      user_id,
-	//      user_name,
-	//      permissions,
-	//      device_name,
-	//      refresh_token_hash,
-	//      previous_refresh_token_hash,
-	//      refresh_family,
-	//      rotated_at,
-	//      created_at,
-	//      last_used_at,
-	//      expires_at,
-	//      revoked_at
-	//  FROM cli_sessions
-	//  WHERE id = ?
-	FindCLISessionByID(ctx context.Context, db DBTX, id string) (CliSession, error)
-	//FindCLISessionByPreviousRefreshTokenHash
-	//
-	//  SELECT
-	//      pk,
-	//      id,
-	//      workspace_id,
-	//      user_id,
-	//      user_name,
-	//      permissions,
-	//      device_name,
-	//      refresh_token_hash,
-	//      previous_refresh_token_hash,
-	//      refresh_family,
-	//      rotated_at,
-	//      created_at,
-	//      last_used_at,
-	//      expires_at,
-	//      revoked_at
-	//  FROM cli_sessions
-	//  WHERE previous_refresh_token_hash = ?
-	FindCLISessionByPreviousRefreshTokenHash(ctx context.Context, db DBTX, previousRefreshTokenHash sql.NullString) (CliSession, error)
-	//FindCLISessionByRefreshTokenHash
-	//
-	//  SELECT
-	//      pk,
-	//      id,
-	//      workspace_id,
-	//      user_id,
-	//      user_name,
-	//      permissions,
-	//      device_name,
-	//      refresh_token_hash,
-	//      previous_refresh_token_hash,
-	//      refresh_family,
-	//      rotated_at,
-	//      created_at,
-	//      last_used_at,
-	//      expires_at,
-	//      revoked_at
-	//  FROM cli_sessions
-	//  WHERE refresh_token_hash = ?
-	FindCLISessionByRefreshTokenHash(ctx context.Context, db DBTX, refreshTokenHash string) (CliSession, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -778,6 +715,78 @@ type Querier interface {
 	//  WHERE user_code = ?
 	//  FOR UPDATE
 	FindDeviceAuthorizationByUserCodeForUpdate(ctx context.Context, db DBTX, userCode string) (DeviceAuthorization, error)
+	//FindDeviceSessionByID
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      kind,
+	//      workspace_id,
+	//      user_id,
+	//      user_name,
+	//      permissions,
+	//      device_name,
+	//      oauth_client_id,
+	//      resource,
+	//      refresh_token_hash,
+	//      previous_refresh_token_hash,
+	//      refresh_family,
+	//      rotated_at,
+	//      created_at,
+	//      last_used_at,
+	//      expires_at,
+	//      revoked_at
+	//  FROM device_sessions
+	//  WHERE id = ?
+	FindDeviceSessionByID(ctx context.Context, db DBTX, id string) (DeviceSession, error)
+	//FindDeviceSessionByPreviousRefreshTokenHash
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      kind,
+	//      workspace_id,
+	//      user_id,
+	//      user_name,
+	//      permissions,
+	//      device_name,
+	//      oauth_client_id,
+	//      resource,
+	//      refresh_token_hash,
+	//      previous_refresh_token_hash,
+	//      refresh_family,
+	//      rotated_at,
+	//      created_at,
+	//      last_used_at,
+	//      expires_at,
+	//      revoked_at
+	//  FROM device_sessions
+	//  WHERE previous_refresh_token_hash = ?
+	FindDeviceSessionByPreviousRefreshTokenHash(ctx context.Context, db DBTX, previousRefreshTokenHash sql.NullString) (DeviceSession, error)
+	//FindDeviceSessionByRefreshTokenHash
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      kind,
+	//      workspace_id,
+	//      user_id,
+	//      user_name,
+	//      permissions,
+	//      device_name,
+	//      oauth_client_id,
+	//      resource,
+	//      refresh_token_hash,
+	//      previous_refresh_token_hash,
+	//      refresh_family,
+	//      rotated_at,
+	//      created_at,
+	//      last_used_at,
+	//      expires_at,
+	//      revoked_at
+	//  FROM device_sessions
+	//  WHERE refresh_token_hash = ?
+	FindDeviceSessionByRefreshTokenHash(ctx context.Context, db DBTX, refreshTokenHash string) (DeviceSession, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
 	//  SELECT
@@ -1679,16 +1688,19 @@ type Querier interface {
 	//  WHERE id = ? AND deleted_at IS NULL
 	//  FOR UPDATE
 	FindUnkeyRootKeyByIDForUpdate(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
-	//FindUnrevokedCLISessionByRefreshFamily
+	//FindUnrevokedDeviceSessionByRefreshFamily
 	//
 	//  SELECT
 	//      pk,
 	//      id,
+	//      kind,
 	//      workspace_id,
 	//      user_id,
 	//      user_name,
 	//      permissions,
 	//      device_name,
+	//      oauth_client_id,
+	//      resource,
 	//      refresh_token_hash,
 	//      previous_refresh_token_hash,
 	//      refresh_family,
@@ -1697,11 +1709,11 @@ type Querier interface {
 	//      last_used_at,
 	//      expires_at,
 	//      revoked_at
-	//  FROM cli_sessions
+	//  FROM device_sessions
 	//  WHERE refresh_family = ?
 	//    AND revoked_at IS NULL
 	//  LIMIT 1
-	FindUnrevokedCLISessionByRefreshFamily(ctx context.Context, db DBTX, refreshFamily string) (CliSession, error)
+	FindUnrevokedDeviceSessionByRefreshFamily(ctx context.Context, db DBTX, refreshFamily string) (DeviceSession, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in
@@ -1821,34 +1833,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertAppSourceOci(ctx context.Context, db DBTX, arg InsertAppSourceOciParams) error
-	//InsertCLISession
-	//
-	//  INSERT INTO cli_sessions (
-	//      id,
-	//      workspace_id,
-	//      user_id,
-	//      user_name,
-	//      permissions,
-	//      device_name,
-	//      refresh_token_hash,
-	//      refresh_family,
-	//      created_at,
-	//      last_used_at,
-	//      expires_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      CAST(? AS JSON),
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertCLISession(ctx context.Context, db DBTX, arg InsertCLISessionParams) error
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -2082,6 +2066,40 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertDeviceAuthorization(ctx context.Context, db DBTX, arg InsertDeviceAuthorizationParams) error
+	//InsertDeviceSession
+	//
+	//  INSERT INTO device_sessions (
+	//      id,
+	//      kind,
+	//      workspace_id,
+	//      user_id,
+	//      user_name,
+	//      permissions,
+	//      device_name,
+	//      oauth_client_id,
+	//      resource,
+	//      refresh_token_hash,
+	//      refresh_family,
+	//      created_at,
+	//      last_used_at,
+	//      expires_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      CAST(? AS JSON),
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertDeviceSession(ctx context.Context, db DBTX, arg InsertDeviceSessionParams) error
 	//InsertEnvironment
 	//
 	//  INSERT INTO environments (
@@ -2759,57 +2777,6 @@ type Querier interface {
 	//  ORDER BY apps.id ASC
 	//  LIMIT ?
 	ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsByProjectParams) ([]ListAppsByProjectRow, error)
-	//ListCLISessionsByUser
-	//
-	//  SELECT
-	//      pk,
-	//      id,
-	//      workspace_id,
-	//      user_id,
-	//      user_name,
-	//      permissions,
-	//      device_name,
-	//      refresh_token_hash,
-	//      previous_refresh_token_hash,
-	//      refresh_family,
-	//      rotated_at,
-	//      created_at,
-	//      last_used_at,
-	//      expires_at,
-	//      revoked_at
-	//  FROM cli_sessions
-	//  WHERE workspace_id = ?
-	//    AND user_id = ?
-	//    AND revoked_at IS NULL
-	//    AND expires_at > ?
-	//  ORDER BY created_at DESC
-	//  LIMIT 100
-	ListCLISessionsByUser(ctx context.Context, db DBTX, arg ListCLISessionsByUserParams) ([]CliSession, error)
-	//ListCLISessionsByWorkspace
-	//
-	//  SELECT
-	//      pk,
-	//      id,
-	//      workspace_id,
-	//      user_id,
-	//      user_name,
-	//      permissions,
-	//      device_name,
-	//      refresh_token_hash,
-	//      previous_refresh_token_hash,
-	//      refresh_family,
-	//      rotated_at,
-	//      created_at,
-	//      last_used_at,
-	//      expires_at,
-	//      revoked_at
-	//  FROM cli_sessions
-	//  WHERE workspace_id = ?
-	//    AND revoked_at IS NULL
-	//    AND expires_at > ?
-	//  ORDER BY created_at DESC
-	//  LIMIT 100
-	ListCLISessionsByWorkspace(ctx context.Context, db DBTX, arg ListCLISessionsByWorkspaceParams) ([]CliSession, error)
 	// ListClickhouseOutboxByWorkspace returns every outbox row queued for a
 	// workspace, regardless of drainer state. Intended for tests and ad-hoc
 	// inspection (the live drainer uses FindClickhouseOutboxBatch which locks
@@ -2947,6 +2914,63 @@ type Querier interface {
 	//  ORDER BY d.created_at DESC, d.pk DESC
 	//  LIMIT ?
 	ListDeployments(ctx context.Context, db DBTX, arg ListDeploymentsParams) ([]ListDeploymentsRow, error)
+	//ListDeviceSessionsByUser
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      kind,
+	//      workspace_id,
+	//      user_id,
+	//      user_name,
+	//      permissions,
+	//      device_name,
+	//      oauth_client_id,
+	//      resource,
+	//      refresh_token_hash,
+	//      previous_refresh_token_hash,
+	//      refresh_family,
+	//      rotated_at,
+	//      created_at,
+	//      last_used_at,
+	//      expires_at,
+	//      revoked_at
+	//  FROM device_sessions
+	//  WHERE workspace_id = ?
+	//    AND user_id = ?
+	//    AND revoked_at IS NULL
+	//    AND expires_at > ?
+	//  ORDER BY created_at DESC
+	//  LIMIT 100
+	ListDeviceSessionsByUser(ctx context.Context, db DBTX, arg ListDeviceSessionsByUserParams) ([]DeviceSession, error)
+	//ListDeviceSessionsByWorkspace
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      kind,
+	//      workspace_id,
+	//      user_id,
+	//      user_name,
+	//      permissions,
+	//      device_name,
+	//      oauth_client_id,
+	//      resource,
+	//      refresh_token_hash,
+	//      previous_refresh_token_hash,
+	//      refresh_family,
+	//      rotated_at,
+	//      created_at,
+	//      last_used_at,
+	//      expires_at,
+	//      revoked_at
+	//  FROM device_sessions
+	//  WHERE workspace_id = ?
+	//    AND revoked_at IS NULL
+	//    AND expires_at > ?
+	//  ORDER BY created_at DESC
+	//  LIMIT 100
+	ListDeviceSessionsByWorkspace(ctx context.Context, db DBTX, arg ListDeviceSessionsByWorkspaceParams) ([]DeviceSession, error)
 	//ListDirectPermissionsByKeyID
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -3869,21 +3893,21 @@ type Querier interface {
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)
-	//RevokeCLISession
+	//RevokeDeviceSession
 	//
-	//  UPDATE cli_sessions
+	//  UPDATE device_sessions
 	//  SET revoked_at = ?
 	//  WHERE id = ?
 	//    AND workspace_id = ?
 	//    AND revoked_at IS NULL
-	RevokeCLISession(ctx context.Context, db DBTX, arg RevokeCLISessionParams) (int64, error)
-	//RevokeCLISessionFamily
+	RevokeDeviceSession(ctx context.Context, db DBTX, arg RevokeDeviceSessionParams) (int64, error)
+	//RevokeDeviceSessionFamily
 	//
-	//  UPDATE cli_sessions
+	//  UPDATE device_sessions
 	//  SET revoked_at = ?
 	//  WHERE refresh_family = ?
 	//    AND revoked_at IS NULL
-	RevokeCLISessionFamily(ctx context.Context, db DBTX, arg RevokeCLISessionFamilyParams) (int64, error)
+	RevokeDeviceSessionFamily(ctx context.Context, db DBTX, arg RevokeDeviceSessionFamilyParams) (int64, error)
 	// Revokes the sessions LockLivePortalSessionsByExternalID locked. Run it in the
 	// same transaction, so the ids are exactly the rows this call revokes.
 	//
@@ -3907,9 +3931,9 @@ type Querier interface {
 	//    AND workspace_id = ?
 	//    AND revoked_at IS NULL
 	RevokePortalSessionsByPortal(ctx context.Context, db DBTX, arg RevokePortalSessionsByPortalParams) (int64, error)
-	//RotateCLISessionRefreshToken
+	//RotateDeviceSessionRefreshToken
 	//
-	//  UPDATE cli_sessions
+	//  UPDATE device_sessions
 	//  SET
 	//      refresh_token_hash = ?,
 	//      previous_refresh_token_hash = ?,
@@ -3920,7 +3944,7 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND refresh_token_hash = ?
 	//    AND revoked_at IS NULL
-	RotateCLISessionRefreshToken(ctx context.Context, db DBTX, arg RotateCLISessionRefreshTokenParams) (int64, error)
+	RotateDeviceSessionRefreshToken(ctx context.Context, db DBTX, arg RotateDeviceSessionRefreshTokenParams) (int64, error)
 	//SoftDeleteApi
 	//
 	//  UPDATE apis

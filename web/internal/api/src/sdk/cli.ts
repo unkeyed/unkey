@@ -79,10 +79,10 @@ export class Cli extends ClientSDK {
   }
 
   /**
-   * List CLI sessions
+   * List CLI and MCP sessions
    *
    * @remarks
-   * Lists CLI sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
+   * Lists CLI and MCP sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
    * Requires a dashboard session or a CLI access token. Root keys are rejected.
    * This endpoint takes no request body.
    */

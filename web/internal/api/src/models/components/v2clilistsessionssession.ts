@@ -6,10 +6,21 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import {
+  V2CliSessionKind,
+  V2CliSessionKind$inboundSchema,
+} from "./v2clisessionkind.js";
 
 export type V2CliListSessionsSession = {
   id: string;
   userId: string;
+  /**
+   * How the session started. cli is `unkey login`. mcp is an MCP client that signed in with OAuth.
+   */
+  kind: V2CliSessionKind;
+  /**
+   * The CLI machine's name, or the MCP client's self-reported name.
+   */
   deviceName?: string | undefined;
   permissions: Array<string>;
   createdAt: number;
@@ -32,6 +43,7 @@ export const V2CliListSessionsSession$inboundSchema: z.ZodType<
 > = z.object({
   id: z.string(),
   userId: z.string(),
+  kind: V2CliSessionKind$inboundSchema,
   deviceName: z.string().optional(),
   permissions: z.array(z.string()),
   createdAt: z.number().int(),

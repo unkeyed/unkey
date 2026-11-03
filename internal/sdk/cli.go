@@ -1072,8 +1072,8 @@ func (s *Cli) GetDeviceLogin(ctx context.Context, request components.V2CliGetDev
 
 }
 
-// ListSessions - List CLI sessions
-// Lists CLI sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
+// ListSessions - List CLI and MCP sessions
+// Lists CLI and MCP sessions in the caller's workspace. A member sees their own sessions. An admin sees every session.
 // Requires a dashboard session or a CLI access token. Root keys are rejected.
 // This endpoint takes no request body.
 func (s *Cli) ListSessions(ctx context.Context, opts ...operations.Option) (*operations.CliListSessionsResponse, error) {

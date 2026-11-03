@@ -42,6 +42,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		item := openapi.V2CliListSessionsSession{
 			Id:          row.ID,
 			UserId:      row.UserID,
+			Kind:        openapi.V2CliSessionKind(row.Kind),
 			DeviceName:  nil,
 			Permissions: permissions,
 			CreatedAt:   row.CreatedAt,
