@@ -77,6 +77,10 @@ const state = vi.hoisted(() => ({
   project: null as GithubContextProject | null,
   installationRepos: new Map<number, RepositoryRow[]>(),
   repoErrors: new Map<number, Error>(),
+  repository: null as RepositoryRow | null,
+  repositoryError: null as Error | null,
+  repositoryBranchesError: null as Error | null,
+  searchBranchesError: null as Error | null,
   inputQueryResolvers: [] as CapturedQueryResolver[],
 }));
 
@@ -189,11 +193,26 @@ vi.mock("@/lib/github", () => ({
     return state.installationRepos.get(installationId) ?? [];
   },
   getMostActiveBranches: async () => [],
-  getRepository: async () => null,
-  getRepositoryBranches: async () => [],
+  getRepository: async () => {
+    if (state.repositoryError) {
+      throw state.repositoryError;
+    }
+    return state.repository;
+  },
+  getRepositoryBranches: async () => {
+    if (state.repositoryBranchesError) {
+      throw state.repositoryBranchesError;
+    }
+    return [];
+  },
   getRepositoryById: async () => null,
   getRepositoryTree: async () => ({ tree: [], truncated: false }),
-  searchBranchesByPrefix: async () => [],
+  searchBranchesByPrefix: async () => {
+    if (state.searchBranchesError) {
+      throw state.searchBranchesError;
+    }
+    return [];
+  },
 }));
 
 vi.mock("../trpc", () => ({
@@ -533,5 +552,123 @@ describe("getRepositoryById installation membership", () => {
     );
 
     await expect(getRepositoryById(42, repository.id)).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+type ReadResolver<TInput> = (opts: { ctx: Context; input: TInput }) => Promise<unknown>;
+
+const repositoryDetailsInput = {
+  projectId: "proj_1",
+  installationId: 100,
+  owner: "acme",
+  repo: "repo",
+  defaultBranch: "main",
+};
+
+const searchBranchesInput = {
+  projectId: "proj_1",
+  installationId: 100,
+  owner: "acme",
+  repo: "repo",
+  query: "feat",
+};
+
+function seedReadableProject(): void {
+  state.project = {
+    id: "proj_1",
+    apps: [],
+    workspace: {
+      id: "ws_destination",
+      githubAppInstallations: [{ pk: 1, installationId: 100 }],
+    },
+  };
+}
+
+function getRepositoryDetails(input: typeof repositoryDetailsInput): Promise<unknown> {
+  const resolver = state.inputQueryResolvers[3] as ReadResolver<typeof input> | undefined;
+  if (!resolver) {
+    throw new Error("getRepositoryDetails resolver was not registered");
+  }
+  return resolver({ ctx: context, input });
+}
+
+function callSearchBranches(input: typeof searchBranchesInput): Promise<unknown> {
+  const resolver = state.inputQueryResolvers[4] as ReadResolver<typeof input> | undefined;
+  if (!resolver) {
+    throw new Error("searchBranches resolver was not registered");
+  }
+  return resolver({ ctx: context, input });
+}
+
+describe("getRepositoryDetails", () => {
+  beforeEach(() => {
+    seedReadableProject();
+    state.repository = {
+      id: 5,
+      name: "repo",
+      full_name: "acme/repo",
+      private: true,
+      html_url: "https://github.com/acme/repo",
+      default_branch: "main",
+      pushed_at: null,
+      language: null,
+    };
+    state.repositoryError = null;
+    state.repositoryBranchesError = null;
+  });
+
+  it("returns branches and repository metadata for an accessible repository", async () => {
+    const result = await getRepositoryDetails(repositoryDetailsInput);
+
+    expect(result).toMatchObject({
+      repositoryDefaultBranch: "main",
+      branches: [{ name: "main" }],
+    });
+  });
+
+  it("returns a typed precondition failure when GitHub no longer serves the repository", async () => {
+    state.repositoryError = new GitHubApiError(404, "Not Found");
+
+    await expect(getRepositoryDetails(repositoryDetailsInput)).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+      message: expect.stringContaining("not accessible"),
+    } satisfies Partial<TRPCError>);
+  });
+
+  it("returns a typed precondition failure when a branch read reports a missing repository", async () => {
+    state.repositoryBranchesError = new GitHubApiError(404, "Not Found");
+
+    await expect(getRepositoryDetails(repositoryDetailsInput)).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+    } satisfies Partial<TRPCError>);
+  });
+
+  it("propagates other GitHub failures unchanged", async () => {
+    state.repositoryError = new GitHubApiError(500, "Internal Server Error");
+
+    await expect(getRepositoryDetails(repositoryDetailsInput)).rejects.toBeInstanceOf(
+      GitHubApiError,
+    );
+  });
+});
+
+describe("searchBranches", () => {
+  beforeEach(() => {
+    seedReadableProject();
+    state.searchBranchesError = null;
+  });
+
+  it("returns branch matches for an accessible repository", async () => {
+    const result = await callSearchBranches(searchBranchesInput);
+
+    expect(result).toEqual({ branches: [] });
+  });
+
+  it("returns a typed precondition failure when GitHub no longer serves the repository", async () => {
+    state.searchBranchesError = new GitHubApiError(404, "Not Found");
+
+    await expect(callSearchBranches(searchBranchesInput)).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+    } satisfies Partial<TRPCError>);
   });
 });

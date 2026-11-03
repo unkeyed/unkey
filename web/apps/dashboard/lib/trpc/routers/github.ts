@@ -23,6 +23,23 @@ import { t, workspaceProcedure } from "../trpc";
 
 const STATE_TTL_MS = 15 * 60 * 1000;
 
+// GitHub returns 404 for a repository it no longer serves and for an
+// installation that no longer exists. The list and tree reads already treat
+// that as an expected state; the single-repository reads must do the same so the
+// dashboard can tell the operator to repair the connection instead of returning
+// a 500-class error with GitHub's raw body.
+const repositoryUnavailableMessage =
+  "This repository is not accessible through the GitHub connection. Reconnect or repair the connection, then try again.";
+
+const isRepositoryUnavailableError = (error: unknown): boolean =>
+  error instanceof GitHubApiError && error.status === 404;
+
+const repositoryUnavailableError = (): TRPCError =>
+  new TRPCError({
+    code: "PRECONDITION_FAILED",
+    message: repositoryUnavailableMessage,
+  });
+
 // State payload signed and handed to GitHub's install URL. The signature binds
 // the state to a workspace (and, per flow, a user + app) so the callback cannot
 // be replayed across sessions or used by an attacker who phishes a logged-in
@@ -684,7 +701,12 @@ export const githubRouter = t.router({
           (): BranchActivity[] => [],
         ),
         getRepositoryBranches(input.installationId, input.owner, input.repo, MAX_BRANCHES),
-      ]);
+      ]).catch((error: unknown) => {
+        if (isRepositoryUnavailableError(error)) {
+          throw repositoryUnavailableError();
+        }
+        throw error;
+      });
 
       const activityMap = new Map(activeBranches.map((b) => [b.name, b.lastPushDate]));
       const seen = new Set<string>();
@@ -750,7 +772,12 @@ export const githubRouter = t.router({
         input.owner,
         input.repo,
         input.query,
-      );
+      ).catch((error: unknown) => {
+        if (isRepositoryUnavailableError(error)) {
+          throw repositoryUnavailableError();
+        }
+        throw error;
+      });
       return { branches };
     }),
 
