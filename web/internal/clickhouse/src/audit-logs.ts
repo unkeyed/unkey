@@ -8,7 +8,7 @@ const EMPTY_JSON = "{}";
 
 export const auditLogsRequestSchema = z.object({
   workspaceId: z.string(),
-  buckets: z.array(z.string()).min(1),
+  bucketId: z.string(),
   limit: z.int(),
   offset: z.int(),
   startTime: z.int(),
@@ -21,13 +21,12 @@ export type AuditLogsRequest = z.infer<typeof auditLogsRequestSchema>;
 
 const auditLogJsonLookupSchema = z.object({
   workspaceId: z.string(),
-  buckets: z.array(z.string()).min(1),
+  bucketId: z.string(),
   times: z.array(z.int()),
   eventIds: z.array(z.string()),
 });
 
-// workspace_id is omitted because it always equals the filter value. bucket
-// is returned because a caller may read several buckets in one query.
+// workspace_id is omitted because it always equals the filter value.
 export const auditLogRow = z.object({
   eventId: z.string(),
   bucket: z.string(),
@@ -70,7 +69,7 @@ export function getAuditLogs(ch: Querier) {
     // can push event/actor predicates into the set/bloom skip indexes.
     const conditions = [
       "workspace_id = {workspaceId: String}",
-      "bucket IN {buckets: Array(String)}",
+      "bucket = {bucketId: String}",
       "time BETWEEN {startTime: UInt64} AND {endTime: UInt64}",
     ];
     if (args.events.length > 0) {
@@ -123,7 +122,7 @@ export function getAuditLogs(ch: Querier) {
           ) AS targets
         FROM ${TABLE}
         WHERE workspace_id = {workspaceId: String}
-          AND bucket IN {buckets: Array(String)}
+          AND bucket = {bucketId: String}
           AND time IN {times: Array(Int64)}
           AND (time, event_id) IN (
             SELECT
@@ -185,7 +184,7 @@ async function loadAuditLogPage(
   pageQuery: (args: AuditLogsRequest) => Promise<Result<AuditLogPageRow[], QueryError>>,
   jsonQuery: (args: {
     workspaceId: string;
-    buckets: string[];
+    bucketId: string;
     times: number[];
     eventIds: string[];
   }) => Promise<Result<AuditLogJsonRow[], QueryError>>,
@@ -201,7 +200,7 @@ async function loadAuditLogPage(
 
   const json = await jsonQuery({
     workspaceId: args.workspaceId,
-    buckets: args.buckets,
+    bucketId: args.bucketId,
     times: page.val.map((row) => row.time),
     eventIds: page.val.map((row) => row.eventId),
   });
