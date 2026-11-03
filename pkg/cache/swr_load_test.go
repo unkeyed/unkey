@@ -350,3 +350,82 @@ func waitForWaiters(t *testing.T, c *cache[string, string], key string, n int) {
 		return ok && f.waiters == n
 	}, 5*time.Second, time.Millisecond)
 }
+
+// TestRemoveDuringOriginReadDropsTheReadResult guarantees that an origin read
+// that started before Remove does not write its result back, so data that
+// changed in the origin is not served again after its key was invalidated.
+func TestRemoveDuringOriginReadDropsTheReadResult(t *testing.T) {
+	op := func(error) Op { return WriteValue }
+	reads := map[string]func(c *cache[string, string], origin func() string){
+		"SWR": func(c *cache[string, string], origin func() string) {
+			_, _, _ = c.SWR(context.Background(), "key", func(context.Context) (string, error) {
+				return origin(), nil
+			}, op)
+		},
+		"SWRMany": func(c *cache[string, string], origin func() string) {
+			_, _, _ = c.SWRMany(context.Background(), []string{"key"}, func(context.Context, []string) (map[string]string, error) {
+				return map[string]string{"key": origin()}, nil
+			}, op)
+		},
+		"SWRWithFallback": func(c *cache[string, string], origin func() string) {
+			_, _, _ = c.SWRWithFallback(context.Background(), []string{"key"}, func(context.Context) (string, string, error) {
+				return origin(), "key", nil
+			}, op)
+		},
+	}
+	for name, read := range reads {
+		t.Run(name, func(t *testing.T) {
+			c, _ := newPausedRefreshCache(t)
+			started := make(chan struct{})
+			release := make(chan struct{})
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				read(c, func() string {
+					close(started)
+					<-release
+					return "old"
+				})
+			}()
+			<-started
+			c.Remove(t.Context(), "key")
+			close(release)
+			<-done
+
+			_, hit := c.Get(t.Context(), "key")
+			require.Equal(t, Miss, hit)
+		})
+	}
+}
+
+// TestSWRAfterRemoveDoesNotJoinAnEarlierOriginRead guarantees that a caller
+// that misses after Remove reads the origin again instead of waiting for a
+// read that started before the key was invalidated.
+func TestSWRAfterRemoveDoesNotJoinAnEarlierOriginRead(t *testing.T) {
+	c, _ := newPausedRefreshCache(t)
+	op := func(error) Op { return WriteValue }
+	release := make(chan struct{})
+	go func() {
+		_, _, _ = c.SWR(context.Background(), "key", func(context.Context) (string, error) {
+			<-release
+			return "old", nil
+		}, op)
+	}()
+	waitForWaiters(t, c, "key", 1)
+	defer close(release)
+
+	c.Remove(t.Context(), "key")
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	value, hit, err := c.SWR(ctx, "key", func(context.Context) (string, error) {
+		return "new", nil
+	}, op)
+	require.NoError(t, err)
+	require.Equal(t, Hit, hit)
+	require.Equal(t, "new", value)
+
+	cached, hit := c.Get(t.Context(), "key")
+	require.Equal(t, Hit, hit)
+	require.Equal(t, "new", cached)
+}
