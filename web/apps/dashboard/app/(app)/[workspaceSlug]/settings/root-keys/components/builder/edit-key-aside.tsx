@@ -41,7 +41,7 @@ import { useRootKeyPolicyForm } from "./hooks/use-root-key-policy-form";
 import { KeyFields } from "./key-fields";
 import { buildUrns } from "./lib/urn";
 import { PolicyList } from "./policy-list";
-import { changedIpAllowlist } from "./schema";
+import { changedIpAllowlist, ipAllowlistModeOf } from "./schema";
 
 type EditKeyAsideProps = {
   keyId: string;
@@ -144,6 +144,9 @@ function EditablePolicyForm({
   const { limits } = useWorkspace();
   const ipAllowlistInitial = useRef(draft.ipAllowlist);
   const ipAllowlistEnabled = limits?.ipAllowlistEnabled ?? false;
+  const ipAllowlist = ipAllowlistModeOf(ipAllowlistEnabled, ipAllowlistInitial.current);
+  const ipAllowlistDefault =
+    ipAllowlist.kind === "editable" ? ipAllowlistInitial.current.join("\n") : "";
   const queryClient = useQueryClient();
   const update = useMutation({
     mutationFn: (request: V2RootKeysUpdateKeyRequestBody) =>
@@ -151,15 +154,16 @@ function EditablePolicyForm({
   });
 
   const { form, bodyRef, submit } = useRootKeyPolicyForm(
-    { name: draft.name, policies: draft.policies, ipAllowlist: draft.ipAllowlist.join("\n") },
+    { name: draft.name, policies: draft.policies, ipAllowlist: ipAllowlistDefault },
     async (values) => {
       try {
         await update.mutateAsync({
           keyId: draft.keyId,
           name: values.name.trim() || null,
-          ipAllowlist: ipAllowlistEnabled
-            ? changedIpAllowlist(values.ipAllowlist, ipAllowlistInitial.current)
-            : undefined,
+          ipAllowlist:
+            ipAllowlist.kind === "editable"
+              ? changedIpAllowlist(values.ipAllowlist, ipAllowlistInitial.current)
+              : undefined,
           permissions: buildUrns(workspace.id, values.policies),
         });
       } catch (error) {
@@ -182,7 +186,7 @@ function EditablePolicyForm({
     <FormProvider {...form}>
       <form onSubmit={submit} className="flex h-full flex-col">
         <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-3">
-          <KeyFields ipAllowlistEnabled={ipAllowlistEnabled}>
+          <KeyFields ipAllowlist={ipAllowlist}>
             <PolicyList />
           </KeyFields>
         </div>

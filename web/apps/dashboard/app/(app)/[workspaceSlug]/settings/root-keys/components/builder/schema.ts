@@ -54,6 +54,18 @@ export function changedIpAllowlist(
   return next;
 }
 
+export type IpAllowlistMode =
+  | { kind: "editable" }
+  | { kind: "locked" }
+  | { kind: "enforced"; entries: readonly string[] };
+
+export function ipAllowlistModeOf(enabled: boolean, entries: readonly string[]): IpAllowlistMode {
+  if (enabled) {
+    return { kind: "editable" };
+  }
+  return entries.length === 0 ? { kind: "locked" } : { kind: "enforced", entries };
+}
+
 const ipEntrySchema = z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]);
 const ipAllowlistSchema = z.string().superRefine((value, ctx) => {
   const entries = splitIpAllowlist(value);
