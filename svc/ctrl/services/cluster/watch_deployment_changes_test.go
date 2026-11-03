@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/clock"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 )
@@ -119,5 +120,5 @@ func (s *watchDatabase) FindCluster(context.Context, db.FindClusterParams) (db.F
 }
 
 func (s *watchDatabase) FindDeploymentTopologyByDeploymentAndRegion(context.Context, db.FindDeploymentTopologyByDeploymentAndRegionParams) (db.FindDeploymentTopologyByDeploymentAndRegionRow, error) {
-	return db.FindDeploymentTopologyByDeploymentAndRegionRow{ID: "deploy_test", DesiredStatus: db.DeploymentTopologyDesiredStatusRunning}, s.lookupErr
+	return db.FindDeploymentTopologyByDeploymentAndRegionRow{ID: "deploy_test", DesiredState: mysqltype.DeploymentsDesiredStateRunning}, s.lookupErr
 }

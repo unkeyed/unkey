@@ -13,9 +13,16 @@ import (
 )
 
 const updateDeploymentDesiredState = `-- name: UpdateDeploymentDesiredState :exec
-UPDATE deployments
-SET desired_state = ?, updated_at = ?
-WHERE id = ?
+UPDATE deployments d
+LEFT JOIN deployment_topology dt ON dt.deployment_id = d.id
+SET d.desired_state = ?,
+    d.status = CASE
+        WHEN ? = 'running' AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped') THEN 'deploying'
+        ELSE d.status
+    END,
+    d.updated_at = ?,
+    dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, COALESCE(?, 0))
+WHERE d.id = ?
 `
 
 type UpdateDeploymentDesiredStateParams struct {
@@ -24,12 +31,27 @@ type UpdateDeploymentDesiredStateParams struct {
 	ID           string                            `db:"id"`
 }
 
-// UpdateDeploymentDesiredState
+// UpdateDeploymentDesiredState changes intent and notifies every regional stream
+// atomically. Advancing topology timestamps preserves repeated stop/wake delivery.
+// Explicit running intent resets unsuccessful outcomes before readers see it.
 //
-//	UPDATE deployments
-//	SET desired_state = ?, updated_at = ?
-//	WHERE id = ?
+//	UPDATE deployments d
+//	LEFT JOIN deployment_topology dt ON dt.deployment_id = d.id
+//	SET d.desired_state = ?,
+//	    d.status = CASE
+//	        WHEN ? = 'running' AND d.status IN ('failed', 'cancelled', 'superseded', 'skipped') THEN 'deploying'
+//	        ELSE d.status
+//	    END,
+//	    d.updated_at = ?,
+//	    dt.updated_at = GREATEST(COALESCE(dt.updated_at, 0) + 1, COALESCE(?, 0))
+//	WHERE d.id = ?
 func (q *Queries) UpdateDeploymentDesiredState(ctx context.Context, arg UpdateDeploymentDesiredStateParams) error {
-	_, err := q.db.ExecContext(ctx, updateDeploymentDesiredState, arg.DesiredState, arg.UpdatedAt, arg.ID)
+	_, err := q.db.ExecContext(ctx, updateDeploymentDesiredState,
+		arg.DesiredState,
+		arg.DesiredState,
+		arg.UpdatedAt,
+		arg.UpdatedAt,
+		arg.ID,
+	)
 	return err
 }

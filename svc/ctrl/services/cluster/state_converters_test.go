@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 func TestDeploymentRowToState_Running(t *testing.T) {
 	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
-		DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
+		DesiredState:           mysqltype.DeploymentsDesiredStateRunning,
 		AutoscalingReplicasMin: 1,
 		AutoscalingReplicasMax: 3,
 		ID:                     "deploy_123",
@@ -46,9 +47,9 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 
 func TestDeploymentRowToState_Stopped(t *testing.T) {
 	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
-		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
-		K8sName:       "my-app",
-		K8sNamespace:  "ws-namespace",
+		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
+		K8sName:      "my-app",
+		K8sNamespace: "ws-namespace",
 	}
 
 	state, err := deploymentRowToState(row)

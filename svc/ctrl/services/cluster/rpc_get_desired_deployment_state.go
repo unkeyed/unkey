@@ -13,9 +13,10 @@ import (
 // region. This is a point query alternative to [Service.WatchDeploymentChanges] for cases where
 // an agent needs to fetch state for a specific deployment rather than streaming all changes.
 //
-// The response contains either an ApplyDeployment (for running state) or DeleteDeployment
-// (for archived or standby states) based on the deployment_topology's desired_state in the
-// database. Unhandled desired states result in CodeInternal.
+// The response contains either an ApplyDeployment or DeleteDeployment based on
+// the deployment's desired_state. The topology selects the caller's regional
+// placement. Unsuccessful deployments return Delete even if legacy intent is
+// still running. Unhandled desired states result in CodeInternal.
 //
 // Returns CodeUnauthenticated if bearer token is invalid, CodeInvalidArgument if
 // the cluster key is missing, CodeNotFound if the cluster or deployment does not

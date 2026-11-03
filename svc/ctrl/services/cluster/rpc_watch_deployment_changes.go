@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/logger"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
@@ -102,7 +103,8 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 		deployment = row
 	case db.ListAllDeploymentTopologiesByRegionRow:
 		deployment = db.FindDeploymentTopologyByDeploymentAndRegionRow{
-			DesiredStatus:                 row.TopologyDesiredStatus,
+			DesiredState:                  row.DeploymentDesiredState,
+			Status:                        row.DeploymentStatus,
 			AutoscalingReplicasMin:        row.TopologyAutoscalingReplicasMin,
 			AutoscalingReplicasMax:        row.TopologyAutoscalingReplicasMax,
 			AutoscalingThresholdCpu:       row.TopologyAutoscalingThresholdCpu,
@@ -135,8 +137,20 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 		return nil, fmt.Errorf("unsupported deployment row type %T", row)
 	}
 
-	switch deployment.DesiredStatus {
-	case db.DeploymentTopologyDesiredStatusStopped:
+	// Legacy failure compensation did not always update deployment intent.
+	switch deployment.Status {
+	case mysqltype.DeploymentsStatusFailed, mysqltype.DeploymentsStatusCancelled,
+		mysqltype.DeploymentsStatusSuperseded, mysqltype.DeploymentsStatusSkipped:
+		deployment.DesiredState = mysqltype.DeploymentsDesiredStateStopped
+	case mysqltype.DeploymentsStatusPending, mysqltype.DeploymentsStatusStarting,
+		mysqltype.DeploymentsStatusBuilding, mysqltype.DeploymentsStatusDeploying,
+		mysqltype.DeploymentsStatusNetwork, mysqltype.DeploymentsStatusFinalizing,
+		mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsStatusAwaitingApproval,
+		mysqltype.DeploymentsStatusStopped:
+	}
+
+	switch deployment.DesiredState {
+	case mysqltype.DeploymentsDesiredStateStopped:
 		return &ctrlv1.DeploymentState{
 			State: &ctrlv1.DeploymentState_Delete{
 				Delete: &ctrlv1.DeleteDeployment{
@@ -145,7 +159,7 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 				},
 			},
 		}, nil
-	case db.DeploymentTopologyDesiredStatusRunning:
+	case mysqltype.DeploymentsDesiredStateRunning:
 		var buildID *string
 		if deployment.BuildID.Valid {
 			buildID = &deployment.BuildID.String
@@ -216,6 +230,6 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			},
 		}, nil
 	default:
-		return nil, fmt.Errorf("unknown DeploymentTopologyDesiredStatus: %v", deployment.DesiredStatus)
+		return nil, fmt.Errorf("unknown deployment desired state: %v", deployment.DesiredState)
 	}
 }

@@ -1,4 +1,4 @@
-import { type InferSelectModel, and, db, eq, inArray } from "@/lib/db";
+import { type InferSelectModel, and, db, eq, inArray, notInArray } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import {
   appRegionalSettings,
@@ -105,12 +105,14 @@ export const listDeploymentDetails = workspaceProcedure
           replicas: deploymentTopology.autoscalingReplicasMin,
         })
         .from(deploymentTopology)
+        .innerJoin(deployments, eq(deployments.id, deploymentTopology.deploymentId))
         .innerJoin(regions, eq(regions.id, deploymentTopology.regionId))
         .where(
           and(
             eq(deploymentTopology.workspaceId, ctx.workspace.id),
             inArray(deploymentTopology.deploymentId, deploymentIds),
-            eq(deploymentTopology.desiredStatus, "running"),
+            eq(deployments.desiredState, "running"),
+            notInArray(deployments.status, ["failed", "cancelled", "superseded", "skipped"]),
           ),
         ),
     ]);

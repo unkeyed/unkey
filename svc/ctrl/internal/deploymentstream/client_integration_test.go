@@ -11,10 +11,75 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+func TestWatch_VitessDeploymentIntentChanges(t *testing.T) {
+	vitess := containers.Vitess(t)
+	database, err := db.New(vitess.DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	region := uid.New(uid.RegionPrefix)
+	regionOther := uid.New(uid.RegionPrefix)
+	deployment := seed.New(t, database, nil).CreateDeployment(t.Context(), seed.CreateDeploymentRequest{
+		WorkspaceID: uid.New(uid.WorkspacePrefix), ProjectID: uid.New(uid.ProjectPrefix),
+		AppID: uid.New(uid.AppPrefix), EnvironmentID: uid.New(uid.EnvironmentPrefix), Status: mysqltype.DeploymentsStatusReady,
+	})
+	t.Cleanup(func() {
+		require.NoError(t, database.DeleteDeploymentsByEnvironmentId(context.Background(), deployment.EnvironmentID))
+		_, err := database.DeleteDeploymentTopologiesByRegionIds(context.Background(), db.DeleteDeploymentTopologiesByRegionIdsParams{RegionIds: []string{region, regionOther}, Limit: 2})
+		require.NoError(t, err)
+	})
+	require.NoError(t, database.Bulk().InsertDeploymentTopologies(t.Context(), []db.InsertDeploymentTopologyParams{
+		topology(deployment.WorkspaceID, deployment.ID, region, 1),
+		topology(deployment.WorkspaceID, deployment.ID, regionOther, 1),
+	}))
+	client, err := New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
+	require.NoError(t, err)
+	for _, region := range []string{region, regionOther} {
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		t.Cleanup(cancel)
+		var token []byte
+		stop := errors.New("snapshot received")
+		snapshotDelivered := false
+		err = client.Watch(ctx, region, nil, func(event Event) error {
+			if event.DeploymentID == deployment.ID {
+				snapshotDelivered = true
+			}
+			if event.DeploymentID == "" && snapshotDelivered {
+				token = event.ResumeToken
+				return stop
+			}
+			return nil
+		})
+		require.ErrorIs(t, err, stop)
+		require.NotEmpty(t, token)
+		for _, state := range []mysqltype.DeploymentsDesiredState{
+			mysqltype.DeploymentsDesiredStateStopped,
+			mysqltype.DeploymentsDesiredStateStopped,
+			mysqltype.DeploymentsDesiredStateRunning,
+			mysqltype.DeploymentsDesiredStateRunning,
+		} {
+			require.NoError(t, database.UpdateDeploymentDesiredState(ctx, db.UpdateDeploymentDesiredStateParams{ID: deployment.ID, DesiredState: state}))
+			delivered := false
+			err = client.Watch(ctx, region, token, func(event Event) error {
+				if event.DeploymentID == deployment.ID {
+					delivered = true
+				}
+				if event.DeploymentID == "" && delivered {
+					token = event.ResumeToken
+					return stop
+				}
+				return nil
+			})
+			require.ErrorIs(t, err, stop, "deployment state %s must reach the regional stream", state)
+		}
+	}
+}
 
 type topologyRow struct {
 	deploymentID string
@@ -26,13 +91,12 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 		name   string
 		remove func(ctx context.Context, database db.Database, rows []topologyRow) error
 	}{
-		{name: "soft delete", remove: func(ctx context.Context, database db.Database, rows []topologyRow) error {
+		{name: "stop deployment", remove: func(ctx context.Context, database db.Database, rows []topologyRow) error {
 			for _, row := range rows {
-				err := database.UpdateDeploymentTopologyDesiredStatus(ctx, db.UpdateDeploymentTopologyDesiredStatusParams{
-					DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
-					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-					DeploymentID:  row.deploymentID,
-					RegionID:      row.regionID,
+				err := database.UpdateDeploymentDesiredState(ctx, db.UpdateDeploymentDesiredStateParams{
+					DesiredState: mysqltype.DeploymentsDesiredStateStopped,
+					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					ID:           row.deploymentID,
 				})
 				if err != nil {
 					return err
@@ -67,11 +131,19 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 			workspaceID := uid.New(uid.WorkspacePrefix)
 			included := uid.New(uid.DeploymentPrefix)
 			excluded := uid.New(uid.DeploymentPrefix)
-			historical := uid.New(uid.DeploymentPrefix)
+			environmentID := uid.New(uid.EnvironmentPrefix)
+			t.Cleanup(func() {
+				require.NoError(t, database.DeleteDeploymentsByEnvironmentId(context.Background(), environmentID))
+			})
+			for _, id := range []string{included, excluded} {
+				seed.New(t, database, nil).CreateDeployment(ctx, seed.CreateDeploymentRequest{
+					ID: id, WorkspaceID: workspaceID, ProjectID: uid.New(uid.ProjectPrefix),
+					AppID: uid.New(uid.AppPrefix), EnvironmentID: environmentID, Status: mysqltype.DeploymentsStatusReady,
+				})
+			}
 			require.NoError(t, database.Bulk().InsertDeploymentTopologies(ctx, []db.InsertDeploymentTopologyParams{
-				topology(workspaceID, included, region, db.DeploymentTopologyDesiredStatusRunning, 1),
-				topology(workspaceID, excluded, otherRegion, db.DeploymentTopologyDesiredStatusRunning, 1),
-				topology(workspaceID, historical, region, db.DeploymentTopologyDesiredStatusStopped, 1),
+				topology(workspaceID, included, region, 1),
+				topology(workspaceID, excluded, otherRegion, 1),
 			}))
 			client, err := New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
 			require.NoError(t, err)
@@ -99,7 +171,7 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 				return nil
 			})
 			require.ErrorIs(t, err, context.Canceled)
-			require.Equal(t, []string{included, included}, delivered, "deletion must emit the matching deployment ID, but not stopped or other-region IDs")
+			require.Equal(t, []string{included, included}, delivered, "deletion must emit the matching deployment ID, but not other-region IDs")
 			require.NotEmpty(t, token)
 
 			resumeCtx, resumeCancel := context.WithTimeout(t.Context(), 30*time.Second)
@@ -108,7 +180,7 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 			require.ErrorIs(t, err, cdc.ErrInvalidToken)
 			whileOffline := uid.New(uid.DeploymentPrefix)
 			require.NoError(t, database.InsertDeploymentTopology(resumeCtx,
-				topology(workspaceID, whileOffline, region, db.DeploymentTopologyDesiredStatusRunning, 2)))
+				topology(workspaceID, whileOffline, region, 2)))
 			delivered = nil
 			err = client.Watch(resumeCtx, region, token, func(event Event) error {
 				if event.DeploymentID != "" {
@@ -155,7 +227,7 @@ func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T
 		// IDs this long keep the snapshot above one VStream packet, so it is checkpointed mid-copy.
 		deploymentID := uid.New(uid.DeploymentPrefix, 16)
 		snapshotIDs = append(snapshotIDs, deploymentID)
-		rows = append(rows, topology(workspaceID, deploymentID, region, db.DeploymentTopologyDesiredStatusRunning, 1))
+		rows = append(rows, topology(workspaceID, deploymentID, region, 1))
 	}
 	for start := 0; start < total; start += insertBatchSize {
 		require.NoError(t, database.Bulk().InsertDeploymentTopologies(ctx, rows[start:min(start+insertBatchSize, total)]))
@@ -211,7 +283,7 @@ func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T
 	}
 }
 
-func topology(workspaceID, deploymentID, regionID string, status db.DeploymentTopologyDesiredStatus, createdAt int64) db.InsertDeploymentTopologyParams {
+func topology(workspaceID, deploymentID, regionID string, createdAt int64) db.InsertDeploymentTopologyParams {
 	return db.InsertDeploymentTopologyParams{
 		WorkspaceID:                workspaceID,
 		DeploymentID:               deploymentID,
@@ -220,7 +292,7 @@ func topology(workspaceID, deploymentID, regionID string, status db.DeploymentTo
 		AutoscalingReplicasMax:     1,
 		AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
 		AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
-		DesiredStatus:              status,
+		DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
 		CreatedAt:                  createdAt,
 	}
 }

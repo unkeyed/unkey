@@ -1,13 +1,15 @@
 -- name: ListAllDeploymentTopologiesByRegion :many
 -- ListAllDeploymentTopologiesByRegion returns running deployment topologies for a region, paginated by pk.
 -- Used by SyncDesiredState to reconcile krane agents with current desired state.
+-- Legacy unsuccessful deployments can retain running intent but must not restart.
 SELECT
     dt.pk AS topology_pk,
     dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
     dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
     dt.autoscaling_threshold_memory AS topology_autoscaling_threshold_memory,
-    dt.desired_status AS topology_desired_status,
+    d.desired_state AS deployment_desired_state,
+    d.status AS deployment_status,
     d.id AS deployment_id,
     d.k8s_name AS deployment_k8s_name,
     d.workspace_id AS deployment_workspace_id,
@@ -37,6 +39,7 @@ INNER JOIN `workspaces` w ON w.id = d.workspace_id
 INNER JOIN `regions` r ON r.id = dt.region_id
 INNER JOIN `environments` e ON e.id = d.environment_id
 LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
-WHERE r.id = sqlc.arg(region_id) AND dt.pk > sqlc.arg(after_pk) AND dt.desired_status = 'running'
+WHERE r.id = sqlc.arg(region_id) AND dt.pk > sqlc.arg(after_pk) AND d.desired_state = 'running'
+  AND d.status NOT IN ('failed', 'cancelled', 'superseded', 'skipped')
 ORDER BY dt.pk ASC
 LIMIT ?;
