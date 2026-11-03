@@ -11,6 +11,7 @@ type DocumentedFormTextareaProps = DocumentedTextareaProps & {
   requirement?: Requirement;
   error?: string;
   descriptionPosition?: "inline" | "label";
+  tooltip?: React.ReactNode;
 };
 
 type FormTextareaProps = TextareaProps &
@@ -27,6 +28,7 @@ function FormTextarea({
   className,
   variant,
   descriptionPosition = "inline",
+  tooltip,
   ref,
   ...props
 }: FormTextareaProps) {
@@ -40,6 +42,7 @@ function FormTextarea({
       className={className}
       variant={variant}
       descriptionPosition={descriptionPosition}
+      tooltip={tooltip}
     >
       {(control) => (
         <Textarea

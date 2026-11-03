@@ -16,6 +16,7 @@ type DocumentedFormFieldProps = {
   requirement?: Requirement;
   error?: string;
   descriptionPosition?: "inline" | "label";
+  tooltip?: React.ReactNode;
 };
 
 type FormFieldProps = DocumentedFormFieldProps & {
@@ -34,6 +35,7 @@ function FormField({
   className,
   variant,
   descriptionPosition = "inline",
+  tooltip,
   children,
 }: FormFieldProps) {
   const descriptionAsTooltip = descriptionPosition === "label";
@@ -42,6 +44,15 @@ function FormField({
   const descriptionId = `${fieldId}-helper`;
   const errorId = `${fieldId}-error`;
   const inlineDescription = descriptionAsTooltip ? undefined : description;
+  const tooltipContent = tooltip ?? (descriptionAsTooltip ? description : undefined);
+  const describedBy =
+    [
+      error && errorId,
+      !error && inlineDescription && descriptionId,
+      label && tooltipContent && `${fieldId}-tooltip`,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
@@ -50,11 +61,11 @@ function FormField({
         requirement={requirement}
         hasError={Boolean(error)}
         htmlFor={fieldId}
-        tooltipContent={descriptionAsTooltip ? description : undefined}
+        tooltipContent={tooltipContent}
       />
       {children({
         id: fieldId,
-        describedBy: error ? errorId : inlineDescription ? descriptionId : undefined,
+        describedBy,
         invalid: Boolean(error),
         variant: error ? "error" : undefined,
       })}

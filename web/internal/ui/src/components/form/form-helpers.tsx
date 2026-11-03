@@ -96,12 +96,21 @@ export const FormLabel = ({
         {requirement === "optional" && <OptionalTag />}
       </label>
       {tooltipContent && (
-        <InfoTooltip content={tooltipContent} asChild>
-          <span className="ml-1.5 inline-flex items-center text-gray-9 hover:text-gray-11">
-            <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
-            <span className="sr-only">More info</span>
+        <>
+          <InfoTooltip content={tooltipContent} asChild>
+            <button
+              type="button"
+              aria-describedby={`${htmlFor}-tooltip`}
+              className="ml-1.5 inline-flex items-center rounded-sm text-gray-9 hover:text-gray-11 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6"
+            >
+              <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
+              <span className="sr-only">{`More info about ${label}`}</span>
+            </button>
+          </InfoTooltip>
+          <span id={`${htmlFor}-tooltip`} hidden>
+            {tooltipContent}
           </span>
-        </InfoTooltip>
+        </>
       )}
     </div>
   );
