@@ -15,36 +15,55 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/precondition"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
-	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
-	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	corelisters "k8s.io/client-go/listers/core/v1"
+	discoverylisters "k8s.io/client-go/listers/discovery/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	component          = privatenetwork.DiscoveryComponent
-	fieldManager       = "krane-private-network"
-	pollInterval       = 5 * time.Second
-	ciliumGlobal       = privatenetwork.CiliumGlobalAnnotation
-	ciliumGlobalSlices = privatenetwork.CiliumGlobalSlicesAnnotation
+	component       = "private-dns"
+	fieldManager    = "krane-private-network"
+	indexDeployment = "deployment"
+	intervalPoll    = 5 * time.Second
+	timeoutPass     = 30 * time.Second
 )
+
+// Config holds the dependencies of a [Reconciler].
+type Config struct {
+	Client     kubernetes.Interface
+	Dynamic    dynamic.Interface
+	Cluster    ctrl.ClusterServiceClient
+	ClusterKey *ctrlv1.ClusterKey
+	Clock      clock.Clock
+}
 
 // Reconciler publishes discovery objects. Only the Krane leader may run it.
 type Reconciler struct {
-	client       kubernetes.Interface
-	dynamic      dynamic.Interface
-	cluster      ctrl.ClusterServiceClient
-	clusterKey   *ctrlv1.ClusterKey
-	clock        clock.Clock
-	endpointMu   sync.Mutex
+	client     kubernetes.Interface
+	dynamic    dynamic.Interface
+	cluster    ctrl.ClusterServiceClient
+	clusterKey *ctrlv1.ClusterKey
+	clock      clock.Clock
+
+	services       corelisters.ServiceLister
+	endpointSlices discoverylisters.EndpointSliceLister
+	pods           cache.Indexer
+	policies       cache.GenericLister
+
 	entries      map[string]entryStatus
-	lastSnapshot *ctrlv1.PrivateNetworkStateChunk
 	absences     map[string]absence
+	snapshotLast *ctrlv1.PrivateNetworkStateChunk
 }
 
 // New validates cfg. It does not contact the cluster.
@@ -61,326 +80,208 @@ func New(cfg Config) (*Reconciler, error) {
 		return nil, err
 	}
 
-	r := &Reconciler{
-		client:       cfg.Client,
-		dynamic:      cfg.Dynamic,
-		cluster:      cfg.Cluster,
-		clusterKey:   cfg.ClusterKey,
-		clock:        cfg.Clock,
-		endpointMu:   sync.Mutex{},
-		entries:      nil,
-		lastSnapshot: nil,
-		absences:     nil,
-	}
 	initMetrics()
-
-	return r, nil
+	return &Reconciler{
+		client:         cfg.Client,
+		dynamic:        cfg.Dynamic,
+		cluster:        cfg.Cluster,
+		clusterKey:     cfg.ClusterKey,
+		clock:          cfg.Clock,
+		services:       nil,
+		endpointSlices: nil,
+		pods:           nil,
+		policies:       nil,
+		entries:        nil,
+		absences:       nil,
+		snapshotLast:   nil,
+	}, nil
 }
 
 // Run reconciles until ctx is cancelled. Callers must hold Krane leadership
 // for the lifetime of ctx.
 func (r *Reconciler) Run(ctx context.Context) {
+	r.entries, r.absences = nil, nil
 	startLeading()
-	defer metrics.PrivateNetworkLeader.Set(0)
 
-	endpointCtx, cancel := context.WithCancel(ctx)
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		r.runEndpoints(endpointCtx)
-	}()
-	defer func() {
-		cancel()
-		<-done
-	}()
+	changed := make(chan struct{}, 1)
+	stop, err := r.startCaches(ctx, func() {
+		select {
+		case changed <- struct{}{}:
+		default:
+		}
+	})
+	if err != nil {
+		logger.Error("private network caches did not sync", "error", err)
+		return
+	}
+	defer stop()
 
-	ticker := time.NewTicker(pollInterval)
-	defer ticker.Stop()
+	var loops sync.WaitGroup
+	defer loops.Wait()
+	loops.Go(func() { r.runEndpoints(ctx, changed) })
 
 	for {
 		if err := r.reconcile(ctx); err != nil {
 			logger.Warn("private network reconciliation failed", "error", err)
 		}
-
-		select {
-		case <-ctx.Done():
+		if !r.sleep(ctx, intervalPoll, nil) {
 			return
-		case <-ticker.C:
 		}
 	}
 }
 
-func (r *Reconciler) reconcile(ctx context.Context) (err error) {
-	started, completed := time.Now(), false
-	defer func() { observePass(loopDiscovery, started, completed) }()
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+func (r *Reconciler) startCaches(ctx context.Context, changed func()) (func(), error) {
+	discovery := informers.NewSharedInformerFactoryWithOptions(r.client, 0, informers.WithTweakListOptions(func(options *metav1.ListOptions) {
+		options.LabelSelector = discoveryLabels.ToString()
+	}))
+	workloads := informers.NewSharedInformerFactoryWithOptions(r.client, 0, informers.WithTweakListOptions(func(options *metav1.ListOptions) {
+		options.LabelSelector = labels.New().ManagedByKrane().ComponentDeployment().ToString()
+	}), informers.WithTransform(stripManagedFields))
+	policies := dynamicinformer.NewFilteredDynamicSharedInformerFactory(r.dynamic, 0, metav1.NamespaceAll, func(options *metav1.ListOptions) {
+		options.LabelSelector = discoveryLabels.ToString()
+	})
+	stop := func() {
+		discovery.Shutdown()
+		workloads.Shutdown()
+		policies.Shutdown()
+	}
+
+	services := discovery.Core().V1().Services()
+	endpointSlices := discovery.Discovery().V1().EndpointSlices()
+	pods := workloads.Core().V1().Pods().Informer()
+	policy := policies.ForResource(cilium.NetworkPolicyResource)
+	if err := pods.AddIndexers(cache.Indexers{indexDeployment: deploymentIndex}); err != nil {
+		return nil, fmt.Errorf("index private network Pods: %w", err)
+	}
+	handler := cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(any) { changed() },
+		UpdateFunc: func(any, any) { changed() },
+		DeleteFunc: func(any) { changed() },
+	}
+	for _, informer := range []cache.SharedIndexInformer{services.Informer(), endpointSlices.Informer(), pods} {
+		if _, err := informer.AddEventHandler(handler); err != nil {
+			return nil, fmt.Errorf("watch private network inputs: %w", err)
+		}
+	}
+	r.services, r.endpointSlices, r.pods, r.policies = services.Lister(), endpointSlices.Lister(), pods.GetIndexer(), policy.Lister()
+
+	discovery.Start(ctx.Done())
+	workloads.Start(ctx.Done())
+	policies.Start(ctx.Done())
+	if !cache.WaitForCacheSync(ctx.Done(), services.Informer().HasSynced, endpointSlices.Informer().HasSynced, pods.HasSynced, policy.Informer().HasSynced) {
+		stop()
+		return nil, ctx.Err()
+	}
+	return stop, nil
+}
+
+func stripManagedFields(object any) (any, error) {
+	if pod, ok := object.(*corev1.Pod); ok {
+		pod.ManagedFields = nil
+	}
+	return object, nil
+}
+
+func deploymentIndex(object any) ([]string, error) {
+	pod, ok := object.(*corev1.Pod)
+	if !ok {
+		return nil, fmt.Errorf("unexpected Pod cache entry %T", object)
+	}
+	return []string{pod.Namespace + "/" + pod.Labels[labels.LabelKeyDeploymentID]}, nil
+}
+
+func (r *Reconciler) sleep(ctx context.Context, d time.Duration, wake <-chan struct{}) bool {
+	timer := r.clock.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C():
+	case <-wake:
+	}
+	return true
+}
+
+type discoveryPass struct {
+	services        []*corev1.Service
+	servicesByKey   map[string]*corev1.Service
+	connections     map[string][]*corev1.Service
+	policies        map[string]*unstructured.Unstructured
+	regions         []string
+	pruneRegions    bool
+	servicesDesired map[string]struct{}
+	servicesEnsured map[string]struct{}
+}
+
+func (r *Reconciler) reconcile(ctx context.Context) error {
+	started, completed := r.clock.Now(), false
+	defer func() { r.observePass(loopDiscovery, started, completed) }()
+	ctx, cancel := context.WithTimeout(ctx, timeoutPass)
 	defer cancel()
 
-	selector := labels.New().ManagedByKrane().Component(component)
-	serviceList, err := r.client.CoreV1().Services("").List(ctx, metav1.ListOptions{LabelSelector: selector.ToString()})
-	if err != nil {
-		return countError(loopDiscovery, stageList, fmt.Errorf("list private network Services: %w", err))
-	}
-	policies, err := r.listPolicies(ctx)
+	p, err := r.load()
 	if err != nil {
 		return countError(loopDiscovery, stageList, err)
 	}
-
-	services := make([]*corev1.Service, 0, len(serviceList.Items))
-	servicesByKey := make(map[string]*corev1.Service, len(serviceList.Items))
-	connectionsByKey := make(map[string][]*corev1.Service)
-	for i := range serviceList.Items {
-		service := &serviceList.Items[i]
-		services = append(services, service)
-		servicesByKey[service.Namespace+"/"+service.Name] = service
-		if connectionService(service) {
-			connectionsByKey[grantKey(service)] = append(connectionsByKey[grantKey(service)], service)
-		}
-	}
-
 	snapshot, err := r.snapshot(ctx)
 	if err != nil {
 		r.absences = nil
 		return countError(loopDiscovery, stageSnapshot, err)
 	}
-	regions, topologyErr := r.topologyRegions(snapshot.GetTopology())
-	defer func() {
-		if topologyErr != nil {
-			err = errors.Join(err, countError(loopDiscovery, stageSnapshot, topologyErr))
+
+	var errs []error
+	regions, err := r.topologyRegions(snapshot.GetTopology())
+	if err != nil {
+		errs = append(errs, countError(loopDiscovery, stageSnapshot, err))
+	}
+	p.regions = regions
+	p.pruneRegions = snapshot.GetTopology() != nil && err == nil && snapshot.GetCertified()
+
+	connectionSpecs, rejected := validateSnapshot(snapshot.GetConnections())
+	connectionSpecs = slices.DeleteFunc(connectionSpecs, func(connectionSpec *ctrlv1.PrivateNetworkConnection) bool {
+		policy := p.policies[publishedConnectionKey(connectionSpec)]
+		return !r.runsHere(connectionSpec) && (policy == nil || !owned(policy.GetLabels()))
+	})
+	if err := r.cleanupGrants(ctx, p, snapshot, connectionSpecs, len(rejected) == 0); err != nil {
+		return errors.Join(append(errs, countError(loopDiscovery, stageCleanup, err))...)
+	}
+	for _, connections := range p.connections {
+		for _, connection := range connections {
+			if name := targetServiceName(connection); name != "" {
+				p.servicesDesired[connection.Namespace+"/"+name] = struct{}{}
+			}
 		}
-	}()
-	pruneRegions := snapshot.GetTopology() != nil && topologyErr == nil && snapshot.GetCertified()
-	snapshotConnections, rejected := validateSnapshot(snapshot.GetConnections())
-	region := r.clusterKey.GetRegion()
-	runsHere := func(connectionSpec *ctrlv1.PrivateNetworkConnection) bool {
-		return slices.Contains(connectionSpec.GetCallerRegions(), region) || slices.Contains(connectionSpec.GetTargetRegions(), region)
-	}
-	snapshotConnections = slices.DeleteFunc(snapshotConnections, func(connectionSpec *ctrlv1.PrivateNetworkConnection) bool {
-		policy := policies[publishedConnectionKey(connectionSpec)]
-		return !runsHere(connectionSpec) && (policy == nil || !owned(policy.GetLabels()))
-	})
-	wanted := make(map[string]struct{}, len(snapshotConnections))
-	for _, spec := range snapshotConnections {
-		wanted[publishedConnectionKey(spec)] = struct{}{}
-	}
-	if len(rejected) > 0 {
-		r.absences = nil
-	}
-	if !snapshot.GetCertified() {
-		maps.DeleteFunc(r.absences, func(key string, _ absence) bool {
-			_, present := wanted[key]
-			return present
-		})
-	} else if err := r.cleanupGrants(ctx, snapshot.GetSnapshotId(), wanted, connectionsByKey, policies, len(rejected) == 0); err != nil {
-		return countError(loopDiscovery, stageCleanup, err)
-	}
-	maps.DeleteFunc(servicesByKey, func(_ string, service *corev1.Service) bool {
-		return connectionService(service) && !slices.Contains(connectionsByKey[grantKey(service)], service)
-	})
-
-	endpointSliceList, err := r.client.DiscoveryV1().EndpointSlices("").List(ctx, metav1.ListOptions{LabelSelector: selector.ToString()})
-	if err != nil {
-		return countError(loopDiscovery, stageList, fmt.Errorf("list private network EndpointSlices: %w", err))
-	}
-	slicesByService := make(map[string][]discoveryv1.EndpointSlice)
-	for _, slice := range endpointSliceList.Items {
-		key := slice.Namespace + "/" + slice.Labels[discoveryv1.LabelServiceName]
-		slicesByService[key] = append(slicesByService[key], slice)
 	}
 
-	namespaces, err := r.namespaces(ctx)
-	if err != nil {
-		return countError(loopDiscovery, stageList, err)
-	}
-
-	desiredServices := make(map[string]struct{}, len(snapshotConnections))
-	ensuredServices := make(map[string]struct{}, len(snapshotConnections))
-	var pods []corev1.Pod
-	var sourceSlices map[string][]discoveryv1.EndpointSlice
-	var endpointInputsErr error
-	endpointInputsLoaded := false
 	entries := make(map[string]entryStatus, len(snapshot.GetConnections()))
 	var untracked []entryStatus
-	retain := func(connectionKey string) {
-		for _, connection := range connectionsByKey[connectionKey] {
-			if name := targetServiceName(connection); name != "" {
-				desiredServices[connection.Namespace+"/"+name] = struct{}{}
-			}
-		}
-	}
-
-	connectionErrs := make([]error, 0, len(rejected))
-	fail := func(connectionSpec *ctrlv1.PrivateNetworkConnection, connectionKey, stage string, err error) {
-		connectionErrs = append(connectionErrs, countError(loopDiscovery, stage, err))
-		entry := entryStatus{
-			kind:                entryKind(connectionSpec),
-			state:               stateFailed,
-			stage:               stage,
-			err:                 err,
-			connectionSpec:      connectionSpec,
-			publishedDeployment: "",
-		}
-		if connectionKey == "" {
-			untracked = append(untracked, entry)
-			return
-		}
-		for _, connection := range connectionsByKey[connectionKey] {
-			if entry.publishedDeployment == "" {
-				entry.publishedDeployment = connection.Annotations[privatenetwork.TargetDeploymentAnnotation]
-			}
-		}
-		entries[connectionKey] = entry
-		retain(connectionKey)
-	}
-
 	for _, rejection := range rejected {
-		fail(rejection.connectionSpec, rejection.retainedConnectionKey, stageInvalidEntry, rejection.err)
-	}
-	for key := range connectionsByKey {
-		retain(key)
+		errs = append(errs, countError(loopDiscovery, stageInvalidEntry, rejection.err))
+		entry := p.failedEntry(rejection.connectionSpec, rejection.connectionKeyRetained, stageInvalidEntry, rejection.err)
+		if rejection.connectionKeyRetained == "" {
+			untracked = append(untracked, entry)
+			continue
+		}
+		entries[rejection.connectionKeyRetained] = entry
 	}
 
-entries:
-	for _, connectionSpec := range snapshotConnections {
+	for _, connectionSpec := range connectionSpecs {
 		if err := ctx.Err(); err != nil {
-			return errors.Join(append(connectionErrs, err)...)
+			return errors.Join(append(errs, err)...)
 		}
-
-		connectionName := connectionResourceName(connectionSpec)
-		connectionKey := connectionSpec.GetK8SNamespace() + "/" + connectionName
-
-		if !runsHere(connectionSpec) {
-			if err := r.ensurePolicy(ctx, connectionSpec, connectionName, nil, policies[connectionKey]); err != nil {
-				fail(connectionSpec, connectionKey, stagePolicy, err)
-				continue
-			}
-			if err := r.withdrawStaleConnections(ctx, connectionsByKey[connectionKey], nil); err != nil {
-				fail(connectionSpec, connectionKey, stageConnection, err)
-			}
-			continue
+		key := publishedConnectionKey(connectionSpec)
+		connection, stage, err := r.reconcileConnection(ctx, p, connectionSpec)
+		switch {
+		case err != nil:
+			errs = append(errs, countError(loopDiscovery, stage, err))
+			entries[key] = p.failedEntry(connectionSpec, key, stage, err)
+		case r.callerRunsHere(connectionSpec):
+			entries[key] = publishedEntry(connectionSpec, connection)
 		}
-
-		if _, exists := namespaces[connectionSpec.GetK8SNamespace()]; !exists {
-			_, err := r.client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: connectionSpec.GetK8SNamespace()},
-			}, metav1.CreateOptions{})
-			if err != nil && !apierrors.IsAlreadyExists(err) {
-				fail(connectionSpec, connectionKey, stageNamespace, fmt.Errorf("ensure private network namespace %s: %w", connectionSpec.GetK8SNamespace(), err))
-				continue
-			}
-			namespaces[connectionSpec.GetK8SNamespace()] = struct{}{}
-		}
-
-		var service *corev1.Service
-		if connectionSpec.GetTargetDeploymentId() != "" {
-			name := discoveryName(connectionSpec.GetTargetDeploymentId(), connectionSpec.GetTargetPort())
-			serviceKey := connectionSpec.GetK8SNamespace() + "/" + name
-			if _, ensured := ensuredServices[serviceKey]; !ensured {
-				needsEndpointEnsure := servicesByKey[serviceKey] == nil
-				if !needsEndpointEnsure {
-					needsEndpointEnsure = !slices.ContainsFunc(slicesByService[serviceKey], func(slice discoveryv1.EndpointSlice) bool {
-						return slice.Labels[discoveryv1.LabelManagedBy] == sourceSliceManager
-					})
-				}
-				ensuredService, err := r.ensureService(ctx, connectionSpec, name, servicesByKey[serviceKey])
-				if err != nil {
-					fail(connectionSpec, connectionKey, stageService, err)
-					continue
-				}
-				servicesByKey[serviceKey] = ensuredService
-				if needsEndpointEnsure {
-					r.endpointMu.Lock()
-					if !endpointInputsLoaded {
-						pods, endpointInputsErr = r.localPods(ctx)
-						if endpointInputsErr == nil {
-							sourceSlices, endpointInputsErr = r.sourceSlices(ctx)
-						}
-						endpointInputsLoaded = true
-					}
-					err = endpointInputsErr
-					if err == nil {
-						err = r.ensureEndpoints(ctx, ensuredService, pods, sourceSlices[serviceKey])
-					}
-					r.endpointMu.Unlock()
-				}
-				if err != nil {
-					fail(connectionSpec, connectionKey, stageEndpointSlice, err)
-					continue
-				}
-				ensuredServices[serviceKey] = struct{}{}
-				desiredServices[serviceKey] = struct{}{}
-			}
-			service = servicesByKey[serviceKey]
-		}
-
-		aliasName := privatenetwork.ConnectionServiceName(connectionSpec.GetCallerDeploymentId(), connectionSpec.GetConnectionName())
-		var published []string
-		previous := ""
-		for _, existing := range connectionsByKey[connectionKey] {
-			deployment, err := publishedDeployment(existing, servicesByKey)
-			if err != nil {
-				fail(connectionSpec, connectionKey, stageConnection, err)
-				continue entries
-			}
-			if maps.Equal(existing.Labels, connectionLabels(connectionSpec)) {
-				published = append(published, deployment)
-			}
-			if existing.Name == aliasName {
-				previous = deployment
-			}
-		}
-
-		if !replicaConnection(connectionSpec) {
-			if err := r.ensurePolicy(ctx, connectionSpec, connectionName, append(published, connectionSpec.GetTargetDeploymentId()), policies[connectionKey]); err != nil {
-				fail(connectionSpec, connectionKey, stagePolicy, err)
-				continue
-			}
-		}
-		if !slices.Contains(connectionSpec.GetCallerRegions(), region) {
-			if err := r.withdrawStaleConnections(ctx, connectionsByKey[connectionKey], nil); err != nil {
-				fail(connectionSpec, connectionKey, stageConnection, err)
-			}
-			continue
-		}
-		var endpoints []discoveryv1.EndpointSlice
-		if service != nil {
-			endpoints = slicesByService[service.Namespace+"/"+service.Name]
-		}
-		connection, err := r.ensureConnection(ctx, connectionSpec, aliasName, "", service, servicesByKey[connectionSpec.GetK8SNamespace()+"/"+aliasName], previous, endpoints)
-		if err != nil {
-			fail(connectionSpec, connectionKey, stageConnection, err)
-			continue
-		}
-		current := map[string]struct{}{aliasName: {}}
-		if connection != nil {
-			resolved := servicesByKey[connection.Namespace+"/"+targetServiceName(connection)]
-			for _, region := range regions {
-				name := privatenetwork.RegionalConnectionServiceName(connectionSpec.GetCallerDeploymentId(), connectionSpec.GetConnectionName(), region)
-				current[name] = struct{}{}
-				if resolved == nil {
-					continue
-				}
-				if _, err := r.ensureConnection(ctx, connectionSpec, name, region, resolved, servicesByKey[connection.Namespace+"/"+name], "", nil); err != nil {
-					fail(connectionSpec, connectionKey, stageConnection, err)
-					continue entries
-				}
-			}
-			for _, existing := range connectionsByKey[connectionKey] {
-				region := existing.Annotations[privatenetwork.RegionAnnotation]
-				if !pruneRegions && region != "" && existing.Name == privatenetwork.RegionalConnectionServiceName(connectionSpec.GetCallerDeploymentId(), connectionSpec.GetConnectionName(), region) {
-					current[existing.Name] = struct{}{}
-				}
-			}
-		}
-		if err := r.withdrawStaleConnections(ctx, connectionsByKey[connectionKey], current); err != nil {
-			fail(connectionSpec, connectionKey, stageConnection, err)
-			continue
-		}
-		entries[connectionKey] = publishedEntry(connectionSpec, connection)
 	}
 
-	if err := r.cleanupServices(ctx, services, desiredServices); err != nil {
-		connectionErrs = append(connectionErrs, countError(loopDiscovery, stageCleanup, err))
+	if err := r.cleanupServices(ctx, p.services, p.servicesDesired); err != nil {
+		errs = append(errs, countError(loopDiscovery, stageCleanup, err))
 	}
 
 	completed = true
@@ -388,10 +289,147 @@ entries:
 	logEntryChanges(r.entries, entries)
 	r.entries = entries
 
-	if len(connectionErrs) > 0 {
-		return fmt.Errorf("reconcile private network connections, failed connections kept their published objects: %w", errors.Join(connectionErrs...))
+	if len(errs) > 0 {
+		return fmt.Errorf("reconcile private network connections, failed connections kept their published objects: %w", errors.Join(errs...))
 	}
 	return nil
+}
+
+func (r *Reconciler) load() (*discoveryPass, error) {
+	services, err := r.services.List(discoverySelector)
+	if err != nil {
+		return nil, fmt.Errorf("list private network Services: %w", err)
+	}
+	policies, err := r.policies.List(discoverySelector)
+	if err != nil {
+		return nil, fmt.Errorf("list connection policies: %w", err)
+	}
+
+	p := &discoveryPass{
+		services:        services,
+		servicesByKey:   make(map[string]*corev1.Service, len(services)),
+		connections:     make(map[string][]*corev1.Service),
+		policies:        make(map[string]*unstructured.Unstructured, len(policies)),
+		regions:         nil,
+		pruneRegions:    false,
+		servicesDesired: make(map[string]struct{}),
+		servicesEnsured: make(map[string]struct{}),
+	}
+	for _, service := range services {
+		p.servicesByKey[service.Namespace+"/"+service.Name] = service
+		if connectionService(service) {
+			key := grantKey(service)
+			p.connections[key] = append(p.connections[key], service)
+		}
+	}
+	for _, object := range policies {
+		policy, ok := object.(*unstructured.Unstructured)
+		if !ok {
+			return nil, fmt.Errorf("unexpected connection policy type %T", object)
+		}
+		p.policies[policy.GetNamespace()+"/"+policy.GetName()] = policy
+	}
+	return p, nil
+}
+
+func (r *Reconciler) reconcileConnection(ctx context.Context, p *discoveryPass, connectionSpec *ctrlv1.PrivateNetworkConnection) (*corev1.Service, string, error) {
+	name := grantName(connectionSpec.GetConnectionId(), connectionSpec.GetCallerDeploymentId())
+	namespace := connectionSpec.GetK8SNamespace()
+	key := namespace + "/" + name
+	existing := p.connections[key]
+
+	if !r.runsHere(connectionSpec) {
+		if err := r.ensurePolicy(ctx, connectionSpec, name, nil, p.policies[key]); err != nil {
+			return nil, stagePolicy, err
+		}
+		if err := r.withdrawStaleConnections(ctx, existing, nil); err != nil {
+			return nil, stageConnection, err
+		}
+		return nil, "", nil
+	}
+
+	var target *corev1.Service
+	if connectionSpec.GetTargetDeploymentId() != "" {
+		serviceKey := namespace + "/" + privatenetwork.ServiceName(connectionSpec.GetTargetDeploymentId(), connectionSpec.GetTargetPort())
+		if _, ensured := p.servicesEnsured[serviceKey]; !ensured {
+			service, err := r.ensureService(ctx, connectionSpec, p.servicesByKey[serviceKey])
+			if err != nil {
+				return nil, stageService, err
+			}
+			p.servicesByKey[serviceKey] = service
+			p.servicesEnsured[serviceKey] = struct{}{}
+			p.servicesDesired[serviceKey] = struct{}{}
+		}
+		target = p.servicesByKey[serviceKey]
+	}
+
+	aliasName := privatenetwork.ConnectionServiceName(connectionSpec.GetCallerDeploymentId(), connectionSpec.GetConnectionName())
+	labelsDesired := connectionLabels(connectionSpec)
+	var published []string
+	previous := ""
+	for _, connection := range existing {
+		deployment, err := publishedDeployment(connection, p.servicesByKey)
+		if err != nil {
+			return nil, stageConnection, err
+		}
+		if maps.Equal(connection.Labels, labelsDesired) {
+			published = append(published, deployment)
+		}
+		if connection.Name == aliasName {
+			previous = deployment
+		}
+	}
+
+	if !replicaConnection(connectionSpec) {
+		if err := r.ensurePolicy(ctx, connectionSpec, name, append(published, connectionSpec.GetTargetDeploymentId()), p.policies[key]); err != nil {
+			return nil, stagePolicy, err
+		}
+	}
+	if !r.callerRunsHere(connectionSpec) {
+		if err := r.withdrawStaleConnections(ctx, existing, nil); err != nil {
+			return nil, stageConnection, err
+		}
+		return nil, "", nil
+	}
+
+	connection, err := r.ensureConnection(ctx, connectionSpec, aliasName, "", target, p.servicesByKey[namespace+"/"+aliasName], previous)
+	if err != nil {
+		return nil, stageConnection, err
+	}
+	current := map[string]struct{}{aliasName: {}}
+	if connection != nil {
+		resolved := p.servicesByKey[namespace+"/"+targetServiceName(connection)]
+		for _, region := range p.regions {
+			nameRegional := privatenetwork.RegionalConnectionServiceName(connectionSpec.GetCallerDeploymentId(), connectionSpec.GetConnectionName(), region)
+			current[nameRegional] = struct{}{}
+			if resolved == nil {
+				continue
+			}
+			if _, err := r.ensureConnection(ctx, connectionSpec, nameRegional, region, resolved, p.servicesByKey[namespace+"/"+nameRegional], ""); err != nil {
+				return nil, stageConnection, err
+			}
+		}
+		if !p.pruneRegions {
+			for _, service := range existing {
+				region := service.Annotations[privatenetwork.RegionAnnotation]
+				if region != "" && service.Name == privatenetwork.RegionalConnectionServiceName(connectionSpec.GetCallerDeploymentId(), connectionSpec.GetConnectionName(), region) {
+					current[service.Name] = struct{}{}
+				}
+			}
+		}
+	}
+	if err := r.withdrawStaleConnections(ctx, existing, current); err != nil {
+		return nil, stageConnection, err
+	}
+	return connection, "", nil
+}
+
+func (r *Reconciler) runsHere(connectionSpec *ctrlv1.PrivateNetworkConnection) bool {
+	return r.callerRunsHere(connectionSpec) || slices.Contains(connectionSpec.GetTargetRegions(), r.clusterKey.GetRegion())
+}
+
+func (r *Reconciler) callerRunsHere(connectionSpec *ctrlv1.PrivateNetworkConnection) bool {
+	return slices.Contains(connectionSpec.GetCallerRegions(), r.clusterKey.GetRegion())
 }
 
 func (r *Reconciler) withdrawStaleConnections(ctx context.Context, connections []*corev1.Service, current map[string]struct{}) error {
@@ -404,6 +442,24 @@ func (r *Reconciler) withdrawStaleConnections(ctx context.Context, connections [
 		}
 	}
 	return nil
+}
+
+func (p *discoveryPass) failedEntry(connectionSpec *ctrlv1.PrivateNetworkConnection, key, stage string, err error) entryStatus {
+	entry := entryStatus{
+		kind:                entryKind(connectionSpec),
+		state:               stateFailed,
+		stage:               stage,
+		err:                 err,
+		connectionSpec:      connectionSpec,
+		publishedDeployment: "",
+	}
+	for _, connection := range p.connections[key] {
+		if deployment := connection.Annotations[privatenetwork.TargetDeploymentAnnotation]; deployment != "" {
+			entry.publishedDeployment = deployment
+			break
+		}
+	}
+	return entry
 }
 
 func publishedEntry(connectionSpec *ctrlv1.PrivateNetworkConnection, connection *corev1.Service) entryStatus {

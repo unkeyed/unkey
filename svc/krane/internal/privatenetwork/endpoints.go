@@ -18,7 +18,23 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
+)
+
+const (
+	sourceSliceManager = "private-dns.unkey.com"
+	endpointsPerSlice  = 100
+	intervalResync     = time.Minute
+	delaySettle        = time.Second
+)
+
+var (
+	podIdentityKeys = []string{
+		labels.LabelKeyManagedBy, labels.LabelKeyWorkspaceID, labels.LabelKeyProjectID,
+		labels.LabelKeyAppID, labels.LabelKeyDeploymentID,
+	}
+	deploymentPodLabels = labels.New().ComponentDeployment()
 )
 
 // MUST KEEP this publisher and selectorless Services until Cilium preserves
@@ -29,57 +45,36 @@ import (
 // Kubernetes slices CoreDNS reads (verified in 1.20.2 and 1.21.0-pre.3).
 // Remove only after the upstream importer supports this and termination and
 // final-endpoint withdrawal tests pass: https://github.com/cilium/cilium/issues/41533.
-const (
-	sourceSliceManager = privatenetwork.SourceSliceManager
-	endpointsPerSlice  = 100
-)
-
-func (r *Reconciler) runEndpoints(ctx context.Context) {
-	ticker := time.NewTicker(pollInterval)
-	defer ticker.Stop()
-
+func (r *Reconciler) runEndpoints(ctx context.Context, changed <-chan struct{}) {
 	for {
 		if err := r.reconcileEndpoints(ctx); err != nil {
 			logger.Warn("private network endpoint reconciliation failed", "error", err)
 		}
-
-		select {
-		case <-ctx.Done():
+		// The settle delay lets the caches observe this pass's own writes, so
+		// the next pass does not overwrite them from a stale view.
+		if !r.sleep(ctx, delaySettle, nil) || !r.sleep(ctx, intervalResync, changed) {
 			return
-		case <-ticker.C:
 		}
 	}
 }
 
 func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
-	started, completed := time.Now(), false
-	defer func() { observePass(loopEndpoints, started, completed) }()
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	started, completed := r.clock.Now(), false
+	defer func() { r.observePass(loopEndpoints, started, completed) }()
+	ctx, cancel := context.WithTimeout(ctx, timeoutPass)
 	defer cancel()
-	r.endpointMu.Lock()
-	defer r.endpointMu.Unlock()
 
-	selector := labels.New().ManagedByKrane().Component(component)
-	services, err := r.client.CoreV1().Services("").List(ctx, metav1.ListOptions{LabelSelector: selector.ToString()})
+	services, err := r.services.List(discoverySelector)
 	if err != nil {
 		return countError(loopEndpoints, stageList, fmt.Errorf("list private network Services for endpoint refresh: %w", err))
 	}
-	pods, err := r.localPods(ctx)
-	if err != nil {
-		return countError(loopEndpoints, stageList, err)
-	}
-	sourceSlices, err := r.sourceSlices(ctx)
-	if err != nil {
-		return countError(loopEndpoints, stageList, err)
-	}
 
 	var errs []error
-	for i := range services.Items {
-		service := &services.Items[i]
+	for _, service := range services {
 		if !sharedService(service) {
 			continue
 		}
-		if err := r.ensureEndpoints(ctx, service, pods, sourceSlices[service.Namespace+"/"+service.Name]); err != nil {
+		if err := r.ensureEndpoints(ctx, service); err != nil {
 			errs = append(errs, countError(loopEndpoints, stageEndpointSlice, err))
 		}
 	}
@@ -87,38 +82,22 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-func (r *Reconciler) localPods(ctx context.Context) ([]corev1.Pod, error) {
-	pods, err := r.client.CoreV1().Pods("").List(ctx, metav1.ListOptions{
-		LabelSelector: labels.New().ManagedByKrane().ComponentDeployment().ToString(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list local private network Pods: %w", err)
-	}
-	return pods.Items, nil
-}
-
-func (r *Reconciler) sourceSlices(ctx context.Context) (map[string][]discoveryv1.EndpointSlice, error) {
-	list, err := r.client.DiscoveryV1().EndpointSlices("").List(ctx, metav1.ListOptions{
-		LabelSelector: discoveryv1.LabelManagedBy + "=" + sourceSliceManager,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list source EndpointSlices: %w", err)
-	}
-
-	byService := make(map[string][]discoveryv1.EndpointSlice)
-	for i := range list.Items {
-		item := list.Items[i]
-		key := item.Namespace + "/" + item.Labels[discoveryv1.LabelServiceName]
-		byService[key] = append(byService[key], item)
-	}
-	return byService, nil
-}
-
-func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Service, pods []corev1.Pod, existing []discoveryv1.EndpointSlice) error {
+func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Service) error {
 	if service.DeletionTimestamp != nil || service.Spec.ClusterIP != corev1.ClusterIPNone ||
 		len(service.Spec.Selector) != 0 || service.Spec.PublishNotReadyAddresses || len(service.Spec.Ports) != 1 ||
 		service.Spec.Ports[0].Port < 1 || service.Spec.Ports[0].Port > 65535 {
 		return fmt.Errorf("invalid source discovery Service %s/%s", service.Namespace, service.Name)
+	}
+
+	existing, err := r.endpointSlices.EndpointSlices(service.Namespace).List(k8slabels.SelectorFromSet(k8slabels.Set{
+		discoveryv1.LabelManagedBy: sourceSliceManager, discoveryv1.LabelServiceName: service.Name,
+	}))
+	if err != nil {
+		return fmt.Errorf("list source EndpointSlices: %w", err)
+	}
+	pods, err := r.deploymentPods(service.Namespace, service.Labels[labels.LabelKeyDeploymentID])
+	if err != nil {
+		return err
 	}
 
 	client := r.client.DiscoveryV1().EndpointSlices(service.Namespace)
@@ -127,23 +106,22 @@ func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Servic
 	sliceLabels[discoveryv1.LabelManagedBy] = sourceSliceManager
 
 	byName := make(map[string]*discoveryv1.EndpointSlice, len(existing))
-	for i := range existing {
-		item := &existing[i]
-		owner := metav1.GetControllerOf(item)
-		if !maps.Equal(item.Labels, sliceLabels) || owner == nil || owner.APIVersion != "v1" ||
-			owner.Kind != "Service" || owner.Name != service.Name {
-			return fmt.Errorf("refuse to replace foreign source EndpointSlice %s/%s", item.Namespace, item.Name)
+	for _, slice := range existing {
+		owner := metav1.GetControllerOf(slice)
+		if owner == nil || owner.APIVersion != "v1" || owner.Kind != "Service" || owner.Name != service.Name {
+			return fmt.Errorf("refuse to replace foreign source EndpointSlice %s/%s", slice.Namespace, slice.Name)
 		}
 		if owner.UID != service.UID {
-			if err := client.Delete(ctx, item.Name, precondition.Unchanged(item)); err != nil && !apierrors.IsNotFound(err) {
-				return fmt.Errorf("delete old Service incarnation EndpointSlice %s/%s: %w", item.Namespace, item.Name, err)
+			if err := client.Delete(ctx, slice.Name, precondition.Unchanged(slice)); err != nil && !apierrors.IsNotFound(err) {
+				return fmt.Errorf("delete old Service incarnation EndpointSlice %s/%s: %w", slice.Namespace, slice.Name, err)
 			}
 			continue
 		}
-		byName[item.Name] = item
+		byName[slice.Name] = slice
 	}
 
 	endpoints := readyEndpoints(service, pods, r.clusterKey.GetRegion())
+	ownerRef := *metav1.NewControllerRef(service, corev1.SchemeGroupVersion.WithKind("Service"))
 	for offset := 0; offset < max(1, len(endpoints)); offset += endpointsPerSlice {
 		name := fmt.Sprintf("%s-%d", service.Name, offset/endpointsPerSlice)
 		desired := &discoveryv1.EndpointSlice{
@@ -152,7 +130,7 @@ func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Servic
 				Name:            name,
 				Namespace:       service.Namespace,
 				Labels:          sliceLabels,
-				OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(service, corev1.SchemeGroupVersion.WithKind("Service"))},
+				OwnerReferences: []metav1.OwnerReference{ownerRef},
 			},
 			AddressType: discoveryv1.AddressTypeIPv4,
 			Endpoints:   endpoints[offset:min(offset+endpointsPerSlice, len(endpoints))],
@@ -163,50 +141,58 @@ func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Servic
 				AppProtocol: nil,
 			}},
 		}
-		if current, ok := byName[name]; ok {
-			delete(byName, name)
-			if equality.Semantic.DeepEqual(current.Endpoints, desired.Endpoints) &&
-				equality.Semantic.DeepEqual(current.Ports, desired.Ports) && current.AddressType == desired.AddressType {
-				continue
+		current, ok := byName[name]
+		if !ok {
+			if _, err := client.Create(ctx, desired, metav1.CreateOptions{FieldManager: fieldManager}); err != nil {
+				return fmt.Errorf("create source EndpointSlice %s/%s: %w", service.Namespace, name, err)
 			}
-			desired.ResourceVersion = current.ResourceVersion
-			desired.UID = current.UID
-			if _, err := client.Update(ctx, desired, metav1.UpdateOptions{FieldManager: fieldManager}); err != nil {
-				return fmt.Errorf("update source EndpointSlice %s/%s: %w", service.Namespace, name, err)
-			}
-		} else if _, err := client.Create(ctx, desired, metav1.CreateOptions{FieldManager: fieldManager}); err != nil {
-			return fmt.Errorf("create source EndpointSlice %s/%s: %w", service.Namespace, name, err)
+			continue
+		}
+		delete(byName, name)
+		if maps.Equal(current.Labels, desired.Labels) && current.AddressType == desired.AddressType &&
+			equality.Semantic.DeepEqual(current.Endpoints, desired.Endpoints) &&
+			equality.Semantic.DeepEqual(current.Ports, desired.Ports) {
+			continue
+		}
+		desired.ResourceVersion = current.ResourceVersion
+		desired.UID = current.UID
+		if _, err := client.Update(ctx, desired, metav1.UpdateOptions{FieldManager: fieldManager}); err != nil {
+			return fmt.Errorf("update source EndpointSlice %s/%s: %w", service.Namespace, name, err)
 		}
 	}
 
-	for _, item := range byName {
-		if err := client.Delete(ctx, item.Name, precondition.Unchanged(item)); err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("delete obsolete source EndpointSlice %s/%s: %w", item.Namespace, item.Name, err)
+	for _, slice := range byName {
+		if err := client.Delete(ctx, slice.Name, precondition.Unchanged(slice)); err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("delete obsolete source EndpointSlice %s/%s: %w", slice.Namespace, slice.Name, err)
 		}
 	}
 	return nil
 }
 
-func readyEndpoints(service *corev1.Service, pods []corev1.Pod, region string) []discoveryv1.Endpoint {
-	addresses := make(map[netip.Addr]struct{})
-	for i := range pods {
-		pod := &pods[i]
-		if pod.Namespace != service.Namespace || pod.UID == "" || pod.Spec.HostNetwork ||
-			pod.DeletionTimestamp != nil || pod.Status.Phase != corev1.PodRunning ||
-			!labels.New().ComponentDeployment().Matches(pod.Labels) {
+func (r *Reconciler) deploymentPods(namespace, deploymentID string) ([]*corev1.Pod, error) {
+	objects, err := r.pods.ByIndex(indexDeployment, namespace+"/"+deploymentID)
+	if err != nil {
+		return nil, fmt.Errorf("list local private network Pods: %w", err)
+	}
+	pods := make([]*corev1.Pod, 0, len(objects))
+	for _, object := range objects {
+		pod, ok := object.(*corev1.Pod)
+		if !ok {
+			return nil, fmt.Errorf("unexpected Pod cache entry %T", object)
+		}
+		pods = append(pods, pod)
+	}
+	return pods, nil
+}
+
+func readyEndpoints(service *corev1.Service, pods []*corev1.Pod, region string) []discoveryv1.Endpoint {
+	addresses := make(map[netip.Addr]struct{}, len(pods))
+	for _, pod := range pods {
+		if pod.UID == "" || pod.Spec.HostNetwork || pod.DeletionTimestamp != nil ||
+			pod.Status.Phase != corev1.PodRunning || !deploymentPodLabels.Matches(pod.Labels) {
 			continue
 		}
-		matches := true
-		for _, key := range []string{
-			labels.LabelKeyManagedBy, labels.LabelKeyWorkspaceID, labels.LabelKeyProjectID,
-			labels.LabelKeyAppID, labels.LabelKeyDeploymentID,
-		} {
-			if pod.Labels[key] != service.Labels[key] {
-				matches = false
-				break
-			}
-		}
-		if !matches {
+		if slices.ContainsFunc(podIdentityKeys, func(key string) bool { return pod.Labels[key] != service.Labels[key] }) {
 			continue
 		}
 		ready := slices.ContainsFunc(pod.Status.Conditions, func(c corev1.PodCondition) bool {
@@ -216,20 +202,18 @@ func readyEndpoints(service *corev1.Service, pods []corev1.Pod, region string) [
 			continue
 		}
 		for _, ip := range pod.Status.PodIPs {
-			address, err := netip.ParseAddr(ip.IP)
-			if err == nil && address.Is4() && address.IsPrivate() {
+			if address, err := netip.ParseAddr(ip.IP); err == nil && privatenetwork.IsPodAddress(address) {
 				addresses[address] = struct{}{}
 			}
 		}
 	}
 
-	ordered := slices.SortedFunc(maps.Keys(addresses), func(a, b netip.Addr) int { return a.Compare(b) })
-	endpoints := make([]discoveryv1.Endpoint, 0, len(ordered))
 	var hostname *string
 	if region != "" {
 		hostname = ptr.To(region)
 	}
-	for _, address := range ordered {
+	endpoints := make([]discoveryv1.Endpoint, 0, len(addresses))
+	for _, address := range slices.SortedFunc(maps.Keys(addresses), netip.Addr.Compare) {
 		endpoints = append(endpoints, discoveryv1.Endpoint{
 			Addresses: []string{address.String()},
 			Conditions: discoveryv1.EndpointConditions{
