@@ -1,6 +1,7 @@
 package environment
 
 import (
+	"context"
 	"fmt"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -118,7 +119,16 @@ func (s *Service) Delete(
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return s.db.DeleteDeploymentsByEnvironmentId(runCtx, envID)
+		return db.TxRetry(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			queries := db.NewQueries(tx)
+			if _, err := queries.LockDeploymentsByEnvironmentId(txCtx, envID); err != nil {
+				return err
+			}
+			if err := queries.DeleteInstancesByEnvironment(txCtx, envID); err != nil {
+				return err
+			}
+			return queries.DeleteDeploymentsByEnvironmentId(txCtx, envID)
+		})
 	}, restate.WithName("delete deployments")); err != nil {
 		return nil, fmt.Errorf("delete deployments: %w", err)
 	}

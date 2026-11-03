@@ -1,9 +1,12 @@
 package integration
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -12,6 +15,51 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+func TestReportDeploymentStatusCannotRecreateInstancesDuringDeletion(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+	const bearer = "test-bearer"
+	clusterKey := &ctrlv1.ClusterKey{CellId: uid.DNS1035(12), Platform: "test", Region: uid.DNS1035(12)}
+	svc := h.ClusterService(clusterKey, bearer)
+	deployment := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: clusterKey.GetRegion(), DesiredState: ""})
+	req := connect.NewRequest(&ctrlv1.ReportDeploymentStatusRequest{
+		Cluster: clusterKey,
+		Change: &ctrlv1.ReportDeploymentStatusRequest_Update_{
+			Update: &ctrlv1.ReportDeploymentStatusRequest_Update{
+				K8SName: deployment.K8sName,
+				Instances: []*ctrlv1.ReportDeploymentStatusRequest_Update_Instance{{
+					K8SName: uid.DNS1035(16), Address: "10.0.0.1:8080",
+					Status: ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING,
+				}},
+			},
+		},
+	})
+	req.Header().Set("Authorization", "Bearer "+bearer)
+
+	err := db.TxRetry(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		if _, err := queries.LockDeploymentsByEnvironmentId(txCtx, deployment.EnvironmentID); err != nil {
+			return err
+		}
+		reportCtx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		_, err := svc.ReportDeploymentStatus(reportCtx, req)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("report must wait for deletion: got %v", err)
+		}
+		if err := queries.DeleteInstancesByEnvironment(txCtx, deployment.EnvironmentID); err != nil {
+			return err
+		}
+		return queries.DeleteDeploymentsByEnvironmentId(txCtx, deployment.EnvironmentID)
+	})
+	require.NoError(t, err)
+	_, err = svc.ReportDeploymentStatus(ctx, req)
+	require.True(t, db.IsNotFound(err))
+	instances, err := h.DB.FindInstancesByDeploymentId(ctx, deployment.ID)
+	require.NoError(t, err)
+	require.Empty(t, instances)
+}
 
 func TestReportDeploymentStatusDeleteIsIdempotentAfterDeploymentRemoval(t *testing.T) {
 	h := New(t)
