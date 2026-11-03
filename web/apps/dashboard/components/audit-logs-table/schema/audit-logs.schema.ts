@@ -9,7 +9,7 @@ export const auditLogsQueryPayload = z.object({
   page: z.number().int().min(1).optional().default(1),
   startTime: z.number().int().optional(),
   endTime: z.number().int().optional(),
-  since: z.string(),
+  since: z.string().regex(/^(\d+[whdm])*$/, "Expected a duration like 1h, 2d, or 1w2d"),
   bucket: dashboardAuditLogBucketSchema.default(AUDIT_LOG_BUCKET_UNKEY_MUTATIONS),
   events: z
     .object({
