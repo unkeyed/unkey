@@ -83,7 +83,7 @@ const KeyIdCell = ({
   const iconContainer = (
     <div
       className={cn(
-        "size-5 rounded-sm flex items-center justify-center cursor-pointer relative",
+        "size-5 shrink-0 rounded-sm flex items-center justify-center cursor-pointer relative",
         identity ? "bg-successA-3" : "bg-grayA-3",
         isKeySelected && "bg-featureA-5",
       )}
@@ -124,7 +124,7 @@ const KeyIdCell = ({
 
   return (
     <div className="flex flex-col items-start px-4.5 py-1.5">
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center w-full">
         {identity ? (
           <InfoHoverCard
             delayDuration={100}
@@ -163,7 +163,7 @@ const KeyIdCell = ({
           iconContainer
         )}
 
-        <div className="flex flex-col gap-1 text-xs">
+        <div className="flex flex-col gap-1 text-xs min-w-0 flex-1">
           <Link
             title={`View details for ${keyData.id}`}
             className="font-mono group-hover:underline decoration-dotted"
@@ -183,7 +183,7 @@ const KeyIdCell = ({
             </div>
           </Link>
           {keyData.name && (
-            <span className="font-sans text-gray-9 truncate max-w-30" title={keyData.name}>
+            <span className="font-sans text-gray-9 truncate" title={keyData.name}>
               {keyData.name}
             </span>
           )}
