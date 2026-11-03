@@ -39,6 +39,7 @@ linters:
         - ^github\.com/AfterShip/clickhouse-sql-parser/parser.*$
         - ^github\.com/aws/aws-sdk-go-v2/.*$
         - ^github\.com/stripe/stripe-go/.*$
+        - ^github\.com/modelcontextprotocol/go-sdk/.*$
         - ^github\.com/unkeyed/unkey/svc/api/openapi\.Meta$
         - ^github\.com/unkeyed/unkey/pkg/cli\.Command$
         - ^k8s\.io/api/core/v1.*$

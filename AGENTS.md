@@ -61,7 +61,7 @@ that does not depend on the missing information.
 - `cmd/`: development commands and utilities.
 - `build/`: CLI and service entrypoints.
 - `svc/`: Go services (`api`, `ctrl`, `frontline`, `heimdall`, `kitchensink`,
-  `krane`, `logdrain`, `vault`).
+  `krane`, `logdrain`, `mcp`, `vault`).
 - `pkg/`: shared Go libraries.
 - `internal/services/`: shared internal Go services.
 - `proto/` and `gen/`: protobuf definitions and generated code.

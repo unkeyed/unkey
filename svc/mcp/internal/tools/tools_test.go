@@ -159,8 +159,8 @@ func TestLoadBuildsToolsFromSpec(t *testing.T) {
 		},
 		Components: testComponents{Schemas: map[string]any{
 			"CreateKey": map[string]any{
-				"type":    "object",
-				"example": map[string]any{"apiId": "api_1"},
+				"type":                      "object",
+				"example":                   map[string]any{"apiId": "api_1"},
 				"x-speakeasy-name-override": "CreateKey",
 				"properties": map[string]any{
 					"example": map[string]any{"type": "string", "examples": []any{"a"}},
