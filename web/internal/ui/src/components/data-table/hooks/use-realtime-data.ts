@@ -1,14 +1,16 @@
 import { useMemo } from "react";
 import type { TableDataItem } from "../types";
 
+export const NO_REALTIME_ROWS: readonly never[] = [];
+
 /**
  * Merges realtime and historic data with separator
  * Deduplicates by ID and inserts separator at boundary
  */
 export const useRealtimeData = <TData>(
   getRowId: (row: TData) => string,
-  realtimeData: readonly TData[] = [],
-  historicData: readonly TData[] = [],
+  realtimeData: readonly TData[] = NO_REALTIME_ROWS,
+  historicData: readonly TData[] = NO_REALTIME_ROWS,
 ) => {
   return useMemo(() => {
     // If no realtime data, return historic data as-is

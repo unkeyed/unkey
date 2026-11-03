@@ -17,7 +17,7 @@ import { RealtimeSeparator } from "./components/utils/realtime-separator";
 import { DEFAULT_CONFIG } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
 import { usePinnedTableHeader } from "./hooks/use-pinned-table-header";
-import { useRealtimeData } from "./hooks/use-realtime-data";
+import { NO_REALTIME_ROWS, useRealtimeData } from "./hooks/use-realtime-data";
 import type { DataTableProps } from "./types";
 import { calculateColumnWidth } from "./utils/column-width";
 import { stripeIndexOf, useLiveStripeShift } from "./utils/stripe";
@@ -40,7 +40,7 @@ function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPa
 export function DataTable<TData>(props: DataTableProps<TData>) {
   const {
     data: historicData,
-    realtimeData = [],
+    realtimeData = NO_REALTIME_ROWS,
     columns,
     getRowId,
     sorting,
