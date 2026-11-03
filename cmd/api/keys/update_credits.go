@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysUpdateCreditsResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysUpdateCreditsResponseBody)
 			}
 
 			req := components.V2KeysUpdateCreditsRequestBody{
@@ -74,7 +74,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2KeysUpdateCreditsResponseBody)
+			return util.Output(ctx, cmd, res.V2KeysUpdateCreditsResponseBody)
 		},
 	}
 }

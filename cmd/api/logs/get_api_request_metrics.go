@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/logs/get-api
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2LogsGetAPIRequestMetricsResponseBody)
+				return util.Output(ctx, cmd, res.V2LogsGetAPIRequestMetricsResponseBody)
 			}
 
 			req := components.V2LogsGetAPIRequestMetricsRequestBody{
@@ -66,7 +66,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/logs/get-api
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2LogsGetAPIRequestMetricsResponseBody)
+			return util.Output(ctx, cmd, res.V2LogsGetAPIRequestMetricsResponseBody)
 		},
 	}
 }

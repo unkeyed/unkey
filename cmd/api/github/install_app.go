@@ -59,7 +59,7 @@ Your root key must have the following permission:
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2GithubInstallAppResponseBody)
+			return util.Output(ctx, cmd, res.V2GithubInstallAppResponseBody)
 		},
 	}
 }

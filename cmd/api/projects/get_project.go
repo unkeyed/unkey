@@ -44,14 +44,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2ProjectsGetProjectResponseBody)
+				return util.Output(ctx, cmd, res.V2ProjectsGetProjectResponseBody)
 			}
 			req := components.V2ProjectsGetProjectRequestBody{Project: cmd.String("project")}
 			res, err := client.Projects.GetProject(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2ProjectsGetProjectResponseBody)
+			return util.Output(ctx, cmd, res.V2ProjectsGetProjectResponseBody)
 		},
 	}
 }

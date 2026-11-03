@@ -38,14 +38,14 @@ func getEnvironmentCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsGetEnvironmentResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsGetEnvironmentResponseBody)
 			}
 			req := components.V2EnvironmentsGetEnvironmentRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment")}
 			res, err := client.Environments.GetEnvironment(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2EnvironmentsGetEnvironmentResponseBody)
+			return util.Output(ctx, cmd, res.V2EnvironmentsGetEnvironmentResponseBody)
 		},
 	}
 }

@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rem
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Remove permissions %q from key %q?", req.Permissions, req.KeyID)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Remove permissions %q from key %q?", req.Permissions, req.KeyID)); err != nil {
 				return err
 			}
 
@@ -64,7 +64,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rem
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2KeysRemovePermissionsResponseBody)
+			return util.Output(ctx, cmd, res.V2KeysRemovePermissionsResponseBody)
 		},
 	}
 }

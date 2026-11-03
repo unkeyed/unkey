@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/compute/cli/deployments/c
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsCancelDeploymentResponseBody)
+				return util.Output(ctx, cmd, res.V2DeploymentsCancelDeploymentResponseBody)
 			}
 
 			req := components.V2DeploymentsCancelDeploymentRequestBody{
@@ -58,7 +58,7 @@ For full documentation, see https://www.unkey.com/docs/compute/cli/deployments/c
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DeploymentsCancelDeploymentResponseBody)
+			return util.Output(ctx, cmd, res.V2DeploymentsCancelDeploymentResponseBody)
 		},
 	}
 }

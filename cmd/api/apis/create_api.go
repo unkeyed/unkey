@@ -46,7 +46,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/cre
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
+				return util.Output(ctx, cmd, res.V2ApisCreateAPIResponseBody)
 			}
 
 			res, err := client.Apis.CreateAPI(ctx, components.V2ApisCreateAPIRequestBody{
@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/cre
 				return err
 			}
 
-			return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
+			return util.Output(ctx, cmd, res.V2ApisCreateAPIResponseBody)
 		},
 	}
 }

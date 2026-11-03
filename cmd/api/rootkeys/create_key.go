@@ -43,7 +43,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/cr
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RootKeysCreateKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2RootKeysCreateKeyResponseBody)
 			}
 
 			req := components.V2RootKeysCreateKeyRequestBody{
@@ -68,7 +68,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/cr
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2RootKeysCreateKeyResponseBody)
+			return util.Output(ctx, cmd, res.V2RootKeysCreateKeyResponseBody)
 		},
 	}
 }

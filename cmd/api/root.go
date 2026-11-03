@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"slices"
 
 	"github.com/unkeyed/unkey/cmd/api/analytics"
 	"github.com/unkeyed/unkey/cmd/api/apis"
@@ -57,6 +58,17 @@ func groups() []*cli.Command {
 				cli.Bool("debug", "Print the request ID to stderr"),
 				cli.Enum("error-format", "Error format on stderr", []string{"human", "json"}, cli.Default("human")),
 			)
+			slices.SortStableFunc(command.Flags, func(a, b cli.Flag) int {
+				aCommon := util.IsCommonFlag(a.Name()) || a.Name() == "body"
+				bCommon := util.IsCommonFlag(b.Name()) || b.Name() == "body"
+				if aCommon == bCommon {
+					return 0
+				}
+				if aCommon {
+					return 1
+				}
+				return -1
+			})
 		}
 	}
 	return commands

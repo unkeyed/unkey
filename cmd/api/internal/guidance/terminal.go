@@ -17,9 +17,13 @@ import (
 	"golang.org/x/term"
 )
 
-var errInterrupted = errors.New("interrupted")
+var (
+	errInterrupted = errors.New("interrupted")
+	errBack        = errors.New("back")
+)
 
 const cancelHint = "Ctrl+C to cancel"
+const navigationHint = "↑/↓ move · Enter select"
 
 // palette keeps text in the 16 ANSI colors so terminal themes control contrast.
 // Only the prompt marker uses the Unkey accent, because it never carries meaning alone.
@@ -77,8 +81,6 @@ type terminalForm struct {
 	sections  []section
 	notice    string
 	pending   strings.Builder
-	answered  bool
-	selected  bool
 	width     int
 	height    int
 	frameOpen bool
@@ -146,13 +148,17 @@ func (f *terminalForm) commit() error {
 }
 
 func (f *terminalForm) footer(hints ...string) []string {
-	if !f.answered {
-		hints = append(hints, cancelHint)
+	hints = append(hints, cancelHint)
+	var lines []string
+	for _, hint := range hints {
+		for visibleWidth(hint) > f.width-3 {
+			part, rest := wrapWords(hint, f.width-3)
+			lines = append(lines, "  "+f.palette.hint(part))
+			hint = rest
+		}
+		lines = append(lines, "  "+f.palette.hint(hint))
 	}
-	if len(hints) == 0 {
-		return nil
-	}
-	return []string{"  " + f.palette.hint(strings.Join(hints, " · "))}
+	return lines
 }
 
 func (f *terminalForm) String(label string, defaults ...string) (string, error) {
@@ -212,7 +218,6 @@ func (f *terminalForm) text(label, defaultValue string, hidden bool) (value stri
 		}
 		switch key {
 		case "\r", "\n":
-			f.answered = true
 			return strings.Join(input, ""), nil
 		case "\x7f", "\b":
 			if cursor > 0 {
@@ -278,11 +283,10 @@ func (f *terminalForm) SelectOrdered(label string, options []prompt.SelectOption
 		}
 		visible := min(len(options), max(1, f.height/2-3))
 		top := min(max(0, selected-visible+1), len(options)-visible)
-		question := f.palette.mark("?") + " " + f.palette.bold(label)
-		if !f.selected {
-			question += "  " + f.palette.hint("↑/↓ to move · Enter to select")
+		var lines []string
+		if label != "" {
+			lines = append(lines, f.palette.mark("?")+" "+f.palette.bold(label))
 		}
-		lines := []string{question}
 		for i := top; i < top+visible; i++ {
 			if i == selected {
 				lines = append(lines, f.palette.mark("❯")+" "+f.palette.value(options[i].Label))
@@ -294,6 +298,7 @@ func (f *terminalForm) SelectOrdered(label string, options []prompt.SelectOption
 		if visible < len(options) {
 			hints = append(hints, fmt.Sprintf("%d–%d of %d", top+1, top+visible, len(options)))
 		}
+		hints = append(hints, navigationHint)
 		if err := f.draw(append(lines, f.footer(hints...)...), -1, -1); err != nil {
 			return "", err
 		}
@@ -315,7 +320,6 @@ func (f *terminalForm) SelectOrdered(label string, options []prompt.SelectOption
 		case "\x1b[6~":
 			f.page++
 		case "\r", "\n":
-			f.answered, f.selected = true, true
 			return options[selected].Key, nil
 		}
 	}
@@ -334,6 +338,13 @@ func (f *terminalForm) key() (string, error) {
 	case 27:
 		sequence := string(key)
 		for len(sequence) < 16 {
+			ready, err := f.escapeReady()
+			if err != nil {
+				return "", err
+			}
+			if !ready {
+				return sequence, nil
+			}
 			part, _, err := f.in.ReadRune()
 			if err != nil {
 				return "", err
@@ -341,8 +352,11 @@ func (f *terminalForm) key() (string, error) {
 			if part == 3 || part == 4 {
 				return "", errInterrupted
 			}
+			if len(sequence) == 1 && part != '[' && part != 'O' {
+				return sequence, f.in.UnreadRune()
+			}
 			sequence += string(part)
-			if len(sequence) > 2 && part >= 0x40 && part <= 0x7e || len(sequence) == 2 && part != '[' && part != 'O' {
+			if len(sequence) > 2 && part >= 0x40 && part <= 0x7e {
 				break
 			}
 		}
@@ -353,6 +367,9 @@ func (f *terminalForm) key() (string, error) {
 }
 
 func (f *terminalForm) size() error {
+	if !terminalInputSupported {
+		return fmt.Errorf("%w: use line prompts on this platform", errors.ErrUnsupported)
+	}
 	width, height, err := term.GetSize(f.fd)
 	if err != nil {
 		return err
@@ -385,7 +402,7 @@ func (f *terminalForm) draw(controls []string, row, column int) error {
 			lines = append(lines, line)
 		}
 	}
-	available := f.height - len(controls) - 2
+	available := f.height - len(controls) - 1
 	if len(lines) > available {
 		available = max(1, available-1)
 		f.page = min(f.page, (len(lines)-1)/available)
@@ -535,7 +552,9 @@ func (f *lineForm) SelectOrdered(label string, options []prompt.SelectOption, de
 		}
 	}
 	var menu strings.Builder
-	fmt.Fprintf(&menu, "? %s\n", label)
+	if label != "" {
+		fmt.Fprintf(&menu, "? %s\n", label)
+	}
 	for i, option := range options {
 		fmt.Fprintf(&menu, "  %d. %s\n", i+1, option.Label)
 	}
