@@ -2,7 +2,8 @@
 
 import { showSettingsBanner } from "@/lib/collections/deploy/pending-redeploy";
 import { queryKeys } from "@/lib/query-keys";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
+import { trpcClient } from "@/lib/trpc/client";
+import { trpcErrorMessage } from "@/lib/utils/trpc";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
@@ -45,22 +46,22 @@ type ConnectionChange = {
 type ConnectionScope = { projectId: string; appId: string };
 
 function apply(op: ConnectionOp, { projectId, appId }: ConnectionScope) {
-  const connections = getUnkeyClient().connections;
+  const connections = trpcClient.appConnection;
   return match(op)
     .with({ type: "create" }, ({ environment, targetAppId, rule, name }) =>
-      connections.createConnection({
-        project: projectId,
-        app: appId,
-        environment: environment.id,
-        targetApp: targetAppId,
+      connections.create.mutate({
+        projectId,
+        appId,
+        environmentId: environment.id,
+        targetAppId,
         ...rule,
         name,
       }),
     )
     .with({ type: "update" }, ({ id, rule, name }) =>
-      connections.updateConnection({ connectionId: id, ...rule, name }),
+      connections.update.mutate({ projectId, id, ...rule, name }),
     )
-    .with({ type: "delete" }, ({ id }) => connections.deleteConnection({ connectionId: id }))
+    .with({ type: "delete" }, ({ id }) => connections.delete.mutate({ projectId, id }))
     .exhaustive();
 }
 
@@ -85,7 +86,7 @@ export function useConnectionMutation(scope: ConnectionScope) {
             applied,
             failure.op,
             toasts.done,
-            getErrorMessage(failure.error),
+            trpcErrorMessage(failure.error, toasts.error),
           ),
         });
         return;
@@ -95,13 +96,13 @@ export function useConnectionMutation(scope: ConnectionScope) {
     onError: (error, { action }, context) => {
       toast.error(TOASTS[action].error, {
         id: context?.toastId,
-        description: getErrorMessage(error),
+        description: trpcErrorMessage(error, TOASTS[action].error),
       });
     },
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.connections.app(projectId, appId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.deployments.connectionPinsAll }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.connections.pinsAll }),
       ]),
   });
 

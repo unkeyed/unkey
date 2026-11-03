@@ -3,8 +3,7 @@ import {
   type Environment as CollectionEnvironment,
   ENVIRONMENT_KIND,
   type EnvironmentKind,
-} from "@/lib/collections/deploy/environments";
-import type { AppConnection } from "@unkey/api/models/components";
+} from "@/lib/deploy-data";
 import { match } from "@unkey/match";
 import { z } from "zod";
 import { CALLER_KINDS, followsProduction } from "./caller-kind";
@@ -17,7 +16,18 @@ export const targetRuleSchema = z.discriminatedUnion("targetType", [
 
 export type TargetRule = z.infer<typeof targetRuleSchema>;
 
-export type ListedConnection = AppConnection;
+export type ListedConnection = {
+  id: string;
+  appId: string;
+  environmentId: string;
+  name: string;
+  targetAppId: string;
+  targetAppName: string;
+  targetAppSlug: string;
+  targetType: TargetRule["targetType"];
+  targetEnvironmentId?: string | null;
+  targetDeploymentId?: string | null;
+};
 type TargetColumns = Pick<
   ListedConnection,
   "targetType" | "targetEnvironmentId" | "targetDeploymentId"

@@ -1,6 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { failed, loading, ready } from "./fixtures";
-import { type QueryResult, fromQuery, mapLoadable, readyLoadable, zipLoadable } from "./loadable";
+import {
+  type Loadable,
+  type QueryResult,
+  blockerOf,
+  fromQuery,
+  mapLoadable,
+  readyLoadable,
+  zipLoadable,
+} from "./loadable";
 
 function query<T>(overrides: Partial<QueryResult<T>>, refetches: string[] = []): QueryResult<T> {
   return {
@@ -136,5 +144,53 @@ describe("zipLoadable", () => {
       stale.stale?.retry();
     }
     expect(retries).toEqual(["a", "b", "c", "d"]);
+  });
+});
+
+describe("blockerOf", () => {
+  const readyView: Loadable<string[]> = { status: "ready", data: ["a"], stale: null };
+
+  test("every view ready is nothing pending", () => {
+    expect(blockerOf([readyView, readyView])).toBeNull();
+  });
+
+  test("no views is nothing pending", () => {
+    expect(blockerOf([])).toBeNull();
+  });
+
+  test("a ready view with a failed refresh does not block", () => {
+    const stale = { error: new Error("refresh"), retry: () => {}, retrying: false };
+    expect(blockerOf([{ status: "ready", data: ["a"], stale }])).toBeNull();
+  });
+
+  test("one view loading is loading", () => {
+    expect(blockerOf([readyView, { status: "loading" }])).toEqual({ status: "loading" });
+  });
+
+  test("a failed view outranks a loading one and retries every failed view", () => {
+    const retries: string[] = [];
+    const first = new Error("domains");
+    const result = blockerOf([
+      { status: "loading" },
+      { status: "failed", error: first, retry: () => retries.push("domains"), retrying: false },
+      readyView,
+      {
+        status: "failed",
+        error: new Error("custom"),
+        retry: () => retries.push("custom"),
+        retrying: true,
+      },
+    ]);
+
+    expect(result).toEqual({
+      status: "failed",
+      error: first,
+      retry: expect.any(Function),
+      retrying: true,
+    });
+    if (result?.status === "failed") {
+      result.retry();
+    }
+    expect(retries).toEqual(["domains", "custom"]);
   });
 });

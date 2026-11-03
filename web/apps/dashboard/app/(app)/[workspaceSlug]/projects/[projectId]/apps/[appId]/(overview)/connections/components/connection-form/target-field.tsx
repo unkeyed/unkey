@@ -1,13 +1,13 @@
 "use client";
 
 import { EnvironmentLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
+import { useAppScope } from "@/lib/deploy-data";
 import type { ListView } from "@/lib/loadable/list";
-import { getErrorMessage } from "@/lib/unkey-client";
+import { trpcErrorMessage } from "@/lib/utils/trpc";
 import { match } from "@unkey/match";
 import { Button, FormSelect, type FormSelectOption } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { useFormContext, useFormState } from "react-hook-form";
-import { useAppId, useProjectData } from "../../../data-provider";
 import { type CallerSnapshot, useTargetDeployments } from "../../hooks/use-connections-data";
 import { CALLER_KINDS } from "../../model/caller-kind";
 import type { ConnectionFormValues } from "../../model/form";
@@ -35,8 +35,7 @@ export function TargetField({
   rule: TargetRule;
   labelAction?: ReactNode;
 }) {
-  const { projectId } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
   const kind = caller.environment.kind;
   const name = `targets.${kind}` as const;
   const { control, setValue } = useFormContext<ConnectionFormValues>();
@@ -142,7 +141,7 @@ type PagerState = { action: ReactNode; error: string | null };
 
 function pagerOf(deployments: ListView<TargetDeployment>): PagerState | null {
   const retry = (error: unknown, onRetry: () => void, retrying: boolean): PagerState => ({
-    error: getErrorMessage(error, "We couldn't load deployments."),
+    error: trpcErrorMessage(error, "We couldn't load deployments."),
     action: (
       <Button type="button" variant="outline" size="sm" loading={retrying} onClick={onRetry}>
         Retry

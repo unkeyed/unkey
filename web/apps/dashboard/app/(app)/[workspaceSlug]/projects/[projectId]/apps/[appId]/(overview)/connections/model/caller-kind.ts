@@ -1,4 +1,4 @@
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/deploy-data";
 
 export function followsProduction(targetName: string): string {
   return `Follows ${targetName}’s live production deployment, including rollbacks.`;

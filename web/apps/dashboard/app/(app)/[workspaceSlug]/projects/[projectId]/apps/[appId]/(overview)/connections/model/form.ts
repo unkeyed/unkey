@@ -1,4 +1,4 @@
-import { ENVIRONMENT_KINDS } from "@/lib/collections/deploy/environments";
+import { ENVIRONMENT_KINDS } from "@/lib/deploy-data";
 import { z } from "zod";
 import { type Callers, callerList, savedIn } from "./callers";
 import { connectionNameSchema, takenNamesOf } from "./name";

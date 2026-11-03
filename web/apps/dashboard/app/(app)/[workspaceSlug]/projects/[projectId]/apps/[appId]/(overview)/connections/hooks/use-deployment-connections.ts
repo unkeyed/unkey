@@ -1,19 +1,22 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Deployment } from "@/lib/collections/deploy/deployments";
+import type { Deployment } from "@/lib/deploy-data";
 import { useConnectionsEnabled } from "@/lib/flags/use-connections-enabled";
 import { type ListView, listOf } from "@/lib/loadable/list";
 import { type Loadable, fromQuery, mapLoadable } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
 import { queryKeys } from "@/lib/query-keys";
-import { getUnkeyClient } from "@/lib/unkey-client";
+import { trpcClient } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 import { useQuery } from "@tanstack/react-query";
-import type {
-  DeploymentConnectionPin,
-  DeploymentConnectionSummary,
-} from "@unkey/api/models/components";
+import type { inferRouterOutputs } from "@trpc/server";
 import type { Route } from "next";
+
+type DeploymentOutputs = inferRouterOutputs<Router>["deploy"]["deployment"];
+export type DeploymentConnectionSummary =
+  DeploymentOutputs["listConnections"]["connections"][number];
+type DeploymentConnectionPin = DeploymentOutputs["listConnectionPins"]["pins"][number];
 
 export type PinningApp = { id: string; name: string; href: Route };
 
@@ -30,14 +33,17 @@ function truncatedListOf<Data extends { truncated: boolean }, Row>(
 }
 
 export function useDeploymentConnections(
-  deploymentId: string,
+  deployment: Pick<Deployment, "id" | "projectId">,
 ): TruncatedList<DeploymentConnectionSummary> | null {
   const enabled = useConnectionsEnabled();
   const query = useQuery({
     enabled,
-    queryKey: queryKeys.deployments.connections(deploymentId),
-    queryFn: async ({ signal }) =>
-      (await getUnkeyClient().deployments.listConnections({ deploymentId }, { signal })).data,
+    queryKey: queryKeys.connections.deployment(deployment.id),
+    queryFn: ({ signal }) =>
+      trpcClient.deploy.deployment.listConnections.query(
+        { projectId: deployment.projectId, deploymentId: deployment.id },
+        { signal },
+      ),
   });
   if (!enabled) {
     return null;
@@ -50,14 +56,12 @@ export function usePinningApps(deployment: Deployment): TruncatedList<PinningApp
   const workspace = useWorkspaceNavigation();
   const query = useQuery({
     enabled,
-    queryKey: queryKeys.deployments.connectionPins(deployment.id),
-    queryFn: async ({ signal }) =>
-      (
-        await getUnkeyClient().deployments.listConnectionPins(
-          { deploymentId: deployment.id },
-          { signal },
-        )
-      ).data,
+    queryKey: queryKeys.connections.pins(deployment.id),
+    queryFn: ({ signal }) =>
+      trpcClient.deploy.deployment.listConnectionPins.query(
+        { projectId: deployment.projectId, deploymentId: deployment.id },
+        { signal },
+      ),
   });
   const appHref = (appId: string) =>
     routes.projects.apps.connections({

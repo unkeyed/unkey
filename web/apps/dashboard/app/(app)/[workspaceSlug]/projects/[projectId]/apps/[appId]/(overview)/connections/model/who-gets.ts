@@ -1,4 +1,4 @@
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/deploy-data";
 import { match } from "@unkey/match";
 import type { Callers } from "./callers";
 import type { ConnectionOp } from "./plan";

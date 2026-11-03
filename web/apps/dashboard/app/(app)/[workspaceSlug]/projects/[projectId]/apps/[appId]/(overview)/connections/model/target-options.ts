@@ -1,4 +1,4 @@
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/deploy-data";
 import { match } from "@unkey/match";
 import { CALLER_KINDS } from "./caller-kind";
 import { type Callers, callerList } from "./callers";

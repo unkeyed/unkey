@@ -3,6 +3,7 @@
 import { ListPager } from "@/components/list-pager";
 import { LoadError } from "@/components/load-error";
 import { useConsumeSearchFlag } from "@/hooks/use-consume-search-flag";
+import { useAppScope, useEnvironments } from "@/lib/deploy-data";
 import { IconLinkOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -22,7 +23,6 @@ import {
   ResourceListContent,
 } from "@unkey/ui";
 import { useCallback } from "react";
-import { useAppId, useProjectData } from "../data-provider";
 import { useSlidePanels } from "../hooks/use-slide-panels";
 import { ConnectionPanel } from "./components/connection-form/connection-panel";
 import { ConnectionsList } from "./components/list";
@@ -37,8 +37,8 @@ import { type Environment, type ListedConnection, environmentOfKind } from "./mo
 type PanelState = { type: "connection"; before: ListedConnection | null } | { type: "guide" };
 
 export function ConnectionsPage() {
-  const { projectId, environments, isEnvironmentsLoading } = useProjectData();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const production = environmentOfKind(environments, "production");
   const preview = environmentOfKind(environments, "preview");
 

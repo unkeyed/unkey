@@ -1,10 +1,10 @@
 "use client";
 
-import type { App } from "@/lib/collections/deploy/apps";
+import { type App, useAppScope } from "@/lib/deploy-data";
+import { useProjectApps } from "@/lib/queries/apps";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Button, SearchInput } from "@unkey/ui";
 import { useState } from "react";
-import { useProjectData } from "../../../data-provider";
 
 const SOURCE_LABEL: Record<App["sourceType"], string | null> = {
   git: null,
@@ -23,7 +23,7 @@ export function AppPicker({
   connectedIds: ReadonlySet<string>;
   onPick: (appId: string) => void;
 }) {
-  const { apps: projectApps } = useProjectData();
+  const projectApps = useProjectApps(useAppScope().projectId).data ?? [];
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
   const rows: PickerApp[] = apps

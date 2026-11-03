@@ -80,7 +80,7 @@ export function AppCanvas() {
   } = canvas;
   const { policies, view, retry, isRetrying } = useProductionPolicies();
   const listed = view.type === "list";
-  const connections = useDeploymentConnections(deployment.id);
+  const connections = useDeploymentConnections(deployment);
 
   return (
     <Canvas label="App canvas">
@@ -435,22 +435,6 @@ function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }
           );
         })}
         <MoreRow count={policies.length - NODE_ROW_LIMIT} href={href} />
-      </Rows>
-    </Node>
-  );
-}
-
-export function PoliciesLoadingNode() {
-  return (
-    <Node>
-      <NodeHeader
-        icon={<IconShieldKeyOutline18 />}
-        name={<Skeleton className="inline-block h-3 w-16 rounded align-middle" />}
-      />
-      <Rows>
-        <IconRow icon={<IconShieldKeyOutline18 />}>
-          <Skeleton className="inline-block h-3 w-3/4 rounded align-middle" />
-        </IconRow>
       </Rows>
     </Node>
   );

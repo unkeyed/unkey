@@ -2,10 +2,10 @@
 
 import { environmentName } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
 import type { ListView } from "@/lib/loadable/list";
-import type { DeploymentConnectionSummary } from "@unkey/api/models/components";
 import { IconCubeOutline18, IconLinkOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import type { Route } from "next";
+import type { DeploymentConnectionSummary } from "../../connections/hooks/use-deployment-connections";
 import {
   LabeledRow,
   MoreRow,
