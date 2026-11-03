@@ -52,7 +52,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/logs/list-ap
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2LogsListAPIRequestsResponseBody)
+				return util.Output(ctx, cmd, res.V2LogsListAPIRequestsResponseBody)
 			}
 
 			req := components.V2LogsListAPIRequestsRequestBody{
@@ -76,7 +76,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/logs/list-ap
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2LogsListAPIRequestsResponseBody)
+			return util.Output(ctx, cmd, res.V2LogsListAPIRequestsResponseBody)
 		},
 	}
 }

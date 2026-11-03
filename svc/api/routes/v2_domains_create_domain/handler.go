@@ -73,22 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	environmentURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID)
-	permissionQuery := rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   "*",
-			Action:       rbac.CreateDomain,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   env.ID,
-			Action:       rbac.CreateDomain,
-		}),
-		rbac.U(
-			environmentURN.Domain("*"),
-			permissions.Write,
-		),
-	)
+	permissionQuery := rbac.U(environmentURN.Domain("*"), permissions.Write)
 	if err = principal.Authorize(permissionQuery); err != nil {
 		return apierrors.MaskInsufficientPermissionsWithVisibility(
 			err,
@@ -146,17 +131,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return domaingate.LimitsNotConfigured(principal.AuthorizedWorkspaceID)
 	}
 
-	attached, err := db.Query.CountCustomDomainsByWorkspace(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
-	if err != nil {
+	attached, listErr := db.Query.ListCustomDomainNamesByWorkspace(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
+	if listErr != nil {
 		return fault.Wrap(
-			err,
+			listErr,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"),
-			fault.Public("Failed to count the workspace's custom domains."),
+			fault.Public("Failed to read the workspace's custom domains."),
 		)
 	}
 
-	if err = domaingate.CheckAllowance(attached, limits.CustomDomainsMax); err != nil {
+	if err = domaingate.CheckAllowance(attached, domainName, limits.CustomDomainsMax); err != nil {
 		return err
 	}
 

@@ -44,7 +44,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/workspace/ge
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2WorkspaceGetFlagsResponseBody)
+			return util.Output(ctx, cmd, res.V2WorkspaceGetFlagsResponseBody)
 		},
 	}
 }

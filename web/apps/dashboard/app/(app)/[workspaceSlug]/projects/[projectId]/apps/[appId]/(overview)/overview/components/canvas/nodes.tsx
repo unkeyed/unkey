@@ -75,7 +75,7 @@ export function NodeFooter({
   children: ReactNode;
 }) {
   const content = (
-    <span className="flex items-center gap-2 px-4 py-2 text-xs text-gray-10 transition-colors group-hover/footer:text-gray-12 [&_svg]:size-3 [&_svg]:shrink-0">
+    <span className="flex items-center gap-2 px-3 py-2 text-xs text-gray-10 transition-colors group-hover/footer:text-gray-12 [&_svg]:size-3 [&_svg]:shrink-0">
       {icon}
       {children}
     </span>
@@ -104,7 +104,7 @@ export function NodeHeader({
   right?: ReactNode;
 }) {
   return (
-    <span className="flex min-w-0 items-center gap-2 px-4 py-2.5">
+    <span className="flex min-w-0 items-center gap-2 px-3 py-2.5">
       <span className="shrink-0 text-gray-11 [&_svg]:size-3">{icon}</span>
       <span className="min-w-0 truncate text-xs font-medium text-gray-12">{name}</span>
       {right != null && <span className="ml-auto flex shrink-0 items-center gap-1">{right}</span>}
@@ -114,7 +114,7 @@ export function NodeHeader({
 
 export function Rows({ children }: { children: ReactNode }) {
   return (
-    <span className="flex flex-col gap-2 px-4 pt-0.5 pb-2.5 text-xs text-gray-12">{children}</span>
+    <span className="flex flex-col gap-2 px-3 pt-0.5 pb-2.5 text-xs text-gray-12">{children}</span>
   );
 }
 
@@ -126,7 +126,6 @@ export function RowItem({
   hint,
   detail,
   copy,
-  mono = false,
 }: {
   icon: ReactNode;
   label: string;
@@ -135,7 +134,6 @@ export function RowItem({
   hint?: ReactNode;
   detail?: ReactNode;
   copy?: string;
-  mono?: boolean;
 }) {
   const shown = copy ? (
     <CopyValue value={copy}>{value}</CopyValue>
@@ -144,13 +142,7 @@ export function RowItem({
   );
   const line = (
     <span className="flex min-w-0 max-w-full items-center gap-1.5">
-      <span
-        className={cn(
-          "flex min-w-0",
-          hint != null && "max-w-40 shrink-0",
-          mono ? "font-mono" : "tabular-nums",
-        )}
-      >
+      <span className={cn("flex min-w-0 tabular-nums", hint != null && "max-w-40 shrink-0")}>
         {fullValue ? (
           <InfoTooltip asChild content={fullValue} position={{ side: "top" }}>
             <span className="relative z-10 flex min-w-0">{shown}</span>
@@ -159,7 +151,7 @@ export function RowItem({
           shown
         )}
       </span>
-      {hint != null && <span className="min-w-0 truncate text-gray-10">{hint}</span>}
+      {hint != null && <span className="min-w-0 truncate">{hint}</span>}
     </span>
   );
   return (
@@ -298,7 +290,7 @@ export function GhostNode({
 }) {
   const className = cn(
     href && "group",
-    "flex items-start gap-2 rounded-lg border border-dashed border-grayA-6 bg-raised px-3.75 py-2.5",
+    "flex items-start gap-2 rounded-lg border border-dashed border-grayA-6 bg-raised px-2.75 py-2.5",
     href &&
       "transition-colors hover:border-grayA-8 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7",
   );

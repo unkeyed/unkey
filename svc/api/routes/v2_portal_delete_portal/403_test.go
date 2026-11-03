@@ -7,7 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
 )
@@ -34,13 +37,9 @@ func TestDeletePortalAuthorizationMatrix(t *testing.T) {
 		shouldPass  bool
 	}{
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
-		{name: "wildcard delete_portal", permissions: []string{"portal.*.delete_portal"}, shouldPass: true},
-		{name: "read_portal only", permissions: []string{"portal.*.read_portal"}, shouldPass: false},
-		{name: "create_portal only", permissions: []string{"portal.*.create_portal"}, shouldPass: false},
-		{name: "update_portal only", permissions: []string{"portal.*.update_portal"}, shouldPass: false},
-		{name: "session minting does not grant deletes", permissions: []string{"portal.*.create_portal_session"}, shouldPass: false},
-		{name: "unrelated api permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "delete_portal scoped to another portal", permissions: []string{fmt.Sprintf("portal.%s.delete_portal", otherPortalID)}, shouldPass: false},
+		{name: "workspace delete", permissions: []string{rbac.U(urn.V1{WorkspaceID: workspace.ID, Resource: "**"}, permissions.Delete).Value}, shouldPass: true},
+		{name: "workspace write", permissions: []string{rbac.U(urn.V1{WorkspaceID: workspace.ID, Resource: "**"}, permissions.Write).Value}, shouldPass: false},
+		{name: "delete scoped to another portal", permissions: []string{rbac.U(urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).Portal(otherPortalID), permissions.Delete).Value}, shouldPass: false},
 	}
 
 	for i, tc := range testCases {
@@ -81,22 +80,4 @@ func TestDeletePortalAuthorizationMatrix(t *testing.T) {
 				"a denied request must not write an audit entry")
 		})
 	}
-}
-
-// The id-scoped grant is the arm the second `rbac.T` exists for. A grant naming
-// this portal is enough; one naming another portal is not, and is asserted in the
-// matrix above.
-func TestDeletePortalAllowsGrantScopedToThisPortal(t *testing.T) {
-	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
-	h.Register(route)
-
-	workspace := h.Resources().UserWorkspace
-	stored := h.SeedPortal(t, workspace.ID, "scoped", "scoped", keyspaceMapping(t, h, workspace.ID), nil, nil)
-
-	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("portal.%s.delete_portal", stored.ID))
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), request(stored.ID))
-	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.False(t, portalExists(t, h, workspace.ID, stored.ID))
 }

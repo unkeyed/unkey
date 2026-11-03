@@ -55,7 +55,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/update
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AppsUpdateAppResponseBody)
+				return util.Output(ctx, cmd, res.V2AppsUpdateAppResponseBody)
 			}
 			req := components.V2AppsUpdateAppRequestBody{
 				Project:          cmd.String("project"),
@@ -89,7 +89,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/update
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AppsUpdateAppResponseBody)
+			return util.Output(ctx, cmd, res.V2AppsUpdateAppResponseBody)
 		},
 	}
 }

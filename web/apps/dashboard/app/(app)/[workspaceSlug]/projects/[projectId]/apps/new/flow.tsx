@@ -1,11 +1,15 @@
 "use client";
 
+import { CardPending } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/card";
+import {
+  FlowSplit,
+  FlowViewport,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/flow-layout";
 import { type LeaveConfirm, LeaveGuard, useLeaveBypass } from "@/components/leave-guard";
 import { keepLeaveSentinel } from "@/hooks/prevent-leave-model";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useProjectApps } from "@/lib/queries/apps";
 import { useIsMutating, useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -19,9 +23,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { CardPending } from "./card";
-import { FlowSplit, FlowViewport, PendingFlowCard } from "./flow-layout";
 import { ConfigureSkeleton } from "./panes/configure-skeleton";
+import { PendingFlowCard } from "./pending-flow-card";
 import { StepNav } from "./step-nav";
 import { newAppErrorMessage, useAppLifecycle } from "./use-app-lifecycle";
 import {
@@ -61,10 +64,9 @@ export function useNewAppFlow(): NewAppFlow {
 export function FlowLoader({ projectId, children }: { projectId: string; children: ReactNode }) {
   const searchParams = useSearchParams();
   const params = { step: searchParams.get("step"), appId: searchParams.get("appId") };
-  const { data: apps, isLoading } = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
-    [projectId],
-  );
+  const appsQuery = useProjectApps(projectId);
+  const apps = appsQuery.data ?? [];
+  const isLoading = appsQuery.isInitialLoading;
   const pending = pendingPane(params.step);
   if (params.appId && isLoading) {
     return (

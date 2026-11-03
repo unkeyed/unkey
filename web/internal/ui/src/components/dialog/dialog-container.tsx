@@ -47,8 +47,8 @@ const DialogContainer = ({
       <DialogContent
         data-docs-target={docsTarget}
         className={cn(
-          "max-h-[90vh] overflow-hidden rounded-2xl! p-0 gap-0 flex flex-col grow",
-          "w-[90%] md:w-[70%] lg:w-[70%] xl:w-[50%] 2xl:w-[45%] max-w-[600px] max-h-[90vh] sm:max-h-[90vh] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]",
+          "max-h-[90vh] overflow-hidden p-0 gap-0 flex flex-col grow",
+          "w-[90%] max-w-[480px] md:max-h-[70vh] lg:max-h-[90vh] xl:max-h-[80vh]",
           className,
         )}
         initialFocus={preventAutoFocus ? false : undefined}

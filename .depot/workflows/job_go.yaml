@@ -30,4 +30,6 @@ jobs:
       - name: Build
         run: mise run build
       - name: Run tests
+        env:
+          RASK_AXIOM_TRACE_TOKEN: ${{ secrets.RASK_AXIOM_TRACE_TOKEN }}
         run: mise run test

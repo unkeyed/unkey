@@ -14,13 +14,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/prompt"
 )
 
-func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema *Schema, values map[string]any, array, needsChanges bool) cli.Action {
+func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema *Schema, values map[string]any, array, needsChanges, destructive bool) cli.Action {
 	return func(ctx context.Context, cmd *cli.Command) (err error) {
 		if f.screen != nil {
 			defer func() { err = errors.Join(err, f.screen.finish()) }()
 		}
 		for {
-			if f.screen != nil {
+			if f.screen != nil && !destructive {
 				if err := f.screen.finish(); err != nil {
 					return err
 				}
@@ -47,7 +47,7 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 				{Key: "cancel", Label: "Cancel"}, {Key: "edit", Label: "Edit answers"},
 			})
 			if promptErr != nil {
-				return cancelled(promptErr, "cancelled; no request was sent")
+				return cancelled(promptErr, "cancelled; no further request was sent")
 			}
 			if choice != "edit" {
 				return err
@@ -59,8 +59,11 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 				f.screen.notice, f.screen.sections = "", sections
 			}
 			for {
-				if err := f.review(ctx, schema, values, "", needsChanges); err != nil {
-					return cancelled(err, "cancelled; no request was sent")
+				err := f.reviewMenu(ctx, schema, values, "", needsChanges, reviewMode{
+					action: cmd.Usage, warning: "", expanded: true, destructive: destructive,
+				})
+				if err != nil && !errors.Is(err, errReviewEdited) {
+					return cancelled(err, "cancelled; no further request was sent")
 				}
 				updated, err := requestJSON(values, array)
 				if err != nil {
@@ -70,16 +73,6 @@ func (f *form) recoverValidation(action cli.Action, body *cli.StringFlag, schema
 					if _, err := fmt.Fprintln(f.out, "Nothing changed. Edit the rejected field first."); err != nil {
 						return err
 					}
-					continue
-				}
-				if err := f.confirm(ctx, schema, values, cmd.Usage, needsChanges); err != nil {
-					return cancelled(err, "cancelled; no request was sent")
-				}
-				updated, err = requestJSON(values, array)
-				if err != nil {
-					return err
-				}
-				if string(updated) == body.Value() {
 					continue
 				}
 				if err := body.Parse(string(updated)); err != nil {

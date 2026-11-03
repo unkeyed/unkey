@@ -94,7 +94,7 @@ func New(config Config) (Caches, error) {
 
 	verificationKeyByHash, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:     10 * time.Second,
-		Stale:     10 * time.Minute,
+		Stale:     30 * time.Second,
 		MaxSize:   1_000_000,
 		Resource:  "verification_key_by_hash",
 		Clock:     config.Clock,
@@ -106,7 +106,7 @@ func New(config Config) (Caches, error) {
 
 	rootKeyByHash, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
 		Fresh:     10 * time.Second,
-		Stale:     10 * time.Minute,
+		Stale:     30 * time.Second,
 		MaxSize:   1_000_000,
 		Resource:  "root_key_by_hash",
 		Clock:     config.Clock,

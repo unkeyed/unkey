@@ -187,6 +187,12 @@ func (f *fixture) setLive(t *testing.T, deploymentID string, rolledBack bool) {
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		AppID:               f.app.ID,
 	}))
+	require.NoError(t, f.db.UpdateEnvironmentDeployments(f.ctx, db.UpdateEnvironmentDeploymentsParams{
+		CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
+		IsRolledBack:        rolledBack,
+		UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		EnvironmentID:       f.env.ID,
+	}))
 }
 
 func (f *fixture) actor() *ctrlv1.ActorInfo {
@@ -247,6 +253,10 @@ func (f *fixture) requireLive(t *testing.T, deploymentID string, rolledBack bool
 	require.NoError(t, err)
 	require.Equal(t, deploymentID, app.CurrentDeploymentID.String, "app current_deployment_id")
 	require.Equal(t, rolledBack, app.IsRolledBack, "app is_rolled_back")
+	environment, err := f.db.FindEnvironmentById(f.ctx, f.env.ID)
+	require.NoError(t, err)
+	require.Equal(t, deploymentID, environment.CurrentDeploymentID.String, "environment current_deployment_id")
+	require.Equal(t, rolledBack, environment.IsRolledBack, "environment is_rolled_back")
 }
 
 // requireAuditTargets verifies that the handler persisted one correlated audit

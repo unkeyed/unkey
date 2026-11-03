@@ -109,14 +109,13 @@ export const EditCredits = ({ keyDetails, isOpen, onClose }: EditCreditsProps) =
                 type="submit"
                 form="edit-remaining-uses-form"
                 variant="primary"
-                size="xlg"
-                className="w-full rounded-lg"
+                size="md"
+                className="w-full"
                 disabled={!isValid || isSubmitting}
                 loading={key.isLoading}
               >
                 Update credits
               </Button>
-              <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
           }
         >

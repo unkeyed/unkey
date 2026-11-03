@@ -30,11 +30,12 @@ import { Result } from "../types/fp.js";
  * Stop deployment
  *
  * @remarks
- * Stop a running preview deployment. Stopped deployments keep their
- * configuration and can be resumed later with `startDeployment`.
+ * Stop a running deployment that is not the app's live production deployment.
+ * Stopped deployments keep their configuration. Preview deployments can be
+ * resumed later with `startDeployment`.
  *
- * The deployment must be ready and running, and must belong to a
- * non-production environment; production deployments cannot be stopped.
+ * The deployment must be ready and running. Previous production deployments
+ * can be stopped, but stopping one removes instant rollback to it.
  * A deployment that is already draining from a previous stop is rejected
  * with a precondition error.
  *

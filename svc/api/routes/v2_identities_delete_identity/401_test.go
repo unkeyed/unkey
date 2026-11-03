@@ -6,7 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
@@ -139,7 +142,7 @@ func TestDeleteIdentityUnauthorized(t *testing.T) {
 		differentWorkspace := h.CreateWorkspace()
 
 		// Create a root key for different workspace
-		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, "identity.*.delete_identity")
+		differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID, rbac.U(urn.New().Workspace(differentWorkspace.ID).Project("*").Identity("*"), permissions.Delete).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", differentWorkspaceKey)},

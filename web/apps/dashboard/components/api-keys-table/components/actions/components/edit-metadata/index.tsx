@@ -83,14 +83,13 @@ export const EditMetadata = ({ keyDetails, isOpen, onClose }: EditMetadataProps)
                 type="submit"
                 form="edit-metadata-form"
                 variant="primary"
-                size="xlg"
-                className="w-full rounded-lg"
+                size="md"
+                className="w-full"
                 disabled={!isValid || isSubmitting}
                 loading={updateMetadata.isLoading}
               >
                 Update metadata
               </Button>
-              <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
           }
         >

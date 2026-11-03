@@ -602,7 +602,57 @@ func TestOutputEnvironmentSecretsRequireRevealAndJSONPreservesValues(t *testing.
 	}
 }
 
+func TestOutputMutationTargetsUseOnlyMatchingSelectedLabels(t *testing.T) {
+	projectID := uid.New(uid.ProjectPrefix)
+	otherID := uid.New(uid.ProjectPrefix)
+	selected := "Demo service (" + projectID + ")"
+	ctx := WithResourceLabels(t.Context(), map[string]ResourceLabel{
+		"project": {Value: projectID, Label: selected},
+	})
+	response := &components.V2ProjectsDeleteProjectResponseBody{}
+	for _, requestID := range []string{projectID, otherID} {
+		body, err := json.Marshal(components.V2ProjectsDeleteProjectRequestBody{Project: requestID})
+		require.NoError(t, err)
+		for _, args := range [][]string{{"--project=" + requestID}, {"--body=" + string(body)}} {
+			output := captureOutputContext(t, ctx, response, args...)
+			if requestID == projectID {
+				require.Contains(t, output, "Project: "+selected)
+			} else {
+				require.Contains(t, output, "Project: "+otherID)
+				require.NotContains(t, output, "Demo service")
+			}
+			output = captureOutputContext(t, ctx, response, append(args, "--json")...)
+			var got components.V2ProjectsDeleteProjectResponseBody
+			require.NoError(t, json.Unmarshal([]byte(output), &got))
+			require.Equal(t, *response, got)
+			require.NotContains(t, output, selected)
+		}
+	}
+}
+
+func TestOutputUnnamedKeysMatchPickerLabelsWithoutChangingJSON(t *testing.T) {
+	for _, test := range []struct {
+		response any
+		label    string
+	}{
+		{&components.V2ApisListKeysResponseBody{Data: []components.KeyResponseData{{KeyID: uid.New(uid.KeyPrefix)}}}, "Unnamed key"},
+		{&components.V2RootKeysListKeysResponseBody{Data: []components.V2RootKeysListKeysResponseData{{KeyID: uid.New(uid.KeyPrefix)}}}, "Unnamed root key"},
+	} {
+		t.Run(test.label, func(t *testing.T) {
+			require.Contains(t, captureOutput(t, test.response), test.label)
+			want, err := json.MarshalIndent(test.response, "", "  ")
+			require.NoError(t, err)
+			require.Equal(t, string(want)+"\n", captureOutput(t, test.response, "--json"))
+		})
+	}
+}
+
 func captureOutput(t *testing.T, response any, args ...string) string {
+	t.Helper()
+	return captureOutputContext(t, t.Context(), response, args...)
+}
+
+func captureOutputContext(t *testing.T, ctx context.Context, response any, args ...string) string {
 	t.Helper()
 	file, err := os.CreateTemp(t.TempDir(), "stdout")
 	require.NoError(t, err)
@@ -623,9 +673,9 @@ func captureOutput(t *testing.T, response any, args ...string) string {
 			cli.String("variables", "Environment variables"),
 			cli.String("name", "Name"), cli.String("slug", "Slug"),
 		},
-		Action: func(_ context.Context, cmd *cli.Command) error { return Output(cmd, response) },
+		Action: func(ctx context.Context, cmd *cli.Command) error { return Output(ctx, cmd, response) },
 	}
-	require.NoError(t, cmd.Run(t.Context(), append([]string{"test"}, args...)))
+	require.NoError(t, cmd.Run(ctx, append([]string{"test"}, args...)))
 	os.Stdout = original
 	output, err := os.ReadFile(file.Name())
 	require.NoError(t, err)

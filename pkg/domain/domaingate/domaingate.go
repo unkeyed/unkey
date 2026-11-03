@@ -124,19 +124,56 @@ func AlreadyVerified(domain string) error {
 	)
 }
 
-// CheckAllowance reports whether the workspace may attach one more domain. The
-// counts stay internal: the way out is the same either way.
-func CheckAllowance(attached int64, allowed uint32) error {
-	if attached < int64(allowed) {
-		return nil
+// CheckAllowance reports whether the workspace, holding the attached domains,
+// may attach domain. The allowance counts registrable domains, such as
+// 'acme.com' for 'api.acme.com', so a name under a registrable domain the
+// workspace already holds is free. A name under a new registrable domain needs
+// a free slot. An allowance of zero means the plan has no custom domains, so it
+// refuses every name, including names under a registrable domain the workspace
+// kept from an earlier plan. The counts stay internal: the way out is the same
+// either way.
+func CheckAllowance(attached []string, domain string, allowed uint32) error {
+	held := registrableDomains(attached)
+	if allowed > 0 {
+		if _, ok := held[registrableDomain(domain)]; ok {
+			return nil
+		}
+		if len(held) < int(allowed) {
+			return nil
+		}
 	}
 
 	return fault.New(
 		"custom domain allowance reached",
 		fault.Code(codes.Limits.CustomDomain.Exceeded.URN()),
-		fault.Internal(fmt.Sprintf("workspace holds %d of %d allowed custom domains", attached, allowed)),
+		fault.Internal(fmt.Sprintf("workspace holds %d of %d allowed registrable domains, and %q needs another", len(held), allowed, domain)),
 		fault.Public("Your plan does not allow another custom domain. Upgrade your plan, or remove a domain you no longer need, then retry."),
 	)
+}
+
+// AllowanceUsage is the number of registrable domains the attached domains
+// span, the usage CheckAllowance holds against the allowance.
+func AllowanceUsage(attached []string) int64 {
+	return int64(len(registrableDomains(attached)))
+}
+
+func registrableDomains(domains []string) map[string]struct{} {
+	held := make(map[string]struct{}, len(domains))
+	for _, domain := range domains {
+		held[registrableDomain(domain)] = struct{}{}
+	}
+	return held
+}
+
+// registrableDomain is the billing unit a domain counts toward. ParseDomain
+// rejects names without one, but a row stored before that check can still lack
+// one, so such a name counts as its own unit rather than being dropped.
+func registrableDomain(domain string) string {
+	apex, err := publicsuffix.EffectiveTLDPlusOne(domain)
+	if err != nil {
+		return domain
+	}
+	return apex
 }
 
 // LimitsNotConfigured is the outcome for a workspace with no limits row. Billing

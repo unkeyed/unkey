@@ -1,5 +1,6 @@
 "use client";
 
+import { CardPending } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Github,
@@ -10,7 +11,6 @@ import {
 import { Combobox, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
 import { cn } from "cn";
 import { useState } from "react";
-import { CardPending } from "../../card";
 import { cardCopy } from "../../wizard-model";
 import { type RepoItem, ownerOptions, resolveOwner, visibleRepos } from "./repository-view";
 

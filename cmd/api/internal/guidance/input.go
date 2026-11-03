@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
+	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"golang.org/x/term"
 )
@@ -78,31 +80,41 @@ func Attach(command *cli.Command, legacy string) {
 				conflicts[rule] = rules
 			}
 		}
+		_, operation, _ := strings.Cut(legacy, " ")
+		read := strings.HasPrefix(operation, "get-") || strings.HasPrefix(operation, "list-") || legacy == "keys whoami"
+		destructive := strings.HasPrefix(operation, "delete-") || strings.HasPrefix(operation, "remove-")
 		form := form{
-			prompt:    nil,
-			out:       os.Stderr,
-			screen:    nil,
-			pick:      resourcePicker(ctx, cmd, legacy),
-			conflicts: conflicts,
+			prompt:        nil,
+			out:           os.Stderr,
+			screen:        nil,
+			pick:          resourcePicker(ctx, cmd, legacy),
+			fields:        nil,
+			conflicts:     conflicts,
+			selections:    nil,
+			reviewPending: !read,
 		}
-		if os.Getenv("TERM") == "dumb" {
+		if os.Getenv("TERM") == "dumb" || !terminalInputSupported {
 			form.prompt = newLineForm()
 			if _, err := fmt.Fprintln(form.out, cancelHint); err != nil {
 				return err
 			}
 		} else {
 			screen := newTerminalForm()
-			defer func() { err = errors.Join(err, screen.finish()) }()
+			defer func() {
+				if err != nil || !destructive {
+					err = errors.Join(err, screen.finish())
+				}
+			}()
 			form.prompt, form.out, form.screen = screen, screen, screen
 			form.show(schema, values, "")
 		}
 		if err := form.object(ctx, schema, values, "", needsChanges); err != nil {
 			return cancelled(err, "cancelled; no request was sent")
 		}
-		_, operation, _ := strings.Cut(legacy, " ")
-		read := strings.HasPrefix(operation, "get-") || strings.HasPrefix(operation, "list-") || legacy == "keys whoami"
-		if !read {
-			if err := form.confirm(ctx, schema, values, cmd.Usage, needsChanges); err != nil {
+		if !read && !destructive {
+			if err := form.reviewMenu(ctx, schema, values, "", needsChanges, reviewMode{
+				action: cmd.Usage, warning: "", expanded: needsChanges || cmd.Bool("interactive"), destructive: false,
+			}); err != nil {
 				return cancelled(err, "cancelled; no request was sent")
 			}
 		}
@@ -116,21 +128,79 @@ func Attach(command *cli.Command, legacy string) {
 		}
 		flags := []cli.Flag{bodyFlag}
 		for _, flag := range cmd.Flags {
-			if commonFlag(flag.Name()) && flag.Name() != "interactive" {
+			if util.IsCommonFlag(flag.Name()) && flag.Name() != "interactive" {
 				flags = append(flags, flag)
 			}
 		}
 		cmd.Flags = flags
 		cmd.RequireOneOf = nil
-		cmd.Action = form.recoverValidation(cmd.Action, bodyFlag, schema, values, array, needsChanges)
+		action := cmd.Action
+		cmd.Action = func(ctx context.Context, cmd *cli.Command) error {
+			labels := make(map[string]util.ResourceLabel, len(form.selections))
+			for field, selection := range form.selections {
+				value := strings.TrimPrefix(selection.Key, "id:")
+				if values[field] == value {
+					labels[field] = util.ResourceLabel{Value: value, Label: selection.Label}
+				}
+			}
+			return action(util.WithResourceLabels(ctx, labels), cmd)
+		}
+		if destructive {
+			cmd.Action = form.destructiveAction(cmd.Action, bodyFlag, schema, values, array, needsChanges)
+		}
+		cmd.Action = form.recoverValidation(cmd.Action, bodyFlag, schema, values, array, needsChanges, destructive)
 		return nil
+	}
+}
+
+func (f *form) destructiveAction(action cli.Action, body *cli.StringFlag, schema *Schema, values map[string]any, array, needsChanges bool) cli.Action {
+	return func(ctx context.Context, cmd *cli.Command) (err error) {
+		if f.screen != nil {
+			defer func() { err = errors.Join(err, f.screen.finish()) }()
+		}
+		ctx = util.WithConfirmation(ctx, func(warning string) error {
+			for field, selection := range f.selections {
+				id := strings.TrimPrefix(selection.Key, "id:")
+				if values[field] == id {
+					warning = strings.ReplaceAll(warning, strconv.Quote(id), strconv.Quote(selection.Label))
+				}
+			}
+			hideWarning := func() {}
+			if f.screen != nil {
+				hideWarning = f.section("confirmation", func(p palette) string {
+					return p.mark("!") + " " + warning + "\n"
+				})
+			}
+			err := f.reviewMenu(ctx, schema, values, "", needsChanges, reviewMode{action: cmd.Usage, warning: warning, expanded: false, destructive: true})
+			hideWarning()
+			if err != nil {
+				return cancelled(err, "cancelled; no request was sent")
+			}
+			if f.screen != nil {
+				return f.screen.finish()
+			}
+			return nil
+		})
+		for {
+			err := action(ctx, cmd)
+			if !errors.Is(err, errReviewEdited) {
+				return err
+			}
+			updated, err := requestJSON(values, array)
+			if err != nil {
+				return err
+			}
+			if err := body.Parse(string(updated)); err != nil {
+				return err
+			}
+		}
 	}
 }
 
 // cancelled replaces interruption causes with message so the user sees what was not sent.
 func cancelled(err error, message string) error {
 	if errors.Is(err, errInterrupted) || errors.Is(err, io.EOF) || errors.Is(err, context.Canceled) {
-		return errors.New(message)
+		return &util.CancellationError{Message: message}
 	}
 	return err
 }
@@ -142,19 +212,10 @@ func requestJSON(values map[string]any, array bool) ([]byte, error) {
 	return json.Marshal(values)
 }
 
-func commonFlag(name string) bool {
-	switch name {
-	case "root-key", "api-url", "config", "output", "json", "debug", "yes", "interactive", "no-input", "error-format", "reveal":
-		return true
-	default:
-		return false
-	}
-}
-
 func flagValues(cmd *cli.Command, schema *Schema, legacy string) (map[string]any, error) {
 	values := map[string]any{}
 	for _, flag := range cmd.Flags {
-		if !flag.IsSet() || commonFlag(flag.Name()) || flag.Name() == "body" {
+		if !flag.IsSet() || util.IsCommonFlag(flag.Name()) || flag.Name() == "body" {
 			continue
 		}
 		if legacy == "gateway update-policy" && flag.Name() == "policy" {
@@ -250,7 +311,7 @@ func hasChanges(schema *Schema, values map[string]any) bool {
 
 func targetField(name string) bool {
 	switch name {
-	case "project", "app", "environment", "keyId", "apiId", "permission", "role", "identity", "namespace", "portal", "permissionId", "roleId", "identityId", "namespaceId", "overrideId", "portalId", "deploymentId", "domainId", "policyId", "id":
+	case "project", "app", "environment", "keyId", "apiId", "permission", "role", "roleId", "identity", "namespace", "portal", "deploymentId", "policyId":
 		return true
 	default:
 		return false

@@ -66,7 +66,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/ver
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysVerifyKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysVerifyKeyResponseBody)
 			}
 
 			send := func(req components.V2KeysVerifyKeyRequestBody) error {
@@ -74,7 +74,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/ver
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysVerifyKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysVerifyKeyResponseBody)
 			}
 			req := components.V2KeysVerifyKeyRequestBody{
 				Key:         cmd.String("key"),

@@ -1,5 +1,6 @@
 "use client";
 
+import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
 import { OCIImage } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image";
 import { ociImageReferenceSchema, useApp } from "@/lib/deploy-data";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
@@ -19,7 +20,6 @@ import { z } from "zod";
 import { appNameFromImage } from "../app-name";
 import { NEW_APP_MUTATION_KEY, useNewAppFlow } from "../flow";
 import { newAppErrorMessage, useAppLifecycle } from "../use-app-lifecycle";
-import { PaneSubmit } from "./pane-actions";
 
 export function ImagePane({ appId }: { appId: string | null }) {
   return appId ? <SavedImage appId={appId} /> : <NewImage />;
@@ -96,7 +96,6 @@ function SavedImage({ appId }: { appId: string }) {
         </SettingsGroupContent>
       </SettingsGroup>
       <PaneSubmit
-        loading={false}
         disabled={isDirty}
         notice={
           isDirty ? (

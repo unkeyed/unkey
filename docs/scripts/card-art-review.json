@@ -1230,11 +1230,6 @@
     "reason": "Error labels plus a floating clock are an ordinary diagnostics icon collage."
   },
   {
-    "id": "platform--index--2",
-    "decision": "remove",
-    "reason": "Unlabeled slider and oversized workspace panel do not describe the settings named by the card."
-  },
-  {
     "id": "platform--index--21",
     "decision": "remove",
     "reason": "Two credentials and large circular arrows are a generic key-rotation motif."
@@ -1268,11 +1263,6 @@
     "id": "platform--index--3",
     "decision": "remove",
     "reason": "Organization hierarchy is dominated by generic avatar iconography."
-  },
-  {
-    "id": "platform--index--4",
-    "decision": "remove",
-    "reason": "Device code, sign-in card, and check badge are a generic auth illustration."
   },
   {
     "id": "platform--index--5",
@@ -1333,21 +1323,6 @@
     "id": "platform--security--overview--4",
     "decision": "remove",
     "reason": "Generic avatar and detached device dominate the second-factor scene."
-  },
-  {
-    "id": "platform--workspace--settings--1",
-    "decision": "remove",
-    "reason": "Envelope-to-avatar invitation is generic people-management clip-art."
-  },
-  {
-    "id": "platform--workspace--settings--3",
-    "decision": "remove",
-    "reason": "Generic document skeleton and floating product pills do not explain billing settings."
-  },
-  {
-    "id": "platform--workspace--settings--4",
-    "decision": "remove",
-    "reason": "Uncalibrated usage bars and a detached Usage badge are decorative rather than informative."
   },
   {
     "id": "platform--ai-coding--overview--1",

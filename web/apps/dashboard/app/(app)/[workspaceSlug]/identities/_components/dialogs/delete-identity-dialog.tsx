@@ -104,7 +104,7 @@ export const DeleteIdentityDialog = ({
         <form id={formId}>
           <DialogContainer
             isOpen={isOpen}
-            subTitle="Permanently remove this identity and its data"
+            subTitle="Permanently remove this identity and its data. This can take up to 60 seconds to apply everywhere."
             onOpenChange={handleDialogOpenChange}
             title="Delete identity"
             footer={
@@ -114,8 +114,8 @@ export const DeleteIdentityDialog = ({
                   form={formId}
                   variant="primary"
                   color="danger"
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!confirmDeletion || isSubmitting}
                   loading={isSubmitting}
                   onClick={handleDeleteButtonClick}
@@ -123,9 +123,6 @@ export const DeleteIdentityDialog = ({
                 >
                   Delete identity
                 </Button>
-                <div className="text-gray-9 text-xs">
-                  Changes may take up to 60s to propagate globally
-                </div>
               </div>
             }
           >

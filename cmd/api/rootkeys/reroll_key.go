@@ -45,7 +45,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/re
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RootKeysRerollKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2RootKeysRerollKeyResponseBody)
 			}
 
 			req := components.V2RootKeysRerollKeyRequestBody{
@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/re
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2RootKeysRerollKeyResponseBody)
+			return util.Output(ctx, cmd, res.V2RootKeysRerollKeyResponseBody)
 		},
 	}
 }

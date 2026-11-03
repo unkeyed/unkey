@@ -1304,6 +1304,78 @@ func (x *RunClickhouseUserReconcileResponse) GetUsersReconfigured() int32 {
 	return 0
 }
 
+type RunVaultReEncryptionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunVaultReEncryptionRequest) Reset() {
+	*x = RunVaultReEncryptionRequest{}
+	mi := &file_hydra_v1_cron_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunVaultReEncryptionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunVaultReEncryptionRequest) ProtoMessage() {}
+
+func (x *RunVaultReEncryptionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_cron_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunVaultReEncryptionRequest.ProtoReflect.Descriptor instead.
+func (*RunVaultReEncryptionRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{30}
+}
+
+type RunVaultReEncryptionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunVaultReEncryptionResponse) Reset() {
+	*x = RunVaultReEncryptionResponse{}
+	mi := &file_hydra_v1_cron_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunVaultReEncryptionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunVaultReEncryptionResponse) ProtoMessage() {}
+
+func (x *RunVaultReEncryptionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_cron_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunVaultReEncryptionResponse.ProtoReflect.Descriptor instead.
+func (*RunVaultReEncryptionResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_cron_proto_rawDescGZIP(), []int{31}
+}
+
 var File_hydra_v1_cron_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_cron_proto_rawDesc = "" +
@@ -1364,7 +1436,9 @@ const file_hydra_v1_cron_proto_rawDesc = "" +
 	"\x19RunBuildLimitSyncResponse\"#\n" +
 	"!RunClickhouseUserReconcileRequest\"S\n" +
 	"\"RunClickhouseUserReconcileResponse\x12-\n" +
-	"\x12users_reconfigured\x18\x01 \x01(\x05R\x11usersReconfigured2\xfb\f\n" +
+	"\x12users_reconfigured\x18\x01 \x01(\x05R\x11usersReconfigured\"\x1d\n" +
+	"\x1bRunVaultReEncryptionRequest\"\x1e\n" +
+	"\x1cRunVaultReEncryptionResponse2\xe4\r\n" +
 	"\vCronService\x12R\n" +
 	"\rRunQuotaCheck\x12\x1e.hydra.v1.RunQuotaCheckRequest\x1a\x1f.hydra.v1.RunQuotaCheckResponse\"\x00\x12O\n" +
 	"\fRunKeyRefill\x12\x1d.hydra.v1.RunKeyRefillRequest\x1a\x1e.hydra.v1.RunKeyRefillResponse\"\x00\x12a\n" +
@@ -1380,7 +1454,8 @@ const file_hydra_v1_cron_proto_rawDesc = "" +
 	"\x19ThrottleFreeTierWorkspace\x12*.hydra.v1.ThrottleFreeTierWorkspaceRequest\x1a+.hydra.v1.ThrottleFreeTierWorkspaceResponse\"\x00\x12d\n" +
 	"\x13RunDeploySpendCheck\x12$.hydra.v1.RunDeploySpendCheckRequest\x1a%.hydra.v1.RunDeploySpendCheckResponse\"\x00\x12^\n" +
 	"\x11RunBuildLimitSync\x12\".hydra.v1.RunBuildLimitSyncRequest\x1a#.hydra.v1.RunBuildLimitSyncResponse\"\x00\x12y\n" +
-	"\x1aRunClickhouseUserReconcile\x12+.hydra.v1.RunClickhouseUserReconcileRequest\x1a,.hydra.v1.RunClickhouseUserReconcileResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x8f\x01\n" +
+	"\x1aRunClickhouseUserReconcile\x12+.hydra.v1.RunClickhouseUserReconcileRequest\x1a,.hydra.v1.RunClickhouseUserReconcileResponse\"\x00\x12g\n" +
+	"\x14RunVaultReEncryption\x12%.hydra.v1.RunVaultReEncryptionRequest\x1a&.hydra.v1.RunVaultReEncryptionResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x8f\x01\n" +
 	"\fcom.hydra.v1B\tCronProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -1395,7 +1470,7 @@ func file_hydra_v1_cron_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_cron_proto_rawDescData
 }
 
-var file_hydra_v1_cron_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_hydra_v1_cron_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_hydra_v1_cron_proto_goTypes = []any{
 	(*RunQuotaCheckRequest)(nil),                       // 0: hydra.v1.RunQuotaCheckRequest
 	(*RunQuotaCheckResponse)(nil),                      // 1: hydra.v1.RunQuotaCheckResponse
@@ -1427,6 +1502,8 @@ var file_hydra_v1_cron_proto_goTypes = []any{
 	(*RunBuildLimitSyncResponse)(nil),                  // 27: hydra.v1.RunBuildLimitSyncResponse
 	(*RunClickhouseUserReconcileRequest)(nil),          // 28: hydra.v1.RunClickhouseUserReconcileRequest
 	(*RunClickhouseUserReconcileResponse)(nil),         // 29: hydra.v1.RunClickhouseUserReconcileResponse
+	(*RunVaultReEncryptionRequest)(nil),                // 30: hydra.v1.RunVaultReEncryptionRequest
+	(*RunVaultReEncryptionResponse)(nil),               // 31: hydra.v1.RunVaultReEncryptionResponse
 }
 var file_hydra_v1_cron_proto_depIdxs = []int32{
 	0,  // 0: hydra.v1.CronService.RunQuotaCheck:input_type -> hydra.v1.RunQuotaCheckRequest
@@ -1444,23 +1521,25 @@ var file_hydra_v1_cron_proto_depIdxs = []int32{
 	24, // 12: hydra.v1.CronService.RunDeploySpendCheck:input_type -> hydra.v1.RunDeploySpendCheckRequest
 	26, // 13: hydra.v1.CronService.RunBuildLimitSync:input_type -> hydra.v1.RunBuildLimitSyncRequest
 	28, // 14: hydra.v1.CronService.RunClickhouseUserReconcile:input_type -> hydra.v1.RunClickhouseUserReconcileRequest
-	1,  // 15: hydra.v1.CronService.RunQuotaCheck:output_type -> hydra.v1.RunQuotaCheckResponse
-	3,  // 16: hydra.v1.CronService.RunKeyRefill:output_type -> hydra.v1.RunKeyRefillResponse
-	5,  // 17: hydra.v1.CronService.RunKeyLastUsedSync:output_type -> hydra.v1.RunKeyLastUsedSyncResponse
-	7,  // 18: hydra.v1.CronService.RunAuditLogExport:output_type -> hydra.v1.RunAuditLogExportResponse
-	9,  // 19: hydra.v1.CronService.RunRatelimitGlobalCountersCleanup:output_type -> hydra.v1.RunRatelimitGlobalCountersCleanupResponse
-	11, // 20: hydra.v1.CronService.RunAuditLogOutboxCleanup:output_type -> hydra.v1.RunAuditLogOutboxCleanupResponse
-	13, // 21: hydra.v1.CronService.RunDeployBillingPush:output_type -> hydra.v1.RunDeployBillingPushResponse
-	15, // 22: hydra.v1.CronService.RunScaleDownIdlePreviewDeployments:output_type -> hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse
-	17, // 23: hydra.v1.CronService.RunDeployBillingClose:output_type -> hydra.v1.RunDeployBillingCloseResponse
-	19, // 24: hydra.v1.CronService.CloseDeployBillingWorkspace:output_type -> hydra.v1.CloseDeployBillingWorkspaceResponse
-	21, // 25: hydra.v1.CronService.EnforceFreeTier:output_type -> hydra.v1.EnforceFreeTierResponse
-	23, // 26: hydra.v1.CronService.ThrottleFreeTierWorkspace:output_type -> hydra.v1.ThrottleFreeTierWorkspaceResponse
-	25, // 27: hydra.v1.CronService.RunDeploySpendCheck:output_type -> hydra.v1.RunDeploySpendCheckResponse
-	27, // 28: hydra.v1.CronService.RunBuildLimitSync:output_type -> hydra.v1.RunBuildLimitSyncResponse
-	29, // 29: hydra.v1.CronService.RunClickhouseUserReconcile:output_type -> hydra.v1.RunClickhouseUserReconcileResponse
-	15, // [15:30] is the sub-list for method output_type
-	0,  // [0:15] is the sub-list for method input_type
+	30, // 15: hydra.v1.CronService.RunVaultReEncryption:input_type -> hydra.v1.RunVaultReEncryptionRequest
+	1,  // 16: hydra.v1.CronService.RunQuotaCheck:output_type -> hydra.v1.RunQuotaCheckResponse
+	3,  // 17: hydra.v1.CronService.RunKeyRefill:output_type -> hydra.v1.RunKeyRefillResponse
+	5,  // 18: hydra.v1.CronService.RunKeyLastUsedSync:output_type -> hydra.v1.RunKeyLastUsedSyncResponse
+	7,  // 19: hydra.v1.CronService.RunAuditLogExport:output_type -> hydra.v1.RunAuditLogExportResponse
+	9,  // 20: hydra.v1.CronService.RunRatelimitGlobalCountersCleanup:output_type -> hydra.v1.RunRatelimitGlobalCountersCleanupResponse
+	11, // 21: hydra.v1.CronService.RunAuditLogOutboxCleanup:output_type -> hydra.v1.RunAuditLogOutboxCleanupResponse
+	13, // 22: hydra.v1.CronService.RunDeployBillingPush:output_type -> hydra.v1.RunDeployBillingPushResponse
+	15, // 23: hydra.v1.CronService.RunScaleDownIdlePreviewDeployments:output_type -> hydra.v1.RunScaleDownIdlePreviewDeploymentsResponse
+	17, // 24: hydra.v1.CronService.RunDeployBillingClose:output_type -> hydra.v1.RunDeployBillingCloseResponse
+	19, // 25: hydra.v1.CronService.CloseDeployBillingWorkspace:output_type -> hydra.v1.CloseDeployBillingWorkspaceResponse
+	21, // 26: hydra.v1.CronService.EnforceFreeTier:output_type -> hydra.v1.EnforceFreeTierResponse
+	23, // 27: hydra.v1.CronService.ThrottleFreeTierWorkspace:output_type -> hydra.v1.ThrottleFreeTierWorkspaceResponse
+	25, // 28: hydra.v1.CronService.RunDeploySpendCheck:output_type -> hydra.v1.RunDeploySpendCheckResponse
+	27, // 29: hydra.v1.CronService.RunBuildLimitSync:output_type -> hydra.v1.RunBuildLimitSyncResponse
+	29, // 30: hydra.v1.CronService.RunClickhouseUserReconcile:output_type -> hydra.v1.RunClickhouseUserReconcileResponse
+	31, // 31: hydra.v1.CronService.RunVaultReEncryption:output_type -> hydra.v1.RunVaultReEncryptionResponse
+	16, // [16:32] is the sub-list for method output_type
+	0,  // [0:16] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -1477,7 +1556,7 @@ func file_hydra_v1_cron_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_cron_proto_rawDesc), len(file_hydra_v1_cron_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   30,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

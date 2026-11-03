@@ -62,7 +62,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/upda
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PortalUpdatePortalResponseBody)
+				return util.Output(ctx, cmd, res.V2PortalUpdatePortalResponseBody)
 			}
 			req := components.V2PortalUpdatePortalRequestBody{
 				Portal:       cmd.String("portal"),
@@ -109,7 +109,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/upda
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2PortalUpdatePortalResponseBody)
+			return util.Output(ctx, cmd, res.V2PortalUpdatePortalResponseBody)
 		},
 	}
 }

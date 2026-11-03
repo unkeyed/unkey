@@ -23,6 +23,13 @@ type diagnostic struct {
 	Fields    []components.ValidationError `json:"fields,omitempty"`
 }
 
+// CancellationError reports a user's decision to stop without an error banner.
+type CancellationError struct {
+	Message string
+}
+
+func (e *CancellationError) Error() string { return e.Message }
+
 func CommandError(cmd *cli.Command, path string, err error, args ...string) error {
 	if err == nil {
 		return nil
@@ -76,6 +83,9 @@ func CommandError(cmd *cli.Command, path string, err error, args ...string) erro
 			return fmt.Errorf("encode error diagnostic: %w", encodeErr)
 		}
 		return errors.New(string(encoded))
+	}
+	if cancellation, ok := errors.AsType[*CancellationError](err); ok {
+		return cancellation
 	}
 	_, inputError := errors.AsType[*cli.InputError](err)
 	if path == "" || inputError {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLiveSwitch } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { ListPager } from "@/components/list-pager";
 import { LoadError } from "@/components/load-error";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -80,6 +81,7 @@ function DeploymentsCardListResults({
 
   const rolledBackFromId =
     isRolledBack && currentDeployment ? findRolledBackFrom(rows, currentDeployment)?.id : undefined;
+  const liveSwitchOf = useLiveSwitch(currentDeployment?.id, isRolledBack);
 
   return match(list)
     .with({ status: "loading" }, () => <DeploymentsSkeleton />)
@@ -133,6 +135,7 @@ function DeploymentsCardListResults({
               currentDeployment={currentDeployment}
               isRolledBack={isRolledBack}
               isRolledBackFrom={deployment.id === rolledBackFromId}
+              liveSwitch={liveSwitchOf(deployment.id)}
               liveSince={app?.updatedAt ?? null}
               href={routes.projects.apps.deployment({
                 workspaceSlug: workspace.slug,

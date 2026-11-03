@@ -7,8 +7,9 @@ import {
   expandDeploymentStatusGroups,
   isDeploymentSettling,
 } from "@/lib/collections/deploy/deployment-status";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { type Deployment, withDeploymentDetails } from "@/lib/deploy-data/deployment";
+import { ENVIRONMENT_KIND } from "@/lib/queries/environments";
+import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import {
@@ -94,6 +95,7 @@ export function useCurrentDeployment({
     isLoading: app.isLoading || deployment.isLoading,
     isError: app.isError || deployment.isError,
     error: app.error ?? deployment.error,
+    refetch: app.isError ? app.refetch : deployment.refetch,
   };
 }
 
@@ -157,7 +159,7 @@ export function deploymentDetailOptions(
 ) {
   return {
     queryKey: queryKeys.deployments.detail(projectId, deploymentId),
-    staleTime: STALE_MS,
+    staleTime: DEPLOY_DATA_STALE_MS,
     retry: 3,
     queryFn: async ({ signal }: { signal?: AbortSignal }): Promise<Deployment | null> => {
       let row: Awaited<
@@ -188,7 +190,7 @@ export function recentDeploymentsOptions(
 ) {
   return {
     queryKey: queryKeys.deployments.recent(projectId, appId, environmentId, limit),
-    staleTime: STALE_MS,
+    staleTime: DEPLOY_DATA_STALE_MS,
     retry: 3,
     queryFn: async ({ signal }: { signal?: AbortSignal }): Promise<Deployment[]> => {
       const { data } = await listDeployments(signal, {
@@ -204,9 +206,6 @@ export function recentDeploymentsOptions(
 }
 
 const PAGE_SIZE = 25;
-
-// Matches the client the collections use, so a revisit within it reads the cache
-const STALE_MS = 30_000;
 
 // Skipped pushes never deployed, so the overview and pickers leave them out
 const RECENT_STATUSES = DEPLOYMENT_STATUSES.filter((status) => status !== "skipped");
@@ -244,7 +243,7 @@ function deploymentListOptions(
 ) {
   return {
     queryKey: queryKeys.deployments.list(projectId, appId, filter),
-    staleTime: STALE_MS,
+    staleTime: DEPLOY_DATA_STALE_MS,
     retry: 3,
     getNextPageParam: (page: DeploymentsPage) => page.nextCursor,
     queryFn: async ({
