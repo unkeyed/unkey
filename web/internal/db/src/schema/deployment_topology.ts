@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, int, mysqlEnum, mysqlTable, tinyint, uniqueIndex } from "drizzle-orm/mysql-core";
+import { index, int, mysqlTable, tinyint, uniqueIndex } from "drizzle-orm/mysql-core";
 import { deployments } from "./deployments";
 import { id } from "./util/id";
 import { lifecycleDates } from "./util/lifecycle_dates";
@@ -28,14 +28,11 @@ export const deploymentTopology = mysqlTable(
     // Average memory utilization percentage (0-100) that triggers scale-up. Null = not used as a signal.
     autoscalingThresholdMemory: tinyint("autoscaling_threshold_memory", { unsigned: true }),
 
-    // Drop only after the code that writes this column has retired.
-    desiredStatus: mysqlEnum("desired_status", ["stopped", "running"]).notNull().default("running"),
     ...lifecycleDates,
   },
   (table) => [
     uniqueIndex("unique_region_per_deployment").on(table.deploymentId, table.regionId),
     index("workspace_idx").on(table.workspaceId),
-    index("status_idx").on(table.desiredStatus),
   ],
 );
 
