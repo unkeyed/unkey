@@ -14,14 +14,39 @@ export async function getDeviceLogin(userCode: string): Promise<DeviceLogin> {
   return response.data;
 }
 
+/** Resolves to where the browser goes next, which only OAuth logins have. */
 export async function approveDeviceLogin(
   request: Required<Omit<Parameters<Unkey["cli"]["decideDeviceLogin"]>[0], "decision">>,
-): Promise<void> {
-  await getUnkeyClient().cli.decideDeviceLogin({ ...request, decision: "approve" }, requestOptions);
+): Promise<string | undefined> {
+  const response = await getUnkeyClient().cli.decideDeviceLogin(
+    { ...request, decision: "approve" },
+    requestOptions,
+  );
+  return clientRedirect(response.data.redirectUrl);
 }
 
-export async function denyDeviceLogin(userCode: string): Promise<void> {
-  await getUnkeyClient().cli.decideDeviceLogin({ userCode, decision: "deny" }, requestOptions);
+/** Resolves to where the browser goes next, which only OAuth logins have. */
+export async function denyDeviceLogin(userCode: string): Promise<string | undefined> {
+  const response = await getUnkeyClient().cli.decideDeviceLogin(
+    { userCode, decision: "deny" },
+    requestOptions,
+  );
+  return clientRedirect(response.data.redirectUrl);
+}
+
+/**
+ * The API only issues https or loopback http redirects. Checking the scheme
+ * again keeps a bad response from running script in the dashboard origin.
+ */
+export function clientRedirect(redirectUrl: string | undefined): string | undefined {
+  if (!redirectUrl) {
+    return undefined;
+  }
+  const protocol = URL.parse(redirectUrl)?.protocol;
+  if (protocol !== "https:" && protocol !== "http:") {
+    throw new Error("The API returned a redirect the dashboard will not open.");
+  }
+  return redirectUrl;
 }
 
 export async function listCliSessions(): Promise<CliSession[]> {
