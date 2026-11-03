@@ -89,7 +89,7 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
         <form id="delete-role-form">
           <DialogContainer
             isOpen={isOpen}
-            subTitle="Permanently remove this role and its assignments"
+            subTitle="Permanently remove this role and its assignments. This can take up to 60 seconds to apply everywhere."
             onOpenChange={handleDialogOpenChange}
             title="Delete role"
             footer={

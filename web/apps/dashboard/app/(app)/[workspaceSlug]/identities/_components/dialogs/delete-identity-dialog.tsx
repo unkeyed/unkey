@@ -104,7 +104,7 @@ export const DeleteIdentityDialog = ({
         <form id={formId}>
           <DialogContainer
             isOpen={isOpen}
-            subTitle="Permanently remove this identity and its data"
+            subTitle="Permanently remove this identity and its data. This can take up to 60 seconds to apply everywhere."
             onOpenChange={handleDialogOpenChange}
             title="Delete identity"
             footer={

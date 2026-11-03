@@ -78,6 +78,7 @@ export const DeleteNamespaceDialog = ({
         isOpen={isModalOpen}
         onOpenChange={onOpenChange}
         title="Delete Namespace"
+        subTitle="Permanently delete this namespace. This cannot be undone."
         footer={
           <div className="w-full flex flex-col gap-2 items-center justify-center">
             <Button

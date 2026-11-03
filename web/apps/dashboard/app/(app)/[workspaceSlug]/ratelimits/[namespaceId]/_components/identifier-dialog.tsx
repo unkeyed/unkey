@@ -124,6 +124,7 @@ export const IdentifierDialog = ({
       isOpen={isModalOpen}
       onOpenChange={onOpenChange}
       title="Override Identifier"
+      subTitle="Changes apply globally within 60 seconds."
       footer={
         <div className="flex flex-col items-center justify-center w-full gap-2">
           <Button

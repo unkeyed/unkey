@@ -84,7 +84,7 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
         <form id="delete-permission-form">
           <DialogContainer
             isOpen={isOpen}
-            subTitle="Permanently remove this permission and its assignments"
+            subTitle="Permanently remove this permission and its assignments. This can take up to 60 seconds to apply everywhere."
             onOpenChange={handleDialogOpenChange}
             title="Delete permission"
             footer={

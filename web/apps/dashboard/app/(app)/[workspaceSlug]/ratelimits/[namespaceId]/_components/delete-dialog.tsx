@@ -59,6 +59,7 @@ export const DeleteDialog = ({
       isOpen={isModalOpen}
       onOpenChange={onOpenChange}
       title="Delete Override"
+      subTitle="Permanently delete this override. This cannot be undone."
       footer={
         <div className="w-full flex flex-col gap-2 items-center justify-center">
           <Button
