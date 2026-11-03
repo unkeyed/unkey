@@ -77,7 +77,7 @@ func writeTable(output *strings.Builder, rows []any, columns []string, indent st
 		if !curated {
 			return value
 		}
-		return styleTableCell(renderer, columns[index], value, index == 0)
+		return styleTableCell(renderer, columns[index], value)
 	}
 	if format.width > 0 && !fitTable(widths, columns, curated, format.width-uniseg.StringWidth(indent)) {
 		for i, row := range values {
@@ -90,14 +90,14 @@ func writeTable(output *strings.Builder, rows []any, columns []string, indent st
 		}
 		return nil
 	}
-	writeTableRow(output, labels, widths, indent, func(_ int, value string) string { return renderer.Dim(value) })
+	writeTableRow(output, labels, widths, indent, func(_ int, value string) string { return renderer.Dim(strings.ToUpper(value)) })
 	for _, row := range values {
 		writeTableRow(output, row, widths, indent, style)
 	}
 	return nil
 }
 
-func styleTableCell(renderer *tui.Renderer, column, value string, primary bool) string {
+func styleTableCell(renderer *tui.Renderer, column, value string) string {
 	switch column {
 	case "createdAt", "updatedAt", "lastUsedAt", "expires", "time":
 		return renderer.Dim(value)
@@ -110,9 +110,6 @@ func styleTableCell(renderer *tui.Renderer, column, value string, primary bool) 
 		case "failed":
 			return renderer.Red(value)
 		}
-	}
-	if primary {
-		return renderer.Bold(value)
 	}
 	return value
 }

@@ -71,14 +71,14 @@ func TestOutputTerminalTablesFitWithoutLosingSelectors(t *testing.T) {
 			}
 			lines := strings.Split(strings.TrimSpace(output), "\n")
 			require.Len(t, lines, 4)
-			require.Equal(t, []string{"Name", "Slug", "Updated"}, strings.Fields(lines[0]))
+			require.Equal(t, []string{"NAME", "SLUG", "UPDATED"}, strings.Fields(lines[0]))
 			for _, line := range lines {
 				require.LessOrEqual(t, uniseg.StringWidth(line), int(width))
 			}
 			for i, slug := range []string{"payments", "analytics", "cafe"} {
 				prefix, _, found := strings.Cut(lines[i+1], slug)
 				require.True(t, found)
-				header, _, _ := strings.Cut(lines[0], "Slug")
+				header, _, _ := strings.Cut(lines[0], "SLUG")
 				require.Equal(t, uniseg.StringWidth(header), uniseg.StringWidth(prefix))
 			}
 			if width == 42 {
@@ -132,7 +132,8 @@ func TestOutputTerminalTableStylesPreserveAlignmentAndTruncation(t *testing.T) {
 	for _, width := range []uint16{80, 32, 24} {
 		t.Run(strconv.Itoa(int(width)), func(t *testing.T) {
 			colored := captureTerminalOutput(t, width, response)
-			require.Contains(t, colored, "\x1b[1m分析Cafe\u0301\x1b[0m")
+			require.Contains(t, colored, "分析Cafe\u0301")
+			require.NotContains(t, colored, "\x1b[1m")
 			require.Contains(t, colored, "\x1b[90m-\x1b[0m")
 			t.Setenv("NO_COLOR", "1")
 			plain := captureTerminalOutput(t, width, response)
@@ -149,7 +150,7 @@ func TestOutputTerminalTableStylesPreserveAlignmentAndTruncation(t *testing.T) {
 				require.Equal(t, strings.TrimRight(line, " "), line)
 			}
 			if width == 32 {
-				require.Contains(t, colored, "…\x1b[0m  payments")
+				require.Contains(t, colored, "…  payments")
 			}
 		})
 	}
@@ -171,16 +172,17 @@ func TestOutputTerminalDomainTableStylesKeepLabelsAndPagination(t *testing.T) {
 	}
 	colored := captureTerminalOutput(t, 80, response)
 	for _, styled := range []string{
-		"\x1b[90mDomain\x1b[0m", "\x1b[90mStatus\x1b[0m", "\x1b[90mCreated\x1b[0m",
-		"\x1b[1ma.example\x1b[0m", "\x1b[32mverified\x1b[0m",
+		"\x1b[90mDOMAIN\x1b[0m", "\x1b[90mSTATUS\x1b[0m", "\x1b[90mCREATED\x1b[0m",
+		"\x1b[32mverified\x1b[0m",
 		"\x1b[33mpending\x1b[0m", "\x1b[33mverifying\x1b[0m",
 		"\x1b[31mfailed\x1b[0m",
 	} {
 		require.Contains(t, colored, styled)
 	}
+	require.NotContains(t, colored, "\x1b[1m")
 	t.Setenv("NO_COLOR", "1")
 	plain := captureTerminalOutput(t, 80, response)
-	require.Equal(t, "Domain     Status     Created\n"+
+	require.Equal(t, "DOMAIN     STATUS     CREATED\n"+
 		"a.example  verified   -\n"+
 		"b.example  pending    -\n"+
 		"c.example  verifying  -\n"+
