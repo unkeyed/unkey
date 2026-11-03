@@ -7,6 +7,9 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -43,8 +46,7 @@ func TestKeyUpdateCreditsBadRequest(t *testing.T) {
 	})
 	keyID := keyResponse.KeyID
 
-	// Create root key with read permissions
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key(keyID), permissions.Write).Value)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
