@@ -353,14 +353,18 @@ func (c *Client) GetRepoForkInfo(installationID int64, repo string) (*RepoForkIn
 	if err != nil {
 		return nil, err
 	}
-	info := &RepoForkInfo{Fork: response.Fork}
+	var parentFullName, sourceFullName string
 	if response.Parent != nil {
-		info.ParentFullName = response.Parent.FullName
+		parentFullName = response.Parent.FullName
 	}
 	if response.Source != nil {
-		info.SourceFullName = response.Source.FullName
+		sourceFullName = response.Source.FullName
 	}
-	return info, nil
+	return &RepoForkInfo{
+		Fork:           response.Fork,
+		ParentFullName: parentFullName,
+		SourceFullName: sourceFullName,
+	}, nil
 }
 
 // maxFileContentBytes bounds [Client.GetFileContents] so a large file cannot
