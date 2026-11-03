@@ -99,8 +99,8 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
                   form="delete-role-form"
                   variant="primary"
                   color="danger"
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!confirmDeletion || isLoading}
                   loading={isLoading}
                   onClick={handleDeleteButtonClick}
@@ -108,9 +108,6 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
                 >
                   Delete role
                 </Button>
-                <div className="text-gray-9 text-xs">
-                  Changes may take up to 60s to propagate globally
-                </div>
               </div>
             }
           >

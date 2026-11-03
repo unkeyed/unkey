@@ -156,21 +156,18 @@ export function CreateIdentityDialog() {
                   </Alert>
                 ) : null}
                 <div className="flex justify-center items-center w-full">
-                  <div className="flex flex-col items-center justify-center w-2/3 gap-2">
+                  <div className="flex flex-col items-center justify-center w-full gap-2">
                     <Button
                       type="submit"
                       form="create-identity-form"
                       variant="primary"
-                      size="xlg"
-                      className="w-full rounded-lg"
+                      size="md"
+                      className="w-full"
                       disabled={!isValid || isBusy}
                       loading={isBusy}
                     >
                       Create Identity
                     </Button>
-                    <div className="text-gray-9 text-xs">
-                      Create an identity to group keys and manage permissions
-                    </div>
                   </div>
                 </div>
               </div>

@@ -105,8 +105,8 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
                   form="delete-key-form"
                   variant="primary"
                   color="danger"
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!confirmDeletion || isLoading}
                   loading={isLoading}
                   onClick={handleDeleteButtonClick}
@@ -114,9 +114,6 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
                 >
                   Delete key
                 </Button>
-                <div className="text-gray-9 text-xs">
-                  This key will be permanently deleted immediately
-                </div>
               </div>
             }
           >

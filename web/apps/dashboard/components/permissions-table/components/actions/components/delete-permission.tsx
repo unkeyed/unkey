@@ -94,8 +94,8 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
                   form="delete-permission-form"
                   variant="primary"
                   color="danger"
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!confirmDeletion || isLoading}
                   loading={isLoading}
                   onClick={handleDeleteButtonClick}
@@ -103,9 +103,6 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
                 >
                   Delete permission
                 </Button>
-                <div className="text-gray-9 text-xs">
-                  Changes may take up to 60s to propagate globally
-                </div>
               </div>
             }
           >

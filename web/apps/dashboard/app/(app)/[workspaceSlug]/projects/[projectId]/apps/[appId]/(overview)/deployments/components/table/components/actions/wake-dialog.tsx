@@ -43,11 +43,11 @@ export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => 
       footer={
         <Button
           variant="primary"
-          size="xlg"
+          size="md"
           onClick={handleWake}
           disabled={wake.isLoading}
           loading={wake.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Wake deployment
         </Button>

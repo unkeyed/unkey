@@ -43,11 +43,11 @@ export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => 
       footer={
         <Button
           variant="destructive"
-          size="xlg"
+          size="md"
           onClick={handleStop}
           disabled={stop.isLoading}
           loading={stop.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Stop deployment
         </Button>

@@ -62,8 +62,8 @@ export function UndoRollbackDialog({
       footer={
         <Button
           variant="primary"
-          size="xlg"
-          className="w-full rounded-lg"
+          size="md"
+          className="w-full"
           loading={promote.isLoading}
           disabled={promote.isLoading}
           onClick={() => promote.mutate(selectedId)}

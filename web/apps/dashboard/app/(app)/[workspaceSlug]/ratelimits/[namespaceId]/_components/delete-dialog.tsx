@@ -66,16 +66,13 @@ export const DeleteDialog = ({
             form="delete-override-form"
             variant="primary"
             color="danger"
-            size="xlg"
+            size="md"
             disabled={!isValid || isSubmitting}
             loading={isSubmitting}
-            className="w-full rounded-lg"
+            className="w-full"
           >
             Delete Override
           </Button>
-          <div className="text-gray-9 text-xs">
-            This action cannot be undone – proceed with caution
-          </div>
         </div>
       }
     >
