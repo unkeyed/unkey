@@ -2393,12 +2393,11 @@ type Querier interface {
 	ListPrivateNetworkClusters(ctx context.Context, platform string) ([]ListPrivateNetworkClustersRow, error)
 	// ListPrivateNetworkConnectionSelections returns the directed app connections
 	// saved by the given caller deployments, with the saved target selection and
-	// the caller and live deployment facts that ListPrivateNetworkConnections
-	// needs to resolve it. LiveEnvironmentID is the environment of the target
-	// app's live deployment, empty when there is none. Callers must come from
-	// ListPrivateNetworkReplicas in the same transaction, which decides which
-	// deployments are active callers. Rows are paged by (caller deployment,
-	// connection).
+	// the caller and live deployment facts needed to resolve it.
+	// LiveEnvironmentID is the environment of the target app's live deployment,
+	// empty when there is none. Callers must come from ListPrivateNetworkReplicas
+	// in the same transaction, which decides which deployments are active callers.
+	// Rows are paged by (caller deployment, connection).
 	//
 	//  SELECT
 	//      b.workspace_id,
@@ -2459,7 +2458,7 @@ type Querier interface {
 	// ListPrivateNetworkReplicas returns the given deployments that are active,
 	// were created with private networking, and run on the platform. Each one
 	// resolves its own replicas under the self name and is a caller for
-	// ListPrivateNetworkConnections.
+	// ListPrivateNetworkConnectionSelections.
 	// NO_SEMIJOIN keeps the topology check per deployment; as a semijoin MySQL may
 	// read every running topology row first.
 	//

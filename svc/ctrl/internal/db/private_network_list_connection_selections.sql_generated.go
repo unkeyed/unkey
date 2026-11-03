@@ -88,12 +88,11 @@ type ListPrivateNetworkConnectionSelectionsRow struct {
 
 // ListPrivateNetworkConnectionSelections returns the directed app connections
 // saved by the given caller deployments, with the saved target selection and
-// the caller and live deployment facts that ListPrivateNetworkConnections
-// needs to resolve it. LiveEnvironmentID is the environment of the target
-// app's live deployment, empty when there is none. Callers must come from
-// ListPrivateNetworkReplicas in the same transaction, which decides which
-// deployments are active callers. Rows are paged by (caller deployment,
-// connection).
+// the caller and live deployment facts needed to resolve it.
+// LiveEnvironmentID is the environment of the target app's live deployment,
+// empty when there is none. Callers must come from ListPrivateNetworkReplicas
+// in the same transaction, which decides which deployments are active callers.
+// Rows are paged by (caller deployment, connection).
 //
 //	SELECT
 //	    b.workspace_id,

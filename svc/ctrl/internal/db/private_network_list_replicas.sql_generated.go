@@ -58,7 +58,7 @@ type ListPrivateNetworkReplicasRow struct {
 // ListPrivateNetworkReplicas returns the given deployments that are active,
 // were created with private networking, and run on the platform. Each one
 // resolves its own replicas under the self name and is a caller for
-// ListPrivateNetworkConnections.
+// ListPrivateNetworkConnectionSelections.
 // NO_SEMIJOIN keeps the topology check per deployment; as a semijoin MySQL may
 // read every running topology row first.
 //

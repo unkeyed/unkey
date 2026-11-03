@@ -76,13 +76,19 @@ func (s *Seeder) cleanup() {
 }
 
 func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
+	return s.CreateWorkspaceInNamespace(ctx, uid.DNS1035())
+}
+
+// CreateWorkspaceInNamespace creates a workspace like [Seeder.CreateWorkspace]
+// with the given Kubernetes namespace, which may be empty.
+func (s *Seeder) CreateWorkspaceInNamespace(ctx context.Context, k8sNamespace string) db.Workspace {
 	params := db.InsertWorkspaceParams{
 		ID:           uid.New("test_ws"),
 		OrgID:        uid.New("test_org"),
 		Name:         uid.New("test_name"),
 		Slug:         uid.New("slug"),
 		CreatedAt:    time.Now().UnixMilli(),
-		K8sNamespace: uid.DNS1035(),
+		K8sNamespace: k8sNamespace,
 	}
 
 	err := s.DB.InsertWorkspace(ctx, params)
@@ -412,6 +418,11 @@ type CreateDeploymentRequest struct {
 	CreatedAt     int64
 	UpdatedAt     sql.NullInt64
 
+	// FirstReadyAt, when valid, records that the deployment was ready then.
+	FirstReadyAt sql.NullInt64
+	// DesiredState defaults to running.
+	DesiredState dbtype.DeploymentsDesiredState
+
 	// Optional git metadata for tests that need the row to record a source.
 	GitCommitSha     sql.NullString
 	GitBranch        sql.NullString
@@ -441,6 +452,11 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		createdAt = time.Now().UnixMilli()
 	}
 
+	status := req.Status
+	if req.FirstReadyAt.Valid {
+		status = dbtype.DeploymentsStatusPending
+	}
+
 	source := req.Source
 	if source == "" {
 		source = db.DeploymentsSourceUnknown
@@ -464,7 +480,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
 		EncryptedEnvironmentVariables: []byte("{}"),
 		Command:                       nil,
-		Status:                        req.Status,
+		Status:                        status,
 		CpuMillicores:                 250,
 		MemoryMib:                     256,
 		StorageMib:                    0,
@@ -492,6 +508,20 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		require.NoError(s.t, err)
 	}
 
+	if req.FirstReadyAt.Valid {
+		err = s.DB.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{Status: dbtype.DeploymentsStatusReady, UpdatedAt: req.FirstReadyAt, ID: id})
+		require.NoError(s.t, err)
+		err = s.DB.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{Status: req.Status, UpdatedAt: req.UpdatedAt, ID: id})
+		require.NoError(s.t, err)
+	}
+
+	if req.DesiredState != "" {
+		err = s.DB.UpdateDeploymentDesiredState(ctx, db.UpdateDeploymentDesiredStateParams{
+			DesiredState: req.DesiredState, UpdatedAt: req.UpdatedAt, ID: id,
+		})
+		require.NoError(s.t, err)
+	}
+
 	deployment, err := s.DB.FindDeploymentById(ctx, id)
 	require.NoError(s.t, err)
 
@@ -499,6 +529,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 }
 
 type CreateAppConnectionRequest struct {
+	// ID defaults to a new connection ID.
+	ID                  string
 	WorkspaceID         string
 	ProjectID           string
 	CallerAppID         string
@@ -514,7 +546,10 @@ type CreateAppConnectionRequest struct {
 
 func (s *Seeder) CreateAppConnection(ctx context.Context, req CreateAppConnectionRequest) string {
 	s.t.Helper()
-	id := uid.New(uid.ConnectionPrefix)
+	id := req.ID
+	if id == "" {
+		id = uid.New(uid.ConnectionPrefix)
+	}
 	mode := req.SelectionMode
 	if mode == "" {
 		mode = db.ConnectionAppTargetsSelectionModeAutomatic
@@ -543,6 +578,57 @@ func (s *Seeder) CreateAppConnection(ctx context.Context, req CreateAppConnectio
 	})
 	require.NoError(s.t, err)
 	return id
+}
+
+type CreateDeploymentConnectionRequest struct {
+	DeploymentID        string
+	ConnectionID        string
+	WorkspaceID         string
+	ProjectID           string
+	CallerAppID         string
+	CallerEnvironmentID string
+	TargetAppID         string
+	Name                string
+
+	// Optional app target. An empty SelectionMode saves the connection
+	// without target settings.
+	SelectionMode       db.DeploymentConnectionAppTargetsSelectionMode
+	TargetEnvironmentID sql.NullString
+	TargetDeploymentID  sql.NullString
+}
+
+// CreateDeploymentConnection saves a connection on a deployment, as deploying
+// it would.
+func (s *Seeder) CreateDeploymentConnection(ctx context.Context, req CreateDeploymentConnectionRequest) {
+	s.t.Helper()
+	err := db.Tx(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		if err := queries.InsertDeploymentConnection(ctx, db.InsertDeploymentConnectionParams{
+			DeploymentID:  req.DeploymentID,
+			ConnectionID:  req.ConnectionID,
+			WorkspaceID:   req.WorkspaceID,
+			ProjectID:     req.ProjectID,
+			AppID:         req.CallerAppID,
+			EnvironmentID: req.CallerEnvironmentID,
+			ResourceType:  db.DeploymentConnectionsResourceTypeApp,
+			ResourceID:    req.TargetAppID,
+			Name:          req.Name,
+			CreatedAt:     time.Now().UnixMilli(),
+		}); err != nil {
+			return err
+		}
+		if req.SelectionMode == "" {
+			return nil
+		}
+		return queries.InsertDeploymentConnectionAppTarget(ctx, db.InsertDeploymentConnectionAppTargetParams{
+			DeploymentID:        req.DeploymentID,
+			ConnectionID:        req.ConnectionID,
+			SelectionMode:       req.SelectionMode,
+			TargetEnvironmentID: req.TargetEnvironmentID,
+			TargetDeploymentID:  req.TargetDeploymentID,
+		})
+	})
+	require.NoError(s.t, err)
 }
 
 // CreateRootKey creates a root key with optional permissions
