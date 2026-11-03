@@ -112,10 +112,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
 
 	compensation.Add("mark deployment as failed", func(runCtx restate.RunContext) error {
-		// A plain update would overwrite cancelled, superseded, or ready
-		return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
+		return w.db.FailDeploymentAndStop(runCtx, db.FailDeploymentAndStopParams{
 			ID:                  req.GetDeploymentId(),
-			Status:              mysqltype.DeploymentsStatusFailed,
 			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 		})
@@ -511,11 +509,28 @@ func (w *Workflow) createTopologies(
 		compensation.Add(
 			fmt.Sprintf("stop deployment topology %s/%s", topo.DeploymentID, topo.RegionID),
 			func(runCtx restate.RunContext) error {
-				return w.db.UpdateDeploymentTopologyDesiredStatus(runCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
-					DeploymentID:  topo.DeploymentID,
-					RegionID:      topo.RegionID,
-					DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
-					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					queries := db.NewQueries(tx)
+					if err := queries.FailDeploymentAndStop(txCtx, db.FailDeploymentAndStopParams{
+						ID:                  topo.DeploymentID,
+						UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+						ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
+					}); err != nil {
+						return err
+					}
+					deployment, err := queries.FindDeploymentById(txCtx, topo.DeploymentID)
+					if err != nil {
+						return err
+					}
+					if deployment.DesiredState != mysqltype.DeploymentsDesiredStateStopped {
+						return nil
+					}
+					return queries.UpdateDeploymentTopologyDesiredStatus(txCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
+						DeploymentID:  topo.DeploymentID,
+						RegionID:      topo.RegionID,
+						DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
+						UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+					})
 				})
 			},
 		)

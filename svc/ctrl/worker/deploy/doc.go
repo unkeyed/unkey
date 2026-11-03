@@ -88,10 +88,9 @@
 // with it: a queued Build never runs, and a running one has its image build
 // aborted through the Run context and frees its slot. The cancel makes
 // Deploy's next SDK call return a TerminalError, which runs the compensations
-// Deploy registered: set every topology's desired_status to stopped, and try
-// to set the status to failed with UpdateDeploymentStatusIfActive. That query
-// changes only a row whose status is still progressing, so the cancelled or
-// superseded status stays.
+// Deploy registered: atomically set stop intent and mark progressing deployments
+// failed with FailDeploymentAndStop. That query preserves cancelled and
+// superseded outcomes and does not stop a deployment that has reached ready.
 //
 // # Image Builds
 //

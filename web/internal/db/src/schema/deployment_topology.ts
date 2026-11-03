@@ -28,8 +28,8 @@ export const deploymentTopology = mysqlTable(
     // Average memory utilization percentage (0-100) that triggers scale-up. Null = not used as a signal.
     autoscalingThresholdMemory: tinyint("autoscaling_threshold_memory", { unsigned: true }),
 
-    // Deployment status
-    desiredStatus: mysqlEnum("desired_status", ["stopped", "running"]).notNull(),
+    // Drop only after the code that writes this column has retired.
+    desiredStatus: mysqlEnum("desired_status", ["stopped", "running"]).notNull().default("running"),
     ...lifecycleDates,
   },
   (table) => [

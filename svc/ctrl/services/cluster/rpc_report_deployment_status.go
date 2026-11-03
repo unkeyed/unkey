@@ -170,8 +170,9 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				if deployment.DesiredState == mysqltype.DeploymentsDesiredStateStopped {
 					if err := db.NewQueries(tx).StopDeploymentIfNoInstances(ctx, db.StopDeploymentIfNoInstancesParams{
-						ID:        deployment.ID,
-						UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+						ID:             deployment.ID,
+						UpdatedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+						ActiveStatuses: mysqltype.ActiveComputeDeploymentStatuses,
 					}); err != nil {
 						return err
 					}

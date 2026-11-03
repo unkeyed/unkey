@@ -8,6 +8,9 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
+
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 )
 
 const stopDeploymentIfNoInstances = `-- name: StopDeploymentIfNoInstances :exec
@@ -16,25 +19,41 @@ LEFT JOIN instances i ON i.deployment_id = d.id
 SET d.status = 'stopped', d.updated_at = ?
 WHERE d.id = ?
   AND d.desired_state = 'stopped'
+  AND d.status IN (/*SLICE:active_statuses*/?)
   AND i.deployment_id IS NULL
 `
 
 type StopDeploymentIfNoInstancesParams struct {
-	UpdatedAt sql.NullInt64 `db:"updated_at"`
-	ID        string        `db:"id"`
+	UpdatedAt      sql.NullInt64                 `db:"updated_at"`
+	ID             string                        `db:"id"`
+	ActiveStatuses []mysqltype.DeploymentsStatus `db:"active_statuses"`
 }
 
 // StopDeploymentIfNoInstances finalizes a requested stop only after krane has
 // reported that no instances remain. The desired_state guard prevents stale
 // delete reports from marking a deployment stopped after it has been woken.
+// Only active compute statuses transition, preserving failed and cancelled outcomes.
 //
 //	UPDATE deployments d
 //	LEFT JOIN instances i ON i.deployment_id = d.id
 //	SET d.status = 'stopped', d.updated_at = ?
 //	WHERE d.id = ?
 //	  AND d.desired_state = 'stopped'
+//	  AND d.status IN (/*SLICE:active_statuses*/?)
 //	  AND i.deployment_id IS NULL
 func (q *Queries) StopDeploymentIfNoInstances(ctx context.Context, arg StopDeploymentIfNoInstancesParams) error {
-	_, err := q.db.ExecContext(ctx, stopDeploymentIfNoInstances, arg.UpdatedAt, arg.ID)
+	query := stopDeploymentIfNoInstances
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.UpdatedAt)
+	queryParams = append(queryParams, arg.ID)
+	if len(arg.ActiveStatuses) > 0 {
+		for _, v := range arg.ActiveStatuses {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:active_statuses*/?", strings.Repeat(",?", len(arg.ActiveStatuses))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:active_statuses*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
 	return err
 }
