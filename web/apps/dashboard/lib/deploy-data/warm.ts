@@ -1,8 +1,13 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { warmQueries } from "@/lib/collections/warm-queries";
+import { getApp } from "@/lib/queries/apps";
+import {
+  ENVIRONMENT_KIND,
+  type Environment,
+  appEnvironmentsOptions,
+} from "@/lib/queries/environments";
+import { queryKeys } from "@/lib/query-keys";
 import { createLiveQueryCollection } from "@tanstack/react-db";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -12,12 +17,7 @@ import {
   recentDeploymentsOptions,
   warmDeploymentsPage,
 } from "./deployments";
-import {
-  customDomainsQueryFor,
-  domainsQueryFor,
-  environmentsQueryFor,
-  policiesQueryFor,
-} from "./queries";
+import { customDomainsQueryFor, domainsQueryFor, policiesQueryFor } from "./queries";
 
 // Loads what the app overview reads first, so a click after hovering finds it loaded
 export function warmAppPage(queryClient: QueryClient, projectId: string, appId: string): void {
@@ -25,19 +25,17 @@ export function warmAppPage(queryClient: QueryClient, projectId: string, appId: 
   void queryClient.prefetchQuery(
     recentDeploymentsOptions(queryClient, projectId, appId, null, RECENT_DEPLOYMENTS_LIMIT),
   );
-  const currentDeploymentId = collection.apps.get(appId)?.currentDeploymentId;
+  const currentDeploymentId = getApp(queryClient, projectId, appId)?.currentDeploymentId;
   if (currentDeploymentId) {
     warmDeployment(queryClient, projectId, currentDeploymentId);
   }
   warmQueries(`app/${projectId}/${appId}`, () => {
-    const environments = createLiveQueryCollection(environmentsQueryFor(projectId, appId));
-    // Environments load on demand, so the production id is only known once they arrive
-    environments
-      .preload()
+    // The production id is only known once the environments arrive
+    queryClient
+      .prefetchQuery(appEnvironmentsOptions(projectId, appId))
       .then(() => warmProduction(queryClient, projectId, appId))
       .catch(() => {});
     return [
-      environments,
       createLiveQueryCollection(domainsQueryFor(projectId, appId)),
       createLiveQueryCollection(customDomainsQueryFor(projectId, appId)),
     ];
@@ -54,9 +52,9 @@ export function warmDeployment(
 }
 
 function warmProduction(queryClient: QueryClient, projectId: string, appId: string): void {
-  const productionId = [...collection.environments.values()].find(
-    (e) => e.appId === appId && e.kind === ENVIRONMENT_KIND.production,
-  )?.id;
+  const productionId = queryClient
+    .getQueryData<Environment[]>(queryKeys.environments.app(projectId, appId))
+    ?.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id;
   if (!productionId) {
     return;
   }

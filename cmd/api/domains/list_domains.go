@@ -55,7 +55,7 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DomainsListDomainsResponseBody)
+				return util.Output(ctx, cmd, res.V2DomainsListDomainsResponseBody)
 			}
 			req := components.V2DomainsListDomainsRequestBody{
 				Project:     nil,
@@ -84,7 +84,7 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DomainsListDomainsResponseBody)
+			return util.Output(ctx, cmd, res.V2DomainsListDomainsResponseBody)
 		},
 	}
 }

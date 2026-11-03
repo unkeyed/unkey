@@ -1,11 +1,11 @@
+import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import {
   APP_SLUG_LENGTH,
   type App,
   type AppDeploymentRefs,
   createAppRequestSchema,
   latestDeploymentId,
-} from "@/lib/collections/deploy/apps";
-import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
+} from "@/lib/queries/apps";
 import { slugify } from "@/lib/slugify";
 
 const fallbackName = "app";

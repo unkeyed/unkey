@@ -22,6 +22,8 @@ func TestUpdateKey(t *testing.T) {
 		{"omitted updates", "", openapi.V2RootKeysUpdateKeyRequestBody{KeyId: keyID}},
 		{"disable", " --enabled=false", openapi.V2RootKeysUpdateKeyRequestBody{KeyId: keyID, Enabled: new(false)}},
 		{"clear permissions", " --permissions=", openapi.V2RootKeysUpdateKeyRequestBody{KeyId: keyID, Permissions: new([]string{})}},
+		{"restrict networks", " --ip-allowlist=10.0.0.0/8,2001:db8::1", openapi.V2RootKeysUpdateKeyRequestBody{KeyId: keyID, IpAllowlist: new([]string{"10.0.0.0/8", "2001:db8::1"})}},
+		{"remove network restriction", " --ip-allowlist=", openapi.V2RootKeysUpdateKeyRequestBody{KeyId: keyID, IpAllowlist: new([]string{})}},
 		{"replace permissions and name", " --name=automation --permissions=" + permission, openapi.V2RootKeysUpdateKeyRequestBody{KeyId: keyID, Name: nullable.NewNullableWithValue("automation"), Permissions: new([]string{permission})}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -30,7 +32,7 @@ func TestUpdateKey(t *testing.T) {
 		})
 	}
 
-	want := openapi.V2RootKeysUpdateKeyRequestBody{KeyId: keyID, Name: nullable.NewNullNullable[string](), Enabled: new(false), Permissions: new([]string{})}
+	want := openapi.V2RootKeysUpdateKeyRequestBody{KeyId: keyID, Name: nullable.NewNullNullable[string](), Enabled: new(false), Permissions: new([]string{}), IpAllowlist: new([]string{"192.0.2.0/24"})}
 	body, err := json.Marshal(want)
 	require.NoError(t, err)
 	got := testutil.CaptureRequest[openapi.V2RootKeysUpdateKeyRequestBody](t, Cmd(), "root-keys update-key --body='"+string(body)+"'")

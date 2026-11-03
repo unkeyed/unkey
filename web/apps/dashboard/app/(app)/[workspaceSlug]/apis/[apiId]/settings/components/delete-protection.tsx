@@ -95,7 +95,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               form="delete-protection-form"
               variant="primary"
               color="danger"
-              size="xlg"
+              size="md"
               disabled={!isValid || isSubmitting}
               loading={isSubmitting}
               className="w-full"
@@ -104,9 +104,6 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 ? "Disable Keyspace Delete Protection"
                 : "Enable Keyspace Delete Protection"}
             </Button>
-            <div className="font-normal text-xs text-gray-9 text-center">
-              This setting can be {api.deleteProtection ? "disabled" : "enabled"} at any time
-            </div>
           </div>
         }
       >

@@ -1,6 +1,7 @@
 "use client";
 
-import { createAppRequestSchema, useAppMutations } from "@/lib/deploy-data";
+import { useDeployScope } from "@/lib/deploy-data";
+import { createAppRequestSchema, useUpdateApp } from "@/lib/queries/apps";
 import {
   FormInput,
   SettingsForm,
@@ -14,11 +15,11 @@ import { useSavableForm } from "../../../../_components/settings/hooks/use-setti
 const appNameSchema = createAppRequestSchema.pick({ name: true });
 
 export function AppName({ appId, name }: { appId: string; name: string }) {
-  const { updateApp } = useAppMutations();
+  const updateApp = useUpdateApp(useDeployScope().projectId);
   const { form, formProps } = useSavableForm({
     schema: appNameSchema,
     values: { name },
-    save: (values) => updateApp(appId, { name: values.name }),
+    save: (values) => updateApp.mutateAsync({ appId, changes: { name: values.name } }),
   });
 
   return (

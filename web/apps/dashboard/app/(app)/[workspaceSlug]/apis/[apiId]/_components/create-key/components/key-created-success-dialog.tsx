@@ -95,7 +95,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
       }}
     >
       <DialogContent
-        className="overflow-hidden rounded-2xl! p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
+        className="overflow-hidden p-0 gap-0 w-full max-w-[760px] max-h-[90vh] overflow-y-auto"
         showCloseWarning
         onAttemptClose={handleCloseAttempt}
       >

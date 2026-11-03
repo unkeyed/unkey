@@ -224,16 +224,13 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               type="button"
               variant="primary"
               color="danger"
-              size="xlg"
-              className="w-full rounded-lg"
+              size="md"
+              className="w-full"
               loading={cancelSubscription.isLoading}
               onClick={() => cancelSubscription.mutate()}
             >
               Cancel API plan
             </Button>
-            <div className="text-gray-9 text-xs">
-              You can resume your subscription until the end of the billing period
-            </div>
           </div>
         }
       >

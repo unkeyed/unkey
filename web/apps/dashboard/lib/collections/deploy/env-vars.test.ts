@@ -18,11 +18,11 @@ vi.mock("@/lib/unkey-client", () => ({
 vi.mock("@unkey/ui", () => ({ toast: { promise: vi.fn() } }));
 vi.mock("../client", async () => {
   const { QueryClient } = await import("@tanstack/query-core");
-  return {
-    queryClient: new QueryClient(),
-    trpcClient: { deploy: { envVar: { rename: { mutate: rename } } } },
-  };
+  return { queryClient: new QueryClient() };
 });
+vi.mock("@/lib/trpc/client", () => ({
+  trpcClient: { deploy: { envVar: { rename: { mutate: rename } } } },
+}));
 
 const {
   PartialAddError,

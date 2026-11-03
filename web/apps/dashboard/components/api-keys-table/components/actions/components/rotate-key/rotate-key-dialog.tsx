@@ -182,8 +182,8 @@ export const RotateKeyDialog = ({
                   form={formId}
                   variant="primary"
                   color="danger"
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!confirmRotation || isLoading}
                   loading={isLoading}
                   onClick={() => setIsConfirmPopoverOpen(true)}
@@ -191,7 +191,6 @@ export const RotateKeyDialog = ({
                 >
                   {titleCase}
                 </Button>
-                <div className="text-gray-9 text-xs">You will see the new secret only once</div>
               </div>
             }
           >

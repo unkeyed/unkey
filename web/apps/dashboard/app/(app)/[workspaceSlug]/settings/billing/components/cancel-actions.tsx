@@ -68,8 +68,8 @@ export function CancelComputeDialog({
           type="button"
           variant="primary"
           color="danger"
-          size="xlg"
-          className="w-full rounded-lg"
+          size="md"
+          className="w-full"
           loading={cancel.isLoading}
           onClick={() => cancel.mutate()}
         >
@@ -122,16 +122,13 @@ export function CancelApiDialog({
             type="button"
             variant="primary"
             color="danger"
-            size="xlg"
-            className="w-full rounded-lg"
+            size="md"
+            className="w-full"
             loading={cancel.isLoading}
             onClick={() => cancel.mutate()}
           >
             Cancel API plan
           </Button>
-          <div className="text-gray-9 text-xs">
-            You can resume your subscription until the end of the billing period
-          </div>
         </div>
       }
     >

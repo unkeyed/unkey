@@ -31,17 +31,12 @@ export function createIdentityOptions({
         <HoverCardTrigger
           render={
             <div className="flex w-full text-gray-8 text-xs gap-1.5 py-0.5 items-center group">
-              <div className="flex items-center justify-center gap-2">
-                <div className="border rounded-full flex items-center justify-center size-5">
+              <div className="flex items-center justify-center gap-2 min-w-0">
+                <div className="border rounded-full flex items-center justify-center size-5 shrink-0">
                   <IconUserOutline12 className="text-grayA-11" />
                 </div>
-                <span
-                  data-sentry-mask
-                  className="max-w-[200px] truncate font-medium text-gray-12 text-left"
-                >
-                  {identity.externalId.length > 15
-                    ? `${identity.externalId.slice(0, 4)}...${identity.externalId.slice(-4)}`
-                    : identity.externalId}
+                <span data-sentry-mask className="truncate font-medium text-gray-12 text-left">
+                  {identity.externalId}
                 </span>
               </div>
             </div>
@@ -101,14 +96,11 @@ export function createIdentityOptions({
     ),
     selectedLabel: (
       <div className="flex w-full text-gray-8 text-xs gap-1.5 py-0.5 items-center">
-        <div className="flex items-center justify-center gap-2">
-          <div className="border rounded-full flex items-center justify-center size-5">
+        <div className="flex items-center justify-center gap-2 min-w-0">
+          <div className="border rounded-full flex items-center justify-center size-5 shrink-0">
             <IconUserOutline12 className="text-grayA-11" />
           </div>
-          <span
-            data-sentry-mask
-            className="text-gray-12 font-medium text-xs max-w-[200px] truncate text-left"
-          >
+          <span data-sentry-mask className="text-gray-12 font-medium text-xs truncate text-left">
             {identity.externalId}
           </span>
         </div>

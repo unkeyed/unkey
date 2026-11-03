@@ -55,14 +55,14 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DomainsCreateDomainResponseBody)
+				return util.Output(ctx, cmd, res.V2DomainsCreateDomainResponseBody)
 			}
 			req := components.V2DomainsCreateDomainRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Domain: cmd.String("domain")}
 			res, err := client.Domains.CreateDomain(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DomainsCreateDomainResponseBody)
+			return util.Output(ctx, cmd, res.V2DomainsCreateDomainResponseBody)
 		},
 	}
 }

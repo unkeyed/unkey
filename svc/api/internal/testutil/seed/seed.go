@@ -338,18 +338,20 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 	require.NoError(s.t, err)
 
 	return db.Environment{
-		Pk:               0,
-		ID:               environment.ID,
-		WorkspaceID:      environment.WorkspaceID,
-		ProjectID:        environment.ProjectID,
-		AppID:            req.AppID,
-		Slug:             environment.Slug,
-		Description:      req.Description,
-		Kind:             environment.Kind,
-		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
-		CreatedAt:        now,
-		UpdatedAt:        sql.NullInt64{Int64: 0, Valid: false},
-		DeletedAt:        environment.DeletedAt,
+		Pk:                  0,
+		ID:                  environment.ID,
+		WorkspaceID:         environment.WorkspaceID,
+		ProjectID:           environment.ProjectID,
+		AppID:               req.AppID,
+		Slug:                environment.Slug,
+		Description:         req.Description,
+		Kind:                environment.Kind,
+		CurrentDeploymentID: environment.CurrentDeploymentID,
+		IsRolledBack:        environment.IsRolledBack,
+		DeleteProtection:    sql.NullBool{Valid: true, Bool: req.DeleteProtection},
+		CreatedAt:           now,
+		UpdatedAt:           sql.NullInt64{Int64: 0, Valid: false},
+		DeletedAt:           environment.DeletedAt,
 	}
 }
 

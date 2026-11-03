@@ -21,6 +21,8 @@ func TestCreateKey(t *testing.T) {
 	}{
 		{"minimal", "--permissions=" + strings.Join(permissions, ","), openapi.V2RootKeysCreateKeyRequestBody{Permissions: permissions}},
 		{"named with expiration", "--permissions=" + strings.Join(permissions, ",") + " --name=automation --expires=1900000000000", openapi.V2RootKeysCreateKeyRequestBody{Permissions: permissions, Name: new("automation"), Expires: nullable.NewNullableWithValue(int64(1900000000000))}},
+		{"restricted networks", "--permissions=" + strings.Join(permissions, ",") + " --ip-allowlist=192.0.2.0/24", openapi.V2RootKeysCreateKeyRequestBody{Permissions: permissions, IpAllowlist: new([]string{"192.0.2.0/24"})}},
+		{"unrestricted networks", "--permissions=" + strings.Join(permissions, ",") + " --ip-allowlist=", openapi.V2RootKeysCreateKeyRequestBody{Permissions: permissions, IpAllowlist: new([]string{})}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			got := testutil.CaptureRequest[openapi.V2RootKeysCreateKeyRequestBody](t, Cmd(), "root-keys create-key "+test.args)
@@ -28,7 +30,7 @@ func TestCreateKey(t *testing.T) {
 		})
 	}
 
-	want := openapi.V2RootKeysCreateKeyRequestBody{Permissions: []string{}, Expires: nullable.NewNullNullable[int64]()}
+	want := openapi.V2RootKeysCreateKeyRequestBody{Permissions: []string{}, Expires: nullable.NewNullNullable[int64](), IpAllowlist: new([]string{"192.0.2.0/24"})}
 	body, err := json.Marshal(want)
 	require.NoError(t, err)
 	got := testutil.CaptureRequest[openapi.V2RootKeysCreateKeyRequestBody](t, Cmd(), "root-keys create-key --body='"+string(body)+"'")

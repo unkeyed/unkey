@@ -116,15 +116,29 @@ func (c *Watcher) Watch(ctx context.Context, token []byte, send func(Event) erro
 			return err
 		}
 		for _, event := range response.Events {
-			if event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW {
-				if err := send(Event{Change: event, ResumeToken: nil}); err != nil {
-					return err
-				}
+			if err := deliver(event, send); err != nil {
+				return err
 			}
 			if err := checkpoints.advance(event, c.rules, c.clock, send); err != nil {
 				return err
 			}
 		}
+	}
+}
+
+// deliver sends changes, vtgate's final copy completion, and heartbeats.
+// vtgate also sends a copy completion per shard, identified by its keyspace
+// and shard; only the final one has neither.
+func deliver(event *binlog.VEvent, send func(Event) error) error {
+	switch {
+	case event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW:
+		return send(Event{Change: event, ResumeToken: nil, CommitTime: time.Time{}, CopyCompleted: false, Heartbeat: false})
+	case event.Type == binlog.VEventType_COPY_COMPLETED && event.Keyspace == "" && event.Shard == "":
+		return send(Event{Change: nil, ResumeToken: nil, CommitTime: time.Time{}, CopyCompleted: true, Heartbeat: false})
+	case event.Type == binlog.VEventType_HEARTBEAT:
+		return send(Event{Change: nil, ResumeToken: nil, CommitTime: time.Time{}, CopyCompleted: false, Heartbeat: true})
+	default:
+		return nil
 	}
 }
 

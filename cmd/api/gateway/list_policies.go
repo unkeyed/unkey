@@ -48,14 +48,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/lis
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2GatewayListPoliciesResponseBody)
+				return util.Output(ctx, cmd, res.V2GatewayListPoliciesResponseBody)
 			}
 			req := components.V2GatewayListPoliciesRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment")}
 			res, err := client.Gateway.ListPolicies(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2GatewayListPoliciesResponseBody)
+			return util.Output(ctx, cmd, res.V2GatewayListPoliciesResponseBody)
 		},
 	}
 }

@@ -388,19 +388,19 @@ function ComputePlanConfirmDialog({
           <Button
             type="button"
             variant="primary"
-            size="xlg"
-            className="w-full rounded-lg"
+            size="md"
+            className="w-full"
             loading={isLoading}
             onClick={onConfirm}
           >
             Confirm change
           </Button>
-          <p className="text-center text-xs text-gray-9 leading-5">{CHANGE_NOTE}</p>
         </div>
       }
     >
       <div className="text-sm text-gray-11 leading-6">
-        {`You're moving from ${currentPlanName} to ${plan?.name ?? "the selected plan"}.`}
+        {`You're moving from ${currentPlanName} to ${plan?.name ?? "the selected plan"}.`}{" "}
+        {CHANGE_NOTE}
       </div>
     </DialogContainer>
   );

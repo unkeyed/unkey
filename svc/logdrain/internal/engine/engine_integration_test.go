@@ -146,7 +146,7 @@ func TestEngine_Integration(t *testing.T) {
 		}, 30*time.Second, 10*time.Millisecond)
 	}
 	// Lease acquisition scans all workspaces, including other suites' old cursors.
-	mysqlCfg := containers.MySQLIsolated(t)
+	mysqlCfg := containers.MySQLLogicalIsolated(t)
 	clickhouseCfg := containers.ClickHouse(t)
 	mysqlDB, err := sql.Open("mysql", mysqlCfg.DSN)
 	require.NoError(t, err)

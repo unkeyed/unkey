@@ -10,7 +10,7 @@ import (
 )
 
 const findEnvironmentByIdentifiers = `-- name: FindEnvironmentByIdentifiers :one
-SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 FROM environments
 JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
@@ -33,7 +33,7 @@ type FindEnvironmentByIdentifiersParams struct {
 
 // FindEnvironmentByIdentifiers
 //
-//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 //	FROM environments
 //	JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 //	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
@@ -65,6 +65,8 @@ func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg
 		&i.Slug,
 		&i.Description,
 		&i.Kind,
+		&i.CurrentDeploymentID,
+		&i.IsRolledBack,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

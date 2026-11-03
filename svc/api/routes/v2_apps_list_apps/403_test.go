@@ -64,6 +64,8 @@ func TestListAppsForbidden(t *testing.T) {
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 		{name: "urn on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Read)}, shouldPass: true},
 		{name: "urn on every project", permissions: []string{grant("*", "*", permissions.Read)}, shouldPass: true},
+		{name: "project read does not grant app read", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s#read", workspace.ID, project.ID)}, shouldPass: false},
+		{name: "project wildcard read does not grant app read", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/*#read", workspace.ID)}, shouldPass: false},
 		{name: "urn on one app filters list", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: true},
 		{name: "urn on another project", permissions: []string{grant(uid.New(uid.ProjectPrefix), "*", permissions.Read)}, shouldPass: false},
 	}
@@ -80,6 +82,9 @@ func TestListAppsForbidden(t *testing.T) {
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
+				require.Len(t, res.Body.Data, 1)
+				require.Equal(t, app.ID, res.Body.Data[0].Id)
+				require.Equal(t, app.Name, res.Body.Data[0].Name)
 				return
 			}
 

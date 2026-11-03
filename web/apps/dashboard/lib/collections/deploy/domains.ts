@@ -1,4 +1,5 @@
 "use client";
+import { trpcClient } from "@/lib/trpc/client";
 import {
   type QueryCollectionUtils,
   parseLoadSubsetOptions,
@@ -6,7 +7,7 @@ import {
 } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
+import { queryClient } from "../client";
 import { extractStringFilter } from "./utils";
 
 const schema = z.object({

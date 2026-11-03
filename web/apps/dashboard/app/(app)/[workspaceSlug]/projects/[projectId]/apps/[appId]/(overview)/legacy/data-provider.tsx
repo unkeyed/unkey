@@ -1,6 +1,5 @@
 "use client";
 
-import { useProject } from "@/hooks/use-project";
 import {
   useApp,
   useAppScope,
@@ -10,13 +9,14 @@ import {
   useDomains,
   useEnvironments,
 } from "@/lib/deploy-data";
+import { useProject } from "@/lib/queries/projects";
 
 // Legacy pages only. Everything else reads through @/lib/deploy-data.
 export const useProjectData = () => {
   const { projectId, appId } = useDeployScope();
   const { refetchDeployments } = useDeployActions();
   const app = useApp();
-  const { project } = useProject();
+  const { data: project } = useProject(projectId);
   const domains = useDomains();
   const customDomains = useCustomDomains();
   const environments = useEnvironments();
