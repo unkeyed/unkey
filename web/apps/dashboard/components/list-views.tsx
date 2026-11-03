@@ -117,7 +117,7 @@ function ListLayoutView<Row, Id extends string>({
     .exhaustive();
 }
 
-function ListNoMatch({ noun, search }: { noun: string; search: string }) {
+export function ListNoMatch({ noun, search }: { noun: string; search: string }) {
   return (
     <ResourceListContent>
       <EmptyState frame="none">
@@ -168,7 +168,7 @@ function ListGrid<Row>({
     .exhaustive();
 }
 
-function ListTableView<Row, Id extends string>({
+export function ListTableView<Row, Id extends string>({
   list,
   noun,
   table,
