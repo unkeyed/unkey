@@ -59,17 +59,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("An unexpected error occurred while fetching the namespace."))
 	}
 
-	if !found {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Public("This namespace does not exist."),
-		)
-	}
-
-	if ns.DeletedAtM.Valid {
-		return fault.New("namespace was deleted",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Public("This namespace does not exist."),
+	// A separate namespace error would disclose whether the parent exists.
+	if !found || ns.DeletedAtM.Valid {
+		return fault.New("override not found",
+			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
+			fault.Public("This override does not exist."),
 		)
 	}
 
