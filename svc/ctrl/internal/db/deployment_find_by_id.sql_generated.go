@@ -16,7 +16,7 @@ SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
     sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
     encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
     pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
-    first_ready_at, ever_ready, fork_key, ` + "`" + `trigger` + "`" + `, triggered_by, trigger_reason, created_at, updated_at
+    first_ready_at, ` + "`" + `trigger` + "`" + `, triggered_by, trigger_reason, created_at, updated_at
 FROM deployments WHERE id = ?
 `
 
@@ -28,7 +28,7 @@ FROM deployments WHERE id = ?
 //	    sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
 //	    encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, capabilities, healthcheck,
 //	    pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
-//	    first_ready_at, ever_ready, fork_key, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+//	    first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
 //	FROM deployments WHERE id = ?
 func (q *Queries) FindDeploymentById(ctx context.Context, id string) (Deployment, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentById, id)
@@ -69,8 +69,6 @@ func (q *Queries) FindDeploymentById(ctx context.Context, id string) (Deployment
 		&i.InvocationID,
 		&i.Status,
 		&i.FirstReadyAt,
-		&i.EverReady,
-		&i.ForkKey,
 		&i.Trigger,
 		&i.TriggeredBy,
 		&i.TriggerReason,
