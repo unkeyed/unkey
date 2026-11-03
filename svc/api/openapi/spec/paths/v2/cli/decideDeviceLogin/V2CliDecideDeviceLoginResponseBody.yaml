@@ -7,4 +7,4 @@ properties:
   meta:
     $ref: ../../../../common/Meta.yaml
   data:
-    $ref: ../../../../common/EmptyResponse.yaml
+    $ref: ./V2CliDecideDeviceLoginResponseData.yaml

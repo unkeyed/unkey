@@ -30,7 +30,7 @@ func TestAccessTokenLastsFifteenMinutes(t *testing.T) {
 	require.NoError(t, err)
 	svc := &Service{Clock: clk, Signer: signer}
 
-	token, err := svc.signAccessToken(uid.New(uid.TestPrefix), "Ada", uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix), "laptop", []string{"api.*.read_api"})
+	token, err := svc.signAccessToken(uid.New(uid.TestPrefix), "Ada", uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix), "laptop", "", []string{"api.*.read_api"})
 	require.NoError(t, err)
 	verifier, err := tokenjwt.NewHS256Verifier[clisession.Claims]([]byte(testSecret),
 		tokenjwt.WithIssuer(clisession.Issuer),

@@ -4,9 +4,8 @@ package components
 
 type V2CliDecideDeviceLoginResponseBody struct {
 	// Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-	// Empty response object by design. A successful response indicates this operation was successfully executed.
-	Data EmptyResponse `json:"data"`
+	Meta Meta                               `json:"meta"`
+	Data V2CliDecideDeviceLoginResponseData `json:"data"`
 }
 
 func (v *V2CliDecideDeviceLoginResponseBody) GetMeta() Meta {
@@ -16,9 +15,9 @@ func (v *V2CliDecideDeviceLoginResponseBody) GetMeta() Meta {
 	return v.Meta
 }
 
-func (v *V2CliDecideDeviceLoginResponseBody) GetData() EmptyResponse {
+func (v *V2CliDecideDeviceLoginResponseBody) GetData() V2CliDecideDeviceLoginResponseData {
 	if v == nil {
-		return EmptyResponse{}
+		return V2CliDecideDeviceLoginResponseData{}
 	}
 	return v.Data
 }

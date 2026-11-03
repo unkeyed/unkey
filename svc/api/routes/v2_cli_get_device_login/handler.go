@@ -43,6 +43,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 	permissions := GrantablePermissions(p)
+	var oauth *openapi.V2CliDeviceLoginOAuth
+	if authz.OAuth != nil {
+		oauth = &openapi.V2CliDeviceLoginOAuth{
+			ClientName: authz.OAuth.ClientName,
+			ClientHost: authz.OAuth.ClientHost,
+			Resource:   authz.OAuth.Resource,
+		}
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
@@ -56,6 +64,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			CreatedAt:            authz.CreatedAt,
 			ExpiresAt:            authz.ExpiresAt,
 			GrantablePermissions: &permissions,
+			Oauth:                oauth,
 		},
 	})
 }

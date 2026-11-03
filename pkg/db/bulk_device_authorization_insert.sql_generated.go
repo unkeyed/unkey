@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertDeviceAuthorization is the base query for bulk insert
-const bulkInsertDeviceAuthorization = `INSERT INTO device_authorizations ( id, user_code, expires_at, status, device_name, requester_ip, requester_user_agent, created_at ) VALUES %s`
+const bulkInsertDeviceAuthorization = `INSERT INTO device_authorizations ( id, user_code, expires_at, status, device_name, requester_ip, requester_user_agent, created_at, oauth ) VALUES %s`
 
 // InsertDeviceAuthorizations performs bulk insert in a single query
 func (q *BulkQueries) InsertDeviceAuthorizations(ctx context.Context, db DBTX, args []InsertDeviceAuthorizationParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertDeviceAuthorizations(ctx context.Context, db DBTX, a
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertDeviceAuthorization, strings.Join(valueClauses, ", "))
@@ -37,6 +37,7 @@ func (q *BulkQueries) InsertDeviceAuthorizations(ctx context.Context, db DBTX, a
 		allArgs = append(allArgs, arg.RequesterIp)
 		allArgs = append(allArgs, arg.RequesterUserAgent)
 		allArgs = append(allArgs, arg.CreatedAt)
+		allArgs = append(allArgs, arg.Oauth)
 	}
 
 	// Execute the bulk insert

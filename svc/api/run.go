@@ -453,6 +453,7 @@ func Run(ctx context.Context, cfg Config) error {
 		DashboardBaseURL: cfg.CLIAuth.DashboardBaseURL,
 		Signer:           nil,
 		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
+		OAuth:            nil,
 	}
 	if len(cliSecrets) > 0 {
 		cliSigner, signErr := tokenjwt.NewHS256Signer[clisession.Claims](cliSecrets[0])
@@ -477,6 +478,13 @@ func Run(ctx context.Context, cfg Config) error {
 			return fmt.Errorf("unable to create cli session resolver: %w", cliErr)
 		}
 		authResolvers = append(authResolvers, cliResolver)
+		if cfg.CLIAuth.IssuerURL != "" {
+			oauthServer, oauthErr := newOAuthServer(cfg.CLIAuth, cliSecrets)
+			if oauthErr != nil {
+				return fmt.Errorf("unable to create oauth authorization server: %w", oauthErr)
+			}
+			cliService.OAuth = oauthServer
+		}
 	}
 	authSvc := auth.New(authResolvers...)
 	portalAuthSvc := auth.New(portalResolvers...)
@@ -629,4 +637,23 @@ func Run(ctx context.Context, cfg Config) error {
 
 	logger.Info("API server shut down successfully")
 	return nil
+}
+
+func newOAuthServer(cfg CLIAuthConfig, secrets [][]byte) (*clidevice.OAuthServer, error) {
+	resources, err := clidevice.NewResourcePolicy(cfg.OAuthResourceOrigins, cfg.OAuthDefaultResource)
+	if err != nil {
+		return nil, err
+	}
+	registrar, err := clidevice.NewRegistrar(secrets)
+	if err != nil {
+		return nil, err
+	}
+	return &clidevice.OAuthServer{
+		Issuer:    strings.TrimRight(cfg.IssuerURL, "/"),
+		Resources: resources,
+		Clients: clidevice.Directory{
+			Documents: clidevice.NewHTTPClientMetadata(),
+			Registrar: registrar,
+		},
+	}, nil
 }

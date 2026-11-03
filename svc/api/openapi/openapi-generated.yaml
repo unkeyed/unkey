@@ -674,7 +674,7 @@ components:
                 meta:
                     $ref: '#/components/schemas/Meta'
                 data:
-                    $ref: '#/components/schemas/EmptyResponse'
+                    $ref: '#/components/schemas/V2CliDecideDeviceLoginResponseData'
         V2CliExchangeTokenRequestBody:
             type: object
             additionalProperties: false
@@ -5470,6 +5470,16 @@ components:
                         branch of the connected repository.
                     example: main
             additionalProperties: false
+        V2CliDecideDeviceLoginResponseData:
+            type: object
+            additionalProperties: false
+            properties:
+                redirectUrl:
+                    type: string
+                    x-unkey-redact: true
+                    description: |
+                        Where to send the browser after an OAuth login is decided. It carries the authorization code or the access_denied error to the client.
+                        Absent for CLI logins.
         V2CliExchangeTokenResponseData:
             type: object
             description: Session credentials returned by a successful token exchange.
@@ -5536,6 +5546,26 @@ components:
                     type: integer
                     format: int64
                     description: Unix millisecond expiry.
+                oauth:
+                    $ref: '#/components/schemas/V2CliDeviceLoginOAuth'
+        V2CliDeviceLoginOAuth:
+            type: object
+            additionalProperties: false
+            description: Present only when an MCP client started the login through OAuth. Skip the code comparison and send the browser to the decision's redirectUrl.
+            required:
+                - clientName
+                - clientHost
+                - resource
+            properties:
+                clientName:
+                    type: string
+                    description: The client's self-reported name. Show clientHost next to it.
+                clientHost:
+                    type: string
+                    description: Host that vouches for the client. For a client metadata document, the host serving it. For a registered client, the host the authorization code is sent to.
+                resource:
+                    type: string
+                    description: URL of the MCP server the session will be used with.
         V2CliListSessionsResponseData:
             type: object
             required:
@@ -5565,6 +5595,12 @@ components:
                 deviceName:
                     type: string
                     description: The CLI machine's name, or the MCP client's self-reported name.
+                clientHost:
+                    type: string
+                    description: Host of the MCP client's metadata document. Absent for CLI sessions and dynamically registered clients.
+                resource:
+                    type: string
+                    description: URL of the MCP server an mcp session is bound to. Absent for CLI sessions.
                 permissions:
                     type: array
                     items:
@@ -11057,6 +11093,7 @@ paths:
                 Approval requires permissions. Denial must not include permissions and prevents token issuance.
                 Every permission must fit inside the caller's role. Any member can approve, not only admins.
                 The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
+                For a login an MCP client started through OAuth, the response carries redirectUrl and the session is created when the client redeems the authorization code.
             operationId: cli.decideDeviceLogin
             requestBody:
                 content:

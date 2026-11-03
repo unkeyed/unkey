@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/counter"
 	"github.com/unkeyed/unkey/pkg/tls"
+	"github.com/unkeyed/unkey/svc/api/internal/clidevice"
 )
 
 // ClickHouseConfig configures connections to ClickHouse for analytics storage.
@@ -58,6 +59,19 @@ type CLIAuthConfig struct {
 	WorkOSAPIBaseURL string   `toml:"workos_api_base_url" config:"default=https://api.workos.com"`
 	DashboardBaseURL string   `toml:"dashboard_base_url" config:"default=https://app.unkey.com"`
 	SigningSecrets   []string `toml:"signing_secrets"`
+
+	// IssuerURL is the API's public origin. Setting it turns on the OAuth
+	// authorization server MCP clients sign in through.
+	IssuerURL string `toml:"issuer_url"`
+
+	// OAuthResourceOrigins are the origins of the MCP servers an OAuth client
+	// may request a token for. Any URL on one of them is a valid resource, so
+	// the MCP server can add mounts without an API config change.
+	OAuthResourceOrigins []string `toml:"oauth_resource_origins"`
+
+	// OAuthDefaultResource is the canonical MCP server URL. Clients that send
+	// no RFC 8707 resource get a token bound to it.
+	OAuthDefaultResource string `toml:"oauth_default_resource"`
 }
 
 // RestateConfig configures the Restate ingress used to submit durable
@@ -521,6 +535,23 @@ func (c CLIAuthConfig) validate() error {
 	hasSigningSecrets := len(c.SigningSecrets) > 0
 	if hasWorkOSAPIKey != hasSigningSecrets {
 		return fmt.Errorf("cli_auth requires both workos_api_key and signing_secrets, or neither")
+	}
+	if c.IssuerURL == "" {
+		if len(c.OAuthResourceOrigins) > 0 || c.OAuthDefaultResource != "" {
+			return fmt.Errorf("cli_auth.oauth_resource_origins and cli_auth.oauth_default_resource require cli_auth.issuer_url")
+		}
+		return nil
+	}
+	if !hasSigningSecrets {
+		return fmt.Errorf("cli_auth.issuer_url requires workos_api_key and signing_secrets")
+	}
+	issuer, err := url.Parse(c.IssuerURL)
+	if err != nil || (issuer.Scheme != "https" && issuer.Scheme != "http") || issuer.Host == "" ||
+		strings.Trim(issuer.Path, "/") != "" || issuer.RawQuery != "" || strings.Contains(c.IssuerURL, "#") {
+		return fmt.Errorf("cli_auth.issuer_url must be an http(s) origin without a path, query, or fragment")
+	}
+	if _, err := clidevice.NewResourcePolicy(c.OAuthResourceOrigins, c.OAuthDefaultResource); err != nil {
+		return fmt.Errorf("cli_auth: %w", err)
 	}
 	return nil
 }

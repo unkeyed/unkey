@@ -35,3 +35,5 @@ properties:
     type: integer
     format: int64
     description: Unix millisecond expiry.
+  oauth:
+    $ref: ./V2CliDeviceLoginOAuth.yaml

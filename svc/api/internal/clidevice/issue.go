@@ -30,6 +30,11 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 		}
 		return PollResult{}, err
 	}
+	// An OAuth login is redeemed only at the token endpoint, where PKCE proves
+	// the redeemer started the authorization.
+	if row.Oauth != nil {
+		return PollResult{}, loginNotFound()
+	}
 
 	switch s.authorizationStatus(row) {
 	case db.DeviceAuthorizationsStatusDenied:
@@ -114,7 +119,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 	if err != nil {
 		return PollResult{}, err
 	}
-	accessToken, err := s.signAccessToken(row.ApproverUserID.String, row.ApproverName.String, workspace.ID, sessionID, row.DeviceName.String, narrowed)
+	accessToken, err := s.signAccessToken(row.ApproverUserID.String, row.ApproverName.String, workspace.ID, sessionID, row.DeviceName.String, grantResource(row), narrowed)
 	if err != nil {
 		return PollResult{}, err
 	}
@@ -199,7 +204,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 // newSession is the only builder of device session rows. The grant that
 // created the session decides its kind.
 func newSession(grant db.DeviceAuthorization, id string, workspaceID string, permissions []byte, refreshToken string, refreshFamily string, now int64) db.InsertDeviceSessionParams {
-	return db.InsertDeviceSessionParams{
+	session := db.InsertDeviceSessionParams{
 		ID:               id,
 		Kind:             db.DeviceSessionsKindCli,
 		WorkspaceID:      workspaceID,
@@ -215,6 +220,19 @@ func newSession(grant db.DeviceAuthorization, id string, workspaceID string, per
 		LastUsedAt:       now,
 		ExpiresAt:        sessionExpiry(now, now),
 	}
+	if grant.Oauth != nil {
+		session.Kind = db.DeviceSessionsKindMcp
+		session.OauthClientID = sql.NullString{String: grant.Oauth.ClientID, Valid: true}
+		session.Resource = sql.NullString{String: grant.Oauth.Resource, Valid: true}
+	}
+	return session
+}
+
+func grantResource(grant db.DeviceAuthorization) string {
+	if grant.Oauth == nil {
+		return ""
+	}
+	return grant.Oauth.Resource
 }
 
 func kindLabel(kind db.DeviceSessionsKind) string {
@@ -225,7 +243,8 @@ func approvalChanged(read db.DeviceAuthorization, locked db.DeviceAuthorization)
 	return read.ApprovedAt != locked.ApprovedAt ||
 		read.ApproverUserID != locked.ApproverUserID ||
 		read.WorkspaceID != locked.WorkspaceID ||
-		!bytes.Equal(read.Permissions, locked.Permissions)
+		!bytes.Equal(read.Permissions, locked.Permissions) ||
+		read.CodeHash != locked.CodeHash
 }
 
 func (s *Service) denyAuthorization(ctx context.Context, id string) error {

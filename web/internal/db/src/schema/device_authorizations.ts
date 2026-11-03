@@ -22,6 +22,14 @@ export const deviceAuthorizations = mysqlTable(
     sessionId: id("session_id").unique(),
     createdAt: bigint("created_at", { mode: "number" }).notNull(),
     approvedAt: bigint("approved_at", { mode: "number" }),
+    oauth: json("oauth").$type<{
+      client_id: string;
+      redirect_uri: string;
+      code_challenge: string;
+      state: string;
+      resource: string;
+    }>(),
+    codeHash: caseSensitiveVarchar("code_hash", { length: 64 }).unique(),
   },
   (table) => [index("device_authorizations_expires_at_idx").on(table.expiresAt)],
 );
