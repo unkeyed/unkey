@@ -3,24 +3,13 @@ import {
   IconCodeBranchOutline18,
   IconCubeOutline18,
   IconEarthOutline18,
-  IconEarthPlusOutline18,
   IconGridOutline18,
   IconMicrochipOutline18,
-  IconShieldKeyOutline18,
 } from "@unkey/icons";
 import { Card, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
-import {
-  Canvas,
-  Group,
-  HFlow,
-  IconRow,
-  Node,
-  NodeFooter,
-  NodeHeader,
-  RowItem,
-  Rows,
-} from "./canvas/nodes";
+import { PoliciesLoadingNode } from "./app-canvas";
+import { Canvas, Group, HFlow, IconRow, Node, NodeHeader, RowItem, Rows } from "./canvas/nodes";
 
 function Bar({ className }: { className: string }) {
   return <Skeleton className={cn("inline-block h-3 rounded align-middle", className)} />;
@@ -31,13 +20,7 @@ export function AppCanvasSkeleton() {
     <Card className="flex flex-col">
       <Canvas label="App canvas loading" focusable={false}>
         <Group icon={<IconEarthOutline18 />} label="Domains">
-          <Node
-            footer={
-              <NodeFooter icon={<IconEarthPlusOutline18 />}>
-                <Bar className="w-28" />
-              </NodeFooter>
-            }
-          >
+          <Node>
             <NodeHeader icon={<IconEarthOutline18 />} name="Domains" />
             <Rows>
               <IconRow icon={<IconEarthOutline18 />}>
@@ -80,20 +63,7 @@ export function AppCanvasSkeleton() {
         </Group>
         <HFlow empty />
         <Group icon={<IconGridOutline18 />} label="Services">
-          <Node>
-            <NodeHeader icon={<IconShieldKeyOutline18 />} name="Policies" />
-            <Rows>
-              <IconRow icon={<IconShieldKeyOutline18 />}>
-                <Bar className="w-3/4" />
-              </IconRow>
-              <IconRow icon={<IconShieldKeyOutline18 />}>
-                <Bar className="w-2/3" />
-              </IconRow>
-              <IconRow icon={<IconShieldKeyOutline18 />}>
-                <Bar className="w-1/2" />
-              </IconRow>
-            </Rows>
-          </Node>
+          <PoliciesLoadingNode />
         </Group>
       </Canvas>
     </Card>

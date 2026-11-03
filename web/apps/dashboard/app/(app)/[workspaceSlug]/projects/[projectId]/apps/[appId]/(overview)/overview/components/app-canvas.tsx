@@ -413,8 +413,20 @@ function PoliciesErrorNode({ onRetry, retrying }: { onRetry: () => void; retryin
   );
 }
 
-function PoliciesLoadingNode() {
-  return <Skeleton className="h-31 w-full rounded-lg" />;
+export function PoliciesLoadingNode() {
+  return (
+    <Node>
+      <NodeHeader
+        icon={<IconShieldKeyOutline18 />}
+        name={<Skeleton className="inline-block h-3 w-16 rounded align-middle" />}
+      />
+      <Rows>
+        <IconRow icon={<IconShieldKeyOutline18 />}>
+          <Skeleton className="inline-block h-3 w-3/4 rounded align-middle" />
+        </IconRow>
+      </Rows>
+    </Node>
+  );
 }
 
 type AppStatus = {

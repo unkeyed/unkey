@@ -100,7 +100,7 @@ function useProductionOverview({
   openPaywall: () => void;
 }): ProductionOverviewModel {
   const { projectId, appId } = useAppScope();
-  const { data: customDomains = [] } = useCustomDomains();
+  const customDomains = useCustomDomains();
   const recent = useRecentDeployments({ limit: RECENT_DEPLOYMENTS_LIMIT });
   const production = useProductionDeployments();
   const productionDeployments = production.data ?? [];
@@ -167,7 +167,8 @@ function useProductionOverview({
     production.isLoading ||
     current.isLoading ||
     fallbackDeployment.isLoading ||
-    domains.isLoading
+    domains.isLoading ||
+    customDomains.isLoading
   ) {
     return { kind: "loading" };
   }
@@ -181,7 +182,7 @@ function useProductionOverview({
 
   const { all } = getDomainPriority({
     domains: (domains.data ?? []).filter((d) => d.sticky === "live"),
-    customDomains,
+    customDomains: customDomains.data ?? [],
     environmentId: deployment.environmentId,
     deploymentId: deployment.id,
     currentDeploymentId,
