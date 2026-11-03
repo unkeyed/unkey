@@ -228,14 +228,15 @@ type Querier interface {
 	// CountOrphanConnectionAppTargets verifies deletion cascades in tests.
 	//
 	//  SELECT COUNT(*) FROM connection_app_targets t
-	//  LEFT JOIN app_connections b ON b.id = t.connection_id WHERE b.id IS NULL
-	CountOrphanConnectionAppTargets(ctx context.Context) (int64, error)
+	//  LEFT JOIN app_connections b ON b.id = t.connection_id
+	//  WHERE t.connection_id IN (/*SLICE:connection_ids*/?) AND b.id IS NULL
+	CountOrphanConnectionAppTargets(ctx context.Context, connectionIds []string) (int64, error)
 	// CountOrphanDeploymentConnectionAppTargets verifies deletion cascades in tests.
 	//
 	//  SELECT COUNT(*) FROM deployment_connection_app_targets t
 	//  LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
-	//  WHERE b.pk IS NULL
-	CountOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error)
+	//  WHERE t.connection_id IN (/*SLICE:connection_ids*/?) AND b.pk IS NULL
+	CountOrphanDeploymentConnectionAppTargets(ctx context.Context, connectionIds []string) (int64, error)
 	// Covered by unique_workspace_domain_idx, which leads on workspace_id.
 	//
 	//  SELECT COUNT(*)

@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
 const countAppConnectionsByWorkspaceId = `-- name: CountAppConnectionsByWorkspaceId :one
@@ -95,15 +96,27 @@ func (q *Queries) CountDeploymentConnectionsByWorkspaceId(ctx context.Context, w
 
 const countOrphanConnectionAppTargets = `-- name: CountOrphanConnectionAppTargets :one
 SELECT COUNT(*) FROM connection_app_targets t
-LEFT JOIN app_connections b ON b.id = t.connection_id WHERE b.id IS NULL
+LEFT JOIN app_connections b ON b.id = t.connection_id
+WHERE t.connection_id IN (/*SLICE:connection_ids*/?) AND b.id IS NULL
 `
 
 // CountOrphanConnectionAppTargets verifies deletion cascades in tests.
 //
 //	SELECT COUNT(*) FROM connection_app_targets t
-//	LEFT JOIN app_connections b ON b.id = t.connection_id WHERE b.id IS NULL
-func (q *Queries) CountOrphanConnectionAppTargets(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countOrphanConnectionAppTargets)
+//	LEFT JOIN app_connections b ON b.id = t.connection_id
+//	WHERE t.connection_id IN (/*SLICE:connection_ids*/?) AND b.id IS NULL
+func (q *Queries) CountOrphanConnectionAppTargets(ctx context.Context, connectionIds []string) (int64, error) {
+	query := countOrphanConnectionAppTargets
+	var queryParams []interface{}
+	if len(connectionIds) > 0 {
+		for _, v := range connectionIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:connection_ids*/?", strings.Repeat(",?", len(connectionIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:connection_ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, query, queryParams...)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -112,16 +125,26 @@ func (q *Queries) CountOrphanConnectionAppTargets(ctx context.Context) (int64, e
 const countOrphanDeploymentConnectionAppTargets = `-- name: CountOrphanDeploymentConnectionAppTargets :one
 SELECT COUNT(*) FROM deployment_connection_app_targets t
 LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
-WHERE b.pk IS NULL
+WHERE t.connection_id IN (/*SLICE:connection_ids*/?) AND b.pk IS NULL
 `
 
 // CountOrphanDeploymentConnectionAppTargets verifies deletion cascades in tests.
 //
 //	SELECT COUNT(*) FROM deployment_connection_app_targets t
 //	LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
-//	WHERE b.pk IS NULL
-func (q *Queries) CountOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countOrphanDeploymentConnectionAppTargets)
+//	WHERE t.connection_id IN (/*SLICE:connection_ids*/?) AND b.pk IS NULL
+func (q *Queries) CountOrphanDeploymentConnectionAppTargets(ctx context.Context, connectionIds []string) (int64, error) {
+	query := countOrphanDeploymentConnectionAppTargets
+	var queryParams []interface{}
+	if len(connectionIds) > 0 {
+		for _, v := range connectionIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:connection_ids*/?", strings.Repeat(",?", len(connectionIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:connection_ids*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, query, queryParams...)
 	var count int64
 	err := row.Scan(&count)
 	return count, err

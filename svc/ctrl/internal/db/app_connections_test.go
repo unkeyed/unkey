@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"maps"
+	"slices"
 	"testing"
 
 	"github.com/go-sql-driver/mysql"
@@ -190,10 +192,11 @@ func TestAppConnections(t *testing.T) {
 				require.Zero(t, count,
 					"the deleted workspace's saved deployment connections must be gone")
 			}
-			orphans, err := q.CountOrphanConnectionAppTargets(t.Context())
+			connectionIDs := slices.Collect(maps.Values(f.connections))
+			orphans, err := q.CountOrphanConnectionAppTargets(t.Context(), connectionIDs)
 			require.NoError(t, err)
 			require.Zero(t, orphans)
-			orphans, err = q.CountOrphanDeploymentConnectionAppTargets(t.Context())
+			orphans, err = q.CountOrphanDeploymentConnectionAppTargets(t.Context(), connectionIDs)
 			require.NoError(t, err)
 			require.Zero(t, orphans)
 
