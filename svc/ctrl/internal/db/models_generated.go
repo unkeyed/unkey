@@ -612,48 +612,6 @@ func (ns NullDeploymentStepsStep) Value() (driver.Value, error) {
 	return string(ns.DeploymentStepsStep), nil
 }
 
-type DeploymentTopologyDesiredStatus string
-
-const (
-	DeploymentTopologyDesiredStatusStopped DeploymentTopologyDesiredStatus = "stopped"
-	DeploymentTopologyDesiredStatusRunning DeploymentTopologyDesiredStatus = "running"
-)
-
-func (e *DeploymentTopologyDesiredStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DeploymentTopologyDesiredStatus(s)
-	case string:
-		*e = DeploymentTopologyDesiredStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DeploymentTopologyDesiredStatus: %T", src)
-	}
-	return nil
-}
-
-type NullDeploymentTopologyDesiredStatus struct {
-	DeploymentTopologyDesiredStatus DeploymentTopologyDesiredStatus
-	Valid                           bool // Valid is true if DeploymentTopologyDesiredStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDeploymentTopologyDesiredStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.DeploymentTopologyDesiredStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DeploymentTopologyDesiredStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDeploymentTopologyDesiredStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DeploymentTopologyDesiredStatus), nil
-}
-
 type DeploymentsShutdownSignal string
 
 const (

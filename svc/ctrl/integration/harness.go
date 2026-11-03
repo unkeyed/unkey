@@ -231,7 +231,6 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		AutoscalingReplicasMax:     1,
 		AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
 		AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
-		DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
 		CreatedAt:                  h.Now(),
 	})
 	require.NoError(h.t, err)

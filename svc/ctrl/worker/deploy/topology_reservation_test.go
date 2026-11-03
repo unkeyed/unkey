@@ -130,7 +130,6 @@ func reservationFor(ctx context.Context, seeder *seed.Seeder, workspaceID string
 			RegionID:               uid.New(uid.RegionPrefix),
 			AutoscalingReplicasMin: 1,
 			AutoscalingReplicasMax: 1,
-			DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
 		}},
 	}
 }

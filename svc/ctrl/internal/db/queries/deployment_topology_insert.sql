@@ -7,7 +7,6 @@ INSERT INTO `deployment_topology` (
     autoscaling_replicas_max,
     autoscaling_threshold_cpu,
     autoscaling_threshold_memory,
-    desired_status,
     created_at
 ) VALUES (
     sqlc.arg(workspace_id),
@@ -17,13 +16,11 @@ INSERT INTO `deployment_topology` (
     sqlc.arg(autoscaling_replicas_max),
     sqlc.arg(autoscaling_threshold_cpu),
     sqlc.arg(autoscaling_threshold_memory),
-    sqlc.arg(desired_status),
     sqlc.arg(created_at)
 )
 ON DUPLICATE KEY UPDATE
     autoscaling_replicas_min = sqlc.arg(autoscaling_replicas_min),
     autoscaling_replicas_max = sqlc.arg(autoscaling_replicas_max),
     autoscaling_threshold_cpu = sqlc.arg(autoscaling_threshold_cpu),
-    autoscaling_threshold_memory = sqlc.arg(autoscaling_threshold_memory),
-    desired_status = sqlc.arg(desired_status)
+    autoscaling_threshold_memory = sqlc.arg(autoscaling_threshold_memory)
 ;

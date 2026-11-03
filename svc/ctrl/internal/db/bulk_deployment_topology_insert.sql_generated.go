@@ -9,12 +9,11 @@ import (
 )
 
 // bulkInsertDeploymentTopology is the base query for bulk insert
-const bulkInsertDeploymentTopology = `INSERT INTO ` + "`" + `deployment_topology` + "`" + ` ( workspace_id, deployment_id, region_id, autoscaling_replicas_min, autoscaling_replicas_max, autoscaling_threshold_cpu, autoscaling_threshold_memory, desired_status, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkInsertDeploymentTopology = `INSERT INTO ` + "`" + `deployment_topology` + "`" + ` ( workspace_id, deployment_id, region_id, autoscaling_replicas_min, autoscaling_replicas_max, autoscaling_threshold_cpu, autoscaling_threshold_memory, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
     autoscaling_replicas_min = ?,
     autoscaling_replicas_max = ?,
     autoscaling_threshold_cpu = ?,
-    autoscaling_threshold_memory = ?,
-    desired_status = ?`
+    autoscaling_threshold_memory = ?`
 
 // InsertDeploymentTopologies performs bulk insert in a single query
 
@@ -27,7 +26,7 @@ func (q *BulkQueries) InsertDeploymentTopologies(ctx context.Context, args []Ins
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertDeploymentTopology, strings.Join(valueClauses, ", "))
@@ -42,7 +41,6 @@ func (q *BulkQueries) InsertDeploymentTopologies(ctx context.Context, args []Ins
 		allArgs = append(allArgs, arg.AutoscalingReplicasMax)
 		allArgs = append(allArgs, arg.AutoscalingThresholdCpu)
 		allArgs = append(allArgs, arg.AutoscalingThresholdMemory)
-		allArgs = append(allArgs, arg.DesiredStatus)
 		allArgs = append(allArgs, arg.CreatedAt)
 	}
 
@@ -52,7 +50,6 @@ func (q *BulkQueries) InsertDeploymentTopologies(ctx context.Context, args []Ins
 		allArgs = append(allArgs, args[0].AutoscalingReplicasMax)
 		allArgs = append(allArgs, args[0].AutoscalingThresholdCpu)
 		allArgs = append(allArgs, args[0].AutoscalingThresholdMemory)
-		allArgs = append(allArgs, args[0].DesiredStatus)
 	}
 
 	// Execute the bulk insert

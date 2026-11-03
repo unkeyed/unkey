@@ -125,7 +125,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 		AutoscalingReplicasMax:     1,
 		AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
 		AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
-		DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
 		CreatedAt:                  now,
 	})
 	require.NoError(t, err)

@@ -155,7 +155,7 @@ func insertTestDeployment(t *testing.T, q *Queries, d testDeployment) {
 		require.NoError(t, q.InsertDeploymentTopology(t.Context(), InsertDeploymentTopologyParams{
 			WorkspaceID: d.WorkspaceID, DeploymentID: d.ID, RegionID: region,
 			AutoscalingReplicasMin: 1, AutoscalingReplicasMax: 1,
-			DesiredStatus: DeploymentTopologyDesiredStatusRunning, CreatedAt: 1,
+			CreatedAt: 1,
 		}))
 	}
 }

@@ -19,10 +19,8 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     autoscaling_replicas_max,
     autoscaling_threshold_cpu,
     autoscaling_threshold_memory,
-    desired_status,
     created_at
 ) VALUES (
-    ?,
     ?,
     ?,
     ?,
@@ -36,20 +34,18 @@ ON DUPLICATE KEY UPDATE
     autoscaling_replicas_min = ?,
     autoscaling_replicas_max = ?,
     autoscaling_threshold_cpu = ?,
-    autoscaling_threshold_memory = ?,
-    desired_status = ?
+    autoscaling_threshold_memory = ?
 `
 
 type InsertDeploymentTopologyParams struct {
-	WorkspaceID                string                          `db:"workspace_id"`
-	DeploymentID               string                          `db:"deployment_id"`
-	RegionID                   string                          `db:"region_id"`
-	AutoscalingReplicasMin     uint32                          `db:"autoscaling_replicas_min"`
-	AutoscalingReplicasMax     uint32                          `db:"autoscaling_replicas_max"`
-	AutoscalingThresholdCpu    sql.NullInt16                   `db:"autoscaling_threshold_cpu"`
-	AutoscalingThresholdMemory sql.NullInt16                   `db:"autoscaling_threshold_memory"`
-	DesiredStatus              DeploymentTopologyDesiredStatus `db:"desired_status"`
-	CreatedAt                  int64                           `db:"created_at"`
+	WorkspaceID                string        `db:"workspace_id"`
+	DeploymentID               string        `db:"deployment_id"`
+	RegionID                   string        `db:"region_id"`
+	AutoscalingReplicasMin     uint32        `db:"autoscaling_replicas_min"`
+	AutoscalingReplicasMax     uint32        `db:"autoscaling_replicas_max"`
+	AutoscalingThresholdCpu    sql.NullInt16 `db:"autoscaling_threshold_cpu"`
+	AutoscalingThresholdMemory sql.NullInt16 `db:"autoscaling_threshold_memory"`
+	CreatedAt                  int64         `db:"created_at"`
 }
 
 // InsertDeploymentTopology
@@ -62,10 +58,8 @@ type InsertDeploymentTopologyParams struct {
 //	    autoscaling_replicas_max,
 //	    autoscaling_threshold_cpu,
 //	    autoscaling_threshold_memory,
-//	    desired_status,
 //	    created_at
 //	) VALUES (
-//	    ?,
 //	    ?,
 //	    ?,
 //	    ?,
@@ -79,8 +73,7 @@ type InsertDeploymentTopologyParams struct {
 //	    autoscaling_replicas_min = ?,
 //	    autoscaling_replicas_max = ?,
 //	    autoscaling_threshold_cpu = ?,
-//	    autoscaling_threshold_memory = ?,
-//	    desired_status = ?
+//	    autoscaling_threshold_memory = ?
 func (q *Queries) InsertDeploymentTopology(ctx context.Context, arg InsertDeploymentTopologyParams) error {
 	_, err := q.db.ExecContext(ctx, insertDeploymentTopology,
 		arg.WorkspaceID,
@@ -90,13 +83,11 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, arg InsertDeploy
 		arg.AutoscalingReplicasMax,
 		arg.AutoscalingThresholdCpu,
 		arg.AutoscalingThresholdMemory,
-		arg.DesiredStatus,
 		arg.CreatedAt,
 		arg.AutoscalingReplicasMin,
 		arg.AutoscalingReplicasMax,
 		arg.AutoscalingThresholdCpu,
 		arg.AutoscalingThresholdMemory,
-		arg.DesiredStatus,
 	)
 	return err
 }

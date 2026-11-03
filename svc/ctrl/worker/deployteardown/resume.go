@@ -150,7 +150,6 @@ func (v *VirtualObject) Resume(ctx restate.ObjectContext, _ *hydrav1.ResumeReque
 			v.db,
 			deploymentID,
 			mysqltype.DeploymentsDesiredStateRunning,
-			db.DeploymentTopologyDesiredStatusRunning,
 		); err != nil {
 			return nil, fmt.Errorf("resume deployment %s to running: %w", deploymentID, err)
 		}

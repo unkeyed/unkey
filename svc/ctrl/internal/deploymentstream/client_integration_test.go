@@ -58,13 +58,27 @@ func TestWatch_VitessDeploymentIntentChanges(t *testing.T) {
 		})
 		require.ErrorIs(t, err, stop)
 		require.NotEmpty(t, token)
-		for _, state := range []mysqltype.DeploymentsDesiredState{
-			mysqltype.DeploymentsDesiredStateStopped,
-			mysqltype.DeploymentsDesiredStateStopped,
-			mysqltype.DeploymentsDesiredStateRunning,
-			mysqltype.DeploymentsDesiredStateRunning,
+		for _, write := range []struct {
+			state      mysqltype.DeploymentsDesiredState
+			notifyOnly bool
+		}{
+			{mysqltype.DeploymentsDesiredStateStopped, false},
+			{mysqltype.DeploymentsDesiredStateStopped, false},
+			{mysqltype.DeploymentsDesiredStateRunning, false},
+			{mysqltype.DeploymentsDesiredStateRunning, false},
+			{mysqltype.DeploymentsDesiredStateRunning, true},
+			{mysqltype.DeploymentsDesiredStateRunning, true},
 		} {
-			require.NoError(t, database.UpdateDeploymentDesiredState(ctx, db.UpdateDeploymentDesiredStateParams{ID: deployment.ID, DesiredState: state}))
+			if write.notifyOnly {
+				require.NoError(t, database.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
+					ID: deployment.ID, Status: mysqltype.DeploymentsStatusCancelled,
+				}))
+				require.NoError(t, database.NotifyDeploymentTopology(ctx, db.NotifyDeploymentTopologyParams{
+					DeploymentID: deployment.ID, RegionID: region,
+				}))
+			} else {
+				require.NoError(t, database.UpdateDeploymentDesiredState(ctx, db.UpdateDeploymentDesiredStateParams{ID: deployment.ID, DesiredState: write.state}))
+			}
 			delivered := false
 			err = client.Watch(ctx, region, token, func(event Event) error {
 				if event.DeploymentID == deployment.ID {
@@ -76,7 +90,13 @@ func TestWatch_VitessDeploymentIntentChanges(t *testing.T) {
 				}
 				return nil
 			})
-			require.ErrorIs(t, err, stop, "deployment state %s must reach the regional stream", state)
+			require.ErrorIs(t, err, stop, "deployment state %s must reach the regional stream", write.state)
+			if write.notifyOnly {
+				current, err := database.FindDeploymentById(ctx, deployment.ID)
+				require.NoError(t, err)
+				require.Equal(t, write.state, current.DesiredState)
+				require.Equal(t, mysqltype.DeploymentsStatusCancelled, current.Status)
+			}
 		}
 	}
 }
@@ -292,7 +312,6 @@ func topology(workspaceID, deploymentID, regionID string, createdAt int64) db.In
 		AutoscalingReplicasMax:     1,
 		AutoscalingThresholdCpu:    sql.NullInt16{Valid: false},
 		AutoscalingThresholdMemory: sql.NullInt16{Valid: false},
-		DesiredStatus:              db.DeploymentTopologyDesiredStatusRunning,
 		CreatedAt:                  createdAt,
 	}
 }
