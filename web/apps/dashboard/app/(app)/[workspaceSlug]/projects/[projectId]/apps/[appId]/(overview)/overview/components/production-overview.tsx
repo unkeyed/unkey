@@ -2,6 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { appSource } from "@/components/deploy/app-source";
+import { LoadError } from "@/components/load-error";
 import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
@@ -24,6 +25,7 @@ import {
   useProductionDeployments,
   useRecentDeployments,
 } from "@/lib/deploy-data";
+import { blockerOf, fromQuery, readyOr } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
@@ -67,6 +69,7 @@ const AUDIT_EXPORT_POLL_LIMIT = 36;
 
 type ProductionOverviewModel =
   | { kind: "loading" }
+  | { kind: "failed"; error: unknown; retry: () => void }
   | { kind: "no-deployments" }
   | { kind: "no-production" }
   | {
@@ -158,19 +161,30 @@ function useProductionOverview({
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
-  if (recent.data?.length === 0) {
+  const recentView = fromQuery(recent);
+  const domainsView = fromQuery(domains);
+  const customDomainsView = fromQuery(customDomains);
+
+  if (recentView.status === "ready" && recentView.data.length === 0) {
     return { kind: "no-deployments" };
   }
 
-  if (
-    recent.isLoading ||
-    production.isLoading ||
-    current.isLoading ||
-    fallbackDeployment.isLoading ||
-    domains.isLoading ||
-    customDomains.isLoading
-  ) {
-    return { kind: "loading" };
+  const secondaryViews = [fromQuery(production), domainsView, customDomainsView];
+  const blocker =
+    blockerOf([recentView, fromQuery(current), fromQuery(fallbackDeployment)]) ??
+    blockerOf(secondaryViews.filter((view) => view.status === "loading"));
+  if (blocker) {
+    return match(blocker)
+      .with({ status: "loading" }, (): ProductionOverviewModel => ({ kind: "loading" }))
+      .with(
+        { status: "failed" },
+        ({ error, retry }): ProductionOverviewModel => ({
+          kind: "failed",
+          error,
+          retry,
+        }),
+      )
+      .exhaustive();
   }
 
   if (!shownProduction) {
@@ -181,8 +195,8 @@ function useProductionOverview({
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { all } = getDomainPriority({
-    domains: (domains.data ?? []).filter((d) => d.sticky === "live"),
-    customDomains: customDomains.data ?? [],
+    domains: readyOr(domainsView, []).filter((d) => d.sticky === "live"),
+    customDomains: readyOr(customDomainsView, []),
     environmentId: deployment.environmentId,
     deploymentId: deployment.id,
     currentDeploymentId,
@@ -316,6 +330,7 @@ function ProductionOverviewView({
         actions={match(model.kind)
           .with("deployed", () => <ProductionActions />)
           .with("loading", () => <ProductionActionsSkeleton />)
+          .with("failed", () => undefined)
           .with("no-deployments", "no-production", () => undefined)
           .exhaustive()}
       />
@@ -349,6 +364,11 @@ function ProductionCardSlot({ model }: { model: ProductionOverviewModel }) {
   const reduceMotion = useReducedMotion();
   return match(model)
     .with({ kind: "loading" }, () => <AppCanvasSkeleton />)
+    .with({ kind: "failed" }, ({ error, retry }) => (
+      <Card className="flex flex-col">
+        <LoadError title="Could not load this app" error={error} frame="none" onRetry={retry} />
+      </Card>
+    ))
     .with({ kind: "no-deployments" }, () => (
       <CreateDeploymentButton
         renderTrigger={({ onClick }) => <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />}
