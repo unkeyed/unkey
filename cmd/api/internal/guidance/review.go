@@ -119,7 +119,7 @@ func (f *form) reviewMenu(ctx context.Context, schema *Schema, values map[string
 		question := "Edit fields"
 		defaultValue := ""
 		if mode.action != "" {
-			question = mode.action
+			question = ""
 			options = append(options, prompt.SelectOption{Key: "cancel", Label: "Cancel"})
 			if mode.destructive {
 				defaultValue = "cancel"

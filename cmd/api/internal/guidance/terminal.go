@@ -283,8 +283,10 @@ func (f *terminalForm) SelectOrdered(label string, options []prompt.SelectOption
 		}
 		visible := min(len(options), max(1, f.height/2-3))
 		top := min(max(0, selected-visible+1), len(options)-visible)
-		question := f.palette.mark("?") + " " + f.palette.bold(label)
-		lines := []string{question}
+		var lines []string
+		if label != "" {
+			lines = append(lines, f.palette.mark("?")+" "+f.palette.bold(label))
+		}
 		for i := top; i < top+visible; i++ {
 			if i == selected {
 				lines = append(lines, f.palette.mark("❯")+" "+f.palette.value(options[i].Label))
@@ -550,7 +552,9 @@ func (f *lineForm) SelectOrdered(label string, options []prompt.SelectOption, de
 		}
 	}
 	var menu strings.Builder
-	fmt.Fprintf(&menu, "? %s\n", label)
+	if label != "" {
+		fmt.Fprintf(&menu, "? %s\n", label)
+	}
 	for i, option := range options {
 		fmt.Fprintf(&menu, "  %d. %s\n", i+1, option.Label)
 	}
