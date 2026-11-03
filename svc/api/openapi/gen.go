@@ -3785,8 +3785,11 @@ type V2CliGetDeviceLoginResponseData struct {
 	// GrantablePermissions Permissions the signed-in member's role allows. The approval page starts with all of them selected.
 	GrantablePermissions *[]string `json:"grantablePermissions,omitempty"`
 
+	// OauthClientFirstParty True when the OAuth client is Unkey's hosted MCP server. deviceName is then Unkey's own name for it, so do not show the client's host. Present only when oauthClientId is.
+	OauthClientFirstParty *bool `json:"oauthClientFirstParty,omitempty"`
+
 	// OauthClientId Client ID metadata document URL of the OAuth client that started the login. Present only for OAuth logins.
-	// deviceName then holds the client's self-reported name, so show this URL's host next to it.
+	// deviceName then holds the client's self-reported name, so show this URL's host next to it unless oauthClientFirstParty is true.
 	OauthClientId *string `json:"oauthClientId,omitempty"`
 
 	// RequesterIp IP address that started the login. Empty when the API could not determine it.
@@ -3831,8 +3834,11 @@ type V2CliListSessionsSession struct {
 	Kind       V2CliSessionKind `json:"kind"`
 	LastUsedAt int64            `json:"lastUsedAt"`
 
+	// OauthClientFirstParty True when the OAuth client is Unkey's hosted MCP server. deviceName is then Unkey's own name for it, so do not show the client's host. Present only when oauthClientId is.
+	OauthClientFirstParty *bool `json:"oauthClientFirstParty,omitempty"`
+
 	// OauthClientId Client ID metadata document URL of the OAuth client that holds the session. Present only for mcp sessions.
-	// deviceName then holds the client's self-reported name, so show this URL's host next to it.
+	// deviceName then holds the client's self-reported name, so show this URL's host next to it unless oauthClientFirstParty is true.
 	OauthClientId *string  `json:"oauthClientId,omitempty"`
 	Permissions   []string `json:"permissions"`
 

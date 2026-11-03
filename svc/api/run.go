@@ -456,6 +456,8 @@ func Run(ctx context.Context, cfg Config) error {
 		IssuerURL:        cfg.CLIAuth.IssuerURL,
 		OAuthResources:   cfg.CLIAuth.OAuthResources,
 		ClientMetadata:   clidevice.NewHTTPClientMetadata(),
+
+		HostedMCPClientID: cfg.CLIAuth.HostedMCPClientID,
 	}
 	if len(cliSecrets) > 0 {
 		cliSigner, signErr := tokenjwt.NewHS256Signer[devicesession.Claims](cliSecrets[0])

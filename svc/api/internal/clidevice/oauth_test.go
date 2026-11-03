@@ -289,6 +289,62 @@ func TestAuthorizeFallsBackToTheClientHostAsName(t *testing.T) {
 	require.Equal(t, "client.example.com", login.DeviceName)
 }
 
+func TestHostedMCPClientIsNamedUnkeyMCPWithoutItsHost(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	client, document := newOAuthClient()
+	document.ClientName = "Hosting Provider"
+	svc := newOAuthService(h, mem{}, document)
+	svc.HostedMCPClientID = client.ID
+	allowed := permissionOnlyDeveloperHas(t, workspace.ID)
+	userID := uid.New(uid.TestPrefix)
+
+	verifier, challenge := pkcePair()
+	state := uid.New(uid.TestPrefix)
+	location, err := svc.Authorize(t.Context(), authorizeRequest(client, challenge, state))
+	require.NoError(t, err)
+	userCode := userCodeOf(t, location)
+
+	login, err := svc.Get(t.Context(), GetRequest{Principal: developerPrincipal(workspace, userID), UserCode: userCode})
+	require.NoError(t, err)
+	require.Equal(t, HostedMCPName, login.DeviceName)
+	require.True(t, login.OAuthFirstParty)
+
+	redirect, err := svc.Approve(t.Context(), ApproveRequest{
+		Principal:   developerPrincipal(workspace, userID),
+		UserCode:    userCode,
+		Permissions: []string{allowed},
+	})
+	require.NoError(t, err)
+	code := redirectQuery(t, redirect, client.RedirectURI).Get("code")
+	_, err = svc.ExchangeCode(t.Context(), exchangeRequest(client, authorizedCode{Code: code, Verifier: verifier, State: state}))
+	require.NoError(t, err)
+
+	listed, err := svc.List(t.Context(), ListRequest{Principal: developerPrincipal(workspace, userID)})
+	require.NoError(t, err)
+	require.Len(t, listed, 1)
+	require.Equal(t, HostedMCPName, listed[0].DeviceName)
+	require.True(t, listed[0].OAuthFirstParty)
+}
+
+func TestClientNamingItselfUnkeyMCPStaysThirdParty(t *testing.T) {
+	h := testutil.NewHarness(t)
+	workspace := h.Resources().UserWorkspace
+	hosted, _ := newOAuthClient()
+	client, document := newOAuthClient()
+	document.ClientName = HostedMCPName
+	svc := newOAuthService(h, mem{}, document)
+	svc.HostedMCPClientID = hosted.ID
+	_, challenge := pkcePair()
+
+	location, err := svc.Authorize(t.Context(), authorizeRequest(client, challenge, ""))
+	require.NoError(t, err)
+	login, err := svc.Get(t.Context(), GetRequest{Principal: developerPrincipal(workspace, uid.New(uid.TestPrefix)), UserCode: userCodeOf(t, location)})
+	require.NoError(t, err)
+	require.Equal(t, client.ID, login.OAuthClientID)
+	require.False(t, login.OAuthFirstParty)
+}
+
 func TestAuthorizeNeverRedirectsForAnUntrustedClientOrRedirectURI(t *testing.T) {
 	h := testutil.NewHarness(t)
 	client, document := newOAuthClient()

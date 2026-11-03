@@ -43,20 +43,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 	permissions := GrantablePermissions(p)
+	var firstParty *bool
+	if authz.OAuthClientID != "" {
+		firstParty = &authz.OAuthFirstParty
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.V2CliGetDeviceLoginResponseData{
-			UserCode:             authz.UserCode,
-			DeviceName:           optional(authz.DeviceName),
-			RequesterIp:          optional(authz.RequesterIP),
-			RequesterUserAgent:   optional(authz.RequesterUserAgent),
-			WorkspaceId:          optional(authz.WorkspaceID),
-			Status:               authz.Status,
-			CreatedAt:            authz.CreatedAt,
-			ExpiresAt:            authz.ExpiresAt,
-			GrantablePermissions: &permissions,
-			OauthClientId:        optional(authz.OAuthClientID),
+			UserCode:              authz.UserCode,
+			DeviceName:            optional(authz.DeviceName),
+			RequesterIp:           optional(authz.RequesterIP),
+			RequesterUserAgent:    optional(authz.RequesterUserAgent),
+			WorkspaceId:           optional(authz.WorkspaceID),
+			Status:                authz.Status,
+			CreatedAt:             authz.CreatedAt,
+			ExpiresAt:             authz.ExpiresAt,
+			GrantablePermissions:  &permissions,
+			OauthClientId:         optional(authz.OAuthClientID),
+			OauthClientFirstParty: firstParty,
 		},
 	})
 }

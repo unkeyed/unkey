@@ -69,6 +69,13 @@ type CLIAuthConfig struct {
 	// request, such as the API's own URL and the MCP server URLs. Each one is
 	// added to the access token audience.
 	OAuthResources []string `toml:"oauth_resources"`
+
+	// HostedMCPClientID is the OAuth client_id that Unkey's hosted MCP server
+	// signs in with. The provider hosting the server is the OAuth client, so
+	// its self-reported name means nothing to users. Logins from this exact
+	// client are named Unkey MCP instead, and the dashboard does not show the
+	// provider's host next to them.
+	HostedMCPClientID string `toml:"hosted_mcp_client_id"`
 }
 
 // RestateConfig configures the Restate ingress used to submit durable
@@ -538,6 +545,12 @@ func (c CLIAuthConfig) validate() error {
 		if err != nil || (issuer.Scheme != "https" && issuer.Scheme != "http") || issuer.Host == "" ||
 			issuer.RawQuery != "" || issuer.Fragment != "" || strings.TrimRight(issuer.Path, "/") != "" {
 			return fmt.Errorf("cli_auth.issuer_url must be an http(s) origin without a path, query, or fragment")
+		}
+	}
+	if c.HostedMCPClientID != "" {
+		parsed, err := url.Parse(c.HostedMCPClientID)
+		if err != nil || parsed.Scheme != "https" || parsed.Host == "" || strings.Trim(parsed.Path, "/") == "" || strings.Contains(c.HostedMCPClientID, "#") {
+			return fmt.Errorf("cli_auth.hosted_mcp_client_id must be an https URL with a path and no fragment")
 		}
 	}
 	for i, resource := range c.OAuthResources {

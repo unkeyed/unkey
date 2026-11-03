@@ -41,6 +41,7 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 		CreatedAt:          row.CreatedAt,
 		ExpiresAt:          row.ExpiresAt,
 		OAuthClientID:      clientID,
+		OAuthFirstParty:    s.isHostedMCP(clientID),
 	}, nil
 }
 

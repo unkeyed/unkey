@@ -26,9 +26,15 @@ export type V2CliListSessionsSession = {
    * Client ID metadata document URL of the OAuth client that holds the session. Present only for mcp sessions.
    *
    * @remarks
-   * deviceName then holds the client's self-reported name, so show this URL's host next to it.
+   * deviceName then holds the client's self-reported name, so show this URL's host next to it unless oauthClientFirstParty is true.
    */
   oauthClientId?: string | undefined;
+  /**
+   * True when the OAuth client is Unkey's hosted MCP server. deviceName is then Unkey's own name for it, so do not show the client's host. Present only when oauthClientId is.
+   *
+   * @remarks
+   */
+  oauthClientFirstParty?: boolean | undefined;
   permissions: Array<string>;
   createdAt: number;
   lastUsedAt: number;
@@ -53,6 +59,7 @@ export const V2CliListSessionsSession$inboundSchema: z.ZodType<
   kind: V2CliSessionKind$inboundSchema,
   deviceName: z.string().optional(),
   oauthClientId: z.string().optional(),
+  oauthClientFirstParty: z.boolean().optional(),
   permissions: z.array(z.string()),
   createdAt: z.number().int(),
   lastUsedAt: z.number().int(),

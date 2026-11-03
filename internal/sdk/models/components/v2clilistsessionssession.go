@@ -10,12 +10,15 @@ type V2CliListSessionsSession struct {
 	// The CLI machine's hostname, or the OAuth client's self-reported name for mcp sessions.
 	DeviceName *string `json:"deviceName,omitzero"`
 	// Client ID metadata document URL of the OAuth client that holds the session. Present only for mcp sessions.
-	// deviceName then holds the client's self-reported name, so show this URL's host next to it.
+	// deviceName then holds the client's self-reported name, so show this URL's host next to it unless oauthClientFirstParty is true.
 	//
-	OauthClientID *string  `json:"oauthClientId,omitzero"`
-	Permissions   []string `json:"permissions"`
-	CreatedAt     int64    `json:"createdAt"`
-	LastUsedAt    int64    `json:"lastUsedAt"`
+	OauthClientID *string `json:"oauthClientId,omitzero"`
+	// True when the OAuth client is Unkey's hosted MCP server. deviceName is then Unkey's own name for it, so do not show the client's host. Present only when oauthClientId is.
+	//
+	OauthClientFirstParty *bool    `json:"oauthClientFirstParty,omitzero"`
+	Permissions           []string `json:"permissions"`
+	CreatedAt             int64    `json:"createdAt"`
+	LastUsedAt            int64    `json:"lastUsedAt"`
 	// Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
 	ExpiresAt int64 `json:"expiresAt"`
 	// Unix millisecond time the session was revoked. Omitted when the session is still active.
@@ -55,6 +58,13 @@ func (v *V2CliListSessionsSession) GetOauthClientID() *string {
 		return nil
 	}
 	return v.OauthClientID
+}
+
+func (v *V2CliListSessionsSession) GetOauthClientFirstParty() *bool {
+	if v == nil {
+		return nil
+	}
+	return v.OauthClientFirstParty
 }
 
 func (v *V2CliListSessionsSession) GetPermissions() []string {

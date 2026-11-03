@@ -39,6 +39,8 @@ type Authorization struct {
 	ExpiresAt          int64
 	// OAuthClientID is set when an OAuth client started the login.
 	OAuthClientID string
+	// OAuthFirstParty is true when that client is Unkey's hosted MCP server.
+	OAuthFirstParty bool
 }
 
 // ApproveRequest records the permissions the dashboard user granted.
@@ -108,9 +110,11 @@ type SessionInfo struct {
 	DeviceName string
 	// OAuthClientID is set when an OAuth client holds the session.
 	OAuthClientID string
-	Permissions   []string
-	CreatedAt     int64
-	LastUsedAt    int64
-	ExpiresAt     int64
-	RevokedAt     int64
+	// OAuthFirstParty is true when that client is Unkey's hosted MCP server.
+	OAuthFirstParty bool
+	Permissions     []string
+	CreatedAt       int64
+	LastUsedAt      int64
+	ExpiresAt       int64
+	RevokedAt       int64
 }

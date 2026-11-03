@@ -168,16 +168,17 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 			return nil, err
 		}
 		info := SessionInfo{
-			ID:            row.ID,
-			UserID:        row.UserID,
-			Kind:          row.Kind,
-			DeviceName:    row.DeviceName.String,
-			OAuthClientID: row.OauthClientID.String,
-			Permissions:   permissions,
-			CreatedAt:     row.CreatedAt,
-			LastUsedAt:    row.LastUsedAt,
-			ExpiresAt:     row.ExpiresAt,
-			RevokedAt:     0,
+			ID:              row.ID,
+			UserID:          row.UserID,
+			Kind:            row.Kind,
+			DeviceName:      row.DeviceName.String,
+			OAuthClientID:   row.OauthClientID.String,
+			OAuthFirstParty: s.isHostedMCP(row.OauthClientID.String),
+			Permissions:     permissions,
+			CreatedAt:       row.CreatedAt,
+			LastUsedAt:      row.LastUsedAt,
+			ExpiresAt:       row.ExpiresAt,
+			RevokedAt:       0,
 		}
 		if row.RevokedAt.Valid {
 			info.RevokedAt = row.RevokedAt.Int64

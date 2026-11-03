@@ -39,17 +39,18 @@ func New(h *testutil.Harness) *clidevice.Service {
 		panic(err)
 	}
 	return &clidevice.Service{
-		DB:               h.DB,
-		Auditlogs:        h.Auditlogs,
-		Clock:            h.Clock,
-		Ratelimit:        h.Ratelimit,
-		Memberships:      allowAdmin{},
-		DashboardBaseURL: "http://dashboard.test",
-		Signer:           signer,
-		SessionCache:     cache.NewNoopCache[string, clidevice.SessionVerdict](),
-		IssuerURL:        "",
-		OAuthResources:   nil,
-		ClientMetadata:   nil,
+		DB:                h.DB,
+		Auditlogs:         h.Auditlogs,
+		Clock:             h.Clock,
+		Ratelimit:         h.Ratelimit,
+		Memberships:       allowAdmin{},
+		DashboardBaseURL:  "http://dashboard.test",
+		Signer:            signer,
+		SessionCache:      cache.NewNoopCache[string, clidevice.SessionVerdict](),
+		IssuerURL:         "",
+		OAuthResources:    nil,
+		HostedMCPClientID: "",
+		ClientMetadata:    nil,
 	}
 }
 

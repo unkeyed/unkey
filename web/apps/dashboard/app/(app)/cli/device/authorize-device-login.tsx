@@ -196,7 +196,11 @@ function DeviceLoginView({
         <BrandHeader
           tone="success"
           title={`Authorized ${client.name}`}
-          description={`Returning you to ${client.host}. You can close this tab.`}
+          description={
+            client.host
+              ? `Returning you to ${client.host}. You can close this tab.`
+              : "Returning you to finish connecting. You can close this tab."
+          }
         />
       ) : (
         <Approved workspaceSlug={workspace.slug} />
@@ -431,10 +435,14 @@ function PendingLogin({
           tone="pending"
           title={`Authorize ${client.name}`}
           description={
-            <>
-              Requested by <span className="font-medium text-gray-12">{client.host}</span>. Approve
-              it so it can work in your workspace.
-            </>
+            client.host ? (
+              <>
+                Requested by <span className="font-medium text-gray-12">{client.host}</span>.
+                Approve it so it can work in your workspace.
+              </>
+            ) : (
+              "Approve this request so your AI tools can work in your workspace through Unkey's MCP server."
+            )
           }
         />
       ) : (
@@ -493,7 +501,7 @@ function PendingLogin({
               aria-hidden="true"
               className="mt-0.5 size-3.5 shrink-0 text-gray-9"
             />
-            {client
+            {client?.host
               ? `Only authorize if you trust ${client.host}. It gets access to this workspace.`
               : "Only authorize if you started this login. Whoever started it gets access to this workspace."}
           </p>

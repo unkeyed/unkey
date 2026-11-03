@@ -29,6 +29,10 @@ const (
 	codeVerifierLengthMax   = 128
 	codeChallengeMethodS256 = "S256"
 
+	// HostedMCPName is what logins and sessions of the hosted MCP server are
+	// called.
+	HostedMCPName = "Unkey MCP"
+
 	authorizationCodePrefix = "ukc_"
 	authorizationCodeLength = 32
 	authorizationCodeTTL    = 60 * time.Second
@@ -199,10 +203,18 @@ func (s *Service) resolveClient(ctx context.Context, clientID string, redirectUR
 		return "", oauthError(OAuthInvalidRequest, "redirect_uri is not registered for this client.")
 	}
 
+	if s.isHostedMCP(clientID) {
+		return HostedMCPName, nil
+	}
 	if name := strings.TrimSpace(metadata.ClientName); name != "" {
 		return name, nil
 	}
 	return clientURL.Host, nil
+}
+
+// isHostedMCP reports whether clientID is Unkey's own hosted MCP server.
+func (s *Service) isHostedMCP(clientID string) bool {
+	return s.HostedMCPClientID != "" && clientID == s.HostedMCPClientID
 }
 
 // parseClientID enforces the client_id URL rules of the OAuth Client ID

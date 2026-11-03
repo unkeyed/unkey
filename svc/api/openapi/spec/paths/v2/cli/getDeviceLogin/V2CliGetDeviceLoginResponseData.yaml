@@ -39,4 +39,8 @@ properties:
     type: string
     description: |
       Client ID metadata document URL of the OAuth client that started the login. Present only for OAuth logins.
-      deviceName then holds the client's self-reported name, so show this URL's host next to it.
+      deviceName then holds the client's self-reported name, so show this URL's host next to it unless oauthClientFirstParty is true.
+  oauthClientFirstParty:
+    type: boolean
+    description: |
+      True when the OAuth client is Unkey's hosted MCP server. deviceName is then Unkey's own name for it, so do not show the client's host. Present only when oauthClientId is.

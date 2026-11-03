@@ -25,9 +25,12 @@ type V2CliGetDeviceLoginResponseData struct {
 	// Unix millisecond expiry.
 	ExpiresAt int64 `json:"expiresAt"`
 	// Client ID metadata document URL of the OAuth client that started the login. Present only for OAuth logins.
-	// deviceName then holds the client's self-reported name, so show this URL's host next to it.
+	// deviceName then holds the client's self-reported name, so show this URL's host next to it unless oauthClientFirstParty is true.
 	//
 	OauthClientID *string `json:"oauthClientId,omitzero"`
+	// True when the OAuth client is Unkey's hosted MCP server. deviceName is then Unkey's own name for it, so do not show the client's host. Present only when oauthClientId is.
+	//
+	OauthClientFirstParty *bool `json:"oauthClientFirstParty,omitzero"`
 }
 
 func (v V2CliGetDeviceLoginResponseData) MarshalJSON() ([]byte, error) {
@@ -109,6 +112,13 @@ func (v *V2CliGetDeviceLoginResponseData) GetOauthClientID() *string {
 		return nil
 	}
 	return v.OauthClientID
+}
+
+func (v *V2CliGetDeviceLoginResponseData) GetOauthClientFirstParty() *bool {
+	if v == nil {
+		return nil
+	}
+	return v.OauthClientFirstParty
 }
 
 // #region class-body-v2cligetdeviceloginresponsedata

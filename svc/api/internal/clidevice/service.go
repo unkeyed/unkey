@@ -72,6 +72,9 @@ type Service struct {
 	// Each one becomes an extra audience on the access token.
 	OAuthResources []string
 	ClientMetadata ClientMetadataFetcher
+	// HostedMCPClientID is the client_id of Unkey's hosted MCP server. Empty
+	// means every OAuth client is a third party.
+	HostedMCPClientID string
 }
 
 // SessionVerdict is the cached answer for one device session.

@@ -45,9 +45,15 @@ export type V2CliGetDeviceLoginResponseData = {
    * Client ID metadata document URL of the OAuth client that started the login. Present only for OAuth logins.
    *
    * @remarks
-   * deviceName then holds the client's self-reported name, so show this URL's host next to it.
+   * deviceName then holds the client's self-reported name, so show this URL's host next to it unless oauthClientFirstParty is true.
    */
   oauthClientId?: string | undefined;
+  /**
+   * True when the OAuth client is Unkey's hosted MCP server. deviceName is then Unkey's own name for it, so do not show the client's host. Present only when oauthClientId is.
+   *
+   * @remarks
+   */
+  oauthClientFirstParty?: boolean | undefined;
 };
 
 /** @internal */
@@ -66,6 +72,7 @@ export const V2CliGetDeviceLoginResponseData$inboundSchema: z.ZodType<
   createdAt: z.number().int(),
   expiresAt: z.number().int(),
   oauthClientId: z.string().optional(),
+  oauthClientFirstParty: z.boolean().optional(),
 });
 
 export function v2CliGetDeviceLoginResponseDataFromJSON(

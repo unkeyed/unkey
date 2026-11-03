@@ -15,6 +15,18 @@ describe("oauthClientOf", () => {
     });
   });
 
+  it("shows no host for Unkey's hosted MCP server", () => {
+    expect(
+      oauthClientOf({ oauthClientId, oauthClientFirstParty: true, deviceName: "Unkey MCP" }),
+    ).toEqual({ name: "Unkey MCP", host: null });
+  });
+
+  it("keeps the host for a third party that calls itself Unkey MCP", () => {
+    expect(
+      oauthClientOf({ oauthClientId, oauthClientFirstParty: false, deviceName: "Unkey MCP" }),
+    ).toEqual({ name: "Unkey MCP", host: "client.example.com" });
+  });
+
   it("names the client by its host when it reports no name", () => {
     expect(oauthClientOf({ oauthClientId })).toEqual({
       name: "client.example.com",

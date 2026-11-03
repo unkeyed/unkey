@@ -222,7 +222,7 @@ function SessionItem({
           </Badge>
         </ItemTitle>
         <ItemDescription>
-          {client ? (
+          {client?.host ? (
             <>
               <span>via {client.host}</span>
               {" · "}
