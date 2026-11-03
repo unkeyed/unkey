@@ -1,9 +1,9 @@
 // The reads, polling and writes behind the app pages.
 //
 // Two QueryClients hold this data until the collections move to React Query.
-// Projects, apps and deployments live on the app's React client
-// (useQueryClient). Environments, domains, custom domains and policies live on
-// the collections client in lib/collections/client.ts. Pass the React client to
+// Projects, apps, environments and deployments live on the app's React client
+// (useQueryClient). Domains, custom domains and policies live on the
+// collections client in lib/collections/client.ts. Pass the React client to
 // the query options, refetch and warm functions. Any other client gives a
 // second, unpolled cache.
 export { DeployDataProvider } from "./provider";
@@ -69,4 +69,4 @@ export {
   type Environment,
   type EnvironmentKind,
   productionFirst,
-} from "@/lib/collections/deploy/environments";
+} from "@/lib/queries/environments";

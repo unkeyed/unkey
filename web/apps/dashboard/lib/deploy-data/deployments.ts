@@ -7,8 +7,8 @@ import {
   expandDeploymentStatusGroups,
   isDeploymentSettling,
 } from "@/lib/collections/deploy/deployment-status";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { type Deployment, withDeploymentDetails } from "@/lib/deploy-data/deployment";
+import { ENVIRONMENT_KIND } from "@/lib/queries/environments";
 import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";

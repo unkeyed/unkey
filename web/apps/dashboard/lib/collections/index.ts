@@ -3,7 +3,6 @@ import { customDomains } from "./deploy/custom-domains";
 import { domains } from "./deploy/domains";
 import { envVars } from "./deploy/env-vars";
 import { environmentSettings } from "./deploy/environment-settings";
-import { environments } from "./deploy/environments";
 import { policies } from "./deploy/policies";
 import { ratelimitOverrides } from "./ratelimit/overrides";
 
@@ -18,12 +17,10 @@ export type { EnvironmentSettings } from "./deploy/environment-settings";
 export type { PolicyRow } from "./deploy/policies";
 export type { KeyauthPolicy, Policy, PolicyType } from "./deploy/policies.schema";
 export type { RatelimitOverride } from "./ratelimit/overrides";
-export type { Environment } from "./deploy/environments";
 
 // Global collections
 export const collection = {
   ratelimitOverrides,
-  environments,
   domains,
   customDomains,
   environmentSettings,
