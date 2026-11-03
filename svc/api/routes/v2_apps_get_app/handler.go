@@ -120,6 +120,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	case db.AppsSourceTypeUnknown:
 	}
 
+	live, err := db.Query.FindAppLivePointer(ctx, h.DB.RO(), app.ID)
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to load app live deployment"),
+			fault.Public("Failed to retrieve app."),
+		)
+	}
+
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
@@ -131,8 +141,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			SourceType:          sourceType,
 			Git:                 githubapp.GitResponse(repositoryFullName, defaultBranch),
 			Oci:                 oci,
-			CurrentDeploymentId: app.CurrentDeploymentID.String,
-			IsRolledBack:        app.IsRolledBack,
+			CurrentDeploymentId: live.CurrentDeploymentID.String,
+			IsRolledBack:        live.IsRolledBack,
 			DeleteProtection:    app.DeleteProtection.Bool,
 			CreatedAt:           app.CreatedAt,
 			UpdatedAt:           app.UpdatedAt.Int64,

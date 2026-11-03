@@ -130,17 +130,17 @@ export async function loadProductionRouting(
   if (scope.environmentKind !== "production") {
     return null;
   }
-  const a = schema.apps;
+  const e = schema.environments;
   const d = schema.deployments;
   const [row] = await db
     .select({
-      currentDeploymentId: a.currentDeploymentId,
-      isRolledBack: a.isRolledBack,
+      currentDeploymentId: e.currentDeploymentId,
+      isRolledBack: e.isRolledBack,
       currentReadyAtMs: d.firstReadyAt,
     })
-    .from(a)
-    .leftJoin(d, and(eq(d.id, a.currentDeploymentId), eq(d.workspaceId, a.workspaceId)))
-    .where(and(eq(a.id, scope.appId), eq(a.workspaceId, scope.workspaceId)))
+    .from(e)
+    .leftJoin(d, and(eq(d.id, e.currentDeploymentId), eq(d.workspaceId, e.workspaceId)))
+    .where(and(eq(e.id, scope.environmentId), eq(e.workspaceId, scope.workspaceId)))
     .limit(1);
   return {
     currentDeploymentId: row?.currentDeploymentId ?? null,

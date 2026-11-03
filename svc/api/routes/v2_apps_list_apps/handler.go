@@ -142,7 +142,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Git:                 githubapp.GitResponse(row.RepositoryFullName.String, row.GithubDefaultBranch.String),
 			Oci:                 oci,
 			CurrentDeploymentId: row.CurrentDeploymentID.String,
-			IsRolledBack:        row.IsRolledBack,
+			IsRolledBack:        row.IsRolledBack.Bool,
 			DeleteProtection:    row.DeleteProtection.Bool,
 			CreatedAt:           row.CreatedAt,
 			UpdatedAt:           row.UpdatedAt.Int64,

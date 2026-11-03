@@ -347,6 +347,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		case db.AppsSourceTypeUnknown:
 		}
 
+		live, err := db.Query.FindAppLivePointer(ctx, tx, app.ID)
+		if err != nil && !db.IsNotFound(err) {
+			return openapi.App{}, err
+		}
+
 		return openapi.App{
 			Id:                  app.ID,
 			Name:                name,
@@ -354,8 +359,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			SourceType:          sourceType,
 			Git:                 gitState,
 			Oci:                 oci,
-			CurrentDeploymentId: app.CurrentDeploymentID.String,
-			IsRolledBack:        app.IsRolledBack,
+			CurrentDeploymentId: live.CurrentDeploymentID.String,
+			IsRolledBack:        live.IsRolledBack,
 			DeleteProtection:    deleteProtection,
 			CreatedAt:           app.CreatedAt,
 			UpdatedAt:           responseUpdatedAt,

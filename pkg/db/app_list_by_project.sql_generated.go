@@ -19,8 +19,8 @@ SELECT
   apps.name,
   apps.slug,
   apps.source_type,
-  apps.current_deployment_id,
-  apps.is_rolled_back,
+  pe.current_deployment_id,
+  pe.is_rolled_back,
   apps.delete_protection,
   apps.created_at,
   apps.updated_at,
@@ -30,6 +30,15 @@ SELECT
 FROM apps
 LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
+LEFT JOIN environments pe ON pe.id = (
+  SELECT e.id
+  FROM environments e
+  WHERE e.app_id = apps.id
+    AND e.kind = 'production'
+    AND e.deleted_at IS NULL
+  ORDER BY e.pk ASC
+  LIMIT 1
+)
 WHERE apps.project_id = ?
   AND apps.deleted_at IS NULL
   AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
@@ -56,7 +65,7 @@ type ListAppsByProjectRow struct {
 	Slug                string         `db:"slug"`
 	SourceType          AppsSourceType `db:"source_type"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
-	IsRolledBack        bool           `db:"is_rolled_back"`
+	IsRolledBack        sql.NullBool   `db:"is_rolled_back"`
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
 	CreatedAt           int64          `db:"created_at"`
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
@@ -65,7 +74,7 @@ type ListAppsByProjectRow struct {
 	OciImageReference   sql.NullString `db:"oci_image_reference"`
 }
 
-// ListAppsByProject
+// The app's oldest production environment is the one it was created with.
 //
 //	SELECT
 //	  apps.pk,
@@ -75,8 +84,8 @@ type ListAppsByProjectRow struct {
 //	  apps.name,
 //	  apps.slug,
 //	  apps.source_type,
-//	  apps.current_deployment_id,
-//	  apps.is_rolled_back,
+//	  pe.current_deployment_id,
+//	  pe.is_rolled_back,
 //	  apps.delete_protection,
 //	  apps.created_at,
 //	  apps.updated_at,
@@ -86,6 +95,15 @@ type ListAppsByProjectRow struct {
 //	FROM apps
 //	LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 //	LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
+//	LEFT JOIN environments pe ON pe.id = (
+//	  SELECT e.id
+//	  FROM environments e
+//	  WHERE e.app_id = apps.id
+//	    AND e.kind = 'production'
+//	    AND e.deleted_at IS NULL
+//	  ORDER BY e.pk ASC
+//	  LIMIT 1
+//	)
 //	WHERE apps.project_id = ?
 //	  AND apps.deleted_at IS NULL
 //	  AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
