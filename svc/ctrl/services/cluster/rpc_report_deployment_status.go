@@ -157,6 +157,9 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		case *ctrlv1.ReportDeploymentStatusRequest_Delete_:
 			{
 				deployment, err := db.NewQueries(tx).FindDeploymentByK8sName(ctx, msg.Delete.GetK8SName())
+				if db.IsNotFound(err) {
+					return nil
+				}
 				if err != nil {
 					return err
 				}
