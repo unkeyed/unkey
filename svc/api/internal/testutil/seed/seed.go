@@ -228,7 +228,7 @@ type CreateAppRequest struct {
 }
 
 // CreateApp creates an app within a project.
-func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
+func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.FindAppByIdRow {
 	now := time.Now().UnixMilli()
 	sourceType := req.SourceType
 	if sourceType == "" {

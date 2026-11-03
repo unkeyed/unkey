@@ -361,10 +361,10 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
 	//  FROM apps
 	//  WHERE id = ?
-	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
+	FindAppById(ctx context.Context, db DBTX, id string) (FindAppByIdRow, error)
 	// Resolves an app by id within a workspace.
 	//
 	// app_find_by_id.sql has no workspace predicate, and the project-scoped finders
@@ -385,7 +385,7 @@ type Querier interface {
 	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error)
 	//FindAppByProjectAndIdOrSlug
 	//
-	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at, a.deleted_at
+	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.delete_protection, a.created_at, a.updated_at, a.deleted_at
 	//  FROM apps a
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 	//  WHERE a.workspace_id = ?
@@ -394,7 +394,7 @@ type Querier interface {
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
 	//  LIMIT 1
-	FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (App, error)
+	FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (FindAppByProjectAndIdOrSlugRow, error)
 	//FindAppByProjectAndSlug
 	//
 	//  SELECT

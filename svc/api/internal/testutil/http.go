@@ -557,7 +557,7 @@ func (h *Harness) CreateProject(req seed.CreateProjectRequest) db.Project {
 }
 
 // CreateApp creates an app within a project.
-func (h *Harness) CreateApp(req seed.CreateAppRequest) db.App {
+func (h *Harness) CreateApp(req seed.CreateAppRequest) db.FindAppByIdRow {
 	return h.seeder.CreateApp(context.Background(), req)
 }
 
@@ -587,7 +587,7 @@ type DeploymentTestSetup struct {
 	Workspace   db.Workspace
 	RootKey     string
 	Project     db.Project
-	App         db.App
+	App         db.FindAppByIdRow
 	Environment db.Environment
 }
 

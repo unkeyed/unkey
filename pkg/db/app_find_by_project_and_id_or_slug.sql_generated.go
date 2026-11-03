@@ -7,10 +7,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findAppByProjectAndIdOrSlug = `-- name: FindAppByProjectAndIdOrSlug :one
-SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at, a.deleted_at
+SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.delete_protection, a.created_at, a.updated_at, a.deleted_at
 FROM apps a
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 WHERE a.workspace_id = ?
@@ -27,9 +28,23 @@ type FindAppByProjectAndIdOrSlugParams struct {
 	App         string `db:"app"`
 }
 
+type FindAppByProjectAndIdOrSlugRow struct {
+	Pk               uint64         `db:"pk"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	ProjectID        string         `db:"project_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	SourceType       AppsSourceType `db:"source_type"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	DeletedAt        sql.NullInt64  `db:"deleted_at"`
+}
+
 // FindAppByProjectAndIdOrSlug
 //
-//	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at, a.deleted_at
+//	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.delete_protection, a.created_at, a.updated_at, a.deleted_at
 //	FROM apps a
 //	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 //	WHERE a.workspace_id = ?
@@ -38,7 +53,7 @@ type FindAppByProjectAndIdOrSlugParams struct {
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)
 //	LIMIT 1
-func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (App, error) {
+func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (FindAppByProjectAndIdOrSlugRow, error) {
 	row := db.QueryRowContext(ctx, findAppByProjectAndIdOrSlug,
 		arg.WorkspaceID,
 		arg.Project,
@@ -46,7 +61,7 @@ func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg 
 		arg.App,
 		arg.App,
 	)
-	var i App
+	var i FindAppByProjectAndIdOrSlugRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -55,8 +70,6 @@ func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg 
 		&i.Name,
 		&i.Slug,
 		&i.SourceType,
-		&i.CurrentDeploymentID,
-		&i.IsRolledBack,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,
