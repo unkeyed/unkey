@@ -311,6 +311,8 @@ function Button({
   disabled,
   loadingLabel = "Loading, please wait",
   ref,
+  onClick,
+  "aria-disabled": ariaDisabled,
   ...props
 }: ButtonProps) {
   let mappedVariant: ButtonVariant = "primary";
@@ -367,8 +369,8 @@ function Button({
             className,
           }),
         )}
-        onClick={loading ? undefined : props.onClick}
-        aria-disabled={isClickDisabled || undefined}
+        onClick={loading ? undefined : onClick}
+        aria-disabled={loading || (ariaDisabled ?? isClickDisabled) || undefined}
         aria-busy={loading || undefined}
         ref={ref as React.Ref<HTMLElement>}
         {...(props as React.HTMLAttributes<HTMLElement>)}
@@ -386,9 +388,9 @@ function Button({
           className,
         }),
       )}
-      onClick={loading ? undefined : props.onClick}
+      onClick={loading ? undefined : onClick}
       disabled={isVisuallyDisabled}
-      aria-disabled={isClickDisabled}
+      aria-disabled={loading || (ariaDisabled ?? isClickDisabled)}
       aria-busy={loading}
       ref={ref}
       {...props}
