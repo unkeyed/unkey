@@ -98,7 +98,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       ref={ref}
       className={cn(
-        "fixed inset-0 z-50 bg-black/30 backdrop-blur-xs transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:pointer-events-none",
+        "fixed inset-0 z-50 bg-black/10 backdrop-blur-[2px] transition-opacity duration-300 ease-in-out motion-reduce:transition-none data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:pointer-events-none",
         className,
       )}
       {...props}
@@ -134,7 +134,7 @@ function DialogContent({
   }, [showCloseWarning, onAttemptClose]);
 
   const buttonClassNames =
-    "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-gray-6 focus:ring-offset-2 focus:rounded-lg disabled:pointer-events-none data-open:bg-grayA-3 text-gray-11 z-51 [&_svg]:size-[14px] hover:rounded-lg";
+    "absolute right-4 top-3.75 rounded-control text-gray-8 ring-offset-background transition-colors hover:text-gray-12 focus:outline-hidden focus:ring-2 focus:ring-gray-6 focus:ring-offset-2 disabled:pointer-events-none data-open:bg-grayA-3 z-51 [&_svg]:size-4";
 
   return (
     <DialogPortal>
@@ -142,7 +142,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         ref={ref}
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 bg-raised p-6 shadow-floating duration-200 transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 data-ending-style:pointer-events-none sm:rounded-lg",
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 bg-raised p-6 shadow-floating duration-200 ease-in-out transition-[opacity,scale,translate] motion-reduce:transition-none data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 data-ending-style:pointer-events-none rounded-overlay",
           className,
         )}
         onKeyDown={(e) => {
@@ -158,15 +158,17 @@ function DialogContent({
         {children}
 
         {showCloseWarning ? (
-          <button
+          <Button
             ref={xButtonRef}
+            size="icon"
+            variant="ghost"
             type="button"
             onClick={handleCloseAttempt}
             className={buttonClassNames}
             aria-label="Close dialog with confirmation"
           >
-            <IconXmarkOutline18 className="size-3.5" />
-          </button>
+            <IconXmarkOutline18 className="size-4" />
+          </Button>
         ) : (
           <DialogPrimitive.Close
             render={
@@ -194,7 +196,7 @@ DialogHeader.displayName = "DialogHeader";
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
+    className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
     {...props}
   />
 );
@@ -210,7 +212,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       ref={ref}
-      className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+      className={cn("text-lg font-semibold leading-tight tracking-tight text-gray-12", className)}
       {...props}
     />
   );
