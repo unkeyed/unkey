@@ -202,6 +202,19 @@ func (s *Service) AddCustomDomain(
 			return txErr
 		}
 
+		// One hostname routes one way, so a workspace cannot hold it as both a
+		// portal domain and a deploy domain. No unique index spans the two tables.
+		_, txErr = queries.FindPortalDomainByWorkspaceAndDomain(txCtx, db.FindPortalDomainByWorkspaceAndDomainParams{
+			WorkspaceID: req.Msg.GetWorkspaceId(),
+			Domain:      domain,
+		})
+		if txErr == nil {
+			return gatefault.ConnectWith(connect.CodeAlreadyExists, domaingate.AlreadyExists(domain))
+		}
+		if !db.IsNotFound(txErr) {
+			return connect.NewError(connect.CodeInternal, fmt.Errorf("check portal domain: %w", txErr))
+		}
+
 		if txErr := queries.InsertCustomDomain(txCtx, db.InsertCustomDomainParams{
 			ID:                    domainID,
 			WorkspaceID:           req.Msg.GetWorkspaceId(),

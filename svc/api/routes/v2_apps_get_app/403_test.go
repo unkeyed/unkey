@@ -85,6 +85,9 @@ func TestGetAppForbidden(t *testing.T) {
 		{name: "urn on this app", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: true},
 		{name: "urn on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Read)}, shouldPass: true},
 		{name: "urn on every project", permissions: []string{grant("*", "*", permissions.Read)}, shouldPass: true},
+		{name: "app wildcard on another project", permissions: []string{grant(uid.New(uid.ProjectPrefix), "*", permissions.Read)}, shouldPass: false},
+		{name: "project read does not grant app read", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s#read", workspace.ID, project.ID)}, shouldPass: false},
+		{name: "project wildcard read does not grant app read", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/*#read", workspace.ID)}, shouldPass: false},
 		{name: "urn on another app", permissions: []string{grant(project.ID, uid.New(uid.AppPrefix), permissions.Read)}, shouldPass: false},
 		{name: "urn with the wrong action", permissions: []string{grant(project.ID, app.ID, permissions.Delete)}, shouldPass: false},
 	}
@@ -111,6 +114,8 @@ func TestGetAppForbidden(t *testing.T) {
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
+				require.Equal(t, app.ID, res.Body.Data.Id)
+				require.Equal(t, app.Name, res.Body.Data.Name)
 				return
 			}
 

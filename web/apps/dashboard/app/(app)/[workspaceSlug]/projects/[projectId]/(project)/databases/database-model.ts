@@ -1,4 +1,4 @@
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/queries/environments";
 import type { Badge } from "@unkey/ui";
 import type { ComponentProps } from "react";
 

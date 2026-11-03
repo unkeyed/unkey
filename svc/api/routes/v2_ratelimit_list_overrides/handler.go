@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -73,12 +74,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.U(
-		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(namespace.ProjectID).RatelimitNamespace(namespace.ID).Override("*"),
+	namespaceURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(namespace.ProjectID).RatelimitNamespace(namespace.ID)
+	permissionQuery := rbac.U(
+		namespaceURN.Override("*"),
 		permissions.Read,
-	))
+	)
+	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return err
+		return apierrors.MaskInsufficientPermissionsWithVisibility(
+			err,
+			principal.Permissions,
+			permissionQuery,
+			rbac.U(namespaceURN, permissions.Read),
+			codes.Data.RatelimitNamespace.NotFound.URN(),
+			"This namespace does not exist.",
+		)
 	}
 
 	p := pagination.Parse(req.Limit, req.Cursor, 50)

@@ -4,6 +4,7 @@ import * as React from "react";
 import type { PropsWithChildren } from "react";
 import { cn } from "../../../lib/utils";
 import {
+  DialogDescription as ShadcnDialogDescription,
   DialogFooter as ShadcnDialogFooter,
   DialogHeader as ShadcnDialogHeader,
   DialogTitle as ShadcnDialogTitle,
@@ -17,11 +18,11 @@ type DefaultDialogHeaderProps = {
 
 export const DefaultDialogHeader = ({ title, subTitle, className }: DefaultDialogHeaderProps) => {
   return (
-    <ShadcnDialogHeader className={cn("border-b bg-raised", className)}>
-      <ShadcnDialogTitle className="px-6 py-4 text-gray-12 font-medium text-base flex flex-col">
-        <span className="leading-8">{title}</span>
-        {subTitle && <span className="text-gray-9 leading-5 text-sm font-normal">{subTitle}</span>}
-      </ShadcnDialogTitle>
+    <ShadcnDialogHeader
+      className={cn("space-y-0 border-b bg-raised px-4.5 pt-3.75 pb-4 pr-12", className)}
+    >
+      <ShadcnDialogTitle className="text-base leading-6">{title}</ShadcnDialogTitle>
+      {subTitle && <ShadcnDialogDescription>{subTitle}</ShadcnDialogDescription>}
     </ShadcnDialogHeader>
   );
 };
@@ -37,7 +38,7 @@ export const DefaultDialogContentArea = ({
   return (
     <div
       className={cn(
-        "bg-background flex flex-col gap-4 py-4 px-6 text-gray-11 overflow-y-auto scrollbar-hide grow",
+        "bg-raised flex flex-col gap-4 px-4.5 py-4 text-gray-11 overflow-y-auto scrollbar-hide grow",
         className,
       )}
     >
@@ -52,7 +53,9 @@ type DefaultDialogFooterProps = PropsWithChildren<{
 
 export const DefaultDialogFooter = ({ children, className }: DefaultDialogFooterProps) => {
   return (
-    <ShadcnDialogFooter className={cn("p-6 border-t bg-raised text-gray-9", className)}>
+    <ShadcnDialogFooter
+      className={cn("px-4.5 py-4 border-t bg-background dark:bg-transparent", className)}
+    >
       {children}
     </ShadcnDialogFooter>
   );

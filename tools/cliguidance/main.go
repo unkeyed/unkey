@@ -144,12 +144,6 @@ func extract(data []byte, keys []string) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", key, err)
 		}
-		switch key {
-		case "root-keys create-key", "root-keys update-key":
-			if properties, ok := schema["properties"].(map[string]any); ok {
-				delete(properties, "ipAllowlist")
-			}
-		}
 		schemas[key] = schema
 	}
 	for _, key := range keys {

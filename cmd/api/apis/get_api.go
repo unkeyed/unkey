@@ -44,7 +44,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/get
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2ApisGetAPIResponseBody)
+				return util.Output(ctx, cmd, res.V2ApisGetAPIResponseBody)
 			}
 
 			res, err := client.Apis.GetAPI(ctx, components.V2ApisGetAPIRequestBody{
@@ -54,7 +54,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/get
 				return err
 			}
 
-			return util.Output(cmd, res.V2ApisGetAPIResponseBody)
+			return util.Output(ctx, cmd, res.V2ApisGetAPIResponseBody)
 		},
 	}
 }

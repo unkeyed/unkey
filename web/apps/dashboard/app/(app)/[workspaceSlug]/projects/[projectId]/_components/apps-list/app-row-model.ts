@@ -1,6 +1,6 @@
 import { type AppSource, appSource } from "@/components/deploy/app-source";
-import type { App } from "@/lib/collections/deploy/apps";
 import { githubUrl } from "@/lib/github-url";
+import type { App } from "@/lib/queries/apps";
 import type { Route } from "next";
 
 export type AppRowData = {

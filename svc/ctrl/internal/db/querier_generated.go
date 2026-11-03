@@ -518,6 +518,31 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	//ExistsAppConnectionPinningDeployment
+	//
+	//  SELECT EXISTS(
+	//      SELECT 1 FROM app_connections b
+	//      INNER JOIN connection_app_targets t ON t.connection_id = b.id
+	//      WHERE b.resource_type = 'app'
+	//          AND t.selection_mode = 'deployment'
+	//          AND t.target_deployment_id = ?
+	//      UNION ALL
+	//      SELECT 1 FROM deployment_connections b
+	//      INNER JOIN deployment_connection_app_targets t
+	//          ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
+	//      INNER JOIN deployments caller ON caller.id = b.deployment_id
+	//          AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
+	//          AND caller.app_id = b.app_id AND caller.environment_id = b.environment_id
+	//      INNER JOIN apps a ON a.id = caller.app_id
+	//      INNER JOIN environments e ON e.id = caller.environment_id
+	//      WHERE b.resource_type = 'app'
+	//          AND t.selection_mode = 'deployment'
+	//          AND t.target_deployment_id = ?
+	//          AND caller.desired_state = 'running'
+	//          AND caller.status IN ('pending', 'starting', 'building', 'deploying', 'network', 'finalizing', 'ready')
+	//          AND JSON_CONTAINS(caller.capabilities, 'true', '$.private_networking')
+	//  ) AS pinned
+	ExistsAppConnectionPinningDeployment(ctx context.Context, arg ExistsAppConnectionPinningDeploymentParams) (bool, error)
 	// Returns the challenge row for a domain, if one exists. domain_id is unique on
 	// acme_challenges, so there is at most one. Used as the idempotency check for
 	// infra certificate provisioning: once a challenge exists the renewal cron owns
@@ -670,17 +695,6 @@ type Querier interface {
 	//  ORDER BY (verification_status = 'verified') DESC, updated_at DESC, pk DESC
 	//  LIMIT 1
 	FindCustomDomainByDomain(ctx context.Context, domain string) (CustomDomain, error)
-	//FindCustomDomainByDomainOrWildcard
-	//
-	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
-	//  WHERE domain IN (?, ?)
-	//  ORDER BY
-	//      CASE WHEN domain = ? THEN 0 ELSE 1 END,
-	//      (verification_status = 'verified') DESC,
-	//      updated_at DESC,
-	//      pk DESC
-	//  LIMIT 1
-	FindCustomDomainByDomainOrWildcard(ctx context.Context, arg FindCustomDomainByDomainOrWildcardParams) (CustomDomain, error)
 	//FindCustomDomainById
 	//
 	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at
@@ -908,19 +922,6 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
-	//FindDeploymentWithApp
-	//
-	//  SELECT d.id, d.app_id, a.current_deployment_id
-	//  FROM deployments d
-	//  JOIN apps a ON a.id = d.app_id
-	//  JOIN environments e ON e.id = d.environment_id
-	//  JOIN projects p ON p.id = d.project_id
-	//  WHERE d.id = ?
-	//    AND e.deleted_at IS NULL
-	//    AND a.deleted_at IS NULL
-	//    AND p.deleted_at IS NULL
-	//  LOCK IN SHARE MODE
-	FindDeploymentWithApp(ctx context.Context, id string) (FindDeploymentWithAppRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
@@ -939,7 +940,7 @@ type Querier interface {
 	FindEnvironmentByAppIdAndSlug(ctx context.Context, arg FindEnvironmentByAppIdAndSlugParams) (FindEnvironmentByAppIdAndSlugRow, error)
 	//FindEnvironmentById
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  WHERE id = ?
 	FindEnvironmentById(ctx context.Context, id string) (Environment, error)
@@ -1147,14 +1148,78 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE platform = ? AND name = ? LIMIT 1
 	FindRegionByPlatformAndName(ctx context.Context, arg FindRegionByPlatformAndNameParams) (Region, error)
-	//FindVerifiedCustomDomainByDomainExcludingWorkspace
+	// Resolves a hostname to its verified row in custom_domains or portal_domains so
+	// certificate issuance never acts on a pending competing claim. Verification
+	// revokes contested claims first; if two verified rows ever coexist, the most
+	// recently changed one wins.
 	//
-	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
-	//  WHERE domain = ?
-	//    AND workspace_id != ?
-	//    AND verification_status = 'verified'
+	// Example: if 'app.example.com' is verified in custom_domains (updated Monday)
+	// and in portal_domains (updated Tuesday), the portal_domains row is returned.
+	//
+	//  SELECT d.id, d.workspace_id, d.domain
+	//  FROM (
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.workspace_id, portal_domains.domain,
+	//          COALESCE(portal_domains.updated_at, portal_domains.created_at) AS changed_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.domain = ?
+	//        AND portal_domains.verification_status = 'verified'
+	//  ) AS d
+	//  ORDER BY d.changed_at DESC, d.id DESC
 	//  LIMIT 1
-	FindVerifiedCustomDomainByDomainExcludingWorkspace(ctx context.Context, arg FindVerifiedCustomDomainByDomainExcludingWorkspaceParams) (CustomDomain, error)
+	FindVerifiedDomainByHostname(ctx context.Context, arg FindVerifiedDomainByHostnameParams) (FindVerifiedDomainByHostnameRow, error)
+	// Resolves an ACME challenge hostname to a verified domain row, preferring an
+	// exact match in either domain table over a custom_domains wildcard. Portal
+	// domains are never wildcards, so only custom_domains is checked for one.
+	//
+	// Example: for 'api.example.com' with wildcard '*.example.com', a verified
+	// 'api.example.com' row in either table wins over a verified '*.example.com'.
+	//
+	//  SELECT d.id, d.workspace_id, d.domain
+	//  FROM (
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain, 0 AS is_wildcard,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.workspace_id, portal_domains.domain, 0 AS is_wildcard,
+	//          COALESCE(portal_domains.updated_at, portal_domains.created_at) AS changed_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.domain = ?
+	//        AND portal_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT custom_domains.id, custom_domains.workspace_id, custom_domains.domain, 1 AS is_wildcard,
+	//          COALESCE(custom_domains.updated_at, custom_domains.created_at) AS changed_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.domain = ?
+	//        AND custom_domains.verification_status = 'verified'
+	//  ) AS d
+	//  ORDER BY d.is_wildcard ASC, d.changed_at DESC, d.id DESC
+	//  LIMIT 1
+	FindVerifiedDomainByHostnameOrWildcard(ctx context.Context, arg FindVerifiedDomainByHostnameOrWildcardParams) (FindVerifiedDomainByHostnameOrWildcardRow, error)
+	// Finds another workspace's verified claim on a hostname in custom_domains or
+	// portal_domains, so ownership contention spans both tables. source names the
+	// table holding the claim, which is where a takeover must revoke it.
+	//
+	//  SELECT 'custom' AS source, custom_domains.id, custom_domains.workspace_id
+	//  FROM custom_domains
+	//  WHERE custom_domains.domain = ?
+	//    AND custom_domains.workspace_id != ?
+	//    AND custom_domains.verification_status = 'verified'
+	//  UNION ALL
+	//  SELECT 'portal' AS source, portal_domains.id, portal_domains.workspace_id
+	//  FROM portal_domains
+	//  WHERE portal_domains.domain = ?
+	//    AND portal_domains.workspace_id != ?
+	//    AND portal_domains.verification_status = 'verified'
+	//  LIMIT 1
+	FindVerifiedDomainClaimExcludingWorkspace(ctx context.Context, arg FindVerifiedDomainClaimExcludingWorkspaceParams) (FindVerifiedDomainClaimExcludingWorkspaceRow, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Used by the Deploy cancel path to read the
 	// current plan and Stripe subscription. When a workspace is already being
@@ -2152,10 +2217,21 @@ type Querier interface {
 	//  UNION
 	//  SELECT deployments.environment_id AS id FROM deployments WHERE deployments.app_id = ?
 	ListEnvironmentIdsByApp(ctx context.Context, arg ListEnvironmentIdsByAppParams) ([]string, error)
-	//ListExecutableChallenges
+	// Lists challenges waiting for issuance or within 30 days of expiry, for deploy
+	// and portal domains alike. Only verified domain rows qualify, so a challenge
+	// left behind by a failed or revoked domain is never issued.
 	//
-	//  SELECT dc.workspace_id, dc.challenge_type, d.domain FROM acme_challenges dc
-	//  JOIN custom_domains d ON dc.domain_id = d.id
+	//  SELECT dc.workspace_id, dc.challenge_type, d.domain
+	//  FROM acme_challenges dc
+	//  JOIN (
+	//      SELECT custom_domains.id, custom_domains.domain, custom_domains.created_at
+	//      FROM custom_domains
+	//      WHERE custom_domains.verification_status = 'verified'
+	//      UNION ALL
+	//      SELECT portal_domains.id, portal_domains.domain, portal_domains.created_at
+	//      FROM portal_domains
+	//      WHERE portal_domains.verification_status = 'verified'
+	//  ) AS d ON dc.domain_id = d.id
 	//  WHERE (dc.status = 'waiting' OR (dc.status = 'verified' AND dc.expires_at <= UNIX_TIMESTAMP(DATE_ADD(NOW(), INTERVAL 30 DAY)) * 1000))
 	//  AND dc.challenge_type IN (/*SLICE:verification_types*/?)
 	//  ORDER BY d.created_at ASC
@@ -2213,6 +2289,11 @@ type Querier interface {
 	//  WHERE older.app_id = ?
 	//    AND older.environment_id = ?
 	//    AND older.git_branch = ?
+	//    AND older.fork_repository_full_name <=> (
+	//      SELECT src.fork_repository_full_name
+	//      FROM deployments src
+	//      WHERE src.id = ?
+	//    )
 	//    AND older.status IN ('pending', 'awaiting_approval')
 	//    AND older.created_at < (
 	//      SELECT src.created_at
@@ -2244,7 +2325,7 @@ type Querier interface {
 	ListPortalDomainsByPortal(ctx context.Context, portalID string) ([]PortalDomain, error)
 	//ListPreviewEnvironments
 	//
-	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
+	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.current_deployment_id, environments.is_rolled_back, environments.delete_protection, environments.created_at, environments.updated_at, environments.deleted_at
 	//  FROM environments
 	//  WHERE kind = 'preview'
 	//  AND pk > ?
@@ -2293,19 +2374,25 @@ type Querier interface {
 	ListRepoConnectionDeployContexts(ctx context.Context, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
 	// ListRunningDeploymentsByBranch returns deployments in the same app,
 	// environment, and branch whose desired state is running, excluding one
-	// deployment id. Used to find sibling running deployments without including
-	// the caller's own deployment or unrelated deployments from another scope.
+	// deployment id, the app's current deployment, and deployments from another
+	// source fork. Pinned deployments are included.
 	//
-	//  SELECT id
-	//  FROM deployments
-	//  WHERE git_branch = ?
-	//    AND workspace_id = ?
-	//    AND project_id = ?
-	//    AND app_id = ?
-	//    AND environment_id = ?
-	//    AND desired_state = 'running'
-	//    AND id != ?
-	//  ORDER BY created_at ASC
+	//  SELECT d.id
+	//  FROM deployments d
+	//  WHERE d.git_branch <=> ?
+	//    AND d.workspace_id = ?
+	//    AND d.project_id = ?
+	//    AND d.app_id = ?
+	//    AND d.environment_id = ?
+	//    AND d.fork_repository_full_name <=> (
+	//        SELECT newer.fork_repository_full_name FROM deployments newer WHERE newer.id = ?
+	//    )
+	//    AND d.desired_state = 'running'
+	//    AND d.id != ?
+	//    AND NOT EXISTS (
+	//        SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.current_deployment_id = d.id
+	//    )
+	//  ORDER BY d.created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error)
 	// Running deployments for a workspace that still have (or will soon have) live
 	// compute: desired_state 'running' and either a status that carries compute or
@@ -2426,6 +2513,22 @@ type Querier interface {
 	//      AND desired_state = 'running'
 	//  FOR UPDATE
 	LockDeploymentConnectionTargets(ctx context.Context, arg LockDeploymentConnectionTargetsParams) ([]LockDeploymentConnectionTargetsRow, error)
+	// LockDeploymentWithApp locks a deployment and its app for a desired-state
+	// change, so a concurrent promotion cannot make the deployment current between
+	// the guard and the write. A deployment under a deleted project, app, or
+	// environment is not found.
+	//
+	//  SELECT d.id, d.app_id, a.current_deployment_id
+	//  FROM deployments d
+	//  JOIN apps a ON a.id = d.app_id
+	//  JOIN environments e ON e.id = d.environment_id
+	//  JOIN projects p ON p.id = d.project_id
+	//  WHERE d.id = ?
+	//    AND e.deleted_at IS NULL
+	//    AND a.deleted_at IS NULL
+	//    AND p.deleted_at IS NULL
+	//  FOR UPDATE
+	LockDeploymentWithApp(ctx context.Context, id string) (LockDeploymentWithAppRow, error)
 	// Must be the first statement of its transaction: the usage reads that follow
 	// rely on the read view opening after this lock is held
 	//
@@ -2891,7 +2994,12 @@ type Querier interface {
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
+	//  SET first_ready_at = COALESCE(first_ready_at, CASE
+	//          WHEN status = 'ready' THEN COALESCE(updated_at, created_at)
+	//          WHEN ? = 'ready' THEN COALESCE(?, created_at)
+	//          ELSE NULL
+	//      END),
+	//      status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
 	// Batch form of UpdateDeploymentStatusIfActive.
@@ -2906,7 +3014,11 @@ type Querier interface {
 	// mysqltype.ProgressingDeploymentStatuses.
 	//
 	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
+	//  SET first_ready_at = COALESCE(first_ready_at, CASE
+	//          WHEN ? = 'ready' THEN COALESCE(?, created_at)
+	//          ELSE NULL
+	//      END),
+	//      status = ?, updated_at = ?
 	//  WHERE id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
@@ -2916,6 +3028,12 @@ type Querier interface {
 	//  SET desired_status = ?, updated_at = ?
 	//  WHERE deployment_id = ? AND region_id = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error
+	//UpdateEnvironmentSlug
+	//
+	//  UPDATE environments
+	//  SET slug = ?, updated_at = ?
+	//  WHERE id = ?
+	UpdateEnvironmentSlug(ctx context.Context, arg UpdateEnvironmentSlugParams) error
 	//UpdateInstance
 	//
 	//  UPDATE instances

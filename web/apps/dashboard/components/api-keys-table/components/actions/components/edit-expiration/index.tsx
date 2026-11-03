@@ -87,14 +87,13 @@ export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationPr
                 type="submit"
                 form="edit-expiration-form"
                 variant="primary"
-                size="xlg"
-                className="w-full rounded-lg"
+                size="md"
+                className="w-full"
                 disabled={!isValid || isSubmitting}
                 loading={updateExpiration.isLoading}
               >
                 Update expiration
               </Button>
-              <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
           }
         >

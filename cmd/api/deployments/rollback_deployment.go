@@ -36,14 +36,14 @@ func rollbackDeploymentCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsRollbackDeploymentResponseBody)
+				return util.Output(ctx, cmd, res.V2DeploymentsRollbackDeploymentResponseBody)
 			}
 			req := components.V2DeploymentsRollbackDeploymentRequestBody{DeploymentID: cmd.String("deployment-id")}
 			res, err := client.Deployments.RollbackDeployment(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DeploymentsRollbackDeploymentResponseBody)
+			return util.Output(ctx, cmd, res.V2DeploymentsRollbackDeploymentResponseBody)
 		},
 	}
 }

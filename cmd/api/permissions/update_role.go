@@ -50,7 +50,7 @@ For full documentation, see https://www.unkey.com/docs/api-management/cli/permis
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PermissionsUpdateRoleResponseBody)
+				return util.Output(ctx, cmd, res.V2PermissionsUpdateRoleResponseBody)
 			}
 
 			req := components.V2PermissionsUpdateRoleRequestBody{
@@ -69,7 +69,7 @@ For full documentation, see https://www.unkey.com/docs/api-management/cli/permis
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2PermissionsUpdateRoleResponseBody)
+			return util.Output(ctx, cmd, res.V2PermissionsUpdateRoleResponseBody)
 		},
 	}
 }

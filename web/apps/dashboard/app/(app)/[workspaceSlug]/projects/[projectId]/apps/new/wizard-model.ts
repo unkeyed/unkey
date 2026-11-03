@@ -4,11 +4,7 @@ import {
   stepStatus,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/steps";
 import type { GuardMode } from "@/hooks/prevent-leave-model";
-import {
-  type App,
-  type AppDeploymentRefs,
-  latestDeploymentId,
-} from "@/lib/collections/deploy/apps";
+import { type App, type AppDeploymentRefs, latestDeploymentId } from "@/lib/queries/apps";
 
 export type SourceKind = "git" | "oci";
 

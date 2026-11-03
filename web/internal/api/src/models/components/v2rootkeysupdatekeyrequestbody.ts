@@ -56,6 +56,8 @@ export function v2RootKeysUpdateKeyRequestBodyToJSON(
   v2RootKeysUpdateKeyRequestBody: V2RootKeysUpdateKeyRequestBody,
 ): string {
   return JSON.stringify(
-    V2RootKeysUpdateKeyRequestBody$outboundSchema.parse(v2RootKeysUpdateKeyRequestBody),
+    V2RootKeysUpdateKeyRequestBody$outboundSchema.parse(
+      v2RootKeysUpdateKeyRequestBody,
+    ),
   );
 }

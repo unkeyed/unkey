@@ -55,7 +55,7 @@ For full documentation, see https://www.unkey.com/docs/platform/apis/features/au
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PermissionsSetRolePermissionsResponseBody)
+				return util.Output(ctx, cmd, res.V2PermissionsSetRolePermissionsResponseBody)
 			}
 			if !cmd.FlagIsSet("permissions") {
 				return fmt.Errorf("required flag missing: permissions")
@@ -80,7 +80,7 @@ For full documentation, see https://www.unkey.com/docs/platform/apis/features/au
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2PermissionsSetRolePermissionsResponseBody)
+			return util.Output(ctx, cmd, res.V2PermissionsSetRolePermissionsResponseBody)
 		},
 	}
 }

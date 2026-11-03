@@ -66,7 +66,7 @@ func TestOverrideNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent namespace name
@@ -79,7 +79,7 @@ func TestOverrideNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusNotFound, res.Status)
 		require.NotNil(t, res.Body)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found", res.Body.Error.Type)
+		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 	})
 
 	// Test with non-existent identifier
@@ -168,4 +168,13 @@ func TestOverrideResponsesDoNotLeakExistence(t *testing.T) {
 	require.Equal(t, existing.Body.Error.Detail, missing.Body.Error.Detail)
 	require.Equal(t, existing.Body.Error.Status, missing.Body.Error.Status)
 	require.Equal(t, existing.Body.Error.Title, missing.Body.Error.Title)
+
+	for _, namespace := range []string{uid.New(uid.RatelimitNamespacePrefix), uid.New("namespace")} {
+		missingNamespace := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
+			Namespace:  namespace,
+			Identifier: existingIdentifier,
+		})
+		require.Equal(t, existing.Status, missingNamespace.Status)
+		require.Equal(t, existing.Body.Error, missingNamespace.Body.Error)
+	}
 }

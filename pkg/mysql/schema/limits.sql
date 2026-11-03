@@ -20,3 +20,4 @@ CREATE TABLE `limits` (
 	CONSTRAINT `limits_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `limits_workspace_id_unique` UNIQUE(`workspace_id`)
 );
+

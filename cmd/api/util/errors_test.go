@@ -43,6 +43,20 @@ func TestCommandErrorIncludesPublicDiagnosticsWithoutDumpingResponses(t *testing
 	require.NoError(t, runError(t, nil))
 }
 
+func TestCommandErrorCancellationHasNoFailureBanner(t *testing.T) {
+	cancelled := &CancellationError{Message: "cancelled; no request was sent"}
+	err := runError(t, fmt.Errorf("guided input: %w", cancelled))
+	require.EqualError(t, err, cancelled.Message)
+	err = runError(t, cancelled, "--error-format=json")
+	require.Error(t, err)
+	var got struct {
+		Error diagnostic `json:"error"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(err.Error()), &got))
+	require.Equal(t, cancelled.Message, got.Error.Message)
+	require.Zero(t, got.Error.Status)
+}
+
 func TestCommandErrorAuthenticationHintFollowsCredentialPrecedence(t *testing.T) {
 	secret := uid.New(uid.KeyPrefix)
 	unauthorized := &apierrors.UnauthorizedErrorResponse{Error_: components.BaseError{Detail: "Invalid credential."}}
