@@ -14,6 +14,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -46,18 +48,12 @@ func TestCreateDomainPermissions(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard permission", permissions: []string{"environment.*.create_domain"}, shouldPass: true},
-		{name: "specific environment permission", permissions: []string{fmt.Sprintf("environment.%s.create_domain", env.environmentID)}, shouldPass: true},
-		{name: "canonical urn grant", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#write", env.workspaceID, env.projectID, env.appID, env.environmentID)}, shouldPass: true},
-		{name: "permission alongside unrelated grants", permissions: []string{"api.*.read_api", "environment.*.create_domain"}, shouldPass: true},
-		{name: "read action is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},
-		{name: "update action is not enough", permissions: []string{"environment.*.update_environment"}, shouldPass: false},
-		{name: "adjacent set action is not enough", permissions: []string{"environment.*.set_environment_variables"}, shouldPass: false},
-		{name: "create_app is not enough", permissions: []string{"project.*.create_app"}, shouldPass: false},
-		{name: "action scoped to the wrong resource type", permissions: []string{"app.*.create_domain"}, shouldPass: false},
-		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.create_domain", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
+		{name: "canonical urn grant", permissions: []string{rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Write).Value}, shouldPass: true},
+		{name: "urn for another workspace", permissions: []string{rbac.U(urn.New().Workspace(uid.New(uid.WorkspacePrefix)).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value}, shouldPass: false},
+		{name: "urn for another environment", permissions: []string{rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(uid.New(uid.EnvironmentPrefix)).Domain("*"), permissions.Write).Value}, shouldPass: false},
+		{name: "delete action is not enough", permissions: []string{rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain("*"), permissions.Delete).Value}, shouldPass: false},
 		{name: "urn missing the project and app segments", permissions: []string{fmt.Sprintf("unkey:v1:%s:environments/*#write", env.workspaceID)}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
+		{name: "unrelated permission", permissions: []string{rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).Keyspace("*"), permissions.Write).Value}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
@@ -86,7 +82,7 @@ func TestCreateDomainEnvironmentReaderIsForbidden(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	environment := urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID)
-	rootKey := h.CreateRootKey(env.workspaceID, environment.String()+"#read")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(environment, permissions.Read).Value)
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
@@ -112,7 +108,7 @@ func TestCreateDomainPlanAllowanceExceeded(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	setCustomDomainAllowance(t, h, env.workspaceID, 0)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
@@ -147,7 +143,7 @@ func TestCreateDomainSubdomainsAreFree(t *testing.T) {
 
 	env := seedEnvironment(t, h)
 	setCustomDomainAllowance(t, h, env.workspaceID, 1)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value)
 
 	apex := uid.DNS1035(16) + ".com"
 	insertCustomDomain(t, h, &ctrlv1.AddCustomDomainRequest{
@@ -193,7 +189,7 @@ func TestCreateDomainMissingWorkspaceLimits(t *testing.T) {
 	})
 	require.NoError(t, err)
 	env := seedEnvironmentInWorkspace(t, h, workspaceID)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(rootKey), makeRequest(env, randomDomain()))
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)
@@ -226,7 +222,7 @@ func TestCreateDomainRejectionsMatchAcrossLayers(t *testing.T) {
 	h.Register(racedRoute)
 
 	env := seedEnvironment(t, h)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.create_domain")
+	rootKey := h.CreateRootKey(env.workspaceID, rbac.U(urn.New().Workspace(env.workspaceID).Project("*").App("*").Environment("*").Domain("*"), permissions.Write).Value)
 
 	// The handler's own allowance check passes, so the rejection comes from ctrl.
 	fromCtrl := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, racedRoute, authHeaders(rootKey), makeRequest(env, randomDomain()))
@@ -244,7 +240,7 @@ func TestCreateDomainRejectionsMatchAcrossLayers(t *testing.T) {
 	require.Equal(t, fromCtrl.Body.Error.Detail, fromHandler.Body.Error.Detail)
 }
 
-// TestCreateDomainExistenceNotLeaked asserts that a zero-permission root key
+// TestCreateDomainExistenceNotLeaked asserts that a root key without permissions
 // targeting a real environment and a nonexistent one receives responses that are
 // indistinguishable apart from the request id. Without this, permission
 // rejections would act as an existence oracle over every environment in the
@@ -270,8 +266,5 @@ func TestCreateDomainExistenceNotLeaked(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, realRes.Status, "expected 404, received: %s", realRes.RawBody)
 	require.Equal(t, http.StatusNotFound, missingRes.Status, "expected 404, received: %s", missingRes.RawBody)
 	require.NotContains(t, realRes.RawBody, env.environmentID)
-	require.Equal(t, missingRes.Body.Error.Detail, realRes.Body.Error.Detail)
-	require.Equal(t, missingRes.Body.Error.Type, realRes.Body.Error.Type)
-	require.Equal(t, missingRes.Body.Error.Status, realRes.Body.Error.Status)
-	require.Equal(t, missingRes.Body.Error.Title, realRes.Body.Error.Title)
+	require.Equal(t, missingRes.Body.Error, realRes.Body.Error)
 }
