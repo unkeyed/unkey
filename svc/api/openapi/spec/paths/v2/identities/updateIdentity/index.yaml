@@ -11,6 +11,8 @@ post:
     > Requires `identity.*.update_identity` permission
     > Rate limit changes propagate within 30 seconds
   operationId: identities.updateIdentity
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: updateIdentity
   security:
     - bearer: []

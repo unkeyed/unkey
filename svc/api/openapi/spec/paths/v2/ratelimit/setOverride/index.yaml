@@ -11,6 +11,8 @@ post:
 
     **Permissions:** Requires `ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`
   operationId: ratelimit.setOverride
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: setOverride
   security:
     - bearer: []

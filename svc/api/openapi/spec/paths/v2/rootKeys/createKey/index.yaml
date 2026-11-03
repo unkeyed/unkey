@@ -7,6 +7,8 @@ post:
     Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
     The created root key cannot have more permissions than the caller.
   operationId: rootKeys.createKey
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: createKey
   requestBody:
     required: true

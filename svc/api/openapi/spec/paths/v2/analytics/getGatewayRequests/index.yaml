@@ -5,6 +5,8 @@ post:
     - bearer: []
   x-speakeasy-name-override: getGatewayRequests
   operationId: analytics.getGatewayRequests
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-unkey-workspace-rate-limit-exempt: true
   summary: Query gateway request data
   description: |

@@ -20,6 +20,8 @@ post:
     Your root key must have this permission:
     - `unkey:v1:<workspace_id>:usage#read`
   operationId: workspace.getUsage
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getUsage
   x-unkey-idempotency: idempotent

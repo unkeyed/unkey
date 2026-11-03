@@ -15,6 +15,8 @@ post:
     - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#read` (to read any namespace)
     - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#read` (to read a specific namespace)
   operationId: ratelimit.listNamespaces
+  x-unkey-mcp:
+    toolsets: [v2]
   x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listNamespaces
   x-unkey-idempotency: idempotent

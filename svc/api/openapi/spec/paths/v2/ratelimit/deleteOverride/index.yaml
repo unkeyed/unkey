@@ -11,6 +11,8 @@ post:
 
     **Permissions:** Requires `ratelimit.*.delete_override` or `ratelimit.<namespace_id>.delete_override`
   operationId: ratelimit.deleteOverride
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: deleteOverride
   security:
     - bearer: []

@@ -15,6 +15,8 @@ post:
     - `app.*.update_app` (to update any app)
     - `app.<app_id>.update_app` (to update a specific app)
   operationId: apps.updateApp
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: updateApp
   security:
     - bearer: []

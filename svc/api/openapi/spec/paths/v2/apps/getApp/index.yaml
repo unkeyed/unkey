@@ -13,6 +13,8 @@ post:
     - `app.*.read_app` (to read any app)
     - `app.<app_id>.read_app` (to read a specific app)
   operationId: apps.getApp
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: getApp
   security:

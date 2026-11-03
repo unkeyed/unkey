@@ -15,6 +15,8 @@ post:
 
     **Authentication**: requires a root key with permission to create deployments.
   operationId: deployments.createDeployment
+  x-unkey-mcp:
+    exclude: "Deprecated."
   x-speakeasy-name-override: createDeployment
   security:
     - bearer: []

@@ -5,6 +5,8 @@ post:
     - bearer: []
   x-speakeasy-name-override: getRatelimits
   operationId: analytics.getRatelimits
+  x-unkey-mcp:
+    toolsets: [v2]
   x-unkey-workspace-rate-limit-exempt: true
   summary: Query rate limit data
   description: |

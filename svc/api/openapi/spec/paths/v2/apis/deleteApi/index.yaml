@@ -17,6 +17,8 @@ post:
     - `api.*.delete_api` (to delete any API)
     - `api.<api_id>.delete_api` (to delete a specific API)
   operationId: apis.deleteApi
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: deleteApi
   security:
     - bearer: []

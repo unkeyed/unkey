@@ -14,6 +14,8 @@ post:
     Your root key must have the following permission:
     - `project.*.create_project` (to create projects in your workspace)
   operationId: projects.createProject
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: createProject
   x-unkey-idempotency: conditionally-idempotent
   security:

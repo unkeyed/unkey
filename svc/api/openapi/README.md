@@ -47,6 +47,7 @@ This creates `openapi-bundled.yaml` with all references resolved using [libopena
    - Additional data schemas as needed (e.g., `V2CategoryOperationResponseData.yaml`)
 3. Update `openapi-split.yaml` to include your new endpoint in the `paths` section
 4. If needed, add shared schemas to `spec/common/` or `spec/error/`
+5. Decide whether the operation is an MCP tool on mcp.unkey.com. Every operation needs an `x-unkey-mcp` extension next to its `operationId`, with exactly one of `toolsets: [v2]` (or `[v2, compute]`) or `exclude: "<reason>"`. Then run `mise run generate` and update the tool golden file with `mise exec -- go test ./svc/mcp/internal/tools -run TestToolsetsGolden -update`.
 
 ## Example Endpoint Structure
 

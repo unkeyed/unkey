@@ -26,6 +26,8 @@ post:
     A root key that cannot read the portal gets **404**. One that can read it
     but lacks the permission gets **403**.
   operationId: portal.updatePortal
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: updatePortal
   security:
     - bearer: []

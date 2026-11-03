@@ -16,6 +16,8 @@ post:
     Your root key must have the following permission:
     - `unkey:v1:<workspace_id>:projects/<project_id>/rbac/roles/<role_id>#write`
   operationId: permissions.updateRole
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: UpdateRole
   x-unkey-idempotency: idempotent
   security:

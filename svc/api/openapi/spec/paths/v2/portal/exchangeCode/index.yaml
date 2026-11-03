@@ -12,6 +12,8 @@ post:
     The returned access token is valid for 24 hours and should be stored as an
     httpOnly cookie or used in the Authorization header for subsequent API calls.
   operationId: portal.exchangeCode
+  x-unkey-mcp:
+    exclude: "Exchanges a one-time portal code for a browser session cookie."
   x-speakeasy-name-override: exchangeCode
   security: []
   requestBody:

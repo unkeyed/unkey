@@ -8,6 +8,8 @@ post:
     The response includes the user code and the dashboard URL where the user confirms it and chooses permissions.
     No authentication is required. Requests are rate limited per IP address.
   operationId: cli.startDeviceLogin
+  x-unkey-mcp:
+    exclude: "CLI sign-in and session plumbing. MCP clients sign in with OAuth."
   x-speakeasy-name-override: startDeviceLogin
   security: []
   requestBody:

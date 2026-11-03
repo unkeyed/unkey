@@ -23,6 +23,8 @@ post:
     Your root key must have write permission on the environment:
     - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>#write`
   operationId: deployments.rollbackDeployment
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: rollbackDeployment
   security:
     - bearer: []

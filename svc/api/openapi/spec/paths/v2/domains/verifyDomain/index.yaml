@@ -22,6 +22,8 @@ post:
     - `environment.*.verify_domain` (to verify domains in any environment)
     - `environment.<environment_id>.verify_domain` (to verify domains in a specific environment)
   operationId: domains.verifyDomain
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: verifyDomain
   x-unkey-idempotency: idempotent
   security:
