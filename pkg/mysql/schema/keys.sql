@@ -30,6 +30,8 @@ CREATE TABLE `keys` (
 
 CREATE INDEX `key_auth_id_deleted_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`,`id`);
 
+CREATE INDEX `idx_keys_on_workspace_id_key_auth_id_deleted_at` ON `keys` (`workspace_id`,`key_auth_id`,`deleted_at_m`,`id`);
+
 CREATE INDEX `key_auth_id_deleted_at_last_used_at_idx` ON `keys` (`key_auth_id`,`deleted_at_m`,`last_used_at`);
 
 CREATE INDEX `idx_keys_on_for_workspace_id` ON `keys` (`for_workspace_id`);
