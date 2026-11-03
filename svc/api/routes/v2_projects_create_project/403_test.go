@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_create_project"
 )
@@ -24,10 +27,10 @@ func TestCreateProjectForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "exact permission", permissions: []string{"project.*.create_project"}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.create_project"}, shouldPass: true},
-		{name: "wrong action", permissions: []string{"project.*.read_project"}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.create_api"}, shouldPass: false},
+		{name: "project write", permissions: []string{rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*"), permissions.Write).Value}, shouldPass: true},
+		{name: "project read only", permissions: []string{rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*"), permissions.Read).Value}, shouldPass: false},
+		{name: "unrelated resource", permissions: []string{rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).RootKey("*"), permissions.Write).Value}, shouldPass: false},
+		{name: "other workspace write", permissions: []string{rbac.U(urn.New().Workspace(h.Resources().RootWorkspace.ID).Project("*"), permissions.Write).Value}, shouldPass: false},
 	}
 
 	for i, tc := range testCases {
