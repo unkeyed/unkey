@@ -1,6 +1,7 @@
 package environment_test
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -33,12 +34,27 @@ func TestRollbackDeploymentRetiresSource(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		promoteAnother bool
+		pinSource      bool
 	}{
 		{name: "rollback"},
 		{name: "rollback then promotion", promoteAnother: true},
+		{name: "pinned source survives rollback and promotion", promoteAnother: true, pinSource: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newFixture(t)
+			if tc.pinSource {
+				f.seeder.CreateAppConnection(f.ctx, seed.CreateAppConnectionRequest{
+					WorkspaceID:         f.workspaceID,
+					ProjectID:           f.project.ID,
+					CallerAppID:         f.app.ID,
+					CallerEnvironmentID: f.env.ID,
+					TargetAppID:         f.app.ID,
+					Name:                "pinned",
+					SelectionMode:       db.ConnectionAppTargetsSelectionModeDeployment,
+					TargetDeploymentID:  sql.NullString{String: f.live.ID, Valid: true},
+				})
+			}
+
 			deploymentIDs := []string{f.live.ID, f.candidate.ID, f.other.ID}
 			var regionIDs []string
 			for _, name := range []string{"us-west-2", "us-east-1"} {
@@ -69,11 +85,18 @@ func TestRollbackDeploymentRetiresSource(t *testing.T) {
 				liveID = f.other.ID
 			}
 
+			if tc.pinSource {
+				require.Never(t, func() bool {
+					source, err := f.db.FindDeploymentById(f.ctx, f.live.ID)
+					return err != nil || source.DesiredState != mysqltype.DeploymentsDesiredStateRunning
+				}, 2*time.Second, 25*time.Millisecond, "pinned source stays running after standby")
+			}
+
 			require.EventuallyWithT(t, func(t *assert.CollectT) {
 				for _, deploymentID := range deploymentIDs {
 					wantState := mysqltype.DeploymentsDesiredStateRunning
 					wantTopology := db.DeploymentTopologyDesiredStatusRunning
-					if deploymentID == f.live.ID || (tc.promoteAnother && deploymentID == f.candidate.ID) {
+					if (!tc.pinSource && deploymentID == f.live.ID) || (tc.promoteAnother && deploymentID == f.candidate.ID) {
 						wantState = mysqltype.DeploymentsDesiredStateStopped
 						wantTopology = db.DeploymentTopologyDesiredStatusStopped
 					}
@@ -155,4 +178,12 @@ func TestRollbackDeploymentRejectsForeignEnvironment(t *testing.T) {
 	f.requireLive(t, f.live.ID, false)
 	f.requireRoutes(t, f.live.ID, f.live.ID)
 	require.Equal(t, 0, countAudits(t, f.ctx, f.db, f.workspaceID, auditlog.DeploymentRollbackEvent, f.candidate.ID, f.actorID))
+}
+
+func TestRollbackPrivateOnlyDeployment(t *testing.T) {
+	f := newFixture(t)
+	require.NoError(t, f.db.DeleteFrontlineRoutesByEnvironmentId(f.ctx, f.env.ID))
+
+	require.NoError(t, f.rollback(f.env.ID, f.live.ID, f.candidate.ID))
+	f.requireLive(t, f.candidate.ID, true)
 }

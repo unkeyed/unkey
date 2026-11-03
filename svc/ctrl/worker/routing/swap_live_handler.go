@@ -30,6 +30,25 @@ func (s *Service) SwapLiveDeployment(
 	req *hydrav1.SwapLiveDeploymentRequest,
 ) (*hydrav1.SwapLiveDeploymentResponse, error) {
 	deploymentID := req.GetDeploymentId()
+	environmentID := restate.Key(ctx)
+
+	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		target, err := s.db.FindDeploymentWithEnvironmentAndApp(runCtx, deploymentID)
+		if err != nil {
+			return restateutil.TerminalNotFound(err)
+		}
+		if target.EnvironmentID != environmentID || !target.EnvironmentKind.IsProduction() {
+			return restate.ToTerminalError(fmt.Errorf("target deployment must belong to the keyed production environment"), restate.WithErrorCode(400))
+		}
+
+		return nil
+	}, restate.WithName("validate live deployment target"))
+	if err != nil {
+		if restateutil.IsNotFoundTerminal(err) {
+			return &hydrav1.SwapLiveDeploymentResponse{}, nil
+		}
+		return nil, err
+	}
 
 	// Journal the current deployment before the mutating transaction. If the
 	// transaction commits but its result is lost, Restate replays this value so
@@ -118,8 +137,7 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 	deploymentID := req.GetDeploymentId()
 	return db.TxWithResult(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (swapLiveDeploymentResult, error) {
 		queries := db.NewQueries(tx)
-		// Share the stop path's locks until the live pointer is committed.
-		if _, err := queries.FindDeploymentWithApp(txCtx, deploymentID); err != nil {
+		if _, err := queries.LockDeploymentWithApp(txCtx, deploymentID); err != nil {
 			return swapLiveDeploymentResult{}, restateutil.TerminalNotFound(err)
 		}
 		deployment, findErr := queries.FindDeploymentById(txCtx, deploymentID)

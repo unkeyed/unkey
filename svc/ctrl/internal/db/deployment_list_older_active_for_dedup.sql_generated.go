@@ -16,6 +16,11 @@ FROM deployments older
 WHERE older.app_id = ?
   AND older.environment_id = ?
   AND older.git_branch = ?
+  AND older.fork_repository_full_name <=> (
+    SELECT src.fork_repository_full_name
+    FROM deployments src
+    WHERE src.id = ?
+  )
   AND older.status IN ('pending', 'awaiting_approval')
   AND older.created_at < (
     SELECT src.created_at
@@ -57,6 +62,11 @@ type ListOlderActiveDeploymentsForDedupRow struct {
 //	WHERE older.app_id = ?
 //	  AND older.environment_id = ?
 //	  AND older.git_branch = ?
+//	  AND older.fork_repository_full_name <=> (
+//	    SELECT src.fork_repository_full_name
+//	    FROM deployments src
+//	    WHERE src.id = ?
+//	  )
 //	  AND older.status IN ('pending', 'awaiting_approval')
 //	  AND older.created_at < (
 //	    SELECT src.created_at
@@ -70,6 +80,7 @@ func (q *Queries) ListOlderActiveDeploymentsForDedup(ctx context.Context, arg Li
 		arg.AppID,
 		arg.EnvironmentID,
 		arg.GitBranch,
+		arg.DeploymentID,
 		arg.DeploymentID,
 		arg.DeploymentID,
 	)
