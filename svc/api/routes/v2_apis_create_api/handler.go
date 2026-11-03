@@ -59,16 +59,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if !projectFound {
 		projectIDRequired = "*"
 	}
-	err = principal.Authorize(rbac.Or(
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectIDRequired).Keyspace("*"),
-			permissions.Write,
-		),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateAPI,
-		}),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectIDRequired).Keyspace("*"),
+		permissions.Write,
 	))
 	if err != nil {
 		return err

@@ -6,14 +6,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
 )
 
 // TestDeleteIdentity_AuthorizesCanonicalURNPermission guarantees a project-scoped
-// URN can delete an identity without a legacy tuple grant.
+// URN can delete the specified identity.
 func TestDeleteIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
@@ -22,7 +25,7 @@ func TestDeleteIdentity_AuthorizesCanonicalURNPermission(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	externalID := uid.New(uid.TestPrefix)
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{WorkspaceID: workspaceID, ExternalID: externalID})
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/%s#delete", workspaceID, identity.ProjectID, identity.ID))
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project(identity.ProjectID).Identity(identity.ID), permissions.Delete).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
