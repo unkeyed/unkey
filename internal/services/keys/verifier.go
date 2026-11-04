@@ -43,6 +43,7 @@ type KeyVerifier struct {
 	isRootKey bool // Whether this is a root key (special handling)
 
 	message string   // Internal message for validation failures
+	reason  Reason   // Internal cause of the current Status
 	tags    []string // Tags associated with this verification
 
 	session *zen.Session // The current request session
@@ -93,7 +94,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	}
 
 	if config.keyspaces != nil && !slices.Contains(config.keyspaces, k.Key.KeyAuthID) {
-		k.setInvalid(StatusNotFound, "Key does not belong to an allowed keyspace.")
+		k.setInvalid(StatusNotFound, ReasonKeyspaceMismatch, "Key does not belong to an allowed keyspace.")
 		return nil
 	}
 
@@ -132,16 +133,27 @@ func (k *KeyVerifier) recordVerifyOutcome(before KeyStatus) {
 		return
 	}
 
-	k.recordStatus(k.Status)
+	k.recordStatus()
 }
 
-func (k *KeyVerifier) recordStatus(status KeyStatus) {
+func (k *KeyVerifier) recordStatus() {
 	keyType := "key"
 	if k.isRootKey {
 		keyType = "root_key"
 	}
 
-	metrics.KeyVerificationsTotal.WithLabelValues(keyType, string(status)).Inc()
+	metrics.KeyVerificationsTotal.WithLabelValues(keyType, string(k.Status), string(k.reason)).Inc()
+}
+
+// Hide reports the key to the caller as NOT_FOUND because the caller may not
+// see it, for example because it belongs to another workspace. A key that Get
+// left undecided is recorded here, since it never reaches Verify.
+func (k *KeyVerifier) Hide(reason Reason) {
+	undecided := k.Status == StatusValid && !k.isRootKey
+	k.setInvalid(StatusNotFound, reason, "key is hidden from the caller")
+	if undecided {
+		k.recordStatus()
+	}
 }
 
 // TelemetrySnapshot captures the final verification outcome for downstream

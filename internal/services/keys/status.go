@@ -148,9 +148,10 @@ func (k *KeyVerifier) ToOpenAPIStatus() openapi.V2KeysVerifyKeyResponseDataCode 
 	}
 }
 
-// setInvalid marks the key as invalid with the specified status and message.
+// setInvalid marks the key as invalid with the specified status, reason, and message.
 // This is used internally by validation methods to indicate validation failures.
-func (k *KeyVerifier) setInvalid(status KeyStatus, message string) {
+func (k *KeyVerifier) setInvalid(status KeyStatus, reason Reason, message string) {
 	k.Status = status
+	k.reason = reason
 	k.message = message
 }

@@ -76,8 +76,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Validate key belongs to authorized workspace
+	// Validate key belongs to authorized workspace. An unknown hash has no
+	// workspace and lands here too; it keeps the reason Get gave it.
 	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
+		if key.Key.ID != "" {
+			key.Hide(keys.ReasonWorkspaceMismatch)
+		}
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
@@ -123,6 +127,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		// Return 200 OK with NOT_FOUND because returning a permission error here
 		// would leak that the key exists.
+		key.Hide(keys.ReasonPermissionDenied)
 		return s.JSON(http.StatusOK, Response{
 			Meta: openapi.Meta{
 				RequestId: s.RequestID(),
