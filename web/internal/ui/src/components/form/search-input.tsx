@@ -14,6 +14,7 @@ type SearchInputProps = {
   placeholder: string;
   maxLength?: number;
   className?: string;
+  autoFocus?: boolean;
 };
 
 export function SearchInput({
@@ -23,6 +24,7 @@ export function SearchInput({
   placeholder,
   maxLength = DEFAULT_MAX_LENGTH,
   className,
+  autoFocus,
 }: SearchInputProps) {
   return (
     <InputGroup className={cn("h-8", className)}>
@@ -34,11 +36,13 @@ export function SearchInput({
         type="search"
         value={value}
         maxLength={maxLength}
+        autoFocus={autoFocus}
         placeholder={placeholder}
         className="h-8 text-sm font-medium [&::-webkit-search-cancel-button]:hidden"
         onChange={(event) => onValueChange(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === "Escape") {
+          if (event.key === "Escape" && value !== "") {
+            event.stopPropagation();
             onValueChange("");
           }
         }}

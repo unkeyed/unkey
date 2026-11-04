@@ -37,14 +37,14 @@ func listEnvironmentsCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsListEnvironmentsResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsListEnvironmentsResponseBody)
 			}
 			req := components.V2EnvironmentsListEnvironmentsRequestBody{Project: cmd.String("project"), App: cmd.String("app")}
 			res, err := client.Environments.ListEnvironments(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2EnvironmentsListEnvironmentsResponseBody)
+			return util.Output(ctx, cmd, res.V2EnvironmentsListEnvironmentsResponseBody)
 		},
 	}
 }

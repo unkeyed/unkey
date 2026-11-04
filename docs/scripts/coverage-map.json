@@ -713,8 +713,7 @@
       "product": "platform",
       "capability": "workspace and workspace settings",
       "pages": [
-        "platform/workspace/overview",
-        "platform/workspace/settings"
+        "platform/workspace/overview"
       ]
     },
     {
@@ -730,7 +729,7 @@
       "product": "platform",
       "capability": "two-factor auth",
       "pages": [
-        "platform/workspace/two-factor-auth"
+        "platform/workspace/team"
       ]
     },
     {

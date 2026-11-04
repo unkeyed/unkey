@@ -23,7 +23,7 @@ go = "1.27.3"
 "github:tilt-dev/ctlptl" = "0.9.6"
 "github:FiloSottile/mkcert" = "1.4.4"
 "github:planetscale/cli" = "0.284.0"
-"github:chronark/rask" = "0.8.0"
+"github:chronark/rask" = "0.9.0"
 "github:golangci/golangci-lint" = "2.14.0"
 "github:goreleaser/goreleaser-pro" = "2.15.4"
 "github:pnpm/pnpm" = { version = "11.28.5", platforms.macos-x64.asset_pattern = "pnpm-darwin-x64.tar.gz" }

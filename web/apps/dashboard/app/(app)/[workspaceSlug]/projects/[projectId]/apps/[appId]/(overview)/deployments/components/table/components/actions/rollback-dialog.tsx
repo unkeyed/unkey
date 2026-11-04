@@ -6,6 +6,7 @@ import { deploymentTitle } from "@/lib/collections/deploy/deployment-title";
 import { rollbackCandidates } from "@/lib/collections/deploy/rollback";
 import {
   type DeploymentSummary,
+  toastWhenSettled,
   useCustomDomains,
   useDeployActions,
   useDomains,
@@ -14,7 +15,7 @@ import {
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { IconChevronDownOutline12 } from "@unkey/icons";
-import { Badge, Button, DialogContainer, InfoTooltip, TimestampInfo, toast } from "@unkey/ui";
+import { Badge, Button, DialogContainer, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import { type ReactNode, useId, useState } from "react";
 import { RollbackDeploymentPair } from "./components/rollback-deployment-pair";
@@ -59,17 +60,24 @@ export function RollbackDialog({
   const rollback = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.rollbackDeployment({ deploymentId }),
-    onSuccess: (_result, deploymentId) => {
-      awaitLiveDeployment({ deploymentId, rolledBack: true });
-      toast.success("Rolled back", {
-        description: "Production traffic moved to the selected deployment.",
-      });
-      onClose();
-    },
-    onError: (error) => {
-      toast.error("Rollback failed", { description: getErrorMessage(error) });
-    },
+    onSuccess: onClose,
   });
+
+  const handleRollback = () => {
+    toastWhenSettled(
+      rollback
+        .mutateAsync(target.id)
+        .then(() => awaitLiveDeployment({ deploymentId: target.id, rolledBack: true })),
+      {
+        loading: "Rolling back...",
+        success: {
+          message: "Rolled back",
+          description: "Production traffic moved to the selected deployment.",
+        },
+        failure: (error) => ({ message: "Rollback failed", description: getErrorMessage(error) }),
+      },
+    );
+  };
 
   return (
     <DialogContainer
@@ -86,7 +94,7 @@ export function RollbackDialog({
             size="md"
             loading={rollback.isLoading}
             disabled={rollback.isLoading}
-            onClick={() => rollback.mutate(target.id)}
+            onClick={handleRollback}
           >
             Roll back
           </Button>

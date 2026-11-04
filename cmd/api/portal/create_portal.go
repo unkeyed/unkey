@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/crea
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PortalCreatePortalResponseBody)
+				return util.Output(ctx, cmd, res.V2PortalCreatePortalResponseBody)
 			}
 
 			slug := cmd.String("slug")
@@ -97,7 +97,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/crea
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2PortalCreatePortalResponseBody)
+			return util.Output(ctx, cmd, res.V2PortalCreatePortalResponseBody)
 		},
 	}
 }

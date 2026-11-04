@@ -32,3 +32,13 @@ func ConfigFlag() *cli.StringFlag {
 func OutputFlag() *cli.EnumFlag {
 	return cli.Enum("output", "Output format. JSON includes all fields and pagination.", []string{"human", "json"}, cli.EnvVar("UNKEY_OUTPUT"), cli.Default("human"))
 }
+
+// IsCommonFlag identifies command controls rather than endpoint request fields.
+func IsCommonFlag(name string) bool {
+	switch name {
+	case "root-key", "api-url", "config", "output", "json", "debug", "yes", "interactive", "no-input", "error-format", "reveal":
+		return true
+	default:
+		return false
+	}
+}

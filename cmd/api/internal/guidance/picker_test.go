@@ -55,7 +55,7 @@ func TestResourcePickerSearchResetsCursorAndPagingIsExplicit(t *testing.T) {
 	script := &pickerScript{t: t, answers: []string{"browse", "next", "search", "needle", "id:" + foundID}}
 	var output bytes.Buffer
 	f := &form{prompt: script, out: &output}
-	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", map[string]any{})
+	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", map[string]any{}, &Schema{Type: "string"})
 	require.NoError(t, err)
 	require.True(t, handled)
 	require.Equal(t, foundID, value)
@@ -76,27 +76,27 @@ func TestResourcePickerSearchResetsCursorAndPagingIsExplicit(t *testing.T) {
 }
 
 func TestResourcePickerManualNeedsNeitherCredentialsNorParentReads(t *testing.T) {
-	for _, field := range []string{"project", "app", "environment", "keyId", "permissionId", "permission", "roleId", "role", "identityId", "identity", "namespaceId", "namespace", "overrideId", "deploymentId", "domainId", "policyId"} {
+	for _, field := range []string{"project", "app", "environment", "keyId", "permission", "roleId", "role", "identity", "namespace", "deploymentId", "policyId"} {
 		t.Run(field, func(t *testing.T) {
 			id := uid.New(uid.TestPrefix)
 			script := &pickerScript{t: t, answers: []string{"manual", "", id}}
 			var output bytes.Buffer
 			f := &form{prompt: script, out: &output}
-			value, handled, err := resourcePicker(t.Context(), nil, "")(t.Context(), f, field, map[string]any{})
+			value, handled, err := resourcePicker(t.Context(), nil, "")(t.Context(), f, field, map[string]any{}, &Schema{Type: "string"})
 			require.NoError(t, err)
 			require.True(t, handled)
 			require.Equal(t, id, value)
 			require.Empty(t, script.answers)
 			require.Len(t, script.menus, 1)
-			require.Contains(t, output.String(), "Enter an ID")
+			require.Contains(t, output.String(), "Enter a value")
 		})
 	}
 }
 
 func TestResourcePickerUnsupportedTargetsLeaveTextPromptToForm(t *testing.T) {
-	for _, field := range []string{"apiId", "portalId", "portal", "domain", "id", "unknown"} {
+	for _, field := range []string{"apiId", "portalId", "portal", "keyspaceId", "permissionId", "identityId", "namespaceId", "overrideId", "domainId", "id", "unknown"} {
 		t.Run(field, func(t *testing.T) {
-			value, handled, err := resourcePicker(t.Context(), nil, "")(t.Context(), nil, field, nil)
+			value, handled, err := resourcePicker(t.Context(), nil, "")(t.Context(), nil, field, nil, &Schema{Type: "string"})
 			require.NoError(t, err)
 			require.False(t, handled)
 			require.Empty(t, value)
@@ -117,12 +117,12 @@ func TestResourcePickerListFailureShowsSanitizedReason(t *testing.T) {
 	script := &pickerScript{t: t, answers: []string{"browse", id}}
 	var output bytes.Buffer
 	f := &form{prompt: script, out: &output}
-	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", nil)
+	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", nil, &Schema{Type: "string"})
 	require.NoError(t, err)
 	require.True(t, handled)
 	require.Equal(t, id, value)
 	require.Empty(t, script.answers)
-	require.Equal(t, "Permission denied: "+secret+"\\x1b[31m\n  Enter the project ID instead.\n", output.String())
+	require.Equal(t, "Permission denied: "+secret+"\\x1b[31m\n  Enter a value manually instead.\n", output.String())
 }
 
 func TestResourcePickerScopesNeverBecomeRequestFields(t *testing.T) {
@@ -229,9 +229,9 @@ func TestResourcePickerKeysScopeAndSecretRedaction(t *testing.T) {
 				require.Equal(t, apiID, request["apiId"])
 				require.Equal(t, false, request["decrypt"])
 			}
-			require.Equal(t, []prompt.SelectOption{{Key: "id:" + keyID, Label: "CI (" + keyID + ")"}, {Key: "manual", Label: "Enter ID manually"}}, script.menus[1])
+			require.Equal(t, []prompt.SelectOption{{Key: "id:" + keyID, Label: "CI · " + start + "… (" + keyID + ")"}, {Key: "manual", Label: "Enter a value manually"}}, script.menus[1])
 			require.NotContains(t, fmt.Sprint(script.menus)+output.String(), secret)
-			require.NotContains(t, fmt.Sprint(script.menus)+output.String(), start)
+			require.Contains(t, fmt.Sprint(script.menus)+output.String(), start)
 			require.NotContains(t, fmt.Sprint(script.menus)+output.String(), end)
 		})
 	}
@@ -253,7 +253,7 @@ func TestResourcePickerEmptyListAllowsManualEntryAndSearchClear(t *testing.T) {
 	script := &pickerScript{t: t, answers: []string{"browse", "search", "missing", "search", "", "manual", id}}
 	var output bytes.Buffer
 	f := &form{prompt: script, out: &output}
-	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", nil)
+	value, handled, err := resourcePicker(t.Context(), cmd, "projects update-project")(t.Context(), f, "project", nil, &Schema{Type: "string"})
 	require.NoError(t, err)
 	require.True(t, handled)
 	require.Equal(t, id, value)
@@ -275,7 +275,7 @@ func TestResourcePickerCancellationDoesNotOfferManualFallback(t *testing.T) {
 	script := &pickerScript{t: t, answers: []string{"browse"}}
 	var output bytes.Buffer
 	f := &form{prompt: script, out: &output}
-	value, handled, err := resourcePicker(ctx, cmd, "projects update-project")(ctx, f, "project", nil)
+	value, handled, err := resourcePicker(ctx, cmd, "projects update-project")(ctx, f, "project", nil, &Schema{Type: "string"})
 	require.ErrorIs(t, err, context.Canceled)
 	require.True(t, handled)
 	require.Empty(t, value)
@@ -284,7 +284,6 @@ func TestResourcePickerCancellationDoesNotOfferManualFallback(t *testing.T) {
 
 func TestResourcePickerResourceMappingsStopAfterSelection(t *testing.T) {
 	projectID, appID, environmentID := uid.New(uid.ProjectPrefix), uid.New(uid.AppPrefix), uid.New(uid.EnvironmentPrefix)
-	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	parents := map[string]any{"project": projectID, "app": appID, "environment": environmentID}
 	cases := []struct {
 		fields     []string
@@ -295,23 +294,17 @@ func TestResourcePickerResourceMappingsStopAfterSelection(t *testing.T) {
 		scope      map[string]any
 		data       func(string) any
 	}{
-		{[]string{"permission", "permissionId"}, "/v2/permissions.listPermissions", uid.PermissionPrefix, "Read invoices", true, nil, func(id string) any {
+		{[]string{"permission"}, "/v2/permissions.listPermissions", uid.PermissionPrefix, "Read invoices", true, nil, func(id string) any {
 			return []components.Permission{{ID: id, Name: "Read invoices"}}
 		}},
 		{[]string{"role", "roleId"}, "/v2/permissions.listRoles", uid.RolePrefix, "Billing admin", true, nil, func(id string) any {
 			return []components.Role{{ID: id, Name: "Billing admin"}}
 		}},
-		{[]string{"identity", "identityId"}, "/v2/identities.listIdentities", uid.IdentityPrefix, "Customer", true, nil, func(id string) any {
+		{[]string{"identity"}, "/v2/identities.listIdentities", uid.IdentityPrefix, "Customer", true, nil, func(id string) any {
 			return []components.Identity{{ID: id, ExternalID: "Customer"}}
 		}},
-		{[]string{"namespace", "namespaceId"}, "/v2/ratelimit.listNamespaces", uid.RatelimitNamespacePrefix, "API requests", true, nil, func(id string) any {
+		{[]string{"namespace"}, "/v2/ratelimit.listNamespaces", uid.RatelimitNamespacePrefix, "API requests", true, nil, func(id string) any {
 			return []components.RatelimitNamespace{{ID: id, Name: "API requests"}}
-		}},
-		{[]string{"overrideId"}, "/v2/ratelimit.listOverrides", uid.RatelimitOverridePrefix, "premium_*", false, map[string]any{"namespace": namespaceID}, func(id string) any {
-			return []components.RatelimitOverride{{OverrideID: id, Identifier: "premium_*"}}
-		}},
-		{[]string{"domainId"}, "/v2/domains.listDomains", uid.DomainPrefix, "api.example.com", true, parents, func(id string) any {
-			return []components.Domain{{ID: id, Domain: "api.example.com", Status: components.DomainStatusVerified}}
 		}},
 		{[]string{"deploymentId"}, "/v2/deployments.listDeployments", uid.DeploymentPrefix, "Gateway / production · ready", false, parents, func(id string) any {
 			return []components.Deployment{{
@@ -348,7 +341,7 @@ func TestResourcePickerResourceMappingsStopAfterSelection(t *testing.T) {
 				var output bytes.Buffer
 				f := &form{prompt: script, out: &output}
 				before := maps.Clone(test.scope)
-				value, handled, err := resourcePicker(t.Context(), cmd, "")(t.Context(), f, field, test.scope)
+				value, handled, err := resourcePicker(t.Context(), cmd, "")(t.Context(), f, field, test.scope, &Schema{Type: "string"})
 				require.NoError(t, err)
 				require.True(t, handled)
 				require.Equal(t, id, value)
@@ -365,6 +358,362 @@ func TestResourcePickerResourceMappingsStopAfterSelection(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestResourcePickerDomainFieldsUseWorkspaceListingAndIndependentFilters(t *testing.T) {
+	for _, legacy := range []string{"domains get-domain", "domains delete-domain", "domains verify-domain"} {
+		for _, scope := range []map[string]any{{}, {"app": "api"}, {"environment": "production"}} {
+			t.Run(fmt.Sprint(legacy, scope), func(t *testing.T) {
+				id := uid.New(uid.DomainPrefix)
+				requests := make(chan components.V2DomainsListDomainsRequestBody, 1)
+				cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
+					if r.URL.Path != "/v2/domains.listDomains" {
+						t.Errorf("unexpected parent request: %s", r.URL.Path)
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+					var request components.V2DomainsListDomainsRequestBody
+					if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+						t.Error(err)
+						return
+					}
+					requests <- request
+					pickerRespond(t, w, components.V2DomainsListDomainsResponseBody{Data: []components.Domain{{ID: id, Domain: "api.example.com", Status: components.DomainStatusVerified}}})
+				})
+				script := &pickerScript{t: t, answers: []string{"browse", "id:" + id}}
+				var output bytes.Buffer
+				f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), cmd, legacy)}
+				schema, ok := Lookup(legacy)
+				require.True(t, ok)
+				values := maps.Clone(scope)
+				require.NoError(t, f.field(t.Context(), schema.Properties["domain"], values, "domain", ""))
+				want := maps.Clone(scope)
+				want["domain"] = id
+				require.Equal(t, want, values)
+				require.Empty(t, script.answers)
+				require.Len(t, requests, 1)
+				request := <-requests
+				require.Nil(t, request.Project)
+				if app, ok := scope["app"].(string); ok {
+					require.Equal(t, &app, request.App)
+				} else {
+					require.Nil(t, request.App)
+				}
+				if environment, ok := scope["environment"].(string); ok {
+					require.Equal(t, &environment, request.Environment)
+				} else {
+					require.Nil(t, request.Environment)
+				}
+			})
+		}
+	}
+}
+
+func TestResourcePickerCreationAndManualValuesDoNotNeedAPI(t *testing.T) {
+	for _, test := range []struct {
+		legacy, field, value string
+		answers              []string
+	}{
+		{"domains create-domain", "domain", "new.example.com", []string{"new.example.com"}},
+		{"domains get-domain", "domain", "api.example.com", []string{"manual", "api.example.com"}},
+		{"domains delete-domain", "domain", "api.example.com", []string{"manual", "api.example.com"}},
+		{"domains verify-domain", "domain", "api.example.com", []string{"manual", "api.example.com"}},
+		{"ratelimit set-override", "identifier", "new_*", []string{"new_*"}},
+		{"ratelimit limit", "identifier", "user_123", []string{"user_123"}},
+		{"ratelimit get-override", "identifier", "premium_*", []string{"manual", "premium_*"}},
+	} {
+		t.Run(test.legacy, func(t *testing.T) {
+			script := &pickerScript{t: t, answers: test.answers}
+			var output bytes.Buffer
+			f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), nil, test.legacy)}
+			schema, ok := Lookup(test.legacy)
+			require.True(t, ok)
+			values := map[string]any{}
+			require.NoError(t, f.field(t.Context(), schema.Properties[test.field], values, test.field, ""))
+			require.Equal(t, map[string]any{test.field: test.value}, values)
+			require.Empty(t, script.answers)
+		})
+	}
+}
+
+func TestResourcePickerOverrideReturnsPatternWithinRequiredNamespace(t *testing.T) {
+	for _, legacy := range []string{"ratelimit get-override", "ratelimit delete-override"} {
+		t.Run(legacy, func(t *testing.T) {
+			namespaceID := uid.New(uid.RatelimitNamespacePrefix)
+			overrideID := uid.New(uid.RatelimitOverridePrefix)
+			requests := make(chan components.V2RatelimitListOverridesRequestBody, 1)
+			cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/v2/ratelimit.listOverrides" {
+					t.Errorf("unexpected request: %s", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				var request components.V2RatelimitListOverridesRequestBody
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+					return
+				}
+				requests <- request
+				pickerRespond(t, w, components.V2RatelimitListOverridesResponseBody{Data: []components.RatelimitOverride{{OverrideID: overrideID, Identifier: "premium_*"}}})
+			})
+			script := &pickerScript{t: t, answers: []string{"manual", namespaceID, "browse", "id:premium_*"}}
+			var output bytes.Buffer
+			f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), cmd, legacy)}
+			schema, ok := Lookup(legacy)
+			require.True(t, ok)
+			values := map[string]any{}
+			require.NoError(t, f.object(t.Context(), schema, values, "", false))
+			require.Equal(t, map[string]any{"namespace": namespaceID, "identifier": "premium_*"}, values)
+			require.Empty(t, script.answers)
+			require.Len(t, requests, 1)
+			require.Equal(t, namespaceID, (<-requests).Namespace)
+			require.NotContains(t, fmt.Sprint(script.menus), overrideID)
+		})
+	}
+}
+
+func TestResourcePickerPortalAppUsesIDAndRemainsAnUpdate(t *testing.T) {
+	for _, legacy := range []string{"portal create-portal", "portal get-portal", "portal update-portal"} {
+		t.Run(legacy, func(t *testing.T) {
+			projectID, appID := uid.New(uid.ProjectPrefix), uid.New(uid.AppPrefix)
+			requests := make(chan components.V2AppsListAppsRequestBody, 1)
+			cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/v2/apps.listApps" {
+					t.Errorf("unexpected request: %s", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				var request components.V2AppsListAppsRequestBody
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+					return
+				}
+				requests <- request
+				pickerRespond(t, w, components.V2AppsListAppsResponseBody{Data: []components.App{{ID: appID, Name: "Gateway", Slug: "gateway"}}})
+			})
+			script := &pickerScript{t: t, answers: []string{"browse", "manual", projectID, "id:" + appID}}
+			var output bytes.Buffer
+			f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), cmd, legacy)}
+			schema, ok := Lookup(legacy)
+			require.True(t, ok)
+			values := map[string]any{}
+			require.NoError(t, f.field(t.Context(), schema.Properties["appId"], values, "appId", ""))
+			require.Equal(t, map[string]any{"appId": appID}, values)
+			require.Empty(t, script.answers)
+			require.Len(t, requests, 1)
+			require.Equal(t, projectID, (<-requests).Project)
+			if legacy == "portal update-portal" {
+				require.True(t, hasChanges(schema, values))
+			}
+		})
+	}
+}
+
+func TestResourcePickerDeploymentScopeIsOptionalButHierarchical(t *testing.T) {
+	projectID, appID, environmentID := uid.New(uid.ProjectPrefix), uid.New(uid.AppPrefix), uid.New(uid.EnvironmentPrefix)
+	for _, test := range []struct {
+		name    string
+		scope   map[string]any
+		parents []string
+		want    components.V2DeploymentsListDeploymentsRequestBody
+	}{
+		{"workspace", map[string]any{}, nil, components.V2DeploymentsListDeploymentsRequestBody{Limit: new(int64(20))}},
+		{"project", map[string]any{"project": projectID}, nil, components.V2DeploymentsListDeploymentsRequestBody{Project: &projectID, Limit: new(int64(20))}},
+		{"app requires project", map[string]any{"app": appID}, []string{"manual", projectID}, components.V2DeploymentsListDeploymentsRequestBody{Project: &projectID, App: &appID, Limit: new(int64(20))}},
+		{"environment requires parents", map[string]any{"environment": environmentID}, []string{"manual", projectID, "manual", appID}, components.V2DeploymentsListDeploymentsRequestBody{Project: &projectID, App: &appID, Environment: &environmentID, Limit: new(int64(20))}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			id := uid.New(uid.DeploymentPrefix)
+			requests := make(chan components.V2DeploymentsListDeploymentsRequestBody, 1)
+			cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/v2/deployments.listDeployments" {
+					t.Errorf("unexpected request: %s", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				var request components.V2DeploymentsListDeploymentsRequestBody
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+					return
+				}
+				requests <- request
+				pickerRespond(t, w, components.V2DeploymentsListDeploymentsResponseBody{Data: []components.Deployment{{
+					ID: id, Status: components.DeploymentStatusReady,
+					Trigger: components.DeploymentTrigger{Via: components.ViaCli},
+					Runtime: components.DeploymentRuntime{ShutdownSignal: components.EnvironmentShutdownSignalSigterm, UpstreamProtocol: components.EnvironmentUpstreamProtocolHttp1},
+				}}})
+			})
+			answers := append([]string{"browse"}, test.parents...)
+			script := &pickerScript{t: t, answers: append(answers, "id:"+id)}
+			var output bytes.Buffer
+			f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), cmd, "deployments get-deployment")}
+			schema, ok := Lookup("deployments get-deployment")
+			require.True(t, ok)
+			values := maps.Clone(test.scope)
+			require.NoError(t, f.field(t.Context(), schema.Properties["deploymentId"], values, "deploymentId", ""))
+			want := maps.Clone(test.scope)
+			want["deploymentId"] = id
+			require.Equal(t, want, values)
+			require.Empty(t, script.answers)
+			require.Len(t, requests, 1)
+			require.Equal(t, test.want, <-requests)
+		})
+	}
+}
+
+func TestResourcePickerDomainSearchAndPaginationPreserveIndependentScope(t *testing.T) {
+	id, cursor := uid.New(uid.DomainPrefix), uid.New(uid.DomainPrefix)
+	requests := make(chan components.V2DomainsListDomainsRequestBody, 4)
+	cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/domains.listDomains" {
+			t.Errorf("unexpected request: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		var request components.V2DomainsListDomainsRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		requests <- request
+		pickerRespond(t, w, components.V2DomainsListDomainsResponseBody{
+			Data:       []components.Domain{{ID: id, Domain: "api.example.com", Status: components.DomainStatusVerified}},
+			Pagination: components.Pagination{HasMore: true, Cursor: &cursor},
+		})
+	})
+	script := &pickerScript{t: t, answers: []string{"browse", "next", "search", "example.com", "search", "", "id:" + id}}
+	var output bytes.Buffer
+	f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), cmd, "domains get-domain")}
+	schema, ok := Lookup("domains get-domain")
+	require.True(t, ok)
+	values := map[string]any{"environment": "production"}
+	require.NoError(t, f.field(t.Context(), schema.Properties["domain"], values, "domain", ""))
+	require.Equal(t, map[string]any{"environment": "production", "domain": id}, values)
+	require.Empty(t, script.answers)
+	require.Len(t, requests, 4)
+	for i := range 4 {
+		request := <-requests
+		require.Nil(t, request.Project)
+		require.Nil(t, request.App)
+		require.Equal(t, new("production"), request.Environment)
+		if i == 1 {
+			require.Equal(t, &cursor, request.Cursor)
+		} else {
+			require.Nil(t, request.Cursor)
+		}
+		if i == 2 {
+			require.Equal(t, new("example.com"), request.Search)
+		} else {
+			require.Nil(t, request.Search)
+		}
+	}
+}
+
+func TestResourcePickerUnavailableDomainAPIAllowsManualName(t *testing.T) {
+	for _, status := range []int{http.StatusForbidden, http.StatusServiceUnavailable} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			requests := make(chan string, 1)
+			cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
+				requests <- r.URL.Path
+				w.WriteHeader(status)
+			})
+			script := &pickerScript{t: t, answers: []string{"browse", "api.example.com"}}
+			var output bytes.Buffer
+			f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), cmd, "domains get-domain")}
+			schema, ok := Lookup("domains get-domain")
+			require.True(t, ok)
+			values := map[string]any{}
+			require.NoError(t, f.field(t.Context(), schema.Properties["domain"], values, "domain", ""))
+			require.Equal(t, map[string]any{"domain": "api.example.com"}, values)
+			require.Empty(t, script.answers)
+			require.Len(t, requests, 1)
+			require.Equal(t, "/v2/domains.listDomains", <-requests)
+			require.NotEmpty(t, output.String())
+		})
+	}
+}
+
+func TestResourcePickerMappingsMatchCurrentSchemas(t *testing.T) {
+	fields := map[string][]string{
+		"project":      {"projects get-project"},
+		"app":          {"apps get-app"},
+		"appId":        {"portal create-portal", "portal get-portal", "portal update-portal"},
+		"environment":  {"environments get-environment"},
+		"variables":    {"environments remove-environment-variables"},
+		"keyId":        {"keys get-key", "root-keys update-key"},
+		"permission":   {"permissions get-permission"},
+		"role":         {"permissions get-role"},
+		"roleId":       {"permissions set-role-permissions"},
+		"identity":     {"identities get-identity"},
+		"namespace":    {"ratelimit list-overrides"},
+		"identifier":   {"ratelimit get-override", "ratelimit delete-override"},
+		"deploymentId": {"deployments get-deployment"},
+		"domain":       {"domains get-domain", "domains delete-domain", "domains verify-domain"},
+		"policyId":     {"gateway update-policy"},
+	}
+	for field, commands := range fields {
+		for _, legacy := range commands {
+			t.Run(legacy+"/"+field, func(t *testing.T) {
+				schema, ok := Lookup(legacy)
+				require.True(t, ok)
+				require.Contains(t, schema.Properties, field)
+				load, _, _ := resourceSource(field, legacy)
+				require.NotNil(t, load)
+			})
+		}
+	}
+	for legacy, schema := range schemas() {
+		for field := range schema.Properties {
+			load, _, _ := resourceSource(field, legacy)
+			if load != nil {
+				require.Contains(t, fields, field, "%s has an undocumented selector", legacy)
+			}
+		}
+	}
+}
+
+func TestResourcePickerVariablePaginationKeepsScopeAndOnlyNames(t *testing.T) {
+	cursor := uid.New(uid.TestPrefix)
+	secret := "fictional-variable-value-not-for-display"
+	requests := make(chan components.V2EnvironmentsListEnvironmentVariablesRequestBody, 2)
+	cmd := pickerServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/environments.listEnvironmentVariables" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		var request components.V2EnvironmentsListEnvironmentVariablesRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		requests <- request
+		name := "FIRST_NAME"
+		if request.Cursor != nil {
+			name = "SECOND_NAME"
+		}
+		pickerRespond(t, w, components.V2EnvironmentsListEnvironmentVariablesResponseBody{
+			Data:       []components.EnvironmentVariable{{Key: name, Kind: components.EnvironmentVariableKindRecoverable, Value: &secret, Description: &secret}},
+			Pagination: components.Pagination{HasMore: request.Cursor == nil, Cursor: &cursor},
+		})
+	})
+	script := &pickerScript{t: t, answers: []string{"add", "browse", "next", "id:SECOND_NAME", "done"}}
+	var output bytes.Buffer
+	f := &form{prompt: script, out: &output, pick: resourcePicker(t.Context(), cmd, "environments remove-environment-variables")}
+	schema, ok := Lookup("environments remove-environment-variables")
+	require.True(t, ok)
+	values := map[string]any{"project": "fictional-project", "app": "fictional-app", "environment": "fictional-preview"}
+	require.NoError(t, f.object(t.Context(), schema, values, "", false))
+	require.Equal(t, []any{"SECOND_NAME"}, values["variables"])
+	require.Empty(t, script.answers)
+	require.Len(t, requests, 2)
+	first, second := <-requests, <-requests
+	require.Equal(t, components.V2EnvironmentsListEnvironmentVariablesRequestBody{
+		Project: "fictional-project", App: "fictional-app", Environment: "fictional-preview", Limit: new(int64(20)),
+	}, first)
+	first.Cursor = &cursor
+	require.Equal(t, first, second)
+	require.NotContains(t, fmt.Sprint(script.menus)+output.String(), secret)
 }
 
 type pickerScript struct {

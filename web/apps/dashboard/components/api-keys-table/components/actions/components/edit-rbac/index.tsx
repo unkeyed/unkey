@@ -31,7 +31,6 @@ const DIALOG_CONFIG = {
   title: "Manage roles and permissions",
   subtitle: "Assign roles or permissions to control what this key can do",
   buttonText: "Update roles and permissions",
-  footerText: "This key will be updated immediately",
   triggerTitle: "Manage roles and permissions",
 };
 
@@ -192,18 +191,17 @@ export const KeyRbacDialog = ({
                   type="submit"
                   form={`key-rbac-form-${existingKey.id}`}
                   variant="primary"
-                  size="xlg"
-                  className="w-full rounded-lg transition-all duration-200"
+                  size="md"
+                  className="w-full transition-all duration-200"
                   disabled={!isValid || isSlugsLoading || updateKeyRbacMutation.isLoading}
                   loading={updateKeyRbacMutation.isLoading}
                 >
                   {DIALOG_CONFIG.buttonText}
                 </Button>
-                <div className="text-gray-9 text-xs">{DIALOG_CONFIG.footerText}</div>
               </div>
             }
           >
-            <div className="flex flex-col gap-5 px-2 py-1">
+            <div className="flex flex-col gap-5">
               <KeyInfo
                 keyDetails={{
                   id: existingKey.id,

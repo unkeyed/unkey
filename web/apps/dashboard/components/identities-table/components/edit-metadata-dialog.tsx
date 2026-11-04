@@ -122,14 +122,13 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
                 type="submit"
                 form={formId}
                 variant="primary"
-                size="xlg"
-                className="w-full rounded-lg"
+                size="md"
+                className="w-full"
                 disabled={!isValid || isSubmitting || showSuccess}
                 loading={isSubmitting}
               >
                 Update metadata
               </Button>
-              <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
             </div>
           }
         >

@@ -100,7 +100,10 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
+		missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{ApiId: uid.New(uid.APIPrefix)})
 		require.Equal(t, http.StatusNotFound, res.Status)
+		require.Equal(t, missing.Status, res.Status)
+		require.Equal(t, missing.Body.Error, res.Body.Error)
 		require.NotNil(t, res.Body)
 		require.NotContains(t, res.RawBody, keySpaceID)
 	})

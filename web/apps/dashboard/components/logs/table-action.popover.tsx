@@ -57,11 +57,13 @@ const itemTooltip = (item: MenuItem): string | undefined =>
 type BaseTableActionPopoverProps = PropsWithChildren<{
   items: MenuItem[];
   align?: "start" | "end";
+  contentClassName?: string;
 }>;
 
 export const TableActionPopover = ({
   items,
   align = "end",
+  contentClassName,
   children,
 }: BaseTableActionPopoverProps) => {
   const [enabledItem, setEnabledItem] = useState<string>();
@@ -122,7 +124,7 @@ export const TableActionPopover = ({
           }
         />
         <PopoverContent
-          className="min-w-60 max-w-full bg-raised rounded-lg p-0"
+          className={cn("min-w-60 max-w-full bg-raised rounded-lg p-0", contentClassName)}
           align={align}
           initialFocus={() => {
             const firstEnabledIndex = items.findIndex((item) => !isItemDisabled(item));

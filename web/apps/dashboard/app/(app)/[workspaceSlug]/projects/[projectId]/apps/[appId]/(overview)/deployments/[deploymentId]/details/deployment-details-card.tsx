@@ -11,6 +11,7 @@ import {
 } from "@/lib/deploy-data";
 import { githubUrl } from "@/lib/github-url";
 import { IconArrowUpRightOutline12 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Card,
   TimestampInfo,
@@ -22,11 +23,17 @@ import {
 import type { ReactNode } from "react";
 import { StatusDot } from "../../../../components/deployment-status-dot";
 import { DottedLink } from "../../../../components/dotted-link";
-import { EnvironmentBadge, badgeRollout } from "../../../../components/environment-badge";
+import {
+  EnvironmentBadge,
+  badgeRollout,
+  useLiveSwitch,
+} from "../../../../components/environment-badge";
+import { usePinningApps } from "../../../connections/hooks/use-deployment-connections";
 import { useBuildDuration } from "../../components/deployment-duration";
 import { InstantRollbackRow } from "../instant-rollback-row";
 import type { DeploymentPage } from "../use-deployment-page";
 import { DomainSummary } from "./domain-summary";
+import { PinningApps, PinningAppsError } from "./pinned-by";
 
 type DeploymentDetailsCardProps = {
   page: Pick<
@@ -51,6 +58,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
 
   const environment = environments.find((e) => e.id === deployment.environmentId);
   const isCurrent = app?.currentDeploymentId === deployment.id;
+  const liveSwitch = useLiveSwitch(currentDeployment?.id, isRolledBack)(deployment.id);
   const duration = useBuildDuration(status, deployment.createdAt, deployment.buildEndedAt);
 
   return (
@@ -85,7 +93,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
             {environment ? (
               <EnvironmentBadge
                 environment={environment}
-                rollout={badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom })}
+                rollout={badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom, liveSwitch })}
                 liveSince={isCurrent ? (app?.updatedAt ?? null) : null}
               />
             ) : (
@@ -93,6 +101,7 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
             )}
           </Row>
           <Row label="Instances">{instancesText(instances, deployment.desiredState)}</Row>
+          <PinnedByRow deployment={deployment} />
         </Column>
         <Column>
           <SourceRows deployment={deployment} repoFullName={repoFullName} />
@@ -113,6 +122,27 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
       <InstantRollbackRow key={deployment.id} />
     </Card>
   );
+}
+
+function PinnedByRow({ deployment }: { deployment: Deployment }) {
+  const pinningApps = usePinningApps(deployment);
+  if (!pinningApps) {
+    return null;
+  }
+  return match(pinningApps.view)
+    .with({ status: "loading" }, () => null)
+    .with({ status: "failed" }, ({ retry, retrying }) => (
+      <Row label="Pinned by">
+        <PinningAppsError retry={retry} retrying={retrying} />
+      </Row>
+    ))
+    .with({ status: "empty" }, () => null)
+    .with({ status: "ready" }, ({ rows }) => (
+      <Row label="Pinned by">
+        <PinningApps apps={rows} truncated={pinningApps.truncated} />
+      </Row>
+    ))
+    .exhaustive();
 }
 
 function Column({ children }: { children: ReactNode }) {

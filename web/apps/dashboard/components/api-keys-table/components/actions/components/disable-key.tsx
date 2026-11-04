@@ -106,8 +106,8 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
                   form="update-key-status-form"
                   variant="primary"
                   color={isEnabling ? "default" : "danger"}
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!confirmStatusChange || isLoading}
                   loading={isLoading}
                   onClick={handleActionButtonClick}
@@ -115,7 +115,6 @@ export const UpdateKeyStatus = ({ keyDetails, isOpen, onClose }: UpdateKeyStatus
                 >
                   {`${action} key`}
                 </Button>
-                <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
               </div>
             }
           >

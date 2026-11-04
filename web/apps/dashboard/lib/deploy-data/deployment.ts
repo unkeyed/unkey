@@ -1,10 +1,10 @@
 "use client";
-import { trpcClient } from "@/lib/collections/client";
 import {
   DEPLOYMENT_STATUSES,
   type DeploymentStatus,
 } from "@/lib/collections/deploy/deployment-status";
 import { INSTANCE_STATUSES } from "@/lib/collections/deploy/instance-status";
+import { trpcClient } from "@/lib/trpc/client";
 import type { LastExit } from "@/lib/types/deploy";
 import {
   type Deployment as ApiDeployment,

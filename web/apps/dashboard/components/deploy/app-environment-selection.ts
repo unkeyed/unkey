@@ -1,4 +1,4 @@
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Environment } from "@/lib/queries/environments";
 
 export type AppEnvironmentSelection = {
   appIds: Set<string>;

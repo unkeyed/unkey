@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_list_overrides"
 )
 
@@ -56,4 +57,23 @@ func TestListOverridesAuthorizesCanonicalReadRatelimitOverride(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	require.Len(t, res.Body.Data, 1)
 	require.Equal(t, overrideID, res.Body.Data[0].OverrideId)
+
+	t.Run("unreadable namespace matches absent namespace", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspaceID)
+		headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey}}
+		missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Namespace: uid.New(uid.RatelimitNamespacePrefix)})
+		require.Equal(t, http.StatusNotFound, missing.Status)
+		for _, namespace := range []string{namespaceID, namespaceName} {
+			existing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Namespace: namespace})
+			require.Equal(t, missing.Status, existing.Status, existing.RawBody)
+			require.Equal(t, missing.Body.Error, existing.Body.Error)
+		}
+	})
+
+	t.Run("namespace reader gets missing permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#read", workspaceID, projectID, namespaceID))
+		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey}}, handler.Request{Namespace: namespaceID})
+		require.Equal(t, http.StatusForbidden, res.Status, res.RawBody)
+		require.Contains(t, res.Body.Error.Detail, "#read")
+	})
 }

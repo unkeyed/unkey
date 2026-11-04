@@ -7,7 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -15,15 +18,13 @@ import (
 )
 
 // TestDeleteIdentityMasksInsufficientPermissions guarantees that callers cannot
-// find or delete identities without delete access.
+// find or delete identities without access to the identity.
 func TestDeleteIdentityMasksInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
-
 	route := &handler.Handler{
 		DB:        h.DB,
 		Auditlogs: h.Auditlogs,
 	}
-
 	h.Register(route)
 	externalID := uid.New(uid.TestPrefix)
 	identity := h.CreateIdentity(seed.CreateIdentityRequest{
@@ -31,80 +32,42 @@ func TestDeleteIdentityMasksInsufficientPermissions(t *testing.T) {
 		ExternalID:  externalID,
 	})
 
-	t.Run("insufficient permissions - no permissions", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID) // No permissions
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
+	for _, tt := range []struct {
+		name        string
+		permissions []string
+	}{
+		{name: "no permissions", permissions: nil},
+		{
+			name:        "wrong action",
+			permissions: []string{rbac.U(urn.New().Workspace(identity.WorkspaceID).Project(identity.ProjectID).Identity(identity.ID), permissions.Write).Value},
+		},
+		{
+			name:        "different identity",
+			permissions: []string{rbac.U(urn.New().Workspace(identity.WorkspaceID).Project(identity.ProjectID).Identity(uid.New(uid.IdentityPrefix)), permissions.Delete).Value},
+		},
+		{
+			name:        "different project",
+			permissions: []string{rbac.U(urn.New().Workspace(identity.WorkspaceID).Project(uid.New(uid.ProjectPrefix)).Identity("*"), permissions.Delete).Value},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, tt.permissions...)
+			headers := http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			}
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Identity: externalID})
+			require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
+			missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{Identity: uid.New(uid.TestPrefix)})
+			require.Equal(t, http.StatusNotFound, missing.Status)
+			require.Equal(t, missing.Body.Error, res.Body.Error)
+			require.NotContains(t, res.RawBody, identity.ID)
+			require.NotContains(t, res.RawBody, externalID)
+		})
+	}
 
-		req := handler.Request{Identity: externalID}
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
-	t.Run("insufficient permissions - wrong permission", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.create_identity") // Wrong permission
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		req := handler.Request{Identity: externalID}
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
-	t.Run("insufficient permissions - different resource permission", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "key.*.delete_key") // Different resource type
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		req := handler.Request{Identity: externalID}
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
-	t.Run("legacy read does not reveal the identity", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.*.read_identity")
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		req := handler.Request{Identity: externalID}
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.NotContains(t, res.RawBody, identity.ID)
-	})
-
-	t.Run("urn read names the missing permission", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/identities/%s#read", h.Resources().UserWorkspace.ID, identity.ProjectID, identity.ID))
+	t.Run("read access names the missing permission", func(t *testing.T) {
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(identity.ProjectID).Identity(identity.ID), permissions.Read).Value)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
 			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -116,68 +79,6 @@ func TestDeleteIdentityMasksInsufficientPermissions(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "#delete")
 		require.Contains(t, res.Body.Error.Detail, "Log in again")
 		require.NotContains(t, res.RawBody, identity.ID)
-	})
-
-	t.Run("partial permission match", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "identity.create_identity") // Missing wildcard/specific ID
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		req := handler.Request{Identity: externalID}
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
-	t.Run("multiple permissions but none matching", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			"key.*.delete_key",
-			"api.*.delete_api",
-			"workspace.*.read_workspace") // Multiple permissions but none for identity deletion
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		req := handler.Request{
-			Identity: externalID,
-		}
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
-	})
-
-	t.Run("case sensitivity test", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "IDENTITY.*.DELETE_IDENTITY") // Wrong case
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		req := handler.Request{Identity: externalID}
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
-		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, sent: %+v, received: %s", req, res.RawBody)
-		require.NotNil(t, res.Body)
-
-		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/identity_not_found", res.Body.Error.Type)
-		require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
-		require.Equal(t, http.StatusNotFound, res.Body.Error.Status)
-		require.Equal(t, "Not Found", res.Body.Error.Title)
-		require.NotEmpty(t, res.Body.Meta.RequestId)
 	})
 
 	_, err := db.Query.FindIdentityByID(t.Context(), h.DB.RO(), db.FindIdentityByIDParams{

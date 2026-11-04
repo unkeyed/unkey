@@ -59,14 +59,14 @@ func updateSettingsCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsUpdateSettingsResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsUpdateSettingsResponseBody)
 			}
 			send := func(req components.V2EnvironmentsUpdateSettingsRequestBody) error {
 				res, err := client.Environments.UpdateSettings(ctx, req)
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsUpdateSettingsResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsUpdateSettingsResponseBody)
 			}
 			req := components.V2EnvironmentsUpdateSettingsRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Dockerfile: nil, RootDirectory: nil, BuildCommand: nil, WatchPaths: nil, AutoDeploy: nil, Port: nil, VCpus: nil, MemoryMib: nil, StorageMib: nil, Command: nil, Healthcheck: nil, ShutdownSignal: nil, UpstreamProtocol: nil, OpenapiSpecPath: nil, Regions: nil}
 			if v := cmd.String("dockerfile"); v != "" {

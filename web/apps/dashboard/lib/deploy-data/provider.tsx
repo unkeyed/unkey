@@ -1,8 +1,8 @@
 "use client";
 
-import { refetchProjectApps } from "@/lib/collections/deploy/apps";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { refetchProjectApps, useProjectApps } from "@/lib/queries/apps";
 import { queryKeys } from "@/lib/query-keys";
 import { trpc } from "@/lib/trpc/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,7 +15,13 @@ import {
   useRef,
   useSyncExternalStore,
 } from "react";
-import { DeployDataContext, createScopeStore, useDeployScope, useScopeStore } from "./context";
+import {
+  DeployDataContext,
+  createScopeStore,
+  useDeployScope,
+  useLiveTarget,
+  useScopeStore,
+} from "./context";
 import { deploymentDetailOptions } from "./deployments";
 import {
   refetchDeployData,
@@ -51,8 +57,8 @@ export function DeployDataProvider({
       appId,
       store,
       actions: {
-        awaitLiveDeployment: store.setLiveTarget,
-        awaitDeploymentStatus: store.addStatusTarget,
+        awaitLiveDeployment: store.awaitLive,
+        awaitDeploymentStatus: store.awaitStatus,
         refetchDeployments: () => {
           queryClient.invalidateQueries({
             queryKey: queryKeys.deployments.scope(projectId),
@@ -60,7 +66,7 @@ export function DeployDataProvider({
           trpcUtils.deploy.deployment.listActiveBranches.invalidate();
           trpcUtils.deploy.deployment.listBranches.invalidate();
         },
-        refetchApps: () => refetchProjectApps(projectId),
+        refetchApps: () => refetchProjectApps(queryClient, projectId),
       },
     };
   }, [projectId, appId, trpcUtils, queryClient]);
@@ -88,7 +94,7 @@ function DeployDataScheduler() {
   const { data: app } = useApp();
   const { data: customDomains = [] } = useCustomDomains();
 
-  const liveTarget = useSyncExternalStore(store.subscribe, store.liveTarget, store.liveTarget);
+  const liveTarget = useLiveTarget();
   const statusTargets = useSyncExternalStore(
     store.subscribe,
     store.statusTargets,
@@ -100,25 +106,28 @@ function DeployDataScheduler() {
     app.isRolledBack === liveTarget.rolledBack;
 
   const refetchAll = useCallback(() => {
-    refetchDeployData(projectId);
+    refetchDeployData(queryClient, projectId);
     queryClient.invalidateQueries({ queryKey: queryKeys.deployments.scope(projectId) });
   }, [queryClient, projectId]);
-  const settleLive = useCallback(() => {
-    store.setLiveTarget(null);
-    refetchAll();
-  }, [store, refetchAll]);
+  const settleLive = useCallback(
+    (reached: boolean) => {
+      store.settleLive(reached);
+      refetchAll();
+    },
+    [store, refetchAll],
+  );
   const settleStatus = useCallback(
-    (deploymentId: string) => {
-      store.removeStatusTarget(deploymentId);
+    (deploymentId: string, reached: boolean) => {
+      store.settleStatus(deploymentId, reached);
       refetchAll();
     },
     [store, refetchAll],
   );
   useSettle(liveTarget, liveReached, settleLive);
 
-  useCollectionPolling(() => refetchProjectApps(projectId), {
-    intervalMs: liveTarget !== null ? POLL_AWAITING_MS : POLL_APPS_IDLE_MS,
+  useProjectApps(projectId, {
     enabled: appId !== undefined,
+    refetchInterval: liveTarget !== null ? POLL_AWAITING_MS : POLL_APPS_IDLE_MS,
   });
   useCollectionPolling(() => refetchScopeCustomDomains(projectId), {
     intervalMs: POLL_CUSTOM_DOMAINS_MS,
@@ -156,7 +165,7 @@ function AwaitedStatus({
 }: {
   deploymentId: string;
   status: DeploymentStatus;
-  onSettled: (deploymentId: string) => void;
+  onSettled: (deploymentId: string, reached: boolean) => void;
 }) {
   const { projectId } = useDeployScope();
   const queryClient = useQueryClient();
@@ -164,22 +173,25 @@ function AwaitedStatus({
     ...deploymentDetailOptions(queryClient, projectId, deploymentId),
     refetchInterval: POLL_AWAITING_MS,
   });
-  const settle = useCallback(() => onSettled(deploymentId), [onSettled, deploymentId]);
+  const settle = useCallback(
+    (reached: boolean) => onSettled(deploymentId, reached),
+    [onSettled, deploymentId],
+  );
   useSettle(status, data?.status === status, settle);
   return null;
 }
 
 // Settles a target once it is reached or the timeout passes
-function useSettle(target: unknown, reached: boolean, settle: () => void) {
+function useSettle(target: unknown, reached: boolean, settle: (reached: boolean) => void) {
   useEffect(() => {
     if (target === null) {
       return;
     }
     if (reached) {
-      settle();
+      settle(true);
       return;
     }
-    const id = setTimeout(settle, AWAIT_TIMEOUT_MS);
+    const id = setTimeout(() => settle(false), AWAIT_TIMEOUT_MS);
     return () => clearTimeout(id);
   }, [target, reached, settle]);
 }

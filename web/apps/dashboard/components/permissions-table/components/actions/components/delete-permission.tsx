@@ -84,7 +84,7 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
         <form id="delete-permission-form">
           <DialogContainer
             isOpen={isOpen}
-            subTitle="Permanently remove this permission and its assignments"
+            subTitle="Permanently remove this permission and its assignments. This can take up to 60 seconds to apply everywhere."
             onOpenChange={handleDialogOpenChange}
             title="Delete permission"
             footer={
@@ -94,8 +94,8 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
                   form="delete-permission-form"
                   variant="primary"
                   color="danger"
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!confirmDeletion || isLoading}
                   loading={isLoading}
                   onClick={handleDeleteButtonClick}
@@ -103,9 +103,6 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
                 >
                   Delete permission
                 </Button>
-                <div className="text-gray-9 text-xs">
-                  Changes may take up to 60s to propagate globally
-                </div>
               </div>
             }
           >

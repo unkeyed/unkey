@@ -145,11 +145,12 @@ func imageSource(image string, commit gitCommit, normalize func(string) (string,
 }
 
 // ownedImageSource normalizes an image and refuses one from the build
-// repository unless the caller's project built it. The build repository is
-// [RegistryConfig.Repository], for example registry.depot.dev/<org>. Builds of
-// every project are pushed there as <projectID>-<deploymentID> tags, and ctrl
-// and krane pull from it with Unkey's credentials, so without this check one
-// project could deploy another project's build.
+// registry's host unless it is in the build repository and the caller's project
+// built it. The build repository is [RegistryConfig.Repository], for example
+// registry.depot.dev/<org>. Builds of every project are pushed there as
+// <projectID>-<deploymentID> tags. Krane's pull secret covers the whole host,
+// so without this check one project could deploy another project's build or any
+// other image there.
 func (w *Workflow) ownedImageSource(
 	ctx context.Context,
 	projectID, image string,
@@ -175,8 +176,14 @@ func (w *Workflow) ownedImageSource(
 			"%q is not a valid image reference", normalized.Source.Image,
 		)), nil
 	}
-	if !sameRepository(reference.Context(), buildRepository) {
+	if !sameRegistry(reference.Context().Registry, buildRepository.Registry) {
 		return normalized, nil
+	}
+	if !sameRepository(reference.Context(), buildRepository) {
+		return newRejectedSource(rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
+			"images on the Unkey build registry's host can only be deployed from its build repository",
+		)), nil
 	}
 
 	owned := false

@@ -6616,36 +6616,6 @@
     }
   },
   {
-    "id": "platform--index--2",
-    "source": "platform/index.mdx",
-    "href": "/platform/workspace/settings",
-    "title": "Workspace settings",
-    "evidence": "platform/workspace/settings.mdx",
-    "scene": {
-      "kind": "form",
-      "heading": "Workspace settings",
-      "fields": [
-        [
-          "Name",
-          "Acme"
-        ],
-        [
-          "Slug",
-          "acme"
-        ],
-        [
-          "Workspace ID",
-          "ws_..."
-        ],
-        [
-          "GitHub",
-          "connect app"
-        ]
-      ],
-      "note": "Manage the identity of your workspace"
-    }
-  },
-  {
     "id": "platform--index--21",
     "source": "platform/index.mdx",
     "href": "/platform/root-keys/overview",
@@ -6833,32 +6803,6 @@
         ]
       ],
       "note": "Choose the role each teammate needs"
-    }
-  },
-  {
-    "id": "platform--index--4",
-    "source": "platform/index.mdx",
-    "href": "/platform/workspace/two-factor-auth",
-    "title": "Two-factor authentication",
-    "evidence": "platform/workspace/two-factor-auth.mdx",
-    "scene": {
-      "kind": "otp",
-      "heading": "Authenticator verification",
-      "fields": [
-        [
-          "Account",
-          "password"
-        ],
-        [
-          "Authenticator",
-          "one-time code"
-        ],
-        [
-          "Session",
-          "signed in"
-        ]
-      ],
-      "note": "Add a second factor to your account"
     }
   },
   {
@@ -7154,9 +7098,9 @@
   {
     "id": "platform--security--overview--4",
     "source": "platform/security/overview.mdx",
-    "href": "/platform/workspace/two-factor-auth",
+    "href": "/platform/workspace/team#two-factor-authentication",
     "title": "Two-factor authentication",
-    "evidence": "platform/workspace/two-factor-auth.mdx",
+    "evidence": "platform/workspace/team.mdx",
     "scene": {
       "kind": "sequence",
       "heading": "Add a second sign-in factor",
@@ -7175,88 +7119,6 @@
         ]
       ],
       "note": "Protect dashboard access with an authenticator"
-    }
-  },
-  {
-    "id": "platform--workspace--settings--1",
-    "source": "platform/workspace/settings.mdx",
-    "href": "/platform/workspace/team",
-    "title": "Team",
-    "evidence": "platform/workspace/team.mdx",
-    "scene": {
-      "kind": "roles",
-      "heading": "Invite with an explicit role",
-      "fields": [
-        [
-          "Email",
-          "teammate@acme.com"
-        ],
-        [
-          "Role",
-          "Developer"
-        ],
-        [
-          "Invitation",
-          "pending"
-        ]
-      ],
-      "note": "Choose access before sending the invitation"
-    }
-  },
-  {
-    "id": "platform--workspace--settings--3",
-    "source": "platform/workspace/settings.mdx",
-    "href": "/platform/billing/plans",
-    "title": "Billing",
-    "evidence": "platform/billing/plans.mdx",
-    "scene": {
-      "kind": "layers",
-      "heading": "Manage the workspace subscriptions",
-      "fields": [
-        [
-          "API tier",
-          "keys and verification"
-        ],
-        [
-          "Compute plan",
-          "deployment resources"
-        ],
-        [
-          "Workspace",
-          "shared billing account"
-        ]
-      ],
-      "note": "Each product has its own plan selection"
-    }
-  },
-  {
-    "id": "platform--workspace--settings--4",
-    "source": "platform/workspace/settings.mdx",
-    "href": "/platform/billing/usage",
-    "title": "Usage and limits",
-    "evidence": "platform/billing/usage.mdx",
-    "scene": {
-      "kind": "table",
-      "heading": "Inspect workspace consumption",
-      "fields": [
-        [
-          "Period",
-          "current billing month"
-        ],
-        [
-          "API Management",
-          "verification usage"
-        ],
-        [
-          "Compute",
-          "resource usage"
-        ],
-        [
-          "Total",
-          "month to date"
-        ]
-      ],
-      "note": "Review usage before changing the workspace plan"
     }
   },
   {

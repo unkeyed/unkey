@@ -30,16 +30,6 @@ jobs:
       - name: Build
         run: mise run build
       - name: Run tests
-        run: mise run test -- --x-junit-file test-results/go.xml
-      - name: Check Go test report
-        id: go-test-report
-        if: ${{ !cancelled() }}
-        run: |
-          if test -f test-results/go.xml; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Report Go tests
-        if: ${{ !cancelled() && steps.go-test-report.outputs.exists == 'true' }}
-        uses: depot/test-report-action@2ad5779840a9c63e884fa26f11d019768a27a941 # v1
-        with:
-          path: test-results/go.xml
+        env:
+          RASK_AXIOM_TRACE_TOKEN: ${{ secrets.RASK_AXIOM_TRACE_TOKEN }}
+        run: mise run test

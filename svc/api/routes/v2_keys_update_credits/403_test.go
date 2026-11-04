@@ -7,6 +7,9 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -63,9 +66,8 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
-	t.Run("wrong permission - has create but not update", func(t *testing.T) {
-		// Create root key with read permission instead of create
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	t.Run("read permission cannot update", func(t *testing.T) {
+		rootKey := h.CreateRootKey(api.WorkspaceID, rbac.U(urn.New().Workspace(api.WorkspaceID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key(key.KeyID), permissions.Read).Value)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -75,14 +77,14 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, 403, res.Status)
 		require.NotNil(t, res.Body)
+		require.Contains(t, res.Body.Error.Detail, "#write")
 	})
 
 	t.Run("cross workspace access", func(t *testing.T) {
 		// Create a different workspace
 		differentWorkspace := h.CreateWorkspace()
 
-		// Create a root key for the different workspace with full permissions
-		rootKey := h.CreateRootKey(differentWorkspace.ID, "api.*.update_key")
+		rootKey := h.CreateRootKey(differentWorkspace.ID, rbac.U(urn.New().Workspace(api.WorkspaceID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key(key.KeyID), permissions.Write).Value)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -92,11 +94,11 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 		require.Equal(t, 404, res.Status)
 		require.NotNil(t, res.Body)
+		require.Equal(t, "The specified key was not found.", res.Body.Error.Detail)
 	})
 
 	t.Run("cross api access", func(t *testing.T) {
-		// Create root key with read permission for a single api
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("api.%s.update_key", diffApi.ID))
+		rootKey := h.CreateRootKey(api.WorkspaceID, rbac.U(urn.New().Workspace(api.WorkspaceID).Project(diffApi.ProjectID).Keyspace(diffApi.KeyAuthID.String).Key("*"), permissions.Write).Value)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},

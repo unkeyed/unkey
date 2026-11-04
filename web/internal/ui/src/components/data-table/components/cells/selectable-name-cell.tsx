@@ -27,15 +27,17 @@ export const SelectableNameCell = ({
 }: SelectableNameCellProps) => {
   return (
     <div className="flex flex-col items-start px-[18px] py-[6px]">
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center w-full">
         <div
           className={cn(
-            "relative size-5 rounded-sm flex items-center justify-center border border-grayA-3 transition-all duration-100",
+            "relative size-5 shrink-0 rounded-sm flex items-center justify-center border border-grayA-3 transition-all duration-100",
             "bg-grayA-3",
             isSelected && "bg-grayA-5",
           )}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
         >
           {!isSelected && !isHovered && (
             <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -48,26 +50,20 @@ export const SelectableNameCell = ({
               "size-4 [&_svg]:size-3",
               !isSelected && !isHovered && "opacity-0 focus-visible:opacity-100",
             )}
-            onClick={(e) => e.stopPropagation()}
             onCheckedChange={onCheckedChange}
             aria-label={`Select ${name}`}
           />
         </div>
-        <div className="flex flex-col gap-1 text-xs">
-          <div className="font-medium truncate text-gray-12 leading-4 text-sm max-w-[120px]">
+        <div className="flex flex-col gap-1 text-xs min-w-0 flex-1">
+          <div className="font-medium truncate text-gray-12 leading-4 text-sm" title={name}>
             {name}
           </div>
           {description ? (
-            <span
-              className="font-sans text-gray-9 truncate max-w-[180px] text-xs"
-              title={description}
-            >
+            <span className="font-sans text-gray-9 truncate text-xs" title={description}>
               {description}
             </span>
           ) : (
-            <span className="font-sans text-gray-9 truncate max-w-[180px] text-xs italic">
-              No description
-            </span>
+            <span className="font-sans text-gray-9 truncate text-xs italic">No description</span>
           )}
         </div>
       </div>

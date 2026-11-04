@@ -49,14 +49,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2IdentitiesCreateIdentityResponseBody)
+				return util.Output(ctx, cmd, res.V2IdentitiesCreateIdentityResponseBody)
 			}
 			send := func(req components.V2IdentitiesCreateIdentityRequestBody) error {
 				res, err := client.Identities.CreateIdentity(ctx, req)
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2IdentitiesCreateIdentityResponseBody)
+				return util.Output(ctx, cmd, res.V2IdentitiesCreateIdentityResponseBody)
 			}
 			req := components.V2IdentitiesCreateIdentityRequestBody{
 				ExternalID: cmd.String("external-id"),

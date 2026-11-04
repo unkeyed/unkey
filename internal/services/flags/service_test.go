@@ -199,7 +199,7 @@ type helloWorldService interface {
 
 func newService(t *testing.T) (db.Database, helloWorldService, *clock.TestClock) {
 	t.Helper()
-	database, err := db.New(db.Config{PrimaryDSN: containers.MySQLIsolated(t).DSN})
+	database, err := db.New(db.Config{PrimaryDSN: containers.MySQLLogicalIsolated(t).DSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	testClock := clock.NewTestClock()

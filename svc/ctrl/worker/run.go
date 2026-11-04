@@ -404,15 +404,14 @@ func Run(ctx context.Context, cfg Config) error {
 		DB: database,
 	}), restate.WithIngressPrivate(true),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~1 hour total.
-		// Scraping is best-effort (fire-and-forget from deploy); bound retries to avoid
-		// wasting resources on permanently broken endpoints. Pause (not kill) on
-		// exhaustion so any future compensation logic can run via re-entry.
+		// Scraping is best-effort (fire-and-forget from deploy) and has no
+		// compensation, so kill on exhaustion instead of leaving paused invocations.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialRetryInterval(1*time.Minute),
 			restate.WithRetryIntervalFactor(2.0),
 			restate.WithMaxRetryInterval(10*time.Minute),
 			restate.WithMaxRetryAttempts(10),
-			restate.PauseOnMaxAttempts(),
+			restate.KillOnMaxAttempts(),
 		),
 	))
 

@@ -359,6 +359,17 @@ func decode(raw string) (state, error) {
 	return current, nil
 }
 
+// FileInUse reports the path of the sessions file when one exists. The file
+// exists only when the last write could not store the sessions in the keychain.
+func FileInUse() (string, bool) {
+	path, err := filePath()
+	if err != nil {
+		return "", false
+	}
+	_, err = os.Stat(path)
+	return path, err == nil
+}
+
 func filePath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

@@ -73,17 +73,14 @@ export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuth
               form="delete-portal-form"
               variant="primary"
               color="danger"
-              size="xlg"
-              className="w-full rounded-lg"
+              size="md"
+              className="w-full"
               disabled={!confirmed || isSubmitting}
               loading={isSubmitting}
               loadingLabel="Deleting customer portal"
             >
               Delete portal
             </Button>
-            <div className="text-xs text-gray-9">
-              This action cannot be undone – proceed with caution
-            </div>
           </div>
         }
       >

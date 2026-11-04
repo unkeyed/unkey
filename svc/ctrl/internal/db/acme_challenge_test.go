@@ -15,7 +15,7 @@ import (
 // certTestDB opens an isolated database so the schema includes portal_domains.
 func certTestDB(t *testing.T) Database {
 	t.Helper()
-	database, err := New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	database, err := New(containers.MySQLLogicalIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	return database
