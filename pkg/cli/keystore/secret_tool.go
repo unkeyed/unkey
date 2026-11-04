@@ -55,14 +55,7 @@ func classifySecretToolWrite(err error, stderr string) error {
 		return ErrUnavailable
 	}
 	msg := strings.TrimSpace(stderr)
-	lower := strings.ToLower(msg)
-	if strings.Contains(lower, "not provided by any") ||
-		strings.Contains(lower, "cannot autolaunch") ||
-		strings.Contains(lower, "locked") ||
-		strings.Contains(lower, "no session") {
-		if msg == "" {
-			return ErrUnavailable
-		}
+	if secretServiceUnavailable(msg) {
 		return withDetail(ErrUnavailable, msg)
 	}
 	if msg == "" {
@@ -80,10 +73,7 @@ func classifySecretTool(err error, stderr string) error {
 	switch {
 	case msg == "":
 		return ErrNotFound
-	case strings.Contains(lower, "not provided by any") ||
-		strings.Contains(lower, "cannot autolaunch") ||
-		strings.Contains(lower, "locked") ||
-		strings.Contains(lower, "no session"):
+	case secretServiceUnavailable(msg):
 		return withDetail(ErrUnavailable, msg)
 	case strings.Contains(lower, "not found") ||
 		strings.Contains(lower, "no such") ||
@@ -92,4 +82,26 @@ func classifySecretTool(err error, stderr string) error {
 	default:
 		return fmt.Errorf("secret-tool: %w: %s", err, msg)
 	}
+}
+
+// secretServiceUnavailable matches D-Bus failures that mean no Secret Service
+// can answer. dbus-daemon reports a missing org.freedesktop.secrets as "not
+// provided by any .service files"; dbus-broker, the default on Fedora, reports
+// "The name is not activatable". "could not connect" means there is no
+// session bus socket.
+func secretServiceUnavailable(msg string) bool {
+	lower := strings.ToLower(msg)
+	for _, s := range []string{
+		"not provided by any",
+		"not activatable",
+		"cannot autolaunch",
+		"could not connect",
+		"locked",
+		"no session",
+	} {
+		if strings.Contains(lower, s) {
+			return true
+		}
+	}
+	return false
 }

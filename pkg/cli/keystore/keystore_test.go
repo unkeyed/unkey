@@ -65,9 +65,19 @@ func TestWindowsCredentialLimitMatchesMeasuredSessions(t *testing.T) {
 }
 
 func TestSecretToolDBusFailureIsUnavailable(t *testing.T) {
-	bin := writeTool(t, "#!/bin/sh\necho \"secret-tool: The name org.freedesktop.secrets was not provided by any .service files\" >&2\nexit 1\n")
-	_, err := secretToolGet(bin, serviceName, rootKeyAccount)
-	require.ErrorIs(t, err, ErrUnavailable)
+	for _, stderr := range []string{
+		"secret-tool: The name org.freedesktop.secrets was not provided by any .service files",
+		"secret-tool: The name is not activatable",
+		"secret-tool: Could not connect: No such file or directory",
+	} {
+		t.Run(stderr, func(t *testing.T) {
+			bin := writeTool(t, "#!/bin/sh\ncat >/dev/null\necho \""+stderr+"\" >&2\nexit 1\n")
+			_, err := secretToolGet(bin, serviceName, rootKeyAccount)
+			require.ErrorIs(t, err, ErrUnavailable)
+			err = secretToolSet(bin, serviceName, rootKeyAccount, "unkey_x")
+			require.ErrorIs(t, err, ErrUnavailable)
+		})
+	}
 }
 
 func TestSecurityRoundTrip(t *testing.T) {
