@@ -92,6 +92,24 @@ cluster. Their SQL and initialization scripts mount from ConfigMaps, so Tilt
 does not rebuild or push database images. A fresh node still downloads the
 upstream images. Image pulls run in parallel.
 
+Schema files apply only to empty database volumes. MySQL runs with
+`--persistent_mode`, and ClickHouse skips its init scripts once it has data, so
+a table added to `pkg/mysql/schema/` or `pkg/clickhouse/migrations/` after your
+first `mise run dev` does not reach your local data. Apply the new file to the
+running database, replacing the file name with yours:
+
+```bash
+mise run local-cluster -- kubectl -n unkey exec -i deploy/mysql -- \
+  mysql --protocol=tcp -h127.0.0.1 -P33577 -uunkey -ppassword unkey \
+  < pkg/mysql/schema/device_sessions.sql
+mise run local-cluster -- kubectl -n unkey exec -i deploy/clickhouse -- \
+  clickhouse-client --user default --password password --multiquery \
+  < pkg/clickhouse/migrations/20261103000000.sql
+```
+
+To start over with every table instead, delete all local data with
+`mise run nuke` (see below) and run `mise run dev` again.
+
 Tilt manages Minikube's storage provisioner instead of the built-in addon.
 The same provisioner uses the node's API endpoint directly, with its service
 account and TLS verification. This avoids a 30-second startup timeout when
@@ -343,7 +361,7 @@ the workspace.
 The same flag turns on the OAuth authorization server that MCP clients sign
 in through, with issuer `http://localhost:7070`. Its metadata is at
 `http://localhost:7070/.well-known/oauth-authorization-server`. Tokens are
-issued for the local MCP server at `http://localhost:7071`. Clients that
+issued for the local MCP server at `http://localhost:7095`. Clients that
 register dynamically work locally. Clients that identify themselves with a
 client metadata document URL need that document to be publicly reachable.
 
