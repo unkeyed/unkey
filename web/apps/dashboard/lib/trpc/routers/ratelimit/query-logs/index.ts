@@ -9,7 +9,6 @@ import { transformFilters } from "./utils";
 
 const RatelimitLogsResponse = z.object({
   ratelimitLogs: z.array(ratelimitLogs),
-  total: z.number().nullable(),
 });
 
 type RatelimitLogsResponse = z.infer<typeof RatelimitLogsResponse>;
@@ -51,13 +50,13 @@ export const queryRatelimitLogs = workspaceProcedure
     }
 
     const transformedInputs = transformFilters(input);
-    const { countQuery, logsQuery } = await clickhouse.ratelimits.logs({
+    const { logsQuery } = await clickhouse.ratelimits.logs({
       ...transformedInputs,
       workspaceId: ctx.workspace.id,
       namespaceId: ratelimitNamespaces[0].id,
     });
 
-    const [countResult, logsResult] = await Promise.all([countQuery, logsQuery]);
+    const logsResult = await logsQuery;
 
     if (logsResult.err) {
       console.error("Clickhouse ratelimit logs query failed", {
@@ -72,18 +71,8 @@ export const queryRatelimitLogs = workspaceProcedure
       });
     }
 
-    if (countResult.err) {
-      console.warn("Clickhouse ratelimit count query failed, returning logs without total", {
-        error: countResult.err.message,
-        namespaceId: input.namespaceId,
-      });
-    }
-
-    const logs = logsResult.val;
-    const total = countResult.err ? null : (countResult.val[0]?.total_count ?? null);
     const response: RatelimitLogsResponse = {
-      ratelimitLogs: logs,
-      total,
+      ratelimitLogs: logsResult.val,
     };
 
     return response;

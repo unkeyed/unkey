@@ -35,7 +35,6 @@ export type IdentityLog = z.infer<typeof identityLog>;
 const identityLogsResponse = z.object({
   logs: z.array(identityLog),
   hasMore: z.boolean(),
-  total: z.number(),
   nextCursor: z.int().optional(),
 });
 
@@ -94,7 +93,6 @@ export const queryIdentityLogs = workspaceProcedure
       // Return empty response if identity has no keys
       return {
         logs: [],
-        total: 0,
         hasMore: false,
         nextCursor: undefined,
       };
@@ -130,7 +128,6 @@ export const queryIdentityLogs = workspaceProcedure
 
     const response: IdentityLogsResponse = {
       logs: enrichedLogs,
-      total: result.totalCount,
       hasMore: enrichedLogs.length === input.limit,
       nextCursor:
         enrichedLogs.length === input.limit

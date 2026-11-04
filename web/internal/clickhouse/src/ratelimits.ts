@@ -520,26 +520,8 @@ OFFSET {offset: Int}`,
       schema: ratelimitLogs,
     });
 
-    const countQuery = ch.query({
-      query: `
-SELECT
-    count(*) as total_count
-FROM default.ratelimits_raw_v2 r
-WHERE workspace_id = {workspaceId: String}
-    AND namespace_id = {namespaceId: String}
-    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-    ${hasRequestIds ? "AND request_id IN {requestIds: Array(String)}" : ""}
-    AND (${identifierConditions})
-    AND (${statusCondition})`,
-      params: extendedParamsSchema,
-      schema: z.object({
-        total_count: z.int(),
-      }),
-    });
-
     return {
       logsQuery: logsQuery(parameters),
-      countQuery: countQuery(parameters),
     };
   };
 }

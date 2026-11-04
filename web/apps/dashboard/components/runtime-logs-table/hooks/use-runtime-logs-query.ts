@@ -140,7 +140,6 @@ export function useRuntimeLogsQuery({
       appId: appIdFilters,
       deploymentId: deploymentIdFilters,
       limit,
-      includeTotal: false,
       startTime: timeWindow.startTime,
       endTime: timeWindow.endTime,
       since: null,
@@ -178,8 +177,6 @@ export function useRuntimeLogsQuery({
       const result = await queryClient.deploy.runtimeLogs.query.fetch({
         ...queryInput,
         page: 1,
-        // The poll only reads `result.logs`, so skip the count(*) it would discard.
-        includeTotal: false,
         startTime: latestTime ?? Date.now() - pollIntervalMs,
         endTime: Date.now(),
       });

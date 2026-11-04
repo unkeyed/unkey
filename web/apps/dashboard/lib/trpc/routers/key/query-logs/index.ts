@@ -9,7 +9,6 @@ import { transformKeyDetailsFilters } from "./utils";
 
 const keyDetailsLogsResponse = z.object({
   logs: z.array(z.custom<KeyDetailsLog>()),
-  total: z.number(),
 });
 type KeyDetailsLogsResponse = z.infer<typeof keyDetailsLogsResponse>;
 
@@ -55,11 +54,8 @@ export const queryKeyDetailsLogs = workspaceProcedure
       });
     }
 
-    const logs = result.logs.val || [];
-
     const response: KeyDetailsLogsResponse = {
-      logs,
-      total: result.totalCount,
+      logs: result.logs.val || [],
     };
 
     return response;

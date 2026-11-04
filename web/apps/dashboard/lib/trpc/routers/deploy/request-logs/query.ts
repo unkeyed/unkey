@@ -15,7 +15,6 @@ export const queryRequestLogs = workspaceProcedure
   .output(
     z.object({
       logs: z.array(requestLogsResponseSchema),
-      total: z.number().int(),
     }),
   )
   .query(async ({ ctx, input }) => {
@@ -54,12 +53,12 @@ export const queryRequestLogs = workspaceProcedure
           .map((environment) => environment.id);
       }
 
-      const { logsQuery, totalQuery } = await clickhouse.frontline.logs({
+      const { logsQuery } = await clickhouse.frontline.logs({
         workspaceId: ctx.workspace.id,
         ...transformedInputs,
       });
 
-      const [logsResult, totalResult] = await Promise.all([logsQuery, totalQuery]);
+      const logsResult = await logsQuery;
 
       if (logsResult.err) {
         throw new TRPCError({
@@ -68,20 +67,7 @@ export const queryRequestLogs = workspaceProcedure
         });
       }
 
-      if (totalResult.err) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to fetch total count from ClickHouse.",
-        });
-      }
-
-      const logs = logsResult.val;
-      const total = totalResult.val[0]?.total_count ?? 0;
-
-      return {
-        logs,
-        total,
-      };
+      return { logs: logsResult.val };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;

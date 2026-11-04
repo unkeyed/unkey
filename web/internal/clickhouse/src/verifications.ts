@@ -164,20 +164,6 @@ export function getKeyDetailsLogs(ch: Querier) {
       AND (${outcomeCondition})
     `;
 
-    // Total count query - counts all matching records without pagination
-    const totalQuery = ch.query({
-      query: `
-        SELECT
-          count(request_id) as total_count
-        FROM default.key_verifications_raw_v2
-        PREWHERE ${prewhereConditions}
-        WHERE ${whereConditions}`,
-      params: extendedParamsSchema,
-      schema: z.object({
-        total_count: z.int(),
-      }),
-    });
-
     const query = ch.query({
       query: `
       SELECT
@@ -200,15 +186,7 @@ export function getKeyDetailsLogs(ch: Querier) {
       schema: keyDetailsLog,
     });
 
-    const [clickhouseResults, totalResults] = await Promise.all([
-      query(parameters),
-      totalQuery(parameters),
-    ]);
-
-    return {
-      logs: clickhouseResults,
-      totalCount: totalResults.val ? totalResults.val[0].total_count : 0,
-    };
+    return { logs: await query(parameters) };
   };
 }
 
@@ -260,7 +238,6 @@ export function getIdentityLogs(ch: Querier) {
     if (!args.keyIds || args.keyIds.length === 0) {
       return {
         logs: { val: [] },
-        totalCount: 0,
       };
     }
 
@@ -345,20 +322,6 @@ export function getIdentityLogs(ch: Querier) {
       AND (${outcomeCondition})
     `;
 
-    // Total count query
-    const totalQuery = ch.query({
-      query: `
-        SELECT
-          count(request_id) as total_count
-        FROM default.key_verifications_raw_v2
-        PREWHERE ${prewhereConditions}
-        WHERE ${whereConditions}`,
-      params: extendedParamsSchema,
-      schema: z.object({
-        total_count: z.int(),
-      }),
-    });
-
     const query = ch.query({
       query: `
       SELECT
@@ -380,15 +343,7 @@ export function getIdentityLogs(ch: Querier) {
       schema: identityLog,
     });
 
-    const [clickhouseResults, totalResults] = await Promise.all([
-      query(parameters),
-      totalQuery(parameters),
-    ]);
-
-    return {
-      logs: clickhouseResults,
-      totalCount: totalResults.val ? totalResults.val[0].total_count : 0,
-    };
+    return { logs: await query(parameters) };
   };
 }
 
