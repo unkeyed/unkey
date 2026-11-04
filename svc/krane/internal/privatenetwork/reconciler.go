@@ -119,7 +119,9 @@ func (r *Reconciler) Run(ctx context.Context) {
 		if err := r.reconcile(ctx); err != nil {
 			logger.Warn("private network reconciliation failed", "error", err)
 		}
-		if !r.sleep(ctx, intervalPoll, slicesChanged) {
+		// The settle delay lets the caches observe this pass's own writes, so a
+		// slice event cannot start a pass that updates from a stale view.
+		if !r.sleep(ctx, delaySettle, nil) || !r.sleep(ctx, intervalPoll-delaySettle, slicesChanged) {
 			return
 		}
 	}
@@ -283,6 +285,11 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		key := publishedConnectionKey(connectionSpec)
 		connection, stage, err := r.reconcileConnection(ctx, p, connectionSpec)
 		switch {
+		case apierrors.IsConflict(err):
+			logger.Debug("private network connection changed during reconciliation, retrying next pass", "connection_key", key, "stage", stage, "error", err)
+			if previous, ok := r.entries[key]; ok {
+				entries[key] = previous
+			}
 		case err != nil:
 			errs = append(errs, countError(loopDiscovery, stage, err))
 			entries[key] = p.failedEntry(connectionSpec, key, stage, err)

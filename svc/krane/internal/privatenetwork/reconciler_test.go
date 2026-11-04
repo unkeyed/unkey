@@ -414,7 +414,7 @@ func TestReconcileRejectsConnectionChangedDuringSnapshotFetch(t *testing.T) {
 		return []*ctrlv1.PrivateNetworkConnection{replacement}, nil
 	})
 
-	require.True(t, apierrors.IsConflict(converge(t, r)))
+	require.NoError(t, converge(t, r), "a conflict waits for the next pass instead of failing this one")
 	connection, err := client.CoreV1().Services("customer-1").Get(ctx, aliasName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, concurrentDeploymentID, connection.Annotations[privatenetwork.TargetDeploymentAnnotation])
@@ -932,7 +932,8 @@ func TestRunRediscoversWhenEndpointSlicesChange(t *testing.T) {
 		passes.Add(1)
 		return nil, nil
 	})}
-	r := newTestReconciler(t, Config{Client: client, Cluster: control, Clock: clock.NewTestClock()})
+	clk := clock.NewTestClock()
+	r := newTestReconciler(t, Config{Client: client, Cluster: control, Clock: clk})
 
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan struct{})
@@ -946,5 +947,7 @@ func TestRunRediscoversWhenEndpointSlicesChange(t *testing.T) {
 	}
 	_, err := client.DiscoveryV1().EndpointSlices(slice.Namespace).Create(ctx, slice, metav1.CreateOptions{})
 	require.NoError(t, err)
+	require.Never(t, func() bool { return passes.Load() > 1 }, 200*time.Millisecond, 10*time.Millisecond, "a wake waits for the settle delay")
+	clk.Tick(delaySettle)
 	require.Eventually(t, func() bool { return passes.Load() >= 2 }, 10*time.Second, 10*time.Millisecond, "an EndpointSlice change starts discovery before the poll interval")
 }
