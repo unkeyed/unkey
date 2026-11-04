@@ -20,6 +20,7 @@ func TestMultiLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T
 	workspaceID := h.Resources().UserWorkspace.ID
 	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID}).ProjectID
 	route := &handler.Handler{
+		AuditLogBuffer:  h.AuditLogBuffer,
 		DB:              h.DB,
 		RatelimitEvents: h.RatelimitEvents,
 		Ratelimit:       h.Ratelimit,
