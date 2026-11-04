@@ -19,7 +19,7 @@ func (KeyVerificationFailure) Table() string {
 
 // InsertColumns implements [Row]; derived from KeyVerificationFailure's ch tags.
 func (KeyVerificationFailure) InsertColumns() string {
-	return "`request_id`, `time`, `workspace_id`, `principal_type`, `root_key_id`, `region`, `source`, `ip_address`, `user_agent`, `outcome`, `reason`, `cache_result`, `key_id`, `key_space_id`, `key_workspace_id`, `key_length`, `key_prefix`, `key_charset`, `sample_weight`"
+	return "`request_id`, `time`, `workspace_id`, `principal_type`, `root_key_id`, `region`, `source`, `ip_address`, `user_agent`, `outcome`, `reason`, `cache_result`, `key_id`, `key_space_id`, `key_workspace_id`, `key_fingerprint`, `key_length`, `key_prefix`, `key_charset`, `sample_weight`"
 }
 
 // Table implements [Row].

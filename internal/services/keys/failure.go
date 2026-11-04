@@ -1,6 +1,9 @@
 package keys
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/binary"
 	"math"
 	"strings"
 	"sync"
@@ -9,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/hash"
 )
 
 // failureSampleRate is the weight of a row kept above the cap: one row in
@@ -20,6 +24,11 @@ type FailureRecorderConfig struct {
 	// Buffer receives the rows. It should drop rows when full so a slow
 	// ClickHouse never blocks verifications.
 	Buffer *batch.BatchProcessor[schema.KeyVerificationFailure]
+
+	// FingerprintSecret keys the HMAC behind KeyFingerprint. Every pod must use
+	// the same secret so fingerprints match across pods and regions. When it is
+	// empty, KeyFingerprint is 0.
+	FingerprintSecret string
 
 	// RowsPerSecond is the number of full-weight rows one pod writes per
 	// second. Above it, one row in 100 is written with a sample weight of 100.
@@ -33,6 +42,7 @@ type FailureRecorderConfig struct {
 // above the cap, so a flood of bad keys cannot flood ClickHouse.
 type FailureRecorder struct {
 	buffer        *batch.BatchProcessor[schema.KeyVerificationFailure]
+	secret        []byte
 	rowsPerSecond int
 	clock         clock.Clock
 
@@ -46,6 +56,7 @@ type FailureRecorder struct {
 func NewFailureRecorder(cfg FailureRecorderConfig) *FailureRecorder {
 	return &FailureRecorder{
 		buffer:        cfg.Buffer,
+		secret:        []byte(cfg.FingerprintSecret),
 		rowsPerSecond: cfg.RowsPerSecond,
 		clock:         cfg.Clock,
 		mu:            sync.Mutex{},
@@ -56,8 +67,8 @@ func NewFailureRecorder(cfg FailureRecorderConfig) *FailureRecorder {
 }
 
 // Record buffers row with the shape of rawKey, the key the caller submitted.
-// The raw key never leaves this function; the row only gets the length, a
-// capped prefix, and the character set.
+// The raw key and its hash never leave this function; the row only gets the
+// length, a capped prefix, the character set, and a keyed fingerprint.
 func (r *FailureRecorder) Record(row schema.KeyVerificationFailure, rawKey string) {
 	weight, result := r.admit()
 	metrics.KeyVerificationFailureRowsTotal.WithLabelValues(result).Inc()
@@ -69,6 +80,7 @@ func (r *FailureRecorder) Record(row schema.KeyVerificationFailure, rawKey strin
 	row.KeyLength = shape.Length
 	row.KeyPrefix = shape.Prefix
 	row.KeyCharset = shape.Charset
+	row.KeyFingerprint = r.fingerprint(row.WorkspaceID, hash.Sha256(rawKey))
 	row.SampleWeight = weight
 	r.buffer.Buffer(row)
 }
@@ -95,6 +107,22 @@ func (r *FailureRecorder) admit() (uint32, string) {
 		return failureSampleRate, "sampled"
 	}
 	return 0, "sampled_out"
+}
+
+// fingerprint returns the first 8 bytes of HMAC-SHA256 over the workspace and
+// the stored key hash. The workspace scope gives one key a different
+// fingerprint in every workspace, so rows cannot link a key across tenants.
+// The secret prevents testing guessed keys against fingerprints. Someone with
+// the secret can still fingerprint a hash from MySQL to find its failures.
+func (r *FailureRecorder) fingerprint(workspaceID, keyHash string) uint64 {
+	if len(r.secret) == 0 {
+		return 0
+	}
+	mac := hmac.New(sha256.New, r.secret)
+	mac.Write([]byte(workspaceID))
+	mac.Write([]byte{0})
+	mac.Write([]byte(keyHash))
+	return binary.BigEndian.Uint64(mac.Sum(nil))
 }
 
 // KeyShape describes a submitted key without revealing it.

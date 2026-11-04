@@ -67,9 +67,10 @@ func TestExitPaths(t *testing.T) {
 		AuditLogBuffer:   h.AuditLogBuffer,
 		KeyVerifications: h.KeyVerifications,
 		KeyVerificationFailures: keys.NewFailureRecorder(keys.FailureRecorderConfig{
-			Buffer:        buffer,
-			RowsPerSecond: 1_000,
-			Clock:         clock.New(),
+			Buffer:            buffer,
+			FingerprintSecret: "route-test-key-fingerprint-secret-0123456789",
+			RowsPerSecond:     1_000,
+			Clock:             clock.New(),
 		}),
 	}
 	h.Register(route)
@@ -122,6 +123,7 @@ func TestExitPaths(t *testing.T) {
 			require.NotContains(t, string(encoded), secret)
 		}
 		require.Equal(t, uint16(len(rawKey)), row.KeyLength)
+		require.NotZero(t, row.KeyFingerprint)
 	}
 
 	for _, tt := range []struct {

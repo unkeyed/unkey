@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS default.key_verification_failures_raw_v1
     `key_id`           String CODEC(ZSTD(1)),
     `key_space_id`     String CODEC(ZSTD(1)),
     `key_workspace_id` String CODEC(ZSTD(1)),
+    -- First 8 bytes of HMAC-SHA256(secret, workspace_id || 0x00 || key hash).
+    -- One key has a different fingerprint in every workspace. 0 when svc/api
+    -- has no fingerprint secret.
+    `key_fingerprint`  UInt64 DEFAULT 0,
     `key_length`       UInt16,
     -- Text before the first underscore, only when it is 1 to 8 letters or
     -- digits and the key is at least 16 bytes long.
@@ -41,6 +45,7 @@ CREATE TABLE IF NOT EXISTS default.key_verification_failures_raw_v1
 
     INDEX idx_request_id request_id TYPE bloom_filter GRANULARITY 1,
     INDEX idx_root_key_id root_key_id TYPE bloom_filter GRANULARITY 4,
+    INDEX idx_key_fingerprint key_fingerprint TYPE bloom_filter GRANULARITY 4,
     INDEX idx_key_id key_id TYPE bloom_filter GRANULARITY 4
 )
 ENGINE = MergeTree()

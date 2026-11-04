@@ -26,6 +26,12 @@ type ClickHouseConfig struct {
 	// and a [VaultConfig] are configured.
 	// Example: "http://clickhouse:8123/default"
 	AnalyticsURL string `toml:"analytics_url"`
+
+	// KeyFingerprintSecret keys the HMAC that fingerprints submitted keys in
+	// the internal key_verification_failures table. Every API instance must
+	// use the same value so fingerprints match across instances and regions.
+	// When empty, failure rows carry no fingerprint.
+	KeyFingerprintSecret string `toml:"key_fingerprint_secret"`
 }
 
 // GitHubConfig holds the API's GitHub App settings: the App slug and private
@@ -435,6 +441,10 @@ func (c *Config) Validate() error {
 	keyFile := c.TLS.KeyFile
 	if (certFile == "") != (keyFile == "") {
 		return fmt.Errorf("both tls.cert_file and tls.key_file must be provided to enable HTTPS")
+	}
+
+	if c.ClickHouse.KeyFingerprintSecret != "" && len(c.ClickHouse.KeyFingerprintSecret) < 32 {
+		return fmt.Errorf("clickhouse.key_fingerprint_secret must be at least 32 bytes")
 	}
 
 	// An API server with no auth entries would reject every request, including
