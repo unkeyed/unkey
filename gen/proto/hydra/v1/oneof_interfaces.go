@@ -7,3 +7,6 @@ type IsDeployCreateRequest_Source = isDeployCreateRequest_Source
 
 // IsDeployRequest_Source is the exported form of the protobuf oneof interface isDeployRequest_Source.
 type IsDeployRequest_Source = isDeployRequest_Source
+
+// IsGdprErasureRequest_Subject is the exported form of the protobuf oneof interface isGdprErasureRequest_Subject.
+type IsGdprErasureRequest_Subject = isGdprErasureRequest_Subject

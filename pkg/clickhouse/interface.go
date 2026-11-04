@@ -86,6 +86,18 @@ type Querier interface {
 	// only after ClickHouse confirms the insert so the caller can safely
 	// mark the source MySQL rows as exported.
 	InsertAuditLogs(ctx context.Context, rows []schema.AuditLogV1) error
+
+	// EraseWorkspaceRows deletes a workspace's rows from one of
+	// WorkspaceErasureTables for a GDPR erasure and returns how many matched.
+	EraseWorkspaceRows(ctx context.Context, table, workspaceID string) (int64, error)
+
+	// EraseEndUserRows deletes a customer's end user's rows from one of
+	// EndUserErasureTables for a GDPR erasure and returns how many matched.
+	EraseEndUserRows(ctx context.Context, table string, endUser EndUserErasure) (int64, error)
+
+	// PseudonymizeAuditActor blanks an erased user's personal data in the
+	// audit log rows they wrote and returns how many rows it rewrote.
+	PseudonymizeAuditActor(ctx context.Context, actorID string) (int64, error)
 }
 
 type ClickHouse interface {

@@ -130,6 +130,10 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Handle every error. If a state is impossible, assert it rather than ignoring it.
 - Add tests for Go behavior and pure TypeScript functions. Do not add React
   component, hook, or render tests unless asked.
+- Do not build SQL from strings in production code. MySQL statements are sqlc
+  queries; ClickHouse statements are fixed in methods on `clickhouse.Client` in
+  `pkg/clickhouse`. See
+  [Database access](contributing/quality/code-quality.md#database-access).
 - Do not write raw SQL in tests. Use seed and harness helpers, then generated
   sqlc queries from `pkg/db`. If no query exists, add one to
   `pkg/db/queries/` and run `mise run generate`. For ClickHouse, append

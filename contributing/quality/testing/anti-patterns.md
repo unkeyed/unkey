@@ -69,6 +69,8 @@ Set the state you need when you create the row. Pass the values to the seed requ
 
 For ClickHouse, insert rows as `pkg/clickhouse/schema` structs with `clickhouse.InsertQuery[T]()` and `batch.AppendStruct`. Do not write `INSERT INTO ... VALUES` strings. Read rows through the reader functions in `pkg/clickhouse` when they exist.
 
+When a test counts rows in a `ReplacingMergeTree`, `SummingMergeTree`, or `AggregatingMergeTree` table, count with `FINAL`. These engines collapse rows that share a key whenever a background merge runs, so a plain count can change between two reads with no write in between. Plain `MergeTree` never collapses rows and rejects `FINAL`.
+
 Raw SQL is acceptable only in these cases. If the test name does not make the case obvious, add a short comment that says why the raw SQL is necessary:
 
 - The SQL itself is the subject of the test, such as a migration, an SQL parser, an SQL comment injector, a code generator, or an endpoint that accepts user SQL.

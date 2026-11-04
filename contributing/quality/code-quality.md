@@ -64,6 +64,23 @@ if err != nil {
 }
 ```
 
+### Database access
+
+Production code never builds SQL from strings. One wrong `WHERE` clause can delete a whole table, so every statement is written out in full in one reviewable place, and callers pass only values.
+
+**MySQL.** Every statement is a sqlc query in the owning package's `queries/` directory, such as `pkg/db/queries/` or `svc/ctrl/internal/db/queries/`. sqlc checks each query against the schema when you run `mise run generate`. Do not call `ExecContext` or `QueryContext` with SQL assembled in Go, and never join a table name or filter into a statement.
+
+- Write deletes and updates that can touch many rows as `:execrows` queries ending in `LIMIT n`, and loop until a batch affects fewer than `n` rows. PlanetScale rejects a statement that touches more than 100,000 rows. See `svc/ctrl/internal/db/queries/clickhouse_outbox_delete_exported.sql`.
+- Qualify every column with its table name inside subqueries. sqlc rejects an ambiguous column.
+- Accept the types sqlc generates. A nullable column makes its argument `sql.NullString`. Do not wrap the argument in `CAST(... AS CHAR)` to get a `string`, because sqlc then types it as `interface{}`.
+- Related queries can share one file, such as `svc/ctrl/internal/db/queries/gdpr_erasure_workspace.sql`.
+
+**ClickHouse.** sqlc does not support ClickHouse. Every statement is a method on `clickhouse.Client` in `pkg/clickhouse`, with its SQL fixed inside the method and values bound as `?`. Add the method to the `Querier` interface and to the noop client. Services call the method and never pass SQL to `Exec` or `QueryToMaps`. The one exception is customer-written analytics SQL, which `internal/services/analytics` runs only after `pkg/clickhouse/query-parser` has validated it.
+
+- Write rows as `pkg/clickhouse/schema` structs through the buffered or batch inserts.
+- When a method must take a table name, accept only names from a fixed list inside `pkg/clickhouse` and return an error for anything else. See `pkg/clickhouse/gdpr_erasure.go`.
+- Tables with a `PROJECTION` reject a lightweight `DELETE`. Remove their rows with `ALTER TABLE ... DELETE ... SETTINGS mutations_sync = 2`. Count matching rows first and skip the mutation when there are none, so a repeated delete does not queue mutations that rewrite nothing.
+
 ### Scope
 
 Declare variables at the smallest possible scope. Minimize the number of variables in play at any point. This reduces the probability of using the wrong variable and makes code easier to reason about.

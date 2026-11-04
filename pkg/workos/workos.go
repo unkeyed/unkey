@@ -1,4 +1,5 @@
-// Package workos reads organization roles and member email addresses.
+// Package workos reads organization roles and member email addresses, and
+// deletes users and organizations for GDPR erasure.
 // New selects a noop when no API key is configured.
 package workos
 
@@ -9,6 +10,18 @@ type Client interface {
 	Resolver
 	MemberEmails(ctx context.Context, orgID string) ([]string, error)
 	ActiveRoles(ctx context.Context, orgID string, userID string) ([]string, bool, error)
+	Eraser
+}
+
+// Eraser deletes WorkOS records for GDPR erasure and reports whether each
+// record existed. Deleting a record that does not exist succeeds, so a repeated
+// erasure converges.
+type Eraser interface {
+	// UserEmail returns the user's email address, or an empty string when the
+	// user does not exist.
+	UserEmail(ctx context.Context, userID string) (string, error)
+	DeleteUser(ctx context.Context, userID string) (bool, error)
+	DeleteOrganization(ctx context.Context, orgID string) (bool, error)
 }
 
 // Resolver returns the email addresses to notify for an organization.

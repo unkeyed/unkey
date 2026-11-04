@@ -19,10 +19,12 @@ type BulkQuerier interface {
 	InsertBillingSubscriptions(ctx context.Context, args []InsertBillingSubscriptionParams) error
 	InsertCertificates(ctx context.Context, args []InsertCertificateParams) error
 	InsertCiliumNetworkPolicies(ctx context.Context, args []InsertCiliumNetworkPolicyParams) error
+	InsertCliSessions(ctx context.Context, args []InsertCliSessionParams) error
 	InsertClickhouseOutboxes(ctx context.Context, args []InsertClickhouseOutboxParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, args []UpsertRegionParams) error
 	UpsertCluster(ctx context.Context, args []UpsertClusterParams) error
+	InsertComputeSignupCreditClaims(ctx context.Context, args []InsertComputeSignupCreditClaimParams) error
 	InsertConnectionAppTargets(ctx context.Context, args []InsertConnectionAppTargetParams) error
 	InsertCustomDomains(ctx context.Context, args []InsertCustomDomainParams) error
 	UpsertCustomDomain(ctx context.Context, args []UpsertCustomDomainParams) error
@@ -31,6 +33,7 @@ type BulkQuerier interface {
 	InsertDeployments(ctx context.Context, args []InsertDeploymentParams) error
 	InsertDeploymentSteps(ctx context.Context, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, args []InsertDeploymentTopologyParams) error
+	InsertDeviceAuthorizations(ctx context.Context, args []InsertDeviceAuthorizationParams) error
 	InsertEnvironments(ctx context.Context, args []InsertEnvironmentParams) error
 	InsertGithubRepoConnections(ctx context.Context, args []InsertGithubRepoConnectionParams) error
 	InsertIdentities(ctx context.Context, args []InsertIdentityParams) error
@@ -47,6 +50,7 @@ type BulkQuerier interface {
 	UpsertOpenApiSpec(ctx context.Context, args []UpsertOpenApiSpecParams) error
 	InsertPermissions(ctx context.Context, args []InsertPermissionParams) error
 	InsertPortalDomains(ctx context.Context, args []InsertPortalDomainParams) error
+	InsertPortalSessions(ctx context.Context, args []InsertPortalSessionParams) error
 	InsertProjects(ctx context.Context, args []InsertProjectParams) error
 	InsertRoles(ctx context.Context, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, args []InsertRolePermissionParams) error
