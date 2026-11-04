@@ -77,9 +77,13 @@ func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) e
 // Verify performs key verification with the given options.
 // Authentication failures set Status; configuration and system failures return errors.
 // A requested limit without a stored definition or complete inline override returns an error wrapping *RatelimitNotConfiguredError.
-func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
+func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) (err error) {
 	before := k.Status
-	defer k.recordVerifyOutcome(before)
+	defer func() {
+		if err == nil {
+			k.recordVerifyOutcome(before)
+		}
+	}()
 
 	// nolint:exhaustruct
 	config := &verifyConfig{}
@@ -102,7 +106,6 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		return nil
 	}
 
-	var err error
 	if config.permissions != nil {
 		err = k.withPermissions(ctx, *config.permissions)
 		if err != nil {
@@ -128,6 +131,8 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 // recordVerifyOutcome records the terminal status of a verification that was
 // still undecided when it entered Verify. Statuses Get already decided, and
 // root keys, which never run through Verify, are recorded there instead.
+// Verify skips it when it returns an error: the caller gets an error response,
+// not a verification outcome, so there is no status to count.
 func (k *KeyVerifier) recordVerifyOutcome(before KeyStatus) {
 	if before != StatusValid || k.isRootKey {
 		return

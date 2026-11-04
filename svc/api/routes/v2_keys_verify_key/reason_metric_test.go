@@ -158,4 +158,22 @@ func TestReasonMetric(t *testing.T) {
 			require.Equal(t, before+1, count(t, tt.code, tt.reason))
 		})
 	}
+
+	t.Run("unconfigured ratelimit is not counted as valid", func(t *testing.T) {
+		key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String})
+		before := count(t, openapi.VALID, keys.ReasonNone)
+
+		headers := http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer " + rootKey},
+		}
+		req := handler.Request{
+			Key:        key.Key,
+			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "does-not-exist"}},
+		}
+		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusPreconditionFailed, res.Status, "%s", res.RawBody)
+
+		require.Equal(t, before, count(t, openapi.VALID, keys.ReasonNone))
+	})
 }
