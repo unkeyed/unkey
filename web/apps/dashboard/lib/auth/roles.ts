@@ -2,14 +2,18 @@ export const ORGANIZATION_ROLES = ["admin", "developer"] as const;
 
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 
-const LEGACY_MEMBER_ROLE = "basic_member";
+const LEGACY_MEMBER_ROLES: readonly string[] = ["basic_member", "member"];
+
+export function isLegacyMemberRole(role: string | null | undefined): boolean {
+  return LEGACY_MEMBER_ROLES.some((legacyRole) => legacyRole === role);
+}
 
 export function isOrganizationRole(role: string | null | undefined): role is OrganizationRole {
   return ORGANIZATION_ROLES.some((organizationRole) => organizationRole === role);
 }
 
 export function canAccessWorkspace(role: string | null | undefined): boolean {
-  return isOrganizationRole(role) || role === LEGACY_MEMBER_ROLE;
+  return isOrganizationRole(role) || isLegacyMemberRole(role);
 }
 
 export function canMutateWorkspace(role: string | null | undefined): boolean {
@@ -17,13 +21,11 @@ export function canMutateWorkspace(role: string | null | undefined): boolean {
 }
 
 export function organizationRoleLabel(role: string | null | undefined): string {
-  switch (role) {
-    case "admin":
-      return "Admin";
-    case "developer":
-    case LEGACY_MEMBER_ROLE:
-      return "Developer";
-    default:
-      return "Unknown role";
+  if (role === "admin") {
+    return "Admin";
   }
+  if (role === "developer" || isLegacyMemberRole(role)) {
+    return "Developer";
+  }
+  return "Unknown role";
 }

@@ -95,11 +95,12 @@ func TestDeveloperRoleCoversProductPermissions(t *testing.T) {
 func TestRolePoliciesDefineDashboardRoles(t *testing.T) {
 	t.Parallel()
 
-	require.Len(t, rolePolicies, 4)
+	require.Len(t, rolePolicies, 5)
 	require.NotEmpty(t, rolePolicies["admin"])
 	require.NotEmpty(t, rolePolicies["developer"])
 	require.NotEmpty(t, rolePolicies["viewer"])
 	require.NotEmpty(t, rolePolicies["basic_member"])
+	require.NotEmpty(t, rolePolicies["member"])
 }
 
 // TestDeveloperPermissionsGolden guarantees changes to the complete role
@@ -131,16 +132,19 @@ func TestViewerPermissionsGolden(t *testing.T) {
 	require.Equal(t, string(want), got)
 }
 
-// TestLegacyBasicMemberMatchesDeveloper keeps existing memberships valid during
-// the role migration.
-func TestLegacyBasicMemberMatchesDeveloper(t *testing.T) {
+// TestLegacyMembersMatchDeveloper keeps existing memberships valid during the
+// role migration.
+func TestLegacyMembersMatchDeveloper(t *testing.T) {
 	t.Parallel()
 
-	require.Equal(
-		t,
-		PermissionsForRoles("ws_123", []string{"developer"}),
-		PermissionsForRoles("ws_123", []string{"basic_member"}),
-	)
+	for _, role := range []string{"basic_member", "member"} {
+		require.Equal(
+			t,
+			PermissionsForRoles("ws_123", []string{"developer"}),
+			PermissionsForRoles("ws_123", []string{role}),
+			role,
+		)
+	}
 }
 
 // TestNoRoleGrantsPortalSessionMinting guards against a role granting portal
