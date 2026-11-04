@@ -116,7 +116,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
       }
 
       if (event.key === "Escape") {
-        event.preventDefault();
         onRowClick?.(null);
         const activeElement = document.activeElement as HTMLElement;
         activeElement?.blur();
