@@ -178,7 +178,7 @@ export function getKeyDetailsLogs(ch: Querier) {
       WHERE ${whereConditions}
           -- Handle pagination using time as cursor
           ${cursorCondition}
-      ORDER BY time DESC
+      ORDER BY time DESC, request_id DESC
       LIMIT {limit: Int}
       ${useOffset ? "OFFSET {offset: Nullable(Int)}" : ""}
       `,
@@ -214,6 +214,7 @@ export const identityLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.int().nullable(),
+  cursorRequestId: z.string().nullable(),
 });
 
 export const identityLog = z.object({
@@ -296,16 +297,10 @@ export function getIdentityLogs(ch: Querier) {
           .join(" OR ") || "TRUE"
       : "TRUE";
 
-    let cursorCondition: string;
-    if (args.cursorTime) {
-      cursorCondition = `
-        AND (time < {cursorTime: Nullable(UInt64)})
-        `;
-    } else {
-      cursorCondition = `
-      AND ({cursorTime: Nullable(UInt64)} IS NULL)
-      `;
-    }
+    const cursorCondition =
+      args.cursorTime !== null && args.cursorRequestId !== null
+        ? "AND (time, request_id) < ({cursorTime: UInt64}, {cursorRequestId: String})"
+        : "";
 
     const extendedParamsSchema = identityLogsParams.extend(paramSchemaExtension);
 
@@ -336,7 +331,7 @@ export function getIdentityLogs(ch: Querier) {
       PREWHERE ${prewhereConditions}
       WHERE ${whereConditions}
           ${cursorCondition}
-      ORDER BY time DESC
+      ORDER BY time DESC, request_id DESC
       LIMIT {limit: Int}
       `,
       params: extendedParamsSchema,

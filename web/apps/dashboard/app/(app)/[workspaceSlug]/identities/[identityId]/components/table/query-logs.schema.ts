@@ -1,3 +1,4 @@
+import { identityLogsCursor } from "@/lib/trpc/routers/identity/query-logs/query-logs.schema";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 
@@ -7,7 +8,7 @@ export const identityLogsPayload = z.object({
   startTime: z.int(),
   endTime: z.int(),
   since: z.string(),
-  cursor: z.number().nullable().optional().nullable(),
+  cursor: identityLogsCursor.nullable().optional(),
   tags: z
     .array(
       z.object({
