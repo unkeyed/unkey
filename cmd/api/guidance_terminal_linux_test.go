@@ -48,6 +48,77 @@ func TestGuidedProcess(t *testing.T) {
 	os.Exit(0)
 }
 
+func TestGuidedTerminalPruneConfirmation(t *testing.T) {
+	for _, mode := range []string{"cancel", "yes-cancel", "confirm", "edit-prune", "no-prune"} {
+		t.Run(mode, func(t *testing.T) {
+			requests := make(chan components.V2EnvironmentsSetEnvironmentVariablesRequestBody, 2)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/v2/environments.setEnvironmentVariables" {
+					t.Errorf("unexpected endpoint: %s", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+				var request components.V2EnvironmentsSetEnvironmentVariablesRequestBody
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+					return
+				}
+				requests <- request
+				w.Header().Set("Content-Type", "application/json")
+				if err := json.NewEncoder(w).Encode(components.V2EnvironmentsSetEnvironmentVariablesResponseBody{
+					Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)},
+				}); err != nil {
+					t.Error(err)
+				}
+			}))
+			t.Cleanup(server.Close)
+			args := []string{"environments", "variables", "set", "--project=demo-project", "--app=demo-app", "--environment=demo-env", "--variables=[]", "--interactive", "--root-key=" + uid.New(uid.KeyPrefix), "--api-url=" + server.URL, "--json"}
+			if mode == "yes-cancel" || mode == "edit-prune" {
+				args = append(args, "--yes")
+			}
+			var answers []terminalAnswer
+			if mode == "edit-prune" {
+				answers = append(answers,
+					terminalAnswer{expect: "❯ Cancel", answer: "\x1b[A\r"},
+					terminalAnswer{expect: "Set Prune", answer: "\x1b[B\x1b[B\r"},
+					terminalAnswer{expect: "? Prune", answer: "\x1b[A\r"},
+				)
+			} else if mode != "no-prune" {
+				args = append(args, "--prune")
+			}
+			answer := "\r"
+			if mode == "confirm" || mode == "edit-prune" || mode == "no-prune" {
+				answer = "\x1b[B\r"
+			}
+			answers = append(answers, terminalAnswer{expect: "❯ Cancel", answer: answer, check: func(t *testing.T, screen string) {
+				require.Empty(t, requests)
+				if mode == "no-prune" {
+					require.NotContains(t, screen, "Remove variables not included")
+				} else {
+					require.Contains(t, screen, "Remove variables not included")
+				}
+				require.Contains(t, screen, "demo-env")
+			}})
+			out, terminal, err := runGuidedTerminal(t, args, answers)
+			if mode == "cancel" || mode == "yes-cancel" {
+				require.Error(t, err, terminal)
+				require.Contains(t, terminal, "cancelled")
+				require.Empty(t, requests)
+				require.Empty(t, out)
+				return
+			}
+			require.NoError(t, err, terminal)
+			require.Len(t, requests, 1)
+			require.Equal(t, components.V2EnvironmentsSetEnvironmentVariablesRequestBody{
+				Project: "demo-project", App: "demo-app", Environment: "demo-env", Variables: []components.EnvironmentVariableInput{}, Prune: new(mode != "no-prune"),
+			}, <-requests)
+			var response components.V2EnvironmentsSetEnvironmentVariablesResponseBody
+			require.NoError(t, json.Unmarshal([]byte(out), &response))
+			require.NotEmpty(t, response.Meta.RequestID)
+		})
+	}
+}
+
 func TestGuidedTerminalCreateAndCancellation(t *testing.T) {
 	requests := make(chan components.V2ProjectsCreateProjectRequestBody, 4)
 	response := components.V2ProjectsCreateProjectResponseBody{
