@@ -21,7 +21,7 @@ The audit log records every change made through the API or the dashboard: who di
 Each entry has:
 
 - **An event**, such as `key.create` or `portal.session.exchange`. See [Audit log event types](/platform/workspace/audit-logs/event-types).
-- **An actor**, with a type, ID, and name. The type is `user` (someone in the dashboard), `rootkey` (an API call), `portalEndUser` (one of your customers in a [developer portal](/api-management/portal/overview)), `github` (a push or pull request on a connected repository), or `system` (Unkey itself).
+- **An actor**, with a type, ID, and name. The type is `user` (someone in the dashboard or signed in to the CLI), `rootkey` (an API call), `portalEndUser` (one of your customers in a [developer portal](/api-management/portal/overview)), `github` (a push or pull request on a connected repository), or `system` (Unkey itself). Actions taken through the CLI are recorded as `user`, with `via: "cli"`, the session ID, and the device name in the actor metadata. The dashboard doesn't show actor metadata, but [log drains](/platform/workspace/log-drains) include it as `actor.metadata`.
 - **The resources** it touched, each with a type, ID, name, and optional details such as the fields that changed.
 - **The caller's IP address and user agent**, and a readable description.
 - **A correlation ID** that groups entries from one action, such as a key creation and the permissions it attached.
@@ -30,7 +30,9 @@ Every entry you can see is in the `unkey_mutations` bucket, the only option in t
 
 ## Which actions are logged
 
-Every create, update, and delete is logged, for keyspaces, keys, identities, roles, permissions, rate limit namespaces and overrides, portals, every Compute resource, and workspace and team changes. Reads aren't logged, with two exceptions: `key.verify` when a **root key** calls `keys.verifyKey`, and `ratelimit.limit` when a root key checks a rate limit. Verifications by the gateway or a portal session aren't in the audit log. They're in [analytics](/api-management/analytics/overview).
+Creates, updates, and deletes are logged for keyspaces, keys, root keys, identities, roles, permissions, rate limit namespaces and overrides, portals, log drains, every Compute resource, and workspace settings. Team membership changes aren't logged.
+
+Most reads aren't logged. The exceptions are `key.verify` when a **root key** calls `keys.verifyKey`, `ratelimit.limit` when a root key calls `ratelimit.limit` or `ratelimit.multiLimit`, and `secret.decrypt` when someone reveals a one-time share link. Verifications by the gateway or a portal session aren't in the audit log. They're in [analytics](/api-management/analytics/overview).
 
 Root-key requests blocked by an IP allowlist also emit
 [`auth.ipDenied`](/platform/workspace/audit-logs/event-types#authentication).
@@ -47,12 +49,12 @@ Open **Audit log** in the dashboard sidebar. Entries are newest first. Expand on
 
 ## Retention
 
-Your plan sets how long entries are kept. Check the `Audit log retention` row on **Settings > Limits**. See [Limits](/platform/billing/limits).
+Your plan sets how long entries are kept. Check the `Audit log retention` row on **Settings > Limits**. A paid API tier sets retention whatever Compute plan you hold. The Compute rows apply only without a paid API tier. See [Limits](/platform/billing/limits).
 
 | Plan | Audit log retention |
 | --- | --- |
-| Free, no Compute plan | 3 days |
-| API Pro, any tier | 14 days |
+| Free, no Compute plan | 30 days |
+| API Pro, any tier | 90 days |
 | Compute Starter | 7 days |
 | Compute Pro | 14 days |
 | Compute Business | 30 days |
