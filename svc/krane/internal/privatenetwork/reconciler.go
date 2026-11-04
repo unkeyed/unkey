@@ -103,13 +103,8 @@ func (r *Reconciler) Run(ctx context.Context) {
 	r.entries, r.absences = nil, nil
 	startLeading()
 
-	changed := make(chan struct{}, 1)
-	stop, err := r.startCaches(ctx, func() {
-		select {
-		case changed <- struct{}{}:
-		default:
-		}
-	})
+	inputsChanged, slicesChanged := make(chan struct{}, 1), make(chan struct{}, 1)
+	stop, err := r.startCaches(ctx, inputsChanged, slicesChanged)
 	if err != nil {
 		logger.Error("private network caches did not sync", "error", err)
 		return
@@ -118,19 +113,19 @@ func (r *Reconciler) Run(ctx context.Context) {
 
 	var loops sync.WaitGroup
 	defer loops.Wait()
-	loops.Go(func() { r.runEndpoints(ctx, changed) })
+	loops.Go(func() { r.runEndpoints(ctx, inputsChanged) })
 
 	for {
 		if err := r.reconcile(ctx); err != nil {
 			logger.Warn("private network reconciliation failed", "error", err)
 		}
-		if !r.sleep(ctx, intervalPoll, nil) {
+		if !r.sleep(ctx, intervalPoll, slicesChanged) {
 			return
 		}
 	}
 }
 
-func (r *Reconciler) startCaches(ctx context.Context, changed func()) (func(), error) {
+func (r *Reconciler) startCaches(ctx context.Context, inputsChanged, slicesChanged chan<- struct{}) (func(), error) {
 	discovery := informers.NewSharedInformerFactoryWithOptions(r.client, 0, informers.WithTweakListOptions(func(options *metav1.ListOptions) {
 		options.LabelSelector = discoveryLabels.ToString()
 	}))
@@ -153,12 +148,13 @@ func (r *Reconciler) startCaches(ctx context.Context, changed func()) (func(), e
 	if err := pods.AddIndexers(cache.Indexers{indexDeployment: deploymentIndex}); err != nil {
 		return nil, fmt.Errorf("index private network Pods: %w", err)
 	}
-	handler := cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(any) { changed() },
-		UpdateFunc: func(any, any) { changed() },
-		DeleteFunc: func(any) { changed() },
+	inputs := notifier(inputsChanged)
+	watches := map[cache.SharedIndexInformer]cache.ResourceEventHandler{
+		services.Informer():       inputs,
+		pods:                      inputs,
+		endpointSlices.Informer(): notifier(inputsChanged, slicesChanged),
 	}
-	for _, informer := range []cache.SharedIndexInformer{services.Informer(), endpointSlices.Informer(), pods} {
+	for informer, handler := range watches {
 		if _, err := informer.AddEventHandler(handler); err != nil {
 			return nil, fmt.Errorf("watch private network inputs: %w", err)
 		}
@@ -173,6 +169,22 @@ func (r *Reconciler) startCaches(ctx context.Context, changed func()) (func(), e
 		return nil, ctx.Err()
 	}
 	return stop, nil
+}
+
+func notifier(wakes ...chan<- struct{}) cache.ResourceEventHandler {
+	notify := func() {
+		for _, wake := range wakes {
+			select {
+			case wake <- struct{}{}:
+			default:
+			}
+		}
+	}
+	return cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(any) { notify() },
+		UpdateFunc: func(any, any) { notify() },
+		DeleteFunc: func(any) { notify() },
+	}
 }
 
 func stripManagedFields(object any) (any, error) {
@@ -195,11 +207,10 @@ func (r *Reconciler) sleep(ctx context.Context, d time.Duration, wake <-chan str
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		return false
 	case <-timer.C():
 	case <-wake:
 	}
-	return true
+	return ctx.Err() == nil
 }
 
 type discoveryPass struct {

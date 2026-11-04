@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
@@ -194,12 +195,29 @@ func TestNewLeadershipTermDoesNotInheritAbsences(t *testing.T) {
 	client := fake.NewClientset(endpointPod(spec, "a", "10.72.0.11"))
 	snapshot := []*ctrlv1.PrivateNetworkConnection{spec}
 	var mu sync.Mutex
-	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+	var termStarted bool
+	var termCalls int
+	secondCall := make(chan struct{})
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(ctx context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
 		mu.Lock()
-		defer mu.Unlock()
-		return snapshot, nil
+		if !termStarted {
+			defer mu.Unlock()
+			return snapshot, nil
+		}
+		termCalls++
+		calls := termCalls
+		mu.Unlock()
+		if calls == 1 {
+			return nil, nil
+		}
+		if calls == 2 {
+			close(secondCall)
+		}
+		<-ctx.Done()
+		return nil, ctx.Err()
 	})}
-	r := newTestReconciler(t, Config{Client: client, Cluster: control})
+	clk := clock.NewTestClock()
+	r := newTestReconciler(t, Config{Client: client, Cluster: control, Clock: clk})
 	require.NoError(t, converge(t, r))
 	mu.Lock()
 	snapshot = nil
@@ -207,6 +225,9 @@ func TestNewLeadershipTermDoesNotInheritAbsences(t *testing.T) {
 	require.NoError(t, converge(t, r))
 	require.NotNil(t, aliasService(t, client, spec), "the previous term saw one absence")
 
+	mu.Lock()
+	termStarted = true
+	mu.Unlock()
 	startLeading()
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan struct{})
@@ -215,8 +236,14 @@ func TestNewLeadershipTermDoesNotInheritAbsences(t *testing.T) {
 		r.Run(ctx)
 	}()
 	require.Eventually(t, func() bool {
-		return gatherValues(t, "unkey_krane_private_network_last_completed_pass_unix_seconds")["loop=discovery"] != 0
-	}, 10*time.Second, 10*time.Millisecond)
+		clk.Tick(intervalPoll)
+		select {
+		case <-secondCall:
+			return true
+		default:
+			return false
+		}
+	}, 10*time.Second, 10*time.Millisecond, "the new term completes its first discovery pass")
 	cancel()
 	<-done
 

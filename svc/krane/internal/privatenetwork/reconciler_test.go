@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"google.golang.org/protobuf/proto"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -921,4 +923,28 @@ func TestEnsureServiceCreatesMissingNamespace(t *testing.T) {
 	require.NoError(t, err)
 	_, err = client.CoreV1().Namespaces().Get(t.Context(), connectionSpec.GetK8SNamespace(), metav1.GetOptions{})
 	require.NoError(t, err)
+}
+
+func TestRunRediscoversWhenEndpointSlicesChange(t *testing.T) {
+	client := fake.NewClientset()
+	var passes atomic.Int32
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkConnection, error) {
+		passes.Add(1)
+		return nil, nil
+	})}
+	r := newTestReconciler(t, Config{Client: client, Cluster: control, Clock: clock.NewTestClock()})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan struct{})
+	go func() { defer close(done); r.Run(ctx) }()
+	t.Cleanup(func() { cancel(); <-done })
+	require.Eventually(t, func() bool { return passes.Load() == 1 }, 10*time.Second, 10*time.Millisecond)
+
+	slice := &discoveryv1.EndpointSlice{
+		ObjectMeta:  metav1.ObjectMeta{Name: uid.New(uid.TestPrefix), Namespace: "customer", Labels: discoveryLabels},
+		AddressType: discoveryv1.AddressTypeIPv4,
+	}
+	_, err := client.DiscoveryV1().EndpointSlices(slice.Namespace).Create(ctx, slice, metav1.CreateOptions{})
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return passes.Load() >= 2 }, 10*time.Second, 10*time.Millisecond, "an EndpointSlice change starts discovery before the poll interval")
 }
