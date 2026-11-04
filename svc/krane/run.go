@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/config/dangerous"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
@@ -224,7 +225,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EventDedup:          instanceEventDedupCache,
 		ObservedTransitions: deploymentTransitionsCache,
 		StorageClassName:    cfg.StorageClassName,
-		DisableGvisor:       cfg.DisableGvisor,
+		DisableGvisor:       dangerous.DangerouslyByPassGVisor(),
 
 		MaxConcurrentRollouts: cfg.MaxConcurrentRollouts,
 	})

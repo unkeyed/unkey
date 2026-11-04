@@ -685,19 +685,19 @@ k8s_resource(
 # ─── Krane ─────────────────────────────────────────────────────────────────
 go_service_image('unkey/krane:dev', 'krane')
 krane_resources = decode_yaml_stream(profile_manifest('krane'))
-if has_depot_credentials:
-    for resource in krane_resources:
-        metadata = resource.get('metadata', {})
-        if resource.get('kind') == 'ConfigMap' and metadata.get('name') == 'krane-config':
-            resource['data']['unkey.toml'] += '''
+for resource in krane_resources:
+    metadata = resource.get('metadata', {})
+    if has_depot_credentials and resource.get('kind') == 'ConfigMap' and metadata.get('name') == 'krane-config':
+        resource['data']['unkey.toml'] += '''
 [registry]
 url = "registry.depot.dev"
 username = "x-token"
 password = "${UNKEY_REGISTRY_PASSWORD}"
 '''
-        if resource.get('kind') == 'Deployment' and metadata.get('name') == 'krane':
-            for container in resource['spec']['template']['spec']['containers']:
-                if container.get('name') == 'krane':
+    if resource.get('kind') == 'Deployment' and metadata.get('name') == 'krane':
+        for container in resource['spec']['template']['spec']['containers']:
+            if container.get('name') == 'krane':
+                if has_depot_credentials:
                     container['env'] = [{
                         'name': 'UNKEY_REGISTRY_PASSWORD',
                         'valueFrom': {
@@ -706,6 +706,11 @@ password = "${UNKEY_REGISTRY_PASSWORD}"
                                 'key': 'UNKEY_REGISTRY_PASSWORD',
                             },
                         },
+                    }]
+                if not ORB_METAL:
+                    container['env'] = container.get('env', []) + [{
+                        'name': 'DANGEROUSLY_BYPASS_GVISOR_AND_GET_US_PWN3D',
+                        'value': 'true',
                     }]
 k8s_yaml(encode_yaml_stream(krane_resources))
 krane_network_deps = ['cilium-network-policy-crd'] if ORB else ['cilium-policies']
