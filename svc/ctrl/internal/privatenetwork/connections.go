@@ -85,8 +85,8 @@ func listConnections(ctx context.Context, queries *db.Queries, params db.ListPri
 
 func selectDeployments(ctx context.Context, queries *db.Queries, selections []db.ListPrivateNetworkConnectionSelectionsRow) ([]string, error) {
 	deploymentIDs := make([]string, len(selections))
-	var previews lookups[db.FindPrivateNetworkPreviewDeploymentIdParams]
-	var environments lookups[db.FindPrivateNetworkEnvironmentDeploymentIdParams]
+	previews := make(map[previewKey][]int)
+	environments := make(map[environmentKey][]int)
 	for i, selection := range selections {
 		switch selection.SelectionMode {
 		case db.DeploymentConnectionAppTargetsSelectionModeDeployment:
@@ -96,13 +96,14 @@ func selectDeployments(ctx context.Context, queries *db.Queries, selections []db
 			case selection.CallerEnvironmentKind == mysqltype.EnvironmentKindProduction:
 				deploymentIDs[i] = selection.LiveDeploymentID
 			case selection.CallerSource == db.DeploymentsSourceGit && selection.CallerGitBranch != "":
-				previews.add(i, db.FindPrivateNetworkPreviewDeploymentIdParams{
-					AppID:       selection.AppID,
-					GitBranch:   sql.NullString{String: selection.CallerGitBranch, Valid: true},
-					ForkKey:     sql.NullString{String: selection.CallerForkKey, Valid: true},
-					WorkspaceID: selection.WorkspaceID,
-					ProjectID:   selection.ProjectID,
-				})
+				key := previewKey{
+					workspaceID: selection.WorkspaceID,
+					projectID:   selection.ProjectID,
+					appID:       selection.AppID,
+					gitBranch:   selection.CallerGitBranch,
+					forkKey:     selection.CallerForkKey,
+				}
+				previews[key] = append(previews[key], i)
 			}
 		case db.DeploymentConnectionAppTargetsSelectionModeEnvironment:
 			switch {
@@ -110,26 +111,61 @@ func selectDeployments(ctx context.Context, queries *db.Queries, selections []db
 			case selection.TargetEnvironmentID == selection.LiveEnvironmentID:
 				deploymentIDs[i] = selection.LiveDeploymentID
 			default:
-				environments.add(i, db.FindPrivateNetworkEnvironmentDeploymentIdParams{
-					AppID:         selection.AppID,
-					EnvironmentID: selection.TargetEnvironmentID,
-					WorkspaceID:   selection.WorkspaceID,
-					ProjectID:     selection.ProjectID,
-				})
+				key := environmentKey{
+					workspaceID:   selection.WorkspaceID,
+					projectID:     selection.ProjectID,
+					appID:         selection.AppID,
+					environmentID: selection.TargetEnvironmentID,
+				}
+				environments[key] = append(environments[key], i)
 			}
 		}
 	}
 
-	found, err := queries.FindPrivateNetworkPreviewDeploymentIds(ctx, previews.keys)
-	if err != nil {
-		return nil, err
+	if len(previews) > 0 {
+		branches := distinct(previews, func(key previewKey) string { return key.gitBranch })
+		gitBranches := make([]sql.NullString, len(branches))
+		for i, branch := range branches {
+			gitBranches[i] = sql.NullString{String: branch, Valid: true}
+		}
+		rows, err := queries.ListPrivateNetworkPreviewDeploymentIds(ctx, db.ListPrivateNetworkPreviewDeploymentIdsParams{
+			AppIds:      distinct(previews, func(key previewKey) string { return key.appID }),
+			GitBranches: gitBranches,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			for _, i := range previews[previewKey{
+				workspaceID: row.WorkspaceID,
+				projectID:   row.ProjectID,
+				appID:       row.AppID,
+				gitBranch:   row.GitBranch,
+				forkKey:     row.ForkKey,
+			}] {
+				deploymentIDs[i] = row.ID
+			}
+		}
 	}
-	previews.assign(deploymentIDs, found)
-	found, err = queries.FindPrivateNetworkEnvironmentDeploymentIds(ctx, environments.keys)
-	if err != nil {
-		return nil, err
+	if len(environments) > 0 {
+		rows, err := queries.ListPrivateNetworkEnvironmentDeploymentIds(ctx, db.ListPrivateNetworkEnvironmentDeploymentIdsParams{
+			AppIds:         distinct(environments, func(key environmentKey) string { return key.appID }),
+			EnvironmentIds: distinct(environments, func(key environmentKey) string { return key.environmentID }),
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			for _, i := range environments[environmentKey{
+				workspaceID:   row.WorkspaceID,
+				projectID:     row.ProjectID,
+				appID:         row.AppID,
+				environmentID: row.EnvironmentID,
+			}] {
+				deploymentIDs[i] = row.ID
+			}
+		}
 	}
-	environments.assign(deploymentIDs, found)
 	return deploymentIDs, nil
 }
 
@@ -149,29 +185,19 @@ func readyTargets(ctx context.Context, queries *db.Queries, deploymentIDs []stri
 	return targets, nil
 }
 
-type lookups[K comparable] struct {
-	keys       []K
-	slotByKey  map[K]int
-	selections []int
-	slots      []int
+type previewKey struct {
+	workspaceID, projectID, appID, gitBranch, forkKey string
 }
 
-func (l *lookups[K]) add(selection int, key K) {
-	slot, ok := l.slotByKey[key]
-	if !ok {
-		if l.slotByKey == nil {
-			l.slotByKey = make(map[K]int)
-		}
-		slot = len(l.keys)
-		l.slotByKey[key] = slot
-		l.keys = append(l.keys, key)
-	}
-	l.selections = append(l.selections, selection)
-	l.slots = append(l.slots, slot)
+type environmentKey struct {
+	workspaceID, projectID, appID, environmentID string
 }
 
-func (l *lookups[K]) assign(deploymentIDs, found []string) {
-	for i, selection := range l.selections {
-		deploymentIDs[selection] = found[l.slots[i]]
+func distinct[K comparable](keys map[K][]int, field func(K) string) []string {
+	values := make([]string, 0, len(keys))
+	for key := range keys {
+		values = append(values, field(key))
 	}
+	slices.Sort(values)
+	return slices.Compact(values)
 }
