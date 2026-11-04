@@ -379,6 +379,48 @@ paths:
 
 	_, err = PathsFromSpec(bracketed)
 	require.ErrorContains(t, err, "items[0]")
+
+	// A trailing "[]" looks like the array step the walker appends itself, so
+	// it must be refused on the name rather than on the joined path.
+	arrayLike := []byte(`
+paths:
+  /v2/thing:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tokens[]:
+                  type: string
+                  x-unkey-redact: true
+`)
+
+	_, err = PathsFromSpec(arrayLike)
+	require.ErrorContains(t, err, "tokens[]")
+
+	// An ancestor that is not annotated still names part of the path.
+	nested := []byte(`
+paths:
+  /v2/thing:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                "":
+                  type: object
+                  properties:
+                    secret:
+                      type: string
+                      x-unkey-redact: true
+`)
+
+	_, err = PathsFromSpec(nested)
+	require.ErrorContains(t, err, ".secret")
 }
 
 // Found by an adversarial review. An annotation only means something on a property,

@@ -42,12 +42,13 @@ func PathsFromSpec(spec []byte) ([]string, error) {
 	}
 
 	w := &walker{
-		schemas:       mapAt(mapAt(doc, "components"), "schemas"),
-		found:         make(map[string]struct{}),
-		truncated:     make(map[string]struct{}),
-		annotated:     make(map[string]bool),
-		unaddressable: nil,
-		inexpressible: nil,
+		schemas:           mapAt(mapAt(doc, "components"), "schemas"),
+		found:             make(map[string]struct{}),
+		truncated:         make(map[string]struct{}),
+		annotated:         make(map[string]bool),
+		unaddressable:     nil,
+		inexpressible:     nil,
+		inexpressibleOpen: 0,
 	}
 
 	for _, item := range mapAt(doc, "paths") {
@@ -124,6 +125,12 @@ type walker struct {
 	// cannot carry, which would otherwise silently never match.
 	inexpressible []string
 
+	// inexpressibleOpen counts the properties on the current descent whose names
+	// the path grammar cannot carry. The joined path cannot tell a literal "a[]"
+	// from the array step the walker appends, so names are checked as they are
+	// entered.
+	inexpressibleOpen int
+
 	// annotated memoizes whether a component's subtree contains an annotation.
 	annotated map[string]bool
 }
@@ -152,15 +159,22 @@ func (w *walker) walk(schema map[string]any, path []string, visiting map[string]
 				annotatedHere = annotated(resolved)
 			}
 		}
+		inexpressible := !expressible(name)
+		if inexpressible {
+			w.inexpressibleOpen++
+		}
 		if annotatedHere {
-			segments := extend(path, name)
-			if !expressible(segments) {
-				w.inexpressible = append(w.inexpressible, strings.Join(segments, "."))
+			joined := strings.Join(extend(path, name), ".")
+			if w.inexpressibleOpen > 0 {
+				w.inexpressible = append(w.inexpressible, joined)
 			}
-			w.found[strings.Join(segments, ".")] = struct{}{}
+			w.found[joined] = struct{}{}
 		}
 
 		w.walk(property, extend(path, name), visiting)
+		if inexpressible {
+			w.inexpressibleOpen--
+		}
 	}
 
 	// Array elements extend the last segment rather than adding one, so
@@ -325,23 +339,12 @@ func extend(path []string, segment string) []string {
 	return out
 }
 
-// expressible reports whether every segment of a path can be written in the
-// grammar [New] parses, which reserves '.' for nesting and '[]' for array steps.
-// A member named "a.b" or "a[0]" would otherwise be read as two members or as
-// an array step, and never match the body.
-func expressible(segments []string) bool {
-	for _, segment := range segments {
-		label := segment
-		for strings.HasSuffix(label, "[]") {
-			label = label[:len(label)-2]
-		}
-
-		if strings.ContainsAny(label, ".[]") {
-			return false
-		}
-	}
-
-	return true
+// expressible reports whether a member name can be written in the grammar [New]
+// parses, which reserves '.' for nesting and '[]' for array steps. A member named
+// "a.b", "a[0]", or "a[]" would otherwise be read as two members or as an array
+// step, and an empty name as no member at all, so the path would never match.
+func expressible(name string) bool {
+	return name != "" && !strings.ContainsAny(name, ".[]")
 }
 
 // bodySchema extracts the JSON schema from a requestBody or response object.
