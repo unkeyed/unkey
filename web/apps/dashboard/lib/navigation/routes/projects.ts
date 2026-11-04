@@ -136,10 +136,11 @@ export const projectRoutes = {
       );
     },
 
-    connections(scope: AppScope): Route {
+    connections({ add, ...scope }: AppScope & { add?: boolean }): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/connections",
         appParams(scope),
+        { add: add || undefined },
       );
     },
 

@@ -8,8 +8,17 @@ import {
 } from "@unkey/icons";
 import { Card, Skeleton } from "@unkey/ui";
 import { cn } from "cn";
-import { PoliciesLoadingNode } from "./app-canvas";
-import { Canvas, Group, HFlow, IconRow, Node, NodeHeader, RowItem, Rows } from "./canvas/nodes";
+import {
+  Canvas,
+  Group,
+  HFlow,
+  IconRow,
+  Node,
+  NodeHeader,
+  NodeSkeleton,
+  RowItem,
+  Rows,
+} from "./canvas/nodes";
 
 function Bar({ className }: { className: string }) {
   return <Skeleton className={cn("inline-block h-3 rounded align-middle", className)} />;
@@ -65,7 +74,7 @@ export function AppCanvasSkeleton() {
           </Group>
           <HFlow empty />
           <Group icon={<IconGridOutline18 />} label="Services">
-            <PoliciesLoadingNode />
+            <NodeSkeleton label="Loading policies" />
           </Group>
         </Canvas>
       </div>

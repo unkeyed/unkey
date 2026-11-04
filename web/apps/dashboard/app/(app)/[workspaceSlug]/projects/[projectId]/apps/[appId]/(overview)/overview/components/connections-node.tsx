@@ -1,100 +1,89 @@
 "use client";
 
-import type { Router } from "@/lib/trpc/routers";
-import type { inferRouterOutputs } from "@trpc/server";
-import { IconLinkOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
+import { environmentName } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
+import type { ListView } from "@/lib/loadable/list";
+import { IconCubeOutline18, IconLinkOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, Button, Skeleton } from "@unkey/ui";
 import type { Route } from "next";
-import Link from "next/link";
-import { Node, NodeHeader, Rows } from "./canvas/nodes";
+import type { DeploymentConnectionSummary } from "../../connections/hooks/use-deployment-connections";
+import {
+  LabeledRow,
+  MoreRow,
+  NODE_ROW_LIMIT,
+  Node,
+  NodeError,
+  NodeFooter,
+  NodeHeader,
+  NodeSkeleton,
+  Rows,
+} from "./canvas/nodes";
+
+type Connection = DeploymentConnectionSummary;
+
+function targetLabel(connection: Connection): string {
+  return match(connection)
+    .with({ targetType: "automatic" }, () => "Production")
+    .with({ targetType: "environment" }, (target) =>
+      target.targetEnvironmentSlug
+        ? environmentName(target.targetEnvironmentSlug)
+        : "Deleted environment",
+    )
+    .with({ targetType: "deployment" }, () => "Pinned")
+    .exhaustive();
+}
 
 export function ConnectionsNode({
-  query,
+  view,
+  truncated,
   href,
+  addHref,
 }: {
-  query: {
-    data: inferRouterOutputs<Router>["deploy"]["deployment"]["listConnections"] | undefined;
-    isLoading: boolean;
-    isError: boolean;
-    isFetching: boolean;
-    refetch: () => void;
-  };
+  view: ListView<Connection>;
+  truncated: boolean;
   href: Route;
+  addHref: Route;
 }) {
-  if (query.isLoading) {
-    return <Skeleton aria-label="Loading connections" className="h-28 w-full rounded-lg" />;
-  }
-
-  return (
-    <Node>
-      <NodeHeader
+  const link = { href, label: "Connections" };
+  const footer = (
+    <NodeFooter href={addHref} icon={<IconPlusOutline18 />}>
+      Add connection
+    </NodeFooter>
+  );
+  return match(view)
+    .with({ status: "loading" }, () => <NodeSkeleton label="Loading connections" />)
+    .with({ status: "failed" }, ({ retry, retrying }) => (
+      <NodeError
         icon={<IconLinkOutline18 />}
         name="Connections"
-        right={
-          !query.isError && query.data ? (
-            <Badge variant="count">
-              {query.data.connections.length}
-              {query.data.truncated && "+"}
-            </Badge>
-          ) : undefined
-        }
+        link={link}
+        onRetry={retry}
+        retrying={retrying}
+        footer={footer}
       />
-      <Rows>
-        {query.isError ? (
-          <span role="alert" className="flex items-center gap-2">
-            <IconTriangleWarningOutline18 className="size-3 shrink-0 text-error-9" />
-            <span className="text-gray-11">Couldn't load connections</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto"
-              onClick={() => query.refetch()}
-              loading={query.isFetching}
-            >
-              Retry
-            </Button>
-          </span>
-        ) : (
-          <>
-            {query.data?.connections.map((connection) => (
-              <span key={connection.id} className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-gray-12">
-                  {connection.targetAppName ?? "Deleted app"}
-                </span>
-                <span className="ml-auto min-w-0 truncate text-gray-10">
-                  {match(connection)
-                    .with({ targetType: "automatic" }, () => "Automatic")
-                    .with({ targetType: "environment" }, (target) =>
-                      target.targetEnvironmentSlug
-                        ? `Environment: ${target.targetEnvironmentSlug}`
-                        : "Deleted environment",
-                    )
-                    .with(
-                      { targetType: "deployment" },
-                      (target) => `Pinned: ${target.targetDeploymentId}`,
-                    )
-                    .exhaustive()}
-                </span>
-              </span>
-            ))}
-            <span className="text-gray-10">
-              {query.data?.connections.length
-                ? "Saved in this deployment"
-                : "No connections saved in this deployment"}
-            </span>
-            {query.data?.truncated && <span className="text-gray-10">Showing first 5</span>}
-          </>
-        )}
-      </Rows>
-      <Rows>
-        <Link
-          href={href}
-          className="self-start text-gray-11 hover:text-gray-12 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7"
-        >
-          View connections
-        </Link>
-      </Rows>
-    </Node>
-  );
+    ))
+    .with({ status: "empty" }, () => (
+      <Node link={link} footer={footer}>
+        <NodeHeader icon={<IconLinkOutline18 />} name="Connections" />
+        <Rows>
+          <span className="text-gray-10">None in this deployment</span>
+        </Rows>
+      </Node>
+    ))
+    .with({ status: "ready" }, ({ rows }) => (
+      <Node link={link} footer={footer}>
+        <NodeHeader icon={<IconLinkOutline18 />} name="Connections" />
+        <Rows>
+          {rows.slice(0, NODE_ROW_LIMIT).map((connection) => (
+            <LabeledRow
+              key={connection.id}
+              icon={<IconCubeOutline18 />}
+              name={connection.targetAppName ?? "Deleted app"}
+              label={targetLabel(connection)}
+            />
+          ))}
+          <MoreRow count={rows.length - NODE_ROW_LIMIT} truncated={truncated} href={href} />
+        </Rows>
+      </Node>
+    ))
+    .exhaustive();
 }

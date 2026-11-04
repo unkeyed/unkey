@@ -1,6 +1,11 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
-import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
+import {
+  FormDescription,
+  FormLabel,
+  type LabelActionProps,
+  type Requirement,
+} from "./form-helpers";
 
 export type FormFieldControl = {
   id: string;
@@ -18,12 +23,13 @@ type DocumentedFormFieldProps = {
   descriptionPosition?: "inline" | "label";
 };
 
-type FormFieldProps = DocumentedFormFieldProps & {
-  id?: string;
-  className?: string;
-  variant?: string | null;
-  children: (control: FormFieldControl) => React.ReactNode;
-};
+type FormFieldProps = DocumentedFormFieldProps &
+  LabelActionProps & {
+    id?: string;
+    className?: string;
+    variant?: string | null;
+    children: (control: FormFieldControl) => React.ReactNode;
+  };
 
 function FormField({
   label,
@@ -34,6 +40,7 @@ function FormField({
   className,
   variant,
   descriptionPosition = "inline",
+  labelAction,
   children,
 }: FormFieldProps) {
   const descriptionAsTooltip = descriptionPosition === "label";
@@ -47,6 +54,7 @@ function FormField({
     <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
       <FormLabel
         label={label}
+        labelAction={labelAction}
         requirement={requirement}
         hasError={Boolean(error)}
         htmlFor={fieldId}

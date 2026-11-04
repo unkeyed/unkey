@@ -184,7 +184,7 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
-  { metrics, connections = false }: { metrics: boolean; connections?: boolean },
+  { metrics, connections }: { metrics: boolean; connections: boolean },
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
@@ -194,6 +194,13 @@ export function buildAppLinks(
     href: routes.projects.apps.metrics(scope),
     icon: IconChartActivityOutline18,
     isActive: page === "metrics",
+  };
+  const connectionsLink: ResolvedNavLink = {
+    key: "connections",
+    label: "Connections",
+    href: routes.projects.apps.connections(scope),
+    icon: IconLinkOutline18,
+    isActive: page === "connections",
   };
   return [
     {
@@ -225,17 +232,7 @@ export function buildAppLinks(
       icon: IconEarthOutline18,
       isActive: page === "domains",
     },
-    ...(connections
-      ? [
-          {
-            key: "connections",
-            label: "Connections",
-            href: routes.projects.apps.connections(scope),
-            icon: IconLinkOutline18,
-            isActive: page === "connections",
-          },
-        ]
-      : []),
+    ...(connections ? [connectionsLink] : []),
     {
       key: "policies",
       label: "Policies",

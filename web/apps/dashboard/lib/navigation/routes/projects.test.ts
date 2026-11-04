@@ -118,9 +118,6 @@ describe("app-scoped paths", () => {
     "shows active Connections in app navigation with metrics=%s",
     (metrics) => {
       const segments = ["projects", projectId, "apps", appId, "connections"];
-      expect(
-        buildAppLinks(ws, projectId, appId, segments, { metrics }).map((link) => link.key),
-      ).not.toContain("connections");
       const links = buildAppLinks(ws, projectId, appId, segments, { metrics, connections: true });
       expect(links.find((link) => link.key === "connections")).toMatchObject({
         label: "Connections",
@@ -159,7 +156,7 @@ describe("app-scoped paths", () => {
     );
   });
 
-  it("asks the domains and policies pages to open their add flow", () => {
+  it("asks the domains, policies and connections pages to open their add flow", () => {
     expect(routes.projects.apps.domains({ ...scope, add: true })).toBe(
       "/acme/projects/proj_123/apps/app_456/domains?add=true",
     );
@@ -168,6 +165,12 @@ describe("app-scoped paths", () => {
     );
     expect(routes.projects.apps.policies({ ...scope, add: false })).toBe(
       "/acme/projects/proj_123/apps/app_456/policies",
+    );
+    expect(routes.projects.apps.connections({ ...scope, add: true })).toBe(
+      "/acme/projects/proj_123/apps/app_456/connections?add=true",
+    );
+    expect(routes.projects.apps.connections({ ...scope, add: false })).toBe(
+      "/acme/projects/proj_123/apps/app_456/connections",
     );
   });
 
