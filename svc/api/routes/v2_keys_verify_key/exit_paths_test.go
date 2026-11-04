@@ -81,6 +81,7 @@ func TestExitPaths(t *testing.T) {
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
 	scopedRootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("api.%s.verify_key", otherApi.ID))
 	unknownKey := uid.New("unknown")
+	var deletedKey seed.CreateKeyResponse
 
 	rootKeyID := func(t *testing.T, root string) string {
 		t.Helper()
@@ -155,6 +156,53 @@ func TestExitPaths(t *testing.T) {
 			reason:      keys.ReasonUnknownHash,
 			rowReason:   keys.ReasonUnknownHash,
 			cacheResult: "null",
+		},
+		{
+			name: "deleted key",
+			request: func(t *testing.T) exitCall {
+				deletedKey = h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String, Deleted: true})
+				return exitCall{root: rootKey, req: handler.Request{Key: deletedKey.Key}, keyID: deletedKey.KeyID, keyWorkspaceID: workspace.ID}
+			},
+			code:      openapi.NOTFOUND,
+			reason:    keys.ReasonKeyDeleted,
+			rowReason: keys.ReasonKeyDeleted,
+		},
+		{
+			name: "cached deleted key",
+			request: func(t *testing.T) exitCall {
+				return exitCall{root: rootKey, req: handler.Request{Key: deletedKey.Key}, keyID: deletedKey.KeyID, keyWorkspaceID: workspace.ID}
+			},
+			code:      openapi.NOTFOUND,
+			reason:    keys.ReasonKeyDeleted,
+			rowReason: keys.ReasonKeyDeleted,
+		},
+		{
+			name: "deleted key in another workspace",
+			request: func(t *testing.T) exitCall {
+				otherWorkspace := h.CreateWorkspace()
+				foreignApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: otherWorkspace.ID})
+				key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: otherWorkspace.ID, KeySpaceID: foreignApi.KeyAuthID.String, Deleted: true})
+				return exitCall{root: rootKey, req: handler.Request{Key: key.Key}, keyID: key.KeyID, keyWorkspaceID: otherWorkspace.ID}
+			},
+			code:      openapi.NOTFOUND,
+			reason:    keys.ReasonKeyDeleted,
+			rowReason: keys.ReasonKeyDeleted,
+		},
+		{
+			name: "deleted key with a migration id",
+			request: func(t *testing.T) exitCall {
+				migrationID := uid.New("migration")
+				require.NoError(t, db.Query.InsertKeyMigration(t.Context(), h.DB.RW(), db.InsertKeyMigrationParams{
+					ID:          migrationID,
+					WorkspaceID: workspace.ID,
+					Algorithm:   db.KeyMigrationsAlgorithmSha256,
+				}))
+				key := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String, Deleted: true})
+				return exitCall{root: rootKey, req: handler.Request{Key: key.Key, MigrationId: &migrationID}, keyID: key.KeyID, keyWorkspaceID: workspace.ID}
+			},
+			code:      openapi.NOTFOUND,
+			reason:    keys.ReasonKeyDeleted,
+			rowReason: keys.ReasonKeyDeleted,
 		},
 		{
 			// The counter records the hash lookup in Get, which misses before the

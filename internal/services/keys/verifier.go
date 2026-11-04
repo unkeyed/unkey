@@ -43,6 +43,10 @@ type KeyVerifier struct {
 
 	isRootKey bool // Whether this is a root key (special handling)
 
+	// deletedKey holds a soft-deleted key's row while Key stays empty, so every
+	// caller treats it like an unknown hash. Only FailureSnapshot reads it.
+	deletedKey *keysdb.FindKeyForVerificationRow
+
 	message     string   // Internal message for validation failures
 	reason      Reason   // Internal cause of the current Status
 	cacheResult string   // How the verification cache answered the lookup; empty when Get did not run
@@ -152,6 +156,11 @@ func (k *KeyVerifier) recordStatus() {
 	metrics.KeyVerificationsTotal.WithLabelValues(keyType, string(k.Status), string(k.reason)).Inc()
 }
 
+// Deleted reports whether the hash belongs to a soft-deleted key.
+func (k *KeyVerifier) Deleted() bool {
+	return k.deletedKey != nil
+}
+
 // Hide reports the key to the caller as NOT_FOUND because the caller may not
 // see it, for example because it belongs to another workspace. A key that Get
 // left undecided is recorded here, since it never reaches Verify.
@@ -174,6 +183,11 @@ func (k *KeyVerifier) FailureSnapshot(p *principal.Principal) schema.KeyVerifica
 		rootKeyID = p.Subject.ID
 	}
 
+	key := k.Key
+	if k.deletedKey != nil {
+		key = *k.deletedKey
+	}
+
 	return schema.KeyVerificationFailure{
 		RequestID:      k.session.RequestID(),
 		Time:           time.Now().UnixMilli(),
@@ -187,9 +201,9 @@ func (k *KeyVerifier) FailureSnapshot(p *principal.Principal) schema.KeyVerifica
 		Outcome:        string(k.ToOpenAPIStatus()),
 		Reason:         string(k.reason),
 		CacheResult:    k.cacheResult,
-		KeyID:          k.Key.ID,
-		KeySpaceID:     k.Key.KeyAuthID,
-		KeyWorkspaceID: k.Key.WorkspaceID,
+		KeyID:          key.ID,
+		KeySpaceID:     key.KeyAuthID,
+		KeyWorkspaceID: key.WorkspaceID,
 		KeyFingerprint: 0,
 		KeyLength:      0,
 		KeyPrefix:      "",

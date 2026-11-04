@@ -737,6 +737,69 @@ func TestKeyAuth_InvalidKey_Disabled(t *testing.T) {
 	}
 }
 
+func TestKeyAuth_DeletedKey_NotFound(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	tests := []struct {
+		name             string
+		disableWorkspace bool
+	}{
+		{name: "deleted key"},
+		{name: "deleted key in a disabled workspace", disableWorkspace: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := h.seed(ctx)
+			require.NoError(t, db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+				Credits: sql.NullInt64{Int64: 5, Valid: true},
+				ID:      s.KeyID,
+			}))
+			require.NoError(t, db.Query.SoftDeleteKeyByID(ctx, h.db.RW(), db.SoftDeleteKeyByIDParams{
+				Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+				ID:  s.KeyID,
+			}))
+			if tt.disableWorkspace {
+				_, err := db.Query.UpdateWorkspaceEnabled(ctx, h.db.RW(), db.UpdateWorkspaceEnabledParams{
+					Enabled: false,
+					ID:      s.WorkspaceID,
+				})
+				require.NoError(t, err)
+			}
+
+			policies := []*frontlinev1.Policy{keyAuthPolicy("auth", []string{s.KeySpaceID})}
+
+			// The second request answers from the cached tombstone.
+			for range 2 {
+				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req.Header.Set("Authorization", "Bearer "+s.RawKey)
+
+				result, err := h.engine.Evaluate(ctx, newSession(t, req), req, s.WorkspaceID, policies)
+				require.Error(t, err)
+				require.Nil(t, result.Principal)
+				code, ok := fault.GetCode(err)
+				require.True(t, ok)
+				require.Equal(t, codes.Frontline.Auth.InvalidKey.URN(), code)
+
+				select {
+				case verification := <-h.verificationEvents:
+					require.Equal(t, string(keys.StatusNotFound), verification.Outcome)
+					require.Zero(t, verification.SpentCredits)
+					require.Empty(t, verification.WorkspaceID, "a deleted key must not reach its owner's analytics")
+					require.Empty(t, verification.KeyID)
+					require.Empty(t, verification.KeySpaceID)
+				case <-time.After(time.Second):
+					t.Fatal("timed out waiting for key verification telemetry")
+				}
+			}
+
+			credits, err := db.Query.FindKeyCredits(ctx, h.db.RO(), s.KeyID)
+			require.NoError(t, err)
+			require.Equal(t, int64(5), credits.Int64)
+		})
+	}
+}
+
 func TestKeyAuth_WrongKeySpace(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
