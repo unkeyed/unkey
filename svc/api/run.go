@@ -169,6 +169,7 @@ func Run(ctx context.Context, cfg Config) error {
 	apiRequests := batch.NewNoop[schema.ApiRequest]()
 	auditLogBuffer := batch.NewNoop[auditlog.Event]()
 	keyVerifications := batch.NewNoop[schema.KeyVerification]()
+	keyVerificationFailures := batch.NewNoop[schema.KeyVerificationFailure]()
 	ratelimits := batch.NewNoop[schema.Ratelimit]()
 
 	if cfg.ClickHouse.URL != "" {
@@ -207,6 +208,15 @@ func Run(ctx context.Context, cfg Config) error {
 			Drop:          true,
 			OnFlushError:  nil,
 		})
+		keyVerificationFailures = clickhouse.NewBuffer[schema.KeyVerificationFailure](chClient, clickhouse.BufferConfig{
+			Name:          "key_verification_failures",
+			BatchSize:     10_000,
+			BufferSize:    20_000,
+			FlushInterval: 5 * time.Second,
+			Consumers:     1,
+			Drop:          true,
+			OnFlushError:  nil,
+		})
 		ratelimits = clickhouse.NewBuffer[schema.Ratelimit](chClient, clickhouse.BufferConfig{
 			Name:          "ratelimits",
 			BatchSize:     10_000,
@@ -222,6 +232,7 @@ func Run(ctx context.Context, cfg Config) error {
 		r.Defer(func() error { apiRequests.Close(); return nil })
 		r.Defer(func() error { auditLogBuffer.Close(); return nil })
 		r.Defer(func() error { keyVerifications.Close(); return nil })
+		r.Defer(func() error { keyVerificationFailures.Close(); return nil })
 		r.Defer(func() error { ratelimits.Close(); return nil })
 	}
 
@@ -563,13 +574,18 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:            database,
-		Flags:               flagSvc,
-		ClickHouse:          ch,
-		ApiRequests:         apiRequests,
-		AuditLogBuffer:      auditLogBuffer,
-		RatelimitEvents:     ratelimits,
-		KeyVerifications:    keyVerifications,
+		Database:         database,
+		Flags:            flagSvc,
+		ClickHouse:       ch,
+		ApiRequests:      apiRequests,
+		AuditLogBuffer:   auditLogBuffer,
+		RatelimitEvents:  ratelimits,
+		KeyVerifications: keyVerifications,
+		KeyVerificationFailures: keys.NewFailureRecorder(keys.FailureRecorderConfig{
+			Buffer:        keyVerificationFailures,
+			RowsPerSecond: 1_000,
+			Clock:         clk,
+		}),
 		Clock:               clk,
 		Keys:                keySvc,
 		Auth:                authSvc,

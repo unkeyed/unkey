@@ -83,6 +83,22 @@ var (
 		),
 	)
 
+	// KeyVerificationFailureRowsTotal counts the rows offered to the internal
+	// key_verification_failures ClickHouse stream, by what the per-pod cap did
+	// with them. "recorded" rows were below the cap, "sampled" rows were kept
+	// above the cap with a sample weight, and "sampled_out" rows were not
+	// written. Rows lost to a full buffer are counted by
+	// unkey_buffer_state_total{name="key_verification_failures",state="dropped"}.
+	KeyVerificationFailureRowsTotal = vec.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "key",
+			Name:      "verification_failure_rows_total",
+			Help:      "Key verification failure rows offered to ClickHouse, by cap decision.",
+		},
+		vec.Values("result", "recorded", "sampled", "sampled_out"),
+	)
+
 	// KeyVerificationErrorsTotal tracks the number of errors in key verifications.
 	// These are not errors in the keys themselves like "FORBIDDEN", or "RATE_LIMITED" but errors in
 	// program functionality. Use this with the unkey_key_verifications_total metric to calculate

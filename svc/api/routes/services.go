@@ -62,6 +62,10 @@ type Services struct {
 	// KeyVerifications buffers API key outcomes and root key usage for ClickHouse.
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
 
+	// KeyVerificationFailures records failed key verifications in an internal
+	// ClickHouse table that no customer-facing feature reads.
+	KeyVerificationFailures *keys.FailureRecorder
+
 	// AuditLogBuffer buffers high-volume audit logs that bypass the MySQL outbox.
 	AuditLogBuffer *batch.BatchProcessor[auditlog.Event]
 

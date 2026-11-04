@@ -669,10 +669,11 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2KeysVerifyKey.Handler{
-			DB:               svc.Database,
-			Keys:             svc.Keys,
-			AuditLogBuffer:   svc.AuditLogBuffer,
-			KeyVerifications: svc.KeyVerifications,
+			DB:                      svc.Database,
+			Keys:                    svc.Keys,
+			AuditLogBuffer:          svc.AuditLogBuffer,
+			KeyVerifications:        svc.KeyVerifications,
+			KeyVerificationFailures: svc.KeyVerificationFailures,
 		},
 	)
 
