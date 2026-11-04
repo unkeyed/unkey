@@ -59,7 +59,7 @@ The root key goes in the operating system secret store:
 
 On macOS, the CLI passes the key to the `security` tool on stdin, so it does not appear in the process list, and reads it back to confirm the save.
 
-If that store is unavailable (no `secret-tool` binary, or no Secret Service session on Linux), the CLI writes `~/.unkey/config.toml` instead. Either way, it prints `Root key saved.` to stdout without printing the key or storage path. Only your user can read the file (mode `0600`, in a `0700` directory):
+If that store is unavailable, the CLI writes `~/.unkey/config.toml` instead. Either way, it prints `Root key saved.` to stdout without printing the key or storage path. Only your user can read the file (mode `0600`, in a `0700` directory):
 
 ```toml ~/.unkey/config.toml
 root_key = "unkey_xxx"
@@ -72,6 +72,24 @@ A key that is already in `~/.unkey/config.toml` is copied into the secret store 
 The session has exactly the permissions you selected. It does not inherit every permission your user has. Any role can approve a login, limited to the permissions that role can grant.
 
 Resource commands and `unkey deploy` use a stored CLI session when neither `--root-key` nor `UNKEY_ROOT_KEY` is set, and the session's API URL matches the command. An explicit `--config` on a resource command is used instead of the session. A root key saved with `--root-key` is the next fallback. See [CLI authentication](/platform/cli/authentication).
+
+### Use the secret store on Linux
+
+On Linux, the CLI uses the secret store only when both of these are present:
+
+- The `secret-tool` command, from the `libsecret` package on Fedora and Arch Linux, or `libsecret-tools` on Debian and Ubuntu
+- A running Secret Service provider with an unlocked default keyring, such as GNOME Keyring, KDE Wallet, or KeePassXC with Secret Service integration turned on
+
+GNOME and KDE desktops start a provider and unlock it when you log in. With a standalone window manager or over SSH, nothing starts one, so you must start and unlock it yourself. For example, with GNOME Keyring on Fedora:
+
+```bash
+sudo dnf install gnome-keyring
+printf '%s' "$KEYRING_PASSWORD" | gnome-keyring-daemon --replace --unlock --components=secrets
+```
+
+The second command reads the keyring password from stdin and creates the login keyring with it the first time. Run it again after each login, or unlock the keyring through PAM.
+
+Without `secret-tool` or a provider, the CLI uses the files in `~/.unkey`. If a provider runs but has no default keyring, the save fails with an error such as `Object does not exist at path "/org/freedesktop/secrets/collection/login"`. Create and unlock the keyring as shown above, then run the command again.
 
 ## Examples
 
