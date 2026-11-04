@@ -1,13 +1,12 @@
 "use client";
 
-import { ListPager } from "@/components/list-pager";
+import { ListNoMatch, ListTableRow, ListTableView, listTable } from "@/components/list-views";
 import { LoadError } from "@/components/load-error";
 import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentities } from "@/lib/identities-query";
-import { useInfiniteList } from "@/lib/loadable/list";
+import { searchedListOf, useInfiniteList } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
-import { shortenId } from "@/lib/shorten-id";
 import type { Identity } from "@unkey/api/models/components";
 import { IconBookBookmarkOutline18, IconFingerprintOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -19,94 +18,30 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  ResourceListBody,
   ResourceListContent,
-  ResourceListItem,
   Skeleton,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 
-const SKELETON_ROWS = 8;
-
-function IdentityActionSkeleton() {
-  return <Skeleton className="size-8 shrink-0 rounded-md" />;
-}
-
 const IdentityActions = dynamic(
   () =>
     import("@/components/identities-table/components/identity-table-actions").then(
       (module) => module.IdentityTableActions,
     ),
-  { loading: () => <IdentityActionSkeleton /> },
+  { loading: () => <Skeleton className="size-5 rounded-sm" /> },
 );
 
-function IdentityRow({
-  identity,
-  href,
-}: {
-  identity: Identity;
-  href: ReturnType<typeof routes.identities.detail>;
-}) {
-  const rateLimitCount = identity.ratelimits?.length ?? 0;
-
-  return (
-    <ResourceListItem className="group flex h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-grayA-2">
-      <Link
-        href={href}
-        className="absolute inset-0 z-10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
-        aria-label={`Identity ${identity.externalId}`}
-      />
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-featureA-3">
-        <IconFingerprintOutline18 className="size-3.5 text-featureA-11" />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span
-          data-sentry-mask
-          className="truncate font-medium text-gray-12 text-sm"
-          title={identity.externalId}
-        >
-          {identity.externalId}
-        </span>
-        <span className="truncate font-mono text-gray-9 text-xs" title={identity.id}>
-          {shortenId(identity.id)}
-        </span>
-      </div>
-      <span className="hidden shrink-0 text-gray-10 text-xs sm:block">
-        {rateLimitCount} {rateLimitCount === 1 ? "rate limit" : "rate limits"}
-      </span>
-      <div className="relative z-20">
-        <IdentityActions identity={identity} />
-      </div>
-    </ResourceListItem>
-  );
-}
-
-function IdentitiesSkeleton() {
-  return (
-    <ResourceListContent aria-busy="true">
-      <output className="sr-only">Loading identities...</output>
-      <ResourceListBody aria-hidden="true">
-        {Array.from({ length: SKELETON_ROWS }).map((_, index) => (
-          <ResourceListItem
-            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows are static and never reorder
-            key={index}
-            className="flex h-16 items-center gap-3 px-4 py-3"
-          >
-            <Skeleton className="size-8 shrink-0 rounded-md" />
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <Skeleton className="h-3 w-40" />
-              <Skeleton className="h-2.5 w-20" />
-            </div>
-            <Skeleton className="hidden h-3 w-16 sm:block" />
-            <IdentityActionSkeleton />
-          </ResourceListItem>
-        ))}
-      </ResourceListBody>
-    </ResourceListContent>
-  );
-}
+const IDENTITIES_TABLE = listTable({
+  minWidth: 640,
+  columns: [
+    { id: "identity", header: "Identity", width: "minmax(0,1.6fr)", skeleton: "title" },
+    { id: "id", header: "ID", width: "minmax(0,1.4fr)", skeleton: "text" },
+    { id: "ratelimits", header: "Rate limits", width: "minmax(0,0.8fr)", skeleton: "text" },
+    { id: "actions", header: null, width: "32px", skeleton: "none" },
+  ],
+});
 
 export function IdentitiesList() {
   const [search] = useQueryState(
@@ -123,40 +58,78 @@ export function IdentitiesList() {
 }
 
 function IdentityResults({ search }: { search: string }) {
-  const workspace = useWorkspaceNavigation();
-  const scope = useProjectScope();
-  const view = useInfiniteList(useIdentities({ search }), (page) => page.identities);
+  const view = searchedListOf(
+    useInfiniteList(useIdentities({ search }), (page) => page.identities),
+    search,
+  );
 
   return match(view)
-    .with({ status: "loading" }, () => <IdentitiesSkeleton />)
     .with({ status: "failed" }, ({ error, retry }) => (
       <ResourceListContent>
         <LoadError title="Could not load identities" error={error} frame="none" onRetry={retry} />
       </ResourceListContent>
     ))
-    .with({ status: "empty" }, () => <IdentitiesEmpty search={search} />)
-    .with({ status: "ready" }, ({ rows, footer }) => (
-      <ResourceListContent>
-        <ResourceListBody aria-label="Identities">
-          {rows.map((identity) => (
-            <IdentityRow
-              key={identity.id}
-              identity={identity}
-              href={routes.identities.detail({
-                workspaceSlug: workspace.slug,
-                ...scope,
-                identityId: identity.id,
-              })}
-            />
-          ))}
-        </ResourceListBody>
-        <ListPager state={footer} noun="identities" />
-      </ResourceListContent>
+    .with({ status: "empty" }, () => <IdentitiesEmpty />)
+    .with({ status: "noMatch" }, () => <ListNoMatch noun="identities" search={search} />)
+    .with({ status: "loading" }, { status: "ready" }, (list) => (
+      <ListTableView
+        list={list}
+        noun="identities"
+        table={IDENTITIES_TABLE}
+        rowKey={(identity) => identity.id}
+        renderRow={(identity) => <IdentityRow identity={identity} />}
+      />
     ))
     .exhaustive();
 }
 
-function IdentitiesEmpty({ search }: { search: string }) {
+function IdentityRow({ identity }: { identity: Identity }) {
+  const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
+  const rateLimitCount = identity.ratelimits?.length ?? 0;
+
+  return (
+    <ListTableRow
+      table={IDENTITIES_TABLE}
+      label={`View identity ${identity.externalId}`}
+      link={
+        <Link
+          href={routes.identities.detail({
+            workspaceSlug: workspace.slug,
+            ...scope,
+            identityId: identity.id,
+          })}
+        />
+      }
+      cells={{
+        identity: (
+          <span className="flex min-w-0 items-center gap-2.5">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-raised">
+              <IconFingerprintOutline18 className="size-3 text-gray-12" />
+            </span>
+            <span data-sentry-mask className="truncate font-medium text-sm">
+              {identity.externalId}
+            </span>
+          </span>
+        ),
+        id: <span className="truncate font-mono text-gray-11">{identity.id}</span>,
+        ratelimits: (
+          <span className="text-gray-11">
+            {rateLimitCount}
+            <span className="sr-only">{rateLimitCount === 1 ? " rate limit" : " rate limits"}</span>
+          </span>
+        ),
+        actions: (
+          <span className="relative z-10 flex justify-end">
+            <IdentityActions identity={identity} />
+          </span>
+        ),
+      }}
+    />
+  );
+}
+
+function IdentitiesEmpty() {
   return (
     <ResourceListContent>
       <EmptyState frame="none">
@@ -166,29 +139,25 @@ function IdentitiesEmpty({ search }: { search: string }) {
         <EmptyStateHeader>
           <EmptyStateTitle>No Identities Found</EmptyStateTitle>
           <EmptyStateDescription>
-            {search
-              ? "Try adjusting your search query"
-              : "There are no identities yet. Create your first identity to get started."}
+            There are no identities yet. Create your first identity to get started.
           </EmptyStateDescription>
         </EmptyStateHeader>
-        {!search && (
-          <EmptyStateActions>
-            <Button
-              size="sm"
-              variant="outline"
-              render={
-                <Link
-                  href="https://www.unkey.com/docs/platform/identities/overview"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              }
-            >
-              <IconBookBookmarkOutline18 />
-              Learn about Identities
-            </Button>
-          </EmptyStateActions>
-        )}
+        <EmptyStateActions>
+          <Button
+            size="sm"
+            variant="outline"
+            render={
+              <Link
+                href="https://www.unkey.com/docs/platform/identities/overview"
+                target="_blank"
+                rel="noopener noreferrer"
+              />
+            }
+          >
+            <IconBookBookmarkOutline18 />
+            Learn about Identities
+          </Button>
+        </EmptyStateActions>
       </EmptyState>
     </ResourceListContent>
   );

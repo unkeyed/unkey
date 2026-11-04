@@ -23,7 +23,7 @@ func TestPresentRecordsChallengeOnVerifiedDomain(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	database, err := db.New(containers.MySQLLogicalIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 

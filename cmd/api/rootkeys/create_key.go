@@ -30,6 +30,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/cr
 			cli.String("name", "Optional name for the root key.", cli.MutuallyExclusive("body")),
 			cli.StringSlice("permissions", "Comma-separated permission URNs. Use --body to create an empty permission set.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.Int64("expires", "Expiration as Unix milliseconds. Omit for no expiration.", cli.MutuallyExclusive("body")),
+			cli.StringSlice("ip-allowlist", "Comma-separated IPv4 or IPv6 addresses and CIDR ranges allowed to use the key. Omit to inherit the caller's allowlist; an empty value creates an unrestricted key.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(ctx, cmd)
@@ -42,13 +43,14 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/cr
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RootKeysCreateKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2RootKeysCreateKeyResponseBody)
 			}
 
 			req := components.V2RootKeysCreateKeyRequestBody{
 				Name:        nil,
 				Permissions: cmd.StringSlice("permissions"),
 				Expires:     nil,
+				IPAllowlist: nil,
 			}
 			if cmd.FlagIsSet("name") {
 				req.Name = new(cmd.String("name"))
@@ -58,11 +60,15 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/cr
 				req.Expires = optionalnullable.From(new(cmd.Int64("expires")))
 			}
 
+			if cmd.FlagIsSet("ip-allowlist") {
+				req.IPAllowlist = append([]string{}, cmd.StringSlice("ip-allowlist")...)
+			}
+
 			res, err := client.RootKeys.CreateKey(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2RootKeysCreateKeyResponseBody)
+			return util.Output(ctx, cmd, res.V2RootKeysCreateKeyResponseBody)
 		},
 	}
 }

@@ -33,11 +33,14 @@ existing typed body path. Preserve these boundaries:
   serialization. Do not fill omitted update fields from current resource data
   or create defaults.
 - Keep `--yes` separate from input collection. Guided delete and remove
-  commands still use `util.Confirm` before sending the destructive request.
-- Confirm guided actions with their action label, Back, and Cancel. Show field
-  editing only after Back. Read-only commands run after filter collection.
-  Hide secrets and arbitrary JSON in previews, and preserve sibling values
-  when editing a field or list item.
+  commands still use `util.Confirm` and default to Cancel in their final review,
+  including with `--yes`. Complete flag-based calls retain the `--yes` bypass.
+- Use one final menu for guided editing and submission. `--interactive` and
+  target-only updates open it expanded with change fields before targets.
+  Other guided actions open it compact with the action label, Edit…, and
+  Cancel. Destructive actions always start compact. Read-only commands run
+  after filter collection. Hide secrets and arbitrary JSON in previews, and
+  preserve sibling values when editing a field or list item.
 - Offer correction only for typed `invalid_input` 400 responses with field
   errors. Keep answers in memory, require edits and explicit resubmission,
   and never automatically retry failed resource requests.

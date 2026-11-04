@@ -7,7 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -15,7 +18,7 @@ import (
 )
 
 // TestDeletePortalAuthorizesAdminURN guarantees the dashboard admin grant can
-// delete a portal, now through canonical URN evaluation.
+// delete a portal.
 func TestDeletePortalAuthorizesAdminURN(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
@@ -25,7 +28,7 @@ func TestDeletePortalAuthorizesAdminURN(t *testing.T) {
 
 	stored := h.SeedPortal(t, workspace.ID, "urn-portal", "urn-portal",
 		keyspaceMapping(t, h, workspace.ID), nil, nil)
-	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID))
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.V1{WorkspaceID: workspace.ID, Resource: "**"}, urn.PermissionAll).Value)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), request(stored.Slug))
 	require.Equal(t, http.StatusOK, res.Status, "the admin grant must authorize deleting a portal: %s", res.RawBody)
@@ -42,8 +45,7 @@ func keyspaceMappingWithProject(t *testing.T, h *testutil.Harness, workspaceID s
 }
 
 // TestDeletePortalAuthorizesCanonicalPortalURNs pins which canonical grants
-// reach this route. Everything but the admin grant is newly admitted: the arm it
-// replaced compared one exact permission string.
+// reach this route.
 func TestDeletePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
@@ -53,52 +55,54 @@ func TestDeletePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 
 	testCases := []struct {
 		name       string
-		resource   func(projectID, portalID string) string
-		action     string
+		resource   func(projectID, portalID string) fmt.Stringer
+		action     permissions.Action
 		shouldPass bool
 	}{
 		{
 			name:       "this portal",
-			resource:   func(p, id string) string { return fmt.Sprintf("projects/%s/portals/%s", p, id) },
-			action:     "delete",
+			resource:   func(p, id string) fmt.Stringer { return urn.New().Workspace(workspace.ID).Project(p).Portal(id) },
+			action:     permissions.Delete,
 			shouldPass: true,
 		},
 		{
 			name:       "every portal in the project",
-			resource:   func(p, _ string) string { return fmt.Sprintf("projects/%s/portals/*", p) },
-			action:     "delete",
+			resource:   func(p, _ string) fmt.Stringer { return urn.New().Workspace(workspace.ID).Project(p).Portal("*") },
+			action:     permissions.Delete,
 			shouldPass: true,
 		},
 		{
-			name:       "project subtree",
-			resource:   func(p, _ string) string { return fmt.Sprintf("projects/%s/**", p) },
-			action:     "delete",
+			name: "project subtree",
+			resource: func(p, _ string) fmt.Stringer {
+				return urn.V1{WorkspaceID: workspace.ID, Resource: fmt.Sprintf("projects/%s/**", p)}
+			},
+			action:     permissions.Delete,
 			shouldPass: true,
 		},
 		{
 			name:       "workspace-wide delete",
-			resource:   func(_, _ string) string { return "**" },
-			action:     "delete",
+			resource:   func(_, _ string) fmt.Stringer { return urn.V1{WorkspaceID: workspace.ID, Resource: "**"} },
+			action:     permissions.Delete,
 			shouldPass: true,
 		},
 		{
 			name:       "workspace-wide admin",
-			resource:   func(_, _ string) string { return "**" },
-			action:     "*",
+			resource:   func(_, _ string) fmt.Stringer { return urn.V1{WorkspaceID: workspace.ID, Resource: "**"} },
+			action:     urn.PermissionAll,
 			shouldPass: true,
 		},
 		{
 			name: "this portal in another project",
-			resource: func(_, id string) string {
-				return fmt.Sprintf("projects/%s/portals/%s", uid.New(uid.ProjectPrefix), id)
+			resource: func(_, id string) fmt.Stringer {
+				return urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).Portal(id)
 			},
-			action:     "delete",
+			action:     permissions.Delete,
 			shouldPass: false,
 		},
 		{
 			name:       "workspace-wide write",
-			resource:   func(_, _ string) string { return "**" },
-			action:     "write",
+			resource:   func(_, _ string) fmt.Stringer { return urn.V1{WorkspaceID: workspace.ID, Resource: "**"} },
+			action:     permissions.Write,
 			shouldPass: false,
 		},
 	}
@@ -111,8 +115,7 @@ func TestDeletePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 			slug := fmt.Sprintf("urn-grants-%d", i)
 			stored := h.SeedPortal(t, workspace.ID, slug, slug, mapping, nil, nil)
 
-			rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:%s#%s",
-				workspace.ID, tc.resource(projectID, stored.ID), tc.action))
+			rootKey := h.CreateRootKey(workspace.ID, rbac.U(tc.resource(projectID, stored.ID), tc.action).Value)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), request(stored.Slug))
 
@@ -131,4 +134,20 @@ func TestDeletePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 				"a denied request must not delete")
 		})
 	}
+}
+
+func TestDeletePortalReportsMissingDeleteToURNReader(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	stored := h.SeedPortal(t, workspace.ID, "readable", "readable", keyspaceMapping(t, h, workspace.ID), nil, nil)
+	resource := urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID)
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(resource, permissions.Read).Value)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), request(stored.ID))
+	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+	require.Contains(t, res.RawBody, fmt.Sprintf("unkey:v1:%s:projects/{proj}/portals/{prt}#delete", workspace.ID))
+	require.True(t, portalExists(t, h, workspace.ID, stored.ID))
 }

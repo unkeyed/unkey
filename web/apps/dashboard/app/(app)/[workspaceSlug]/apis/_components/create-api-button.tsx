@@ -85,16 +85,13 @@ export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
               type="submit"
               form="create-api-form"
               variant="primary"
-              size="xlg"
+              size="md"
               disabled={create.isLoading || isSubmitting || !isValid}
               loading={create.isLoading || isSubmitting}
-              className="w-full rounded-lg"
+              className="w-full"
             >
               Create Keyspace
             </Button>
-            <div className="text-gray-9 text-xs">
-              You'll be redirected to your new keyspace dashboard after creation
-            </div>
           </div>
         }
       >

@@ -41,7 +41,7 @@ For full documentation, see https://www.unkey.com/docs/platform/analytics/get-ga
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AnalyticsGetGatewayRequestsResponseBody)
+				return util.Output(ctx, cmd, res.V2AnalyticsGetGatewayRequestsResponseBody)
 			}
 
 			res, err := client.Analytics.GetGatewayRequests(ctx, components.V2AnalyticsGetGatewayRequestsRequestBody{
@@ -50,7 +50,7 @@ For full documentation, see https://www.unkey.com/docs/platform/analytics/get-ga
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AnalyticsGetGatewayRequestsResponseBody)
+			return util.Output(ctx, cmd, res.V2AnalyticsGetGatewayRequestsResponseBody)
 		},
 	}
 }

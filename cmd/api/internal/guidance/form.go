@@ -3,6 +3,7 @@ package guidance
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -23,14 +24,20 @@ type questions interface {
 }
 
 type form struct {
-	prompt    questions
-	out       io.Writer
-	screen    *terminalForm
-	pick      func(context.Context, *form, string, map[string]any) (string, bool, error)
-	conflicts map[string][]string
+	prompt        questions
+	out           io.Writer
+	screen        *terminalForm
+	pick          func(context.Context, *form, string, map[string]any, *Schema) (string, bool, error)
+	fields        map[string]any
+	conflicts     map[string][]string
+	selections    map[string]prompt.SelectOption
+	reviewPending bool
 }
 
 func (f *form) object(ctx context.Context, schema *Schema, values map[string]any, path string, needsChanges bool) error {
+	if path == "" {
+		f.fields = values
+	}
 	schema, err := f.variant(schema, values, path)
 	if err != nil {
 		return err
@@ -48,6 +55,9 @@ func (f *form) object(ctx context.Context, schema *Schema, values map[string]any
 		if err := f.field(ctx, schema.Properties[name], values, name, path); err != nil {
 			return err
 		}
+	}
+	if path == "" && f.reviewPending {
+		return nil
 	}
 	for {
 		options := []prompt.SelectOption{}
@@ -95,15 +105,32 @@ func (f *form) field(ctx context.Context, schema *Schema, values map[string]any,
 	if schema == nil {
 		return fmt.Errorf("missing input definition for %s", name)
 	}
-	if path == "" && f.pick != nil && targetField(name) {
-		value, handled, err := f.pick(ctx, f, name, values)
+	if path == "" && !strings.Contains(name, "[") {
+		f.fields = values
+	}
+	for path == "" && !strings.Contains(name, "[") && schema.Type != "array" && f.pick != nil {
+		value, handled, err := f.pick(ctx, f, name, values, schema)
+		if errors.Is(err, errBack) {
+			if _, present := values[name]; present {
+				return nil
+			}
+			return errInterrupted
+		}
 		if err != nil {
 			return err
 		}
-		if handled {
-			values[name] = value
-			return nil
+		if !handled {
+			break
 		}
+		parsed, err := scalarValue(schema, value)
+		if err != nil {
+			if _, writeErr := fmt.Fprintln(f.out, validationMessage(err)); writeErr != nil {
+				return writeErr
+			}
+			continue
+		}
+		values[name] = parsed
+		return nil
 	}
 	path = strings.TrimPrefix(path+"."+name, ".")
 	if schema.Nullable {
@@ -120,7 +147,7 @@ func (f *form) field(ctx context.Context, schema *Schema, values map[string]any,
 		}
 	}
 	defaultValue := ""
-	if previous, present := values[name]; present && previous != nil && !schema.Secret && !strings.HasSuffix(path, ".value") {
+	if previous, present := values[name]; present && previous != nil && !schema.Secret {
 		switch previous.(type) {
 		case string, bool, json.Number, int, int64, float64:
 			text := fmt.Sprint(previous)
@@ -146,6 +173,23 @@ func (f *form) field(ctx context.Context, schema *Schema, values map[string]any,
 }
 
 func (f *form) value(ctx context.Context, schema *Schema, path, defaultValue string) (any, error) {
+	if field, _, indexed := strings.Cut(path, "["); indexed && !strings.Contains(path, ".") && schema.Type == "string" && f.pick != nil {
+		scope := maps.Clone(f.fields)
+		if scope == nil {
+			scope = map[string]any{}
+		}
+		scope[field] = defaultValue
+		value, handled, err := f.pick(ctx, f, field, scope, schema)
+		if errors.Is(err, errBack) && defaultValue != "" {
+			return defaultValue, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		if handled {
+			return scalarValue(schema, value)
+		}
+	}
 	if defaultValue == "" && len(schema.Default) > 0 {
 		value, err := decodeValue(schema.Default)
 		if err != nil {
@@ -215,7 +259,7 @@ func (f *form) scalar(schema *Schema, path, defaultValue string) (any, error) {
 	for {
 		var text string
 		var err error
-		if schema.Secret || strings.HasSuffix(path, ".value") {
+		if schema.Secret {
 			text, err = f.prompt.Secret(label(path))
 		} else {
 			text, err = f.prompt.String(label(path), defaultValue)
@@ -227,12 +271,18 @@ func (f *form) scalar(schema *Schema, path, defaultValue string) (any, error) {
 		if err == nil {
 			return value, nil
 		}
-		message := []rune(err.Error())
-		message[0] = unicode.ToUpper(message[0])
-		if _, err := fmt.Fprintln(f.out, string(message)); err != nil {
+		if _, err := fmt.Fprintln(f.out, validationMessage(err)); err != nil {
 			return nil, err
 		}
 	}
+}
+
+func validationMessage(err error) string {
+	message := []rune(err.Error())
+	if len(message) > 0 {
+		message[0] = unicode.ToUpper(message[0])
+	}
+	return string(message)
 }
 
 func scalarValue(schema *Schema, text string) (any, error) {
@@ -390,7 +440,7 @@ func orderedFields(schema *Schema) []string {
 
 func orderedNames(names []string) []string {
 	slices.Sort(names)
-	priority := []string{"project", "app", "environment", "apiId", "keyId", "name", "displayName", "slug"}
+	priority := []string{"project", "app", "environment", "apiId", "keyId", "namespace", "name", "displayName", "slug"}
 	slices.SortStableFunc(names, func(a, b string) int {
 		indexA, indexB := slices.Index(priority, a), slices.Index(priority, b)
 		if indexA < 0 {

@@ -1,7 +1,7 @@
 "use client";
 
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import { createContext, use, useEffect } from "react";
+import { createContext, use, useEffect, useSyncExternalStore } from "react";
 
 export type LiveDeploymentTarget = {
   deploymentId: string;
@@ -17,8 +17,9 @@ export type DeployActions = {
   // Promote, rollback, stop and wake return before the backend has written the
   // state they cause. These record the state to wait for; polling speeds up
   // until it shows or a minute passes, then everything in scope refetches.
-  awaitLiveDeployment: (target: LiveDeploymentTarget) => void;
-  awaitDeploymentStatus: (target: DeploymentStatusTarget) => void;
+  // They resolve true once the state shows and false when the wait times out.
+  awaitLiveDeployment: (target: LiveDeploymentTarget) => Promise<boolean>;
+  awaitDeploymentStatus: (target: DeploymentStatusTarget) => Promise<boolean>;
   refetchDeployments: () => void;
   refetchApps: () => Promise<unknown>;
 };
@@ -66,14 +67,30 @@ export function useDeploymentsPolling({
   );
 }
 
+// The deployment a promote or rollback is moving production traffic to, until it lands
+export function useLiveTarget(): LiveDeploymentTarget | null {
+  const { store } = useDeployDataContext();
+  return useSyncExternalStore(store.subscribe, store.liveTarget, store.liveTarget);
+}
+
+// The status a stop, wake, cancel or approval is waiting for, until it shows
+export function useAwaitedStatus(deploymentId: string): DeploymentStatus | undefined {
+  const { store } = useDeployDataContext();
+  return useSyncExternalStore(store.subscribe, store.statusTargets, store.statusTargets).get(
+    deploymentId,
+  );
+}
+
 export function useScopeStore(): ScopeStore {
   return useDeployDataContext().store;
 }
 
 export function createScopeStore() {
   let liveTarget: LiveDeploymentTarget | null = null;
+  let liveWaiter: ((reached: boolean) => void) | null = null;
   // Keyed by deployment id, so awaiting one deployment does not drop another
   let statusTargets: ReadonlyMap<string, DeploymentStatus> = new Map();
+  const statusWaiters = new Map<string, (reached: boolean) => void>();
   const pollRequests: Array<{ intervalMs: number }> = [];
   const listeners = new Set<() => void>();
   const emit = () => {
@@ -93,18 +110,34 @@ export function createScopeStore() {
     statusTargets: () => statusTargets,
     requestedPollMs: () =>
       pollRequests.length === 0 ? null : Math.min(...pollRequests.map((r) => r.intervalMs)),
-    setLiveTarget(target: LiveDeploymentTarget | null) {
+    awaitLive(target: LiveDeploymentTarget): Promise<boolean> {
+      liveWaiter?.(false);
       liveTarget = target;
       emit();
+      return new Promise((resolve) => {
+        liveWaiter = resolve;
+      });
     },
-    addStatusTarget({ deploymentId, status }: DeploymentStatusTarget) {
-      statusTargets = new Map(statusTargets).set(deploymentId, status);
+    settleLive(reached: boolean) {
+      liveTarget = null;
+      liveWaiter?.(reached);
+      liveWaiter = null;
       emit();
     },
-    removeStatusTarget(deploymentId: string) {
+    awaitStatus({ deploymentId, status }: DeploymentStatusTarget): Promise<boolean> {
+      statusWaiters.get(deploymentId)?.(false);
+      statusTargets = new Map(statusTargets).set(deploymentId, status);
+      emit();
+      return new Promise((resolve) => {
+        statusWaiters.set(deploymentId, resolve);
+      });
+    },
+    settleStatus(deploymentId: string, reached: boolean) {
       const next = new Map(statusTargets);
       next.delete(deploymentId);
       statusTargets = next;
+      statusWaiters.get(deploymentId)?.(reached);
+      statusWaiters.delete(deploymentId);
       emit();
     },
     requestPolling(intervalMs: number): () => void {

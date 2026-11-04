@@ -69,7 +69,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysUpdateKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysUpdateKeyResponseBody)
 			}
 
 			send := func(req components.V2KeysUpdateKeyRequestBody) error {
@@ -77,7 +77,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysUpdateKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysUpdateKeyResponseBody)
 			}
 			req := components.V2KeysUpdateKeyRequestBody{
 				KeyID:       cmd.String("key-id"),

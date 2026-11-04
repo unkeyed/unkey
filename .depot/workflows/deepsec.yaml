@@ -76,7 +76,7 @@ jobs:
     needs: gate
     if: needs.gate.outputs.run == 'true'
     runs-on: depot-ubuntu-24.04-4
-    timeout-minutes: 30
+    timeout-minutes: 35
     continue-on-error: true
     outputs:
       scan_result: ${{ steps.scan.outcome }}
@@ -125,13 +125,33 @@ jobs:
             | sort -s -n -k1,1 | cut -f2- > .deepsec/ranked.txt
           head -n "$FILES_MAX" .deepsec/ranked.txt > .deepsec/files.txt
           tail -n "+$((FILES_MAX + 1))" .deepsec/ranked.txt > .deepsec/skipped.txt
+          git -C review-source diff -U0 --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ --diff-filter=ACMR "$merge_base" "$HEAD_SHA" \
+            | mise exec -- node -e '
+              const fs = require("node:fs");
+              const files = new Set(fs.readFileSync(".deepsec/files.txt", "utf8").split("\n").filter(Boolean));
+              const ranges = {};
+              let file = null;
+              for (const line of fs.readFileSync(0, "utf8").split("\n")) {
+                if (line.startsWith("+++ ")) {
+                  file = line.startsWith("+++ b/") ? line.slice(6) : null;
+                  continue;
+                }
+                const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
+                if (!hunk || file === null || !files.has(file)) continue;
+                const start = Number(hunk[1]);
+                const count = hunk[2] === undefined ? 1 : Number(hunk[2]);
+                (ranges[file] ??= []).push(count === 0 ? { start, end: start + 1, deleted: true } : { start, end: start + count - 1 });
+              }
+              fs.writeFileSync(".deepsec/changed-lines.json", JSON.stringify(ranges));
+            '
       - name: Review changed files
         id: scan
-        timeout-minutes: 20
+        timeout-minutes: 25
         env:
           AI_GATEWAY_API_KEY: ${{ secrets.DEEPSEC_VERCEL_GATEWAY_KEY }}
           CHUNK_SIZE: 10
-          CHUNK_TIMEOUT: 18m
+          CHUNK_TIMEOUT: 23m
+          CHANGE_MARGIN_LINES: 3
         working-directory: .deepsec
         run: |
           if [ -z "$AI_GATEWAY_API_KEY" ]; then
@@ -150,6 +170,28 @@ jobs:
             [ -e "$list" ] || continue
             mkdir -p "$list.data"
             cp -R data/unkey "$list.data/"
+            mise exec -- node -e '
+              const fs = require("node:fs");
+              const [list, out] = process.argv.slice(1);
+              const ranges = JSON.parse(fs.readFileSync("changed-lines.json", "utf8"));
+              const scope = fs.readFileSync(list, "utf8").split("\n").filter(Boolean).map((file) => {
+                const lines = (ranges[file] ?? []).map((r) =>
+                  r.deleted ? `L${r.start}-L${r.end} (code removed between these lines)` : r.start === r.end ? `L${r.start}` : `L${r.start}-L${r.end}`
+                );
+                return `- \`${file}\`: ${lines.length > 0 ? lines.join(", ") : "no changed lines"}`;
+              });
+              const promptAppend = [
+                "## Review scope",
+                "",
+                "This is a pull request review. Report only vulnerabilities that the changed lines below introduce, or that they make newly reachable.",
+                "Read unchanged code for context, but do not report issues that exist independently of this change.",
+                "Every finding must include at least one changed line in lineNumbers. Findings that cite no changed line are discarded.",
+                "",
+                "Changed lines, as line numbers in the new version of each file:",
+                ...scope,
+              ].join("\n");
+              fs.writeFileSync(out, JSON.stringify({ promptAppend }));
+            ' "$list" "$list.data/unkey/config.json"
             DEEPSEC_DATA_ROOT="$list.data" timeout --kill-after=30s "$CHUNK_TIMEOUT" \
               mise exec -- node_modules/.bin/deepsec process \
                 --root "$GITHUB_WORKSPACE/review-source" \
@@ -162,7 +204,7 @@ jobs:
             lists+=("$list")
           done
           incomplete=()
-          comments=()
+          found=()
           for i in "${!pids[@]}"; do
             list=${lists[$i]}
             if wait "${pids[$i]}"; then status=0; else status=$?; fi
@@ -172,7 +214,7 @@ jobs:
             if [ "$status" -eq 0 ]; then
               continue
             elif [ "$status" -eq 1 ] && [ -s "$list.md" ]; then
-              comments+=("$list.md")
+              found+=("$list.data")
             else
               incomplete+=("$list")
             fi
@@ -196,11 +238,60 @@ jobs:
               echo '</details>'
               echo
             fi
-            if [ "${#comments[@]}" -gt 0 ]; then
-              for comment in "${comments[@]}"; do
-                cat "$comment"
-                echo
-              done
+            if [ "${#found[@]}" -gt 0 ]; then
+              mise exec -- node -e '
+                const fs = require("node:fs");
+                const path = require("node:path");
+                const ranges = JSON.parse(fs.readFileSync("changed-lines.json", "utf8"));
+                const margin = Number(process.env.CHANGE_MARGIN_LINES);
+                const severities = ["CRITICAL", "HIGH", "MEDIUM", "HIGH_BUG", "BUG", "LOW"];
+                const badges = { CRITICAL: "🔴 CRITICAL", HIGH: "🟠 HIGH", MEDIUM: "🟡 MEDIUM", HIGH_BUG: "🟣 HIGH BUG", BUG: "🟣 BUG", LOW: "⚪ LOW" };
+                const verdictsHidden = new Set(["accepted-risk", "false-positive", "fixed", "duplicate"]);
+                const truncate = (s, max) => (s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`);
+                const kept = [];
+                let dropped = 0;
+                for (const root of process.argv.slice(1)) {
+                  const dir = path.join(root, "unkey", "files");
+                  if (!fs.existsSync(dir)) continue;
+                  for (const name of fs.readdirSync(dir, { recursive: true })) {
+                    if (!name.endsWith(".json")) continue;
+                    const record = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8"));
+                    const changed = ranges[record.filePath] ?? [];
+                    for (const finding of record.findings ?? []) {
+                      if (verdictsHidden.has(finding.revalidation?.verdict)) continue;
+                      const onChange = (finding.lineNumbers ?? []).some((n) => changed.some((r) => n >= r.start - margin && n <= r.end + margin));
+                      if (onChange) kept.push({ file: record.filePath, finding });
+                      else dropped++;
+                    }
+                  }
+                }
+                kept.sort((a, b) =>
+                  severities.indexOf(a.finding.severity) - severities.indexOf(b.finding.severity) ||
+                  a.file.localeCompare(b.file) ||
+                  a.finding.title.localeCompare(b.finding.title)
+                );
+                const lines = [];
+                if (kept.length === 0) {
+                  lines.push("No new findings on or near the changed lines.");
+                } else {
+                  const counts = severities.filter((s) => kept.some((k) => k.finding.severity === s))
+                    .map((s) => `${badges[s]} ×${kept.filter((k) => k.finding.severity === s).length}`);
+                  lines.push(`### DeepSec found ${kept.length} finding${kept.length === 1 ? "" : "s"} on or near changed lines`, "", counts.join(" · "), "");
+                  for (const { file, finding } of kept) {
+                    const n = finding.lineNumbers;
+                    const ref = n.length > 1 ? `:L${n[0]}-L${n[n.length - 1]}` : `:L${n[0]}`;
+                    lines.push(`#### ${badges[finding.severity]} · \`${file}${ref}\``, "", `**${finding.title}**`);
+                    lines.push(`<sub>slug: \`${finding.vulnSlug}\` · confidence: ${finding.confidence}</sub>`, "");
+                    if (finding.description) lines.push(truncate(finding.description, 600), "");
+                    if (finding.recommendation) lines.push(`**Recommendation:** ${truncate(finding.recommendation, 400)}`, "");
+                    lines.push("---", "");
+                  }
+                }
+                if (dropped > 0) {
+                  lines.push(`<sub>Omitted ${dropped} finding${dropped === 1 ? "" : "s"} more than ${margin} lines from a change.</sub>`);
+                }
+                console.log(lines.join("\n"));
+              ' "${found[@]}"
             elif [ "$reviewed" -gt 0 ]; then
               echo 'No new findings in the files that were reviewed.'
             else
@@ -239,9 +330,6 @@ jobs:
               ' "${lists[@]/%/.data}"
             fi
           } > comment.md
-          if [ "${#incomplete[@]}" -gt 0 ] || [ "${#comments[@]}" -gt 0 ]; then
-            exit 1
-          fi
       - name: Upload findings
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

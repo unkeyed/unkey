@@ -10,6 +10,9 @@ const rolesRoot = [...rbacRoot, "roles"] as const;
 const permissionsRoot = [...rbacRoot, "permissions"] as const;
 const identitiesRoot = ["identities"] as const;
 const deploymentsRoot = ["deployments"] as const;
+const connectionsRoot = ["connections"] as const;
+const connectionScope = (projectId: string, appId: string) =>
+  [...connectionsRoot, "app", projectId, appId] as const;
 const apiRequestsRoot = ["logs", "apiRequests"] as const;
 const workspaceRoot = ["workspace"] as const;
 const ratelimitNamespacesRoot = ["ratelimit", "namespaces"] as const;
@@ -18,6 +21,28 @@ const portalSessionLists = (portalId: string) => ["portalSessions", portalId, "l
 export const queryKeys = {
   apis: {
     detail: (apiId: string) => ["apis", "detail", apiId] as const,
+  },
+  connections: {
+    app: connectionScope,
+    list: (projectId: string, appId: string, environmentId: string) =>
+      [...connectionScope(projectId, appId), "list", environmentId] as const,
+    retained: (projectId: string, appId: string, environmentId: string) =>
+      [...connectionScope(projectId, appId), "retained", environmentId] as const,
+    targets: (projectId: string, appId: string, environmentId: string, targetAppId?: string) =>
+      [...connectionScope(projectId, appId), "targets", environmentId, targetAppId] as const,
+    deployment: (deploymentId: string) => [...connectionsRoot, "deployment", deploymentId] as const,
+    pinsAll: [...connectionsRoot, "pins"] as const,
+    pins: (deploymentId: string) => [...connectionsRoot, "pins", deploymentId] as const,
+  },
+  projects: {
+    all: ["projects"] as const,
+  },
+  apps: {
+    list: (projectId: string) => ["apps", projectId] as const,
+  },
+  environments: {
+    project: (projectId: string) => ["environments", projectId] as const,
+    app: (projectId: string, appId: string) => ["environments", projectId, appId] as const,
   },
   deployments: {
     all: deploymentsRoot,

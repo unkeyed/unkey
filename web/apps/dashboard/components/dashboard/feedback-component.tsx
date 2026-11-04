@@ -118,16 +118,13 @@ export const Feedback: React.FC = () => {
             type="submit"
             form="feedback-form"
             variant="primary"
-            size="xlg"
+            size="md"
             disabled={isSubmitting || create.isLoading}
             loading={isSubmitting || create.isLoading}
-            className="w-full rounded-lg"
+            className="w-full"
           >
             Send
           </Button>
-          <div className="text-xs text-gray-9">
-            We'll try to get back to you as soon as possible
-          </div>
         </div>
       }
     >

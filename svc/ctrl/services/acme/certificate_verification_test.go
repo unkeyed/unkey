@@ -167,7 +167,7 @@ func TestVerifyCertificateAnswersOnceAProbedDomainIsVerified(t *testing.T) {
 func newVerifyService(t *testing.T) (db.Database, func(domain, token string) (*connect.Response[ctrlv1.VerifyCertificateResponse], error)) {
 	t.Helper()
 
-	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	database, err := db.New(containers.MySQLLogicalIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 

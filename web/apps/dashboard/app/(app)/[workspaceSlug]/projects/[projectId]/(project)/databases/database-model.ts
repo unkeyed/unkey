@@ -1,4 +1,4 @@
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import type { EnvironmentKind } from "@/lib/queries/environments";
 import type { Badge } from "@unkey/ui";
 import type { ComponentProps } from "react";
 
@@ -17,7 +17,6 @@ export type Engine = (typeof ENGINES)[number];
 export type Cluster = (typeof CLUSTERS)[number];
 export type RegionId = (typeof REGIONS)[number];
 type SizeId = "PS-5" | "PS-10" | "PS-20" | "PS-40";
-export type DatabaseStatus = "provisioning" | "ready";
 
 export type Compute = { cluster: Cluster; size: SizeId };
 
@@ -34,7 +33,24 @@ export type DatabaseLink = {
   planetscale: { org: string; branches: EnvironmentBranches };
 };
 
-export type Database = DatabaseLink & { status: DatabaseStatus };
+export type MetricPoint = [unixSeconds: number, value: number];
+
+export type DatabaseVitals = {
+  queries: MetricPoint[];
+  latencyP95Ms: number;
+  cpuRatio: number;
+  connections: number;
+};
+
+export type DatabaseInstance = Pick<
+  PlanetscaleDatabase,
+  "tableCount" | "schemaUpdatedAt" | "lastBackupAt" | "maintenanceAt" | "vitals"
+> & { branchCount: number };
+
+export type Database = DatabaseLink &
+  ({ status: "provisioning" } | { status: "ready"; instance: DatabaseInstance });
+
+export type DatabaseStatus = Database["status"];
 
 export type CreateDatabaseInput =
   | {
@@ -48,19 +64,14 @@ export type CreateDatabaseInput =
     }
   | { source: "existing"; org: string; name: string; branches: EnvironmentBranches };
 
-export const engineCopy: Record<
-  Engine,
-  { label: string; version: string; title: string; description: string }
-> = {
+export const engineCopy: Record<Engine, { label: string; title: string; description: string }> = {
   postgres: {
     label: "Postgres by PlanetScale",
-    version: "18.6",
     title: "Postgres",
     description: "PlanetScale Postgres 18",
   },
   mysql: {
     label: "MySQL by PlanetScale",
-    version: "8.0 · Vitess 22",
     title: "MySQL",
     description: "PlanetScale Vitess, MySQL 8",
   },
@@ -95,20 +106,26 @@ export const sizeSpec: Record<SizeId, { cpu: string; memory: string }> = {
   "PS-40": { cpu: "1/2 vCPU", memory: "4 GB" },
 };
 
+export function sharesProductionBranch(branches: EnvironmentBranches, env: EnvironmentKind) {
+  return env === "preview" && branches.preview.branch === branches.production.branch;
+}
+
 export function branchSummary(branches: EnvironmentBranches, env: EnvironmentKind): string {
   const { branch, compute } = branches[env];
-  if (env === "preview" && branch === branches.production.branch) {
+  if (sharesProductionBranch(branches, env)) {
     return `${branch} · Same as production`;
   }
   return compute ? `${branch} · ${compute.size} · ${clusterCopy[compute.cluster].label}` : branch;
 }
 
+type BadgeVariant = ComponentProps<typeof Badge>["variant"];
+
 export const statusCopy: Record<
   DatabaseStatus,
-  { label: string; badge: ComponentProps<typeof Badge>["variant"] }
+  { label: string; badge: BadgeVariant | null; tableBadge: BadgeVariant }
 > = {
-  provisioning: { label: "Provisioning", badge: "warning" },
-  ready: { label: "Ready", badge: "success" },
+  provisioning: { label: "Provisioning", badge: "warning", tableBadge: "warning" },
+  ready: { label: "Ready", badge: null, tableBadge: "success" },
 };
 
 export type PlanetscaleOrg = { name: string; hasCard: boolean };
@@ -128,6 +145,11 @@ export type PlanetscaleDatabase = {
   defaultBranch: string;
   branches: string[];
   createdAt: number;
+  tableCount: number;
+  schemaUpdatedAt: number | null;
+  lastBackupAt: number | null;
+  maintenanceAt: number | null;
+  vitals: DatabaseVitals;
 };
 
 export function environmentBranch(db: PlanetscaleDatabase, branch: string): EnvironmentBranch {

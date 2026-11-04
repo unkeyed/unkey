@@ -27,7 +27,7 @@ import (
 
 // A single invocation must drain full and partial pages.
 func TestReEncryptionDrainsTablesAndPreservesPlaintext(t *testing.T) {
-	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	database, err := db.New(containers.MySQLLogicalIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
@@ -104,7 +104,7 @@ func TestReEncryptionPaginatesConcurrentInserts(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+			database, err := db.New(containers.MySQLLogicalIsolated(t).DSN, sqlcomment.Disabled())
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, database.Close()) })
 			testVault := vaulttestutil.StartTestVaultWithMemory(t)
@@ -175,7 +175,7 @@ func TestReEncryptionPaginatesConcurrentInserts(t *testing.T) {
 }
 
 func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
-	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	database, err := db.New(containers.MySQLLogicalIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
@@ -277,7 +277,7 @@ func TestReEncryptionRotatesRecentCiphertext(t *testing.T) {
 }
 
 func TestReEncryptionSkipsInvalidRowsAndContinuesPaging(t *testing.T) {
-	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	database, err := db.New(containers.MySQLLogicalIsolated(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	testVault := vaulttestutil.StartTestVaultWithMemory(t)
@@ -415,7 +415,7 @@ func TestReEncryptionRetriesFailuresWithoutLosingRows(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+			database, err := db.New(containers.MySQLLogicalIsolated(t).DSN, sqlcomment.Disabled())
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, database.Close()) })
 			testVault := vaulttestutil.StartTestVaultWithMemory(t)
@@ -530,7 +530,7 @@ func (d *failingDatabase) UpdateVaultEncryptedKey(ctx context.Context, params db
 }
 
 func TestReEncryptionWithoutVaultFailsAtInvocationNotStartup(t *testing.T) {
-	database, err := db.New(containers.MySQLIsolated(t).DSN, sqlcomment.Disabled())
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	handler, err := vaultreencryption.New(vaultreencryption.Config{

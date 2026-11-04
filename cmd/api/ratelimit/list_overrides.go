@@ -50,7 +50,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RatelimitListOverridesResponseBody)
+				return util.Output(ctx, cmd, res.V2RatelimitListOverridesResponseBody)
 			}
 
 			req := components.V2RatelimitListOverridesRequestBody{
@@ -71,7 +71,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/ratelimi
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2RatelimitListOverridesResponseBody)
+			return util.Output(ctx, cmd, res.V2RatelimitListOverridesResponseBody)
 		},
 	}
 }

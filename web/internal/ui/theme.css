@@ -8,12 +8,19 @@ When to use certain tokens:
   text                text-gray-12       (text-gray-11 muted, text-gray-9 dim)
   lifted off the page shadow-floating    (for a card that only sits use shadow-xs)
   status colour       success, warning, error, info, feature
+  corner radius       rounded-control    (button, tooltip, badge)
+                      rounded-surface    (card, popover, banner on the page)
+                      rounded-overlay    (dialog, slide panel above the page)
 */
 
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant pinned (@media (width >= 48rem) and (height >= 40rem));
 
 @theme {
+  --radius-control: 0.375rem;
+  --radius-surface: 0.5rem;
+  --radius-overlay: 0.75rem;
+
   --text-*: initial;
   --text-3xs: 0.625rem;
   --text-3xs--line-height: 1rem;

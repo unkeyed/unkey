@@ -35,6 +35,7 @@ const prefixes = {
   environmentVariable: "evr",
   project: "proj",
   autoscalingPolicy: "asp",
+  connection: "conn",
 } as const;
 
 export function newId<TPrefix extends keyof typeof prefixes>(prefix: TPrefix) {

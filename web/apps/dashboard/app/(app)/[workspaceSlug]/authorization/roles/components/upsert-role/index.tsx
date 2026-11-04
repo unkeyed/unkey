@@ -177,9 +177,6 @@ export const UpsertRoleDialog = ({
       ? "Update role settings and permissions"
       : "Define a role and assign permissions",
     buttonText: isEditMode ? "Update role" : "Create new role",
-    footerText: isEditMode
-      ? "Changes will be applied immediately"
-      : "This role will be created immediately",
     triggerTitle: isEditMode ? "Edit role" : "Create new role",
   };
 
@@ -208,18 +205,17 @@ export const UpsertRoleDialog = ({
                   type="submit"
                   form={`upsert-role-form-${existingRole?.id}`}
                   variant="primary"
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!isValid || isSaving}
                   loading={isSaving}
                 >
                   {dialogConfig.buttonText}
                 </Button>
-                <div className="text-gray-9 text-xs">{dialogConfig.footerText}</div>
               </div>
             }
           >
-            <div className="flex flex-col gap-5 px-2 py-1">
+            <div className="flex flex-col gap-5">
               <FormInput
                 className="[&_input:first-of-type]:h-9"
                 placeholder="domain.manager"

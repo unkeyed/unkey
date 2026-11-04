@@ -143,7 +143,7 @@ export function CreateLogdrainPanel({
 
       <SlidePanelContent>
         <FormProvider {...form}>
-          <form onSubmit={submit} className="h-full overflow-y-auto px-6 pb-4 pt-1">
+          <form onSubmit={submit} className="h-full overflow-y-auto px-6 pb-4 pt-4">
             <div className="flex flex-col gap-4">
               <DrainStepCard
                 state={kind ? "settled" : "active"}

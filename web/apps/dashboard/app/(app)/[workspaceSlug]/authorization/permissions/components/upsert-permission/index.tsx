@@ -139,9 +139,6 @@ export const UpsertPermissionDialog = ({
       ? "Update permission details"
       : "Define a new permission for your application",
     buttonText: isEditMode ? "Update permission" : "Create new permission",
-    footerText: isEditMode
-      ? "Changes will be applied immediately"
-      : "This permission will be created immediately",
     triggerTitle: isEditMode ? "Edit permission" : "Create new permission",
   };
 
@@ -172,18 +169,17 @@ export const UpsertPermissionDialog = ({
                   type="submit"
                   form={formId}
                   variant="primary"
-                  size="xlg"
-                  className="w-full rounded-lg"
+                  size="md"
+                  className="w-full"
                   disabled={!isValid || isSaving}
                   loading={isSaving}
                 >
                   {dialogConfig.buttonText}
                 </Button>
-                <div className="text-gray-9 text-xs">{dialogConfig.footerText}</div>
               </div>
             }
           >
-            <div className="flex flex-col gap-5 px-2 py-1">
+            <div className="flex flex-col gap-5">
               <FormInput
                 className="[&_input:first-of-type]:h-9"
                 placeholder="Manage Domains"

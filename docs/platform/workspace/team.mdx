@@ -1,55 +1,79 @@
 ---
 title: Team
-description: "Invite people to your workspace and choose whether each one is an admin or a developer."
+description: "Invite people, choose admin or developer roles, and secure your own account with two-factor authentication."
 sources:
   - web/apps/dashboard/lib/auth/roles.ts
-  - web/apps/dashboard/lib/auth/roles.test.ts
+  - web/apps/dashboard/lib/auth/deactivateNonCreatorMemberships.ts
   - web/apps/dashboard/lib/trpc/trpc.ts
-  - web/apps/dashboard/lib/trpc/routers/org/inviteMember.ts
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/page.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/managed-team.tsx
-  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/client.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/team-upgrade.tsx
   - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/team/role-switcher.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/paywall-copy.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/account/page.tsx
+  - web/apps/dashboard/components/navigation/top-nav/user-button.tsx
   - web/internal/workos-widgets/src/index.tsx
   - web/apps/dashboard/lib/limits.ts
   - web/apps/dashboard/lib/stripe/linkApiSubscription.ts
+  - pkg/auth/workos/permissions.go
 ---
 
-A workspace has its own members and roles. A role covers the whole workspace: there are no per-<Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> or per-keyspace permissions for dashboard users. Manage members under **Settings > Team**.
+Each workspace has its own members, and each member has one role for the whole workspace. There are no per-<Tooltip tip="A group of apps, usually one per codebase or product.">project</Tooltip> or per-keyspace permissions for dashboard users. Manage members under **Settings > Team**.
 
 ## Roles
 
-There are two roles.
-
 | Role | What it can do |
 | --- | --- |
-| Admin | Everything a developer can, plus manage members and invitations, rename the workspace, create and edit root keys, and change billing. |
-| Developer | Read and change every resource in the workspace: keyspaces, keys, identities, projects, apps, deployments, domains, and gateway policies. Cannot manage members, root keys, billing, or the workspace name. |
+| Developer | Read and change every resource in the workspace, including keyspaces, keys, identities, rate limits, projects, apps, deployments, domains, environment variables, gateway policies, and log drains. |
+| Admin | Everything a developer can, plus manage members and invitations, rename the workspace, manage root keys and portal sessions, set the spend budget, and change billing. |
 
-A developer who tries an admin-only action gets `This action requires admin privileges.`, and **Root Keys** doesn't appear in their dashboard sidebar.
+Developers can see most admin-only settings but can't change them. The workspace name and billing controls are disabled with an "Admin access required" message. **Root Keys** is the exception: it doesn't appear in a developer's sidebar.
 
-Accounts created before these two roles existed carry a legacy `basic_member` role. It keeps full developer access and the dashboard labels it Developer.
+## Plans that include team members
 
-## Which plans include team members
+Compute Pro, Compute Business, and every paid API tier include team members. On Free or Compute Starter, **Settings > Team** shows **Invite your team** with an **Upgrade** button instead of the member list. See [Plans](/platform/billing/plans).
 
-Free and Compute Starter don't include team members, and the Team page shows **Upgrade Your Plan to Add Team Members** with a link to Billing instead of the member list. Compute Pro and Business include them, and so does any paid API tier. See [Plans](/platform/billing/plans) and [Limits](/platform/billing/limits).
+A workspace loses team access when it no longer has a plan that includes team members:
 
-If the workspace loses team access, we deactivate every member except the one who created the workspace. That happens when a paid API tier ends and you don't have Compute Pro or Business, or when you're on the free API tier and downgrade Compute to Starter or cancel it.
+- A paid API tier ends, and the workspace isn't on Compute Pro or Business.
+- The workspace is on the free API tier and moves from Compute Pro or Business to Compute Starter, or cancels Compute entirely.
 
-## Invite, change a role, remove someone
+When that happens, Unkey deactivates every membership except the oldest one, which belongs to whoever created the workspace.
 
-Use the **Members** section of **Settings > Team**. From that one table you invite someone by email address, pick Admin or Developer, change someone's role, and remove a member.
+## Manage members
+
+Admins manage members from the table on **Settings > Team**. Other roles see **Admin access required** instead of the table.
 
 <Frame>
   <img src="/images/dashboard/platform--workspace-team--members.png" alt="Team settings page listing workspace members with their roles and last active times, and an Invite user button" />
 </Frame>
 
+### Invite someone
+
+Click **Invite user**, enter their email address, and choose **Admin** or **Developer**. Invitations expire. If one shows as expired, send a new one.
+
+### Change a role
+
+Open the **⋯** menu on the member's row and choose **Edit role**. Pick the new role from the dropdown and click **Save**.
+
 <Frame>
-  <img src="/images/dashboard/platform--workspace-team--edit-role.png" alt="Edit role dialog for a member with the role dropdown open" />
+  <img src="/images/dashboard/platform--workspace-team--edit-role.png" alt="Edit role dialog with the role dropdown set to Developer, and Save and Cancel buttons" />
 </Frame>
 
-Invitations expire after a while. If one shows as expired, send a new one.
+### Remove someone
 
-Only an admin can manage members. Anyone else sees **Admin access required** with a note that their role doesn't allow them to manage workspace members, and the table isn't shown.
+Open the **⋯** menu on the member's row and choose **Remove user**. They lose dashboard access, but anything they created stays. Root keys keep working because they belong to the workspace, not to a person.
 
-Removing a member ends their dashboard access immediately. It doesn't delete anything they created, and it doesn't touch root keys, which are workspace credentials rather than personal ones. To leave a workspace yourself, ask another admin to remove you.
+To leave a workspace yourself, ask an admin to remove you.
+
+## Two-factor authentication
+
+Two-factor authentication (2FA) adds a second step to your sign-in. It belongs to your user account, so one enrollment protects every workspace you sign in to.
+
+Open **Account settings** from the user menu in the top navigation. Under **Security**, click **Set up authenticator app** next to **Multi-factor authentication**. You can enroll even if your organization doesn't require MFA. WorkOS, the identity provider behind Unkey sign-in, runs the enrollment steps.
+
+<Frame>
+  <img src="/images/dashboard/platform--workspace-two-factor-auth--account-settings.png" alt="Account settings page with the Profile section and, under Security, the Multi-factor authentication row with a Set up authenticator app button" />
+</Frame>
+
+To switch devices, remove the old factor and enroll the new one on **Account settings** while you can still sign in. If you've lost the device and can't sign in, email [support@unkey.com](mailto:support@unkey.com) from the address on your account.

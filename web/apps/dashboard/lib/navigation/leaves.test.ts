@@ -226,7 +226,7 @@ describe("buildAppLinks", () => {
       projectId,
       appId,
       ["projects", projectId, "apps", appId, "settings", "environments"],
-      { metrics: false },
+      { metrics: false, connections: false },
     );
     expect(links.filter((link) => link.isActive).map((link) => link.key)).toEqual(["settings"]);
   });
@@ -234,12 +234,25 @@ describe("buildAppLinks", () => {
   it("shows Metrics only when app_v2 is on", () => {
     const segments = ["projects", projectId, "apps", appId, "metrics"];
     const keys = (enabled: boolean) =>
-      buildAppLinks(ws, projectId, appId, segments, { metrics: enabled }).map((link) => link.key);
+      buildAppLinks(ws, projectId, appId, segments, { metrics: enabled, connections: false }).map(
+        (link) => link.key,
+      );
     expect(keys(false)).not.toContain("metrics");
     expect(keys(true)).toContain("metrics");
     expect(
-      buildAppLinks(ws, projectId, appId, segments, { metrics: true }).find((link) => link.isActive)
-        ?.key,
+      buildAppLinks(ws, projectId, appId, segments, { metrics: true, connections: false }).find(
+        (link) => link.isActive,
+      )?.key,
     ).toBe("metrics");
+  });
+
+  it("shows Connections only when connections are enabled", () => {
+    const segments = ["projects", projectId, "apps", appId, "connections"];
+    const keys = (enabled: boolean) =>
+      buildAppLinks(ws, projectId, appId, segments, { metrics: false, connections: enabled }).map(
+        (link) => link.key,
+      );
+    expect(keys(false)).not.toContain("connections");
+    expect(keys(true)).toContain("connections");
   });
 });

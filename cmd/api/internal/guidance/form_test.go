@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -73,6 +74,22 @@ func TestFormsRejectInvalidValuesBeforeAcceptingInput(t *testing.T) {
 	answers = &formAnswers{strings: []string{"Demo"}}
 	f.prompt = answers
 	require.ErrorIs(t, f.object(t.Context(), schema, map[string]any{}, "", false), io.EOF)
+}
+
+func TestResourceInputValidatesManualValues(t *testing.T) {
+	schema, ok := Lookup("projects delete-project")
+	require.True(t, ok)
+	answers := &pickerScript{t: t, answers: []string{"manual", "zz", "demo-project"}}
+	var output bytes.Buffer
+	f := form{
+		prompt: answers, out: &output,
+		pick: resourcePicker(t.Context(), nil, "projects delete-project"),
+	}
+	values := map[string]any{}
+	require.NoError(t, f.field(t.Context(), schema.Properties["project"], values, "project", ""))
+	require.Equal(t, "demo-project", values["project"])
+	require.Empty(t, answers.answers)
+	require.Contains(t, output.String(), "at least 3")
 }
 
 func TestReviewEditsPreservePatchValues(t *testing.T) {
@@ -156,6 +173,93 @@ func TestReviewNestedEditsPreserveAndHideSecrets(t *testing.T) {
 	require.Contains(t, output.String(), "Description: (empty text)")
 }
 
+func TestReviewGatewayMatcherValues(t *testing.T) {
+	for _, command := range []string{"gateway set-policies", "gateway update-policy"} {
+		t.Run(command, func(t *testing.T) {
+			schema, ok := Lookup(command)
+			require.True(t, ok)
+			matches := []components.MatchExpr{
+				{Header: &components.FieldMatch{Name: "X-Demo-Tier", Value: &components.StringMatch{Exact: new("demo-premium"), IgnoreCase: new(true)}}},
+				{QueryParam: &components.FieldMatch{Name: "region", Value: &components.StringMatch{Prefix: new("demo-eu-")}}},
+				{Header: &components.FieldMatch{Name: "X-Demo-Version", Value: &components.StringMatch{Regex: new("^demo-v[0-9]+$")}}},
+			}
+			var request any = components.V2GatewayUpdatePolicyRequestBody{
+				Project: "demo", App: "demo-app", Environment: "preview", PolicyID: uid.New(uid.TestPrefix),
+				Match: optionalnullable.From(new(matches)),
+			}
+			if command == "gateway set-policies" {
+				request = components.V2GatewaySetPoliciesRequestBody{
+					Project: "demo", App: "demo-app", Environment: "preview",
+					Policies: []components.Policy{{Name: "Demo policy", Enabled: true, Match: matches, Firewall: &components.FirewallPolicy{Action: components.ActionActionDeny}}},
+				}
+			}
+			raw, err := json.Marshal(request)
+			require.NoError(t, err)
+			var values map[string]any
+			require.NoError(t, json.Unmarshal(raw, &values))
+			var output bytes.Buffer
+			f := form{prompt: &formAnswers{choices: []string{"done"}}, out: &output}
+
+			require.NoError(t, f.review(t.Context(), schema, values, "", false))
+			for _, expected := range []string{"Exact: demo-premium", "Ignore case: Yes", "Prefix: demo-eu-", "Regex: ^demo-v[0-9]+$"} {
+				require.Contains(t, output.String(), expected)
+			}
+			require.NotContains(t, output.String(), "[hidden]")
+			after, err := json.Marshal(values)
+			require.NoError(t, err)
+			require.JSONEq(t, string(raw), string(after))
+		})
+	}
+}
+
+func TestFieldUsesSchemaSecretMetadata(t *testing.T) {
+	environment, ok := Lookup("environments set-environment-variables")
+	require.True(t, ok)
+	credential, ok := Lookup("keys verify-key")
+	require.True(t, ok)
+	gateway, ok := Lookup("gateway update-policy")
+	require.True(t, ok)
+	for _, test := range []struct {
+		name   string
+		schema *Schema
+		path   string
+		field  string
+		secret bool
+	}{
+		{name: "non-secret scalar value", schema: &Schema{Type: "string"}, path: "demo", field: "value"},
+		{name: "matcher exact", schema: gateway.Properties["match"].Items.Properties["header"].Properties["value"].Properties["exact"], path: "match[1].header.value", field: "exact"},
+		{name: "environment variable", schema: environment.Properties["variables"].Items.Properties["value"], path: "variables[1]", field: "value", secret: true},
+		{name: "credential", schema: credential.Properties["key"], field: "key", secret: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.secret, test.schema.Secret)
+			values := map[string]any{test.field: "fictional-previous-value"}
+			answers := &formAnswers{strings: []string{""}}
+			if test.secret {
+				answers.strings[0] = "fictional-replacement-secret"
+			}
+			var output bytes.Buffer
+			f := form{prompt: answers, out: &output}
+
+			require.NoError(t, f.field(t.Context(), test.schema, values, test.field, test.path))
+			wrapper := &Schema{Type: "object", Properties: map[string]*Schema{test.field: test.schema}}
+			require.NoError(t, f.preview(wrapper, values, test.path))
+			if test.secret {
+				require.Equal(t, []string{label(strings.TrimPrefix(test.path+"."+test.field, "."))}, answers.secrets)
+				require.Empty(t, answers.defaults)
+				require.Equal(t, "fictional-replacement-secret", values[test.field])
+				require.NotContains(t, output.String(), "fictional-")
+				require.Contains(t, output.String(), "[hidden]")
+			} else {
+				require.Empty(t, answers.secrets)
+				require.Equal(t, []string{"fictional-previous-value"}, answers.defaults)
+				require.Equal(t, "fictional-previous-value", values[test.field])
+				require.Contains(t, output.String(), "fictional-previous-value")
+			}
+		})
+	}
+}
+
 func TestReviewMasksUnknownValuesAndEscapesTerminalControls(t *testing.T) {
 	schema, ok := Lookup("keys update-key")
 	require.True(t, ok)
@@ -218,11 +322,14 @@ func TestReviewChangesConfigurationWithoutMixingSources(t *testing.T) {
 }
 
 type formAnswers struct {
-	strings []string
-	choices []string
+	strings  []string
+	choices  []string
+	secrets  []string
+	defaults []string
 }
 
 func (a *formAnswers) String(_ string, defaults ...string) (string, error) {
+	a.defaults = append(a.defaults, defaults...)
 	if len(a.strings) == 0 {
 		return "", io.EOF
 	}
@@ -235,6 +342,7 @@ func (a *formAnswers) String(_ string, defaults ...string) (string, error) {
 }
 
 func (a *formAnswers) Secret(label string) (string, error) {
+	a.secrets = append(a.secrets, label)
 	return a.String(label)
 }
 
@@ -270,4 +378,20 @@ func TestWrapWordsBreaksAtSpacesAndKeepsStyle(t *testing.T) {
 	head, rest = wrapWords("\x1b[36mproj_demo7Hq2Xc9\x1b[0m", 8)
 	require.Equal(t, "\x1b[36mproj_dem\x1b[0m", head)
 	require.Equal(t, "\x1b[36mo7Hq2Xc9\x1b[0m", rest)
+}
+
+func TestResourceRowsPreserveFullIDsAndNameSuffixes(t *testing.T) {
+	id := uid.New(uid.ProjectPrefix)
+	for _, name := range []string{"Fictional-service-production-east", "Fictional-service-production-west", "界界界界界界界界界-east"} {
+		row := resourceRow(resourceOption(id, name), 36)
+		require.LessOrEqual(t, visibleWidth(row), 36)
+		require.Contains(t, row, id)
+		require.Contains(t, row, "…")
+		require.Contains(t, row, name[len(name)-4:])
+	}
+	idLong := uid.New(uid.ProjectPrefix) + uid.New(uid.TestPrefix)
+	row := resourceRow(resourceOption(idLong, "Fictional project"), 20)
+	require.LessOrEqual(t, visibleWidth(row), 20)
+	require.Contains(t, row, "…")
+	require.Contains(t, row, idLong[len(idLong)-5:])
 }

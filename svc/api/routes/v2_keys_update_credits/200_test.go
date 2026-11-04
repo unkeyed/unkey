@@ -12,6 +12,9 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -53,7 +56,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 	keyID := keyResponse.KeyID
 
 	// Create a root key with appropriate permissions
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -221,7 +224,7 @@ func TestKeyUpdateCreditsSuccess(t *testing.T) {
 	})
 }
 
-func TestKeyUpdateCreditsWithURNPermission(t *testing.T) {
+func TestKeyUpdateCreditsWithKeyScopedPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 	ctx := context.Background()
 
@@ -244,7 +247,7 @@ func TestKeyUpdateCreditsWithURNPermission(t *testing.T) {
 		Remaining:   new(int64(5)),
 	})
 
-	updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
+	updateKeyPermission := rbac.U(urn.New().Workspace(workspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key(key.KeyID), permissions.Write).Value
 	rootKey := h.CreateRootKey(workspace.ID, updateKeyPermission)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

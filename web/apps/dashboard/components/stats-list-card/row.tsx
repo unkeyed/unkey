@@ -2,6 +2,7 @@
 
 import { ListTableRow, listTable } from "@/components/list-views";
 import { formatNumber } from "@/lib/fmt";
+import Link from "next/link";
 import {
   ChartWell,
   type StatsChartState,
@@ -58,8 +59,8 @@ export function StatsListRow({
   return (
     <ListTableRow
       table={table}
-      href={href}
       label={ariaLabel}
+      link={<Link href={href} />}
       cells={{
         name: (
           <span className="flex min-w-0 flex-col gap-1">

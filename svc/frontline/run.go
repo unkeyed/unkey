@@ -507,7 +507,7 @@ func buildEngine(
 
 	keyCache, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:     10 * time.Second,
-		Stale:     10 * time.Minute,
+		Stale:     30 * time.Second,
 		MaxSize:   100_000,
 		Resource:  "frontline_key_cache",
 		Clock:     clk,
@@ -519,7 +519,7 @@ func buildEngine(
 	r.Defer(func() error { keyCache.Close(); return nil })
 	rootKeyCache, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
 		Fresh:     10 * time.Second,
-		Stale:     10 * time.Minute,
+		Stale:     30 * time.Second,
 		MaxSize:   100_000,
 		Resource:  "frontline_root_key_cache",
 		Clock:     clk,

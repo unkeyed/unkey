@@ -16,6 +16,7 @@ import type { Deployment, DeploymentSummary } from "@/lib/deploy-data";
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { formatCpu, formatMemory } from "@/lib/utils/deployment-formatters";
 import {
+  Github,
   IconClockOutline18,
   IconCodeBranchOutline18,
   IconCubeOutline18,
@@ -27,16 +28,16 @@ import {
   IconMicrochipOutline18,
   IconShieldKeyOutline18,
   IconTerminalOutline18,
-  IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, Button, InfoTooltip, Skeleton, TimestampInfo } from "@unkey/ui";
+import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { cn } from "cn";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import { DeploymentStatusIndicator, StatusDot } from "../../../components/deployment-status-dot";
 import type { DisplayDomain } from "../../../components/display-domain";
 import { Avatar } from "../../../components/git-avatar";
+import { useDeploymentConnections } from "../../connections/hooks/use-deployment-connections";
 import { useProductionPolicies } from "../../policies/hooks/use-policies-data";
 import { POLICY_KINDS } from "../../policies/policy-kinds";
 import {
@@ -45,14 +46,19 @@ import {
   Group,
   HFlow,
   IconRow,
+  LabeledRow,
   MoreRow,
+  NODE_ROW_LIMIT,
   Node,
+  NodeError,
   NodeFooter,
   NodeHeader,
+  NodeSkeleton,
   type NodeTone,
   RowItem,
   Rows,
 } from "./canvas/nodes";
+import { ConnectionsNode } from "./connections-node";
 import { type DeployStamp, useProductionCard } from "./production-card-context";
 import {
   type DeploymentDisplayStatus,
@@ -61,13 +67,20 @@ import {
   type StatusBadgeVariant,
 } from "./status";
 
-const NODE_ROW_LIMIT = 3;
-
 export function AppCanvas() {
-  const { canvas } = useProductionCard();
-  const { domains, domainsHref, addDomainHref, policiesHref, addPolicyHref } = canvas;
+  const { canvas, deployment } = useProductionCard();
+  const {
+    domains,
+    domainsHref,
+    addDomainHref,
+    policiesHref,
+    addPolicyHref,
+    connectionsHref,
+    addConnectionHref,
+  } = canvas;
   const { policies, view, retry, isRetrying } = useProductionPolicies();
   const listed = view.type === "list";
+  const connections = useDeploymentConnections(deployment);
 
   return (
     <Canvas label="App canvas">
@@ -81,14 +94,21 @@ export function AppCanvas() {
       <Group icon={<IconCubeOutline18 />} label="App">
         <AppNode />
       </Group>
-      <HFlow empty={!listed} />
+      <HFlow empty={!listed && connections?.view.status !== "ready"} />
       <Group
         icon={<IconGridOutline18 />}
         label={listed ? `Services · ${policies.length}` : "Services"}
       >
         {match(view.type)
-          .with("loading", () => <PoliciesLoadingNode />)
-          .with("error", () => <PoliciesErrorNode onRetry={retry} retrying={isRetrying} />)
+          .with("loading", () => <NodeSkeleton label="Loading policies" />)
+          .with("error", () => (
+            <NodeError
+              icon={<IconShieldKeyOutline18 />}
+              name="Policies"
+              onRetry={retry}
+              retrying={isRetrying}
+            />
+          ))
           .with("empty", () => (
             <GhostNode
               icon={<IconShieldKeyOutline18 />}
@@ -99,6 +119,14 @@ export function AppCanvas() {
           ))
           .with("list", () => <PoliciesNode policies={policies} href={policiesHref} />)
           .exhaustive()}
+        {connections && (
+          <ConnectionsNode
+            view={connections.view}
+            truncated={connections.truncated}
+            href={connectionsHref}
+            addHref={addConnectionHref}
+          />
+        )}
       </Group>
     </Canvas>
   );
@@ -179,7 +207,7 @@ function AppNode() {
   const summary = summarizeInstances(deployment);
   const regions = groupInstancesByRegion(deployment).map((r) => r.name);
   const image = imageRefOf(deployment)?.note ?? null;
-  const commit = commitRefOf(deployment);
+  const commit = deployment.source === "git" ? commitRefOf(deployment) : null;
   const replacedRef = replaced && REF_OF_SOURCE[replaced.source](replaced);
   const replacedChip = replacedRef ? <RefChip value={replacedRef} replaced /> : undefined;
 
@@ -203,8 +231,6 @@ function AppNode() {
               label="Branch"
               value={deployment.gitBranch || "—"}
               fullValue={deployment.gitBranch || undefined}
-              mono
-              hint={commit ? <RefChip value={commit} /> : undefined}
               detail={replacedChip}
             />
           ))
@@ -226,13 +252,12 @@ function AppNode() {
                   icon={<IconCodeBranchOutline18 />}
                   label="Default branch"
                   value={canvas.defaultBranch}
-                  mono
                 />
               )}
             </>
           ))
           .exhaustive()}
-        {stamp && <DeployedRow stamp={stamp} />}
+        {stamp && <DeployedRow stamp={stamp} commit={commit} />}
         <RowItem
           icon={<IconEarthOutline18 />}
           label="Regions"
@@ -250,7 +275,7 @@ function AppNode() {
   );
 }
 
-type Ref = { shown: string; mono: boolean; code: string; note: string | null };
+type Ref = { shown: string; code: string; note: string | null };
 
 function commitRefOf(deployment: DeploymentSummary): Ref | null {
   if (!deployment.gitCommitSha) {
@@ -258,7 +283,7 @@ function commitRefOf(deployment: DeploymentSummary): Ref | null {
   }
   const code = deployment.gitCommitSha.slice(0, 7);
   const note = deployment.gitCommitMessage || null;
-  return { shown: note ?? code, mono: note === null, code, note };
+  return { shown: note ?? code, code, note };
 }
 
 function imageRefOf(deployment: DeploymentSummary): Ref | null {
@@ -267,7 +292,7 @@ function imageRefOf(deployment: DeploymentSummary): Ref | null {
     return null;
   }
   const code = imageRefTag(image);
-  return { shown: code, mono: true, code, note: image };
+  return { shown: code, code, note: image };
 }
 
 const REF_OF_SOURCE: Record<Deployment["source"], (deployment: DeploymentSummary) => Ref | null> = {
@@ -276,21 +301,26 @@ const REF_OF_SOURCE: Record<Deployment["source"], (deployment: DeploymentSummary
   unknown: () => null,
 };
 
+function RefTooltip({ value, replaced = false }: { value: Ref; replaced?: boolean }) {
+  const { code, note } = value;
+  return (
+    <span data-sentry-mask className="flex max-w-80 flex-col gap-0.5">
+      {replaced && <span className="opacity-70">Replaced</span>}
+      <span className={cn("flex min-w-0 gap-1.5", replaced && "line-through")}>
+        <span className="shrink-0">{code}</span>
+        {note && <span className="truncate">{note}</span>}
+      </span>
+    </span>
+  );
+}
+
 function RefChip({ value, replaced = false }: { value: Ref; replaced?: boolean }) {
-  const { shown, mono, code, note } = value;
+  const { shown, code, note } = value;
   return (
     <InfoTooltip
       asChild
       position={{ side: "top" }}
-      content={
-        <span data-sentry-mask className="flex max-w-80 flex-col gap-0.5">
-          {replaced && <span className="opacity-70">Replaced</span>}
-          <span className={cn("flex min-w-0 gap-1.5", replaced && "line-through")}>
-            <span className="shrink-0 font-mono">{code}</span>
-            {note && <span className="truncate">{note}</span>}
-          </span>
-        </span>
-      }
+      content={<RefTooltip value={value} replaced={replaced} />}
     >
       <button
         type="button"
@@ -298,7 +328,6 @@ function RefChip({ value, replaced = false }: { value: Ref; replaced?: boolean }
         aria-label={[replaced && "Replaced", code, note].filter(Boolean).join(" ")}
         className={cn(
           "relative z-10 block min-w-0 max-w-full cursor-default truncate rounded-sm text-left focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7",
-          mono && "font-mono",
           replaced && "line-through",
         )}
       >
@@ -308,7 +337,22 @@ function RefChip({ value, replaced = false }: { value: Ref; replaced?: boolean }
   );
 }
 
-function DeployedRow({ stamp }: { stamp: DeployStamp }) {
+function CommitIcon({ commit }: { commit: Ref }) {
+  return (
+    <InfoTooltip asChild position={{ side: "top" }} content={<RefTooltip value={commit} />}>
+      <button
+        type="button"
+        data-sentry-mask
+        aria-label={["Commit", commit.code, commit.note].filter(Boolean).join(" ")}
+        className="relative z-10 flex shrink-0 cursor-default rounded-sm text-gray-12 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 [&_svg]:size-3"
+      >
+        <Github />
+      </button>
+    </InfoTooltip>
+  );
+}
+
+function DeployedRow({ stamp, commit }: { stamp: DeployStamp; commit: Ref | null }) {
   const { actor } = stamp;
   return (
     <RowItem
@@ -316,6 +360,7 @@ function DeployedRow({ stamp }: { stamp: DeployStamp }) {
       label={stamp.verb}
       value={
         <span className="flex min-w-0 items-center gap-1.5">
+          {commit && <CommitIcon commit={commit} />}
           <TimestampInfo
             value={stamp.at}
             displayType="relative"
@@ -375,46 +420,24 @@ function PoliciesNode({ policies, href }: { policies: PolicyRow[]; href: Route }
         {policies.slice(0, NODE_ROW_LIMIT).map((p) => {
           const kind = POLICY_KINDS[p.type];
           return (
-            <IconRow key={p.id} icon={<kind.Icon />}>
-              <span className={cn("truncate", p.enabled ? "text-gray-12" : "text-gray-10")}>
-                {p.name}
-                {!p.enabled && <span className="sr-only"> (disabled)</span>}
-              </span>
-              <span className="ml-auto shrink-0 text-gray-10">{kind.label}</span>
-            </IconRow>
+            <LabeledRow
+              key={p.id}
+              icon={<kind.Icon />}
+              name={
+                <>
+                  {p.name}
+                  {!p.enabled && <span className="sr-only"> (disabled)</span>}
+                </>
+              }
+              label={kind.label}
+              muted={!p.enabled}
+            />
           );
         })}
         <MoreRow count={policies.length - NODE_ROW_LIMIT} href={href} />
       </Rows>
     </Node>
   );
-}
-
-function PoliciesErrorNode({ onRetry, retrying }: { onRetry: () => void; retrying: boolean }) {
-  return (
-    <Node>
-      <NodeHeader icon={<IconShieldKeyOutline18 />} name="Policies" />
-      <Rows>
-        <span className="flex items-center gap-2">
-          <IconTriangleWarningOutline18 className="size-3 shrink-0 text-error-9" />
-          <span className="text-gray-11">Couldn't load</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto"
-            onClick={onRetry}
-            loading={retrying}
-          >
-            Retry
-          </Button>
-        </span>
-      </Rows>
-    </Node>
-  );
-}
-
-function PoliciesLoadingNode() {
-  return <Skeleton className="h-31 w-full rounded-lg" />;
 }
 
 type AppStatus = {

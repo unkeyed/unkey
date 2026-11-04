@@ -40,7 +40,7 @@ For full documentation, see https://www.unkey.com/docs/platform/analytics/get-ra
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AnalyticsGetRatelimitsResponseBody)
+				return util.Output(ctx, cmd, res.V2AnalyticsGetRatelimitsResponseBody)
 			}
 
 			res, err := client.Analytics.GetRatelimits(ctx, components.V2AnalyticsGetRatelimitsRequestBody{
@@ -49,7 +49,7 @@ For full documentation, see https://www.unkey.com/docs/platform/analytics/get-ra
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AnalyticsGetRatelimitsResponseBody)
+			return util.Output(ctx, cmd, res.V2AnalyticsGetRatelimitsResponseBody)
 		},
 	}
 }

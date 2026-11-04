@@ -7,7 +7,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_create_api"
@@ -25,7 +28,7 @@ func TestCreateApiAuthorizesURNKeyspaceWrite(t *testing.T) {
 	require.NoError(t, err)
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/*#write", workspaceID, projectID),
+		rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace("*"), permissions.Write).Value,
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
@@ -49,7 +52,7 @@ func TestCreateApiAuthorizesProjectWildcardBeforeDefaultProjectCreation(t *testi
 	workspace := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(
 		workspace.ID,
-		fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#write", workspace.ID),
+		rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*"), permissions.Write).Value,
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
@@ -79,6 +82,7 @@ func TestCreateApiURNPermissionBoundaries(t *testing.T) {
 	require.NoError(t, err)
 	otherWorkspace := h.CreateWorkspace()
 	otherProjectID := uid.New(uid.ProjectPrefix)
+	project := urn.New().Workspace(workspaceID).Project(projectID)
 
 	tests := []struct {
 		name       string
@@ -87,32 +91,38 @@ func TestCreateApiURNPermissionBoundaries(t *testing.T) {
 	}{
 		{
 			name:       "project and keyspace wildcards",
-			permission: fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#write", workspaceID),
+			permission: rbac.U(urn.New().Workspace(workspaceID).Project("*").Keyspace("*"), permissions.Write).Value,
 			status:     http.StatusOK,
 		},
 		{
-			name:       "project subtree wildcard",
-			permission: fmt.Sprintf("unkey:v1:%s:projects/%s/**#write", workspaceID, projectID),
-			status:     http.StatusOK,
+			name: "project subtree wildcard",
+			permission: rbac.U(urn.V1{
+				WorkspaceID: project.WorkspaceID,
+				Resource:    "projects/" + project.ProjectID + "/**",
+			}, permissions.Write).Value,
+			status: http.StatusOK,
 		},
 		{
-			name:       "workspace admin wildcard",
-			permission: fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
-			status:     http.StatusOK,
+			name: "workspace admin wildcard",
+			permission: rbac.U(urn.V1{
+				WorkspaceID: workspaceID,
+				Resource:    "**",
+			}, urn.PermissionAll).Value,
+			status: http.StatusOK,
 		},
 		{
 			name:       "wrong project",
-			permission: fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/*#write", workspaceID, otherProjectID),
+			permission: rbac.U(urn.New().Workspace(workspaceID).Project(otherProjectID).Keyspace("*"), permissions.Write).Value,
 			status:     http.StatusForbidden,
 		},
 		{
 			name:       "wrong workspace",
-			permission: fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/*#write", otherWorkspace.ID, projectID),
+			permission: rbac.U(urn.New().Workspace(otherWorkspace.ID).Project(projectID).Keyspace("*"), permissions.Write).Value,
 			status:     http.StatusForbidden,
 		},
 		{
 			name:       "wrong action",
-			permission: fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/*#read", workspaceID, projectID),
+			permission: rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace("*"), permissions.Read).Value,
 			status:     http.StatusForbidden,
 		},
 	}
@@ -140,7 +150,7 @@ func TestCreateApiAuthorizationFailureDoesNotCreateDefaultProject(t *testing.T) 
 	workspace := h.CreateWorkspace()
 	rootKey := h.CreateRootKey(
 		workspace.ID,
-		fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*#read", workspace.ID),
+		rbac.U(urn.New().Workspace(workspace.ID).Project("*").Keyspace("*"), permissions.Read).Value,
 	)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
