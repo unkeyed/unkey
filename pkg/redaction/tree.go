@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // node is one step in the path tree: children for object members, elem for array
@@ -28,7 +30,7 @@ func (r *Redactor) add(path string) {
 
 		// Store names folded, because that is how a member is matched to a
 		// struct field and therefore how a caller can spell it in a body.
-		label = strings.ToLower(label)
+		label = strings.Map(foldRune, label)
 
 		// A segment can be array steps alone, as in the leading "[]" of
 		// "[].key", where the body itself is an array.
@@ -109,16 +111,38 @@ func decodeName(token []byte) (string, bool) {
 	return name, true
 }
 
-// foldName lowercases a member name into the form the path tree stores. A name
-// that is already folded keeps the single-allocation lookup.
+// foldName maps a member name to the form the path tree stores. A name that is
+// already folded keeps the single-allocation lookup.
 func foldName(name []byte) string {
 	for _, c := range name {
-		if c >= 'A' && c <= 'Z' || c >= 0x80 {
-			return strings.ToLower(string(name))
+		if c >= 'A' && c <= 'Z' || c >= utf8.RuneSelf {
+			return strings.Map(foldRune, string(name))
 		}
 	}
 
 	return string(name)
+}
+
+// foldRune maps every rune in a case-folding set to one representative, so two
+// names fold equal exactly when encoding/json would bind one to the other. That
+// is wider than lower-casing: "ſ" binds to "s" but [strings.ToLower] keeps it.
+// Sets that contain an ASCII letter fold to its lower case, which keeps the
+// common names unchanged.
+func foldRune(r rune) rune {
+	for {
+		next := unicode.SimpleFold(r)
+		if next > r {
+			r = next
+
+			continue
+		}
+
+		if next < utf8.RuneSelf {
+			return unicode.ToLower(next)
+		}
+
+		return next
+	}
 }
 
 // lookup resolves an unescaped member name. While the scan is synchronized this
@@ -144,7 +168,7 @@ func (r *Redactor) lookup(frames []frame, depth, untracked int, desynced bool, n
 
 // lookupString is [Redactor.lookup] for a name that had to be decoded.
 func (r *Redactor) lookupString(frames []frame, depth, untracked int, desynced bool, name string) *node {
-	folded := strings.ToLower(name)
+	folded := strings.Map(foldRune, name)
 	if desynced {
 		if _, sensitive := r.names[folded]; sensitive {
 			return redactAll

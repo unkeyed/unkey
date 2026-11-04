@@ -135,6 +135,16 @@ func TestRedact(t *testing.T) {
 			want: `{"KEY":"[REDACTED]"}`,
 		},
 		{
+			name: "unicode case folding binds to the same field",
+			in:   `{"Key":"` + secret + `","ſessionId":"` + secret + `"}`,
+			want: `{"Key":"[REDACTED]","ſessionId":"[REDACTED]"}`,
+		},
+		{
+			name: "escaped unicode case folding binds to the same field",
+			in:   `{"\u212aey":"` + secret + `","\u017fessionId":"` + secret + `"}`,
+			want: `{"\u212aey":"[REDACTED]","\u017fessionId":"[REDACTED]"}`,
+		},
+		{
 			name: "folding does not reach a longer member name",
 			in:   `{"KeyId":"key_123","ApiKey":"visible"}`,
 			want: `{"KeyId":"key_123","ApiKey":"visible"}`,
