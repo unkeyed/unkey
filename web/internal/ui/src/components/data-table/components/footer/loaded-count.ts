@@ -15,7 +15,7 @@ export function loadedCountLabel({
 }) {
   const noun = (totalCount ?? loadedCount) === 1 ? singular : plural;
   const loaded = formatCompactNumber(loadedCount);
-  if (totalCount !== null) {
+  if (totalCount !== null && totalCount !== loadedCount) {
     return `${loaded} of ${formatCompactNumber(totalCount)} ${noun}`;
   }
   return scope ? `${loaded} ${noun} ${scope}` : `${loaded} ${noun}`;
