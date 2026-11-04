@@ -59,8 +59,8 @@ func TestUpdatePermissionAuthorization(t *testing.T) {
 				res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 				require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 				require.Contains(t, res.Body.Error.Detail, "#write")
-				require.Contains(t, res.Body.Error.Detail, "Log in again")
-				require.Contains(t, res.Body.Error.Detail, "grant it")
+				require.Contains(t, res.Body.Error.Detail, "Add the missing permission to this root key")
+				require.Contains(t, res.Body.Error.Detail, "or use a root key that has it")
 				require.NotEqual(t, name, findPermission(t, h, permission).Name)
 				return
 			}

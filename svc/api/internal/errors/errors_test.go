@@ -57,8 +57,6 @@ func TestMaskInsufficientPermissionsAsNotFound(t *testing.T) {
 		require.Equal(t, codes.Auth.Authorization.InsufficientPermissions.URN(), code)
 		detail := fault.UserFacingMessage(err)
 		require.Contains(t, detail, "#write")
-		require.Contains(t, detail, "Log in again")
-		require.Contains(t, detail, "grant it")
 		require.NotContains(t, detail, public)
 		require.NotContains(t, detail, "#read")
 	})

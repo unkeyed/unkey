@@ -73,7 +73,7 @@ func TestStopDeploymentReaderIsForbidden(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "#write")
-	require.Contains(t, res.Body.Error.Detail, "Log in again")
+	require.Contains(t, res.Body.Error.Detail, "Add the missing permission to this root key")
 }
 
 // A deployment in another workspace must be indistinguishable from one that does

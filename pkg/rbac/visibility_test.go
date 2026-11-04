@@ -178,8 +178,7 @@ func TestPermissionDeniedDetailNamesTheMissingPermission(t *testing.T) {
 	query := U(keys, permissions.Write)
 	detail := PermissionDeniedDetail(query, []string{query.Value[:len(query.Value)-len("#write")] + "#read"})
 
-	require.Contains(t, detail, "Missing permission: '"+query.Value+"'")
-	require.Contains(t, detail, "Log in again with that permission, or grant it.")
+	require.Equal(t, "Missing permission: '"+query.Value+"'.", detail)
 	require.NotContains(t, detail, "#read")
 }
 
@@ -196,5 +195,5 @@ func TestPermissionDeniedDetailNamesEveryAlternative(t *testing.T) {
 	require.Contains(t, detail, "Missing one of these permissions:")
 	require.Contains(t, detail, "api.*.create_key")
 	require.Contains(t, detail, "api."+apiID+".create_key")
-	require.Contains(t, detail, "Log in again with one of those permissions, or grant it.")
+	require.NotContains(t, detail, "Log in again")
 }

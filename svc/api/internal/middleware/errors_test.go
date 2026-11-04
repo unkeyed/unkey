@@ -212,6 +212,36 @@ func TestErrorMiddleware_Forbidden_PreservesPermissionDetail(t *testing.T) {
 	require.Equal(t, "Missing permission to decrypt this key.", response.Error.Detail)
 }
 
+func TestErrorMiddleware_Forbidden_AddsTheRemedyForTheCredential(t *testing.T) {
+	resource := urn.New().Workspace(uid.New(uid.WorkspacePrefix)).Project(uid.New(uid.ProjectPrefix))
+	for _, tt := range []struct {
+		name   string
+		source principal.Source
+		remedy string
+	}{
+		{"root key", principal.KeySource{}, "Add the missing permission to this root key"},
+		{"cli or mcp session", principal.CLISessionSource{}, "If your role does not include it, ask a workspace admin."},
+		{"dashboard", principal.JWTSource{}, "Ask a workspace admin for a role"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			sess, rec := newSession(t, http.MethodPost, "/v2/projects.updateProject")
+			p := &principal.Principal{Source: tt.source, Permissions: []string{}}
+			sess.SetPrincipal(p)
+
+			err := middleware.WithErrorHandling()(func(_ context.Context, _ *zen.Session) error {
+				return p.Authorize(rbac.U(resource, permissions.Write))
+			})(t.Context(), sess)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusForbidden, rec.Code)
+			var response openapi.ForbiddenErrorResponse
+			require.NoError(t, json.NewDecoder(rec.Body).Decode(&response))
+			require.Contains(t, response.Error.Detail, "Missing permission:")
+			require.Contains(t, response.Error.Detail, tt.remedy)
+			require.NotContains(t, response.Error.Detail, "Log in again")
+		})
+	}
+}
+
 func TestErrorMiddleware_RecordsDenialsInHistoryWithoutOperationalLogs(t *testing.T) {
 	logs := loggertest.Install(t)
 	for _, tc := range []struct {

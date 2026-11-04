@@ -77,7 +77,7 @@ func TestDeleteIdentityMasksInsufficientPermissions(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, sent: %+v, received: %s", req, res.RawBody)
 		require.Contains(t, res.Body.Error.Detail, "#delete")
-		require.Contains(t, res.Body.Error.Detail, "Log in again")
+		require.Contains(t, res.Body.Error.Detail, "Add the missing permission to this root key")
 		require.NotContains(t, res.RawBody, identity.ID)
 	})
 

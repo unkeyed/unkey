@@ -7,6 +7,7 @@ sources:
   - svc/api/internal/middleware/errors.go
   - pkg/rbac/check.go
   - pkg/rbac/rbac.go
+  - pkg/auth/principal/principal.go
   - internal/services/keys/status.go
   - svc/api/internal/errors/errors.go
 ---
@@ -45,6 +46,10 @@ A missing permission doesn't always return 403. When your root key can't read th
 3. Assign the missing permission through the [dashboard or API](/platform/root-keys/configure). For example, `unkey:v1:ws_demo:projects/proj_shop/keyspaces/ks_customers/keys/*#write` permits creating and updating keys in one keyspace. Replace the example IDs with your own.
 
 Give each service its own root key with only what it needs, so a leaked key can't do more. See [Root key permissions](/platform/root-keys/permissions).
+
+### If you signed in with the CLI or an MCP client
+
+Your session holds only the permissions you chose when you signed in. Sign in again and choose the missing permission. You can only choose permissions your workspace role includes. If your role doesn't include it, ask a workspace admin to change your role. `detail` ends with the step that applies to the credential you used.
 
 `keys.verifyKey` distinguishes the root key's access from your customer's permissions. If the root key lacks `verify` access, the response has `valid: false` and code `NOT_FOUND`. If the customer's key lacks a permission required by your verification query, the code is `INSUFFICIENT_PERMISSIONS`.
 

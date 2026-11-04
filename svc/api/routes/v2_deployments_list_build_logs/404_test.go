@@ -67,7 +67,7 @@ func TestListBuildLogsNotFound(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, authHeaders(h.CreateRootKey(setup.Workspace.ID, rbac.U(deployment, permissions.Read).Value)), handler.Request{DeploymentId: dep.deploymentID})
 		require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 		require.Contains(t, res.Body.Error.Detail, "buildLogs")
-		require.Contains(t, res.Body.Error.Detail, "Log in again")
+		require.Contains(t, res.Body.Error.Detail, "Add the missing permission to this root key")
 	})
 
 	t.Run("existence is not leaked to a key without grants", func(t *testing.T) {
