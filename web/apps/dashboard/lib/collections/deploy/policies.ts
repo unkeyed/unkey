@@ -247,7 +247,7 @@ export async function persistPolicyMutations(
     error: (err) => getErrorToast(err, labels.error),
   });
   try {
-    await trackSave(promise);
+    await trackSave(promise, { kind: "environments", environmentIds: [...byEnvironment.keys()] });
   } finally {
     // Also on failure: one environment can be written while the other is not.
     await Promise.all(

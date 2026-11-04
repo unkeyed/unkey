@@ -1,4 +1,3 @@
-import type { Deployment } from "@/lib/deploy-data";
 import type { V2EnvironmentsUpdateSettingsRequestBody } from "@unkey/api/models/components";
 import { useSyncExternalStore } from "react";
 
@@ -18,7 +17,7 @@ export function appliesOnNextDeploy(body: V2EnvironmentsUpdateSettingsRequestBod
 const saveStore = {
   savedCount: 0,
   dismissedAtCount: 0,
-  target: null as SettingsBannerTarget | null,
+  target: null as RedeployScope | null,
   listeners: new Set<() => void>(),
   notify() {
     for (const cb of this.listeners) {
@@ -37,25 +36,24 @@ const saveStore = {
   },
 };
 
-export function trackSave<T>(promise: Promise<T>): Promise<T> {
+export function trackSave<T>(promise: Promise<T>, scope: RedeployScope): Promise<T> {
   return promise.then((result) => {
-    showSettingsBanner();
+    showSettingsBanner(scope);
     return result;
   });
 }
 
-type SettingsBannerTarget = {
-  deployment: Pick<Deployment, "id" | "projectId" | "appId" | "environmentId">;
-  environmentSlug: string;
-};
+// An app-wide change applies to production. Each save passes a fresh object, so
+// the timer of an earlier save cannot dismiss a later one.
+export type RedeployScope = { kind: "app" } | { kind: "environments"; environmentIds: string[] };
 
-export function showSettingsBanner(target: SettingsBannerTarget | null = null): void {
-  saveStore.target = target;
+export function showSettingsBanner(scope: RedeployScope): void {
+  saveStore.target = scope;
   saveStore.savedCount++;
   saveStore.notify();
 }
 
-export function useSettingsBannerTarget(): SettingsBannerTarget | null {
+export function useSettingsBannerTarget(): RedeployScope | null {
   return useSyncExternalStore(
     (cb) => saveStore.subscribe(cb),
     () => saveStore.target,

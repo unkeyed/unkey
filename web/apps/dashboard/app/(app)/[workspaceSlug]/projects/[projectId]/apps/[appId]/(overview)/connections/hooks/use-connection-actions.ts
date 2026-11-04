@@ -9,7 +9,12 @@ import { match } from "@unkey/match";
 import { toast } from "@unkey/ui";
 import type { FormMode } from "../model/mode";
 import type { ConnectionOp } from "../model/plan";
-import { type RunResult, failureDescription, needsRedeploy, runInOrder } from "../model/run";
+import {
+  type RunResult,
+  failureDescription,
+  redeployEnvironmentIds,
+  runInOrder,
+} from "../model/run";
 
 type ConnectionAction = FormMode | "remove";
 
@@ -71,8 +76,9 @@ export function useConnectionMutation(scope: ConnectionScope) {
   const mutation = useMutation({
     mutationFn: async ({ ops }: ConnectionChange) => {
       const result = await runInOrder(ops, (op) => apply(op, scope));
-      if (needsRedeploy(result.applied)) {
-        showSettingsBanner();
+      const environmentIds = redeployEnvironmentIds(result.applied);
+      if (environmentIds.length > 0) {
+        showSettingsBanner({ kind: "environments", environmentIds });
       }
       return result;
     },

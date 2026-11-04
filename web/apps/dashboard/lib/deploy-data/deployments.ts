@@ -7,8 +7,9 @@ import {
   expandDeploymentStatusGroups,
   isDeploymentSettling,
 } from "@/lib/collections/deploy/deployment-status";
+import type { RedeployScope } from "@/lib/collections/deploy/pending-redeploy";
 import { type Deployment, withDeploymentDetails } from "@/lib/deploy-data/deployment";
-import { ENVIRONMENT_KIND } from "@/lib/queries/environments";
+import { ENVIRONMENT_KIND, type Environment, productionFirst } from "@/lib/queries/environments";
 import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
@@ -17,6 +18,7 @@ import {
   type QueryClient,
   type UseQueryResult,
   useInfiniteQuery,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -97,6 +99,41 @@ export function useCurrentDeployment({
     error: app.error ?? deployment.error,
     refetch: app.isError ? app.refetch : deployment.refetch,
   };
+}
+
+export type RedeployTarget = { environment: Environment; deployment: Deployment };
+
+/**
+ * What a redeploy of the scope rebuilds, production first: the live deployment
+ * in its environment, otherwise the environment's newest deployment. An
+ * environment that has never deployed has no target. Undefined while loading.
+ */
+export function useRedeployTargets(scope: RedeployScope | null): RedeployTarget[] | undefined {
+  const { projectId, appId } = useAppScope();
+  const queryClient = useQueryClient();
+  const environments = useEnvironments().data;
+  const live = useCurrentDeployment({ enabled: scope !== null }).data;
+  const scoped = scope
+    ? productionFirst(environments ?? []).filter((environment) => inScope(scope, environment))
+    : [];
+  const newest = useQueries({
+    queries: scoped.map((environment) =>
+      recentDeploymentsOptions(queryClient, projectId, appId, environment.id, 1),
+    ),
+  });
+  if (environments === undefined || live === undefined || newest.some((q) => !q.data)) {
+    return undefined;
+  }
+  return scoped.flatMap((environment, i) => {
+    const deployment = live?.environmentId === environment.id ? live : newest[i].data?.[0];
+    return deployment ? [{ environment, deployment }] : [];
+  });
+}
+
+function inScope(scope: RedeployScope, environment: Environment): boolean {
+  return scope.kind === "app"
+    ? environment.kind === ENVIRONMENT_KIND.production
+    : scope.environmentIds.includes(environment.id);
 }
 
 // The newest deployments of the scope, skipped pushes left out

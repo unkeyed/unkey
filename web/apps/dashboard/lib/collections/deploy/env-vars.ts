@@ -94,7 +94,10 @@ export const envVars = createCollection<EnvVar, string, QueryCollectionUtils<Env
             : envVarErrorToast(err, "Failed to update environment variable"),
       });
 
-      await trackSave(mutation);
+      await trackSave(mutation, {
+        kind: "environments",
+        environmentIds: [modified.environmentId],
+      });
     },
     onDelete: async ({ transaction }) => {
       const originals = transaction.mutations.map((m) => m.original);
@@ -113,7 +116,10 @@ export const envVars = createCollection<EnvVar, string, QueryCollectionUtils<Env
           envVarErrorToast(err, `Failed to delete ${plural(count, "environment variable")}`),
       });
 
-      await trackSave(mutation);
+      await trackSave(mutation, {
+        kind: "environments",
+        environmentIds: [...new Set(originals.map((v) => v.environmentId))],
+      });
     },
   }),
 );
@@ -274,9 +280,15 @@ async function writeEnvironments(
     await envVars.utils.refetch().catch(() => {});
     throw failed.reason;
   }
-  await trackSave(envVars.utils.refetch().catch(() => {}));
+  const savedEnvironmentIds = environmentIds.filter((_, i) => writes[i].status === "fulfilled");
+  await trackSave(
+    envVars.utils.refetch().catch(() => {}),
+    {
+      kind: "environments",
+      environmentIds: savedEnvironmentIds,
+    },
+  );
   if (failed) {
-    const savedEnvironmentIds = environmentIds.filter((_, i) => writes[i].status === "fulfilled");
     throw new PartialAddError(savedEnvironmentIds, failed.reason);
   }
 }

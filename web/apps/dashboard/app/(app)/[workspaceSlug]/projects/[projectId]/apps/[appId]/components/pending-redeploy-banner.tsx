@@ -8,7 +8,7 @@ import {
   useSettingsBannerTarget,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/pending-redeploy";
-import { useApp, useCurrentDeployment, useDeployActions } from "@/lib/deploy-data";
+import { type RedeployTarget, useDeployActions, useRedeployTargets } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
@@ -16,45 +16,44 @@ import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { cn } from "cn";
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { GlowIcon } from "../components/glow-icon";
+
+const environmentList = new Intl.ListFormat("en", { type: "conjunction" });
 
 export function PendingRedeployBanner() {
   const { refetchDeployments, refetchApps } = useDeployActions();
-  const { data: app } = useApp();
   const navigate = useGuardedNavigate();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
-  const currentDeployment = useCurrentDeployment({ enabled: visible }).data ?? undefined;
   const target = useSettingsBannerTarget();
-  const deployment = target ? target.deployment : currentDeployment;
+  const targets = useRedeployTargets(visible ? target : null) ?? [];
 
-  const show = visible && !!deployment && deployment.appId === app?.id;
+  const show = visible && targets.length > 0;
 
   const redeploy = useMutation({
-    mutationFn: async (deployment: {
-      id: string;
-      projectId: string;
-      appId: string;
-      environmentId: string;
-    }) => {
-      const res = await getUnkeyClient().deployments.createDeploymentV3({
-        project: deployment.projectId,
-        app: deployment.appId,
-        environment: deployment.environmentId,
-        deployment: { deploymentId: deployment.id },
-      });
-      return { deploymentId: res.data.deploymentId };
-    },
-    onSuccess: async (data, source) => {
+    mutationFn: (targets: RedeployTarget[]) =>
+      Promise.all(
+        targets.map(async ({ deployment }) => {
+          const res = await getUnkeyClient().deployments.createDeploymentV3({
+            project: deployment.projectId,
+            app: deployment.appId,
+            environment: deployment.environmentId,
+            deployment: { deploymentId: deployment.id },
+          });
+          return res.data.deploymentId;
+        }),
+      ),
+    onSuccess: async ([deploymentId], [{ deployment }]) => {
       refetchDeployments();
       await refetchApps();
       navigate(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,
-          projectId: source.projectId,
-          appId: source.appId,
-          deploymentId: data.deploymentId,
+          projectId: deployment.projectId,
+          appId: deployment.appId,
+          deploymentId,
         }),
       );
       dismissSettingsBanner();
@@ -77,7 +76,8 @@ export function PendingRedeployBanner() {
     [show, target],
   );
 
-  return (
+  // The app shell isolates page content in its own stacking context, under the sticky top nav.
+  return createPortal(
     <div
       aria-hidden={!show}
       inert={!show || undefined}
@@ -105,7 +105,8 @@ export function PendingRedeployBanner() {
           <div className="flex flex-col gap-1 pr-5">
             <span className="text-sm font-semibold text-gray-12 leading-5">Changes detected</span>
             <span className="text-xs text-gray-11 leading-4">
-              Redeploy to apply your latest changes to {target?.environmentSlug ?? "production"}.
+              Redeploy to apply your latest changes to{" "}
+              {environmentList.format(targets.map(({ environment }) => environment.slug))}.
             </span>
           </div>
           <Button
@@ -119,9 +120,7 @@ export function PendingRedeployBanner() {
                 openPaywall();
                 return;
               }
-              if (deployment) {
-                redeploy.mutate(deployment);
-              }
+              redeploy.mutate(targets);
             }}
           >
             Redeploy
@@ -129,6 +128,7 @@ export function PendingRedeployBanner() {
         </div>
       </div>
       {planGate}
-    </div>
+    </div>,
+    document.body,
   );
 }
