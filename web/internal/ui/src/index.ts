@@ -35,6 +35,7 @@ export * from "./components/loading";
 export * from "./components/meter";
 export * from "./components/page";
 export * from "./components/resource-list";
+export * from "./components/selection-bar";
 export * from "./components/logo";
 export * from "./components/llm-search";
 export * from "./components/llm-search/components/search-icon";

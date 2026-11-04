@@ -1,9 +1,13 @@
-import type * as React from "react";
+"use client";
+import { type ComponentProps, createContext, use, useState } from "react";
 import { cn } from "../../lib/utils";
 import { ControlsSlotProvider } from "./controls-slots";
+import { useWarnIfMissing } from "./dev-warn";
 import { STICKY_ROOT_CLASS_NAME } from "./sticky-stack";
 
 type PageWidth = "default" | "full";
+
+const PageElementContext = createContext<HTMLElement | null>(null);
 
 /**
  * The page frame. Compose a {@link PageHeader} and {@link PageBody} inside it;
@@ -17,20 +21,33 @@ function PageContainer({
   className,
   children,
   ...props
-}: React.ComponentProps<"div"> & { width?: PageWidth }) {
+}: Omit<ComponentProps<"div">, "ref"> & { width?: PageWidth }) {
+  const [page, setPage] = useState<HTMLElement | null>(null);
   return (
     <div
+      {...props}
+      ref={setPage}
       data-width={width}
       className={cn(
         "group/page flex w-full flex-col md:data-[width=full]:flex-1",
         STICKY_ROOT_CLASS_NAME,
         className,
       )}
-      {...props}
     >
-      <ControlsSlotProvider>{children}</ControlsSlotProvider>
+      <PageElementContext.Provider value={page}>
+        <ControlsSlotProvider>{children}</ControlsSlotProvider>
+      </PageElementContext.Provider>
     </div>
   );
 }
 
-export { PageContainer };
+function usePageElement(consumer: string) {
+  const page = use(PageElementContext);
+  useWarnIfMissing(
+    page !== null,
+    `${consumer} is not inside a PageContainer, so it centers on the viewport.`,
+  );
+  return page;
+}
+
+export { PageContainer, usePageElement };

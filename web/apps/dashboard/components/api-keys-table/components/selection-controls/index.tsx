@@ -1,4 +1,3 @@
-import { MotionProvider } from "@/components/motion-provider";
 import { RECENTLY_USED_WINDOW_LABEL, isRecentlyUsed } from "@/lib/recently-used-key";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
@@ -7,10 +6,8 @@ import {
   IconCircleCheckOutline18,
   IconTrashOutline18,
   IconTriangleWarningOutline18,
-  IconXmarkOutline18,
 } from "@unkey/icons";
-import { Button, ConfirmPopover, ControlsSelectionPortal } from "@unkey/ui";
-import { AnimatePresence, m } from "framer-motion";
+import { ConfirmPopover, SelectionBar, SelectionBarAction } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
@@ -95,94 +92,57 @@ export const SelectionControls = ({
     recentlyUsedCount > 0 ? `${recentlyUsedSummary} and may still be live. ` : "";
 
   return (
-    <MotionProvider>
-      <ControlsSelectionPortal>
-        <AnimatePresence>
-          {selectedKeys.size > 0 && (
-            <m.div
-              key="selection-controls"
-              className="flex min-w-0 flex-1 items-center justify-between gap-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.2, ease: "easeOut" } }}
-              exit={{ opacity: 0, transition: { duration: 0.15, ease: "easeIn" } }}
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <AnimatedCounter value={selectedKeys.size} />
-                <div className="text-gray-9 text-sm">selected</div>
-                {recentlyUsedCount > 0 && (
-                  <div className="flex min-w-0 items-center gap-1.5 text-warning-11 text-sm">
-                    <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
-                    <span className="truncate">{recentlyUsedSummary}</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-sm"
-                  onClick={() => setIsBatchEditExternalIdOpen(true)}
-                >
-                  <IconArrowsOppositeDirectionYOutline18 /> Change External ID
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-sm"
-                  disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
-                  loading={updateKeyStatus.isLoading}
-                  onClick={() => {
-                    const keyIds = Array.from(selectedKeys);
-                    if (keyIds.length === 0) {
-                      return;
-                    }
-                    updateKeyStatus.mutate({
-                      enabled: true,
-                      keyIds,
-                    });
-                  }}
-                >
-                  <IconCircleCheckOutline18 />
-                  Enable key
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-sm"
-                  disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
-                  loading={updateKeyStatus.isLoading}
-                  onClick={handleDisableButtonClick}
-                  ref={disableButtonRef}
-                >
-                  <IconBanOutline18 />
-                  Disable key
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-sm"
-                  disabled={deleteKey.isLoading}
-                  loading={deleteKey.isLoading}
-                  onClick={handleDeleteButtonClick}
-                  ref={deleteButtonRef}
-                >
-                  <IconTrashOutline18 />
-                  Delete key
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="[&_svg]:size-[14px]"
-                  onClick={() => setSelectedKeys(new Set())}
-                  aria-label="Clear selection"
-                >
-                  <IconXmarkOutline18 />
-                </Button>
-              </div>
-            </m.div>
-          )}
-        </AnimatePresence>
-      </ControlsSelectionPortal>
+    <>
+      <SelectionBar
+        count={selectedKeys.size}
+        onClear={() => setSelectedKeys(new Set())}
+        detail={
+          recentlyUsedCount > 0 && (
+            <div className="flex min-w-0 max-w-72 items-center @max-3xl:hidden gap-1.5 text-sm text-warning-11">
+              <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
+              <span className="truncate">{recentlyUsedSummary}</span>
+            </div>
+          )
+        }
+      >
+        <SelectionBarAction
+          onClick={() => setIsBatchEditExternalIdOpen(true)}
+          icon={<IconArrowsOppositeDirectionYOutline18 />}
+          label="Change External ID"
+        />
+        <SelectionBarAction
+          disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
+          loading={updateKeyStatus.isLoading}
+          onClick={() => {
+            const keyIds = Array.from(selectedKeys);
+            if (keyIds.length === 0) {
+              return;
+            }
+            updateKeyStatus.mutate({
+              enabled: true,
+              keyIds,
+            });
+          }}
+          icon={<IconCircleCheckOutline18 />}
+          label="Enable key"
+        />
+        <SelectionBarAction
+          disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
+          loading={updateKeyStatus.isLoading}
+          onClick={handleDisableButtonClick}
+          ref={disableButtonRef}
+          icon={<IconBanOutline18 />}
+          label="Disable key"
+        />
+        <SelectionBarAction
+          disabled={deleteKey.isLoading}
+          loading={deleteKey.isLoading}
+          onClick={handleDeleteButtonClick}
+          ref={deleteButtonRef}
+          icon={<IconTrashOutline18 />}
+          label="Delete key"
+        />
+      </SelectionBar>
 
       <ConfirmPopover
         isOpen={isDisableConfirmOpen}
@@ -220,20 +180,6 @@ export const SelectionControls = ({
           onClose={() => setIsBatchEditExternalIdOpen(false)}
         />
       )}
-    </MotionProvider>
-  );
-};
-
-export const AnimatedCounter = ({ value }: { value: number }) => {
-  return (
-    <m.div
-      key={`counter-${value}`}
-      initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="size-[18px] text-2xs leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border"
-    >
-      <span className="flex items-center justify-center">{value}</span>
-    </m.div>
+    </>
   );
 };

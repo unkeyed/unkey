@@ -1,4 +1,4 @@
-import { ControlsEndSlot, ControlsSelectionSlot, StickySlot } from "@unkey/ui";
+import { ControlsEndSlot, StickySlot } from "@unkey/ui";
 import { cn } from "cn";
 
 export function ControlsContainer({ children }: { children?: React.ReactNode }) {
@@ -10,11 +10,8 @@ export function ControlsContainer({ children }: { children?: React.ReactNode }) 
         !children && "has-[[data-slot=controls-end]:empty]:hidden",
       )}
     >
-      <div className="group/controls @container/controls flex items-center gap-2 w-full px-3 py-1 min-h-10">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <ControlsSelectionSlot className="order-first" />
-          {children}
-        </div>
+      <div className="@container/controls flex items-center gap-2 w-full px-3 py-1 min-h-10">
+        <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
         <ControlsEndSlot />
       </div>
     </StickySlot>
@@ -22,11 +19,7 @@ export function ControlsContainer({ children }: { children?: React.ReactNode }) 
 }
 
 export function ControlsLeft({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-w-0 gap-2 overflow-x-clip [overflow-clip-margin:4px] group-has-[[data-slot=controls-selection]:not(:empty)]/controls:hidden">
-      {children}
-    </div>
-  );
+  return <div className="flex -mx-1 min-w-0 gap-2 overflow-x-clip px-1">{children}</div>;
 }
 
 export function ControlsRight({ children }: { children: React.ReactNode }) {

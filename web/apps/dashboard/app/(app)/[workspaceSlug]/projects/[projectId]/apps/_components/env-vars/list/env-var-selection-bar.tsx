@@ -2,9 +2,8 @@
 
 import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { plural } from "@/lib/fmt";
-import { IconEyeSlashOutline18, IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
-import { Button, ConfirmPopover } from "@unkey/ui";
-import { cn } from "cn";
+import { IconEyeSlashOutline18, IconTrashOutline18 } from "@unkey/icons";
+import { ConfirmPopover, SelectionBar, SelectionBarAction } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { useBulkEnvVarActions } from "./use-bulk-env-var-actions";
 
@@ -25,54 +24,24 @@ export function EnvVarSelectionBar({
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const sensitiveButtonRef = useRef<HTMLButtonElement>(null);
 
-  if (selectedCount === 0) {
-    return null;
-  }
-
   return (
     <>
-      <div className="fixed bottom-5 flex justify-center z-10 pointer-events-none left-(--sidebar-width,16rem) right-0">
-        <div
-          className={cn(
-            "w-185 border bg-raised min-h-15 flex items-center justify-center rounded-xl shadow-floating pointer-events-auto",
-            "animate-fade-slide-in",
-          )}
-        >
-          <div className="flex justify-between items-center w-full p-4.5">
-            <div className="items-center flex gap-2">
-              <AnimatedCounter value={selectedCount} />
-              <div className="text-gray-11 text-sm leading-6">selected</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="font-medium text-sm [&_svg]:size-3.5"
-                onClick={() => setIsSensitiveConfirmOpen(true)}
-                ref={sensitiveButtonRef}
-                loading={isMakingSensitive}
-                disabled={isMakingSensitive}
-              >
-                <IconEyeSlashOutline18 className="size-3" />
-                Make Sensitive
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="font-medium text-sm [&_svg]:size-3.5"
-                onClick={() => setIsDeleteConfirmOpen(true)}
-                ref={deleteButtonRef}
-              >
-                <IconTrashOutline18 />
-                Delete
-              </Button>
-              <Button variant="ghost" className="[&_svg]:size-3.5 ml-3" onClick={onClearSelection}>
-                <IconXmarkOutline18 />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SelectionBar count={selectedCount} onClear={onClearSelection}>
+        <SelectionBarAction
+          onClick={() => setIsSensitiveConfirmOpen(true)}
+          ref={sensitiveButtonRef}
+          loading={isMakingSensitive}
+          disabled={isMakingSensitive}
+          icon={<IconEyeSlashOutline18 />}
+          label="Make Sensitive"
+        />
+        <SelectionBarAction
+          onClick={() => setIsDeleteConfirmOpen(true)}
+          ref={deleteButtonRef}
+          icon={<IconTrashOutline18 />}
+          label="Delete"
+        />
+      </SelectionBar>
 
       <ConfirmPopover
         isOpen={isSensitiveConfirmOpen}
@@ -98,19 +67,5 @@ export function EnvVarSelectionBar({
         variant="danger"
       />
     </>
-  );
-}
-
-function AnimatedCounter({ value }: { value: number }) {
-  return (
-    <div
-      key={`counter-${value}`}
-      className={cn(
-        "size-[18px] text-2xs leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border",
-        "animate-bounce-in",
-      )}
-    >
-      <span className="flex items-center justify-center">{value}</span>
-    </div>
   );
 }

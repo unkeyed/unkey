@@ -2,6 +2,7 @@
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { type RefCallback, useCallback } from "react";
+import { isDev } from "./dev-warn";
 import {
   STICKY_ROOT_SELECTOR,
   type StickySlotName,
@@ -9,8 +10,6 @@ import {
   stickySlotProps,
   warnIfSlotOutOfPlace,
 } from "./sticky-stack";
-
-const isDev = typeof process !== "undefined" && process.env.NODE_ENV !== "production";
 
 const slotOwners = new WeakMap<HTMLElement, Map<StickySlotName, HTMLElement>>();
 
