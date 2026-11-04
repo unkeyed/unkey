@@ -153,7 +153,7 @@ export function useUpdateApp(projectId: string) {
         success: "App updated",
         error: (err) => getErrorToast(err, "Failed to update app"),
       });
-      await (changes.imageReference ? trackSave(request, { kind: "app" }) : request);
+      await (changes.imageReference ? trackSave(request, { kind: "app", appId }) : request);
     },
     onSuccess: (_data, { appId, changes }) => {
       queryClient.setQueryData<App[]>(queryKeys.apps.list(projectId), (apps) =>

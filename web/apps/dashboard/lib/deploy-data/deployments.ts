@@ -114,7 +114,9 @@ export function useRedeployTargets(scope: RedeployScope | null): RedeployTarget[
   const environments = useEnvironments().data;
   const live = useCurrentDeployment({ enabled: scope !== null }).data;
   const scoped = scope
-    ? productionFirst(environments ?? []).filter((environment) => inScope(scope, environment))
+    ? productionFirst(environments ?? []).filter((environment) =>
+        inRedeployScope(scope, environment),
+      )
     : [];
   const newest = useQueries({
     queries: scoped.map((environment) =>
@@ -130,9 +132,12 @@ export function useRedeployTargets(scope: RedeployScope | null): RedeployTarget[
   });
 }
 
-function inScope(scope: RedeployScope, environment: Environment): boolean {
+export function inRedeployScope(
+  scope: RedeployScope,
+  environment: Pick<Environment, "id" | "appId" | "kind">,
+): boolean {
   return scope.kind === "app"
-    ? environment.kind === ENVIRONMENT_KIND.production
+    ? environment.appId === scope.appId && environment.kind === ENVIRONMENT_KIND.production
     : scope.environmentIds.includes(environment.id);
 }
 

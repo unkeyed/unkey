@@ -45,7 +45,9 @@ export function trackSave<T>(promise: Promise<T>, scope: RedeployScope): Promise
 
 // An app-wide change applies to production. Each save passes a fresh object, so
 // the timer of an earlier save cannot dismiss a later one.
-export type RedeployScope = { kind: "app" } | { kind: "environments"; environmentIds: string[] };
+export type RedeployScope =
+  | { kind: "app"; appId: string }
+  | { kind: "environments"; environmentIds: string[] };
 
 export function showSettingsBanner(scope: RedeployScope): void {
   saveStore.target = scope;

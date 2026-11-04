@@ -1,5 +1,7 @@
+import type { RedeployScope } from "@/lib/collections/deploy/pending-redeploy";
 import { QueryClient } from "@tanstack/react-query";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
+import { newId } from "@unkey/id";
 import { describe, expect, it, vi } from "vitest";
 
 function projectNotFound(): NotFoundErrorResponse {
@@ -35,7 +37,9 @@ vi.mock("@/lib/unkey-client", () => ({
 }));
 vi.mock("@unkey/ui", () => ({ toast: { promise: vi.fn() } }));
 
-const { deploymentsPollIntervalMs, recentDeploymentsOptions } = await import("./deployments");
+const { deploymentsPollIntervalMs, inRedeployScope, recentDeploymentsOptions } = await import(
+  "./deployments"
+);
 
 describe("recentDeploymentsOptions", () => {
   it("lists nothing when the API reports the project as not found", async () => {
@@ -51,6 +55,25 @@ describe("recentDeploymentsOptions", () => {
       expect.objectContaining({ project: projectId }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+  });
+});
+
+describe("inRedeployScope", () => {
+  const appId = newId("app");
+  const production = { id: newId("environment"), appId, kind: "production" } as const;
+  const preview = { id: newId("environment"), appId, kind: "preview" } as const;
+
+  it("scopes an app-wide change to that app's production", () => {
+    const scope: RedeployScope = { kind: "app", appId };
+    expect(inRedeployScope(scope, production)).toBe(true);
+    expect(inRedeployScope(scope, preview)).toBe(false);
+    expect(inRedeployScope({ kind: "app", appId: newId("app") }, production)).toBe(false);
+  });
+
+  it("scopes an environment change to the environments that were written", () => {
+    const scope: RedeployScope = { kind: "environments", environmentIds: [preview.id] };
+    expect(inRedeployScope(scope, preview)).toBe(true);
+    expect(inRedeployScope(scope, production)).toBe(false);
   });
 });
 
