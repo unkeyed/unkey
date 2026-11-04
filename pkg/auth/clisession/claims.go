@@ -8,6 +8,7 @@
 package clisession
 
 import (
+	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/jwt"
@@ -38,4 +39,11 @@ type Claims struct {
 	TokenUse    string   `json:"token_use"`
 	Name        string   `json:"name,omitempty"`
 	Device      string   `json:"device,omitempty"`
+}
+
+// issuedToMCPClient reports whether an MCP client holds the token. Tokens
+// issued through OAuth carry the MCP server's resource in aud beside
+// [Audience]; CLI tokens carry only [Audience].
+func (c Claims) issuedToMCPClient() bool {
+	return slices.ContainsFunc(c.Audience, func(aud string) bool { return aud != Audience })
 }

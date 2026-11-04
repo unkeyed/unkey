@@ -141,6 +141,39 @@ func TestResolverRejectsRevokedAndExpiredSessions(t *testing.T) {
 	requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
 }
 
+func TestResolverTellsEachClientHowToSignInAgain(t *testing.T) {
+	tests := []struct {
+		name     string
+		audience []string
+		want     string
+	}{
+		{
+			name:     "cli",
+			audience: []string{Audience},
+			want:     "This CLI session is no longer valid. Run unkey login again.",
+		},
+		{
+			name:     "mcp",
+			audience: []string{Audience, "https://mcp.unkey.com"},
+			want:     "This MCP session is no longer valid. Sign in to the Unkey MCP server again from your MCP client.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clk := clock.NewTestClock()
+			claims := newTokenFixture().claims(clk)
+			claims.Audience = tt.audience
+			resolver, err := NewResolver(fakeSessions{session: Session{}, err: ErrInactive}, clk, []byte(testSecret))
+			require.NoError(t, err)
+
+			_, err = resolver.Resolve(context.Background(), bearerSession(t, sign(t, testSecret, claims)))
+			requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
+			require.Equal(t, tt.want, fault.UserFacingMessage(err))
+		})
+	}
+}
+
 func TestResolverRejectsTokensThatDoNotMatchTheSession(t *testing.T) {
 	tests := []struct {
 		name     string

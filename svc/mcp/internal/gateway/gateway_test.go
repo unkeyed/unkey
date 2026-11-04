@@ -189,7 +189,7 @@ func TestRejectedSessionTokenGetsChallenge(t *testing.T) {
 	root := http.Header{"Authorization": {"Bearer " + newRootKey()}}
 	h.api.respond(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
 		Meta:  openapi.Meta{RequestId: uid.New(uid.RequestPrefix)},
-		Error: openapi.BaseError{Title: "Unauthorized", Detail: "This CLI session is no longer valid. Run unkey login again.", Status: http.StatusUnauthorized, Type: "https://unkey.com/docs/errors/unkey/authentication/credential_rejected"},
+		Error: openapi.BaseError{Title: "Unauthorized", Detail: "This MCP session is no longer valid. Sign in to the Unkey MCP server again from your MCP client.", Status: http.StatusUnauthorized, Type: "https://unkey.com/docs/errors/unkey/authentication/credential_rejected"},
 	})
 
 	for _, header := range []http.Header{oauth, root} {

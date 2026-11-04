@@ -111,7 +111,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			return nil, fault.Wrap(err,
 				fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
 				fault.Internal("cli session is revoked, expired, or unknown"),
-				fault.Public("This CLI session is no longer valid. Run unkey login again."),
+				fault.Public(sessionEndedMessage(claims)),
 			)
 		}
 
@@ -146,6 +146,13 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		AuthorizedWorkspaceID: claims.WorkspaceID,
 		Permissions:           claims.Permissions,
 	}, nil
+}
+
+func sessionEndedMessage(claims Claims) string {
+	if claims.issuedToMCPClient() {
+		return "This MCP session is no longer valid. Sign in to the Unkey MCP server again from your MCP client."
+	}
+	return "This CLI session is no longer valid. Run unkey login again."
 }
 
 func (r *Resolver) verify(token string) (Claims, error) {
