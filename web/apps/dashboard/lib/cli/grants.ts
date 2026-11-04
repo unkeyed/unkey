@@ -8,7 +8,11 @@ import {
   offeredActions,
   resolveInstance,
 } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/catalogue.types";
-import { rowActionUrns } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/urn";
+import type { Policy } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/policy";
+import {
+  buildUrns,
+  rowActionUrns,
+} from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/urn";
 import { parseUrnPermissionParts } from "@unkey/rbac";
 
 export function uncoveredPermissions(
@@ -31,6 +35,14 @@ export function uncoveredPermissions(
       )
     );
   });
+}
+
+export function canGrant(
+  grantable: readonly string[],
+  workspaceId: string,
+  policies: Policy[],
+): boolean {
+  return uncoveredPermissions(grantable, buildUrns(workspaceId, policies)).length === 0;
 }
 
 function resourceCovers(pattern: string, target: string): boolean {

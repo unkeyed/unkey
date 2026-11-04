@@ -5,6 +5,8 @@ import { type SummaryTemplateId, permissionSummary } from "./permission-summary"
 const TEMPLATE_LABELS: Record<SummaryTemplateId, string> = {
   read: "All read",
   write: "All write",
+  "compute-read": "Compute read",
+  "compute-write": "Compute full control",
   verify: "Verify keys",
   ratelimit: "Ratelimiting",
 };
