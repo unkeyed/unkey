@@ -7,17 +7,16 @@ type LoadMoreListConfig<TPage, TRow> = {
   fetchPage: (page: number, signal: AbortSignal | undefined) => Promise<TPage>;
   rowsOf: (page: TPage) => TRow[];
   pageSize: number;
-  paused?: boolean;
 } & ShownRows<TRow>;
 
 export function useLoadMoreList<TPage, TRow>(config: LoadMoreListConfig<TPage, TRow>) {
-  const { queryKey, fetchPage, rowsOf, idOf, mapRows, pageSize, paused = false } = config;
+  const { queryKey, fetchPage, rowsOf, idOf, mapRows, pageSize } = config;
 
   const query = useInfiniteQuery({
     queryKey,
     queryFn: ({ pageParam = 1, signal }) => fetchPage(pageParam, signal),
     getNextPageParam: (lastPage, allPages) => {
-      const hasMore = !paused && rowsOf(lastPage).length >= pageSize;
+      const hasMore = rowsOf(lastPage).length >= pageSize;
       return hasMore ? allPages.length + 1 : undefined;
     },
     ...PAGINATED_LIST_QUERY_OPTIONS,
@@ -31,7 +30,7 @@ export function useLoadMoreList<TPage, TRow>(config: LoadMoreListConfig<TPage, T
     totalCount: shownTotalOf({
       loaded: table.rows.length,
       total: null,
-      hasMore: paused || query.hasNextPage === true,
+      hasMore: query.hasNextPage === true,
     }),
   };
 }

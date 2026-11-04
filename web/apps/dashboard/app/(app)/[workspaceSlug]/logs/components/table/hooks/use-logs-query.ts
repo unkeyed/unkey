@@ -1,9 +1,10 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { useLiveTail } from "@/hooks/use-live-tail";
 import { listApiRequests, toApiRequestsFilters } from "@/lib/api-request-logs";
 import { shownTotalOf, tableStateOf, useInfiniteList } from "@/lib/loadable/list";
 import { queryKeys } from "@/lib/query-keys";
 import { useQueryTime } from "@/providers/query-time-provider";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useFilters } from "../../../hooks/use-filters";
 import { useRequestTotal } from "../../charts/hooks/use-fetch-timeseries";
@@ -14,6 +15,7 @@ const LIVE_POLL_INTERVAL_MS = 2_000;
 type ApiRequestsPage = Awaited<ReturnType<typeof listApiRequests>>;
 
 const logsOf = (page: ApiRequestsPage) => page.logs;
+const requestIdOf = (log: ApiRequestsPage["logs"][number]) => log.request_id;
 
 export function useLogsQuery({ isLive }: { isLive: boolean }) {
   const { filters } = useFilters();
@@ -45,28 +47,28 @@ export function useLogsQuery({ isLive }: { isLive: boolean }) {
     refetchOnWindowFocus: false,
   });
 
-  // Live mode re-reads the newest rows with no upper time bound. API instances
-  // flush their logs late and out of order, so asking for the newest rows each
-  // time, instead of the rows after the last one seen, also catches late rows
-  const liveFilters = { ...apiFilters, time: { gte: apiFilters.time?.gte } };
-  const live = useQuery({
-    queryKey: queryKeys.logs.apiRequests.live(liveFilters, PAGE_SIZE),
-    queryFn: ({ signal }) => listApiRequests({ limit: PAGE_SIZE, filters: liveFilters }, signal),
-    enabled: isLive,
-    refetchInterval: LIVE_POLL_INTERVAL_MS,
-  });
-
   const table = tableStateOf(useInfiniteList(pages, logsOf));
   const historicalLogs = table.rows;
   const requestTotal = useRequestTotal();
 
-  const realtimeLogs = useMemo(() => {
-    if (!isLive) {
-      return [];
-    }
-    const historicalIds = new Set(historicalLogs.map((log) => log.request_id));
-    return (live.data?.logs ?? []).filter((log) => !historicalIds.has(log.request_id));
-  }, [isLive, live.data, historicalLogs]);
+  const realtimeLogs = useLiveTail({
+    enabled: isLive,
+    intervalMs: LIVE_POLL_INTERVAL_MS,
+    queryKey: queryKeys.logs.apiRequests.live(apiFilters, PAGE_SIZE),
+    windowStart: apiFilters.time?.gte ?? timestamp - HISTORICAL_DATA_WINDOW,
+    fetchNewest: async (window, signal) => {
+      const page = await listApiRequests(
+        {
+          limit: PAGE_SIZE,
+          filters: { ...apiFilters, time: { gte: window.startTime, lte: window.endTime } },
+        },
+        signal,
+      );
+      return page.logs;
+    },
+    keyOf: requestIdOf,
+    historical: historicalLogs,
+  });
 
   return {
     realtimeLogs,

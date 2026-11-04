@@ -157,9 +157,10 @@ export function useRuntimeLogsQuery({
     enabled: startPolling,
     intervalMs: pollIntervalMs,
     queryKey: getQueryKey(trpc.deploy.runtimeLogs.query, queryInput),
-    fetchNewest: async (signal) => {
+    windowStart: queryInput.startTime,
+    fetchNewest: async (window, signal) => {
       const page = await trpcClient.deploy.runtimeLogs.query.query(
-        { ...queryInput, page: 1, endTime: Date.now() },
+        { ...queryInput, ...window, page: 1 },
         { signal },
       );
       return page.logs;

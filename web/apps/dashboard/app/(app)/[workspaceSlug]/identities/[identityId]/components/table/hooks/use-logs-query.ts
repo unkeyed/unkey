@@ -120,9 +120,10 @@ export const useIdentityLogsQuery = ({
     enabled: startPolling,
     intervalMs: pollIntervalMs,
     queryKey: getQueryKey(trpc.identity.logs.query, queryParams),
-    fetchNewest: async (signal) => {
+    windowStart: queryParams.startTime,
+    fetchNewest: async (window, signal) => {
       const page = await trpcClient.identity.logs.query.query(
-        { ...queryParams, endTime: Date.now() },
+        { ...queryParams, ...window, since: "" },
         { signal },
       );
       return page.logs;

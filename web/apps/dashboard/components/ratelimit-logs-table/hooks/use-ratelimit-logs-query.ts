@@ -318,9 +318,10 @@ export function useRatelimitLogsQuery({
     enabled: startPolling,
     intervalMs: pollIntervalMs,
     queryKey: getQueryKey(trpc.ratelimit.logs.query, queryParams),
-    fetchNewest: async (signal) => {
+    windowStart: queryParams.startTime,
+    fetchNewest: async (window, signal) => {
       const page = await trpcClient.ratelimit.logs.query.query(
-        { ...queryParams, endTime: Date.now(), page: 1 },
+        { ...queryParams, ...window, page: 1 },
         { signal },
       );
       fetchEnrichment(page.ratelimitLogs);
