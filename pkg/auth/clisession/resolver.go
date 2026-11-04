@@ -77,7 +77,10 @@ func NewResolver(sessions Sessions, clk clock.Clock, secrets ...[]byte) (*Resolv
 	}, nil
 }
 
-// Resolve claims CLI access tokens and leaves every other bearer for later resolvers.
+// Resolve claims CLI access tokens and leaves every other bearer for later
+// resolvers. Once the token_use claim marks a token as a CLI access token,
+// every refusal is CredentialRejected, so the chain reports it over a sibling
+// resolver's rejection of the same token.
 func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.Principal, error) {
 	token, err := zen.Bearer(sess)
 	if err != nil || tokenUse(token) != TokenUse {
@@ -87,7 +90,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	claims, err := r.verify(token)
 	if err != nil {
 		return nil, fault.Wrap(err,
-			fault.Code(codes.Auth.Authentication.Malformed.URN()),
+			fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
 			fault.Internal("failed to verify cli access token"),
 			fault.Public("Invalid bearer token."),
 		)
@@ -96,7 +99,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	if claims.Subject == "" || claims.SessionID == "" ||
 		claims.WorkspaceID == "" || len(claims.Permissions) == 0 {
 		return nil, fault.New("invalid cli access token",
-			fault.Code(codes.Auth.Authentication.Malformed.URN()),
+			fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
 			fault.Internal("cli token is missing subject, session, workspace, or permissions"),
 			fault.Public("Invalid bearer token."),
 		)
@@ -106,7 +109,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 	if err != nil {
 		if errors.Is(err, ErrInactive) {
 			return nil, fault.Wrap(err,
-				fault.Code(codes.Auth.Authentication.Malformed.URN()),
+				fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
 				fault.Internal("cli session is revoked, expired, or unknown"),
 				fault.Public("This CLI session is no longer valid. Run unkey login again."),
 			)
@@ -121,7 +124,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 
 	if session.UserID != claims.Subject || session.WorkspaceID != claims.WorkspaceID {
 		return nil, fault.New("cli token does not match the session",
-			fault.Code(codes.Auth.Authentication.Malformed.URN()),
+			fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
 			fault.Internal("cli token subject or workspace does not match the session row"),
 			fault.Public("Invalid bearer token."),
 		)

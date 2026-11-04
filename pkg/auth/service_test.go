@@ -217,6 +217,43 @@ func TestServiceAuthenticate_PrefersAuthorizationOverAuthentication(t *testing.T
 	})
 }
 
+// TestServiceAuthenticate_PrefersOwnerRejection verifies that a resolver that
+// recognized the credential as its own and refused it (CredentialRejected,
+// 401) outranks every sibling error, in every ordering. The dashboard JWT
+// resolver also tries a revoked CLI session token and calls it malformed;
+// without this the client gets 400 "Invalid bearer token." instead of the 401
+// that tells it the session ended and it must sign in again.
+func TestServiceAuthenticate_PrefersOwnerRejection(t *testing.T) {
+	t.Parallel()
+
+	ownerErr := fault.New("session revoked",
+		fault.Code(codes.Auth.Authentication.CredentialRejected.URN()),
+		fault.Public("This CLI session is no longer valid. Run unkey login again."),
+	)
+	siblings := map[string]error{
+		"authentication": fault.New("bad credential",
+			fault.Code(codes.Auth.Authentication.Malformed.URN()),
+			fault.Public("Invalid bearer token."),
+		),
+		"authorization": fault.New("no workspace",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+		),
+		"infrastructure": fault.New("jwks down",
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+		),
+	}
+	for name, siblingErr := range siblings {
+		for _, order := range [][]error{{siblingErr, ownerErr}, {ownerErr, siblingErr}} {
+			service := New(&stubResolver{err: order[0]}, &stubResolver{err: order[1]})
+
+			got, err := service.Authenticate(context.Background(), &zen.Session{})
+
+			require.Nil(t, got)
+			require.ErrorIs(t, err, ownerErr, name)
+		}
+	}
+}
+
 // TestServiceAuthenticate_InfrastructureFailureDoesNotMaskSuccess verifies a
 // resolver that errors for infrastructure reasons never blocks a later resolver
 // that can actually authenticate the request, so a degraded resolver entry
