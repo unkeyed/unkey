@@ -381,7 +381,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 func (h *Handler) applyGitChange(
 	ctx context.Context,
 	tx db.DBTX,
-	app db.FindAppByProjectAndIdOrSlugRow,
+	app db.App,
 	git nullable.Nullable[openapi.AppGitUpdateInput],
 ) (*openapi.AppGit, error) {
 

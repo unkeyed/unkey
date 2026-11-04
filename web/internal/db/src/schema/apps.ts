@@ -1,12 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  boolean,
-  index,
-  mysqlEnum,
-  mysqlTable,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/mysql-core";
+import { index, mysqlEnum, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 import { appSourceOci } from "./app_source_oci";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
@@ -28,9 +21,6 @@ export const apps = mysqlTable(
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
     sourceType: mysqlEnum("source_type", ["unknown", "git", "oci"]).notNull().default("unknown"),
-
-    currentDeploymentId: id("current_deployment_id"),
-    isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
     ...deleteProtection,
     ...lifecycleDates,
