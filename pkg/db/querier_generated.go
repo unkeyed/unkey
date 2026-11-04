@@ -364,7 +364,7 @@ type Querier interface {
 	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
 	//  FROM apps
 	//  WHERE id = ?
-	FindAppById(ctx context.Context, db DBTX, id string) (FindAppByIdRow, error)
+	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
 	// Resolves an app by id within a workspace.
 	//
 	// app_find_by_id.sql has no workspace predicate, and the project-scoped finders
@@ -394,7 +394,7 @@ type Querier interface {
 	//    AND (p.id = ? OR p.slug = ?)
 	//    AND (a.id = ? OR a.slug = ?)
 	//  LIMIT 1
-	FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (FindAppByProjectAndIdOrSlugRow, error)
+	FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (App, error)
 	//FindAppByProjectAndSlug
 	//
 	//  SELECT

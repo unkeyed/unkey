@@ -53,7 +53,7 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		return app.ID, slug
 	}
 
-	getApp := func(t *testing.T, id string) db.FindAppByIdRow {
+	getApp := func(t *testing.T, id string) db.App {
 		t.Helper()
 		app, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
 		require.NoError(t, err)

@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const findAppByProjectAndIdOrSlug = `-- name: FindAppByProjectAndIdOrSlug :one
@@ -28,20 +27,6 @@ type FindAppByProjectAndIdOrSlugParams struct {
 	App         string `db:"app"`
 }
 
-type FindAppByProjectAndIdOrSlugRow struct {
-	Pk               uint64         `db:"pk"`
-	ID               string         `db:"id"`
-	WorkspaceID      string         `db:"workspace_id"`
-	ProjectID        string         `db:"project_id"`
-	Name             string         `db:"name"`
-	Slug             string         `db:"slug"`
-	SourceType       AppsSourceType `db:"source_type"`
-	DeleteProtection sql.NullBool   `db:"delete_protection"`
-	CreatedAt        int64          `db:"created_at"`
-	UpdatedAt        sql.NullInt64  `db:"updated_at"`
-	DeletedAt        sql.NullInt64  `db:"deleted_at"`
-}
-
 // FindAppByProjectAndIdOrSlug
 //
 //	SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.delete_protection, a.created_at, a.updated_at, a.deleted_at
@@ -53,7 +38,7 @@ type FindAppByProjectAndIdOrSlugRow struct {
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)
 //	LIMIT 1
-func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (FindAppByProjectAndIdOrSlugRow, error) {
+func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg FindAppByProjectAndIdOrSlugParams) (App, error) {
 	row := db.QueryRowContext(ctx, findAppByProjectAndIdOrSlug,
 		arg.WorkspaceID,
 		arg.Project,
@@ -61,7 +46,7 @@ func (q *Queries) FindAppByProjectAndIdOrSlug(ctx context.Context, db DBTX, arg 
 		arg.App,
 		arg.App,
 	)
-	var i FindAppByProjectAndIdOrSlugRow
+	var i App
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,

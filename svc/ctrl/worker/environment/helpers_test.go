@@ -41,7 +41,7 @@ type fixture struct {
 	restate     containers.RestateConfig
 	workspaceID string
 	project     db.Project
-	app         db.FindAppByIdRow
+	app         db.App
 	env         db.Environment
 	live        db.Deployment
 	candidate   db.Deployment
