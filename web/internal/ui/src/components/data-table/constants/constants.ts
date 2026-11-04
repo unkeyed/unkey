@@ -1,5 +1,7 @@
 import type { DataTableConfig } from "../types";
 
+export const EMPTY_ROWS: readonly never[] = [];
+
 export const DEFAULT_CONFIG: DataTableConfig = {
   rowHeight: 36,
   headerHeight: 40,

@@ -20,6 +20,8 @@ import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
 
+const EMPTY_ROWS: readonly never[] = [];
+
 const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
   return columns.map((column) => {
     let width = "auto";
@@ -41,7 +43,7 @@ const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
 export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
   const {
     data: historicData,
-    realtimeData = [],
+    realtimeData = EMPTY_ROWS,
     columns,
     isLoading = false,
     config: userConfig,

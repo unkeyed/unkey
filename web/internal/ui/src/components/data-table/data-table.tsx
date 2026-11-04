@@ -6,6 +6,7 @@ import {
   type ReactNode,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { cn } from "../../lib/utils";
@@ -14,10 +15,10 @@ import { TableLoadMore } from "./components/footer/table-load-more";
 import { SkeletonRow } from "./components/rows/skeleton-row";
 import { DataTableEmptyState } from "./components/utils/empty-state";
 import { RealtimeSeparator } from "./components/utils/realtime-separator";
-import { DEFAULT_CONFIG } from "./constants/constants";
+import { DEFAULT_CONFIG, EMPTY_ROWS } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
 import { usePinnedTableHeader } from "./hooks/use-pinned-table-header";
-import { NO_REALTIME_ROWS, useRealtimeData } from "./hooks/use-realtime-data";
+import { useRealtimeData } from "./hooks/use-realtime-data";
 import type { DataTableProps } from "./types";
 import { calculateColumnWidth } from "./utils/column-width";
 import { stripeIndexOf, useLiveStripeShift } from "./utils/stripe";
@@ -40,9 +41,9 @@ function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPa
 export function DataTable<TData>(props: DataTableProps<TData>) {
   const {
     data: historicData,
-    realtimeData = NO_REALTIME_ROWS,
+    realtimeData = EMPTY_ROWS,
     columns,
-    getRowId,
+    getRowId: getRowIdLatest,
     sorting,
     onSortingChange,
     rowSelection,
@@ -63,6 +64,10 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
     isLoading = false,
     renderSkeletonRow,
   } = props;
+
+  const getRowIdRef = useRef(getRowIdLatest);
+  getRowIdRef.current = getRowIdLatest;
+  const getRowId = useCallback((row: TData) => getRowIdRef.current(row), []);
 
   // Merge configs
   const config = useMemo(() => ({ ...DEFAULT_CONFIG, ...userConfig }), [userConfig]);

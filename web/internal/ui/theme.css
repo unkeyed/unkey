@@ -15,6 +15,15 @@ When to use certain tokens:
 
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant pinned (@media (width >= 48rem) and (height >= 40rem));
+@custom-variant disabled-state (&:is(:disabled, [data-disabled]));
+
+@utility scrollbar-hide {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
 
 @theme {
   --radius-control: 0.375rem;
@@ -54,6 +63,7 @@ When to use certain tokens:
 
   --animate-marquee: marquee 15s linear infinite;
   --animate-fade-slide-in: fade-slide-in 0.3s ease-out forwards;
+  --animate-fade-slide-in-fast: fade-slide-in 160ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
   --animate-fade-in: fade-in 0.5s ease-out;
   --animate-fade-in-down: fade-in-down 0.3s ease-out backwards;
   --animate-slide-in-from-bottom: slide-in-from-bottom 0.3s ease-out;

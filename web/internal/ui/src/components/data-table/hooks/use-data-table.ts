@@ -56,6 +56,7 @@ export const useDataTable = <TData>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: enableSorting && !manualSorting ? getSortedRowModel() : undefined,
     manualSorting,
+    autoResetPageIndex: false,
 
     // Sorting state
     state: {

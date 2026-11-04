@@ -19,7 +19,6 @@ export type { StatusStyle } from "./constants";
 
 // Hooks
 export { useDataTable } from "./hooks/use-data-table";
-export { useRealtimeData } from "./hooks/use-realtime-data";
 export { usePinnedTableHeader } from "./hooks/use-pinned-table-header";
 
 // Cell components

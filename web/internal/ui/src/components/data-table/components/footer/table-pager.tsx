@@ -32,7 +32,7 @@ export function TablePager(props: TablePagerProps) {
   }
   return (
     <ControlsEndPortal>
-      <div className="flex shrink-0 items-center gap-1 text-sm font-medium tabular-nums text-gray-12 [&_nav_button]:text-gray-12 [&_nav_button:disabled]:text-grayA-7">
+      <div className="flex shrink-0 items-center gap-1 text-sm font-medium tabular-nums text-gray-12">
         {props.mode === "cursor" ? <CursorPager {...props} /> : <PagesPager {...props} />}
       </div>
     </ControlsEndPortal>
@@ -50,6 +50,7 @@ function CursorPager({
       <span className="whitespace-nowrap px-1">Page {page}</span>
       {page > 1 || hasNextPage ? (
         <PaginationControls
+          tone="strong"
           label="Pagination navigation"
           hasPrevious={!disabled && page > 1}
           hasNext={!disabled && hasNextPage}
@@ -98,6 +99,7 @@ function PagesPager({
       </Popover>
       {totalPages > 1 ? (
         <PaginationControls
+          tone="strong"
           label="Pagination navigation"
           hasPrevious={!disabled && shownPage > 1}
           hasNext={!disabled && shownPage < totalPages}
@@ -141,14 +143,12 @@ function PageJump({
       <label htmlFor={inputId}>Go to page</label>
       <Input
         id={inputId}
-        type="number"
+        type="text"
         inputMode="numeric"
-        min={1}
-        max={totalPages}
         value={draft}
         readOnly={disabled}
         aria-disabled={disabled || undefined}
-        onChange={(event) => setDraft(event.target.value)}
+        onChange={(event) => setDraft(event.target.value.replace(/\D/g, ""))}
         onBlur={discard}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
@@ -158,7 +158,7 @@ function PageJump({
             discard();
           }
         }}
-        className="h-7 w-14 text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        className="h-7 w-14 text-center tabular-nums"
       />
       <span className="tabular-nums">of {totalPages}</span>
     </div>

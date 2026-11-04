@@ -60,7 +60,7 @@ export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
 };
 
 const buttonVariants = cva(
-  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition motion-safe:active:not-disabled:not-aria-disabled:scale-97 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed cursor-pointer",
+  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition motion-safe:active:not-disabled-state:not-aria-disabled:scale-97 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled-state:cursor-not-allowed cursor-pointer",
   {
     variants: {
       variant: {
@@ -73,20 +73,20 @@ const buttonVariants = cva(
           "dark:after:-inset-px dark:after:rounded-md",
           "hover:after:bg-white/10 active:after:bg-white/10 dark:hover:after:bg-white/5 dark:active:after:bg-white/5",
           "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:border-transparent disabled:bg-grayA-3 disabled:text-grayA-9 disabled:shadow-none",
-          "after:transition-opacity after:duration-150 motion-reduce:after:transition-none disabled:after:opacity-0 aria-disabled:after:opacity-0",
+          "disabled-state:border-transparent disabled-state:bg-grayA-3 disabled-state:text-grayA-9 disabled-state:shadow-none",
+          "after:transition-opacity after:duration-150 motion-reduce:after:transition-none disabled-state:after:opacity-0 aria-disabled:after:opacity-0",
         ],
         outline: [
           "p-2 text-gray-12 bg-transparent border dark:border-input hover:bg-grayA-3 focus:hover:bg-transparent rounded-md",
           "aria-expanded:bg-grayA-3 aria-expanded:text-gray-12",
           "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7",
+          "disabled-state:border disabled-state:border-solid disabled-state:border-grayA-5 disabled-state:text-grayA-7",
           "active:bg-grayA-4",
         ],
         ghost: [
           "p-2 text-gray-12 bg-transparent hover:bg-grayA-4 rounded-md focus:hover:bg-transparent",
           "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:border disabled:border-grayA-4 disabled:text-grayA-7",
+          "disabled-state:border disabled-state:border-grayA-4 disabled-state:text-grayA-7",
           "active:bg-grayA-5",
         ],
       },
@@ -122,7 +122,7 @@ const buttonVariants = cva(
           "dark:bg-white dark:text-black dark:hover:after:bg-black/5 dark:active:after:bg-black/5",
           "[&_svg]:text-white/60 hover:[&_svg]:text-white/80 active:[&_svg]:text-white/80",
           "dark:[&_svg]:text-black/55 dark:hover:[&_svg]:text-black/40 dark:active:[&_svg]:text-black/40",
-          "disabled:[&_svg]:text-grayA-8 dark:disabled:[&_svg]:text-grayA-8",
+          "disabled-state:[&_svg]:text-grayA-8 dark:disabled-state:[&_svg]:text-grayA-8",
         ],
       },
       {
@@ -131,7 +131,7 @@ const buttonVariants = cva(
         className: [
           "dark:text-white/95 bg-error-9 hover:bg-error-10 rounded-md focus:hover:bg-error-10 ",
           "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:bg-error-7 disabled:text-white/80  dark:disabled:text-white/80",
+          "disabled-state:bg-error-7 disabled-state:text-white/80  dark:disabled-state:text-white/80",
           "active:bg-error-11",
         ],
       },
@@ -139,7 +139,7 @@ const buttonVariants = cva(
         variant: "outline",
         color: "danger",
         className:
-          "text-error-11 focus:border-error-11 focus:ring-error-4 disabled:text-errorA-7 active:bg-error-3",
+          "text-error-11 focus:border-error-11 focus:ring-error-4 disabled-state:text-errorA-7 active:bg-error-3",
       },
       {
         variant: "ghost",
@@ -147,7 +147,7 @@ const buttonVariants = cva(
         className: [
           "text-error-11 bg-transparent hover:bg-error-3 rounded-md",
           "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-errorA-7",
+          "disabled-state:text-errorA-7",
           "active:bg-error-4",
         ],
       },
@@ -157,7 +157,7 @@ const buttonVariants = cva(
         className: [
           "dark:text-white/95 bg-warning-8 hover:bg-warning-8/90 rounded-md focus:hover:bg-warning-8/90",
           "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:bg-warning-7 disabled:text-white/80  dark:disabled:text-white/80",
+          "disabled-state:bg-warning-7 disabled-state:text-white/80  dark:disabled-state:text-white/80",
           "active:bg-warning-9",
         ],
       },
@@ -165,7 +165,7 @@ const buttonVariants = cva(
         variant: "outline",
         color: "warning",
         className:
-          "text-warningA-11 focus:border-warning-11 focus:ring-warning-4 disabled:text-warningA-7 active:bg-warning-3",
+          "text-warningA-11 focus:border-warning-11 focus:ring-warning-4 disabled-state:text-warningA-7 active:bg-warning-3",
       },
       {
         variant: "ghost",
@@ -173,7 +173,7 @@ const buttonVariants = cva(
         className: [
           "text-warning-11 bg-transparent hover:bg-warning-3 rounded-md",
           "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-warningA-7",
+          "disabled-state:text-warningA-7",
           "active:bg-warning-4",
         ],
       },
@@ -183,7 +183,7 @@ const buttonVariants = cva(
         className: [
           "dark:text-white/95 bg-success-9 hover:bg-success-10 rounded-md focus:hover:bg-success-10",
           "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:bg-success-7 disabled:text-white/80  dark:disabled:text-white/80",
+          "disabled-state:bg-success-7 disabled-state:text-white/80  dark:disabled-state:text-white/80",
           "active:bg-success-11",
         ],
       },
@@ -191,7 +191,7 @@ const buttonVariants = cva(
         variant: "outline",
         color: "success",
         className:
-          "text-success-11 focus:border-success-11 focus:ring-success-4 disabled:text-successA-7 active:bg-success-3",
+          "text-success-11 focus:border-success-11 focus:ring-success-4 disabled-state:text-successA-7 active:bg-success-3",
       },
       {
         variant: "ghost",
@@ -199,7 +199,7 @@ const buttonVariants = cva(
         className: [
           "text-success-11 bg-transparent hover:bg-success-3 rounded-md",
           "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-successA-7",
+          "disabled-state:text-successA-7",
           "active:bg-success-4",
         ],
       },
@@ -210,7 +210,7 @@ const buttonVariants = cva(
         className: [
           "dark:text-white/95 bg-info-9 hover:bg-info-10 rounded-md focus:hover:bg-info-10",
           "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:bg-info-7 disabled:text-white/80  dark:disabled:text-white/80",
+          "disabled-state:bg-info-7 disabled-state:text-white/80  dark:disabled-state:text-white/80",
           "active:bg-info-11",
         ],
       },
@@ -218,7 +218,7 @@ const buttonVariants = cva(
         variant: "outline",
         color: "info",
         className:
-          "text-info-11 focus:border-info-11 focus:ring-info-4 disabled:text-infoA-7 active:bg-info-3",
+          "text-info-11 focus:border-info-11 focus:ring-info-4 disabled-state:text-infoA-7 active:bg-info-3",
       },
       {
         variant: "ghost",
@@ -226,7 +226,7 @@ const buttonVariants = cva(
         className: [
           "text-info-11 bg-transparent hover:bg-info-3 rounded-md",
           "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-infoA-7",
+          "disabled-state:text-infoA-7",
           "active:bg-info-4",
         ],
       },
@@ -268,6 +268,7 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
      * Optional label for screen readers when in loading state
      */
     loadingLabel?: string;
+    focusableWhenDisabled?: boolean;
     ref?: React.Ref<HTMLButtonElement>;
   };
 
@@ -310,6 +311,7 @@ function Button({
   loading,
   disabled,
   loadingLabel = "Loading, please wait",
+  focusableWhenDisabled,
   ref,
   onClick,
   "aria-disabled": ariaDisabled,
@@ -390,6 +392,7 @@ function Button({
       )}
       onClick={loading ? undefined : onClick}
       disabled={isVisuallyDisabled}
+      focusableWhenDisabled={focusableWhenDisabled}
       aria-disabled={loading || (ariaDisabled ?? isClickDisabled)}
       aria-busy={loading}
       ref={ref}
