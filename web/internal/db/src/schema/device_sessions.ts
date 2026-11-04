@@ -14,8 +14,6 @@ export const deviceSessions = mysqlTable(
     userName: varchar("user_name", { length: 256 }),
     permissions: json("permissions").$type<string[]>().notNull(),
     deviceName: varchar("device_name", { length: 512 }),
-    // A stateless dynamic registration client id embeds the registration, so
-    // it is far longer than a metadata document URL.
     oauthClientId: caseSensitiveVarchar("oauth_client_id", { length: 2048 }),
     resource: caseSensitiveVarchar("resource", { length: 512 }),
     refreshTokenHash: caseSensitiveVarchar("refresh_token_hash", { length: 256 })

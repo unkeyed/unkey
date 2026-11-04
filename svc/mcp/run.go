@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -56,10 +57,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	clk := clock.New()
 	rejected, err := cache.New(cache.Config[[sha256.Size]byte, struct{}]{
-		// API access tokens live 15 minutes, so an entry outlives the token it
-		// blocks. After the token's exp, the gate rejects it without a lookup.
-		Fresh:     15 * time.Minute,
-		Stale:     15 * time.Minute,
+		Fresh:     clisession.AccessTokenLifetime,
+		Stale:     clisession.AccessTokenLifetime,
 		MaxSize:   100_000,
 		Resource:  "mcp_rejected_session_token",
 		Clock:     clk,

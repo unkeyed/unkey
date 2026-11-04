@@ -7,7 +7,11 @@
 // request.
 package clisession
 
-import "github.com/unkeyed/unkey/pkg/jwt"
+import (
+	"time"
+
+	"github.com/unkeyed/unkey/pkg/jwt"
+)
 
 const (
 	// TokenUse marks a JWT as a CLI access token. Resolvers ignore bearers
@@ -19,6 +23,9 @@ const (
 
 	// Audience is the aud claim Unkey puts on CLI access tokens.
 	Audience = "unkey-api"
+
+	// AccessTokenLifetime is how long a CLI or MCP access token is valid.
+	AccessTokenLifetime = 15 * time.Minute
 )
 
 // Claims is the payload of a CLI access token.

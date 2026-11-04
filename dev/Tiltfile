@@ -752,7 +752,6 @@ k8s_resource(
 )
 
 
-# ─── MCP (the Unkey API as MCP tools, forwards to the local API) ───────────
 go_service_image('unkey/mcp:dev', 'mcp')
 k8s_yaml('k8s/manifests/mcp.yaml')
 k8s_resource(

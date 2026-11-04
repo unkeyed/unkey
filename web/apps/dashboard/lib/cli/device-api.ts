@@ -7,6 +7,8 @@ export type CliSession = Awaited<
   ReturnType<Unkey["cli"]["listSessions"]>
 >["data"]["sessions"][number];
 
+export type OAuthClientRedirect = string | undefined;
+
 const requestOptions = { retries: { strategy: "none" } } satisfies RequestOptions;
 
 export async function getDeviceLogin(userCode: string): Promise<DeviceLogin> {
@@ -14,31 +16,25 @@ export async function getDeviceLogin(userCode: string): Promise<DeviceLogin> {
   return response.data;
 }
 
-/** Resolves to where the browser goes next, which only OAuth logins have. */
 export async function approveDeviceLogin(
   request: Required<Omit<Parameters<Unkey["cli"]["decideDeviceLogin"]>[0], "decision">>,
-): Promise<string | undefined> {
+): Promise<OAuthClientRedirect> {
   const response = await getUnkeyClient().cli.decideDeviceLogin(
     { ...request, decision: "approve" },
     requestOptions,
   );
-  return clientRedirect(response.data.redirectUrl);
+  return httpClientRedirect(response.data.redirectUrl);
 }
 
-/** Resolves to where the browser goes next, which only OAuth logins have. */
-export async function denyDeviceLogin(userCode: string): Promise<string | undefined> {
+export async function denyDeviceLogin(userCode: string): Promise<OAuthClientRedirect> {
   const response = await getUnkeyClient().cli.decideDeviceLogin(
     { userCode, decision: "deny" },
     requestOptions,
   );
-  return clientRedirect(response.data.redirectUrl);
+  return httpClientRedirect(response.data.redirectUrl);
 }
 
-/**
- * The API only issues https or loopback http redirects. Checking the scheme
- * again keeps a bad response from running script in the dashboard origin.
- */
-export function clientRedirect(redirectUrl: string | undefined): string | undefined {
+export function httpClientRedirect(redirectUrl: string | undefined): OAuthClientRedirect {
   if (!redirectUrl) {
     return undefined;
   }

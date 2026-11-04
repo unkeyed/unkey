@@ -1,8 +1,3 @@
-# Build context is the repo root, not svc/mcp. The service imports the API's
-# embedded OpenAPI spec and shared packages from the main module. Build with:
-#
-#   docker build -f svc/mcp/Dockerfile -t mcp .
-
 FROM ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git \
@@ -27,14 +22,8 @@ COPY pkg ./pkg
 COPY svc/api/openapi ./svc/api/openapi
 COPY svc/mcp ./svc/mcp
 
-# UNKEY_SECRETS_ID is supplied by the Unkey builder as a hash of the
-# project's variables.
 ARG UNKEY_SECRETS_ID
 
-# VERSION is sourced from the mounted .env file and baked into
-# buildinfo.Version, which svc/mcp reports as its MCP server version and in
-# the User-Agent of API calls. The -f guard keeps local builds working when no
-# secret is mounted.
 RUN --mount=type=secret,id=${UNKEY_SECRETS_ID},target=/run/secrets/.env \
     --mount=type=cache,id=unkey-go-mod,target=/go/pkg/mod \
     --mount=type=cache,id=unkey-go-build,target=/root/.cache/go-build \

@@ -41,21 +41,6 @@ func (c chain) Authenticate(ctx context.Context, sess *zen.Session) (*principal.
 	// claiming a request, so a later resolver accepting a credential an earlier
 	// one rejected is a valid authentication under its own trust configuration,
 	// not a bypass.
-	//
-	// When nothing resolves, which error is reported matters, and it must not
-	// depend on resolver order. The chain keeps the most authoritative rejection
-	// by severity (see [errorSeverity]): a rejected credential (a resolver that
-	// recognized the credential as its own and refused it, so no other resolver
-	// can speak for it) outranks an infrastructure failure (a resolver that
-	// could not determine validity, so the client should retry), which outranks
-	// an authorization failure (a resolver that verified the credential but
-	// denied it), which outranks an authentication rejection (a resolver that
-	// could not verify the credential, leaving open that another resolver
-	// could). Without this, a sibling resolver's 401 could mask a 403 from the
-	// resolver that actually verified the token, or a 503 outage, turning
-	// either into a forced logout, and a sibling's "invalid token" could hide
-	// that the owner ended the session. Ties keep the first error for
-	// deterministic reporting.
 	var bestErr error
 	bestSeverity := -1
 	for _, resolver := range c {

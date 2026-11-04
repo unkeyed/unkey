@@ -30,9 +30,7 @@ func (s *Service) Poll(ctx context.Context, req PollRequest) (PollResult, error)
 		}
 		return PollResult{}, err
 	}
-	// An OAuth login is redeemed only at the token endpoint, where PKCE proves
-	// the redeemer started the authorization.
-	if row.Oauth != nil {
+	if redeemedOnlyAtTokenEndpoint(row) {
 		return PollResult{}, loginNotFound()
 	}
 
@@ -256,4 +254,8 @@ func (s *Service) denyAuthorization(ctx context.Context, id string) error {
 		return alreadyIssued()
 	}
 	return nil
+}
+
+func redeemedOnlyAtTokenEndpoint(row db.DeviceAuthorization) bool {
+	return row.Oauth != nil
 }

@@ -1,6 +1,5 @@
 import type { DeviceLogin } from "./device-api";
 
-/** The words the device page uses for one login, decided once by who started it. */
 export type LoginCopy = {
   title: string;
   description: string;
@@ -54,7 +53,6 @@ export function loginCopy(login: Pick<DeviceLogin, "oauth">): LoginCopy {
   };
 }
 
-/** The MCP server a session is for, as people type it. */
 export function serverLabel(resource: string): string {
   return resource.replace(/^https?:\/\//, "");
 }
