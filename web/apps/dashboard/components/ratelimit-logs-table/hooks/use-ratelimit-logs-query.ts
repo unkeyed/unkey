@@ -94,7 +94,6 @@ type RatelimitLogsPage = inferRouterOutputs<Router>["ratelimit"]["logs"]["query"
 const NO_ENRICHMENT = new Map<string, RatelimitLogEnrichment>();
 const rowsOf = (response: RatelimitLogsPage) => enrichLogs(response.ratelimitLogs, NO_ENRICHMENT);
 const requestIdOf = (log: RatelimitLog) => log.request_id;
-const totalOf = (response: RatelimitLogsPage) => response.total;
 
 // Maximum number of real-time logs to store
 const REALTIME_DATA_LIMIT = 100;
@@ -315,7 +314,6 @@ export function useRatelimitLogsQuery({
     rowsOf,
     idOf: requestIdOf,
     mapRows: enrichRows,
-    totalOf,
     pageSize: limit,
     paused: startPolling,
   });

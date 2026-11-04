@@ -28,7 +28,6 @@ const REALTIME_DATA_LIMIT = 100;
 type RequestLogsPage = inferRouterOutputs<Router>["deploy"]["requestLogs"]["query"];
 
 const rowsOf = (response: RequestLogsPage) => response.logs;
-const totalOf = (response: RequestLogsPage) => response.total;
 const requestIdOf = (log: RequestLogsResponse) => log.request_id;
 
 export function useRequestLogsQuery({
@@ -145,7 +144,6 @@ export function useRequestLogsQuery({
       trpcClient.deploy.requestLogs.query.query({ ...queryInput, page }, { signal }),
     rowsOf,
     idOf: requestIdOf,
-    totalOf,
     pageSize: limit,
     paused: startPolling,
   });

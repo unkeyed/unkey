@@ -21,7 +21,6 @@ const DEFAULT_SINCE = "12h";
 type AuditLogsPage = inferRouterOutputs<Router>["audit"]["logs"];
 
 const rowsOf = (response: AuditLogsPage) => response.auditLogs;
-const totalOf = (response: AuditLogsPage) => response.total;
 
 export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
@@ -101,7 +100,6 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     queryKey: getQueryKey(trpc.audit.logs, queryParams, "infinite"),
     fetchPage: (page, signal) => trpcClient.audit.logs.query({ ...queryParams, page }, { signal }),
     rowsOf,
-    totalOf,
     pageSize,
   });
 

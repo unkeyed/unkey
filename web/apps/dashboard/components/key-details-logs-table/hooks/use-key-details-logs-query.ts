@@ -21,7 +21,6 @@ const REALTIME_DATA_LIMIT = 100;
 type KeyDetailsLogsPage = inferRouterOutputs<Router>["key"]["logs"]["query"];
 
 const rowsOf = (response: KeyDetailsLogsPage) => response.logs;
-const totalOf = (response: KeyDetailsLogsPage) => response.total;
 const requestIdOf = (log: KeyDetailsLog) => log.request_id;
 
 type UseKeyDetailsLogsQueryParams = {
@@ -142,7 +141,6 @@ export function useKeyDetailsLogsQuery({
       trpcClient.key.logs.query.query({ ...queryParams, page }, { signal }),
     rowsOf,
     idOf: requestIdOf,
-    totalOf,
     pageSize: limit,
     paused: startPolling,
   });

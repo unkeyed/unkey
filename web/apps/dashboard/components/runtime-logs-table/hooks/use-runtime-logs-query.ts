@@ -2,7 +2,6 @@
 
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/hooks/use-runtime-logs-filters";
 import { useLoadMoreList } from "@/hooks/use-load-more-list";
-import { PAGINATED_LIST_QUERY_OPTIONS } from "@/hooks/use-paginated-list-query";
 import { getTimestampFromRelative } from "@/lib/duration";
 import {
   type RuntimeLogsFilterValue,
@@ -141,7 +140,6 @@ export function useRuntimeLogsQuery({
       appId: appIdFilters,
       deploymentId: deploymentIdFilters,
       limit,
-      // Total comes from the window-keyed query below; skip the per-page count(*).
       includeTotal: false,
       startTime: timeWindow.startTime,
       endTime: timeWindow.endTime,
@@ -162,26 +160,12 @@ export function useRuntimeLogsQuery({
     setRealtimeLogsMap(new Map());
   }
 
-  // The total is the same for every page in the current window, so fetch it once
-  // (page 1, limit 1) and reuse it instead of counting per page. Re-runs when the
-  // window changes. Disabled in live mode (footer hidden).
-  const totalQueryInput = useMemo(
-    () => ({ ...queryInput, page: 1, limit: 1, includeTotal: true }),
-    [queryInput],
-  );
-  const totalQuery = trpc.deploy.runtimeLogs.query.useQuery(totalQueryInput, {
-    ...PAGINATED_LIST_QUERY_OPTIONS,
-    enabled: !startPolling,
-  });
-  const total = totalQuery.isPreviousData ? null : (totalQuery.data?.total ?? null);
-
   const list = useLoadMoreList({
     queryKey: getQueryKey(trpc.deploy.runtimeLogs.query, queryInput, "infinite"),
     fetchPage: (page, signal) =>
       trpcClient.deploy.runtimeLogs.query.query({ ...queryInput, page }, { signal }),
     rowsOf,
     mapRows: attachRowKeys,
-    total,
     pageSize: limit,
     paused: startPolling,
   });

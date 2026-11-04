@@ -191,7 +191,7 @@ export const useIdentityLogsQuery = ({
     table,
     totalCount: shownTotalOf({
       loaded: historicalLogs.length,
-      total: query.data?.pages[0]?.total ?? null,
+      total: null,
       hasMore: query.hasNextPage === true,
     }),
   };
