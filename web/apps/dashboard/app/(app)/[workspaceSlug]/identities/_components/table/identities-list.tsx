@@ -91,12 +91,16 @@ function IdentityRow({ identity }: { identity: Identity }) {
   return (
     <ListTableRow
       table={IDENTITIES_TABLE}
-      href={routes.identities.detail({
-        workspaceSlug: workspace.slug,
-        ...scope,
-        identityId: identity.id,
-      })}
       label={`View identity ${identity.externalId}`}
+      link={
+        <Link
+          href={routes.identities.detail({
+            workspaceSlug: workspace.slug,
+            ...scope,
+            identityId: identity.id,
+          })}
+        />
+      }
       cells={{
         identity: (
           <span className="flex min-w-0 items-center gap-2.5">

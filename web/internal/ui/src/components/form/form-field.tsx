@@ -16,7 +16,7 @@ export type FormFieldControl = {
 
 // Hack to populate fumadocs' AutoTypeTable
 type DocumentedFormFieldProps = {
-  label?: string;
+  label?: React.ReactNode;
   description?: string | React.ReactNode;
   requirement?: Requirement;
   error?: string;
