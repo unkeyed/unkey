@@ -361,3 +361,46 @@ func TestWatchDropsPendingApplyForDeletedDeployment(t *testing.T) {
 	cancel()
 	require.NoError(t, <-result)
 }
+
+// A retry holds its workload lock and a dispatch slot while it looks up the
+// desired state, so a hung ctrl call must not hold them forever.
+func TestRetryReleasesHungDesiredStateLookup(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		client := &testutil.MockClusterClient{
+			GetDesiredDeploymentStateFunc: func(ctx context.Context, _ *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error) {
+				<-ctx.Done()
+				return nil, ctx.Err()
+			},
+		}
+		w := New(Config{Cluster: client})
+		retries := newRetryQueue()
+		t.Cleanup(func() { metrics.StreamRetriesPending.Set(0) })
+		event := &ctrlv1.DeploymentChangeEvent{
+			Event: &ctrlv1.DeploymentChangeEvent_Deployment{
+				Deployment: &ctrlv1.DeploymentState{
+					State: &ctrlv1.DeploymentState_Apply{
+						Apply: &ctrlv1.ApplyDeployment{DeploymentId: "deployment_stuck", K8SNamespace: "workloads", K8SName: "stuck"},
+					},
+				},
+			},
+		}
+		retries.add(eventKey(event), event, time.Now())
+		time.Sleep(retryDelayMin)
+
+		done := make(chan struct{})
+		go func() {
+			w.retryDue(t.Context(), retries)
+			close(done)
+		}()
+		time.Sleep(dispatchTimeout)
+		synctest.Wait()
+
+		select {
+		case <-done:
+		default:
+			t.Fatal("retry still waits on the desired-state lookup")
+		}
+		require.True(t, retries.holds(eventKey(event), event))
+		require.True(t, w.sem.TryAcquire(maxConcurrentDispatches))
+	})
+}

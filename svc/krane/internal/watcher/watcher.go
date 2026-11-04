@@ -23,8 +23,10 @@ const (
 	reconnectMax            = 5 * time.Second
 	maxConcurrentDispatches = 10
 
-	// dispatchTimeout bounds one apply or delete. Without it, a hung apiserver
-	// or Vault call would stop the stream for the whole region.
+	// dispatchTimeout bounds one apply, delete, or desired-state lookup. The
+	// ctrl client has no timeout, and these calls hold a workload lock and a
+	// dispatch slot, so a hung apiserver, Vault, or ctrl call would otherwise
+	// stop the stream for the whole region.
 	dispatchTimeout = 2 * time.Minute
 )
 
@@ -300,6 +302,8 @@ func (s *Watcher) latestEvent(ctx context.Context, event *ctrlv1.DeploymentChang
 	if apply == nil {
 		return event, nil
 	}
+	ctx, cancel := context.WithTimeout(ctx, dispatchTimeout)
+	defer cancel()
 	state, err := s.cluster.GetDesiredDeploymentState(ctx, &ctrlv1.GetDesiredDeploymentStateRequest{
 		Cluster:      s.clusterKey(),
 		DeploymentId: apply.GetDeploymentId(),
