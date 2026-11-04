@@ -40,6 +40,7 @@ func TestUnauthenticatedRequestsGetChallenge(t *testing.T) {
 	h := newHarness(t)
 	cliToken, _ := h.sessionToken(t, h.clock.Now().Add(time.Hour), clisession.Audience)
 	expiredToken, _ := h.sessionToken(t, h.clock.Now().Add(10*time.Second), clisession.Audience, publicURL)
+	speakeasyToken := uid.New(uid.TestPrefix, 32)
 
 	mounts := map[string]string{
 		"/":            "/.well-known/oauth-protected-resource",
@@ -54,7 +55,7 @@ func TestUnauthenticatedRequestsGetChallenge(t *testing.T) {
 			require.Equal(t, http.StatusUnauthorized, res.StatusCode)
 			require.Equal(t, `Bearer resource_metadata="`+publicURL+metadataPath+`"`, res.Header.Get("WWW-Authenticate"))
 
-			for _, token := range []string{cliToken, expiredToken} {
+			for _, token := range []string{cliToken, expiredToken, speakeasyToken} {
 				res = h.postInitialize(t, path, http.Header{"Authorization": {"Bearer " + token}})
 				require.Equal(t, http.StatusUnauthorized, res.StatusCode)
 				require.Equal(t, `Bearer resource_metadata="`+publicURL+metadataPath+`", error="invalid_token"`, res.Header.Get("WWW-Authenticate"))
@@ -138,7 +139,7 @@ func TestInstallPagesAndRedirects(t *testing.T) {
 // forwarded to the API as a Bearer token.
 func TestToolsAreServedOnEveryMountWithEveryCredentialHeader(t *testing.T) {
 	h := newHarness(t)
-	rootKey := uid.New(uid.KeyPrefix)
+	rootKey := newRootKey()
 	cases := []struct {
 		path    string
 		toolset tools.ToolsetID
@@ -388,6 +389,10 @@ func newHarness(t *testing.T) *harness {
 	h.server = httptest.NewServer(handler)
 	t.Cleanup(h.server.Close)
 	return h
+}
+
+func newRootKey() string {
+	return uid.New("unkey", 24)
 }
 
 func (h *harness) sessionToken(t *testing.T, expiresAt time.Time, audience ...string) (string, clisession.Claims) {

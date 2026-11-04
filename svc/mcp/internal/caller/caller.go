@@ -26,10 +26,13 @@ type Kind string
 const (
 	// KindOAuth is an Unkey session access token issued through OAuth.
 	KindOAuth Kind = "oauth"
-	// KindRootKey is any credential that is not a JWT. The API decides
+	// KindRootKey is a credential that is not a JWT. The API decides
 	// whether it is a valid root key.
 	KindRootKey Kind = "root_key"
 )
+
+// rootKeyPrefix starts every root key the API issues.
+const rootKeyPrefix = "unkey_"
 
 // headerNames in precedence order. The Mcp-Unkey-V2-* headers are what the
 // Speakeasy install pages told users to set; both carry a root key.
@@ -43,8 +46,9 @@ var (
 	// ErrMissing means no header carried a credential.
 	ErrMissing = errors.New("no credential")
 	// ErrUnusable means the credential is visibly unusable: a JWT that is
-	// not an Unkey session token, or a session token that is expiring or was
-	// issued for another resource.
+	// not an Unkey session token, an Authorization bearer that is neither a
+	// session token nor a root key, or a session token that is expiring or
+	// was issued for another resource.
 	ErrUnusable = errors.New("unusable credential")
 )
 
@@ -60,8 +64,9 @@ type Credential struct {
 // Parse takes the credential from the first non-empty header in precedence
 // order. Authorization must use the Bearer scheme; the legacy headers may
 // omit it. A JWT whose token_use is the Unkey session token use is
-// [KindOAuth], any other JWT is [ErrUnusable], and everything else is
-// [KindRootKey].
+// [KindOAuth] and any other JWT is [ErrUnusable]. Any other value is
+// [KindRootKey], except that an Authorization bearer must also start with
+// the root key prefix or it is [ErrUnusable].
 func Parse(header http.Header) (Credential, error) {
 	for _, name := range headerNames {
 		value := strings.TrimSpace(header.Get(name))
@@ -78,7 +83,14 @@ func Parse(header http.Header) (Credential, error) {
 		if value == "" {
 			continue
 		}
-		return classify(value)
+		credential, err := classify(value)
+		// A client that signed in through Speakeasy's OAuth on the legacy URLs
+		// still sends Speakeasy's token here. Only a 401 makes it sign in to
+		// Unkey instead; forwarding the token would fail every tool call.
+		if err == nil && name == "Authorization" && credential.claims == nil && !strings.HasPrefix(value, rootKeyPrefix) {
+			return Credential{}, ErrUnusable
+		}
+		return credential, err
 	}
 	return Credential{}, ErrMissing
 }
