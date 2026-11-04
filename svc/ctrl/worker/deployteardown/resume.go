@@ -1,6 +1,7 @@
 package deployteardown
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sort"
@@ -117,18 +118,36 @@ func (v *VirtualObject) Resume(ctx restate.ObjectContext, _ *hydrav1.ResumeReque
 		// here and skip waking compute, so a deployment that is no longer current
 		// is never turned back on.
 		claimed, err := restate.Run(ctx, func(rc restate.RunContext) (bool, error) {
-			if err := v.db.SetAppCurrentDeployment(rc, db.SetAppCurrentDeploymentParams{
-				DeploymentID: sql.NullString{Valid: true, String: deploymentID},
-				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				AppID:        appID,
-			}); err != nil {
-				return false, err
-			}
-			app, aErr := v.db.FindAppById(rc, appID)
-			if aErr != nil {
-				return false, aErr
-			}
-			return app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String == deploymentID, nil
+			return db.TxWithResult(rc, v.db.RW(), func(txCtx context.Context, tx db.DBTX) (bool, error) {
+				queries := db.NewQueries(tx)
+				now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+				if err := queries.SetAppCurrentDeployment(txCtx, db.SetAppCurrentDeploymentParams{
+					DeploymentID: sql.NullString{Valid: true, String: deploymentID},
+					UpdatedAt:    now,
+					AppID:        appID,
+				}); err != nil {
+					return false, err
+				}
+				app, aErr := queries.FindAppById(txCtx, appID)
+				if aErr != nil {
+					return false, aErr
+				}
+				if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != deploymentID {
+					return false, nil
+				}
+				d, dErr := queries.FindDeploymentById(txCtx, deploymentID)
+				if dErr != nil {
+					return false, dErr
+				}
+				if err := queries.SetEnvironmentCurrentDeployment(txCtx, db.SetEnvironmentCurrentDeploymentParams{
+					DeploymentID:  sql.NullString{Valid: true, String: deploymentID},
+					UpdatedAt:     now,
+					EnvironmentID: d.EnvironmentID,
+				}); err != nil {
+					return false, err
+				}
+				return true, nil
+			})
 		}, restate.WithName("restore current "+appID))
 		if err != nil {
 			return nil, fmt.Errorf("restore current deployment for app %s: %w", appID, err)

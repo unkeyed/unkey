@@ -2,11 +2,11 @@ import { isCancelledError } from "@tanstack/react-query";
 import { match } from "@unkey/match";
 import type { ListFooterState } from "@unkey/ui";
 import { useMemo, useState } from "react";
-import { type LoadFailure, type Loadable, type QueryResult, fromQuery } from "./loadable";
+import { type Failure, type Loadable, type QueryResult, fromQuery } from "./loadable";
 
 export type ListView<Row> =
   | { status: "loading" }
-  | ({ status: "failed" } & LoadFailure)
+  | ({ status: "failed" } & Failure)
   | { status: "empty" }
   | { status: "ready"; rows: readonly Row[]; footer: ListFooterState };
 
@@ -139,7 +139,7 @@ type ListTableState<Row> = {
   rows: readonly Row[];
   isLoading: boolean;
   footer: ListFooterState;
-  failure: LoadFailure | null;
+  failure: Failure | null;
 };
 
 export function tableStateOf<Row>(view: ListView<Row>): ListTableState<Row> {
@@ -257,7 +257,7 @@ function infiniteFooterOf<Page>(
   query: InfiniteQueryResult<Page>,
   attempt: NextPageAttempt,
   loadMore: () => void,
-  stale: LoadFailure | null,
+  stale: Failure | null,
 ): ListFooterState {
   if (query.isPreviousData) {
     return HIDDEN;
@@ -286,7 +286,7 @@ function infiniteFooterOf<Page>(
   return query.hasNextPage ? { kind: "more", onLoadMore: loadMore } : HIDDEN;
 }
 
-function refreshError({ error, retry, retrying }: LoadFailure): ListFooterState {
+function refreshError({ error, retry, retrying }: Failure): ListFooterState {
   return { kind: "error", reason: "refresh", error, onRetry: retry, retrying };
 }
 

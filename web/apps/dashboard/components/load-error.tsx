@@ -1,6 +1,6 @@
 "use client";
 
-import type { LoadFailure } from "@/lib/loadable/loadable";
+import type { Failure } from "@/lib/loadable/loadable";
 import { getErrorMessage } from "@/lib/unkey-client";
 import {
   Button,
@@ -47,7 +47,7 @@ export function EmptyOrLoadError({
   title,
   children,
 }: {
-  failure: LoadFailure | null;
+  failure: Failure | null;
   title: string;
   children: ReactNode;
 }) {

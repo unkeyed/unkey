@@ -21,6 +21,9 @@ import (
 //  2. Update apps.current_deployment_id to the target deployment.
 //  3. Set apps.is_rolled_back per the request flag.
 //
+// The environment's pointer and flag get the same values, so readers can move
+// from apps to environments.
+//
 // Because the RoutingService VO is keyed by env_id, concurrent swaps on the
 // same environment serialize here. Automatic deployments can require a
 // newest-wins check so an older build that finishes last cannot overwrite a
@@ -219,6 +222,15 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 		})
 		if updateErr != nil {
 			return swapLiveDeploymentResult{}, fmt.Errorf("update app deployments: %w", updateErr)
+		}
+		updateErr = queries.UpdateEnvironmentDeployments(txCtx, db.UpdateEnvironmentDeploymentsParams{
+			EnvironmentID:       deployment.EnvironmentID,
+			CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
+			IsRolledBack:        req.GetSetRollbackFlag(),
+			UpdatedAt:           now,
+		})
+		if updateErr != nil {
+			return swapLiveDeploymentResult{}, fmt.Errorf("update environment deployments: %w", updateErr)
 		}
 
 		return swapLiveDeploymentResult{
