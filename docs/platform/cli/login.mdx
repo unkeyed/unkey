@@ -77,17 +77,26 @@ Resource commands and `unkey deploy` use a stored CLI session when neither `--ro
 
 On Linux, the CLI uses the secret store only when both of these are present:
 
-- The `secret-tool` command, from the `libsecret` package on Fedora and Arch Linux, or `libsecret-tools` on Debian and Ubuntu
+- The `secret-tool` command
 - A running Secret Service provider with an unlocked default keyring, such as GNOME Keyring, KDE Wallet, or KeePassXC with Secret Service integration turned on
 
-GNOME and KDE desktops start a provider and unlock it when you log in. With a standalone window manager or over SSH, nothing starts one, so you must start and unlock it yourself. For example, with GNOME Keyring on Fedora:
+Install `secret-tool`, and GNOME Keyring if you have no provider, with your package manager:
+
+| Distribution | `secret-tool` | GNOME Keyring |
+| --- | --- | --- |
+| Fedora | `sudo dnf install libsecret` | `sudo dnf install gnome-keyring` |
+| Debian, Ubuntu | `sudo apt-get install libsecret-tools` | `sudo apt-get install gnome-keyring` |
+| Arch Linux | `sudo pacman -S libsecret` | `sudo pacman -S gnome-keyring` |
+| openSUSE | `sudo zypper install libsecret-tools` | `sudo zypper install gnome-keyring` |
+| Alpine Linux | `sudo apk add libsecret` | `sudo apk add gnome-keyring` |
+
+GNOME and KDE desktops start a provider and unlock it when you log in. With a standalone window manager or over SSH, nothing starts one, so you must unlock it yourself. For GNOME Keyring, run this once per login:
 
 ```bash
-sudo dnf install gnome-keyring
 printf '%s' "$KEYRING_PASSWORD" | gnome-keyring-daemon --replace --unlock --components=secrets
 ```
 
-The second command reads the keyring password from stdin and creates the login keyring with it the first time. Run it again after each login, or unlock the keyring through PAM.
+The command reads the keyring password from stdin and creates the login keyring with it the first time. You can also unlock the keyring at login through PAM.
 
 If `secret-tool` fails for any reason, the CLI uses the files in `~/.unkey` instead.
 
