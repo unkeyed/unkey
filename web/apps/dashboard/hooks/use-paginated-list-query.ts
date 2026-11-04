@@ -421,5 +421,6 @@ export function usePaginatedListQuery<
     onPageChange,
     sorting,
     onSortingChange,
+    viewKey: JSON.stringify(queryParams),
   };
 }

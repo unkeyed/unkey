@@ -6,6 +6,7 @@ import {
 } from "@/components/roles-table";
 import { EditRole } from "@/components/roles-table/components/actions/components/edit-role";
 import { SelectionControls } from "@/components/roles-table/components/selection-controls";
+import { useViewSelection } from "@/hooks/use-view-selection";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { IconBookBookmarkOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
 import {
@@ -20,7 +21,7 @@ import {
   TablePager,
   getSelectableRowClassName,
 } from "@unkey/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 export const RolesList = () => {
   const {
@@ -34,23 +35,16 @@ export const RolesList = () => {
     onPageChange,
     sorting,
     onSortingChange,
+    viewKey,
   } = useRolesListPaginated();
 
   const [selectedRole, setSelectedRole] = useState<RoleBasic | null>(null);
-  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
+  const {
+    selected: selectedRoles,
+    setSelected: setSelectedRoles,
+    toggle: toggleSelection,
+  } = useViewSelection(viewKey);
   const [hoveredRoleName, setHoveredRoleName] = useState<string | null>(null);
-
-  const toggleSelection = useCallback((roleId: string) => {
-    setSelectedRoles((prevSelected) => {
-      const newSelected = new Set(prevSelected);
-      if (newSelected.has(roleId)) {
-        newSelected.delete(roleId);
-      } else {
-        newSelected.add(roleId);
-      }
-      return newSelected;
-    });
-  }, []);
 
   const columns = useMemo(
     () =>

@@ -7,6 +7,7 @@ import {
 } from "@/components/api-keys-table";
 import { SelectionControls } from "@/components/api-keys-table/components/selection-controls";
 import { LoadError } from "@/components/load-error";
+import { useViewSelection } from "@/hooks/use-view-selection";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { IconBookBookmarkOutline18, IconKeyOutline18 } from "@unkey/icons";
@@ -49,15 +50,19 @@ export const KeysList = ({
     hasNextPage,
     sorting,
     onSortingChange,
+    viewKey,
   } = useApiKeysListQuery({ keyAuthId: keyspaceId });
 
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
   const [navigatingKeyId, setNavigatingKeyId] = useState<string | null>(null);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const {
+    selected: selectedKeys,
+    setSelected: setSelectedKeys,
+    toggle: toggleSelection,
+  } = useViewSelection(viewKey);
 
   const handlePageChange = useCallback(
     (newPage: number) => {
-      setSelectedKeys(new Set());
       setNavigatingKeyId(null);
       onPageChange(newPage);
     },
@@ -66,7 +71,6 @@ export const KeysList = ({
 
   const handleSortingChange = useCallback(
     (updater: Parameters<typeof onSortingChange>[0]) => {
-      setSelectedKeys(new Set());
       setNavigatingKeyId(null);
       onSortingChange(updater);
     },
@@ -75,18 +79,6 @@ export const KeysList = ({
 
   const handleRowClick = useCallback((key: KeyDetails | null) => {
     setSelectedKey(key);
-  }, []);
-
-  const toggleSelection = useCallback((keyId: string) => {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(keyId)) {
-        next.delete(keyId);
-      } else {
-        next.add(keyId);
-      }
-      return next;
-    });
   }, []);
 
   const handleNavigateToKey = useCallback((keyId: string) => {

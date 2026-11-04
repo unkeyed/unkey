@@ -78,5 +78,6 @@ export function usePermissionsListPaginated(pageSize = DEFAULT_PAGE_SIZE) {
     onPageChange: result.onPageChange,
     sorting: result.sorting,
     onSortingChange: result.onSortingChange,
+    viewKey: result.viewKey,
   };
 }

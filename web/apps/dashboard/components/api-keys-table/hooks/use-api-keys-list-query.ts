@@ -131,5 +131,6 @@ export function useApiKeysListQuery({
     onPageChange,
     sorting,
     onSortingChange,
+    viewKey: `${queryKey}\n${page}`,
   };
 }
