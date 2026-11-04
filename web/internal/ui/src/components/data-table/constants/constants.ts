@@ -11,7 +11,6 @@ export const DEFAULT_CONFIG: DataTableConfig = {
   rowBorders: false,
   containerPadding: "px-2",
   tableLayout: "fixed",
-  striped: false,
 
   loadingRows: 10,
 } as const;

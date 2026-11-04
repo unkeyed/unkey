@@ -88,7 +88,6 @@ export const AuditLogsTable = ({ selectedLog, setSelectedLog }: Props) => {
           layout: "classic",
           rowBorders: true,
           loadingRows: 50,
-          striped: true,
         }}
       />
     </>

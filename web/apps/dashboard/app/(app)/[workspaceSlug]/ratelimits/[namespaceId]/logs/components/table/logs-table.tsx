@@ -92,7 +92,6 @@ export const RatelimitLogsTable = () => {
           layout: "classic",
           rowBorders: false,
           containerPadding: "px-2",
-          striped: true,
         }}
         emptyState={
           <EmptyOrLoadError failure={table.failure} title="Could not load ratelimit logs">

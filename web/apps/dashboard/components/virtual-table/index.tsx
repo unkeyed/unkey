@@ -5,14 +5,7 @@ import {
   IconCaretUpOutline12,
   IconCircleCaretRightOutline18,
 } from "@unkey/icons";
-import {
-  Skeleton,
-  StickySlot,
-  TableLoadMore,
-  stripeIndexOf,
-  useLiveStripeShift,
-  usePinnedTableHeader,
-} from "@unkey/ui";
+import { Skeleton, StickySlot, TableLoadMore, usePinnedTableHeader } from "@unkey/ui";
 import { cn } from "cn";
 import { Fragment, useCallback, useMemo, useState } from "react";
 import { VirtualTableEmptyState } from "./components/empty-state";
@@ -93,10 +86,6 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
   const hasHeaders = columns.some((col) => col.header);
 
   const tableData = useTableData<TTableData>(realtimeData, historicData);
-  const liveShift = useLiveStripeShift(realtimeData, (row) => String(keyExtractor(row)));
-  const liveStripe = { count: realtimeData.length, shift: liveShift };
-  const isStripedAt = (index: number) =>
-    config.striped && stripeIndexOf(tableData.stripeSlotAt(index), liveStripe) % 2 === 1;
 
   // Dynamic row sizing for expandable rows
   const getItemSize = useMemo(() => {
@@ -324,7 +313,6 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
                       className={cn(
                         "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
                         config.rowBorders && "border-b",
-                        isStripedAt(virtualRow.index) && "bg-grayA-2",
                         rowClassName?.(typedItem),
                         selectedClassName?.(typedItem, isSelected),
                       )}
@@ -396,7 +384,6 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
                     className={cn(
                       "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
                       config.rowBorders && "border-b",
-                      isStripedAt(virtualRow.index) && "bg-grayA-2",
                       rowClassName?.(typedItem),
                       selectedClassName?.(typedItem, isSelected),
                     )}

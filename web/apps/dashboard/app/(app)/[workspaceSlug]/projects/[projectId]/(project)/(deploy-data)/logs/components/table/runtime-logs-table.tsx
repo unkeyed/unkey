@@ -71,7 +71,6 @@ export function RuntimeLogsTable() {
           layout: "classic",
           rowBorders: false,
           loadingRows: 50,
-          striped: true,
         }}
       />
     </div>

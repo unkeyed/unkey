@@ -121,7 +121,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         rowClassName={(log) => getRowClassName(log, selectedLog)}
         enableRowSelection={true}
         rowSelection={rowSelection}
-        config={{ rowHeight: 26, layout: "classic", rowBorders: false, striped: true }}
+        config={{ rowHeight: 26, layout: "classic", rowBorders: false }}
         emptyState={
           <EmptyOrLoadError failure={table.failure} title="Could not load requests">
             <EmptyState frame="none">

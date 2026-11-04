@@ -31,7 +31,6 @@ const TABLE_CONFIG: DataTableConfig = {
   containerPadding: "px-2",
   tableLayout: "fixed",
   loadingRows: 10,
-  striped: true,
 };
 
 type Props = {

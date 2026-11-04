@@ -429,7 +429,6 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
         onRowMouseLeave={handleRowMouseLeave}
         selectedItem={selectedLog}
         keyExtractor={(log) => log.request_id}
-        config={{ striped: true }}
         rowClassName={(log) => getRowClassName(log, selectedLog)}
         loadMore={{
           state: table.footer,

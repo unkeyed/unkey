@@ -65,7 +65,6 @@ export interface DataTableConfig {
   rowBorders: boolean; // Default: false
   containerPadding: string; // Default: "px-2"
   tableLayout: "fixed" | "auto"; // Default: "fixed"
-  striped: boolean;
 
   // Loading
   loadingRows: number; // Default: 10

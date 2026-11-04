@@ -248,7 +248,6 @@ export const LogsTable = () => {
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
-      config={{ striped: true }}
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
       loadMore={{

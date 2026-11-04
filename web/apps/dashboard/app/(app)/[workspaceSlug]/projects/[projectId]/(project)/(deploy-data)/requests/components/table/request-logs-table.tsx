@@ -84,7 +84,6 @@ export const RequestLogsTable = () => {
           layout: "classic",
           rowBorders: false,
           loadingRows: 50,
-          striped: true,
         }}
       />
     </div>

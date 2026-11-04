@@ -32,7 +32,6 @@ const TABLE_CONFIG: Partial<DataTableConfig> = {
   rowBorders: true,
   containerPadding: "px-0",
   loadingRows: RATELIMITS_OVERVIEW_PAGE_SIZE,
-  striped: true,
 };
 
 export const RatelimitOverviewLogsTable = ({

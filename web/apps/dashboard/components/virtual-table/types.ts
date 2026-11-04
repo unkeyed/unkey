@@ -39,7 +39,6 @@ export interface TableConfig {
   rowBorders?: boolean; // Add borders between rows
   containerPadding?: string; // Custom padding for container (e.g., 'px-0', 'px-4', 'p-2')
   rowSpacing?: number; // Space between rows in pixels (for classic mode)
-  striped?: boolean;
   className?: string; // Custom background class for container and sticky header
 }
 

@@ -92,5 +92,3 @@ export { RealtimeSeparator } from "./components/utils/realtime-separator";
 // Utils
 export { calculateColumnWidth } from "./utils/column-width";
 export { getSelectableRowClassName } from "./utils/get-selectable-row-class";
-export { stripeIndexOf, useLiveStripeShift } from "./utils/stripe";
-export type { StripeSlot } from "./utils/stripe";

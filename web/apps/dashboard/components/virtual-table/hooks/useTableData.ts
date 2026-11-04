@@ -1,4 +1,3 @@
-import type { StripeSlot } from "@unkey/ui";
 import type { SeparatorItem } from "../types";
 
 export const useTableData = <TTableData>(
@@ -20,16 +19,6 @@ export const useTableData = <TTableData>(
       }
 
       return historicData[index - realtimeData.length - 1];
-    },
-
-    stripeSlotAt: (index: number): StripeSlot => {
-      if (index < realtimeData.length) {
-        return { live: true, position: index };
-      }
-      return {
-        live: false,
-        position: realtimeData.length === 0 ? index : index - realtimeData.length - 1,
-      };
     },
 
     getTotalLength: () => {
