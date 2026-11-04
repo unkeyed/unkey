@@ -618,6 +618,11 @@ func (c *cache[K, V]) load(
 	}()
 
 	v, err := refreshFromOrigin(loadCtx)
+	// When ctx hits its deadline, leaveLoad can cancel the read before the
+	// read's own deadline fires, so report why ctx ended instead.
+	if ctxErr := ctx.Err(); ctxErr != nil && errors.Is(err, context.Canceled) {
+		err = ctxErr
+	}
 	var hit CacheHit
 	switch op(err) {
 	case WriteValue:
