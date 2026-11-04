@@ -12,6 +12,7 @@ import {
   IconInputSearchOutline18,
   IconKeyOutline18,
   IconLayers3Outline18,
+  IconLinkOutline18,
   IconNodesOutline18,
   IconShieldGlobeOutline18,
   IconShieldKeyOutline18,
@@ -183,7 +184,7 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
-  { metrics }: { metrics: boolean },
+  { metrics, connections }: { metrics: boolean; connections: boolean },
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
@@ -193,6 +194,13 @@ export function buildAppLinks(
     href: routes.projects.apps.metrics(scope),
     icon: IconChartActivityOutline18,
     isActive: page === "metrics",
+  };
+  const connectionsLink: ResolvedNavLink = {
+    key: "connections",
+    label: "Connections",
+    href: routes.projects.apps.connections(scope),
+    icon: IconLinkOutline18,
+    isActive: page === "connections",
   };
   return [
     {
@@ -224,6 +232,7 @@ export function buildAppLinks(
       icon: IconEarthOutline18,
       isActive: page === "domains",
     },
+    ...(connections ? [connectionsLink] : []),
     {
       key: "policies",
       label: "Policies",

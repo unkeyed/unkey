@@ -90,7 +90,7 @@ export function BuilderAside({ isOpen, onClose }: BuilderAsideProps) {
         <SlidePanelContent>
           <FormProvider {...form}>
             <form onSubmit={submit} className="flex h-full flex-col">
-              <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-3">
+              <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 pt-4 pb-3">
                 <KeyFields>
                   <PolicyList />
                 </KeyFields>

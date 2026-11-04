@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -38,6 +39,7 @@ func TestDestructiveCommandsRequireExplicitConfirmation(t *testing.T) {
 		{"ratelimit delete-namespace", "ratelimit.deleteNamespace", []string{"--namespace=requests"}, components.V2RatelimitDeleteNamespaceRequestBody{Namespace: "requests"}, []string{"requests"}},
 		{"root-keys delete-key", "rootKeys.deleteKey", []string{"--key-id=" + keyID}, components.V2RootKeysDeleteKeyRequestBody{KeyID: keyID}, []string{keyID}},
 		{"environments remove-environment-variables", "environments.removeEnvironmentVariables", []string{"--project=payments", "--app=worker", "--environment=production", "--variables=OLD_TOKEN,LEGACY_URL"}, components.V2EnvironmentsRemoveEnvironmentVariablesRequestBody{Project: "payments", App: "worker", Environment: "production", Variables: []string{"OLD_TOKEN", "LEGACY_URL"}}, []string{"payments", "worker", "production", "OLD_TOKEN", "LEGACY_URL"}},
+		{"environments set-environment-variables", "environments.setEnvironmentVariables", []string{"--project=demo-project", "--app=demo-app", "--environment=demo-env", "--variables=[]", "--prune"}, components.V2EnvironmentsSetEnvironmentVariablesRequestBody{Project: "demo-project", App: "demo-app", Environment: "demo-env", Variables: []components.EnvironmentVariableInput{}, Prune: new(true)}, []string{"demo-project", "demo-app", "demo-env", "not included"}},
 		{"keys remove-permissions", "keys.removePermissions", []string{"--key-id=" + keyID, "--permissions=documents.read,documents.write"}, components.V2KeysRemovePermissionsRequestBody{KeyID: keyID, Permissions: []string{"documents.read", "documents.write"}}, []string{keyID, "documents.read", "documents.write"}},
 		{"keys remove-roles", "keys.removeRoles", []string{"--key-id=" + keyID, "--roles=admin,reader"}, components.V2KeysRemoveRolesRequestBody{KeyID: keyID, Roles: []string{"admin", "reader"}}, []string{keyID, "admin", "reader"}},
 	} {
@@ -89,6 +91,66 @@ func TestDestructiveCommandsRequireExplicitConfirmation(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEnvironmentVariablePruningNoninteractive(t *testing.T) {
+	for _, prune := range []*bool{nil, new(false), new(true)} {
+		for _, path := range []string{"environments variables set", "api environments set-environment-variables"} {
+			for _, bodyInput := range []bool{false, true} {
+				for _, yes := range []bool{false, true} {
+					t.Run(fmt.Sprintf("prune=%v/%s/body=%t/yes=%t", prune, path, bodyInput, yes), func(t *testing.T) {
+						requests := make(chan components.V2EnvironmentsSetEnvironmentVariablesRequestBody, 1)
+						server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							var request components.V2EnvironmentsSetEnvironmentVariablesRequestBody
+							if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+								t.Error(err)
+								return
+							}
+							requests <- request
+							w.Header().Set("Content-Type", "application/json")
+							if err := json.NewEncoder(w).Encode(components.V2EnvironmentsSetEnvironmentVariablesResponseBody{Meta: components.Meta{RequestID: uid.New(uid.RequestPrefix)}}); err != nil {
+								t.Error(err)
+							}
+						}))
+						t.Cleanup(server.Close)
+						want := components.V2EnvironmentsSetEnvironmentVariablesRequestBody{Project: "demo-project", App: "demo-app", Environment: "demo-env", Variables: []components.EnvironmentVariableInput{}, Prune: prune}
+						args := append(strings.Fields(path), "--root-key="+uid.New(uid.KeyPrefix), "--api-url="+server.URL, "--json")
+						if !strings.HasPrefix(path, "api ") {
+							args = append(args, "--no-input")
+						}
+						if yes {
+							args = append(args, "--yes")
+						}
+						if bodyInput {
+							body, err := json.Marshal(want)
+							require.NoError(t, err)
+							args = append(args, "--body="+string(body))
+						} else {
+							args = append(args, "--project=demo-project", "--app=demo-app", "--environment=demo-env", "--variables=[]")
+							if prune != nil {
+								args = append(args, fmt.Sprintf("--prune=%t", *prune))
+							}
+							if prune == nil {
+								want.Prune = new(false)
+							}
+						}
+						_, _, err := runCLI(t, args...)
+						if prune != nil && *prune && !yes {
+							require.ErrorContains(t, err, "--yes")
+							require.Empty(t, requests)
+						} else {
+							require.NoError(t, err)
+							require.Len(t, requests, 1)
+							if want.Prune == nil {
+								want.Prune = new(false)
+							}
+							require.Equal(t, want, <-requests)
+						}
+					})
+				}
+			}
+		}
 	}
 }
 

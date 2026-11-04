@@ -63,9 +63,19 @@ the rest as skipped.
 
 Selected files are split into chunks of 10. Each chunk runs as a separate
 `deepsec process` with its own data directory, and all chunks run in
-parallel. A chunk that fails or exceeds its 18-minute limit loses only its
+parallel. A chunk that fails or exceeds its 23-minute limit loses only its
 own results; the PR comment lists its files as not fully reviewed. These
 limits bound scan time, not dollar spend.
+
+DeepSec reviews whole files, so the workflow scopes it to the diff in two
+ways. Each chunk's prompt lists the changed line ranges from
+`git diff -U0` and asks the agent to report only issues those lines
+introduce. The PR comment then keeps only findings that cite a line within
+`CHANGE_MARGIN_LINES` (3) of a changed line or of removed code, and states
+how many findings it omitted.
+
+The scan step exits 0 whenever the review runs, including when it finds
+issues or a chunk fails. The PR comment carries the result.
 
 The PR comment ends with the run's estimated model cost and token usage.
 DeepSec computes it from the Pi agent's bundled price table, which can lag

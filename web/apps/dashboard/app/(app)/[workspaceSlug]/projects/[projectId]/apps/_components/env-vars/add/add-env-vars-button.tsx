@@ -83,7 +83,7 @@ export function AddEnvVarsPanel({
           <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 pt-4 pb-6">
             <AddEnvVarsFields form={form} />
           </div>
-          <SlidePanelFooter className="flex items-center justify-end gap-3 bg-raised py-5">
+          <SlidePanelFooter className="flex items-center justify-end gap-3">
             <SlidePanelClose
               disabled={form.isPending}
               render={<Button type="button" variant="outline" size="md" />}

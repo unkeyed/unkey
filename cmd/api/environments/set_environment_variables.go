@@ -24,6 +24,7 @@ func setEnvironmentVariablesCmd() *cli.Command {
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			util.YesFlag(),
 			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
@@ -36,27 +37,28 @@ func setEnvironmentVariablesCmd() *cli.Command {
 				return err
 			}
 
-			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Environments.SetEnvironmentVariables, body)
-				if err != nil {
-					return err
-				}
-				return util.Output(ctx, cmd, res.V2EnvironmentsSetEnvironmentVariablesResponseBody)
-			}
-			send := func(req components.V2EnvironmentsSetEnvironmentVariablesRequestBody) error {
-				res, err := client.Environments.SetEnvironmentVariables(ctx, req)
-				if err != nil {
-					return err
-				}
-				return util.Output(ctx, cmd, res.V2EnvironmentsSetEnvironmentVariablesResponseBody)
-			}
 			var variables []components.EnvironmentVariableInput
-			if err := json.Unmarshal([]byte(cmd.String("variables")), &variables); err != nil {
-				return fmt.Errorf("invalid JSON for --variables: %w", err)
+			if !cmd.FlagIsSet("body") {
+				if err := json.Unmarshal([]byte(cmd.String("variables")), &variables); err != nil {
+					return fmt.Errorf("invalid JSON for --variables: %w", err)
+				}
 			}
-			req := components.V2EnvironmentsSetEnvironmentVariablesRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Variables: variables, Prune: new(cmd.Bool("prune"))}
-			return send(req)
+			req, err := util.RequestBody(cmd, components.V2EnvironmentsSetEnvironmentVariablesRequestBody{
+				Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Variables: variables, Prune: new(cmd.Bool("prune")),
+			})
+			if err != nil {
+				return err
+			}
+			if req.Prune != nil && *req.Prune {
+				if err := util.Confirm(ctx, cmd, fmt.Sprintf("Remove variables not included in this request from environment %q, app %q, project %q?", req.Environment, req.App, req.Project)); err != nil {
+					return err
+				}
+			}
+			res, err := client.Environments.SetEnvironmentVariables(ctx, req)
+			if err != nil {
+				return err
+			}
+			return util.Output(ctx, cmd, res.V2EnvironmentsSetEnvironmentVariablesResponseBody)
 		},
 	}
 }

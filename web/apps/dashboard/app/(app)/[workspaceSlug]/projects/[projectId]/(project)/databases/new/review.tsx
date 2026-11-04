@@ -63,9 +63,7 @@ export function ReviewSummary({
     <SummaryList>
       <SummaryRow label={nameLabel}>{name}</SummaryRow>
       <SummaryRow label="Organization">{org}</SummaryRow>
-      <SummaryRow label="Engine">
-        {engineCopy[engine].label} {engineCopy[engine].version}
-      </SummaryRow>
+      <SummaryRow label="Engine">{engineCopy[engine].label}</SummaryRow>
       <SummaryRow label="Region">{regionLabel[region]}</SummaryRow>
       {ENVIRONMENT_KINDS.map((env) => (
         <SummaryRow key={env} label={environmentName(env)}>

@@ -136,6 +136,14 @@ export const projectRoutes = {
       );
     },
 
+    connections({ add, ...scope }: AppScope & { add?: boolean }): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/connections",
+        appParams(scope),
+        { add: add || undefined },
+      );
+    },
+
     policies({ add, ...scope }: AppScope & { add?: boolean }): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",

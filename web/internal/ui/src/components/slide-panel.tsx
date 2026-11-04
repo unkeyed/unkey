@@ -130,7 +130,7 @@ export type SlidePanelHeaderProps = {
 
 export function SlidePanelHeader({ children, className }: SlidePanelHeaderProps) {
   return (
-    <div className={cn("flex items-start justify-between px-6 pt-6 pb-2", className)}>
+    <div className={cn("flex items-start justify-between border-b px-6 py-4", className)}>
       {children}
     </div>
   );
@@ -177,7 +177,11 @@ export type SlidePanelFooterProps = {
 };
 
 export function SlidePanelFooter({ children, className }: SlidePanelFooterProps) {
-  return <div className={cn("border-t px-6 py-4", className)}>{children}</div>;
+  return (
+    <div className={cn("border-t bg-background px-6 py-4 dark:bg-transparent", className)}>
+      {children}
+    </div>
+  );
 }
 
 export const SlidePanelClose = DialogPrimitive.Close;

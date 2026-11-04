@@ -5,6 +5,7 @@ import { useGuardedNavigate } from "@/components/leave-guard";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
   dismissSettingsBanner,
+  useSettingsBannerTarget,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/pending-redeploy";
 import { useApp, useCurrentDeployment, useDeployActions } from "@/lib/deploy-data";
@@ -20,14 +21,15 @@ import { GlowIcon } from "../components/glow-icon";
 export function PendingRedeployBanner() {
   const { refetchDeployments, refetchApps } = useDeployActions();
   const { data: app } = useApp();
-  const currentDeploymentId = app?.currentDeploymentId ?? null;
   const navigate = useGuardedNavigate();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
   const currentDeployment = useCurrentDeployment({ enabled: visible }).data ?? undefined;
+  const target = useSettingsBannerTarget();
+  const deployment = target ? target.deployment : currentDeployment;
 
-  const show = visible && !!currentDeployment;
+  const show = visible && !!deployment && deployment.appId === app?.id;
 
   const redeploy = useMutation({
     mutationFn: async (deployment: {
@@ -44,17 +46,14 @@ export function PendingRedeployBanner() {
       });
       return { deploymentId: res.data.deploymentId };
     },
-    onSuccess: async (data) => {
-      if (!currentDeployment) {
-        return;
-      }
+    onSuccess: async (data, source) => {
       refetchDeployments();
       await refetchApps();
       navigate(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,
-          projectId: currentDeployment.projectId,
-          appId: currentDeployment.appId,
+          projectId: source.projectId,
+          appId: source.appId,
           deploymentId: data.deploymentId,
         }),
       );
@@ -67,15 +66,15 @@ export function PendingRedeployBanner() {
 
   useEffect(
     function getDismissedAutomatically() {
-      if (!visible || !currentDeploymentId) {
+      if (!show) {
         return;
       }
-      const timer = setTimeout(() => dismissSettingsBanner(), 10_000);
+      const timer = setTimeout(() => dismissSettingsBanner(target), 10_000);
       return () => {
         clearTimeout(timer);
       };
     },
-    [visible, currentDeploymentId],
+    [show, target],
   );
 
   return (
@@ -106,7 +105,7 @@ export function PendingRedeployBanner() {
           <div className="flex flex-col gap-1 pr-5">
             <span className="text-sm font-semibold text-gray-12 leading-5">Changes detected</span>
             <span className="text-xs text-gray-11 leading-4">
-              Redeploy to apply your latest changes to production.
+              Redeploy to apply your latest changes to {target?.environmentSlug ?? "production"}.
             </span>
           </div>
           <Button
@@ -120,8 +119,8 @@ export function PendingRedeployBanner() {
                 openPaywall();
                 return;
               }
-              if (currentDeployment) {
-                redeploy.mutate(currentDeployment);
+              if (deployment) {
+                redeploy.mutate(deployment);
               }
             }}
           >

@@ -23,6 +23,7 @@ func TestLimitSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	route := &handler.Handler{
+		AuditLogBuffer:  h.AuditLogBuffer,
 		RatelimitEvents: h.RatelimitEvents,
 		Ratelimit:       h.Ratelimit,
 		DB:              h.DB,

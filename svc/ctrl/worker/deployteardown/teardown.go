@@ -1,6 +1,7 @@
 package deployteardown
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -81,10 +82,20 @@ func (v *VirtualObject) Teardown(
 			}
 
 			if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
-				return v.db.ClearAppCurrentDeployment(rc, db.ClearAppCurrentDeploymentParams{
-					UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-					AppID:        d.AppID,
-					DeploymentID: sql.NullString{Valid: true, String: d.ID},
+				return db.Tx(rc, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+					now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+					if err := db.NewQueries(tx).ClearAppCurrentDeployment(txCtx, db.ClearAppCurrentDeploymentParams{
+						UpdatedAt:    now,
+						AppID:        d.AppID,
+						DeploymentID: sql.NullString{Valid: true, String: d.ID},
+					}); err != nil {
+						return err
+					}
+					return db.NewQueries(tx).ClearEnvironmentCurrentDeployment(txCtx, db.ClearEnvironmentCurrentDeploymentParams{
+						UpdatedAt:     now,
+						EnvironmentID: d.EnvironmentID,
+						DeploymentID:  sql.NullString{Valid: true, String: d.ID},
+					})
 				})
 			}, restate.WithName("clear current deployment "+d.AppID)); err != nil {
 				return nil, fmt.Errorf("clear current deployment for app %s: %w", d.AppID, err)
