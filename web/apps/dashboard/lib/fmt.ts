@@ -2,8 +2,8 @@ export function formatNumber(n: number): string {
   return Intl.NumberFormat("en", { notation: "compact" }).format(n);
 }
 
-export function plural(count: number, noun: string): string {
-  return `${count.toLocaleString("en")} ${noun}${count === 1 ? "" : "s"}`;
+export function plural(count: number, noun: string, nounPlural = `${noun}s`): string {
+  return `${count.toLocaleString("en")} ${count === 1 ? noun : nounPlural}`;
 }
 
 /** Grouped number with up to one decimal: 1234.5 -> "1,234.5". For usage quantities. */
