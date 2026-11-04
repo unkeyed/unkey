@@ -69,7 +69,7 @@ rules:
     verbs: ["get", "list", "delete"]
   - apiGroups: [""]
     resources: ["namespaces"]
-    verbs: ["list", "create"]
+    verbs: ["create"]
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["list", "watch"]
@@ -78,10 +78,10 @@ rules:
     verbs: ["create", "patch"]
   - apiGroups: [""]
     resources: ["services"]
-    verbs: ["list", "create", "update", "delete"]
+    verbs: ["list", "watch", "create", "update", "delete"]
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]
-    verbs: ["list", "create", "update", "delete"]
+    verbs: ["list", "watch", "create", "update", "delete"]
   - apiGroups: ["policy"]
     resources: ["poddisruptionbudgets"]
     verbs: ["create", "patch"]
@@ -90,7 +90,7 @@ rules:
     verbs: ["create", "patch"]
   - apiGroups: ["cilium.io"]
     resources: ["ciliumnetworkpolicies"]
-    verbs: ["get", "list", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
