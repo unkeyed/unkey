@@ -39,16 +39,27 @@ elif ! command -v setfacl >/dev/null 2>&1; then
 fi
 echo "Docker installation completed in $((SECONDS - docker_started_at))s."
 
-echo "Starting Docker..."
-if [[ -x /opt/orb-worker/docker-start.sh ]]; then
-  sudo bash /opt/orb-worker/docker-start.sh
-else
-  sudo systemctl start docker
-fi
 sudo usermod -aG docker "$(id -un)"
-# The setup shell predates the group membership change, so grant this user
-# access without requiring the orb to restart before tests can use Docker.
-sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
+
+# Amp holds the agent until this hook exits, and nothing below needs Docker.
+# Depot orbs format a fresh Docker disk here, so Docker starts in the background
+# and the first docker command can wait a few seconds for it.
+log=$HOME/.cache/amp/logs/setup-docker.log
+mkdir -p -- "$(dirname -- "$log")"
+setsid -f bash -c '
+  set -euo pipefail
+  if [[ -x /opt/orb-worker/docker-start.sh ]]; then
+    sudo bash /opt/orb-worker/docker-start.sh
+  else
+    sudo systemctl start docker
+  fi
+  # The setup shell predates the group membership change, so grant this user
+  # access without requiring the orb to restart before tests can use Docker.
+  sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
+  echo "Docker ready."
+' >"$log" 2>&1 </dev/null
+echo "Docker is starting in the background. Log: $log"
+
 # Tilt's file watchers share the orb kernel's inotify quota with the minikube
 # containers. The Debian default is too small for the full development stack.
 printf '1024\n' | sudo tee /proc/sys/fs/inotify/max_user_instances >/dev/null
