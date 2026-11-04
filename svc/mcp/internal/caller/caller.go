@@ -9,6 +9,7 @@
 package caller
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -149,6 +150,15 @@ func (c Credential) SessionID() string {
 		return ""
 	}
 	return c.claims.SessionID
+}
+
+// SessionDigest is the SHA-256 of an OAuth session token, the only form in
+// which svc/mcp may keep one. Root keys return false.
+func (c Credential) SessionDigest() ([sha256.Size]byte, bool) {
+	if c.claims == nil {
+		return [sha256.Size]byte{}, false
+	}
+	return sha256.Sum256([]byte(c.secret)), true
 }
 
 // WorkspaceID is the workspace claimed by an OAuth token, returned only when

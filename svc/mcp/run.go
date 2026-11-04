@@ -5,6 +5,7 @@ package mcp
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"net"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -52,14 +54,31 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(func() error { calls.Close(); return nil })
 
+	clk := clock.New()
+	rejected, err := cache.New(cache.Config[[sha256.Size]byte, struct{}]{
+		// API access tokens live 15 minutes, so an entry outlives the token it
+		// blocks. After the token's exp, the gate rejects it without a lookup.
+		Fresh:     15 * time.Minute,
+		Stale:     15 * time.Minute,
+		MaxSize:   100_000,
+		Resource:  "mcp_rejected_session_token",
+		Clock:     clk,
+		Scheduler: nil,
+	})
+	if err != nil {
+		return fmt.Errorf("create rejected session token cache: %w", err)
+	}
+	r.Defer(func() error { rejected.Close(); return nil })
+
 	handler, err := gateway.New(gateway.Config{
 		PublicURL:  cfg.PublicURL,
 		APIURL:     cfg.APIURL,
 		Issuer:     cfg.OAuthIssuer,
 		Version:    buildinfo.Version,
 		HTTPClient: &http.Client{Timeout: 2 * time.Minute},
-		Clock:      clock.New(),
+		Clock:      clk,
 		Calls:      calls,
+		Rejected:   rejected,
 	}, registry)
 	if err != nil {
 		return fmt.Errorf("build gateway: %w", err)

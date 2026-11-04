@@ -20,6 +20,8 @@ and reads its config from environment variables ([config.go](config.go)).
   credential: the API does, on every forwarded call. It reads unverified token
   claims only to answer 401 so OAuth clients refresh, see
   [caller.go](internal/caller/caller.go). Do not grant anything on those claims.
+  After the API answers 401 to a session token, each replica keeps its SHA-256,
+  never the token, so the next request gets that 401 too.
 - Tool arguments are forwarded as the request body without validation; the
   API's 400 is the error the model should see. API failures are tool results
   with `isError`, never Go errors.
