@@ -1,6 +1,7 @@
 "use client";
 
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
+import { useLiveTail } from "@/hooks/use-live-tail";
 import { useLoadMoreList } from "@/hooks/use-load-more-list";
 import { paginationFilterKey } from "@/hooks/use-paginated-list-query";
 import { useDeployScope } from "@/lib/deploy-data";
@@ -12,7 +13,7 @@ import { DEFAULT_LOGS_SINCE } from "@/lib/utils";
 import { getQueryKey } from "@trpc/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type UseRequestLogsQueryParams = {
   limit?: number;
@@ -22,8 +23,6 @@ type UseRequestLogsQueryParams = {
   // the user sees logs that arrived since the last anchor.
   refreshNonce?: number;
 };
-
-const REALTIME_DATA_LIMIT = 100;
 
 type RequestLogsPage = inferRouterOutputs<Router>["deploy"]["requestLogs"]["query"];
 
@@ -38,7 +37,6 @@ export function useRequestLogsQuery({
 }: UseRequestLogsQueryParams = {}) {
   const { projectId } = useDeployScope();
   const { filters } = useRequestLogsFilters();
-  const queryClient = trpc.useUtils();
 
   const resetKey = useMemo(
     () => `${paginationFilterKey(filters)}|r:${refreshNonce}`,
@@ -50,22 +48,6 @@ export function useRequestLogsQuery({
   // navigations, so we anchor it here and only re-anchor on filter/refresh.
   const [queryTime, setQueryTime] = useState(() => Date.now());
 
-  const [realtimeLogsMap, setRealtimeLogsMap] = useState(
-    () => new Map<string, RequestLogsResponse>(),
-  );
-
-  const activeRealtimeLogsMap = useMemo(() => {
-    return startPolling ? realtimeLogsMap : new Map<string, RequestLogsResponse>();
-  }, [startPolling, realtimeLogsMap]);
-
-  const realtimeLogs = useMemo(() => {
-    return sortLogs(Array.from(activeRealtimeLogsMap.values()));
-  }, [activeRealtimeLogsMap]);
-
-  // Resolve the historical window once per filter/anchor change. Relative `since`
-  // filters resolve against the pinned anchor; explicit start/end are used as-is.
-  // We always pass concrete start/end (not `since`) so the server uses our pinned
-  // window instead of resolving `endTime` to its own `Date.now()` per request.
   const timeWindow = useMemo(() => {
     const startTimeFilter = filters.find((f) => f.field === "startTime");
     const endTimeFilter = filters.find((f) => f.field === "endTime");
@@ -135,7 +117,6 @@ export function useRequestLogsQuery({
   if (prevResetKey !== resetKey) {
     setPrevResetKey(resetKey);
     setQueryTime(Date.now());
-    setRealtimeLogsMap(new Map());
   }
 
   const list = useLoadMoreList({
@@ -145,68 +126,22 @@ export function useRequestLogsQuery({
     rowsOf,
     idOf: requestIdOf,
     pageSize: limit,
-    paused: startPolling,
   });
   const historicalLogs = list.table.rows;
-  const historicalIds = useMemo(() => new Set(historicalLogs.map(requestIdOf)), [historicalLogs]);
-
-  const pollForNewLogs = useCallback(async () => {
-    try {
-      const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
-      const result = await queryClient.deploy.requestLogs.query.fetch({
-        ...queryInput,
-        page: 1,
-        startTime: latestTime ?? Date.now() - pollIntervalMs,
-        endTime: Date.now(),
-      });
-
-      if (result.logs.length === 0) {
-        return;
-      }
-
-      setRealtimeLogsMap((prevMap) => {
-        const newMap = new Map(prevMap);
-        let added = 0;
-
-        for (const log of result.logs) {
-          // Skip if it already exists in either buffer.
-          if (newMap.has(log.request_id) || historicalIds.has(log.request_id)) {
-            continue;
-          }
-
-          newMap.set(log.request_id, log);
-          added++;
-
-          // Drop the oldest entry once the buffer exceeds its cap.
-          if (newMap.size > Math.min(limit, REALTIME_DATA_LIMIT)) {
-            const entries = Array.from(newMap.entries());
-            const oldestEntry = entries.reduce((oldest, current) => {
-              return oldest[1].time < current[1].time ? oldest : current;
-            });
-            newMap.delete(oldestEntry[0]);
-          }
-        }
-
-        return added > 0 ? newMap : prevMap;
-      });
-    } catch (error) {
-      console.error("Error polling for new logs:", error);
-    }
-  }, [queryInput, queryClient, limit, pollIntervalMs, historicalIds, realtimeLogs, historicalLogs]);
-
-  useEffect(() => {
-    if (startPolling) {
-      const interval = setInterval(pollForNewLogs, pollIntervalMs);
-      return () => clearInterval(interval);
-    }
-  }, [startPolling, pollForNewLogs, pollIntervalMs]);
-
-  // Clear the realtime buffer whenever live mode is turned off.
-  useEffect(() => {
-    if (!startPolling) {
-      setRealtimeLogsMap(new Map());
-    }
-  }, [startPolling]);
+  const realtimeLogs = useLiveTail({
+    enabled: startPolling,
+    intervalMs: pollIntervalMs,
+    queryKey: getQueryKey(trpc.deploy.requestLogs.query, queryInput),
+    fetchNewest: async (signal) => {
+      const page = await trpcClient.deploy.requestLogs.query.query(
+        { ...queryInput, page: 1, endTime: Date.now() },
+        { signal },
+      );
+      return page.logs;
+    },
+    keyOf: requestIdOf,
+    historical: historicalLogs,
+  });
 
   return {
     realtimeLogs,
@@ -214,7 +149,3 @@ export function useRequestLogsQuery({
     totalCount: list.totalCount,
   };
 }
-
-const sortLogs = (logs: RequestLogsResponse[]) => {
-  return logs.toSorted((a, b) => b.time - a.time);
-};

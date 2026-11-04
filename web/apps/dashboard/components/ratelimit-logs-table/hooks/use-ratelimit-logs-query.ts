@@ -1,5 +1,6 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { useLiveTail } from "@/hooks/use-live-tail";
 import { useLoadMoreList } from "@/hooks/use-load-more-list";
 import { paginationFilterKey } from "@/hooks/use-paginated-list-query";
 import { getTimestampFromRelative } from "@/lib/duration";
@@ -95,9 +96,6 @@ const NO_ENRICHMENT = new Map<string, RatelimitLogEnrichment>();
 const rowsOf = (response: RatelimitLogsPage) => enrichLogs(response.ratelimitLogs, NO_ENRICHMENT);
 const requestIdOf = (log: RatelimitLog) => log.request_id;
 
-// Maximum number of real-time logs to store
-const REALTIME_DATA_LIMIT = 100;
-
 // The enrichment row (from api_requests_raw_v2) for a ratelimit event is the
 // request record, whose `time` is slightly later than the ratelimit-decision
 // `time` we key off of. Using the logs' exact min/max as the query window
@@ -119,9 +117,6 @@ export function useRatelimitLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseRatelimitLogsQueryParams) {
-  const [realtimeLogsMap, setRealtimeLogsMap] = useState(
-    () => new Map<string, EnrichedRatelimitLog>(),
-  );
   const enrichmentMapRef = useRef(new Map<string, RatelimitLogEnrichment>());
   const [enrichmentVersion, setEnrichmentVersion] = useState(0);
 
@@ -137,14 +132,6 @@ export function useRatelimitLogsQuery({
     () => `${paginationFilterKey(filters)}|ts:${timestamp}`,
     [filters, timestamp],
   );
-
-  const activeRealtimeLogsMap = useMemo(() => {
-    return startPolling ? realtimeLogsMap : new Map<string, EnrichedRatelimitLog>();
-  }, [startPolling, realtimeLogsMap]);
-
-  const realtimeLogs = useMemo(() => {
-    return sortLogs(Array.from(activeRealtimeLogsMap.values()));
-  }, [activeRealtimeLogsMap]);
 
   // Live tail is always newest-first, so sorting only applies to historical
   // pages. Unknown column ids (enrichment-derived columns) are dropped.
@@ -237,7 +224,6 @@ export function useRatelimitLogsQuery({
     }
     if (filtersKey !== prevFiltersKeyRef.current) {
       prevFiltersKeyRef.current = filtersKey;
-      setRealtimeLogsMap(new Map());
       enrichmentMapRef.current.clear();
       setEnrichmentVersion(0);
     }
@@ -270,11 +256,14 @@ export function useRatelimitLogsQuery({
       try {
         const results = await Promise.all(
           chunks.map((chunk) =>
-            queryClient.ratelimit.logs.enrichment.fetch({
-              requestIds: chunk,
-              startTime: minTime - ENRICHMENT_TIME_BUFFER_MS,
-              endTime: maxTime + ENRICHMENT_TIME_BUFFER_MS,
-            }),
+            queryClient.ratelimit.logs.enrichment.fetch(
+              {
+                requestIds: chunk,
+                startTime: minTime - ENRICHMENT_TIME_BUFFER_MS,
+                endTime: maxTime + ENRICHMENT_TIME_BUFFER_MS,
+              },
+              { staleTime: 0 },
+            ),
           ),
         );
 
@@ -315,11 +304,8 @@ export function useRatelimitLogsQuery({
     idOf: requestIdOf,
     mapRows: enrichRows,
     pageSize: limit,
-    paused: startPolling,
   });
   const historicalLogs = list.table.rows;
-  const historicalIds = useMemo(() => new Set(historicalLogs.map(requestIdOf)), [historicalLogs]);
-
   // Fetch enrichment whenever new historical data arrives
   useEffect(() => {
     const unenriched = historicalLogs.filter((log) => !log.isEnriched);
@@ -328,115 +314,26 @@ export function useRatelimitLogsQuery({
     }
   }, [historicalLogs, fetchEnrichment]);
 
-  // Re-merge enrichment into realtime logs when enrichment changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: enrichmentVersion triggers the re-merge when the ref updates
-  useEffect(() => {
-    setRealtimeLogsMap((prevMap) => {
-      if (prevMap.size === 0) {
-        return prevMap;
-      }
-      const newMap = new Map<string, EnrichedRatelimitLog>();
-      let changed = false;
-      for (const [id, log] of prevMap) {
-        const enrichment = enrichmentMapRef.current.get(id);
-        if (enrichment && !log.isEnriched) {
-          newMap.set(id, { ...log, ...enrichment, isEnriched: true });
-          changed = true;
-        } else {
-          newMap.set(id, log);
-        }
-      }
-      return changed ? newMap : prevMap;
-    });
-  }, [enrichmentVersion]);
+  const liveLogs = useLiveTail({
+    enabled: startPolling,
+    intervalMs: pollIntervalMs,
+    queryKey: getQueryKey(trpc.ratelimit.logs.query, queryParams),
+    fetchNewest: async (signal) => {
+      const page = await trpcClient.ratelimit.logs.query.query(
+        { ...queryParams, endTime: Date.now(), page: 1 },
+        { signal },
+      );
+      fetchEnrichment(page.ratelimitLogs);
+      return page.ratelimitLogs;
+    },
+    keyOf: requestIdOf,
+    historical: historicalLogs,
+  });
 
-  const pollForNewLogs = useCallback(async () => {
-    try {
-      const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
-      const result = await queryClient.ratelimit.logs.query.fetch({
-        ...queryParams,
-        startTime: latestTime ?? Date.now() - pollIntervalMs,
-        endTime: Date.now(),
-        page: 1,
-      });
-
-      // Build the list of new logs outside the updater to avoid mutation inside React setState
-      const newLogs: RatelimitLog[] = [];
-      for (const log of result.ratelimitLogs) {
-        if (realtimeLogsMap.has(log.request_id) || historicalIds.has(log.request_id)) {
-          continue;
-        }
-        newLogs.push(log);
-      }
-
-      if (newLogs.length > 0) {
-        setRealtimeLogsMap((prevMap) => {
-          const newMap = new Map(prevMap);
-
-          for (const log of newLogs) {
-            if (newMap.has(log.request_id)) {
-              continue;
-            }
-
-            const enriched = toEnrichedLog(log, enrichmentMapRef.current.get(log.request_id));
-            newMap.set(log.request_id, enriched);
-
-            if (newMap.size > Math.min(limit, REALTIME_DATA_LIMIT)) {
-              const entries = Array.from(newMap.entries());
-              const oldestEntry = entries.reduce((oldest, current) => {
-                return oldest[1].time < current[1].time ? oldest : current;
-              });
-              newMap.delete(oldestEntry[0]);
-            }
-          }
-
-          return newMap;
-        });
-      }
-
-      // Enrich brand-new logs, and retry any realtime rows still missing
-      // enrichment. The newest live-tail row routinely has no
-      // api_requests_raw_v2 record at first poll: the request log lands a beat
-      // after the ratelimit decision we key off of, so the initial fetch finds
-      // nothing. Since that row is no longer "new" on the next poll, a
-      // single fetch per batch leaves it un-enriched forever (empty
-      // response_body, etc.) — the missing-data-on-first-row symptom. Re-passing
-      // unenriched rows lets a later poll pick up the now-ingested record;
-      // fetchEnrichment de-dupes against the cache, so already-enriched rows
-      // cost nothing.
-      const unenrichedRealtime = realtimeLogs.filter((log) => !log.isEnriched);
-      const logsToEnrich = [...newLogs, ...unenrichedRealtime];
-      if (logsToEnrich.length > 0) {
-        fetchEnrichment(logsToEnrich);
-      }
-    } catch (error) {
-      console.error("Error polling for new logs:", error);
-    }
-  }, [
-    queryParams,
-    queryClient,
-    limit,
-    pollIntervalMs,
-    historicalIds,
-    realtimeLogsMap,
-    realtimeLogs,
-    historicalLogs,
-    fetchEnrichment,
-  ]);
-
-  useEffect(() => {
-    if (startPolling) {
-      const interval = setInterval(pollForNewLogs, pollIntervalMs);
-      return () => clearInterval(interval);
-    }
-  }, [startPolling, pollForNewLogs, pollIntervalMs]);
-
-  // Reset realtime logs when polling stops
-  useEffect(() => {
-    if (!startPolling) {
-      setRealtimeLogsMap(new Map());
-    }
-  }, [startPolling]);
+  const realtimeLogs = useMemo(
+    () => enrichRows(liveLogs.map((log) => toEnrichedLog(log, undefined))),
+    [liveLogs, enrichRows],
+  );
 
   return {
     realtimeLogs,
@@ -446,7 +343,3 @@ export function useRatelimitLogsQuery({
     onSortingChange: setSorting,
   };
 }
-
-const sortLogs = (logs: EnrichedRatelimitLog[]) => {
-  return logs.toSorted((a, b) => b.time - a.time);
-};

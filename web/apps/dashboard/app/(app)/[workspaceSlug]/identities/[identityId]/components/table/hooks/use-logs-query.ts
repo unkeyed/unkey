@@ -1,16 +1,15 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { useLiveTail } from "@/hooks/use-live-tail";
 import { shownTotalOf, tableStateOf, useInfiniteList } from "@/lib/loadable/list";
-import { trpc } from "@/lib/trpc/client";
+import { trpc, trpcClient } from "@/lib/trpc/client";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { useQueryTime } from "@/providers/query-time-provider";
+import { getQueryKey } from "@trpc/react-query";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { identityDetailsFilterFieldConfig } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import type { IdentityLogsPayload } from "../query-logs.schema";
-
-// Maximum number of real-time logs to store
-const REALTIME_DATA_LIMIT = 100;
 
 const logsOf = (page: { logs: IdentityLog[] }) => page.logs;
 const requestIdOf = (log: IdentityLog) => log.request_id;
@@ -26,15 +25,8 @@ export const useIdentityLogsQuery = ({
   startPolling = false,
   pollIntervalMs = 2000,
 }: UseIdentityLogsQueryProps) => {
-  const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, IdentityLog>());
-
   const { filters } = useFilters();
-  const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
-
-  const realtimeLogs = useMemo(() => {
-    return sortLogs(Array.from(realtimeLogsMap.values()));
-  }, [realtimeLogsMap]);
 
   const queryParams = useMemo(() => {
     const params: IdentityLogsPayload = {
@@ -124,67 +116,20 @@ export const useIdentityLogsQuery = ({
 
   const table = tableStateOf(useInfiniteList(query, logsOf, { idOf: requestIdOf }));
   const historicalLogs = table.rows;
-  const historicalIds = useMemo(() => new Set(historicalLogs.map(requestIdOf)), [historicalLogs]);
-
-  // Query for new logs (polling)
-  const pollForNewLogs = useCallback(async () => {
-    try {
-      const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
-
-      const result = await queryClient.identity.logs.query.fetch({
-        ...queryParams,
-        startTime: latestTime ?? Date.now() - pollIntervalMs,
-        endTime: Date.now(),
-      });
-
-      if (result.logs.length === 0) {
-        return;
-      }
-
-      setRealtimeLogsMap((prevMap) => {
-        const newMap = new Map(prevMap);
-        let added = 0;
-
-        for (const log of result.logs) {
-          // Skip if exists in either map
-          if (newMap.has(log.request_id) || historicalIds.has(log.request_id)) {
-            continue;
-          }
-
-          newMap.set(log.request_id, log);
-          added++;
-
-          // Remove oldest entries when exceeding the size limit
-          if (newMap.size > Math.min(50, REALTIME_DATA_LIMIT)) {
-            const entries = Array.from(newMap.entries());
-            const oldestEntry = entries.reduce((oldest, current) => {
-              return oldest[1].time < current[1].time ? oldest : current;
-            });
-            newMap.delete(oldestEntry[0]);
-          }
-        }
-
-        return added > 0 ? newMap : prevMap;
-      });
-    } catch (error) {
-      console.error("Error polling for new identity logs:", error);
-    }
-  }, [queryParams, queryClient, pollIntervalMs, historicalIds, realtimeLogs, historicalLogs]);
-
-  // Set up polling effect
-  useEffect(() => {
-    if (startPolling) {
-      const interval = setInterval(pollForNewLogs, pollIntervalMs);
-      return () => clearInterval(interval);
-    }
-  }, [startPolling, pollForNewLogs, pollIntervalMs]);
-
-  // Reset realtime logs effect
-  useEffect(() => {
-    if (!startPolling) {
-      setRealtimeLogsMap(new Map());
-    }
-  }, [startPolling]);
+  const realtimeLogs = useLiveTail({
+    enabled: startPolling,
+    intervalMs: pollIntervalMs,
+    queryKey: getQueryKey(trpc.identity.logs.query, queryParams),
+    fetchNewest: async (signal) => {
+      const page = await trpcClient.identity.logs.query.query(
+        { ...queryParams, endTime: Date.now() },
+        { signal },
+      );
+      return page.logs;
+    },
+    keyOf: requestIdOf,
+    historical: historicalLogs,
+  });
 
   return {
     realtimeLogs,
@@ -195,9 +140,4 @@ export const useIdentityLogsQuery = ({
       hasMore: query.hasNextPage === true,
     }),
   };
-};
-
-// Helper function to sort logs by time in descending order (newest first)
-const sortLogs = (logs: IdentityLog[]) => {
-  return logs.toSorted((a, b) => b.time - a.time);
 };

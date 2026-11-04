@@ -1,8 +1,8 @@
 import { keyDetailsFilterFieldConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/hooks/use-filters";
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
+import { useLiveTail } from "@/hooks/use-live-tail";
 import { useLoadMoreList } from "@/hooks/use-load-more-list";
-import { paginationFilterKey } from "@/hooks/use-paginated-list-query";
 import { getTimestampFromRelative } from "@/lib/duration";
 import { trpcClient } from "@/lib/trpc/client";
 import { trpc } from "@/lib/trpc/client";
@@ -12,11 +12,8 @@ import { getQueryKey } from "@trpc/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { KeyDetailsLogsPayload } from "../schema/query-logs.schema";
-
-// Maximum number of real-time logs to store
-const REALTIME_DATA_LIMIT = 100;
 
 type KeyDetailsLogsPage = inferRouterOutputs<Router>["key"]["logs"]["query"];
 
@@ -38,30 +35,8 @@ export function useKeyDetailsLogsQuery({
   pollIntervalMs = 5000,
   startPolling = false,
 }: UseKeyDetailsLogsQueryParams) {
-  const [realtimeLogsMap, setRealtimeLogsMap] = useState(() => new Map<string, KeyDetailsLog>());
-
   const { filters } = useFilters();
-  const queryClient = trpc.useUtils();
   const { queryTime: timestamp } = useQueryTime();
-
-  const filtersKey = useMemo(
-    () => `${paginationFilterKey(filters)}|ts:${timestamp}`,
-    [filters, timestamp],
-  );
-
-  const [prevFiltersKey, setPrevFiltersKey] = useState(filtersKey);
-  if (prevFiltersKey !== filtersKey) {
-    setPrevFiltersKey(filtersKey);
-    setRealtimeLogsMap(new Map());
-  }
-
-  const activeRealtimeLogsMap = useMemo(() => {
-    return startPolling ? realtimeLogsMap : new Map<string, KeyDetailsLog>();
-  }, [startPolling, realtimeLogsMap]);
-
-  const realtimeLogs = useMemo(() => {
-    return sortLogs(Array.from(activeRealtimeLogsMap.values()));
-  }, [activeRealtimeLogsMap]);
 
   const queryParams = useMemo(() => {
     const params: Omit<KeyDetailsLogsPayload, "page"> = {
@@ -142,71 +117,22 @@ export function useKeyDetailsLogsQuery({
     rowsOf,
     idOf: requestIdOf,
     pageSize: limit,
-    paused: startPolling,
   });
   const historicalLogs = list.table.rows;
-  const historicalIds = useMemo(() => new Set(historicalLogs.map(requestIdOf)), [historicalLogs]);
-
-  // Query for new logs (polling)
-  const pollForNewLogs = useCallback(async () => {
-    try {
-      const latestTime = realtimeLogs[0]?.time ?? historicalLogs[0]?.time;
-
-      const result = await queryClient.key.logs.query.fetch({
-        ...queryParams,
-        startTime: latestTime ?? Date.now() - pollIntervalMs,
-        endTime: Date.now(),
-        page: 1,
-      });
-
-      if (result.logs.length === 0) {
-        return;
-      }
-
-      setRealtimeLogsMap((prevMap) => {
-        const newMap = new Map(prevMap);
-        let added = 0;
-
-        for (const log of result.logs) {
-          // Skip if exists in either map
-          if (newMap.has(log.request_id) || historicalIds.has(log.request_id)) {
-            continue;
-          }
-
-          newMap.set(log.request_id, log);
-          added++;
-
-          // Remove oldest entries when exceeding the size limit
-          if (newMap.size > Math.min(limit, REALTIME_DATA_LIMIT)) {
-            const entries = Array.from(newMap.entries());
-            const oldestEntry = entries.reduce((oldest, current) => {
-              return oldest[1].time < current[1].time ? oldest : current;
-            });
-            newMap.delete(oldestEntry[0]);
-          }
-        }
-
-        return added > 0 ? newMap : prevMap;
-      });
-    } catch (error) {
-      console.error("Error polling for new key details logs:", error);
-    }
-  }, [
-    queryParams,
-    queryClient,
-    limit,
-    pollIntervalMs,
-    historicalIds,
-    realtimeLogs,
-    historicalLogs,
-  ]);
-
-  useEffect(() => {
-    if (startPolling) {
-      const interval = setInterval(pollForNewLogs, pollIntervalMs);
-      return () => clearInterval(interval);
-    }
-  }, [startPolling, pollForNewLogs, pollIntervalMs]);
+  const realtimeLogs = useLiveTail({
+    enabled: startPolling,
+    intervalMs: pollIntervalMs,
+    queryKey: getQueryKey(trpc.key.logs.query, queryParams),
+    fetchNewest: async (signal) => {
+      const page = await trpcClient.key.logs.query.query(
+        { ...queryParams, endTime: Date.now(), page: 1 },
+        { signal },
+      );
+      return page.logs;
+    },
+    keyOf: requestIdOf,
+    historical: historicalLogs,
+  });
 
   return {
     realtimeLogs,
@@ -214,8 +140,3 @@ export function useKeyDetailsLogsQuery({
     totalCount: list.totalCount,
   };
 }
-
-// Helper function to sort logs by time in descending order (newest first)
-const sortLogs = (logs: KeyDetailsLog[]) => {
-  return logs.toSorted((a, b) => b.time - a.time);
-};
