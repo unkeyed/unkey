@@ -26,7 +26,7 @@ export function DrainSettingsPanel({
 
   return (
     <SlidePanel isOpen={isOpen} onClose={onClose} onExitComplete={reset} widthClassName="w-160">
-      <SlidePanelHeader className="items-center pb-0">
+      <SlidePanelHeader className="items-center">
         <SlidePanelTitle>Settings</SlidePanelTitle>
         <SlidePanelCloseButton />
       </SlidePanelHeader>

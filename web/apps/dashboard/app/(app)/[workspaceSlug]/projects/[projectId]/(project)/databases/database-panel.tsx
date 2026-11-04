@@ -1,45 +1,30 @@
 "use client";
 
-import { environmentName } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/environment-label";
-import { ENVIRONMENT_KINDS } from "@/lib/queries/environments";
-import { IconArrowUpRightOutline12 } from "@unkey/icons";
+import { Planetscale } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   AlertBanner,
   AlertBannerDescription,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Badge,
   Button,
-  DetailList,
-  DetailRow,
   Loading,
   SettingsDangerZone,
-  SettingsGroup,
-  SettingsGroupTitle,
   SettingsGroups,
   SettingsZoneRow,
   SlidePanel,
   SlidePanelCloseButton,
   SlidePanelContent,
+  SlidePanelFooter,
   SlidePanelHeader,
   SlidePanelTitle,
 } from "@unkey/ui";
 import Link from "next/link";
 import { useState } from "react";
-import {
-  type Database,
-  branchSummary,
-  engineCopy,
-  planetscaleUrls,
-  regionLabel,
-  statusCopy,
-} from "./database-model";
+import { DatabaseActivity } from "./database-activity";
+import { type Database, planetscaleUrls, regionLabel } from "./database-model";
+import { DatabaseConfiguration } from "./database-panel-sections";
+import { DatabaseStatusBadge } from "./database-status-badge";
+import { DeleteDatabaseDialog } from "./delete-database-dialog";
+import { EngineTile } from "./engine-icon";
 
 type Props = {
   db: Database | undefined;
@@ -57,61 +42,34 @@ export function DatabasePanel({ db, onClose, onDelete }: Props) {
 
 function DatabaseDetails({ db, onDelete }: { db: Database; onDelete: (db: Database) => void }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const status = statusCopy[db.status];
 
   return (
     <>
       <SlidePanelHeader className="items-center">
         <div className="flex min-w-0 items-center gap-3">
+          <EngineTile engine={db.engine} size="md" />
           <SlidePanelTitle className="truncate">{db.name}</SlidePanelTitle>
-          <Badge variant={status.badge} size="sm">
-            {status.label}
-          </Badge>
+          <DatabaseStatusBadge status={db.status} />
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            render={
-              <Link
-                href={planetscaleUrls.database({ org: db.planetscale.org, name: db.name })}
-                target="_blank"
-                rel="noopener noreferrer"
-              />
-            }
-          >
-            Manage in PlanetScale
-            <IconArrowUpRightOutline12 className="size-3! text-gray-11" />
-          </Button>
-          <SlidePanelCloseButton />
-        </div>
+        <SlidePanelCloseButton />
       </SlidePanelHeader>
 
       <SlidePanelContent className="overflow-y-auto">
-        <SettingsGroups className="pt-4 pb-6">
-          {db.status === "provisioning" ? (
-            <AlertBanner>
-              <Loading className="text-gray-11" />
-              <AlertBannerDescription>
-                Provisioning {db.name} in {regionLabel[db.region]}.
-              </AlertBannerDescription>
-            </AlertBanner>
-          ) : null}
-
-          <SettingsGroup>
-            <SettingsGroupTitle>Configuration</SettingsGroupTitle>
-            <DetailList>
-              <DetailRow label="Engine">
-                {engineCopy[db.engine].label} {engineCopy[db.engine].version}
-              </DetailRow>
-              <DetailRow label="Region">{regionLabel[db.region]}</DetailRow>
-              {ENVIRONMENT_KINDS.map((env) => (
-                <DetailRow key={env} label={environmentName(env)}>
-                  {branchSummary(db.planetscale.branches, env)}
-                </DetailRow>
-              ))}
-            </DetailList>
-          </SettingsGroup>
+        <SettingsGroups className="pt-6 pb-6">
+          {match(db)
+            .with({ status: "provisioning" }, () => (
+              <AlertBanner>
+                <Loading className="text-gray-11" />
+                <AlertBannerDescription>
+                  Provisioning {db.name} in {regionLabel[db.region]}.
+                </AlertBannerDescription>
+              </AlertBanner>
+            ))
+            .with({ status: "ready" }, ({ instance }) => (
+              <DatabaseActivity vitals={instance.vitals} />
+            ))
+            .exhaustive()}
+          <DatabaseConfiguration db={db} />
 
           <SettingsDangerZone>
             <SettingsZoneRow
@@ -123,22 +81,30 @@ function DatabaseDetails({ db, onDelete }: { db: Database; onDelete: (db: Databa
         </SettingsGroups>
       </SlidePanelContent>
 
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {db.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This deletes all data, branches and backups. You cannot undo this action.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep database</AlertDialogCancel>
-            <AlertDialogAction color="danger" onClick={() => onDelete(db)}>
-              Delete database
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SlidePanelFooter>
+        <Button
+          variant="primary"
+          size="md"
+          className="w-full"
+          render={
+            <Link
+              href={planetscaleUrls.database({ org: db.planetscale.org, name: db.name })}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          }
+        >
+          <Planetscale className="size-3.5" />
+          Manage in PlanetScale
+        </Button>
+      </SlidePanelFooter>
+
+      <DeleteDatabaseDialog
+        db={db}
+        isOpen={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        onDelete={onDelete}
+      />
     </>
   );
 }

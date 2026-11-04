@@ -132,29 +132,30 @@ function ResourceListTable({
 
 function ResourceListTableRow({
   link,
+  label,
   className,
   children,
   ...props
-}: React.ComponentProps<"li"> & { link?: React.ReactElement }) {
+}: React.ComponentProps<"li"> & { link?: React.ReactElement; label?: string }) {
   return (
     <ResourceListItem
       className={cn(
         "grid h-12 grid-cols-(--list-columns) items-center gap-4 px-4 text-xs text-gray-12",
-        link && "transition-colors hover:bg-grayA-2 has-[>a:focus-visible]:bg-grayA-2",
+        link && "transition-colors hover:bg-grayA-2 has-[>:focus-visible]:bg-grayA-2",
         className,
       )}
       {...props}
     >
-      {link ? <ResourceListRowLink render={link} /> : null}
+      {link ? <ResourceListRowLink render={link} label={label} /> : null}
       {children}
     </ResourceListItem>
   );
 }
 
-function ResourceListRowLink({ render }: { render: React.ReactElement }) {
+function ResourceListRowLink({ render, label }: { render: React.ReactElement; label?: string }) {
   return useRender({
     render,
-    props: { className: "absolute inset-0 z-0 outline-hidden" },
+    props: { className: "absolute inset-0 z-0 outline-hidden", "aria-label": label },
   });
 }
 

@@ -71,16 +71,16 @@ export type Requirement = "required" | "optional";
 
 export type LabelActionProps =
   | {
-      label?: string;
+      label?: React.ReactNode;
       labelAction?: never;
     }
   | {
-      label: string;
+      label: React.ReactNode;
       labelAction?: React.ReactNode;
     };
 
 export type FormLabelProps = {
-  label?: string;
+  label?: React.ReactNode;
   labelAction?: React.ReactNode;
   requirement?: Requirement;
   hasError?: boolean;
