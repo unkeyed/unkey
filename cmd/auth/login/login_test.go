@@ -110,7 +110,8 @@ func TestRootKeyFlagFallsBackToTheConfigFile(t *testing.T) {
 		})
 	})
 	require.Equal(t, "Root key saved.\n", stdout)
-	require.Empty(t, stderr)
+	require.Contains(t, stderr, "Warning: the system keychain is unavailable, so the root key is stored unencrypted in "+path)
+	require.NotContains(t, stderr, "unkey_from_flag")
 
 	cfg, err := cli.LoadUserConfig(path)
 	require.NoError(t, err)
@@ -374,6 +375,37 @@ func TestDeviceLoginRevokesTheSessionWhenItCannotBeStored(t *testing.T) {
 	})
 	require.True(t, revoked)
 	require.NotContains(t, stderr, "refresh_issued")
+}
+
+func TestDeviceLoginWarnsWhenTheSessionIsStoredInAFile(t *testing.T) {
+	store := useSessionStore(t)
+	store.SetError(keystore.ErrUnavailable)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v2/cli.startDeviceLogin" {
+			writeEnvelope(t, w, http.StatusOK, startedEnvelope(uid.New(uid.DeviceAuthorizationPrefix), 1))
+			return
+		}
+		writeEnvelope(t, w, http.StatusOK, completeEnvelope(uid.New(uid.WorkspacePrefix), uid.New(uid.CLISessionPrefix)))
+	}))
+	t.Cleanup(srv.Close)
+
+	var stdout string
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			err := run(context.Background(), options{
+				apiURL:    srv.URL,
+				noBrowser: true,
+				client:    srv.Client(),
+				sleep:     func(context.Context, time.Duration) error { return nil },
+			})
+			require.NoError(t, err)
+		})
+	})
+	require.Equal(t, "Signed in.\n", stdout)
+	require.Contains(t, stderr, "Warning: the system keychain is unavailable, so the CLI session is stored unencrypted in "+filepath.Join(home, ".unkey", "sessions.json"))
+	require.NotContains(t, stderr, "access_issued")
 }
 
 func TestPollUntilKey(t *testing.T) {
