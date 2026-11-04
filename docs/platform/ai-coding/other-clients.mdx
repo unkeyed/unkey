@@ -7,6 +7,9 @@ sources:
   - svc/mcp/internal/tools/toolset.go
   - svc/mcp/internal/caller/caller.go
   - https://code.visualstudio.com/docs/copilot/reference/mcp-configuration
+  - https://support.claude.com/en/articles/11175166
+  - https://docs.devin.ai/windsurf/plugins/cascade/mcp.md
+  - https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md
 ---
 
 Each example adds the Unkey server. For the Compute server, swap in `https://mcp.unkey.com/compute`. After you add the server, the client opens Unkey in your browser so you can sign in. See [Sign in with Unkey](/platform/ai-coding/mcp-servers#sign-in-with-unkey).
@@ -49,9 +52,11 @@ VS Code asks for your root key the first time the server starts and stores it fo
 
 ## Claude Desktop
 
-1. Open **Settings**, then **Connectors**, and choose **Add custom connector**.
+1. Open **Customize**, then **Connectors**, click **+ Add**, and choose **Add custom connector**.
 2. Paste `https://mcp.unkey.com` as the URL.
 3. Claude opens Unkey in your browser. Pick a workspace and permissions, then click **Authorize**.
+
+On Team and Enterprise plans, an Owner adds the connector under **Organization settings**, then **Connectors**. Each member then connects it from **Customize**, then **Connectors**, and signs in with their own Unkey account.
 
 ## Codex CLI
 
@@ -78,13 +83,28 @@ Then run `/mcp auth unkey` in Gemini CLI and sign in to Unkey.
 
 ## Windsurf
 
-Add the server to `~/.codeium/windsurf/mcp_config.json`. Windsurf opens the Unkey sign-in when it connects.
+Add the server to `~/.config/devin/mcp_config.json`, or `%AppData%/devin/mcp_config.json` on Windows. Sign in to Unkey when Windsurf prompts you.
 
 ```json
 {
   "mcpServers": {
     "unkey": {
-      "serverUrl": "https://mcp.unkey.com"
+      "url": "https://mcp.unkey.com"
+    }
+  }
+}
+```
+
+To use a root key instead, add a `headers` map. Windsurf reads `${env:UNKEY_ROOT_KEY}` from your environment:
+
+```json
+{
+  "mcpServers": {
+    "unkey": {
+      "url": "https://mcp.unkey.com",
+      "headers": {
+        "Authorization": "Bearer ${env:UNKEY_ROOT_KEY}"
+      }
     }
   }
 }

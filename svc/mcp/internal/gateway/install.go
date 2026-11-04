@@ -41,10 +41,6 @@ type urlServer struct {
 	URL string `json:"url"`
 }
 
-type windsurfServer struct {
-	ServerURL string `json:"serverUrl"`
-}
-
 type vscodeServer struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
@@ -79,8 +75,7 @@ func renderInstallPage(origin string, toolset tools.Toolset, toolList []tools.To
 	cursorConfig := encode(urlServer{URL: serverURL})
 	vscodeConfig := encode(vscodeServer{Name: name, Type: "http", URL: serverURL})
 	cursorJSON := mcpServers(urlServer{URL: serverURL})
-	windsurfJSON := mcpServers(windsurfServer{ServerURL: serverURL})
-	rootKeyJSON := mcpServers(headerServer{URL: serverURL, Headers: map[string]string{"Authorization": "Bearer ${UNKEY_ROOT_KEY}"}})
+	rootKeyJSON := mcpServers(headerServer{URL: serverURL, Headers: map[string]string{"Authorization": "Bearer ${env:UNKEY_ROOT_KEY}"}})
 	if err := errors.Join(encodeErrors...); err != nil {
 		return nil, err
 	}
@@ -99,7 +94,7 @@ func renderInstallPage(origin string, toolset tools.Toolset, toolList []tools.To
 			},
 			{
 				Name:      "Cursor",
-				Steps:     "Install with one click, or add this to ~/.cursor/mcp.json. Cursor opens the Unkey sign-in when it connects.",
+				Steps:     "Install with one click, or add this to ~/.cursor/mcp.json. Sign in to Unkey when Cursor prompts you.",
 				Snippet:   cursorJSON,
 				Link:      template.URL("cursor://anysphere.cursor-deeplink/mcp/install?" + url.Values{"name": {name}, "config": {base64.StdEncoding.EncodeToString([]byte(cursorConfig))}}.Encode()),
 				LinkLabel: "Add to Cursor",
@@ -113,7 +108,7 @@ func renderInstallPage(origin string, toolset tools.Toolset, toolList []tools.To
 			},
 			{
 				Name:      "Claude Desktop",
-				Steps:     "Open Settings, then Connectors, choose Add custom connector, and paste this URL. Claude opens the Unkey sign-in.",
+				Steps:     "Open Customize, then Connectors, click + Add, choose Add custom connector, and paste this URL. Claude opens the Unkey sign-in. On Team and Enterprise plans an Owner adds it under Organization settings, then Connectors, and each member connects.",
 				Snippet:   serverURL,
 				Link:      "",
 				LinkLabel: "",
@@ -134,8 +129,8 @@ func renderInstallPage(origin string, toolset tools.Toolset, toolList []tools.To
 			},
 			{
 				Name:      "Windsurf",
-				Steps:     "Add this to ~/.codeium/windsurf/mcp_config.json. Windsurf opens the Unkey sign-in when it connects.",
-				Snippet:   windsurfJSON,
+				Steps:     "Add this to ~/.config/devin/mcp_config.json (%AppData%/devin/mcp_config.json on Windows). Sign in to Unkey when Windsurf prompts you.",
+				Snippet:   cursorJSON,
 				Link:      "",
 				LinkLabel: "",
 			},
@@ -143,15 +138,29 @@ func renderInstallPage(origin string, toolset tools.Toolset, toolList []tools.To
 		RootKey: []installClient{
 			{
 				Name:      "Claude Code",
-				Steps:     "Pass the root key as a header instead of signing in.",
-				Snippet:   fmt.Sprintf(`claude mcp add --transport http %s %s --header "Authorization: Bearer $UNKEY_ROOT_KEY"`, name, serverURL),
+				Steps:     "Keep the single quotes. Claude Code reads UNKEY_ROOT_KEY each time it connects, so the key stays out of its config.",
+				Snippet:   fmt.Sprintf(`claude mcp add --transport http %s %s --header 'Authorization: Bearer ${UNKEY_ROOT_KEY}'`, name, serverURL),
+				Link:      "",
+				LinkLabel: "",
+			},
+			{
+				Name:      "Codex",
+				Steps:     "Codex reads the key from UNKEY_ROOT_KEY each time it connects.",
+				Snippet:   fmt.Sprintf("codex mcp add %s --url %s --bearer-token-env-var UNKEY_ROOT_KEY", name, serverURL),
+				Link:      "",
+				LinkLabel: "",
+			},
+			{
+				Name:      "Cursor and Windsurf",
+				Steps:     "Add a headers map next to the server URL. Both read ${env:UNKEY_ROOT_KEY} from your environment.",
+				Snippet:   rootKeyJSON,
 				Link:      "",
 				LinkLabel: "",
 			},
 			{
 				Name:      "Other clients",
-				Steps:     "Most clients accept a headers map next to the server URL.",
-				Snippet:   rootKeyJSON,
+				Steps:     "Send the root key in this header. Each client has its own syntax for reading it from the environment.",
+				Snippet:   "Authorization: Bearer <root key>",
 				Link:      "",
 				LinkLabel: "",
 			},
