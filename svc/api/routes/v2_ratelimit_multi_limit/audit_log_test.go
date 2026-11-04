@@ -17,13 +17,14 @@ import (
 
 // ratelimitAuditLogRow contains the persisted fields that the test guarantees.
 type ratelimitAuditLogRow struct {
-	Event       string   `ch:"event"`
-	Description string   `ch:"description"`
-	ActorType   string   `ch:"actor_type"`
-	UserAgent   string   `ch:"user_agent"`
-	TargetTypes []string `ch:"target_types"`
-	TargetIDs   []string `ch:"target_ids"`
-	TargetNames []string `ch:"target_names"`
+	Event         string   `ch:"event"`
+	CorrelationID string   `ch:"correlation_id"`
+	Description   string   `ch:"description"`
+	ActorType     string   `ch:"actor_type"`
+	UserAgent     string   `ch:"user_agent"`
+	TargetTypes   []string `ch:"target_types"`
+	TargetIDs     []string `ch:"target_ids"`
+	TargetNames   []string `ch:"target_names"`
 }
 
 // TestMultiLimit_WritesRootKeyAuditLogPerCheck guarantees that every check
@@ -79,7 +80,7 @@ func TestMultiLimit_WritesRootKeyAuditLogPerCheck(t *testing.T) {
 	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, plainNamespaceID))
 
 	rows := make([]ratelimitAuditLogRow, 0)
-	query := "SELECT event, description, actor_type, user_agent, " +
+	query := "SELECT event, correlation_id, description, actor_type, user_agent, " +
 		"`targets.type` AS target_types, `targets.id` AS target_ids, `targets.name` AS target_names " +
 		"FROM default.audit_logs_raw_v1 WHERE workspace_id = ? AND event = ? " +
 		"AND hasAny(`targets.id`, [?, ?]) ORDER BY length(`targets.id`) DESC"
@@ -99,6 +100,9 @@ func TestMultiLimit_WritesRootKeyAuditLogPerCheck(t *testing.T) {
 		require.Equal(t, string(auditlog.RootKeyActor), row.ActorType)
 		require.Equal(t, "audit-log-test", row.UserAgent)
 	}
+
+	require.NotEmpty(t, rows[0].CorrelationID)
+	require.Equal(t, rows[0].CorrelationID, rows[1].CorrelationID)
 
 	require.Equal(t, "Applied rate limit to namespace "+overriddenNamespaceID, rows[0].Description)
 	require.Equal(t, []string{

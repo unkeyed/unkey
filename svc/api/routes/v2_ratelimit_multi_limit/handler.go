@@ -288,6 +288,7 @@ func (h *Handler) bufferAuditLogs(
 		return
 	}
 
+	correlationID := auditlog.NewCorrelationID()
 	for _, check := range checks {
 		targets := []auditlog.EventTarget{
 			{
@@ -324,7 +325,7 @@ func (h *Handler) bufferAuditLogs(
 			UserAgent:     s.UserAgent(),
 			Meta:          nil,
 			Targets:       targets,
-			CorrelationID: "",
+			CorrelationID: correlationID,
 		})
 	}
 }
