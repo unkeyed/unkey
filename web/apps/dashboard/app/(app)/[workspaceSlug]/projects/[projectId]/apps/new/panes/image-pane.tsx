@@ -1,8 +1,8 @@
 "use client";
 
-import { useApp } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/hooks/use-app";
+import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
 import { OCIImage } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/oci-image";
-import { ociImageReferenceSchema } from "@/lib/collections/deploy/apps";
+import { ociImageReferenceSchema, useApp } from "@/lib/deploy-data";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -20,7 +20,6 @@ import { z } from "zod";
 import { appNameFromImage } from "../app-name";
 import { NEW_APP_MUTATION_KEY, useNewAppFlow } from "../flow";
 import { newAppErrorMessage, useAppLifecycle } from "../use-app-lifecycle";
-import { PaneSubmit } from "./pane-actions";
 
 export function ImagePane({ appId }: { appId: string | null }) {
   return appId ? <SavedImage appId={appId} /> : <NewImage />;
@@ -85,7 +84,7 @@ function NewImage() {
 function SavedImage({ appId }: { appId: string }) {
   const { dispatch } = useNewAppFlow();
   const { isDirty, report } = useUnsavedChanges();
-  const { app } = useApp();
+  const { data: app } = useApp();
   if (!app) {
     return <Skeleton className="h-24 w-full rounded-lg" />;
   }
@@ -97,7 +96,6 @@ function SavedImage({ appId }: { appId: string }) {
         </SettingsGroupContent>
       </SettingsGroup>
       <PaneSubmit
-        loading={false}
         disabled={isDirty}
         notice={
           isDirty ? (

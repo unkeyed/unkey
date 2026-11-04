@@ -1,10 +1,14 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import type { DeploymentSummary } from "@/lib/collections";
+import {
+  type DeploymentSummary,
+  toastWhenSettled,
+  useDeployActions,
+  useEnvironments,
+} from "@/lib/deploy-data";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import { DeploymentCard } from "./components/deployment-card";
 
 type StopDialogProps = {
@@ -14,25 +18,32 @@ type StopDialogProps = {
 };
 
 export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => {
-  const { awaitDeploymentStatus } = useProjectData();
+  const { awaitDeploymentStatus } = useDeployActions();
+  const { data: environments = [] } = useEnvironments();
+  const isProduction = environments.some(
+    (environment) =>
+      environment.id === deployment.environmentId && environment.kind === "production",
+  );
   const stop = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.stopDeployment({ deploymentId }),
-    onSuccess: () => {
-      awaitDeploymentStatus({ deploymentId: deployment.id, status: "stopped" });
-      onClose();
-    },
+    onSuccess: onClose,
   });
 
   const handleStop = () => {
-    toast.promise(stop.mutateAsync(deployment.id), {
-      loading: "Stopping deployment...",
-      success: "Deployment stopped",
-      error: (err) => ({
-        message: "Failed to stop deployment",
-        description: getErrorMessage(err),
-      }),
-    });
+    toastWhenSettled(
+      stop
+        .mutateAsync(deployment.id)
+        .then(() => awaitDeploymentStatus({ deploymentId: deployment.id, status: "stopped" })),
+      {
+        loading: "Stopping deployment...",
+        success: { message: "Deployment stopped" },
+        failure: (err) => ({
+          message: "Failed to stop deployment",
+          description: getErrorMessage(err),
+        }),
+      },
+    );
   };
 
   return (
@@ -40,15 +51,19 @@ export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => 
       isOpen={isOpen}
       onOpenChange={onClose}
       title="Stop deployment"
-      subTitle="Scale this deployment down. You can wake it again without creating a new deployment."
+      subTitle={
+        isProduction
+          ? "Your current production deployment will keep running. Stopping this deployment removes instant rollback to it."
+          : "Scale this deployment down. You can wake it again without creating a new deployment."
+      }
       footer={
         <Button
           variant="destructive"
-          size="xlg"
+          size="md"
           onClick={handleStop}
           disabled={stop.isLoading}
           loading={stop.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Stop deployment
         </Button>

@@ -1,11 +1,22 @@
 "use client";
 
+import { useLiveSwitch } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { ListPager } from "@/components/list-pager";
+import { LoadError } from "@/components/load-error";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
-import { moreFooterOf } from "@/lib/loadable/list";
+import {
+  type DeploymentListFilter,
+  useApp,
+  useAppScope,
+  useCurrentDeployment,
+  useDeploymentsPage,
+  useEnvironments,
+} from "@/lib/deploy-data";
+import { useInfiniteList } from "@/lib/loadable/list";
 import { routes } from "@/lib/navigation/routes";
 import { IconBookBookmarkOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Button,
   EmptyState,
@@ -18,20 +29,14 @@ import {
   ResourceListContent,
 } from "@unkey/ui";
 import { useMemo } from "react";
-import { useProjectData } from "../../data-provider";
-import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
-import {
-  type DeploymentListFilter,
-  buildDeploymentListInput,
-} from "../hooks/deployment-list-input";
-import { useDeployments } from "../hooks/use-deployments";
+import { buildDeploymentListInput } from "../hooks/deployment-list-input";
 import { useFilters } from "../hooks/use-filters";
 import { DeploymentRow } from "./deployment-row";
 import { DeploymentsSkeleton } from "./deployments-skeleton";
 
 export function DeploymentsCardList() {
   const { filters, isFiltered, updateFilters } = useFilters();
-  const { environments, isEnvironmentsLoading } = useProjectData();
+  const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
   const { filter, cannotMatch } = useMemo(
     () => buildDeploymentListInput(filters, environments),
     [filters, environments],
@@ -65,41 +70,27 @@ function DeploymentsCardListResults({
   isFiltered: boolean;
   onClearFilters: () => void;
 }) {
-  const { rows, isLoading, isError, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useDeployments(filter);
-  const { projectId, refetchDeployments } = useProjectData();
-  const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
+  const list = useInfiniteList(useDeploymentsPage(filter), (page) => page.rows);
+  const rows = list.status === "ready" ? list.rows : [];
+  const { projectId } = useAppScope();
+  const { data: environments = [] } = useEnvironments();
+  const { data: app } = useApp();
+  const currentDeployment = useCurrentDeployment().data ?? undefined;
+  const isRolledBack = app?.isRolledBack ?? false;
   const workspace = useWorkspaceNavigation();
 
   const rolledBackFromId =
-    isRolledBack && currentDeployment
-      ? findRolledBackFrom(
-          rows.map((row) => row.deployment),
-          currentDeployment,
-        )?.id
-      : undefined;
+    isRolledBack && currentDeployment ? findRolledBackFrom(rows, currentDeployment)?.id : undefined;
+  const liveSwitchOf = useLiveSwitch(currentDeployment?.id, isRolledBack);
 
-  if (isLoading) {
-    return <DeploymentsSkeleton />;
-  }
-
-  if (isError && rows.length === 0) {
-    return (
+  return match(list)
+    .with({ status: "loading" }, () => <DeploymentsSkeleton />)
+    .with({ status: "failed" }, ({ error, retry }) => (
       <ResourceListContent>
-        <div className="flex w-full items-center justify-center gap-3 px-4 py-16">
-          <span role="alert" className="text-error-11 text-sm">
-            We couldn't load deployments.
-          </span>
-          <Button size="md" variant="outline" onClick={() => refetchDeployments()}>
-            Retry
-          </Button>
-        </div>
+        <LoadError title="Could not load deployments" error={error} frame="none" onRetry={retry} />
       </ResourceListContent>
-    );
-  }
-
-  if (rows.length === 0) {
-    return (
+    ))
+    .with({ status: "empty" }, () => (
       <ResourceListContent>
         {isFiltered ? (
           <NoMatchingDeployments onClear={onClearFilters} />
@@ -131,41 +122,34 @@ function DeploymentsCardListResults({
           </EmptyState>
         )}
       </ResourceListContent>
-    );
-  }
-
-  return (
-    <ResourceListContent>
-      <ResourceListBody>
-        {rows.map(({ deployment, environment }) => (
-          <DeploymentRow
-            key={deployment.id}
-            deployment={deployment}
-            environment={environment}
-            repoFullName={app?.repositoryFullName ?? null}
-            currentDeployment={currentDeployment}
-            isRolledBack={isRolledBack}
-            isRolledBackFrom={deployment.id === rolledBackFromId}
-            liveSince={app?.updatedAt ?? null}
-            href={routes.projects.apps.deployment({
-              workspaceSlug: workspace.slug,
-              projectId,
-              appId: deployment.appId,
-              deploymentId: deployment.id,
-            })}
-          />
-        ))}
-      </ResourceListBody>
-      <ListPager
-        state={moreFooterOf({
-          hasMore: hasNextPage,
-          isLoadingMore: isFetchingNextPage,
-          loadMore: () => fetchNextPage(),
-        })}
-        noun="deployments"
-      />
-    </ResourceListContent>
-  );
+    ))
+    .with({ status: "ready" }, ({ footer }) => (
+      <ResourceListContent>
+        <ResourceListBody>
+          {rows.map((deployment) => (
+            <DeploymentRow
+              key={deployment.id}
+              deployment={deployment}
+              environment={environments.find((e) => e.id === deployment.environmentId)}
+              repoFullName={app?.repositoryFullName ?? null}
+              currentDeployment={currentDeployment}
+              isRolledBack={isRolledBack}
+              isRolledBackFrom={deployment.id === rolledBackFromId}
+              liveSwitch={liveSwitchOf(deployment.id)}
+              liveSince={app?.updatedAt ?? null}
+              href={routes.projects.apps.deployment({
+                workspaceSlug: workspace.slug,
+                projectId,
+                appId: deployment.appId,
+                deploymentId: deployment.id,
+              })}
+            />
+          ))}
+        </ResourceListBody>
+        <ListPager state={footer} noun="deployments" />
+      </ResourceListContent>
+    ))
+    .exhaustive();
 }
 
 function NoMatchingDeployments({ onClear }: { onClear: () => void }) {

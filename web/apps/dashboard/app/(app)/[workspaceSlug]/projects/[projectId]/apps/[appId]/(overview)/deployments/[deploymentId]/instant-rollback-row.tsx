@@ -1,16 +1,18 @@
 "use client";
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import type { DeploymentSummary } from "@/lib/collections";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { previousRollbackTarget } from "@/lib/collections/deploy/rollback";
+import {
+  type DeploymentSummary,
+  ENVIRONMENT_KIND,
+  useApp,
+  useEnvironments,
+  useProductionDeployments,
+} from "@/lib/deploy-data";
 import { IconArrowDottedRotateAnticlockwiseOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { useProjectData } from "../../data-provider";
-import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
-import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { useDeployment } from "./layout-provider";
 
 const RollbackDialog = dynamic(
@@ -19,13 +21,19 @@ const RollbackDialog = dynamic(
   { ssr: false },
 );
 
+const StopDialog = dynamic(
+  () => import("../components/table/components/actions/stop-dialog").then((m) => m.StopDialog),
+  { ssr: false },
+);
+
 export function InstantRollbackRow() {
   const { deployment } = useDeployment();
-  const { environments } = useProjectData();
-  const { deployments } = useRecentDeployments();
-  const { app, isRolledBack } = useAppCurrentDeployment();
+  const { data: environments = [] } = useEnvironments();
+  const { data: app } = useApp();
+  const isRolledBack = app?.isRolledBack ?? false;
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const [rollbackOpen, setRollbackOpen] = useState(false);
+  const [stopTarget, setStopTarget] = useState<DeploymentSummary>();
   const [dialogTarget, setDialogTarget] = useState<DeploymentSummary>();
 
   const environment = environments.find((e) => e.id === deployment.environmentId);
@@ -33,6 +41,7 @@ export function InstantRollbackRow() {
     environment?.kind === ENVIRONMENT_KIND.production &&
     app?.currentDeploymentId === deployment.id &&
     !isRolledBack;
+  const { data: deployments = [] } = useProductionDeployments({ enabled: isLiveProduction });
   const target = isLiveProduction ? previousRollbackTarget(deployments, deployment) : undefined;
 
   const openRollback = (next: DeploymentSummary) => {
@@ -60,7 +69,15 @@ export function InstantRollbackRow() {
               without cold starts.
             </p>
           </div>
-          <div className="w-full shrink-0 self-center sm:w-auto">
+          <div className="flex w-full shrink-0 items-center gap-2 self-center sm:w-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setStopTarget(target)}
+              className="px-3 text-gray-11"
+            >
+              Stop previous
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -79,6 +96,9 @@ export function InstantRollbackRow() {
           targetDeployment={dialogTarget}
           currentDeployment={deployment}
         />
+      )}
+      {stopTarget && (
+        <StopDialog isOpen onClose={() => setStopTarget(undefined)} deployment={stopTarget} />
       )}
       {planGate}
     </>

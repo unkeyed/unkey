@@ -75,8 +75,9 @@ func (s *Service) RollbackDeployment(ctx restate.ObjectContext, req *hydrav1.Rol
 	hydrav1.NewDeploymentServiceClient(ctx, from.ID).
 		ScheduleDesiredStateChange().
 		Send(&hydrav1.ScheduleDesiredStateChangeRequest{
-			State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-			DelayMillis: s.standbyDelay.Milliseconds(),
+			State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+			DelayMillis:      s.standbyDelay.Milliseconds(),
+			DeferWhilePinned: true,
 		})
 
 	if err := audit.InsertDeploymentLifecycle(

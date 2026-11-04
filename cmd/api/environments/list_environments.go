@@ -2,7 +2,6 @@ package environments
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -38,14 +37,14 @@ func listEnvironmentsCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsListEnvironmentsResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsListEnvironmentsResponseBody)
 			}
 			req := components.V2EnvironmentsListEnvironmentsRequestBody{Project: cmd.String("project"), App: cmd.String("app")}
 			res, err := client.Environments.ListEnvironments(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2EnvironmentsListEnvironmentsResponseBody)
+			return util.Output(ctx, cmd, res.V2EnvironmentsListEnvironmentsResponseBody)
 		},
 	}
 }

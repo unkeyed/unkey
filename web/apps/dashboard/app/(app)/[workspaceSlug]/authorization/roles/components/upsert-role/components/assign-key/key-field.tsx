@@ -183,9 +183,7 @@ export const KeyField = ({
           onRemoveItem={handleRemoveKey}
           renderIcon={() => <IconKey2Outline12 className="text-grayA-11" />}
           enableTransitions
-          renderPrimaryText={(key) =>
-            key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id
-          }
+          renderPrimaryText={(key) => key.id}
           renderSecondaryText={(key) => key.name || "Unnamed Key"}
           itemHeight="h-12"
         />

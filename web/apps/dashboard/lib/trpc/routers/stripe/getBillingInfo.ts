@@ -1,9 +1,9 @@
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 import { deployBillingConfig, findApiItem } from "@/lib/stripe/deployBilling";
+import { retrieveSubscriptionOrNull } from "@/lib/stripe/notFound";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import Stripe from "stripe";
 import { z } from "zod";
 import { mapProduct } from "../utils/stripe";
 
@@ -46,18 +46,8 @@ export const getBillingInfo = workspaceProcedure
     }
 
     const subscriptionPromise = ctx.workspace.stripeSubscriptionId
-      ? // A stale recorded subscription id (cancelled and pruned from Stripe,
-        // A stale id (lost deleted-webhook) 404s; treat as no subscription
-        // instead of breaking the billing page. Anything else propagates.
-        stripe.subscriptions
-          .retrieve(ctx.workspace.stripeSubscriptionId)
-          .catch((err: unknown) => {
-            if (err instanceof Stripe.errors.StripeError && err.code === "resource_missing") {
-              return undefined;
-            }
-            throw err;
-          })
-      : Promise.resolve(undefined);
+      ? retrieveSubscriptionOrNull(stripe, ctx.workspace.stripeSubscriptionId)
+      : Promise.resolve(null);
 
     const configPromise = ctx.workspace.stripeSubscriptionId
       ? deployBillingConfig()

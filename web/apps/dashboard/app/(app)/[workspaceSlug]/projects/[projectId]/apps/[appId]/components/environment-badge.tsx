@@ -1,6 +1,6 @@
 "use client";
 
-import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
+import { ENVIRONMENT_KIND, type Environment, useLiveTarget } from "@/lib/deploy-data";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
   IconCircleXmarkOutline12,
@@ -8,20 +8,57 @@ import {
   IconEyeOutline12,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { InfoTooltip, formatTimestamp } from "@unkey/ui";
+import { InfoTooltip, Loading, formatTimestamp } from "@unkey/ui";
 import { cn } from "cn";
 
-export type EnvironmentBadgeRollout = "none" | "live" | "liveAfterRollback" | "rolledBackFrom";
+export type EnvironmentBadgeRollout =
+  | "none"
+  | "live"
+  | "liveAfterRollback"
+  | "rolledBackFrom"
+  | "goingLive"
+  | "switchingAway";
+
+// Which side of an unfinished promote or rollback a deployment is on
+export type LiveSwitch = "incoming" | "outgoing" | null;
+
+// Marks the rows on each side of a promote or rollback until the switch lands
+export function useLiveSwitch(
+  currentDeploymentId: string | undefined,
+  isRolledBack: boolean,
+): (deploymentId: string) => LiveSwitch {
+  const liveTarget = useLiveTarget();
+  const landed =
+    liveTarget === null ||
+    (currentDeploymentId === liveTarget.deploymentId && isRolledBack === liveTarget.rolledBack);
+  return (deploymentId) => {
+    if (landed) {
+      return null;
+    }
+    if (deploymentId === currentDeploymentId) {
+      return "outgoing";
+    }
+    return deploymentId === liveTarget.deploymentId ? "incoming" : null;
+  };
+}
 
 export function badgeRollout({
   isCurrent,
   isRolledBack,
   isRolledBackFrom,
+  liveSwitch = null,
 }: {
   isCurrent: boolean;
   isRolledBack: boolean;
   isRolledBackFrom: boolean;
+  liveSwitch?: LiveSwitch;
 }): EnvironmentBadgeRollout {
+  if (liveSwitch === "incoming") {
+    return "goingLive";
+  }
+  if (liveSwitch === "outgoing") {
+    return "switchingAway";
+  }
   if (isRolledBackFrom) {
     return "rolledBackFrom";
   }
@@ -42,6 +79,9 @@ const BASE_CLASS =
 const OUTLINED_CLASS = "text-gray-12";
 const LIVE_CLASS = "border-info-7 bg-info-3 font-medium text-info-12 dark:bg-info-4";
 const ROLLED_BACK_FROM_CLASS = "border-transparent bg-errorA-3 text-error-11";
+const GOING_LIVE_CLASS = "border-info-7 text-info-11";
+
+export const LIVE_BADGE_CLASS = cn(BASE_CLASS, LIVE_CLASS);
 
 export function EnvironmentBadge({
   environment,
@@ -85,6 +125,18 @@ export function EnvironmentBadge({
       title: "This deployment was rolled back",
       detail: "Traffic moved back to an earlier deployment.",
     }))
+    .with("goingLive", () => ({
+      Icon: SwitchingIcon,
+      className: GOING_LIVE_CLASS,
+      title: "Going live",
+      detail: "Production traffic is moving to this deployment.",
+    }))
+    .with("switchingAway", () => ({
+      Icon: SwitchingIcon,
+      className: LIVE_CLASS,
+      title: "Switching production traffic",
+      detail: "Serves production traffic until the switch finishes.",
+    }))
     .exhaustive();
 
   return (
@@ -104,4 +156,8 @@ export function EnvironmentBadge({
       </span>
     </InfoTooltip>
   );
+}
+
+function SwitchingIcon({ className }: { className?: string }) {
+  return <Loading size={12} className={className} />;
 }

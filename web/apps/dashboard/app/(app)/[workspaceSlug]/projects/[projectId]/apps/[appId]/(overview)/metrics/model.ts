@@ -1,7 +1,7 @@
 import type { AreaChartPoint } from "@/components/charts/area-timeseries";
 import type { ChartMarker } from "@/components/charts/chart-markers";
-import type { Environment } from "@/lib/collections/deploy/environments";
-import type { Loadable } from "@/lib/loadable/loadable";
+import type { Environment } from "@/lib/deploy-data";
+import { type Loadable, readyOr } from "@/lib/loadable/loadable";
 import { METRIC_CATALOG, isOutdated } from "@/lib/metrics/app-metrics";
 import type {
   DeployMarker,
@@ -136,10 +136,6 @@ export type MetricsPageModel =
       panel: PanelModel | null;
     };
 
-function readyOrNull<T>(loadable: Loadable<T>): T | null {
-  return loadable.status === "ready" ? loadable.data : null;
-}
-
 function currentOrNull<T>(loadable: HeldLoadable<T>): T | null {
   return loadable.status === "ready" && !loadable.outdated ? loadable.data : null;
 }
@@ -184,7 +180,7 @@ export function metricsPageModel(input: MetricsPageInput): MetricsPageModel {
 function readyModel(input: MetricsPageInput, environment: MetricsEnvironment): MetricsPageModel {
   const { sources } = input;
   const markersOutdated = isOutdated(input.deploys);
-  const markers = readyOrNull(input.deploys) ?? [];
+  const markers = readyOr(input.deploys, []);
   const effects = deployEffects(markers, effectSamples(sources));
   const deploys = markers.map((marker) => ({
     marker,

@@ -2,7 +2,6 @@ package apps
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -58,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/create
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AppsCreateAppResponseBody)
+				return util.Output(ctx, cmd, res.V2AppsCreateAppResponseBody)
 			}
 			project := cmd.String("project")
 			name := cmd.String("name")
@@ -91,9 +90,9 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/create
 			}
 			res, err := client.Apps.CreateApp(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2AppsCreateAppResponseBody)
+			return util.Output(ctx, cmd, res.V2AppsCreateAppResponseBody)
 		},
 	}
 }

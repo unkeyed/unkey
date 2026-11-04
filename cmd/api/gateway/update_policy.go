@@ -65,14 +65,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/gateway/upd
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2GatewayUpdatePolicyResponseBody)
+				return util.Output(ctx, cmd, res.V2GatewayUpdatePolicyResponseBody)
 			}
 			send := func(req components.V2GatewayUpdatePolicyRequestBody) error {
 				res, err := client.Gateway.UpdatePolicy(ctx, req)
 				if err != nil {
-					return fmt.Errorf("%s", util.FormatError(err))
+					return err
 				}
-				return util.Output(cmd, res.V2GatewayUpdatePolicyResponseBody)
+				return util.Output(ctx, cmd, res.V2GatewayUpdatePolicyResponseBody)
 			}
 			var update policyUpdate
 			decoder := json.NewDecoder(strings.NewReader(cmd.String("policy")))

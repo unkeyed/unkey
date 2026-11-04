@@ -14,6 +14,7 @@
 SELECT
   d.id,
   d.app_id,
+  d.environment_id,
   a.current_deployment_id
 FROM deployments d
 JOIN apps a ON a.id = d.app_id

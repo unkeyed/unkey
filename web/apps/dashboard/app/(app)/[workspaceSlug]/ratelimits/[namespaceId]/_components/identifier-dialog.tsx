@@ -124,22 +124,20 @@ export const IdentifierDialog = ({
       isOpen={isModalOpen}
       onOpenChange={onOpenChange}
       title="Override Identifier"
+      subTitle="Changes apply globally within 60 seconds."
       footer={
         <div className="flex flex-col items-center justify-center w-full gap-2">
           <Button
             type="submit"
             form="identifier-form" // Connect to form ID
             variant="primary"
-            size="xlg"
+            size="md"
             disabled={isLoading || isSubmitting}
             loading={isLoading || isSubmitting}
-            className="w-full rounded-lg"
+            className="w-full"
           >
             Override Identifier
           </Button>
-          <div className="text-xs text-gray-9">
-            Changes are propagated globally within 60 seconds
-          </div>
         </div>
       }
     >

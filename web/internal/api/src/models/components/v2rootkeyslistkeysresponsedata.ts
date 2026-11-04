@@ -4,8 +4,8 @@
 
 import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
-import type { Result as SafeParseResult } from "../../types/fp.js";
-import type { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import { Result as SafeParseResult } from "../../types/fp.js";
+import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 
 export type V2RootKeysListKeysResponseData = {
   /**

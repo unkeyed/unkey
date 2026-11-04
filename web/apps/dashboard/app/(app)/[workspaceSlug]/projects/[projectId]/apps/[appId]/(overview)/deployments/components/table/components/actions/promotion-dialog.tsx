@@ -1,11 +1,14 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { type DeploymentSummary, collection } from "@/lib/collections";
+import {
+  type DeploymentSummary,
+  toastWhenSettled,
+  useDeployActions,
+  useDomains,
+} from "@/lib/deploy-data";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import { Button, DialogContainer } from "@unkey/ui";
 import { DeploymentSection } from "./components/deployment-section";
 import { DomainsSection } from "./components/domains-section";
 
@@ -22,37 +25,33 @@ export const PromotionDialog = ({
   targetDeployment,
   currentDeployment,
 }: PromotionDialogProps) => {
-  const { awaitLiveDeployment } = useProjectData();
-  const domains = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collection.domains })
-        .where(({ domain }) => eq(domain.projectId, currentDeployment.projectId))
-        .where(({ domain }) => inArray(domain.sticky, ["environment", "live"]))
-        .where(({ domain }) => eq(domain.deploymentId, currentDeployment.id)),
-    [currentDeployment.projectId, currentDeployment.id],
+  const { awaitLiveDeployment } = useDeployActions();
+  const { data: appDomains = [] } = useDomains();
+  const domains = appDomains.filter(
+    (d) =>
+      d.deploymentId === currentDeployment.id &&
+      (d.sticky === "environment" || d.sticky === "live"),
   );
   const promote = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
-    onSuccess: () => {
-      awaitLiveDeployment({ deploymentId: targetDeployment.id, rolledBack: false });
-      toast.success("Promotion completed", {
-        description: `Successfully promoted to deployment ${targetDeployment.id}`,
-      });
-      onClose();
-    },
-    onError: (error) => {
-      toast.error("Promotion failed", {
-        description: getErrorMessage(error),
-      });
-    },
+    onSuccess: onClose,
   });
 
-  const handlePromotion = async () => {
-    await promote.mutateAsync(targetDeployment.id).catch((error) => {
-      console.error("Promotion error:", error);
-    });
+  const handlePromotion = () => {
+    toastWhenSettled(
+      promote
+        .mutateAsync(targetDeployment.id)
+        .then(() => awaitLiveDeployment({ deploymentId: targetDeployment.id, rolledBack: false })),
+      {
+        loading: "Promoting...",
+        success: {
+          message: "Promotion completed",
+          description: `Successfully promoted to deployment ${targetDeployment.id}`,
+        },
+        failure: (error) => ({ message: "Promotion failed", description: getErrorMessage(error) }),
+      },
+    );
   };
 
   return (
@@ -64,11 +63,11 @@ export const PromotionDialog = ({
       footer={
         <Button
           variant="primary"
-          size="xlg"
+          size="md"
           onClick={handlePromotion}
           disabled={promote.isLoading}
           loading={promote.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Promote target deployment
         </Button>
@@ -80,7 +79,7 @@ export const PromotionDialog = ({
           deployment={currentDeployment}
           isCurrent={true}
         />
-        <DomainsSection domains={domains.data} />
+        <DomainsSection domains={domains} />
         <DeploymentSection
           title="Target Deployment"
           deployment={targetDeployment}

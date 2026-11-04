@@ -92,6 +92,15 @@ export function useMetricSources(scope: AppMetricsScope | null): HeldSources {
   };
 }
 
+export function prefetchMetricSources(
+  trpcUtils: ReturnType<typeof trpc.useUtils>,
+  scope: AppMetricsScope,
+): void {
+  const options = { staleTime: CLOCK_DRIVEN.staleTime, trpc: CLOCK_DRIVEN.trpc };
+  void trpcUtils.deploy.appMetrics.traffic.prefetch(inputOf(scope), options);
+  void trpcUtils.deploy.appMetrics.resources.prefetch(inputOf(scope), options);
+}
+
 export function useDeployMarkers(scope: AppMetricsScope | null) {
   const query = trpc.deploy.appMetrics.deploys.useQuery(inputOf(scope), {
     ...CLOCK_DRIVEN,

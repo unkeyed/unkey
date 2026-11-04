@@ -45,15 +45,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Permanently delete identity %q?", req.Identity)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Permanently delete identity %q?", req.Identity)); err != nil {
 				return err
 			}
 
 			res, err := client.Identities.DeleteIdentity(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2IdentitiesDeleteIdentityResponseBody)
+			return util.Output(ctx, cmd, res.V2IdentitiesDeleteIdentityResponseBody)
 		},
 	}
 }

@@ -2,7 +2,6 @@ package projects
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -47,7 +46,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2ProjectsListProjectsResponseBody)
+				return util.Output(ctx, cmd, res.V2ProjectsListProjectsResponseBody)
 			}
 			req := components.V2ProjectsListProjectsRequestBody{Limit: new(cmd.Int64("limit")), Cursor: nil, Search: nil}
 			if v := cmd.String("cursor"); v != "" {
@@ -58,9 +57,9 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/projects
 			}
 			res, err := client.Projects.ListProjects(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2ProjectsListProjectsResponseBody)
+			return util.Output(ctx, cmd, res.V2ProjectsListProjectsResponseBody)
 		},
 	}
 }

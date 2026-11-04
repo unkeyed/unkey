@@ -1837,6 +1837,11 @@
           "required": true
         },
         {
+          "name": "reveal",
+          "type": "boolean",
+          "required": false
+        },
+        {
           "name": "root-key",
           "type": "string",
           "env": "UNKEY_ROOT_KEY",

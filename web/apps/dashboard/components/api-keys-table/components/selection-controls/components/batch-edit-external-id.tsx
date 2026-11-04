@@ -84,8 +84,8 @@ export const BatchEditExternalId = ({
                 <Button
                   type="button"
                   variant="primary"
-                  size="xlg"
-                  className="rounded-lg flex-1"
+                  size="md"
+                  className="flex-1"
                   loading={updateExternalId.isLoading}
                   onClick={handleSubmit}
                 >
@@ -96,8 +96,8 @@ export const BatchEditExternalId = ({
                   type="button"
                   variant="primary"
                   color="danger"
-                  size="xlg"
-                  className="rounded-lg flex-1"
+                  size="md"
+                  className="flex-1"
                   loading={updateExternalId.isLoading}
                   onClick={handleClearButtonClick}
                   ref={clearButtonRef}
@@ -107,14 +107,6 @@ export const BatchEditExternalId = ({
                 </Button>
               )}
             </div>
-            {hasKeysWithExternalIds && (
-              <div className="text-gray-9 text-xs mt-2">
-                Note: {keysWithExternalIds} out of {totalKeys} selected{" "}
-                {totalKeys === 1 ? "key" : "keys"} already{" "}
-                {keysWithExternalIds === 1 ? "has" : "have"} an External ID
-              </div>
-            )}
-            <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
           </div>
         }
       >

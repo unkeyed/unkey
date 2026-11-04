@@ -102,8 +102,7 @@ func (p *Prompt) Date(label string, defaultValue ...time.Time) (time.Time, error
 			_, _ = fmt.Fprint(p.out, showCursor)
 			return selected, nil
 		} else if buf[0] == 3 {
-			_, _ = fmt.Fprint(p.out, showCursor)
-			return time.Time{}, fmt.Errorf("interrupted")
+			return time.Time{}, p.interrupt()
 		}
 		render()
 	}
@@ -185,8 +184,7 @@ func (p *Prompt) Time(label string, minuteStep int, defaultValue ...time.Time) (
 			_, _ = fmt.Fprint(p.out, showCursor)
 			return time.Date(now.Year(), now.Month(), now.Day(), hour, minute, 0, 0, time.UTC), nil
 		} else if buf[0] == 3 {
-			_, _ = fmt.Fprint(p.out, showCursor)
-			return time.Time{}, fmt.Errorf("interrupted")
+			return time.Time{}, p.interrupt()
 		}
 		render()
 	}
@@ -319,8 +317,7 @@ func (p *Prompt) DateTime(label string, minuteStep int, defaultValue ...time.Tim
 			_, _ = fmt.Fprint(p.out, showCursor)
 			return time.Date(selected.Year(), selected.Month(), selected.Day(), hour, minute, 0, 0, time.UTC), nil
 		} else if buf[0] == 3 {
-			_, _ = fmt.Fprint(p.out, showCursor)
-			return time.Time{}, fmt.Errorf("interrupted")
+			return time.Time{}, p.interrupt()
 		}
 		render()
 	}

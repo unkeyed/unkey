@@ -1,15 +1,14 @@
 "use client";
 
-import { ProjectDataProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { CardFrame } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/card";
 import { EnvironmentSettingsProvider } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/_components/settings/environment-provider";
+import { DeployDataProvider } from "@/lib/deploy-data";
 import { match } from "@unkey/match";
-import { type ReactNode, useState } from "react";
-import { CardFrame } from "./card";
+import type { ReactNode } from "react";
 import { useNewAppFlow } from "./flow";
 import { ConfigurePane } from "./panes/configure-pane";
 import { ConfigureSkeleton } from "./panes/configure-skeleton";
 import { ImagePane } from "./panes/image-pane";
-import { PaneFooterProvider } from "./panes/pane-actions";
 import { PickRepoPane } from "./panes/repository-pane";
 import { SourcePane } from "./panes/source-pane";
 import { type Card, type CardView, cardCopy, footerlessPanes } from "./wizard-model";
@@ -17,9 +16,9 @@ import { type Card, type CardView, cardCopy, footerlessPanes } from "./wizard-mo
 function WithApp({ appId, children }: { appId: string | null; children: ReactNode }) {
   const { projectId } = useNewAppFlow();
   return appId ? (
-    <ProjectDataProvider projectId={projectId} appId={appId}>
+    <DeployDataProvider projectId={projectId} appId={appId}>
       {children}
-    </ProjectDataProvider>
+    </DeployDataProvider>
   ) : (
     children
   );
@@ -49,18 +48,14 @@ function CardBody({ card }: { card: Card }) {
 }
 
 export function ConfigCard({ view: { card, label }, back }: { view: CardView; back: ReactNode }) {
-  const [footer, setFooter] = useState<HTMLDivElement | null>(null);
   return (
-    <PaneFooterProvider value={footer}>
-      <CardFrame
-        copy={cardCopy[card.pane]}
-        eyebrow={label}
-        back={back}
-        actionsRef={setFooter}
-        footerHidden={footerlessPanes.has(card.pane)}
-      >
-        <CardBody card={card} />
-      </CardFrame>
-    </PaneFooterProvider>
+    <CardFrame
+      copy={cardCopy[card.pane]}
+      eyebrow={label}
+      back={back}
+      footerHidden={footerlessPanes.has(card.pane)}
+    >
+      <CardBody card={card} />
+    </CardFrame>
   );
 }

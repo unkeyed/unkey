@@ -16,11 +16,14 @@ VG=topolvm-vg
 
 # 0. lvm2 isn't shipped in minikube's kicbase image. apt-get install is
 #    idempotent (no-op once present), so the re-run cost on every Tilt up
-#    is just one cache check.
+#    is just one cache check. Only the Ubuntu sources are read: kicbase ships
+#    third-party lists in sources.list.d (e.g. the retired opensuse cri-o
+#    repo) whose failures abort apt-get update.
 if ! command -v pvcreate >/dev/null 2>&1; then
   echo "topolvm: installing lvm2 (one-time)..."
-  DEBIAN_FRONTEND=noninteractive apt-get update -qq
-  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq lvm2 >/dev/null
+  APT_UBUNTU_ONLY=(-o Dir::Etc::sourceparts=-)
+  DEBIAN_FRONTEND=noninteractive apt-get "${APT_UBUNTU_ONLY[@]}" update -qq
+  DEBIAN_FRONTEND=noninteractive apt-get "${APT_UBUNTU_ONLY[@]}" install -y -qq lvm2 >/dev/null
 fi
 
 # Disable LVM's udev integration. Inside minikube's containerized "node",

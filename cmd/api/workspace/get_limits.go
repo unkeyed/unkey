@@ -2,7 +2,6 @@ package workspace
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -47,9 +46,9 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/workspace/ge
 
 			res, err := client.Workspace.GetLimits(ctx)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2WorkspaceGetLimitsResponseBody)
+			return util.Output(ctx, cmd, res.V2WorkspaceGetLimitsResponseBody)
 		},
 	}
 }

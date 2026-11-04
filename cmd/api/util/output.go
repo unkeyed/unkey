@@ -2,8 +2,11 @@ package util
 
 import (
 	"bytes"
+	"cmp"
+	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"time"
@@ -11,12 +14,13 @@ import (
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/pkg/cli"
+	"github.com/unkeyed/unkey/pkg/tui"
 	"golang.org/x/term"
 )
 
 // Output defaults to human-readable data. JSON preserves the full API envelope;
 // debug diagnostics go to stderr, never into piped results.
-func Output(cmd *cli.Command, v any) error {
+func Output(ctx context.Context, cmd *cli.Command, v any) error {
 	raw, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -53,16 +57,76 @@ func Output(cmd *cli.Command, v any) error {
 	}
 	subject, columns := listPresentation(v)
 	var output strings.Builder
+	message := successMessage(v)
+	var request map[string]any
+	indent := ""
+	if message != "" {
+		if cmd.FlagIsSet("body") {
+			if err := json.Unmarshal([]byte(cmd.String("body")), &request); err != nil {
+				return fmt.Errorf("cannot read mutation target: %w", err)
+			}
+		}
+		if strings.HasPrefix(message, "Created ") {
+			if name := cmp.Or(requestValue(cmd, request, "slug", "slug"), requestValue(cmd, request, "name", "name")); name != "" {
+				message += " " + terminalText(name)
+			}
+		}
+		fmt.Fprintf(&output, "%s %s\n", tui.New(os.Stdout).Green("✓"), message)
+		indent = "  "
+	}
 	if rows, ok := envelope.Data.([]any); ok || (envelope.Data == nil && columns != nil) {
+		if message != "" {
+			writeMutationTargets(ctx, &output, cmd, request, indent)
+		}
+		switch v.(type) {
+		case *components.V2ApisListKeysResponseBody, *components.V2RootKeysListKeysResponseBody:
+			for _, row := range rows {
+				key, ok := row.(map[string]any)
+				if !ok {
+					return fmt.Errorf("expected a key, got %T", row)
+				}
+				if key["name"] == nil || key["name"] == "" {
+					key["name"] = "Unnamed key"
+					if _, root := v.(*components.V2RootKeysListKeysResponseBody); root {
+						key["name"] = "Unnamed root key"
+					}
+				}
+			}
+		}
+		if _, ok := v.(*components.V2EnvironmentsListEnvironmentVariablesResponseBody); ok {
+			for _, row := range rows {
+				variable, ok := row.(map[string]any)
+				if !ok {
+					return fmt.Errorf("expected an environment variable, got %T", row)
+				}
+				if variable["kind"] == "writeonly" {
+					variable["value"] = "not retrievable"
+				} else if !cmd.Bool("reveal") {
+					variable["value"] = "[hidden]"
+				} else if variable["value"] == nil || variable["value"] == "" {
+					variable["value"] = "(empty)"
+				}
+			}
+		}
 		if len(rows) == 0 {
-			fmt.Fprintf(&output, "No %s found.\n", subject)
-		} else if err := writeTable(&output, rows, columns, "", format); err != nil {
+			if message != "" {
+				fmt.Fprintf(&output, "%sNo %s assigned.\n", indent, subject)
+			} else {
+				fmt.Fprintf(&output, "No %s found.\n", subject)
+			}
+		} else if err := writeTable(&output, rows, columns, indent, format); err != nil {
 			return err
 		}
 	} else if envelope.Data == nil || emptyObject(envelope.Data) {
-		fmt.Fprintln(&output, successMessage(v))
-	} else if err := writeDetails(&output, envelope.Data, "", false); err != nil {
-		return err
+		if message != "" {
+			writeMutationTargets(ctx, &output, cmd, request, indent)
+		} else if _, ok := v.(*components.V2WorkspaceGetFlagsResponseBody); ok {
+			fmt.Fprintln(&output, "No workspace flags found.")
+		} else {
+			fmt.Fprintln(&output, "Done.")
+		}
+	} else {
+		writeDetails(&output, envelope.Data, indent, format)
 	}
 	if envelope.Pagination != nil && envelope.Pagination.HasMore {
 		if cursor := envelope.Pagination.GetCursor(); cursor != nil && *cursor != "" {
@@ -71,7 +135,7 @@ func Output(cmd *cli.Command, v any) error {
 				if err != nil {
 					return err
 				}
-				fmt.Fprint(&output, "\nMore results available. In --body, set cursor to ")
+				fmt.Fprint(&output, "\nMore results available. Keep the same filters in --body and set cursor to ")
 				for _, codeUnit := range utf16.Encode([]rune(string(encoded))) {
 					if codeUnit >= 0x7f {
 						fmt.Fprintf(&output, `\u%04x`, codeUnit)
@@ -81,13 +145,21 @@ func Output(cmd *cli.Command, v any) error {
 				}
 				output.WriteByte('\n')
 			} else {
-				fmt.Fprintf(&output, "\nMore results available. Repeat this command with --cursor=%s\n", shellQuote(*cursor))
+				fmt.Fprintf(&output, "\nMore results available. Repeat this command with the same filters and --cursor=%s\n", shellQuote(*cursor))
 			}
 		} else {
 			fmt.Fprintln(&output, "\nMore results available, but the API returned no cursor.")
 		}
 	}
-	_, err = fmt.Fprint(os.Stdout, output.String())
+	if _, err := fmt.Fprint(os.Stdout, output.String()); err != nil {
+		return err
+	}
+	switch v.(type) {
+	case *components.V2KeysCreateKeyResponseBody, *components.V2KeysRerollKeyResponseBody:
+		_, err = fmt.Fprintln(os.Stderr, "Store this key securely. Only recoverable keys can be retrieved later.")
+	case *components.V2RootKeysCreateKeyResponseBody, *components.V2RootKeysRerollKeyResponseBody:
+		_, err = fmt.Fprintln(os.Stderr, "Store this root key securely. It cannot be retrieved later.")
+	}
 	return err
 }
 
@@ -147,60 +219,161 @@ func listPresentation(response any) (string, []string) {
 
 func successMessage(response any) string {
 	switch response.(type) {
+	case *components.V2ProjectsCreateProjectResponseBody:
+		return "Created project"
+	case *components.V2ProjectsUpdateProjectResponseBody:
+		return "Updated project"
+	case *components.V2AppsCreateAppResponseBody:
+		return "Created app"
+	case *components.V2AppsUpdateAppResponseBody:
+		return "Updated app"
 	case *components.V2ProjectsDeleteProjectResponseBody, *components.V2AppsDeleteAppResponseBody:
-		return "Deletion requested."
+		return "Deletion requested"
+	case *components.V2DeploymentsCreateDeploymentResponseBody, *components.V3DeploymentsCreateDeploymentResponseBody:
+		return "Deployment requested"
 	case *components.V2DeploymentsPromoteDeploymentResponseBody:
-		return "Promotion requested."
+		return "Promotion requested"
 	case *components.V2DeploymentsRollbackDeploymentResponseBody:
-		return "Rollback requested."
+		return "Rollback requested"
 	case *components.V2DeploymentsStartDeploymentResponseBody:
-		return "Start requested."
+		return "Start requested"
 	case *components.V2DeploymentsStopDeploymentResponseBody:
-		return "Stop requested."
+		return "Stop requested"
 	case *components.V2DeploymentsAuthorizeDeploymentResponseBody:
-		return "Authorization requested."
+		return "Authorization requested"
 	case *components.V2DeploymentsCancelDeploymentResponseBody:
-		return "Cancellation requested."
+		return "Cancellation requested"
 	case *components.V2DomainsVerifyDomainResponseBody:
-		return "Verification requested."
+		return "Verification requested"
+	case *components.V2ApisCreateAPIResponseBody:
+		return "Created API"
 	case *components.V2ApisDeleteAPIResponseBody:
-		return "API deleted."
+		return "Deleted API"
+	case *components.V2KeysCreateKeyResponseBody:
+		return "Created key"
+	case *components.V2KeysRerollKeyResponseBody:
+		return "Rerolled key"
 	case *components.V2KeysDeleteKeyResponseBody:
-		return "Key deleted."
+		return "Deleted key"
 	case *components.V2KeysUpdateKeyResponseBody:
-		return "Key updated."
+		return "Updated key"
+	case *components.V2KeysUpdateCreditsResponseBody:
+		return "Updated credits"
+	case *components.V2KeysAddRolesResponseBody, *components.V2KeysRemoveRolesResponseBody,
+		*components.V2KeysSetRolesResponseBody:
+		return "Updated roles"
+	case *components.V2KeysAddPermissionsResponseBody, *components.V2KeysRemovePermissionsResponseBody,
+		*components.V2KeysSetPermissionsResponseBody, *components.V2PermissionsSetRolePermissionsResponseBody:
+		return "Updated permissions"
+	case *components.V2RootKeysCreateKeyResponseBody:
+		return "Created root key"
+	case *components.V2RootKeysRerollKeyResponseBody:
+		return "Rerolled root key"
 	case *components.V2RootKeysDeleteKeyResponseBody:
-		return "Root key deleted."
+		return "Deleted root key"
 	case *components.V2RootKeysUpdateKeyResponseBody:
-		return "Root key updated."
+		return "Updated root key"
+	case *components.V2IdentitiesCreateIdentityResponseBody:
+		return "Created identity"
+	case *components.V2IdentitiesUpdateIdentityResponseBody:
+		return "Updated identity"
 	case *components.V2IdentitiesDeleteIdentityResponseBody:
-		return "Identity deleted."
+		return "Deleted identity"
+	case *components.V2PermissionsCreatePermissionResponseBody:
+		return "Created permission"
+	case *components.V2PermissionsUpdatePermissionResponseBody:
+		return "Updated permission"
 	case *components.V2PermissionsDeletePermissionResponseBody:
-		return "Permission deleted."
+		return "Deleted permission"
+	case *components.V2PermissionsCreateRoleResponseBody:
+		return "Created role"
+	case *components.V2PermissionsUpdateRoleResponseBody:
+		return "Updated role"
 	case *components.V2PermissionsDeleteRoleResponseBody:
-		return "Role deleted."
+		return "Deleted role"
+	case *components.V2PortalCreatePortalResponseBody:
+		return "Created portal"
+	case *components.V2PortalUpdatePortalResponseBody:
+		return "Updated portal"
 	case *components.V2PortalDeletePortalResponseBody:
-		return "Portal deleted."
+		return "Deleted portal"
+	case *components.V2DomainsCreateDomainResponseBody:
+		return "Created domain"
 	case *components.V2DomainsDeleteDomainResponseBody:
-		return "Domain deleted."
+		return "Deleted domain"
 	case *components.V2EnvironmentsUpdateSettingsResponseBody:
-		return "Settings updated."
+		return "Updated settings"
 	case *components.V2EnvironmentsSetEnvironmentVariablesResponseBody:
-		return "Variables saved."
+		return "Saved variables"
 	case *components.V2EnvironmentsRemoveEnvironmentVariablesResponseBody:
-		return "Variables removed."
+		return "Removed variables"
 	case *components.V2GatewaySetPoliciesResponseBody:
-		return "Policies updated."
+		return "Updated policies"
 	case *components.V2GatewayUpdatePolicyResponseBody:
-		return "Policy updated."
+		return "Updated policy"
+	case *components.V2RatelimitCreateNamespaceResponseBody:
+		return "Created rate limit namespace"
+	case *components.V2RatelimitUpdateNamespaceResponseBody:
+		return "Updated rate limit namespace"
 	case *components.V2RatelimitDeleteNamespaceResponseBody:
-		return "Rate limit namespace deleted."
-	case *components.V2WorkspaceGetFlagsResponseBody:
-		return "No workspace flags found."
+		return "Deleted rate limit namespace"
+	case *components.V2RatelimitSetOverrideResponseBody:
+		return "Saved rate limit override"
+	case *components.V2RatelimitDeleteOverrideResponseBody:
+		return "Deleted rate limit override"
 	case *components.V2WorkspaceUpdateFlagResponseBody:
-		return "Workspace flag updated."
+		return "Updated workspace flag"
 	default:
-		return "Done."
+		return ""
+	}
+}
+
+func requestValue(cmd *cli.Command, request map[string]any, field, flag string) string {
+	if cmd.FlagIsSet("body") {
+		value, _ := request[field].(string)
+		return value
+	}
+	return cmd.String(flag)
+}
+
+// ResourceLabel ties a selected display label to the exact request value.
+type ResourceLabel struct {
+	Value string
+	Label string
+}
+
+// WithResourceLabels supplies selected names for human output without changing JSON.
+func WithResourceLabels(ctx context.Context, labels map[string]ResourceLabel) context.Context {
+	return context.WithValue(ctx, resourceLabelsKey{}, maps.Clone(labels))
+}
+
+type resourceLabelsKey struct{}
+
+func writeMutationTargets(ctx context.Context, output *strings.Builder, cmd *cli.Command, request map[string]any, indent string) {
+	labels, _ := ctx.Value(resourceLabelsKey{}).(map[string]ResourceLabel)
+	for _, selector := range []struct{ field, flag string }{
+		{"project", "project"},
+		{"app", "app"},
+		{"environment", "environment"},
+		{"apiId", "api-id"},
+		{"keyId", "key-id"},
+		{"deploymentId", "deployment-id"},
+		{"domain", "domain"},
+		{"identity", "identity"},
+		{"permission", "permission"},
+		{"role", "role"},
+		{"portal", "portal"},
+		{"namespace", "namespace"},
+		{"identifier", "identifier"},
+		{"policyId", "policy-id"},
+		{"slug", "slug"},
+	} {
+		if value := requestValue(cmd, request, selector.field, selector.flag); value != "" {
+			if selected, ok := labels[selector.field]; ok && selected.Value == value {
+				value = selected.Label
+			}
+			fmt.Fprintf(output, "%s%s: %s\n", indent, fieldLabel(selector.field), terminalText(value))
+		}
 	}
 }
 

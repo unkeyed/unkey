@@ -2,7 +2,6 @@ package deployments
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -37,14 +36,14 @@ func getDeploymentCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsGetDeploymentResponseBody)
+				return util.Output(ctx, cmd, res.V2DeploymentsGetDeploymentResponseBody)
 			}
 			req := components.V2DeploymentsGetDeploymentRequestBody{DeploymentID: cmd.String("deployment-id")}
 			res, err := client.Deployments.GetDeployment(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2DeploymentsGetDeploymentResponseBody)
+			return util.Output(ctx, cmd, res.V2DeploymentsGetDeploymentResponseBody)
 		},
 	}
 }

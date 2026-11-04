@@ -1,18 +1,24 @@
 "use client";
 
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
+import { useAppCurrentDeployment } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-app-current-deployment";
+import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-recent-deployments";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type DeploymentSummary, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import {
   findRolledBackFrom,
   previousRollbackTarget,
   rollbackCandidates,
 } from "@/lib/collections/deploy/rollback";
-import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import { useDeployment, useDeploymentsPolling } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
+import { ENVIRONMENT_KIND } from "@/lib/queries/environments";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { Card } from "@unkey/ui";
@@ -21,10 +27,6 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { getDomainPriority } from "../../../../components/domain-priority";
 import { ActiveDeploymentCardEmpty } from "../../../../components/legacy/active-deployment-card/components/active-deployment-card-empty";
-import { useAppId, useProjectData } from "../../../data-provider";
-import { appDeploymentQueryFor } from "../../../data-provider-queries";
-import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
-import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../../navigations/create-deployment-button";
 import { NewerDeploymentRow, hasVisibleBuildState } from "../../components/card-newer-deployment";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
@@ -78,15 +80,9 @@ export function AppProductionCard() {
   // needs its instances, so it loads by id like the current deployment
   const fallbackDeploymentId =
     !currentDeploymentId && latestProductionDeployment ? latestProductionDeployment.id : null;
-  const fallbackDeploymentQuery = useLiveQuery(
-    (q) =>
-      fallbackDeploymentId
-        ? appDeploymentQueryFor(projectId, appId, fallbackDeploymentId)(q)
-        : null,
-    [projectId, appId, fallbackDeploymentId],
-  );
+  const fallbackDeploymentQuery = useDeployment(fallbackDeploymentId);
 
-  const deployment = currentDeployment ?? fallbackDeploymentQuery.data?.[0];
+  const deployment = currentDeployment ?? fallbackDeploymentQuery.data ?? undefined;
   const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
   const isCurrent = Boolean(currentDeployment);
   const newerDeployment =
@@ -112,7 +108,7 @@ export function AppProductionCard() {
   );
 
   const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
-  useCollectionPolling(() => collection.deployments.utils.refetch(), {
+  useDeploymentsPolling({
     intervalMs: 10_000,
     enabled:
       productionStatus === "live" ||

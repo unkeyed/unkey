@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/deployments
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V3DeploymentsCreateDeploymentResponseBody)
+				return util.Output(ctx, cmd, res.V3DeploymentsCreateDeploymentResponseBody)
 			}
 
 			req := components.V3DeploymentsCreateDeploymentRequestBody{
@@ -109,9 +109,9 @@ For full documentation, see https://www.unkey.com/docs/api-reference/deployments
 			}
 			res, err := client.Deployments.CreateDeploymentV3(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V3DeploymentsCreateDeploymentResponseBody)
+			return util.Output(ctx, cmd, res.V3DeploymentsCreateDeploymentResponseBody)
 		},
 	}
 }

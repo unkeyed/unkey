@@ -1,15 +1,18 @@
 "use client";
 
+import {
+  useAppId,
+  useProjectData,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/data-provider";
+import { useAppCurrentDeployment } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-app-current-deployment";
+import { useRecentDeployments } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/legacy/use-recent-deployments";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { routes } from "@/lib/navigation/routes";
 import { ResourceList, ResourceListBody, ResourceListContent, ResourceListHeader } from "@unkey/ui";
 import Link from "next/link";
-import { useAppId, useProjectData } from "../../../data-provider";
 import { DeploymentsSkeleton } from "../../../deployments/components/deployments-skeleton";
 import { DeploymentRow } from "../../../deployments/components/legacy/deployment-row";
-import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
-import { useRecentDeployments } from "../../../hooks/use-recent-deployments";
 
 export function RecentDeployments() {
   const workspace = useWorkspaceNavigation();

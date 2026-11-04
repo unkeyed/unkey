@@ -11,7 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
 )
@@ -40,7 +43,7 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 	route := &handler.Handler{
 		DB:              h.DB,
 		RatelimitEvents: h.RatelimitEvents,
-		DirectAuditLogs: h.DirectAuditLogs,
+		AuditLogBuffer:  h.AuditLogBuffer,
 		Ratelimit:       h.Ratelimit,
 		NamespaceCache:  h.Caches.RatelimitNamespace,
 		Auditlogs:       h.Auditlogs,
@@ -49,7 +52,7 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 	namespaceID, namespaceName := createNamespace(t, h)
-	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").RatelimitNamespace("*"), permissions.Limit).Value)
 	identifier := uid.New("sensitive")
 	overrideID := uid.New(uid.RatelimitOverridePrefix)
 	ctx := context.Background()
@@ -75,7 +78,7 @@ func TestLimit_WritesRootKeyAuditLog(t *testing.T) {
 		Limit:      10,
 		Duration:   time.Minute.Milliseconds(),
 	})
-	require.Equal(t, http.StatusOK, res.Status)
+	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	require.Equal(t, overrideID, res.Body.Data.OverrideId)
 
 	require.Empty(t, h.FindAuditLogsByTargetID(ctx, t, namespaceID))

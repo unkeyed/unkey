@@ -447,8 +447,8 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
             type="button"
             variant="primary"
             color="danger"
-            size="xlg"
-            className="w-full rounded-lg"
+            size="md"
+            className="w-full"
             loading={cancel.isLoading}
             onClick={() => cancel.mutate()}
           >

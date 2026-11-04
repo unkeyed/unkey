@@ -2,7 +2,6 @@ package permissions
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -48,7 +47,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PermissionsListPermissionsResponseBody)
+				return util.Output(ctx, cmd, res.V2PermissionsListPermissionsResponseBody)
 			}
 
 			req := components.V2PermissionsListPermissionsRequestBody{
@@ -71,9 +70,9 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 
 			res, err := client.Permissions.ListPermissions(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2PermissionsListPermissionsResponseBody)
+			return util.Output(ctx, cmd, res.V2PermissionsListPermissionsResponseBody)
 		},
 	}
 }

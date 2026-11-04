@@ -2,7 +2,6 @@ package rootkeys
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
@@ -36,6 +35,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/up
 			cli.String("name", "New name. Use --body with name:null to remove it.", cli.MutuallyExclusive("body")),
 			cli.Bool("enabled", "Whether the root key can authenticate.", cli.MutuallyExclusive("body")),
 			cli.StringSlice("permissions", "Replacement comma-separated permission URNs; an empty value removes all permissions.", cli.MutuallyExclusive("body")),
+			cli.StringSlice("ip-allowlist", "Replacement comma-separated IPv4 or IPv6 addresses and CIDR ranges; an empty value allows every address.", cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(ctx, cmd)
@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/up
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RootKeysUpdateKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2RootKeysUpdateKeyResponseBody)
 			}
 
 			req := components.V2RootKeysUpdateKeyRequestBody{
@@ -56,6 +56,7 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/up
 				Name:        nil,
 				Enabled:     nil,
 				Permissions: nil,
+				IPAllowlist: nil,
 			}
 			if cmd.FlagIsSet("name") {
 				req.Name = optionalnullable.From(new(cmd.String("name")))
@@ -69,11 +70,15 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/up
 				req.Permissions = append([]string{}, cmd.StringSlice("permissions")...)
 			}
 
+			if cmd.FlagIsSet("ip-allowlist") {
+				req.IPAllowlist = append([]string{}, cmd.StringSlice("ip-allowlist")...)
+			}
+
 			res, err := client.RootKeys.UpdateKey(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2RootKeysUpdateKeyResponseBody)
+			return util.Output(ctx, cmd, res.V2RootKeysUpdateKeyResponseBody)
 		},
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -106,9 +107,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 
-		err = principal.Authorize(rbac.Or(requiredPermissions...))
+		permissionQuery := rbac.Or(requiredPermissions...)
+		err = principal.Authorize(permissionQuery)
 		if err != nil {
-			return err
+			return apierrors.MaskInsufficientPermissionsAsNotFound(
+				err,
+				principal.Permissions,
+				permissionQuery,
+				codes.Data.Api.NotFound.URN(),
+				"The requested API does not exist or has been deleted.",
+			)
 		}
 
 		// 5. Check delete protection

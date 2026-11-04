@@ -1,8 +1,7 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { collection } from "@/lib/collections";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useDeployScope } from "@/lib/deploy-data";
+import { useProjectApps } from "@/lib/queries/apps";
 import { useMemo } from "react";
 
 export function useAppFilterOptions(): AppFilterOption[] {
@@ -13,17 +12,7 @@ export function useAppFilterOptionsWithLoading(): {
   options: AppFilterOption[];
   isLoading: boolean;
 } {
-  const { projectId } = useProjectData();
-
-  const apps = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => eq(app.projectId, projectId))
-        .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
-        .orderBy(({ app }) => app.id, "desc"),
-    [projectId],
-  );
+  const apps = useProjectApps(useDeployScope().projectId);
 
   const options = useMemo(
     () =>
@@ -36,7 +25,7 @@ export function useAppFilterOptionsWithLoading(): {
     [apps.data],
   );
 
-  return { options, isLoading: apps.isLoading };
+  return { options, isLoading: apps.isInitialLoading };
 }
 
 export function useAppNameById(): Map<string, string> {

@@ -61,20 +61,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if !found {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace not found"),
-			fault.Public("This namespace does not exist."),
-		)
-	}
-
-	if ns.DeletedAtM.Valid {
-		return fault.New("namespace deleted",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Internal("namespace deleted"),
-			fault.Public("This namespace does not exist."),
-		)
+	// A separate namespace error would disclose whether the parent exists.
+	if !found || ns.DeletedAtM.Valid {
+		return apierrors.NotFound(codes.Data.RatelimitOverride.NotFound.URN())
 	}
 
 	override, ok := ns.DirectOverrides[req.Identifier]

@@ -1,3 +1,4 @@
+import { type StripeError, isStripeNotFound } from "@/lib/stripe/notFound";
 import { TRPCError } from "@trpc/server";
 import Stripe from "stripe";
 
@@ -113,14 +114,6 @@ export const retrieveCompletedWorkspaceCheckoutSession = async (
   }
 
   return session;
-};
-
-type StripeError = InstanceType<typeof Stripe.errors.StripeError>;
-
-// Both signals are needed: some endpoints send `resource_missing` with a 400,
-// others send a bare 404 with no code.
-export const isStripeNotFound = (error: StripeError): boolean => {
-  return error.statusCode === 404 || error.code === "resource_missing";
 };
 
 // Branch order matters: invalid-request and permission are checked before

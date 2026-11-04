@@ -57,9 +57,9 @@ Your root key must have the following permission:
 
 			res, err := client.Github.InstallApp(ctx)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2GithubInstallAppResponseBody)
+			return util.Output(ctx, cmd, res.V2GithubInstallAppResponseBody)
 		},
 	}
 }

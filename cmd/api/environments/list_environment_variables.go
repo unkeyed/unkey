@@ -2,7 +2,6 @@ package environments
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -24,6 +23,7 @@ func listEnvironmentVariablesCmd() *cli.Command {
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
+			cli.Bool("reveal", "Show recoverable variable values in human output. JSON always includes returned values."),
 			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
@@ -42,7 +42,7 @@ func listEnvironmentVariablesCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2EnvironmentsListEnvironmentVariablesResponseBody)
+				return util.Output(ctx, cmd, res.V2EnvironmentsListEnvironmentVariablesResponseBody)
 			}
 			req := components.V2EnvironmentsListEnvironmentVariablesRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Limit: nil, Cursor: nil}
 			if v := cmd.Int64("limit"); v != 0 {
@@ -53,9 +53,9 @@ func listEnvironmentVariablesCmd() *cli.Command {
 			}
 			res, err := client.Environments.ListEnvironmentVariables(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2EnvironmentsListEnvironmentVariablesResponseBody)
+			return util.Output(ctx, cmd, res.V2EnvironmentsListEnvironmentVariablesResponseBody)
 		},
 	}
 }

@@ -2,7 +2,6 @@ package domains
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -56,7 +55,7 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DomainsListDomainsResponseBody)
+				return util.Output(ctx, cmd, res.V2DomainsListDomainsResponseBody)
 			}
 			req := components.V2DomainsListDomainsRequestBody{
 				Project:     nil,
@@ -83,9 +82,9 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 			}
 			res, err := client.Domains.ListDomains(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2DomainsListDomainsResponseBody)
+			return util.Output(ctx, cmd, res.V2DomainsListDomainsResponseBody)
 		},
 	}
 }

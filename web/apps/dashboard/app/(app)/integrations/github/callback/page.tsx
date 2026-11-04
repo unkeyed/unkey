@@ -1,6 +1,6 @@
 "use client";
-import { CardPending } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/card";
-import { PendingFlowCard } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/flow-layout";
+import { CardPending } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/card";
+import { PendingFlowCard } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/new/pending-flow-card";
 import { LoadingState } from "@/components/loading-state";
 import { signedState } from "@/lib/github-install-state";
 import { routes } from "@/lib/navigation/routes";

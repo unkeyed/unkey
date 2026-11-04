@@ -1,10 +1,9 @@
 "use client";
 
-import type { DeploymentSummary } from "@/lib/collections";
+import { type DeploymentSummary, toastWhenSettled, useDeployActions } from "@/lib/deploy-data";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { Button, DialogContainer, toast } from "@unkey/ui";
-import { useProjectData } from "../../../../../data-provider";
+import { Button, DialogContainer } from "@unkey/ui";
 import { DeploymentCard } from "./components/deployment-card";
 
 type CancelDialogProps = {
@@ -18,24 +17,28 @@ type CancelDialogProps = {
 };
 
 export const CancelDialog = ({ isOpen, onClose, onCancelled, deployment }: CancelDialogProps) => {
-  const { awaitDeploymentStatus } = useProjectData();
+  const { awaitDeploymentStatus } = useDeployActions();
 
   const cancel = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.cancelDeployment({ deploymentId }),
     onSuccess: () => {
-      awaitDeploymentStatus({ deploymentId: deployment.id, status: "cancelled" });
       onCancelled?.();
       onClose();
     },
   });
 
   const handleCancel = () => {
-    toast.promise(cancel.mutateAsync(deployment.id), {
-      loading: "Cancelling deployment...",
-      success: "Deployment cancelled",
-      error: (err) => getErrorToast(err, "Failed to cancel deployment"),
-    });
+    toastWhenSettled(
+      cancel
+        .mutateAsync(deployment.id)
+        .then(() => awaitDeploymentStatus({ deploymentId: deployment.id, status: "cancelled" })),
+      {
+        loading: "Cancelling deployment...",
+        success: { message: "Deployment cancelled" },
+        failure: (err) => getErrorToast(err, "Failed to cancel deployment"),
+      },
+    );
   };
 
   return (
@@ -47,11 +50,11 @@ export const CancelDialog = ({ isOpen, onClose, onCancelled, deployment }: Cance
       footer={
         <Button
           variant="destructive"
-          size="xlg"
+          size="md"
           onClick={handleCancel}
           disabled={cancel.isLoading}
           loading={cancel.isLoading}
-          className="w-full rounded-lg"
+          className="w-full"
         >
           Cancel deployment
         </Button>

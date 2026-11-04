@@ -39,7 +39,7 @@ type (
 type Handler struct {
 	DB              db.Database
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
-	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
+	AuditLogBuffer  *batch.BatchProcessor[auditlog.Event]
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
@@ -87,16 +87,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if resolveErr != nil {
 			return resolveErr
 		}
-		err = principal.Authorize(rbac.Or(
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RatelimitNamespace("*"),
-				permissions.Write,
-			),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Ratelimit,
-				ResourceID:   "*",
-				Action:       rbac.CreateNamespace,
-			}),
+		err = principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RatelimitNamespace("*"),
+			permissions.Write,
 		))
 		if err != nil {
 			return err
@@ -115,21 +108,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID),
-			permissions.Limit,
-		),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   ns.ID,
-			Action:       rbac.Limit,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   "*",
-			Action:       rbac.Limit,
-		}),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID),
+		permissions.Limit,
 	))
 	if err != nil {
 		return err
@@ -234,7 +215,7 @@ func (h *Handler) bufferAuditLog(
 		})
 	}
 
-	h.DirectAuditLogs.Buffer(auditlog.Event{
+	h.AuditLogBuffer.Buffer(auditlog.Event{
 		EventID:     uid.New(uid.AuditLogPrefix),
 		Time:        timeMillis,
 		WorkspaceID: p.AuthorizedWorkspaceID,

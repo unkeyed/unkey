@@ -26,6 +26,14 @@ import { queryRoles } from "./authorization/roles/query";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
+import {
+  createAppConnection,
+  deleteAppConnection,
+  listAppConnectionTargets,
+  listAppConnections,
+  listRetainedAppConnections,
+  updateAppConnection,
+} from "./deploy/app-connection";
 import { appMetricsDeploys } from "./deploy/app-metrics/deploys";
 import { appMetricsInstanceEvents } from "./deploy/app-metrics/instance-events";
 import { appMetricsInstances } from "./deploy/app-metrics/instances";
@@ -36,6 +44,8 @@ import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { getLatestRollback } from "./deploy/deployment/latest-rollback";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
+import { listDeploymentConnectionPins } from "./deploy/deployment/list-connection-pins";
+import { listDeploymentConnections } from "./deploy/deployment/list-connections";
 import { listDeploymentDetails } from "./deploy/deployment/list-details";
 import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
@@ -110,6 +120,7 @@ import { getDeployCredit } from "./stripe/getDeployCredit";
 import { getDeployEntitlement } from "./stripe/getDeployEntitlement";
 import { getDeployPlans } from "./stripe/getDeployPlans";
 import { getDeploySubscription } from "./stripe/getDeploySubscription";
+import { getPaymentIssues } from "./stripe/getPaymentIssues";
 import { getSetupIntent } from "./stripe/getSetupIntent";
 import { getSubscriptionPaymentUrl } from "./stripe/getSubscriptionPaymentUrl";
 import { getUpcomingInvoice } from "./stripe/getUpcomingInvoice";
@@ -177,6 +188,7 @@ export const router = t.router({
     getCheckoutSession,
     getSetupIntent,
     getSubscriptionPaymentUrl,
+    getPaymentIssues,
     updateWorkspaceStripeCustomer,
     subscribeDeploy,
     linkApiSubscription,
@@ -265,6 +277,14 @@ export const router = t.router({
       timeseries: queryIdentityTimeseries,
     }),
   }),
+  appConnection: t.router({
+    list: listAppConnections,
+    retained: listRetainedAppConnections,
+    targets: listAppConnectionTargets,
+    create: createAppConnection,
+    update: updateAppConnection,
+    delete: deleteAppConnection,
+  }),
   deploy: t.router({
     network: t.router({
       generate: generateDeploymentTree,
@@ -293,6 +313,8 @@ export const router = t.router({
       listDisplayDomains,
     }),
     deployment: t.router({
+      listConnectionPins: listDeploymentConnectionPins,
+      listConnections: listDeploymentConnections,
       listHeadlines: listDeploymentHeadlines,
       listBranches: listDeploymentBranches,
       listActiveBranches,

@@ -15,7 +15,7 @@ description: Resource list components provide the shared layout for filterable l
 - `ResourceListRow` makes a whole row clickable, with `label` as its accessible name. Pass `expanded` while its panel is open.
 - `ResourceListGrid` lays out cards in one, two or three columns.
 - `ResourceListTable` draws a list frame with a column header. Each column has an `id`, a `header` and a grid `width`. Pass the pager as `footer`.
-- `ResourceListTableRow` puts its cells on the table columns. Pass a `link` element to make the whole row a link.
+- `ResourceListTableRow` puts its cells on the table columns. Pass a `link` element to make the whole row a link. The `link` can be a `<Link>` or a `<button>`, for example for rows that open a panel. `label` sets its accessible name.
 - `ResourceListFooter` holds the Show more button. Use `variant="bare"` under a grid of cards.
 - `ResourceListShowMore` is the Show more button. Pass `loading` while a page loads.
 - `ResourceListViewToggle` switches between grid and list views. `useListView` stores the choice in the dashboard.

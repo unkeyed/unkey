@@ -1,0 +1,397 @@
+package guidance
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
+	"github.com/unkeyed/unkey/pkg/prompt"
+	"github.com/unkeyed/unkey/pkg/uid"
+)
+
+func TestFormsPreserveOmittedClearedAndZeroValues(t *testing.T) {
+	schema, ok := Lookup("keys update-key")
+	require.True(t, ok)
+	keyID := uid.New(uid.KeyPrefix)
+	answers := &formAnswers{strings: []string{"0"}, choices: []string{"name", "clear", "enabled", "false", "expires", "set", "roles", "done", "done"}}
+	values := map[string]any{"keyId": keyID}
+	f := form{prompt: answers, out: io.Discard}
+	require.NoError(t, f.object(t.Context(), schema, values, "", true))
+	raw, err := json.Marshal(values)
+	require.NoError(t, err)
+	var request components.V2KeysUpdateKeyRequestBody
+	require.NoError(t, json.Unmarshal(raw, &request))
+	require.Equal(t, components.V2KeysUpdateKeyRequestBody{
+		KeyID:   keyID,
+		Name:    optionalnullable.From[string](nil),
+		Enabled: new(false),
+		Expires: optionalnullable.From(new(int64(0))),
+		Roles:   []string{},
+	}, request)
+	require.Empty(t, answers.choices)
+	require.Empty(t, answers.strings)
+}
+
+func TestFormsBuildNestedAppWithoutRawJSON(t *testing.T) {
+	schema, ok := Lookup("apps create-app")
+	require.True(t, ok)
+	answers := &formAnswers{
+		strings: []string{"Demo Service", "", "example/demo"},
+		choices: []string{"0", "repository", "done"},
+	}
+	values := map[string]any{"project": "demo-project"}
+	f := form{prompt: answers, out: io.Discard}
+	require.NoError(t, f.object(t.Context(), schema, values, "", false))
+	raw, err := json.Marshal(values)
+	require.NoError(t, err)
+	var request components.V2AppsCreateAppRequestBody1
+	require.NoError(t, json.Unmarshal(raw, &request))
+	require.Equal(t, "demo-project", request.Project)
+	require.Equal(t, "Demo Service", request.Name)
+	require.Equal(t, "demo-service", request.Slug)
+	require.Equal(t, new("example/demo"), request.Git.Repository)
+	require.Nil(t, request.Oci)
+	require.Empty(t, answers.choices)
+	require.Empty(t, answers.strings)
+}
+
+func TestFormsRejectInvalidValuesBeforeAcceptingInput(t *testing.T) {
+	schema, ok := Lookup("projects create-project")
+	require.True(t, ok)
+	answers := &formAnswers{strings: []string{"", "Demo", "bad slug", "demo"}}
+	f := form{prompt: answers, out: io.Discard}
+	values := map[string]any{}
+	require.NoError(t, f.object(t.Context(), schema, values, "", false))
+	require.Equal(t, map[string]any{"name": "Demo", "slug": "demo"}, values)
+
+	answers = &formAnswers{strings: []string{"Demo"}}
+	f.prompt = answers
+	require.ErrorIs(t, f.object(t.Context(), schema, map[string]any{}, "", false), io.EOF)
+}
+
+func TestResourceInputValidatesManualValues(t *testing.T) {
+	schema, ok := Lookup("projects delete-project")
+	require.True(t, ok)
+	answers := &pickerScript{t: t, answers: []string{"manual", "zz", "demo-project"}}
+	var output bytes.Buffer
+	f := form{
+		prompt: answers, out: &output,
+		pick: resourcePicker(t.Context(), nil, "projects delete-project"),
+	}
+	values := map[string]any{}
+	require.NoError(t, f.field(t.Context(), schema.Properties["project"], values, "project", ""))
+	require.Equal(t, "demo-project", values["project"])
+	require.Empty(t, answers.answers)
+	require.Contains(t, output.String(), "at least 3")
+}
+
+func TestReviewEditsPreservePatchValues(t *testing.T) {
+	schema, ok := Lookup("keys update-key")
+	require.True(t, ok)
+	keyID := uid.New(uid.KeyPrefix)
+	values := map[string]any{
+		"keyId": keyID, "name": "Original", "enabled": false, "expires": json.Number("0"), "roles": []any{"reader"},
+	}
+	answers := &formAnswers{choices: []string{"name", "edit", "clear", "roles", "edit", "0", "remove", "done", "done"}}
+	f := form{prompt: answers, out: io.Discard}
+	require.NoError(t, f.review(t.Context(), schema, values, "", true))
+	raw, err := json.Marshal(values)
+	require.NoError(t, err)
+	var request components.V2KeysUpdateKeyRequestBody
+	require.NoError(t, json.Unmarshal(raw, &request))
+	require.Equal(t, components.V2KeysUpdateKeyRequestBody{
+		KeyID: keyID, Name: optionalnullable.From[string](nil), Enabled: new(false), Expires: optionalnullable.From(new(int64(0))), Roles: []string{},
+	}, request)
+	require.Empty(t, answers.choices)
+	answers.choices = []string{"name", "omit", "done"}
+	require.NoError(t, f.review(t.Context(), schema, values, "", true))
+	require.NotContains(t, values, "name")
+	require.Equal(t, false, values["enabled"])
+}
+
+func TestReviewUsesReadableLabelsWithoutChangingRequestValues(t *testing.T) {
+	schema, ok := Lookup("keys update-key")
+	require.True(t, ok)
+	values := map[string]any{
+		"keyId": uid.New(uid.KeyPrefix), "name": nil, "enabled": false,
+		"expires": json.Number("0"), "roles": []any{},
+	}
+	before, err := json.Marshal(values)
+	require.NoError(t, err)
+	var output bytes.Buffer
+	f := form{prompt: &formAnswers{choices: []string{"done"}}, out: &output}
+	require.NoError(t, f.review(t.Context(), schema, values, "", true))
+	for _, field := range []string{"Enabled: No", "Expires: 0", "Name: Clear (null)", "Roles: (no items)"} {
+		require.Contains(t, output.String(), field)
+	}
+	require.NotContains(t, output.String(), "{")
+	require.NotContains(t, output.String(), "Credits:")
+	after, err := json.Marshal(values)
+	require.NoError(t, err)
+	require.Equal(t, before, after)
+}
+
+func TestReviewNestedEditsPreserveAndHideSecrets(t *testing.T) {
+	schema, ok := Lookup("environments set-environment-variables")
+	require.True(t, ok)
+	secret := uid.New(uid.KeyPrefix)
+	values := map[string]any{
+		"project": "demo", "app": "demo-app", "environment": "preview",
+		"variables": []any{map[string]any{"key": "DEMO_TOKEN", "value": secret, "description": "Original"}},
+	}
+	answers := &formAnswers{
+		choices: []string{"variables", "0", "edit", "edit", "description", "edit", "edit", "done", "done", "done"},
+		strings: []string{"Updated description"},
+	}
+	var output bytes.Buffer
+	f := form{prompt: answers, out: &output}
+	require.NoError(t, f.review(t.Context(), schema, values, "", false))
+	raw, err := json.Marshal(values)
+	require.NoError(t, err)
+	var request components.V2EnvironmentsSetEnvironmentVariablesRequestBody
+	require.NoError(t, json.Unmarshal(raw, &request))
+	require.Equal(t, secret, request.Variables[0].Value)
+	require.Equal(t, new("Updated description"), request.Variables[0].Description)
+	require.NotContains(t, output.String(), secret)
+	require.Contains(t, output.String(), "Variables:\n    Item 1:\n")
+	require.Contains(t, output.String(), "Value: [hidden]")
+	require.Contains(t, output.String(), "Description: Updated description")
+	require.Empty(t, answers.choices)
+	require.Empty(t, answers.strings)
+	output.Reset()
+	answers.choices = []string{"variables", "0", "edit", "edit", "description", "edit", "empty", "done", "done", "done"}
+	require.NoError(t, f.review(t.Context(), schema, values, "", false))
+	variables := values["variables"].([]any)
+	require.Equal(t, "", variables[0].(map[string]any)["description"])
+	require.Contains(t, output.String(), "Description: (empty text)")
+}
+
+func TestReviewGatewayMatcherValues(t *testing.T) {
+	for _, command := range []string{"gateway set-policies", "gateway update-policy"} {
+		t.Run(command, func(t *testing.T) {
+			schema, ok := Lookup(command)
+			require.True(t, ok)
+			matches := []components.MatchExpr{
+				{Header: &components.FieldMatch{Name: "X-Demo-Tier", Value: &components.StringMatch{Exact: new("demo-premium"), IgnoreCase: new(true)}}},
+				{QueryParam: &components.FieldMatch{Name: "region", Value: &components.StringMatch{Prefix: new("demo-eu-")}}},
+				{Header: &components.FieldMatch{Name: "X-Demo-Version", Value: &components.StringMatch{Regex: new("^demo-v[0-9]+$")}}},
+			}
+			var request any = components.V2GatewayUpdatePolicyRequestBody{
+				Project: "demo", App: "demo-app", Environment: "preview", PolicyID: uid.New(uid.TestPrefix),
+				Match: optionalnullable.From(new(matches)),
+			}
+			if command == "gateway set-policies" {
+				request = components.V2GatewaySetPoliciesRequestBody{
+					Project: "demo", App: "demo-app", Environment: "preview",
+					Policies: []components.Policy{{Name: "Demo policy", Enabled: true, Match: matches, Firewall: &components.FirewallPolicy{Action: components.ActionActionDeny}}},
+				}
+			}
+			raw, err := json.Marshal(request)
+			require.NoError(t, err)
+			var values map[string]any
+			require.NoError(t, json.Unmarshal(raw, &values))
+			var output bytes.Buffer
+			f := form{prompt: &formAnswers{choices: []string{"done"}}, out: &output}
+
+			require.NoError(t, f.review(t.Context(), schema, values, "", false))
+			for _, expected := range []string{"Exact: demo-premium", "Ignore case: Yes", "Prefix: demo-eu-", "Regex: ^demo-v[0-9]+$"} {
+				require.Contains(t, output.String(), expected)
+			}
+			require.NotContains(t, output.String(), "[hidden]")
+			after, err := json.Marshal(values)
+			require.NoError(t, err)
+			require.JSONEq(t, string(raw), string(after))
+		})
+	}
+}
+
+func TestFieldUsesSchemaSecretMetadata(t *testing.T) {
+	environment, ok := Lookup("environments set-environment-variables")
+	require.True(t, ok)
+	credential, ok := Lookup("keys verify-key")
+	require.True(t, ok)
+	gateway, ok := Lookup("gateway update-policy")
+	require.True(t, ok)
+	for _, test := range []struct {
+		name   string
+		schema *Schema
+		path   string
+		field  string
+		secret bool
+	}{
+		{name: "non-secret scalar value", schema: &Schema{Type: "string"}, path: "demo", field: "value"},
+		{name: "matcher exact", schema: gateway.Properties["match"].Items.Properties["header"].Properties["value"].Properties["exact"], path: "match[1].header.value", field: "exact"},
+		{name: "environment variable", schema: environment.Properties["variables"].Items.Properties["value"], path: "variables[1]", field: "value", secret: true},
+		{name: "credential", schema: credential.Properties["key"], field: "key", secret: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			require.Equal(t, test.secret, test.schema.Secret)
+			values := map[string]any{test.field: "fictional-previous-value"}
+			answers := &formAnswers{strings: []string{""}}
+			if test.secret {
+				answers.strings[0] = "fictional-replacement-secret"
+			}
+			var output bytes.Buffer
+			f := form{prompt: answers, out: &output}
+
+			require.NoError(t, f.field(t.Context(), test.schema, values, test.field, test.path))
+			wrapper := &Schema{Type: "object", Properties: map[string]*Schema{test.field: test.schema}}
+			require.NoError(t, f.preview(wrapper, values, test.path))
+			if test.secret {
+				require.Equal(t, []string{label(strings.TrimPrefix(test.path+"."+test.field, "."))}, answers.secrets)
+				require.Empty(t, answers.defaults)
+				require.Equal(t, "fictional-replacement-secret", values[test.field])
+				require.NotContains(t, output.String(), "fictional-")
+				require.Contains(t, output.String(), "[hidden]")
+			} else {
+				require.Empty(t, answers.secrets)
+				require.Equal(t, []string{"fictional-previous-value"}, answers.defaults)
+				require.Equal(t, "fictional-previous-value", values[test.field])
+				require.Contains(t, output.String(), "fictional-previous-value")
+			}
+		})
+	}
+}
+
+func TestReviewMasksUnknownValuesAndEscapesTerminalControls(t *testing.T) {
+	schema, ok := Lookup("keys update-key")
+	require.True(t, ok)
+	secret := uid.New(uid.KeyPrefix)
+	values := map[string]any{
+		"keyId": uid.New(uid.KeyPrefix), "name": "Demo\x1b[2J\u202e\nEnabled: Yes", "metadata": map[string]any{"private": secret},
+	}
+	var output bytes.Buffer
+	f := form{prompt: &formAnswers{choices: []string{"done"}}, out: &output}
+	require.NoError(t, f.review(t.Context(), schema, values, "", true))
+	require.NotContains(t, output.String(), secret)
+	require.NotContains(t, output.String(), "\x1b")
+	require.NotContains(t, output.String(), "\u202e")
+	require.NotContains(t, output.String(), "\nEnabled: Yes")
+	require.Contains(t, output.String(), `\nEnabled: Yes`)
+	require.Equal(t, "Demo\x1b[2J\u202e\nEnabled: Yes", values["name"])
+}
+
+func TestReviewMetadataEditsPreserveSiblingsAndAllowClearing(t *testing.T) {
+	schema, ok := Lookup("keys update-key")
+	require.True(t, ok)
+	secret := uid.New(uid.KeyPrefix)
+	values := map[string]any{
+		"keyId": uid.New(uid.KeyPrefix),
+		"meta":  map[string]any{"budget": json.Number("0"), "obsolete": "old", "private": secret},
+	}
+	answers := &formAnswers{
+		choices: []string{"meta", "edit", "edit", "0", "edit", "number", "1", "remove", "add", "boolean", "false", "done", "done"},
+		strings: []string{"1", "reviewed"},
+	}
+	var output bytes.Buffer
+	f := form{prompt: answers, out: &output}
+	require.NoError(t, f.review(t.Context(), schema, values, "", true))
+	require.Equal(t, map[string]any{"budget": json.Number("1"), "private": secret, "reviewed": false}, values["meta"])
+	require.NotContains(t, output.String(), secret)
+	require.Empty(t, answers.choices)
+	require.Empty(t, answers.strings)
+	answers.choices = []string{"meta", "edit", "replace", "clear", "done"}
+	require.NoError(t, f.review(t.Context(), schema, values, "", true))
+	require.Contains(t, values, "meta")
+	require.Nil(t, values["meta"])
+}
+
+func TestReviewChangesConfigurationWithoutMixingSources(t *testing.T) {
+	schema, ok := Lookup("apps create-app")
+	require.True(t, ok)
+	values := map[string]any{
+		"project": "demo", "name": "Demo", "slug": "demo",
+		"git": map[string]any{"repository": "example/demo"},
+	}
+	answers := &formAnswers{choices: []string{"configuration", "1", "done"}, strings: []string{"ghcr.io/example/demo:v2"}}
+	f := form{prompt: answers, out: io.Discard}
+	require.NoError(t, f.review(t.Context(), schema, values, "", false))
+	require.Equal(t, map[string]any{
+		"project": "demo", "name": "Demo", "slug": "demo",
+		"oci": map[string]any{"image": "ghcr.io/example/demo:v2"},
+	}, values)
+	require.Empty(t, answers.choices)
+	require.Empty(t, answers.strings)
+}
+
+type formAnswers struct {
+	strings  []string
+	choices  []string
+	secrets  []string
+	defaults []string
+}
+
+func (a *formAnswers) String(_ string, defaults ...string) (string, error) {
+	a.defaults = append(a.defaults, defaults...)
+	if len(a.strings) == 0 {
+		return "", io.EOF
+	}
+	value := a.strings[0]
+	a.strings = a.strings[1:]
+	if value == "" && len(defaults) > 0 {
+		return defaults[0], nil
+	}
+	return value, nil
+}
+
+func (a *formAnswers) Secret(label string) (string, error) {
+	a.secrets = append(a.secrets, label)
+	return a.String(label)
+}
+
+func (a *formAnswers) SelectOrdered(_ string, options []prompt.SelectOption, _ ...string) (string, error) {
+	if len(a.choices) == 0 {
+		return "", io.EOF
+	}
+	choice := a.choices[0]
+	a.choices = a.choices[1:]
+	if !slices.ContainsFunc(options, func(option prompt.SelectOption) bool { return option.Key == choice }) {
+		return "", fmt.Errorf("choice %q is not offered", choice)
+	}
+	return choice, nil
+}
+
+func TestSplitColumnsCarriesStyleAcrossWrappedLines(t *testing.T) {
+	head, rest := splitColumns("\x1b[1m✓\x1b[0m \x1b[36m界abc\x1b[0m", 4)
+	require.Equal(t, "\x1b[1m✓\x1b[0m \x1b[36m界\x1b[0m", head)
+	require.Equal(t, "\x1b[36mabc\x1b[0m", rest)
+	require.Equal(t, 4, visibleWidth(head))
+}
+
+func TestFieldProblemNamesFieldOnce(t *testing.T) {
+	require.Equal(t, "Slug is already in use.", fieldProblem("body.slug", "Slug is already in use."))
+	require.Equal(t, "Display name: must be at most 256 characters", fieldProblem("body.displayName", "must be at most 256 characters"))
+	require.Equal(t, "Invalid input.", fieldProblem("", "Invalid input."))
+}
+
+func TestWrapWordsBreaksAtSpacesAndKeepsStyle(t *testing.T) {
+	head, rest := wrapWords("\x1b[31m✗\x1b[0m grant that permission", 14)
+	require.Equal(t, "\x1b[31m✗\x1b[0m grant that", head)
+	require.Equal(t, "permission", rest)
+	head, rest = wrapWords("\x1b[36mproj_demo7Hq2Xc9\x1b[0m", 8)
+	require.Equal(t, "\x1b[36mproj_dem\x1b[0m", head)
+	require.Equal(t, "\x1b[36mo7Hq2Xc9\x1b[0m", rest)
+}
+
+func TestResourceRowsPreserveFullIDsAndNameSuffixes(t *testing.T) {
+	id := uid.New(uid.ProjectPrefix)
+	for _, name := range []string{"Fictional-service-production-east", "Fictional-service-production-west", "界界界界界界界界界-east"} {
+		row := resourceRow(resourceOption(id, name), 36)
+		require.LessOrEqual(t, visibleWidth(row), 36)
+		require.Contains(t, row, id)
+		require.Contains(t, row, "…")
+		require.Contains(t, row, name[len(name)-4:])
+	}
+	idLong := uid.New(uid.ProjectPrefix) + uid.New(uid.TestPrefix)
+	row := resourceRow(resourceOption(idLong, "Fictional project"), 20)
+	require.LessOrEqual(t, visibleWidth(row), 20)
+	require.Contains(t, row, "…")
+	require.Contains(t, row, idLong[len(idLong)-5:])
+}

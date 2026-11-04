@@ -65,7 +65,7 @@ func listDeploymentsCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsListDeploymentsResponseBody)
+				return util.Output(ctx, cmd, res.V2DeploymentsListDeploymentsResponseBody)
 			}
 			req := components.V2DeploymentsListDeploymentsRequestBody{
 				Project:     nil,
@@ -98,9 +98,9 @@ func listDeploymentsCmd() *cli.Command {
 			}
 			res, err := client.Deployments.ListDeployments(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2DeploymentsListDeploymentsResponseBody)
+			return util.Output(ctx, cmd, res.V2DeploymentsListDeploymentsResponseBody)
 		},
 	}
 }

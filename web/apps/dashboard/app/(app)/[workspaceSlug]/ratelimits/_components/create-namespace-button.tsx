@@ -88,15 +88,12 @@ export const CreateNamespaceButton = () => {
               type="submit"
               form="create-namespace-form"
               variant="primary"
-              size="xlg"
+              size="md"
               disabled={!isValid || isPending}
-              className="w-full rounded-lg"
+              className="w-full"
             >
               {isPending ? "Creating..." : "Create Namespace"}
             </Button>
-            <div className="text-gray-9 text-xs">
-              Namespaces can be used to separate different rate limiting concerns
-            </div>
           </div>
         }
       >

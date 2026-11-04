@@ -27,7 +27,7 @@ The command writes a confirmation code and a URL to stderr. In a terminal, it as
 
 Only authorize a login you started yourself. Anyone who gets you to approve their code receives a CLI session, so deny any code that someone sent you.
 
-The CLI keeps polling until the login finishes or expires. On success it stores one session for that workspace in the system keychain, or in `~/.unkey/sessions.json` with mode `0600` when the keychain is unavailable. It prints only `Signed in.` to stdout, without tokens or the workspace ID. `unkey logout` revokes the session. `unkey workspace switch` changes the active workspace.
+The CLI keeps polling until the login finishes or expires. On success it stores one session for that workspace in the system keychain, or in `~/.unkey/sessions.json` with mode `0600` when the keychain is unavailable. In that case it also prints a warning to stderr. It prints only `Signed in.` to stdout, without tokens or the workspace ID. `unkey logout` revokes the session. `unkey workspace switch` changes the active workspace.
 
 A denied or expired login stops with the reason. Run `unkey login` again to start over.
 
@@ -49,29 +49,55 @@ Starting and polling logins is rate limited per IP address. When you hit the lim
   Store a root key and skip the browser. Pass `-` to read the key from stdin, with a hidden prompt when stdin is a terminal, so the key stays out of your shell history and process list. The command does not check the key with the API, and it does not read `UNKEY_ROOT_KEY`.
 </ParamField>
 
-## Where the key is stored
+## Where credentials are stored
 
-The root key goes in the operating system secret store:
+`unkey login` stores a CLI session, and `unkey login --root-key` stores a root key. The CLI keeps both in the operating system secret store, under service `unkey`:
 
-- macOS Keychain, as a generic password with service `unkey` and account `root_key`
-- Windows Credential Manager, as a generic credential named `unkey/root_key`
-- Linux Secret Service, through `secret-tool`, with attributes `service=unkey` and `account=root_key`
+- macOS Keychain, as generic passwords with accounts `cli_sessions` and `root_key`
+- Windows Credential Manager, as generic credentials named `unkey/cli_sessions` and `unkey/root_key`
+- Linux Secret Service, through `secret-tool`, with attribute `service=unkey` and `account=cli_sessions` or `account=root_key`
 
-On macOS, the CLI passes the key to the `security` tool on stdin, so it does not appear in the process list, and reads it back to confirm the save.
+On macOS, the CLI passes secrets to the `security` tool on stdin, so they do not appear in the process list, and reads them back to confirm the save.
 
-If that store is unavailable (no `secret-tool` binary, or no Secret Service session on Linux), the CLI writes `~/.unkey/config.toml` instead. Either way, it prints `Root key saved.` to stdout without printing the key or storage path. Only your user can read the file (mode `0600`, in a `0700` directory):
+If the secret store is unavailable, the CLI writes a file in `~/.unkey` instead. Only your user can read the file (mode `0600`, in a `0700` directory), but the secret in it is not encrypted. When this happens, the CLI prints a warning with the file path to stderr. Neither command prints the secret.
+
+| Command | Prints on success | File when the secret store is unavailable |
+| --- | --- | --- |
+| `unkey login` | `Signed in.` | `~/.unkey/sessions.json` |
+| `unkey login --root-key` | `Root key saved.` | `~/.unkey/config.toml` |
+
+The root key file looks like this:
 
 ```toml ~/.unkey/config.toml
 root_key = "unkey_xxx"
 ```
 
-A key that is already in `~/.unkey/config.toml` is copied into the secret store the next time the CLI reads or writes the default config, and the file is removed. That key replaces any older key in the secret store, because the file only holds a key when the last save could not reach the secret store. `--config` or `UNKEY_CONFIG` pointing at a different file is read as a file and is not copied into the keychain.
-
-`unkey login --root-key` uses this same storage. Running the command again replaces the stored key.
+When the secret store works again, the CLI moves a file it finds there into the store and removes the file. A root key in `~/.unkey/config.toml` replaces any older key in the secret store, because the file only holds a key when the last save could not reach the secret store. `--config` or `UNKEY_CONFIG` pointing at a different file is read as a file and is not copied into the keychain. Running `unkey login --root-key` again replaces the stored key.
 
 The session has exactly the permissions you selected. It does not inherit every permission your user has. Any role can approve a login, limited to the permissions that role can grant.
 
 Resource commands and `unkey deploy` use a stored CLI session when neither `--root-key` nor `UNKEY_ROOT_KEY` is set, and the session's API URL matches the command. An explicit `--config` on a resource command is used instead of the session. A root key saved with `--root-key` is the next fallback. See [CLI authentication](/platform/cli/authentication).
+
+### Use the secret store on Linux
+
+On Linux, the CLI uses the secret store only when both of these are present:
+
+- The `secret-tool` command
+- A running Secret Service provider with an unlocked default keyring, such as GNOME Keyring, KDE Wallet, or KeePassXC with Secret Service integration turned on
+
+Install `secret-tool`, and GNOME Keyring if you have no provider, with your package manager:
+
+| Distribution | `secret-tool` | GNOME Keyring |
+| --- | --- | --- |
+| Fedora | `sudo dnf install libsecret` | `sudo dnf install gnome-keyring` |
+| Debian, Ubuntu | `sudo apt-get install libsecret-tools` | `sudo apt-get install gnome-keyring` |
+| Arch Linux | `sudo pacman -S libsecret` | `sudo pacman -S gnome-keyring` |
+| openSUSE | `sudo zypper install libsecret-tools` | `sudo zypper install gnome-keyring` |
+| Alpine Linux | `sudo apk add libsecret` | `sudo apk add gnome-keyring` |
+
+GNOME and KDE desktops start a provider and unlock it when you log in. With a standalone window manager or over SSH, nothing unlocks it. To unlock GNOME Keyring with your login password there, add `pam_gnome_keyring.so` to your PAM login configuration as described in the <a href="https://wiki.archlinux.org/title/GNOME/Keyring#PAM_step" target="_blank">GNOME Keyring PAM setup</a>.
+
+If `secret-tool` fails for any reason, the CLI uses the files in `~/.unkey` instead.
 
 ## Examples
 

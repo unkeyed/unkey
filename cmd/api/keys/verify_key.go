@@ -31,7 +31,7 @@ Your root key needs one of:
 - api.*.verify_key (verify keys in any API)
 - api.<api_id>.verify_key (verify keys in specific API)
 
-Note: If your root key has no verify permissions at all, you will receive a 403 Forbidden error. If your root key has verify permissions for a different API than the key you're verifying, you will receive a 200 response with code: NOT_FOUND to avoid leaking key existence.
+Note: If your credential lacks permission to verify this key, the response is HTTP 200 with valid: false and code: NOT_FOUND. This does not distinguish a missing key from an inaccessible key.
 
 For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/verify-api-key` + util.Disclaimer,
 		Examples: []string{
@@ -66,15 +66,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/ver
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysVerifyKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysVerifyKeyResponseBody)
 			}
 
 			send := func(req components.V2KeysVerifyKeyRequestBody) error {
 				res, err := client.Keys.VerifyKey(ctx, req)
 				if err != nil {
-					return fmt.Errorf("%s", util.FormatError(err))
+					return err
 				}
-				return util.Output(cmd, res.V2KeysVerifyKeyResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysVerifyKeyResponseBody)
 			}
 			req := components.V2KeysVerifyKeyRequestBody{
 				Key:         cmd.String("key"),

@@ -2,8 +2,12 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Deployment, DeploymentSummary, Environment } from "@/lib/collections";
-import { hasBuildLogs } from "@/lib/collections/deploy/deployments";
+import {
+  type Deployment,
+  type DeploymentSummary,
+  type Environment,
+  hasBuildLogs,
+} from "@/lib/deploy-data";
 import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import {

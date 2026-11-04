@@ -9,6 +9,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -40,9 +41,10 @@ func (v *connectionVault) EncryptBulk(_ context.Context, request *vaultv1.Encryp
 func TestBuildSecretsBlobConnectionHostsOverrideUserValues(t *testing.T) {
 	v := &connectionVault{}
 	w := &Workflow{vault: v}
-	environmentID := uid.New(uid.EnvironmentPrefix)
+	target := connectionTarget()
+	deploymentID := uid.New(uid.DeploymentPrefix)
 
-	blob, err := w.buildSecretsBlob(t.Context(), environmentID,
+	blob, err := w.buildSecretsBlob(t.Context(), deploymentID, target,
 		[]db.FindAppEnvVarsByAppAndEnvRow{
 			{Key: "EXISTING", Value: "encrypted-existing"},
 			{Key: "DATABASE_HOST", Value: "encrypted-stale-host"},
@@ -51,10 +53,11 @@ func TestBuildSecretsBlobConnectionHostsOverrideUserValues(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Equal(t, environmentID, v.request.GetKeyring())
+	require.Equal(t, target.EnvironmentID, v.request.GetKeyring())
+	databaseHost := privatenetwork.ConnectionHost(deploymentID, "database", target.K8sNamespace)
 	require.Equal(t, map[string]string{
-		"DATABASE_HOST":    "database.unkey.internal",
-		"EVENT_STORE_HOST": "event-store.unkey.internal",
+		"DATABASE_HOST":    databaseHost,
+		"EVENT_STORE_HOST": privatenetwork.ConnectionHost(deploymentID, "event-store", target.K8sNamespace),
 	}, v.request.GetItems())
 
 	config := &ctrlv1.SecretsConfig{}
@@ -64,7 +67,7 @@ func TestBuildSecretsBlobConnectionHostsOverrideUserValues(t *testing.T) {
 		"DATABASE_HOST":    "ciphertext-for-DATABASE_HOST",
 		"EVENT_STORE_HOST": "ciphertext-for-EVENT_STORE_HOST",
 	}, config.GetSecrets())
-	require.NotContains(t, string(blob), "database.unkey.internal")
+	require.NotContains(t, string(blob), databaseHost)
 }
 
 func TestBuildSecretsBlobRejectsUnsafeConnections(t *testing.T) {
@@ -72,9 +75,12 @@ func TestBuildSecretsBlobRejectsUnsafeConnections(t *testing.T) {
 		name       string
 		workflow   *Workflow
 		connection string
+		namespace  *string
 	}{
 		{name: "reserved prefix", workflow: &Workflow{vault: &connectionVault{}}, connection: "unkey-internal"},
 		{name: "leading digit", workflow: &Workflow{vault: &connectionVault{}}, connection: "1db"},
+		{name: "missing namespace", workflow: &Workflow{vault: &connectionVault{}}, connection: "api", namespace: new("")},
+		{name: "namespace not a label", workflow: &Workflow{vault: &connectionVault{}}, connection: "api", namespace: new("a.b")},
 		{name: "missing vault", workflow: &Workflow{}, connection: "api"},
 		{name: "vault failure", workflow: &Workflow{vault: &connectionVault{err: errors.New("unavailable")}}, connection: "api"},
 		{name: "vault omission", workflow: &Workflow{vault: &connectionVault{omit: true}}, connection: "api"},
@@ -82,8 +88,16 @@ func TestBuildSecretsBlobRejectsUnsafeConnections(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := test.workflow.buildSecretsBlob(t.Context(), uid.New(uid.EnvironmentPrefix), nil, []db.ListAppConnectionsByAppRow{{Name: test.connection}})
+			target := connectionTarget()
+			if test.namespace != nil {
+				target.K8sNamespace = *test.namespace
+			}
+			_, err := test.workflow.buildSecretsBlob(t.Context(), uid.New(uid.DeploymentPrefix), target, nil, []db.ListAppConnectionsByAppRow{{Name: test.connection}})
 			require.Error(t, err)
 		})
 	}
+}
+
+func connectionTarget() db.FindDeployTargetRow {
+	return db.FindDeployTargetRow{EnvironmentID: uid.New(uid.EnvironmentPrefix), K8sNamespace: uid.DNS1035()}
 }

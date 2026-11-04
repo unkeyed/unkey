@@ -44,15 +44,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete role %q from the workspace and all assigned keys?", req.Role)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete role %q from the workspace and all assigned keys?", req.Role)); err != nil {
 				return err
 			}
 
 			res, err := client.Permissions.DeleteRole(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2PermissionsDeleteRoleResponseBody)
+			return util.Output(ctx, cmd, res.V2PermissionsDeleteRoleResponseBody)
 		},
 	}
 }

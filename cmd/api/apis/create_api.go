@@ -2,7 +2,6 @@ package apis
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -47,17 +46,17 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/apis/cre
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
+				return util.Output(ctx, cmd, res.V2ApisCreateAPIResponseBody)
 			}
 
 			res, err := client.Apis.CreateAPI(ctx, components.V2ApisCreateAPIRequestBody{
 				Name: cmd.String("name"),
 			})
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
 
-			return util.Output(cmd, res.V2ApisCreateAPIResponseBody)
+			return util.Output(ctx, cmd, res.V2ApisCreateAPIResponseBody)
 		},
 	}
 }

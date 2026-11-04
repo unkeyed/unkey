@@ -3,11 +3,12 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useGuardedNavigate } from "@/components/leave-guard";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import {
   dismissSettingsBanner,
+  useSettingsBannerTarget,
   useSettingsBannerVisible,
 } from "@/lib/collections/deploy/pending-redeploy";
+import { useApp, useCurrentDeployment, useDeployActions } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
@@ -15,20 +16,20 @@ import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { cn } from "cn";
 import { useEffect } from "react";
-import { useProjectData } from "../(overview)/data-provider";
-import { useAppCurrentDeployment } from "../(overview)/hooks/use-app-current-deployment";
 import { GlowIcon } from "../components/glow-icon";
 
 export function PendingRedeployBanner() {
-  const { refetchDeployments } = useProjectData();
-  const { app, currentDeployment } = useAppCurrentDeployment();
-  const currentDeploymentId = app?.currentDeploymentId ?? null;
+  const { refetchDeployments, refetchApps } = useDeployActions();
+  const { data: app } = useApp();
   const navigate = useGuardedNavigate();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
+  const currentDeployment = useCurrentDeployment({ enabled: visible }).data ?? undefined;
+  const target = useSettingsBannerTarget();
+  const deployment = target ? target.deployment : currentDeployment;
 
-  const show = visible && !!currentDeployment;
+  const show = visible && !!deployment && deployment.appId === app?.id;
 
   const redeploy = useMutation({
     mutationFn: async (deployment: {
@@ -45,17 +46,14 @@ export function PendingRedeployBanner() {
       });
       return { deploymentId: res.data.deploymentId };
     },
-    onSuccess: async (data) => {
-      if (!currentDeployment) {
-        return;
-      }
+    onSuccess: async (data, source) => {
       refetchDeployments();
-      await collection.apps.utils.refetch();
+      await refetchApps();
       navigate(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,
-          projectId: currentDeployment.projectId,
-          appId: currentDeployment.appId,
+          projectId: source.projectId,
+          appId: source.appId,
           deploymentId: data.deploymentId,
         }),
       );
@@ -68,15 +66,15 @@ export function PendingRedeployBanner() {
 
   useEffect(
     function getDismissedAutomatically() {
-      if (!visible || !currentDeploymentId) {
+      if (!show) {
         return;
       }
-      const timer = setTimeout(() => dismissSettingsBanner(), 10_000);
+      const timer = setTimeout(() => dismissSettingsBanner(target), 10_000);
       return () => {
         clearTimeout(timer);
       };
     },
-    [visible, currentDeploymentId],
+    [show, target],
   );
 
   return (
@@ -107,7 +105,7 @@ export function PendingRedeployBanner() {
           <div className="flex flex-col gap-1 pr-5">
             <span className="text-sm font-semibold text-gray-12 leading-5">Changes detected</span>
             <span className="text-xs text-gray-11 leading-4">
-              Redeploy to apply your latest changes to production.
+              Redeploy to apply your latest changes to {target?.environmentSlug ?? "production"}.
             </span>
           </div>
           <Button
@@ -121,8 +119,8 @@ export function PendingRedeployBanner() {
                 openPaywall();
                 return;
               }
-              if (currentDeployment) {
-                redeploy.mutate(currentDeployment);
+              if (deployment) {
+                redeploy.mutate(deployment);
               }
             }}
           >

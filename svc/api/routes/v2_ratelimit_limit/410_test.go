@@ -10,7 +10,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
@@ -20,11 +23,11 @@ func TestSoftDeletedNamespace(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Ratelimit:       h.Ratelimit,
-		DirectAuditLogs: h.DirectAuditLogs,
-		DB:              h.DB,
-		NamespaceCache:  h.Caches.RatelimitNamespace,
-		Auditlogs:       h.Auditlogs,
+		Ratelimit:      h.Ratelimit,
+		AuditLogBuffer: h.AuditLogBuffer,
+		DB:             h.DB,
+		NamespaceCache: h.Caches.RatelimitNamespace,
+		Auditlogs:      h.Auditlogs,
 	}
 
 	h.Register(route)
@@ -53,7 +56,7 @@ func TestSoftDeletedNamespace(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create root key with permissions to use the namespace
-		rootKeyWithPerms := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+		rootKeyWithPerms := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").RatelimitNamespace("*"), permissions.Limit).Value)
 
 		headersWithPerms := http.Header{
 			"Content-Type":  {"application/json"},

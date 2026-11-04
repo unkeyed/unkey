@@ -1,6 +1,6 @@
 "use client";
 
-import { collection } from "@/lib/collections";
+import { useUpdateApp } from "@/lib/queries/apps";
 import { trpc } from "@/lib/trpc/client";
 import {
   SettingsForm,
@@ -55,13 +55,12 @@ function ProductionBranchForm({
   connection,
 }: { projectId: string; appId: string; branch: string; connection: BranchConnection }) {
   const utils = trpc.useUtils();
+  const updateApp = useUpdateApp(projectId);
   const { form, formProps } = useSavableForm({
     schema: branchSchema,
     values: { branch },
     save: async (values) => {
-      await collection.apps.update(appId, { optimistic: false }, (draft) => {
-        draft.defaultBranch = values.branch;
-      }).isPersisted.promise;
+      await updateApp.mutateAsync({ appId, changes: { defaultBranch: values.branch } });
       await Promise.all([
         utils.github.getInstallations.invalidate({ projectId, appId }),
         utils.github.getRepoTree.invalidate({ projectId, appId }),

@@ -43,15 +43,15 @@ For full documentation, see https://www.unkey.com/docs/platform/cli/root-keys/de
 			if err != nil {
 				return err
 			}
-			if err := util.Confirm(cmd, fmt.Sprintf("Delete root key %q? It will no longer authenticate.", req.KeyID)); err != nil {
+			if err := util.Confirm(ctx, cmd, fmt.Sprintf("Delete root key %q? It will no longer authenticate.", req.KeyID)); err != nil {
 				return err
 			}
 
 			res, err := client.RootKeys.DeleteKey(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2RootKeysDeleteKeyResponseBody)
+			return util.Output(ctx, cmd, res.V2RootKeysDeleteKeyResponseBody)
 		},
 	}
 }

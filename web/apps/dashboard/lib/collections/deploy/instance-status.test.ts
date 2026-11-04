@@ -1,5 +1,5 @@
+import type { Deployment } from "@/lib/deploy-data/deployment";
 import { describe, expect, test } from "vitest";
-import type { Deployment } from "./deployments";
 import {
   type InstancesSource,
   instanceStateOf,

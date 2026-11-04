@@ -2,20 +2,32 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { appSource } from "@/components/deploy/app-source";
+import { LoadError } from "@/components/load-error";
 import { MotionProvider } from "@/components/motion-provider";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { type Deployment, type DeploymentSummary, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import {
   findRolledBackFrom,
   previousRollbackTarget,
   rollbackCandidates,
 } from "@/lib/collections/deploy/rollback";
-import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
+import {
+  type Deployment,
+  type DeploymentSummary,
+  RECENT_DEPLOYMENTS_LIMIT,
+  useApp,
+  useAppScope,
+  useCurrentDeployment,
+  useCustomDomains,
+  useDeployment,
+  useDeploymentsPolling,
+  useDomains,
+  useProductionDeployments,
+  useRecentDeployments,
+} from "@/lib/deploy-data";
+import { blockerOf, fromQuery, readyOr } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { match } from "@unkey/match";
 import { Card, PageBody } from "@unkey/ui";
 import { AnimatePresence, m, useReducedMotion } from "framer-motion";
@@ -23,11 +35,7 @@ import type { Route } from "next";
 import dynamic from "next/dynamic";
 import { type ReactNode, useState } from "react";
 import { getDomainPriority } from "../../../components/domain-priority";
-import { useAppId, useProjectData } from "../../data-provider";
-import { appDeploymentQueryFor } from "../../data-provider-queries";
 import { nonGitOrigin } from "../../deployments/components/deployment-row-cells";
-import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
-import { useRecentDeployments } from "../../hooks/use-recent-deployments";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
 import { ActiveDeploymentCardEmpty } from "./active-deployment-card-empty";
 import { AppCanvas } from "./app-canvas";
@@ -56,10 +64,12 @@ const UndoRollbackDialog = dynamic(
 );
 
 const AUDIT_EXPORT_POLL_MS = 5_000;
+const PRODUCTION_POLL_MS = 10_000;
 const AUDIT_EXPORT_POLL_LIMIT = 36;
 
 type ProductionOverviewModel =
   | { kind: "loading" }
+  | { kind: "failed"; error: unknown; retry: () => void }
   | { kind: "no-deployments" }
   | { kind: "no-production" }
   | {
@@ -92,47 +102,37 @@ function useProductionOverview({
   gated: boolean;
   openPaywall: () => void;
 }): ProductionOverviewModel {
-  const { projectId, environments, customDomains } = useProjectData();
-  const { deployments, isLoading: isDeploymentsLoading } = useRecentDeployments();
-  const appId = useAppId();
+  const { projectId, appId } = useAppScope();
+  const customDomains = useCustomDomains();
+  const recent = useRecentDeployments({ limit: RECENT_DEPLOYMENTS_LIMIT });
+  const production = useProductionDeployments();
+  const productionDeployments = production.data ?? [];
   const workspace = useWorkspaceNavigation();
   const [rollbackOpen, setRollbackOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
 
-  const {
-    app,
-    currentDeployment,
-    isRolledBack: appIsRolledBack,
-    isLoading: isCurrentDeploymentLoading,
-  } = useAppCurrentDeployment();
+  const { data: app } = useApp();
+  const current = useCurrentDeployment();
+  const currentDeployment = current.data ?? undefined;
+  const appIsRolledBack = app?.isRolledBack ?? false;
   const repoFullName = app?.repositoryFullName ?? null;
   const currentDeploymentId = app?.currentDeploymentId ?? null;
 
-  const productionEnvironmentId = environments.find(
-    (e) => e.kind === ENVIRONMENT_KIND.production,
-  )?.id;
-  const latestProductionDeployment = productionEnvironmentId
-    ? deployments.find((d) => d.environmentId === productionEnvironmentId)
-    : undefined;
+  const latestProductionDeployment = productionDeployments.at(0);
   // Without a live deployment the card shows the latest production one, which
   // needs its instances, so it loads by id like the current deployment
   const fallbackDeploymentId =
     !currentDeploymentId && latestProductionDeployment ? latestProductionDeployment.id : null;
-  const fallbackDeploymentQuery = useLiveQuery(
-    (q) =>
-      fallbackDeploymentId
-        ? appDeploymentQueryFor(projectId, appId, fallbackDeploymentId)(q)
-        : null,
-    [projectId, appId, fallbackDeploymentId],
-  );
+  const fallbackDeployment = useDeployment(fallbackDeploymentId);
 
-  const shown = currentDeployment ?? fallbackDeploymentQuery.data?.[0];
+  const shown = currentDeployment ?? fallbackDeployment.data ?? undefined;
   const isCurrent = Boolean(currentDeployment);
   const isRolledBack = isCurrent && appIsRolledBack;
-  const production = shown
+  const shownProduction = shown
     ? { deployment: shown, status: deriveProductionStatus(shown, { rolledBack: isRolledBack }) }
     : null;
-  const rolledBackId = production?.status === "rolled-back" ? production.deployment.id : null;
+  const rolledBackId =
+    shownProduction?.status === "rolled-back" ? shownProduction.deployment.id : null;
   const rollbackQuery = trpc.deploy.deployment.latestRollback.useQuery(
     { appId, deploymentId: rolledBackId ?? "" },
     {
@@ -146,60 +146,65 @@ function useProductionOverview({
   );
   const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<DeploymentSummary>();
   const newerDeployment =
-    production &&
+    shownProduction &&
     latestProductionDeployment &&
-    latestProductionDeployment.id !== production.deployment.id &&
+    latestProductionDeployment.id !== shownProduction.deployment.id &&
     hasVisibleBuildState(latestProductionDeployment)
       ? latestProductionDeployment
       : undefined;
-  const liveDomainsQuery = useLiveQuery(
-    (q) =>
-      q
-        .from({ domain: collection.domains })
-        .where(({ domain }) =>
-          and(eq(domain.projectId, projectId), eq(domain.appId, appId), eq(domain.sticky, "live")),
-        ),
-    [projectId, appId],
-  );
+  const domains = useDomains();
 
-  useCollectionPolling(() => collection.deployments.utils.refetch(), {
-    intervalMs: 10_000,
+  useDeploymentsPolling({
+    intervalMs: PRODUCTION_POLL_MS,
     enabled:
-      (production ? STATUS_META[production.status].polls : false) ||
+      (shownProduction ? STATUS_META[shownProduction.status].polls : false) ||
       (newerDeployment ? isDeploymentInFlight(newerDeployment.status) : false),
   });
 
-  if (!isDeploymentsLoading && deployments.length === 0) {
+  const recentView = fromQuery(recent);
+  const domainsView = fromQuery(domains);
+  const customDomainsView = fromQuery(customDomains);
+
+  if (recentView.status === "ready" && recentView.data.length === 0) {
     return { kind: "no-deployments" };
   }
 
-  if (
-    isDeploymentsLoading ||
-    isCurrentDeploymentLoading ||
-    fallbackDeploymentQuery.isLoading ||
-    liveDomainsQuery.isLoading
-  ) {
-    return { kind: "loading" };
+  const secondaryViews = [fromQuery(production), domainsView, customDomainsView];
+  const blocker =
+    blockerOf([recentView, fromQuery(current), fromQuery(fallbackDeployment)]) ??
+    blockerOf(secondaryViews.filter((view) => view.status === "loading"));
+  if (blocker) {
+    return match(blocker)
+      .with({ status: "loading" }, (): ProductionOverviewModel => ({ kind: "loading" }))
+      .with(
+        { status: "failed" },
+        ({ error, retry }): ProductionOverviewModel => ({
+          kind: "failed",
+          error,
+          retry,
+        }),
+      )
+      .exhaustive();
   }
 
-  if (!production) {
+  if (!shownProduction) {
     return { kind: "no-production" };
   }
 
-  const { deployment, status } = production;
+  const { deployment, status } = shownProduction;
   const sourceRepo = deployment.forkRepositoryFullName || repoFullName;
 
   const { all } = getDomainPriority({
-    domains: liveDomainsQuery.data ?? [],
-    customDomains,
+    domains: readyOr(domainsView, []).filter((d) => d.sticky === "live"),
+    customDomains: readyOr(customDomainsView, []),
     environmentId: deployment.environmentId,
     deploymentId: deployment.id,
     currentDeploymentId,
   });
 
-  const rollbackTarget = previousRollbackTarget(deployments, deployment);
+  const rollbackTarget = previousRollbackTarget(productionDeployments, deployment);
   const undoCandidates: DeploymentSummary[] = isRolledBack
-    ? [...rollbackCandidates(deployments, deployment), deployment].sort(
+    ? [...rollbackCandidates(productionDeployments, deployment), deployment].sort(
         (a, b) => b.createdAt - a.createdAt,
       )
     : [];
@@ -208,8 +213,8 @@ function useProductionOverview({
   const stamp = stampOf({ deployment, status, isCurrent, rollback });
   const replaced =
     status === "rolled-back" && !rollbackQuery.isLoading
-      ? (deployments.find((d) => d.id === rollback?.fromDeploymentId) ??
-        findRolledBackFrom(deployments, deployment) ??
+      ? (productionDeployments.find((d) => d.id === rollback?.fromDeploymentId) ??
+        findRolledBackFrom(productionDeployments, deployment) ??
         null)
       : null;
 
@@ -255,6 +260,8 @@ function useProductionOverview({
           : null,
       policiesHref: routes.projects.apps.policies(appScope),
       addPolicyHref: routes.projects.apps.policies({ ...appScope, add: true }),
+      connectionsHref: routes.projects.apps.connections(appScope),
+      addConnectionHref: routes.projects.apps.connections({ ...appScope, add: true }),
     },
     sourceRepo,
     diagnostic,
@@ -325,6 +332,7 @@ function ProductionOverviewView({
         actions={match(model.kind)
           .with("deployed", () => <ProductionActions />)
           .with("loading", () => <ProductionActionsSkeleton />)
+          .with("failed", () => undefined)
           .with("no-deployments", "no-production", () => undefined)
           .exhaustive()}
       />
@@ -358,6 +366,11 @@ function ProductionCardSlot({ model }: { model: ProductionOverviewModel }) {
   const reduceMotion = useReducedMotion();
   return match(model)
     .with({ kind: "loading" }, () => <AppCanvasSkeleton />)
+    .with({ kind: "failed" }, ({ error, retry }) => (
+      <Card className="flex flex-col">
+        <LoadError title="Could not load this app" error={error} frame="none" onRetry={retry} />
+      </Card>
+    ))
     .with({ kind: "no-deployments" }, () => (
       <CreateDeploymentButton
         renderTrigger={({ onClick }) => <ActiveDeploymentCardEmpty onCreateDeployment={onClick} />}

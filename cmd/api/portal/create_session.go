@@ -85,7 +85,7 @@ Your root key must be associated with a workspace that has an enabled portal con
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PortalCreateSessionResponseBody)
+				return util.Output(ctx, cmd, res.V2PortalCreateSessionResponseBody)
 			}
 			values := cmd.StringSlice("scopes")
 			scopes := make([]components.Scope, len(values))
@@ -98,9 +98,9 @@ Your root key must be associated with a workspace that has an enabled portal con
 			}
 			res, err := client.Portal.CreateSession(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2PortalCreateSessionResponseBody)
+			return util.Output(ctx, cmd, res.V2PortalCreateSessionResponseBody)
 		},
 	}
 }

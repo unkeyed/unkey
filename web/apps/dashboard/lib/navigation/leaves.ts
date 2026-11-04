@@ -4,6 +4,7 @@ import {
   IconBracketsCurlyOutline18,
   IconChartActivityOutline18,
   IconCubeOutline18,
+  IconDatabaseOutline18,
   IconEarthOutline18,
   IconFingerprintOutline18,
   IconGaugeOutline18,
@@ -11,6 +12,7 @@ import {
   IconInputSearchOutline18,
   IconKeyOutline18,
   IconLayers3Outline18,
+  IconLinkOutline18,
   IconNodesOutline18,
   IconShieldGlobeOutline18,
   IconShieldKeyOutline18,
@@ -117,10 +119,30 @@ export function buildWorkspaceConfigLinks(
   ];
 }
 
+export function buildDatabasesLinks(
+  scope: { workspaceSlug: string; projectId: string },
+  page: string | undefined,
+  enabled: boolean,
+): ResolvedNavLink[] {
+  if (!enabled) {
+    return [];
+  }
+  return [
+    {
+      key: "databases",
+      label: "Databases",
+      href: routes.projects.databases.list(scope),
+      icon: IconDatabaseOutline18,
+      isActive: page === "databases",
+    },
+  ];
+}
+
 export function buildProjectLinks(
   slug: string,
   projectId: string,
   segments: string[],
+  { databases }: { databases: boolean },
 ): ResolvedNavLink[] {
   const page = segments[2];
   const scope = { workspaceSlug: slug, projectId };
@@ -132,6 +154,7 @@ export function buildProjectLinks(
       icon: IconCubeOutline18,
       isActive: !page,
     },
+    ...buildDatabasesLinks(scope, page, databases),
     {
       key: "logs",
       label: "Logs",
@@ -161,7 +184,7 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
-  { metrics }: { metrics: boolean },
+  { metrics, connections }: { metrics: boolean; connections: boolean },
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
@@ -171,6 +194,13 @@ export function buildAppLinks(
     href: routes.projects.apps.metrics(scope),
     icon: IconChartActivityOutline18,
     isActive: page === "metrics",
+  };
+  const connectionsLink: ResolvedNavLink = {
+    key: "connections",
+    label: "Connections",
+    href: routes.projects.apps.connections(scope),
+    icon: IconLinkOutline18,
+    isActive: page === "connections",
   };
   return [
     {
@@ -202,6 +232,7 @@ export function buildAppLinks(
       icon: IconEarthOutline18,
       isActive: page === "domains",
     },
+    ...(connections ? [connectionsLink] : []),
     {
       key: "policies",
       label: "Policies",

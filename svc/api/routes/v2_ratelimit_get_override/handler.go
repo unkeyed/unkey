@@ -59,18 +59,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("An unexpected error occurred while fetching the namespace."))
 	}
 
-	if !found {
-		return fault.New("namespace not found",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Public("This namespace does not exist."),
-		)
-	}
-
-	if ns.DeletedAtM.Valid {
-		return fault.New("namespace was deleted",
-			fault.Code(codes.Data.RatelimitNamespace.NotFound.URN()),
-			fault.Public("This namespace does not exist."),
-		)
+	// A separate namespace error would disclose whether the parent exists.
+	if !found || ns.DeletedAtM.Valid {
+		return apierrors.NotFound(codes.Data.RatelimitOverride.NotFound.URN())
 	}
 
 	override, overrideFound, err := matchOverride(req.Identifier, ns)
@@ -89,11 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// not-found branch needs no permission check at all, and the found branch
 	// masks authorization failures as the identical 404.
 	if !overrideFound {
-		return fault.New("override not found",
-			fault.Code(codes.Data.RatelimitOverride.NotFound.URN()),
-			fault.Internal("no override matched the identifier"),
-			fault.Public("This override does not exist."),
-		)
+		return apierrors.NotFound(codes.Data.RatelimitOverride.NotFound.URN())
 	}
 
 	permissionQuery := rbac.U(
@@ -113,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			principal.Permissions,
 			permissionQuery,
 			codes.Data.RatelimitOverride.NotFound.URN(),
-			"This override does not exist.",
+			"Resource does not exist.",
 		)
 	}
 

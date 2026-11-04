@@ -2,7 +2,6 @@ package portal
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
@@ -58,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/get-
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PortalGetPortalResponseBody)
+				return util.Output(ctx, cmd, res.V2PortalGetPortalResponseBody)
 			}
 			var req components.V2PortalGetPortalRequestBodyUnion
 			if portal := cmd.String("portal"); portal != "" {
@@ -82,9 +81,9 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/get-
 			}
 			res, err := client.Portal.GetPortal(ctx, req)
 			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
+				return err
 			}
-			return util.Output(cmd, res.V2PortalGetPortalResponseBody)
+			return util.Output(ctx, cmd, res.V2PortalGetPortalResponseBody)
 		},
 	}
 }
