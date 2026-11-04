@@ -29,7 +29,7 @@ func secretToolSet(bin, service, account, secret string) error {
 		"account", account,
 	}, secret)
 	if err != nil {
-		return classifySecretToolWrite(err, stderr)
+		return secretToolUnavailable(err, strings.TrimSpace(stderr))
 	}
 	return nil
 }
@@ -50,58 +50,28 @@ func secretToolDelete(bin, service, account string) error {
 	return classified
 }
 
-func classifySecretToolWrite(err error, stderr string) error {
-	if errors.Is(err, exec.ErrNotFound) {
-		return ErrUnavailable
-	}
+// classifySecretTool maps a failed lookup or clear. secret-tool exits with no
+// output when no item matches, so empty stderr is [ErrNotFound].
+func classifySecretTool(err error, stderr string) error {
 	msg := strings.TrimSpace(stderr)
-	if secretServiceUnavailable(msg) {
-		return withDetail(ErrUnavailable, msg)
+	missing := msg == "" || strings.Contains(strings.ToLower(msg), "no such secret item")
+	if missing && !errors.Is(err, ErrUnavailable) && !errors.Is(err, exec.ErrNotFound) {
+		return ErrNotFound
+	}
+	return secretToolUnavailable(err, msg)
+}
+
+// secretToolUnavailable reports every other secret-tool failure as
+// [ErrUnavailable], so callers fall back to a file. The messages come from
+// D-Bus and the Secret Service provider and differ between dbus-daemon,
+// dbus-broker, and each provider, so no list of them can tell a store that
+// could work from one that cannot.
+func secretToolUnavailable(err error, msg string) error {
+	if errors.Is(err, ErrUnavailable) {
+		return err
 	}
 	if msg == "" {
-		return fmt.Errorf("secret-tool: %w", err)
+		return fmt.Errorf("%w: secret-tool: %w", ErrUnavailable, err)
 	}
-	return fmt.Errorf("secret-tool: %w: %s", err, msg)
-}
-
-func classifySecretTool(err error, stderr string) error {
-	if errors.Is(err, exec.ErrNotFound) {
-		return ErrUnavailable
-	}
-	msg := strings.TrimSpace(stderr)
-	lower := strings.ToLower(msg)
-	switch {
-	case msg == "":
-		return ErrNotFound
-	case secretServiceUnavailable(msg):
-		return withDetail(ErrUnavailable, msg)
-	case strings.Contains(lower, "not found") ||
-		strings.Contains(lower, "no such") ||
-		strings.Contains(lower, "no matching"):
-		return ErrNotFound
-	default:
-		return fmt.Errorf("secret-tool: %w: %s", err, msg)
-	}
-}
-
-// secretServiceUnavailable matches D-Bus failures that mean no Secret Service
-// can answer. dbus-daemon reports a missing org.freedesktop.secrets as "not
-// provided by any .service files"; dbus-broker, the default on Fedora, reports
-// "The name is not activatable". "could not connect" means there is no
-// session bus socket.
-func secretServiceUnavailable(msg string) bool {
-	lower := strings.ToLower(msg)
-	for _, s := range []string{
-		"not provided by any",
-		"not activatable",
-		"cannot autolaunch",
-		"could not connect",
-		"locked",
-		"no session",
-	} {
-		if strings.Contains(lower, s) {
-			return true
-		}
-	}
-	return false
+	return fmt.Errorf("%w: secret-tool: %w: %s", ErrUnavailable, err, msg)
 }

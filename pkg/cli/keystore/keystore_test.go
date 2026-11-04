@@ -50,12 +50,11 @@ func TestSecretToolMissingBinaryIsUnavailable(t *testing.T) {
 	require.ErrorIs(t, err, ErrUnavailable)
 }
 
-func TestSecretToolWriteFailureIsNotAMissingItem(t *testing.T) {
+func TestSecretToolSilentWriteFailureIsUnavailable(t *testing.T) {
 	bin := writeTool(t, "#!/bin/sh\nexit 1\n")
 	err := secretToolSet(bin, serviceName, rootKeyAccount, "unkey_x")
-	require.Error(t, err)
+	require.ErrorIs(t, err, ErrUnavailable)
 	require.NotErrorIs(t, err, ErrNotFound)
-	require.NotErrorIs(t, err, ErrUnavailable)
 }
 
 func TestWindowsCredentialLimitMatchesMeasuredSessions(t *testing.T) {
@@ -64,11 +63,12 @@ func TestWindowsCredentialLimitMatchesMeasuredSessions(t *testing.T) {
 	require.True(t, ExceedsWindowsCredentialBlob(string(bytes.Repeat([]byte("a"), 6111))))
 }
 
-func TestSecretToolDBusFailureIsUnavailable(t *testing.T) {
+func TestSecretToolFailureIsUnavailable(t *testing.T) {
 	for _, stderr := range []string{
 		"secret-tool: The name org.freedesktop.secrets was not provided by any .service files",
 		"secret-tool: The name is not activatable",
 		"secret-tool: Could not connect: No such file or directory",
+		"secret-tool: Object does not exist at path /org/freedesktop/secrets/collection/login",
 	} {
 		t.Run(stderr, func(t *testing.T) {
 			bin := writeTool(t, "#!/bin/sh\ncat >/dev/null\necho \""+stderr+"\" >&2\nexit 1\n")

@@ -89,7 +89,7 @@ printf '%s' "$KEYRING_PASSWORD" | gnome-keyring-daemon --replace --unlock --comp
 
 The second command reads the keyring password from stdin and creates the login keyring with it the first time. Run it again after each login, or unlock the keyring through PAM.
 
-Without `secret-tool` or a provider, the CLI uses the files in `~/.unkey`. If a provider runs but has no default keyring, the save fails with an error such as `Object does not exist at path "/org/freedesktop/secrets/collection/login"`. Create and unlock the keyring as shown above, then run the command again.
+If `secret-tool` fails for any reason, the CLI uses the files in `~/.unkey` instead.
 
 ## Examples
 
