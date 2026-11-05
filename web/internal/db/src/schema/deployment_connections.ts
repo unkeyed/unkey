@@ -32,5 +32,11 @@ export const deploymentConnections = mysqlTable(
     uniqueIndex("deployment_connections_deployment_name_idx").on(table.deploymentId, table.name),
     index("deployment_connections_connection_idx").on(table.connectionId),
     index("deployment_connections_app_env_idx").on(table.appId, table.environmentId),
+    index("deployment_connections_app_env_connection_idx").on(
+      table.appId,
+      table.environmentId,
+      table.connectionId,
+      table.deploymentId,
+    ),
   ],
 );
