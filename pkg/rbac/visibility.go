@@ -14,25 +14,21 @@ func CanRead(query PermissionQuery, granted []string) bool {
 }
 
 // PermissionDeniedDetail is the public explanation for a query the caller
-// cannot satisfy. It names the missing permission or permissions and tells the
-// caller to log in again or grant them.
+// cannot satisfy. It names the missing permission or permissions. How to get
+// them depends on the credential, which callers that know it add.
 func PermissionDeniedDetail(query PermissionQuery, granted []string) string {
 	result, err := New().EvaluatePermissions(query, granted)
-	if err != nil || result.Valid || result.Message == "" {
-		return denialHint("")
+	if err != nil || result.Valid {
+		return denialDetail("")
 	}
-	return denialHint(result.Message)
+	return denialDetail(result.Message)
 }
 
-func denialHint(message string) string {
+func denialDetail(message string) string {
 	if message == "" {
-		return "Insufficient permissions to access this resource. Log in again with the missing permission, or grant it."
+		return "Insufficient permissions to access this resource."
 	}
-	hint := "Log in again with that permission, or grant it."
-	if strings.Contains(message, "one of these permissions") {
-		hint = "Log in again with one of those permissions, or grant it."
-	}
-	return message + ". " + hint
+	return message + "."
 }
 
 // toReadQuery rewrites query so every leaf asks for read access to the same

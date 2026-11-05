@@ -56,7 +56,7 @@ func TestUpdateNamespaceAuthorization(t *testing.T) {
 				res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
 				require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 				require.Contains(t, res.Body.Error.Detail, "#write")
-				require.Contains(t, res.Body.Error.Detail, "Log in again")
+				require.Contains(t, res.Body.Error.Detail, "Add the missing permission to this root key")
 				require.NotContains(t, res.RawBody, ns.ID)
 				require.NotEqual(t, name, findNamespace(t, h, ns).Name)
 				return
@@ -84,7 +84,7 @@ func TestUpdateNamespaceExistenceNotLeaked(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, realRes.Status, "expected 403, received: %s", realRes.RawBody)
 	require.NotContains(t, realRes.RawBody, ns.ID)
 	require.Contains(t, realRes.Body.Error.Detail, "#write")
-	require.Contains(t, realRes.Body.Error.Detail, "Log in again")
+	require.Contains(t, realRes.Body.Error.Detail, "Add the missing permission to this root key")
 	require.Equal(t, http.StatusNotFound, missingRes.Status, "expected 404, received: %s", missingRes.RawBody)
 	require.NotContains(t, missingRes.Body.Error.Detail, "#write")
 	require.NotContains(t, missingRes.Body.Error.Detail, "#delete")

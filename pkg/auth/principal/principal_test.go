@@ -188,7 +188,25 @@ func TestAuthorizationErrorHidesGrantsAndCredentials(t *testing.T) {
 			denial := AuthorizationError(p)
 			require.Same(t, err, denial)
 			require.EqualError(t, denial, "Missing permission: '"+resource.String()+"#read': insufficient permissions")
-			require.Equal(t, "Missing permission: '"+resource.String()+"#read'. Log in again with that permission, or grant it.", fault.UserFacingMessage(denial))
+			require.Equal(t, "Missing permission: '"+resource.String()+"#read'.", fault.UserFacingMessage(denial))
+		})
+	}
+}
+
+func TestDenialRemedyFollowsTheCredential(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		source Source
+		want   string
+	}{
+		{"root key", KeySource{}, "Add the missing permission to this root key, or use a root key that has it."},
+		{"cli or mcp session", CLISessionSource{}, "Sign in again and choose the missing permission. If your role does not include it, ask a workspace admin."},
+		{"dashboard", JWTSource{}, "Ask a workspace admin for a role that includes the missing permission."},
+		{"portal", PortalSessionSource{}, ""},
+		{"none", nil, ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, DenialRemedy(tt.source))
 		})
 	}
 }

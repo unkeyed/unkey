@@ -82,7 +82,7 @@ func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
 				res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.Slug, "user_1"))
 				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for %s, got: %s", tc.name, res.RawBody)
 				require.Contains(t, res.Body.Error.Detail, "#write")
-				require.Contains(t, res.Body.Error.Detail, "Log in again")
+				require.Contains(t, res.Body.Error.Detail, "Add the missing permission to this root key")
 				require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"),
 					"a denied request must not revoke")
 				return

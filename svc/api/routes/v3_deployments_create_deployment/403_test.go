@@ -71,6 +71,6 @@ func TestEnvironmentReaderIsForbidden(t *testing.T) {
 	})
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, "#write")
-	require.Contains(t, res.Body.Error.Detail, "Log in again")
+	require.Contains(t, res.Body.Error.Detail, "Add the missing permission to this root key")
 	require.NotContains(t, res.RawBody, setup.Environment.ID)
 }

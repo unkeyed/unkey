@@ -87,7 +87,7 @@ func TestDeleteRoleMasksInsufficientPermissions(t *testing.T) {
 
 		require.Equal(t, http.StatusForbidden, res.Status)
 		require.Contains(t, res.Body.Error.Detail, "#delete")
-		require.Contains(t, res.Body.Error.Detail, "Log in again")
+		require.Contains(t, res.Body.Error.Detail, "Add the missing permission to this root key")
 		require.NotContains(t, res.RawBody, roleID)
 	})
 

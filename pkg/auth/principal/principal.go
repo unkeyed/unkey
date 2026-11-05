@@ -77,6 +77,23 @@ func (p *Principal) Authorize(query rbac.PermissionQuery) error {
 	return err
 }
 
+// DenialRemedy tells a caller denied a permission how to get it. A root key is
+// edited, a CLI or MCP session is replaced by signing in again within the
+// member's role, and a dashboard sign-in follows the role itself. Portal end
+// users cannot change their access, so they get no remedy.
+func DenialRemedy(source Source) string {
+	switch source.(type) {
+	case KeySource:
+		return "Add the missing permission to this root key, or use a root key that has it."
+	case CLISessionSource:
+		return "Sign in again and choose the missing permission. If your role does not include it, ask a workspace admin."
+	case JWTSource:
+		return "Ask a workspace admin for a role that includes the missing permission."
+	default:
+		return ""
+	}
+}
+
 // Subject identifies the authenticated entity and how it appears in audit logs.
 type Subject struct {
 	// ID is the stable identifier of the authenticated entity.

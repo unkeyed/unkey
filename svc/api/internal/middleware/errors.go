@@ -354,7 +354,7 @@ func WithErrorHandling() zen.Middleware {
 					Error: openapi.BaseError{
 						Title:  "Insufficient Permissions",
 						Type:   code.DocsURL(),
-						Detail: RedactResourceIDs(fault.UserFacingMessage(err)),
+						Detail: RedactResourceIDs(permissionDeniedDetail(s, err)),
 						Status: http.StatusForbidden,
 					},
 				})
@@ -482,4 +482,17 @@ func WithErrorHandling() zen.Middleware {
 			})
 		}
 	}
+}
+
+func permissionDeniedDetail(s *zen.Session, err error) string {
+	detail := fault.UserFacingMessage(err)
+	p, principalErr := s.GetPrincipal()
+	if principalErr != nil {
+		return detail
+	}
+	remedy := principal.DenialRemedy(p.Source)
+	if remedy == "" {
+		return detail
+	}
+	return detail + " " + remedy
 }

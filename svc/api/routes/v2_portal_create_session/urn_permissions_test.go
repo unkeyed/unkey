@@ -103,7 +103,7 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for a sessions reader, got: %s", res.RawBody)
 				require.Contains(t, res.RawBody, "#write")
 				require.Contains(t, res.RawBody, "create_portal_session")
-				require.Contains(t, res.RawBody, "Log in again")
+				require.Contains(t, res.RawBody, "Add the missing permission to this root key")
 				require.Zero(t, countPortalSessions(t, h, workspaceID, externalID), "a denial must write no session row")
 				require.Zero(t, countAuditEntriesMentioning(t, h, workspaceID, externalID), "a denial must write no audit entry")
 				return
