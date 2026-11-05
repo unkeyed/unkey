@@ -139,6 +139,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		require.Equal(t, "secret-scanning-key-detected", message.TemplateID)
 		require.Equal(t, tokens[0].URL, message.Variables["URL"])
 		require.Equal(t, tokens[0].Source, message.Variables["SOURCE"])
+		require.Len(t, message.Variables, 3)
 		require.NotEmpty(t, message.IdempotencyKey)
 		deliveredKeys[message.IdempotencyKey] = true
 	case <-time.After(20 * time.Second):
@@ -573,8 +574,9 @@ func TestKeyLeakTruffleHogReports(t *testing.T) {
 	case message := <-slackMessages:
 		encoded, err := json.Marshal(message)
 		require.NoError(t, err)
-		require.Contains(t, string(encoded), "Key reported by TruffleHog")
+		require.Contains(t, string(encoded), "Root key reported by TruffleHog")
 		require.Contains(t, string(encoded), "TruffleHog Docker")
+		require.Contains(t, string(encoded), "This key was revoked automatically.")
 		require.Contains(t, string(encoded), root.KeyID)
 		require.NotContains(t, string(encoded), "GitHub")
 		require.NotContains(t, string(encoded), root.Key)
@@ -585,8 +587,10 @@ func TestKeyLeakTruffleHogReports(t *testing.T) {
 	for range 2 {
 		select {
 		case message := <-sender.delivered:
+			require.Equal(t, "trufflehog-key-detected", message.TemplateID)
 			require.Equal(t, report.URL, message.Variables["URL"])
 			require.Equal(t, report.Source, message.Variables["SOURCE"])
+			require.Len(t, message.Variables, 3)
 			recipients = append(recipients, message.To...)
 		case <-time.After(20 * time.Second):
 			t.Fatal("TruffleHog report must email workspace members")
@@ -703,14 +707,18 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 		proto     hydrav1.KeyLeakKeyStore
 		kind      hydrav1.KeyLeakKeyKind
 		event     auditlog.AuditLogEvent
+		template  string
+		title     string
 		create    func(t *testing.T, state keyState) created
 		deletedAt func(t *testing.T, keyID string) sql.NullInt64
 	}{
 		{
-			name:  "unkey_root_keys",
-			proto: hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_ROOT_KEYS,
-			kind:  hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_ROOT,
-			event: auditlog.RootKeyDeleteEvent,
+			name:     "unkey_root_keys",
+			proto:    hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_ROOT_KEYS,
+			kind:     hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_ROOT,
+			event:    auditlog.RootKeyDeleteEvent,
+			template: "trufflehog-key-detected",
+			title:    "Root key reported by TruffleHog",
 			create: func(t *testing.T, state keyState) created {
 				t.Helper()
 				key := created{token: uid.New(uid.TestPrefix), keyID: uid.New(uid.RootKeyPrefix)}
@@ -739,10 +747,12 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 			},
 		},
 		{
-			name:  "keys",
-			proto: hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_KEYS,
-			kind:  hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_ROOT,
-			event: auditlog.KeyDeleteEvent,
+			name:     "keys",
+			proto:    hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_KEYS,
+			kind:     hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_ROOT,
+			event:    auditlog.KeyDeleteEvent,
+			template: "trufflehog-key-detected",
+			title:    "Root key reported by TruffleHog",
 			create: func(t *testing.T, state keyState) created {
 				t.Helper()
 				key := seeder.CreateKey(ctx, seed.CreateKeyRequest{
@@ -754,10 +764,12 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 			deletedAt: keysDeletedAt,
 		},
 		{
-			name:  "issued keys",
-			proto: hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_KEYS,
-			kind:  hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API,
-			event: auditlog.KeyDeleteEvent,
+			name:     "issued keys",
+			proto:    hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_KEYS,
+			kind:     hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API,
+			event:    auditlog.KeyDeleteEvent,
+			template: "trufflehog-api-key-detected",
+			title:    "API key reported by TruffleHog",
 			create: func(t *testing.T, state keyState) created {
 				t.Helper()
 				key := seeder.CreateKey(ctx, seed.CreateKeyRequest{
@@ -807,13 +819,20 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 					encoded, err := json.Marshal(message)
 					require.NoError(t, err)
 					require.Contains(t, string(encoded), key.keyID)
+					require.Contains(t, string(encoded), store.title)
+					require.Contains(t, string(encoded), "This key was revoked automatically.")
 				case <-time.After(20 * time.Second):
 					t.Fatal("a revoked key must send a Slack alert")
 				}
 				for range 2 {
 					select {
 					case message := <-sender.delivered:
-						require.Equal(t, report.URL, message.Variables["URL"])
+						require.Equal(t, store.template, message.TemplateID)
+						variables := map[string]string{"DATE": notification.GetDate(), "SOURCE": report.Source, "URL": report.URL}
+						if store.kind == hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API {
+							variables["KEY_ID"] = key.keyID
+						}
+						require.Equal(t, variables, message.Variables)
 					case <-time.After(20 * time.Second):
 						t.Fatal("a revoked key must email workspace members")
 					}

@@ -36,22 +36,19 @@ func (s *Service) NotifySlack(ctx restate.Context, req *hydrav1.KeyLeakNotificat
 
 func slackMessage(req *hydrav1.KeyLeakNotification, members string) slack.Payload {
 	reporter := reporterOf(req)
-	kind := "Key"
-	switch req.GetType() {
-	case "unkey_root_key":
-		kind = "Root key"
-	case "unkey_key":
-		kind = "API key"
-	}
-	title := kind + " " + reporter.finding
+	title := reporter.keyNoun(req) + " " + reporter.finding
 	workspace := slackText(req.GetWorkspaceName())
 	keyID := slackText(req.GetKeyId())
 	source := slackSource(req.GetUrl(), req.GetSource())
+	action := "Rotate or revoke this key."
+	if req.GetRevoke() {
+		action = "This key was revoked automatically."
+	}
 	return slack.Payload{
-		Text: fmt.Sprintf("%s. Workspace: %s. Key ID: %s. Rotate or revoke this key.\n%s", title, workspace, keyID, source),
+		Text: fmt.Sprintf("%s. Workspace: %s. Key ID: %s. %s\n%s", title, workspace, keyID, action, source),
 		Blocks: []slack.Block{
 			slack.NewHeaderBlock(title),
-			slack.NewMarkdownBlock("Rotate or revoke this key."),
+			slack.NewMarkdownBlock(action),
 			slack.NewSectionBlock(
 				slack.Field{Type: "mrkdwn", Text: "*Workspace*\n" + workspace, Verbatim: true},
 				slack.Field{Type: "mrkdwn", Text: "*Key ID*\n`" + keyID + "`", Verbatim: true},
