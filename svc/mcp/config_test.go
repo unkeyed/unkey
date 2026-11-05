@@ -17,10 +17,11 @@ func TestConfigFromEnv(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.Equal(t, Config{
-		Port:        8080,
-		PublicURL:   "https://mcp.unkey.com",
-		APIURL:      "https://api.unkey.com",
-		OAuthIssuer: "https://api.unkey.com",
+		Port:          8080,
+		PublicURL:     "https://mcp.unkey.com",
+		APIURL:        "https://api.unkey.com",
+		OAuthIssuer:   "https://api.unkey.com",
+		ClickHouseURL: "",
 	}, cfg)
 
 	cfg, err = ConfigFromEnv(env(map[string]string{

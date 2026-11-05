@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -37,8 +38,8 @@ const (
 // it refresh instead of starting over.
 func TestUnauthenticatedRequestsGetChallenge(t *testing.T) {
 	h := newHarness(t)
-	cliToken := h.sessionToken(t, h.clock.Now().Add(time.Hour), clisession.Audience)
-	expiredToken := h.sessionToken(t, h.clock.Now().Add(10*time.Second), clisession.Audience, publicURL)
+	cliToken, _ := h.sessionToken(t, h.clock.Now().Add(time.Hour), clisession.Audience)
+	expiredToken, _ := h.sessionToken(t, h.clock.Now().Add(10*time.Second), clisession.Audience, publicURL)
 
 	mounts := map[string]string{
 		"/":            "/.well-known/oauth-protected-resource",
@@ -175,7 +176,7 @@ func TestToolsAreServedOnEveryMountWithEveryCredentialHeader(t *testing.T) {
 
 func TestToolCallForwarding(t *testing.T) {
 	h := newHarness(t)
-	token := h.sessionToken(t, h.clock.Now().Add(15*time.Minute), clisession.Audience, publicURL+"/compute")
+	token, _ := h.sessionToken(t, h.clock.Now().Add(15*time.Minute), clisession.Audience, publicURL+"/compute")
 	session := h.connect(t, "/", http.Header{"Authorization": {"Bearer " + token}})
 	call := func(t *testing.T, name string, arguments any) *mcp.CallToolResult {
 		t.Helper()
@@ -251,7 +252,113 @@ func TestToolCallForwarding(t *testing.T) {
 	})
 }
 
+// TestToolCallAnalytics guarantees one analytics row per tools/call that
+// attributes the call without storing its arguments or result, and that an
+// unverified workspace claim is recorded only after the API accepted the
+// token.
+func TestToolCallAnalytics(t *testing.T) {
+	h := newHarness(t)
+	token, claims := h.sessionToken(t, h.clock.Now().Add(15*time.Minute), clisession.Audience, publicURL)
+	oauth := h.connect(t, "/mcp/v2", http.Header{"Authorization": {"Bearer " + token}})
+	call := func(t *testing.T, session *mcp.ClientSession, name string, arguments any) schema.McpToolCallV1 {
+		t.Helper()
+		before := len(h.calls.recorded())
+		_, err := session.CallTool(context.Background(), &mcp.CallToolParams{Name: name, Arguments: arguments})
+		require.NoError(t, err)
+		rows := h.calls.recorded()
+		require.Len(t, rows, before+1)
+		return rows[len(rows)-1]
+	}
+
+	t.Run("accepted OAuth call", func(t *testing.T) {
+		requestID := uid.New(uid.RequestPrefix)
+		h.api.respond(http.StatusOK, openapi.V2ApisGetApiResponseBody{Meta: openapi.Meta{RequestId: requestID}, Data: openapi.V2ApisGetApiResponseData{Id: uid.New(uid.APIPrefix), Name: "payments"}})
+
+		row := call(t, oauth, "unkey_v2_apis_get_api", openapi.V2ApisGetApiRequestBody{ApiId: uid.New(uid.APIPrefix)})
+
+		require.NotEmpty(t, row.RequestID)
+		require.Equal(t, h.clock.Now().UnixMilli(), row.Time)
+		require.Equal(t, schema.McpToolCallV1{
+			RequestID:     row.RequestID,
+			Time:          row.Time,
+			Toolset:       "v2",
+			Mount:         "/mcp/v2",
+			Tool:          "unkey_v2_apis_get_api",
+			Outcome:       "ok",
+			HttpStatus:    http.StatusOK,
+			ErrorType:     "",
+			LatencyMs:     0,
+			AuthKind:      "oauth",
+			WorkspaceID:   claims.WorkspaceID,
+			SessionID:     claims.SessionID,
+			ApiRequestID:  requestID,
+			ClientName:    "gateway-test",
+			ClientVersion: "1.0.0",
+		}, row)
+	})
+
+	t.Run("rejected OAuth call does not trust the workspace claim", func(t *testing.T) {
+		errorType := "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions"
+		h.api.respond(http.StatusForbidden, openapi.ForbiddenErrorResponse{
+			Meta:  openapi.Meta{RequestId: uid.New(uid.RequestPrefix)},
+			Error: openapi.BaseError{Title: "Forbidden", Detail: "missing permission", Status: http.StatusForbidden, Type: errorType},
+		})
+
+		row := call(t, oauth, "unkey_v2_apis_get_api", openapi.V2ApisGetApiRequestBody{ApiId: uid.New(uid.APIPrefix)})
+
+		require.Equal(t, "api_error", row.Outcome)
+		require.Equal(t, int32(http.StatusForbidden), row.HttpStatus)
+		require.Equal(t, errorType, row.ErrorType)
+		require.Empty(t, row.WorkspaceID)
+		require.Equal(t, claims.SessionID, row.SessionID)
+	})
+
+	t.Run("root key call", func(t *testing.T) {
+		h.api.respond(http.StatusOK, openapi.V2ApisGetApiResponseBody{Meta: openapi.Meta{RequestId: uid.New(uid.RequestPrefix)}})
+		session := h.connect(t, "/compute", http.Header{"Mcp-Unkey-V2-Bearer": {uid.New(uid.KeyPrefix)}})
+
+		row := call(t, session, "unkey_v2_workspace_get_limits", nil)
+
+		require.Equal(t, "compute", row.Toolset)
+		require.Equal(t, "/compute", row.Mount)
+		require.Equal(t, "root_key", row.AuthKind)
+		require.Empty(t, row.WorkspaceID)
+		require.Empty(t, row.SessionID)
+	})
+
+	t.Run("invalid arguments", func(t *testing.T) {
+		row := call(t, oauth, "unkey_v2_ratelimit_multi_limit", map[string]any{"checks": []string{}})
+		require.Equal(t, "rejected", row.Outcome)
+		require.Zero(t, row.HttpStatus)
+	})
+
+	t.Run("client named by User-Agent when clientInfo is absent", func(t *testing.T) {
+		h.api.respond(http.StatusOK, openapi.V2ApisGetApiResponseBody{Meta: openapi.Meta{RequestId: uid.New(uid.RequestPrefix)}})
+		before := len(h.calls.recorded())
+		res := h.post(t, "/", http.Header{"Authorization": {"Bearer " + token}, "User-Agent": {"claude-code/2.1.4 (external, cli)"}}, rpcRequest{
+			JSONRPC: "2.0",
+			ID:      7,
+			Method:  "tools/call",
+			Params:  mcp.CallToolParams{Name: "unkey_v2_workspace_get_limits"},
+		})
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		rows := h.calls.recorded()
+		require.Len(t, rows, before+1)
+		require.Equal(t, "claude-code", rows[len(rows)-1].ClientName)
+		require.Equal(t, "2.1.4", rows[len(rows)-1].ClientVersion)
+	})
+
+	t.Run("unreachable API", func(t *testing.T) {
+		h.api.server.Close()
+		row := call(t, oauth, "unkey_v2_workspace_get_limits", nil)
+		require.Equal(t, "transport_error", row.Outcome)
+		require.Zero(t, row.HttpStatus)
+		require.Empty(t, row.WorkspaceID)
+	})
+}
+
 type harness struct {
+	calls    *callRecorder
 	api      *fakeAPI
 	server   *httptest.Server
 	clock    *clock.TestClock
@@ -267,7 +374,7 @@ func newHarness(t *testing.T) *harness {
 	signer, err := jwt.NewHS256Signer[clisession.Claims]([]byte(uid.New(uid.TestPrefix, 32)))
 	require.NoError(t, err)
 
-	h := &harness{api: api, clock: clock.NewTestClock(time.Now()), registry: registry, signer: signer, server: nil}
+	h := &harness{calls: &callRecorder{mu: sync.Mutex{}, rows: nil}, api: api, clock: clock.NewTestClock(time.Now()), registry: registry, signer: signer, server: nil}
 	handler, err := New(Config{
 		PublicURL:  publicURL,
 		APIURL:     api.server.URL,
@@ -275,6 +382,7 @@ func newHarness(t *testing.T) *harness {
 		Version:    version,
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 		Clock:      h.clock,
+		Calls:      h.calls,
 	}, registry)
 	require.NoError(t, err)
 	h.server = httptest.NewServer(handler)
@@ -282,16 +390,17 @@ func newHarness(t *testing.T) *harness {
 	return h
 }
 
-func (h *harness) sessionToken(t *testing.T, expiresAt time.Time, audience ...string) string {
+func (h *harness) sessionToken(t *testing.T, expiresAt time.Time, audience ...string) (string, clisession.Claims) {
 	t.Helper()
-	token, err := h.signer.Sign(clisession.Claims{
+	claims := clisession.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{Issuer: clisession.Issuer, Audience: audience, ExpiresAt: expiresAt.Unix()},
 		WorkspaceID:      uid.New(uid.WorkspacePrefix),
 		SessionID:        uid.New(uid.CLISessionPrefix),
 		TokenUse:         clisession.TokenUse,
-	})
+	}
+	token, err := h.signer.Sign(claims)
 	require.NoError(t, err)
-	return token
+	return token, claims
 }
 
 func (h *harness) connect(t *testing.T, path string, header http.Header) *mcp.ClientSession {
@@ -307,15 +416,16 @@ func (h *harness) connect(t *testing.T, path string, header http.Header) *mcp.Cl
 	return session
 }
 
+type rpcRequest struct {
+	JSONRPC string `json:"jsonrpc"`
+	ID      int    `json:"id"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
+}
+
 func (h *harness) postInitialize(t *testing.T, path string, header http.Header) *http.Response {
 	t.Helper()
-	type rpcRequest struct {
-		JSONRPC string               `json:"jsonrpc"`
-		ID      int                  `json:"id"`
-		Method  string               `json:"method"`
-		Params  mcp.InitializeParams `json:"params"`
-	}
-	body := mustJSON(t, rpcRequest{
+	return h.post(t, path, header, rpcRequest{
 		JSONRPC: "2.0",
 		ID:      1,
 		Method:  "initialize",
@@ -325,11 +435,18 @@ func (h *harness) postInitialize(t *testing.T, path string, header http.Header) 
 			Capabilities:    &mcp.ClientCapabilities{},
 		},
 	})
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, h.server.URL+path, bytes.NewReader(body))
+}
+
+// post sends one JSON-RPC message the way a 2025-06-18 client does, without
+// per-request clientInfo.
+func (h *harness) post(t *testing.T, path string, header http.Header, message rpcRequest) *http.Response {
+	t.Helper()
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, h.server.URL+path, bytes.NewReader(mustJSON(t, message)))
 	require.NoError(t, err)
 	req.Header = header.Clone()
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
+	req.Header.Set("Mcp-Protocol-Version", "2025-06-18")
 	return h.do(t, req)
 }
 
@@ -360,6 +477,23 @@ func (h headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		req.Header[name] = values
 	}
 	return http.DefaultTransport.RoundTrip(req)
+}
+
+type callRecorder struct {
+	mu   sync.Mutex
+	rows []schema.McpToolCallV1
+}
+
+func (r *callRecorder) Buffer(row schema.McpToolCallV1) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.rows = append(r.rows, row)
+}
+
+func (r *callRecorder) recorded() []schema.McpToolCallV1 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]schema.McpToolCallV1(nil), r.rows...)
 }
 
 type recordedRequest struct {

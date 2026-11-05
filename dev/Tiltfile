@@ -758,7 +758,7 @@ k8s_yaml('k8s/manifests/mcp.yaml')
 k8s_resource(
   'mcp',
   port_forwards='7095:7095',
-  resource_deps=['api', 'mcp-compile'],
+  resource_deps=['api', 'clickhouse', 'mcp-compile'],
   labels=['unkey'],
   auto_init=True,
   trigger_mode=TRIGGER_MODE_AUTO
