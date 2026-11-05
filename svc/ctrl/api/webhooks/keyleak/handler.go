@@ -12,23 +12,45 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/webhook"
 	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
+	"github.com/unkeyed/unkey/pkg/webhook/verifiers/trufflehog"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
 const bodyBytesMax = 4 << 20
 
-type handler struct {
-	restate *ingress.Client
-	db      db.Database
+// Reporter is a secret-scanning partner that sends leaked key reports.
+type Reporter struct {
+	webhookName string
+	eventType   string
+	proto       hydrav1.KeyLeakReporter
 }
 
-func New(client *ingress.Client, database db.Database, verifier webhook.Verifier) http.Handler {
-	h := &handler{restate: client, db: database}
+var (
+	GitHub = Reporter{
+		webhookName: "github_secret_scanning",
+		eventType:   githubsecrets.EventType,
+		proto:       hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_GITHUB,
+	}
+	TruffleHog = Reporter{
+		webhookName: "trufflehog_secret_scanning",
+		eventType:   trufflehog.EventType,
+		proto:       hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG,
+	}
+)
 
-	return webhook.New("github_secret_scanning", verifier,
+type handler struct {
+	restate  *ingress.Client
+	db       db.Database
+	reporter Reporter
+}
+
+func New(client *ingress.Client, database db.Database, verifier webhook.Verifier, reporter Reporter) http.Handler {
+	h := &handler{restate: client, db: database, reporter: reporter}
+
+	return webhook.New(reporter.webhookName, verifier,
 		webhook.WithMaxBodySize(bodyBytesMax),
 		webhook.WithTimeout(10*time.Second),
-	).On([]string{githubsecrets.EventType}, h.report)
+	).On([]string{reporter.eventType}, h.report)
 }
 
 type reportedToken struct {
@@ -88,6 +110,7 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 			Url:           token.URL,
 			Type:          token.Type,
 			Date:          date,
+			Reporter:      h.reporter.proto,
 		}, restate.WithIdempotencyKey(reportID+":"+key.Hash))
 		if err != nil {
 			return fmt.Errorf("%w: persist key leak notification: %w", webhook.ErrUnavailable, err)

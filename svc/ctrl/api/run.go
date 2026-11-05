@@ -29,6 +29,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
+	"github.com/unkeyed/unkey/pkg/webhook/verifiers/trufflehog"
 	githubwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/github"
 	keyleakwebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/keyleak"
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
@@ -297,7 +298,13 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create key leak verifier: %w", err)
 	}
 	r.Defer(func() error { keyLeakVerifier.Close(); return nil })
-	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient, database, keyLeakVerifier))
+	mux.Handle("POST /webhooks/github/key-leaks", keyleakwebhook.New(restateClient, database, keyLeakVerifier, keyleakwebhook.GitHub))
+
+	truffleHogVerifier, err := trufflehog.New(trufflehog.PublicKeyPEM)
+	if err != nil {
+		return fmt.Errorf("failed to create TruffleHog key leak verifier: %w", err)
+	}
+	mux.Handle("POST /webhooks/trufflehog/key-leaks", keyleakwebhook.New(restateClient, database, truffleHogVerifier, keyleakwebhook.TruffleHog))
 
 	if cfg.Stripe.WebhookSecret != "" && cfg.Stripe.SecretKey != "" {
 		mux.Handle("POST /webhooks/stripe", stripewebhook.New(

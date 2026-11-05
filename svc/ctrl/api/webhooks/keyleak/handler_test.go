@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"database/sql"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -36,6 +37,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/webhook/verifiers/githubsecrets"
+	"github.com/unkeyed/unkey/pkg/webhook/verifiers/trufflehog"
 	"github.com/unkeyed/unkey/pkg/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -91,7 +93,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 		ConfigureHandler("NotifyEmail", restate.WithIngressPrivate(true)).
 		ConfigureHandler("NotifySlack", restate.WithIngressPrivate(true)))
 	verifier, sign := newSigningFixture(t)
-	handler := New(runtime.IngressClient, database, verifier)
+	handler := New(runtime.IngressClient, database, verifier, GitHub)
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 	tokens := []reportedToken{
@@ -213,7 +215,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 			proxy.ServeHTTP(w, r)
 		}))
 		t.Cleanup(interrupted.Close)
-		handler := New(ingress.NewClient(interrupted.URL), database, verifier)
+		handler := New(ingress.NewClient(interrupted.URL), database, verifier, GitHub)
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
 		require.Equal(t, http.StatusServiceUnavailable, res.Code)
@@ -259,7 +261,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}))
 		t.Cleanup(unavailable.Close)
-		handler := New(ingress.NewClient(unavailable.URL), database, verifier)
+		handler := New(ingress.NewClient(unavailable.URL), database, verifier, GitHub)
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
 		require.Equal(t, http.StatusServiceUnavailable, res.Code, "never acknowledge an unqueued leak")
@@ -273,7 +275,7 @@ func TestKeyLeakDurableNotifications(t *testing.T) {
 	})
 
 	t.Run("database unavailable", func(t *testing.T) {
-		handler := New(nil, &unavailableDatabase{}, verifier)
+		handler := New(nil, &unavailableDatabase{}, verifier, GitHub)
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, sign(body))
 		require.Equal(t, http.StatusServiceUnavailable, res.Code, "lookup failure must not enqueue or acknowledge the report")
@@ -297,7 +299,7 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 	})
 	runtime := containers.Restate(t, service.Definition())
 	verifier, sign := newSigningFixture(t)
-	handler := New(runtime.IngressClient, database, verifier)
+	handler := New(runtime.IngressClient, database, verifier, GitHub)
 	slackCtx, cancelSlack := context.WithTimeout(ctx, 5*time.Second)
 	t.Cleanup(cancelSlack)
 	_, err = hydrav1.NewKeyLeakServiceIngressClient(runtime.IngressClient).NotifySlack().Request(slackCtx,
@@ -354,7 +356,7 @@ func TestKeyLeakClassifiesAllKeyStoresWithoutSlack(t *testing.T) {
 			require.NoError(t, err)
 			res := httptest.NewRecorder()
 			if !test.matched {
-				New(nil, database, verifier).ServeHTTP(res, sign(body))
+				New(nil, database, verifier, GitHub).ServeHTTP(res, sign(body))
 				require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 				require.Empty(t, res.Body.Bytes())
 				return
@@ -484,7 +486,7 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 	verifier, sign := newSigningFixture(t)
-	handler := New(ingress.NewClient(server.URL), database, verifier)
+	handler := New(ingress.NewClient(server.URL), database, verifier, GitHub)
 	var idempotencyKey string
 	for range 2 {
 		res := httptest.NewRecorder()
@@ -500,6 +502,7 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 		require.Equal(t, token.Type, notification.GetType())
 		require.Equal(t, token.Source, notification.GetSource())
 		require.Equal(t, token.URL, notification.GetUrl())
+		require.Equal(t, hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_GITHUB, notification.GetReporter())
 		_, err := time.Parse("Mon Jan 02 2006", notification.GetDate())
 		require.NoError(t, err)
 		require.NotEmpty(t, request.idempotencyKey)
@@ -511,9 +514,107 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 	}
 }
 
+func TestKeyLeakTruffleHogReports(t *testing.T) {
+	ctx := t.Context()
+	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, database.Close()) })
+	seeder := seed.New(t, database, nil)
+	seeder.Seed(ctx)
+	workspace := seeder.Resources.UserWorkspace
+	root := seeder.CreateKey(ctx, seed.CreateKeyRequest{
+		WorkspaceID: seeder.Resources.RootWorkspace.ID, KeySpaceID: seeder.Resources.RootKeySpace.ID,
+		ForWorkspaceID: &workspace.ID,
+	})
+
+	slackMessages := make(chan slack.Payload, 2)
+	slackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload slack.Payload
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		slackMessages <- payload
+	}))
+	t.Cleanup(slackServer.Close)
+	membersReady := make(chan struct{})
+	close(membersReady)
+	sender := &recordingSender{delivered: make(chan email.Email, 4)}
+	service := worker.New(worker.Config{
+		Members: gatedMembers{orgID: workspace.OrgID, ready: membersReady},
+		Email:   sender, SlackWebhookURL: slackServer.URL,
+	})
+	runtime := containers.Restate(t, service.Definition())
+	verifier, sign := newTruffleHogSigningFixture(t)
+	handler := New(runtime.IngressClient, database, verifier, TruffleHog)
+
+	type truffleHogReport struct {
+		ID     string `json:"id"`
+		Token  string `json:"token"`
+		Type   string `json:"type"`
+		URL    string `json:"url"`
+		Source string `json:"source"`
+	}
+	report := truffleHogReport{
+		ID: uid.New(uid.TestPrefix), Token: root.Key, Type: "Unkey",
+		URL: "https://hub.docker.com/r/unkeyed/example", Source: "Docker",
+	}
+	body, err := json.Marshal([]truffleHogReport{report})
+	require.NoError(t, err)
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, sign(body))
+	require.Equal(t, http.StatusOK, res.Code, res.Body.String())
+	require.Empty(t, res.Body.Bytes())
+
+	select {
+	case message := <-slackMessages:
+		encoded, err := json.Marshal(message)
+		require.NoError(t, err)
+		require.Contains(t, string(encoded), "Key reported by TruffleHog")
+		require.Contains(t, string(encoded), "TruffleHog Docker")
+		require.Contains(t, string(encoded), root.KeyID)
+		require.NotContains(t, string(encoded), "GitHub")
+		require.NotContains(t, string(encoded), root.Key)
+	case <-time.After(20 * time.Second):
+		t.Fatal("TruffleHog report must send a Slack alert")
+	}
+	recipients := make([]string, 0, 2)
+	for range 2 {
+		select {
+		case message := <-sender.delivered:
+			require.Equal(t, report.URL, message.Variables["URL"])
+			require.Equal(t, report.Source, message.Variables["SOURCE"])
+			recipients = append(recipients, message.To...)
+		case <-time.After(20 * time.Second):
+			t.Fatal("TruffleHog report must email workspace members")
+		}
+	}
+	require.ElementsMatch(t, []string{"first@example.com", "second@example.com"}, recipients)
+
+	githubVerifier, githubSign := newSigningFixture(t)
+	res = httptest.NewRecorder()
+	handler.ServeHTTP(res, githubSign(body))
+	require.Equal(t, http.StatusBadRequest, res.Code, "GitHub signing headers must not authenticate TruffleHog reports")
+	res = httptest.NewRecorder()
+	New(nil, nil, githubVerifier, GitHub).ServeHTTP(res, sign(body))
+	require.Equal(t, http.StatusBadRequest, res.Code, "TruffleHog signing headers must not authenticate GitHub reports")
+	forged := sign(body)
+	forged.Header.Set("Truffle-Public-Key-Signature", base64.StdEncoding.EncodeToString([]byte("forged")))
+	res = httptest.NewRecorder()
+	handler.ServeHTTP(res, forged)
+	require.Equal(t, http.StatusUnauthorized, res.Code)
+
+	key, err := database.FindKeyByID(ctx, root.KeyID)
+	require.NoError(t, err)
+	require.False(t, key.DeletedAtM.Valid, "TruffleHog reports must not revoke keys")
+	require.Empty(t, slackMessages)
+	require.Empty(t, sender.delivered)
+}
+
 func TestKeyLeakRejectsInvalidReports(t *testing.T) {
 	verifier, sign := newSigningFixture(t)
-	handler := New(nil, nil, verifier)
+	handler := New(nil, nil, verifier, GitHub)
 	for _, test := range []struct {
 		name string
 		body any
@@ -629,6 +730,27 @@ func newSigningFixture(t *testing.T) (*githubsecrets.Verifier, func([]byte) *htt
 		req := httptest.NewRequest(http.MethodPost, "/webhooks/github/key-leaks", bytes.NewReader(body))
 		req.Header.Set("Github-Public-Key-Identifier", keyID)
 		req.Header.Set("Github-Public-Key-Signature", base64.StdEncoding.EncodeToString(signature))
+		return req
+	}
+}
+
+func newTruffleHogSigningFixture(t *testing.T) (*trufflehog.Verifier, func([]byte) *http.Request) {
+	t.Helper()
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	publicKey, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	require.NoError(t, err)
+	verifier, err := trufflehog.New(string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicKey})))
+	require.NoError(t, err)
+	keyID := sha256.Sum256(publicKey)
+	return verifier, func(body []byte) *http.Request {
+		t.Helper()
+		digest := sha256.Sum256(body)
+		signature, err := ecdsa.SignASN1(rand.Reader, privateKey, digest[:])
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/webhooks/trufflehog/key-leaks", bytes.NewReader(body))
+		req.Header.Set("Truffle-Public-Key-Identifier", hex.EncodeToString(keyID[:]))
+		req.Header.Set("Truffle-Public-Key-Signature", base64.StdEncoding.EncodeToString(signature))
 		return req
 	}
 }
