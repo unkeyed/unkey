@@ -4,18 +4,20 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { useGuardedNavigate } from "@/components/leave-guard";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
-  dismissSettingsBanner,
-  useSettingsBannerTarget,
-  useSettingsBannerVisible,
+  dismissRedeployBanner,
+  showRedeployBanner,
+  useRedeployBannerVisible,
+  useRedeployScope,
 } from "@/lib/collections/deploy/pending-redeploy";
 import { type RedeployTarget, useDeployActions, useRedeployTargets } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
+import { ENVIRONMENT_KIND } from "@/lib/queries/environments";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { cn } from "cn";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { GlowIcon } from "../components/glow-icon";
 
@@ -26,15 +28,18 @@ export function PendingRedeployBanner() {
   const navigate = useGuardedNavigate();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
-  const visible = useSettingsBannerVisible();
-  const target = useSettingsBannerTarget();
-  const targets = useRedeployTargets(visible ? target : null) ?? [];
+  const visible = useRedeployBannerVisible();
+  const scope = useRedeployScope();
+  const targets = useRedeployTargets(visible ? scope : null) ?? [];
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const show = visible && targets.length > 0;
 
   const redeploy = useMutation({
     mutationFn: (targets: RedeployTarget[]) =>
-      Promise.all(
+      Promise.allSettled(
         targets.map(async ({ deployment }) => {
           const res = await getUnkeyClient().deployments.createDeploymentV3({
             project: deployment.projectId,
@@ -45,21 +50,40 @@ export function PendingRedeployBanner() {
           return res.data.deploymentId;
         }),
       ),
-    onSuccess: async ([deploymentId], [{ deployment }]) => {
+    onSuccess: async (results, targets) => {
+      const failure = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failure) {
+        const failed = targets.filter((_, i) => results[i].status === "rejected");
+        toast.error(
+          `Redeploy failed for ${environmentList.format(failed.map(({ environment }) => environment.slug))}`,
+          { description: getErrorMessage(failure.reason) },
+        );
+        showRedeployBanner(failed.map(({ environment }) => environment.id));
+      } else {
+        dismissRedeployBanner();
+      }
+      const started = targets.flatMap((target, i) => {
+        const result = results[i];
+        return result.status === "fulfilled" ? [{ target, deploymentId: result.value }] : [];
+      });
+      const opened =
+        started.find(({ target }) => target.environment.kind === ENVIRONMENT_KIND.production) ??
+        started[0];
+      if (!opened) {
+        return;
+      }
       refetchDeployments();
       await refetchApps();
       navigate(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,
-          projectId: deployment.projectId,
-          appId: deployment.appId,
-          deploymentId,
+          projectId: opened.target.deployment.projectId,
+          appId: opened.target.deployment.appId,
+          deploymentId: opened.deploymentId,
         }),
       );
-      dismissSettingsBanner();
-    },
-    onError: (error) => {
-      toast.error("Redeploy failed", { description: getErrorMessage(error) });
     },
   });
 
@@ -68,13 +92,17 @@ export function PendingRedeployBanner() {
       if (!show) {
         return;
       }
-      const timer = setTimeout(() => dismissSettingsBanner(target), 10_000);
+      const timer = setTimeout(() => dismissRedeployBanner(scope), 10_000);
       return () => {
         clearTimeout(timer);
       };
     },
-    [show, target],
+    [show, scope],
   );
+
+  if (!mounted) {
+    return null;
+  }
 
   // The app shell isolates page content in its own stacking context, under the sticky top nav.
   return createPortal(
@@ -89,7 +117,7 @@ export function PendingRedeployBanner() {
       <div className="relative flex items-start gap-4 rounded-xl bg-raised p-4 shadow-floating w-100">
         <button
           type="button"
-          onClick={() => dismissSettingsBanner()}
+          onClick={() => dismissRedeployBanner()}
           className="absolute top-3 right-3 text-gray-9 hover:text-gray-11 transition-colors cursor-pointer"
           aria-label="Dismiss"
         >

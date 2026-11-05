@@ -103,42 +103,32 @@ export function useCurrentDeployment({
 
 export type RedeployTarget = { environment: Environment; deployment: Deployment };
 
-/**
- * What a redeploy of the scope rebuilds, production first: the live deployment
- * in its environment, otherwise the environment's newest deployment. An
- * environment that has never deployed has no target. Undefined while loading.
- */
 export function useRedeployTargets(scope: RedeployScope | null): RedeployTarget[] | undefined {
   const { projectId, appId } = useAppScope();
   const queryClient = useQueryClient();
   const environments = useEnvironments().data;
-  const live = useCurrentDeployment({ enabled: scope !== null }).data;
-  const scoped = scope
-    ? productionFirst(environments ?? []).filter((environment) =>
-        inRedeployScope(scope, environment),
-      )
-    : [];
+  const scoped = productionFirst(
+    (environments ?? []).filter((environment) => scope?.includes(environment.id)),
+  );
+  const production = scoped.find((environment) => environment.kind === ENVIRONMENT_KIND.production);
+  const others = scoped.filter((environment) => environment !== production);
+  const live = useCurrentDeployment({ enabled: production !== undefined });
   const newest = useQueries({
-    queries: scoped.map((environment) =>
+    queries: others.map((environment) =>
       recentDeploymentsOptions(queryClient, projectId, appId, environment.id, 1),
     ),
   });
-  if (environments === undefined || live === undefined || newest.some((q) => !q.data)) {
+  const liveLoading = production !== undefined && live.data === undefined && !live.isError;
+  if (environments === undefined || liveLoading || newest.some((query) => query.isLoading)) {
     return undefined;
   }
-  return scoped.flatMap((environment, i) => {
-    const deployment = live?.environmentId === environment.id ? live : newest[i].data?.[0];
+  const deployments = new Map(
+    others.map((environment, i) => [environment.id, newest[i].data?.[0]]),
+  );
+  return scoped.flatMap((environment) => {
+    const deployment = environment === production ? live.data : deployments.get(environment.id);
     return deployment ? [{ environment, deployment }] : [];
   });
-}
-
-export function inRedeployScope(
-  scope: RedeployScope,
-  environment: Pick<Environment, "id" | "appId" | "kind">,
-): boolean {
-  return scope.kind === "app"
-    ? environment.appId === scope.appId && environment.kind === ENVIRONMENT_KIND.production
-    : scope.environmentIds.includes(environment.id);
 }
 
 // The newest deployments of the scope, skipped pushes left out

@@ -1,6 +1,6 @@
 "use client";
 
-import { showSettingsBanner } from "@/lib/collections/deploy/pending-redeploy";
+import { showRedeployBanner } from "@/lib/collections/deploy/pending-redeploy";
 import { queryKeys } from "@/lib/query-keys";
 import { trpcClient } from "@/lib/trpc/client";
 import { trpcErrorMessage } from "@/lib/utils/trpc";
@@ -76,10 +76,7 @@ export function useConnectionMutation(scope: ConnectionScope) {
   const mutation = useMutation({
     mutationFn: async ({ ops }: ConnectionChange) => {
       const result = await runInOrder(ops, (op) => apply(op, scope));
-      const environmentIds = redeployEnvironmentIds(result.applied);
-      if (environmentIds.length > 0) {
-        showSettingsBanner({ kind: "environments", environmentIds });
-      }
+      showRedeployBanner(redeployEnvironmentIds(result.applied));
       return result;
     },
     onMutate: ({ action }) => ({ toastId: toast.loading(TOASTS[action].loading) }),

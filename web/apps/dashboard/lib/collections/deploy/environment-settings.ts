@@ -424,8 +424,8 @@ async function dispatchSettingsMutations(
     success: "Settings updated",
     error: (err) => getErrorToast(err, "Failed to update settings"),
   });
-  const redeployEnvironmentIds = bodies.filter(appliesOnNextDeploy).map((body) => body.environment);
-  await (redeployEnvironmentIds.length > 0
-    ? trackSave(mutation, { kind: "environments", environmentIds: redeployEnvironmentIds })
-    : mutation);
+  await trackSave(
+    mutation,
+    bodies.filter(appliesOnNextDeploy).map((body) => body.environment),
+  );
 }
