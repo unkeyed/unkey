@@ -14,7 +14,7 @@ import (
 
 const listAppConnectionTargetDeployments = `-- name: ListAppConnectionTargetDeployments :many
 SELECT d.id, d.environment_id, d.status, d.git_branch, d.image_resolved
-FROM deployments d
+FROM deployments d FORCE INDEX (app_status_desired_created_idx)
 WHERE d.workspace_id = ? AND d.app_id = ?
     AND d.status = 'ready' AND d.desired_state = 'running' AND d.first_ready_at IS NOT NULL
     AND (
@@ -54,7 +54,7 @@ type ListAppConnectionTargetDeploymentsRow struct {
 // row comparison.
 //
 //	SELECT d.id, d.environment_id, d.status, d.git_branch, d.image_resolved
-//	FROM deployments d
+//	FROM deployments d FORCE INDEX (app_status_desired_created_idx)
 //	WHERE d.workspace_id = ? AND d.app_id = ?
 //	    AND d.status = 'ready' AND d.desired_state = 'running' AND d.first_ready_at IS NOT NULL
 //	    AND (

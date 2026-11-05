@@ -164,6 +164,12 @@ export const deployments = mysqlTable(
     index("environment_idx").on(table.environmentId),
     index("status_idx").on(table.status),
     index("app_created_at_idx").on(table.appId, table.createdAt),
+    index("app_status_desired_created_idx").on(
+      table.appId,
+      table.status,
+      table.desiredState,
+      table.createdAt,
+    ),
     index("app_environment_ready_created_idx").on(
       table.appId,
       table.environmentId,
