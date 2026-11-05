@@ -508,7 +508,7 @@ type CreateUnkeyRootKeyRequest struct {
 // CreateUnkeyRootKey creates a root key and its principal permissions in the new
 // root-key store. Returns the key ID and the raw key for Authorization headers.
 func (s *Seeder) CreateUnkeyRootKey(ctx context.Context, req CreateUnkeyRootKeyRequest) CreateKeyResponse {
-	keyID := uid.New(uid.KeyPrefix)
+	keyID := uid.New(uid.RootKeyPrefix)
 	key := "unkey_" + uid.New("")
 	now := time.Now().UnixMilli()
 	err := db.Query.InsertUnkeyRootKey(ctx, s.DB.RW(), db.InsertUnkeyRootKeyParams{

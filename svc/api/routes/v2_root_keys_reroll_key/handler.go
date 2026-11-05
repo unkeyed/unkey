@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	var source db.UnkeyRootKey
 	var generated keys.CreateKeyV1Response
-	keyID := uid.New(uid.KeyPrefix)
+	keyID := uid.New(uid.RootKeyPrefix)
 	now := h.Clock.Now()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
