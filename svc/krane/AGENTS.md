@@ -5,8 +5,10 @@
 - A stream checkpoint is safe only after all preceding events have applied or
   wait in the retry queue. One stream serves every tenant in the region, so a
   failing workload must not stop it: move the event to the queue and continue.
-  The full sync at startup replaces the queue lost on restart. Resume tokens are
-  opaque CDC checkpoints, not numeric resource versions. See
+  Do the same when a retry still holds the workload. A retry that ends changes
+  the queue only if its own event is still pending there. The full sync at
+  startup replaces the queue lost on restart. Resume tokens are opaque CDC
+  checkpoints, not numeric resource versions. See
   [watcher.go](internal/watcher/watcher.go) and [retry.go](internal/watcher/retry.go).
 - Reconciliation must tolerate repeated application. Full sync and incremental
   delivery overlap, and reconnects can replay changes. A broken stream must not

@@ -229,17 +229,6 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 // One workload that fails on every apply must not hold back later changes in
 // the region, and its own change must apply once the failure clears.
 func TestWatchAppliesLaterEventsWhileFailedEventRetries(t *testing.T) {
-	deleteEvent := func(name string) *ctrlv1.DeploymentChangeEvent {
-		return &ctrlv1.DeploymentChangeEvent{
-			Event: &ctrlv1.DeploymentChangeEvent_Deployment{
-				Deployment: &ctrlv1.DeploymentState{
-					State: &ctrlv1.DeploymentState_Delete{
-						Delete: &ctrlv1.DeleteDeployment{K8SNamespace: "workloads", K8SName: name},
-					},
-				},
-			},
-		}
-	}
 	server := httptest.NewServer(connect.NewServerStreamHandler("/watch", func(ctx context.Context, _ *connect.Request[ctrlv1.WatchDeploymentChangesRequest], stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent]) error {
 		for _, event := range []*ctrlv1.DeploymentChangeEvent{deleteEvent("broken"), deleteEvent("healthy")} {
 			if err := stream.Send(event); err != nil {
@@ -403,4 +392,106 @@ func TestRetryReleasesHungDesiredStateLookup(t *testing.T) {
 		require.True(t, retries.holds(eventKey(event), event))
 		require.True(t, w.sem.TryAcquire(maxConcurrentDispatches))
 	})
+}
+
+func deleteEvent(name string) *ctrlv1.DeploymentChangeEvent {
+	return &ctrlv1.DeploymentChangeEvent{
+		Event: &ctrlv1.DeploymentChangeEvent_Deployment{
+			Deployment: &ctrlv1.DeploymentState{
+				State: &ctrlv1.DeploymentState_Delete{
+					Delete: &ctrlv1.DeleteDeployment{K8SNamespace: "workloads", K8SName: name},
+				},
+			},
+		},
+	}
+}
+
+// While a retry of a workload runs, the stream must not wait for it: later
+// changes in the region apply, and a newer change for that workload still
+// applies after the old retry ends.
+func TestWatchSkipsWorkloadWhileItsRetryRuns(t *testing.T) {
+	retryStarted := make(chan struct{})
+	releaseRetry := make(chan struct{})
+	server := httptest.NewServer(connect.NewServerStreamHandler("/watch", func(ctx context.Context, _ *connect.Request[ctrlv1.WatchDeploymentChangesRequest], stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent]) error {
+		if err := stream.Send(deleteEvent("busy")); err != nil {
+			return err
+		}
+		select {
+		case <-retryStarted:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		for _, event := range []*ctrlv1.DeploymentChangeEvent{deleteEvent("busy"), deleteEvent("healthy")} {
+			if err := stream.Send(event); err != nil {
+				return err
+			}
+		}
+		<-ctx.Done()
+		return ctx.Err()
+	}))
+	t.Cleanup(server.Close)
+	watchClient := connect.NewClient[ctrlv1.WatchDeploymentChangesRequest, ctrlv1.DeploymentChangeEvent](server.Client(), server.URL+"/watch")
+
+	var busyAttempts atomic.Int32
+	reported := make(chan string, 4)
+	client := &testutil.MockClusterClient{
+		WatchDeploymentChangesFunc: func(ctx context.Context, req *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
+			return watchClient.CallServerStream(ctx, connect.NewRequest(req))
+		},
+		SyncDesiredStateFunc: func(ctx context.Context, _ *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {
+			return nil, errors.New("full sync unavailable")
+		},
+		ReportDeploymentStatusFunc: func(ctx context.Context, req *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error) {
+			name := req.GetDelete().GetK8SName()
+			if name == "busy" {
+				switch busyAttempts.Add(1) {
+				case 1:
+					return nil, errors.New("rejected")
+				case 2:
+					close(retryStarted)
+					select {
+					case <-releaseRetry:
+					case <-ctx.Done():
+						return nil, ctx.Err()
+					}
+				}
+			}
+			reported <- name
+			return &ctrlv1.ReportDeploymentStatusResponse{}, nil
+		},
+	}
+
+	w := New(Config{
+		Cluster: client,
+		Deployments: deployment.New(deployment.Config{
+			ClientSet:    fake.NewClientset(),
+			Cluster:      client,
+			Fingerprints: cache.NewNoopCache[string, string](),
+		}),
+	})
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	result := make(chan error, 1)
+	go func() { result <- w.Watch(ctx) }()
+
+	select {
+	case got := <-reported:
+		require.Equal(t, "healthy", got)
+	case <-ctx.Done():
+		t.Fatal("stream waited for the running retry")
+	}
+	close(releaseRetry)
+
+	for range 2 {
+		select {
+		case got := <-reported:
+			require.Equal(t, "busy", got)
+		case <-ctx.Done():
+			t.Fatal("newer change for the busy workload was lost")
+		}
+	}
+	require.Equal(t, int32(3), busyAttempts.Load())
+
+	cancel()
+	require.NoError(t, <-result)
 }

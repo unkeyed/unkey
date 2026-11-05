@@ -129,7 +129,9 @@ func (s *Watcher) runStream(ctx context.Context, retries *retryQueue) {
 // consumeStream applies events in order and closes the stream before returning
 // the last safe token and whether it accepted a checkpoint. An event that fails
 // moves to retries, so a checkpoint is safe once every earlier event applied or
-// is pending there. If the token cannot be used, it returns an empty token so
+// is pending there. An event for a workload that a retry still holds also goes
+// to retries, so one slow workload does not hold back the region. If the token
+// cannot be used, it returns an empty token so
 // the next watch starts a new copy.
 func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], resumeToken []byte, retries *retryQueue) ([]byte, bool) {
 	checkpointAccepted := false
@@ -148,7 +150,12 @@ func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStrea
 			break
 		}
 		key := eventKey(event)
-		unlock := s.locks.Lock(key)
+		unlock, ok := s.locks.TryLock(key)
+		if !ok {
+			s.sem.Release(1)
+			retries.queueNow(key, event, time.Now())
+			continue
+		}
 		err := s.dispatch(ctx, event)
 		if err != nil {
 			retries.add(key, event, time.Now())
@@ -275,7 +282,7 @@ func (s *Watcher) retryDue(ctx context.Context, retries *retryQueue) {
 			}
 			latest, err := s.latestEvent(ctx, event)
 			if err == nil && latest == nil {
-				retries.remove(key)
+				retries.finish(key, event)
 				return
 			}
 			if err == nil {
@@ -285,9 +292,9 @@ func (s *Watcher) retryDue(ctx context.Context, retries *retryQueue) {
 				return
 			}
 			if err != nil {
-				retries.add(key, event, time.Now())
+				retries.fail(key, event, time.Now())
 			} else {
-				retries.remove(key)
+				retries.finish(key, event)
 			}
 			recordDispatch("retry", event, err)
 		})
