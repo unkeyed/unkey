@@ -11,7 +11,6 @@ export type { LogOutcomeType, LogOutcomeInfo } from "./utils/outcome-definitions
 export { StatusBadge } from "./components/status-badge";
 export { KeyDetailsDrawer } from "./components/key-details-drawer";
 export { OutcomeCell } from "./components/outcome-cell";
-export { KeyDetailsCountInfo } from "./components/key-details-count-info";
 export {
   useFetchRequestDetails,
   apiRequestDetailsQuery,

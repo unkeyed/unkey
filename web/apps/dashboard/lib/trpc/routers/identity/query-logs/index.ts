@@ -34,7 +34,6 @@ export type IdentityLog = z.infer<typeof identityLog>;
 
 const identityLogsResponse = z.object({
   logs: z.array(identityLog),
-  hasMore: z.boolean(),
   nextCursor: identityLogsCursor.optional(),
 });
 
@@ -93,7 +92,6 @@ export const queryIdentityLogs = workspaceProcedure
       // Return empty response if identity has no keys
       return {
         logs: [],
-        hasMore: false,
         nextCursor: undefined,
       };
     }
@@ -105,14 +103,14 @@ export const queryIdentityLogs = workspaceProcedure
     // Query ClickHouse for aggregated logs
     const result = await clickhouse.api.identity.logs(transformedFilters);
 
-    if (result.logs.err) {
+    if (result.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching identity logs data from ClickHouse.",
       });
     }
 
-    const logs = result.logs.val || [];
+    const logs = result.val || [];
 
     // Enrich logs with key and API information
     const enrichedLogs: IdentityLog[] = logs.map((log) => {
@@ -129,7 +127,6 @@ export const queryIdentityLogs = workspaceProcedure
     const lastLog = enrichedLogs.at(-1);
     const response: IdentityLogsResponse = {
       logs: enrichedLogs,
-      hasMore: enrichedLogs.length === input.limit,
       nextCursor:
         lastLog && enrichedLogs.length === input.limit
           ? { time: lastLog.time, requestId: lastLog.request_id }

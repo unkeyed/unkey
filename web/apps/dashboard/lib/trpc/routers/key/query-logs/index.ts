@@ -47,7 +47,7 @@ export const queryKeyDetailsLogs = workspaceProcedure
     const transformedFilters = transformKeyDetailsFilters(input, ctx.workspace.id);
     const result = await clickhouse.api.key.logs(transformedFilters);
 
-    if (result.logs.err) {
+    if (result.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching key details data from ClickHouse.",
@@ -55,7 +55,7 @@ export const queryKeyDetailsLogs = workspaceProcedure
     }
 
     const response: KeyDetailsLogsResponse = {
-      logs: result.logs.val || [],
+      logs: result.val || [],
     };
 
     return response;

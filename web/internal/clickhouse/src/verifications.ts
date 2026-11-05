@@ -1,3 +1,4 @@
+import { Ok } from "@unkey/error";
 import { z } from "zod";
 import type { Querier } from "./client";
 import { type RequestDetailsRequest, requestDetailsRequestSchema } from "./frontline";
@@ -186,7 +187,7 @@ export function getKeyDetailsLogs(ch: Querier) {
       schema: keyDetailsLog,
     });
 
-    return { logs: await query(parameters) };
+    return query(parameters);
   };
 }
 
@@ -237,9 +238,7 @@ type ExtendedParamsIdentity = IdentityLogsParams & {
 export function getIdentityLogs(ch: Querier) {
   return async (args: IdentityLogsParams) => {
     if (!args.keyIds || args.keyIds.length === 0) {
-      return {
-        logs: { val: [] },
-      };
+      return Ok([]);
     }
 
     const paramSchemaExtension: Record<string, z.ZodType> = {};
@@ -338,7 +337,7 @@ export function getIdentityLogs(ch: Querier) {
       schema: identityLog,
     });
 
-    return { logs: await query(parameters) };
+    return query(parameters);
   };
 }
 
