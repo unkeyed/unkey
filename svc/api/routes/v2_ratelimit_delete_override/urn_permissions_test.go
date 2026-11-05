@@ -8,7 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
@@ -45,7 +48,7 @@ func TestDeleteOverrideAuthorizesCanonicalDeleteRatelimitOverride(t *testing.T) 
 	h.Register(route)
 	rootKey := h.CreateRootKey(
 		workspaceID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/%s#delete", workspaceID, projectID, namespaceID, overrideID),
+		rbac.U(urn.New().Workspace(workspaceID).Project(projectID).RatelimitNamespace(namespaceID).Override(overrideID), permissions.Delete).Value,
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

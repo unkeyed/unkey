@@ -82,21 +82,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return apierrors.NotFound(codes.Data.RatelimitOverride.NotFound.URN())
 	}
 
-	permissionQuery := rbac.Or(
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID).Override(override.ID),
-			permissions.Delete,
-		),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   ns.ID,
-			Action:       rbac.DeleteOverride,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Ratelimit,
-			ResourceID:   "*",
-			Action:       rbac.DeleteOverride,
-		}),
+	permissionQuery := rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID).Override(override.ID),
+		permissions.Delete,
 	)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
