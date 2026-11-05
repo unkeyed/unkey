@@ -10,7 +10,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -106,7 +109,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	})
 
 	t.Run("key read does not reveal the API", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", h.Resources().UserWorkspace.ID, projectID, keySpaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(projectID).Keyspace(keySpaceID).Key("*"), permissions.Read).Value)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -122,7 +125,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	})
 
 	t.Run("keyspace read names the missing permission", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", h.Resources().UserWorkspace.ID, projectID, keySpaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(projectID).Keyspace(keySpaceID), permissions.Read).Value)
 
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -138,7 +141,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 
 	t.Run("create permission for different keyspace", func(t *testing.T) {
 		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
-			createKeyPermission(h.Resources().UserWorkspace.ID, projectID, otherKeySpaceID),
+			rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(projectID).Keyspace(otherKeySpaceID).Key("*"), permissions.Write).Value,
 		)
 
 		headers := http.Header{
@@ -153,7 +156,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakKeyspace(t *testing.T) {
 	})
 
 	t.Run("write permission creates a recoverable key", func(t *testing.T) {
-		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createKeyPermission(h.Resources().UserWorkspace.ID, projectID, keySpaceID))
+		rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(projectID).Keyspace(keySpaceID).Key("*"), permissions.Write).Value)
 
 		req := handler.Request{
 			ApiId:       apiID,

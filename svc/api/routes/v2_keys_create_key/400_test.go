@@ -8,6 +8,9 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -32,7 +35,7 @@ func TestCreateKeyBadRequest(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(h.Resources().UserWorkspace.ID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*").Key("*"), permissions.Write).Value)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

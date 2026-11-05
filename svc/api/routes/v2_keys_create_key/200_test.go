@@ -13,7 +13,10 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -41,7 +44,7 @@ func TestCreateKeySuccess(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -74,9 +77,7 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.Len(t, logs[0].Targets, 2)
 }
 
-// TestCreateKeyWithURNPermission guarantees a workspace-wide key write
-// permission authorizes basic key creation without legacy API permissions.
-func TestCreateKeyWithURNPermission(t *testing.T) {
+func TestCreateKeyWithKeyspaceWritePermission(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -96,46 +97,7 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
-	)
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		ApiId: api.ID,
-	})
-	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-	require.NotNil(t, res.Body)
-	require.NotEmpty(t, res.Body.Data.KeyId)
-
-	key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), res.Body.Data.KeyId)
-	require.NoError(t, err)
-	require.Equal(t, api.KeyAuthID.String, key.KeyAuthID)
-}
-
-func TestCreateKeyWithLegacyAPIPermission(t *testing.T) {
-	t.Parallel()
-
-	h := testutil.NewHarness(t)
-	ctx := context.Background()
-
-	route := &handler.Handler{
-		DB:        h.DB,
-		Keys:      h.Keys,
-		Auditlogs: h.Auditlogs,
-		Vault:     h.Vault,
-	}
-
-	h.Register(route)
-
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID: h.Resources().UserWorkspace.ID,
-	})
-	rootKey := h.CreateRootKey(
-		h.Resources().UserWorkspace.ID,
-		fmt.Sprintf("api.%s.create_key", api.ID),
+		rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value,
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -174,7 +136,7 @@ func TestCreateKeyWithOptionalFields(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -253,7 +215,7 @@ func TestCreateKeyWithExistingIdentityDoesNotWaitForIdentityWriteLock(t *testing
 		WorkspaceID: workspace.ID,
 		ExternalID:  externalID,
 	})
-	rootKey := h.CreateRootKey(workspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -324,8 +286,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		"api.*.create_key",
-		"api.*.encrypt_key",
+		rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value,
 	)
 
 	headers := http.Header{
@@ -366,9 +327,7 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
 }
 
-// TestCreateRecoverableKeyWithURNPermissions guarantees workspace-wide key
-// permissions authorize recoverable key creation without legacy API permissions.
-func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
+func TestCreateRecoverableKeyWithKeyspaceWritePermission(t *testing.T) {
 	t.Parallel()
 
 	h := testutil.NewHarness(t)
@@ -389,7 +348,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
+		rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value,
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -431,7 +390,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -511,7 +470,7 @@ func TestCreateKeyWithCreditsRemainingNull(t *testing.T) {
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 	})
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, "api.*.create_key")
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -554,7 +513,7 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(h.Resources().UserWorkspace.ID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*").Key("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -713,7 +672,7 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 
 	workspaceID := h.Resources().UserWorkspace.ID
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
-	rootKey := h.CreateRootKey(workspaceID, "api.*.create_key")
+	rootKey := h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -756,12 +715,4 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 		gotPerms = append(gotPerms, perm.Slug)
 	}
 	require.ElementsMatch(t, permissionSlugs, gotPerms)
-}
-
-func createKeyPermission(workspaceID string, projectID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, projectID, keyspaceID)
-}
-
-func createAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspaceID)
 }
