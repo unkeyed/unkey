@@ -55,11 +55,14 @@ export function useLogsQuery({ isLive }: { isLive: boolean }) {
     enabled: isLive,
     intervalMs: LIVE_POLL_INTERVAL_MS,
     queryKey: queryKeys.logs.apiRequests.live(apiFilters, PAGE_SIZE),
-    windowStart: apiFilters.time?.gte ?? timestamp - HISTORICAL_DATA_WINDOW,
+    history: {
+      startTime: apiFilters.time?.gte ?? timestamp - HISTORICAL_DATA_WINDOW,
+      endTime: apiFilters.time?.lte ?? timestamp,
+    },
     fetchNewest: async (window, signal) => {
       const page = await listApiRequests(
         {
-          limit: PAGE_SIZE,
+          limit: window.limit,
           filters: { ...apiFilters, time: { gte: window.startTime, lte: window.endTime } },
         },
         signal,

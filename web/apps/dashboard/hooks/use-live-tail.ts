@@ -1,39 +1,50 @@
-import { type QueryKey, useQuery } from "@tanstack/react-query";
+import {
+  LIVE_ROW_CAP,
+  type LiveWindow,
+  livePollWindow,
+  mergeLiveRows,
+} from "@/lib/loadable/live-tail";
+import { type QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-const LIVE_LOOKBACK_MS = 5 * 60 * 1000;
-
-export type LiveWindow = { startTime: number; endTime: number };
-
-type LiveTailConfig<TRow> = {
+type LiveTailConfig<TRow extends { time: number }> = {
   enabled: boolean;
   intervalMs: number;
   queryKey: QueryKey;
-  windowStart: number;
-  fetchNewest: (window: LiveWindow, signal: AbortSignal | undefined) => Promise<TRow[]>;
+  history: LiveWindow;
+  fetchNewest: (
+    request: LiveWindow & { limit: number },
+    signal: AbortSignal | undefined,
+  ) => Promise<TRow[]>;
   keyOf: (row: TRow) => string;
   historical: readonly TRow[];
 };
 
-// Polls the newest rows of the last few minutes, not rows after the newest seen:
-// log writers flush late, so older rows can land after newer ones are shown.
-export function useLiveTail<TRow>({
+// Each poll reads only a few minutes past the previous one and merges into the
+// rows already shown: log writers flush late, and a full-window read is costly.
+export function useLiveTail<TRow extends { time: number }>({
   enabled,
   intervalMs,
   queryKey,
-  windowStart,
+  history,
   fetchNewest,
   keyOf,
   historical,
 }: LiveTailConfig<TRow>): TRow[] {
+  const queryClient = useQueryClient();
+  const liveKey = ["live-tail", ...queryKey];
   const live = useQuery({
-    queryKey: ["live-tail", ...queryKey],
-    queryFn: ({ signal }) => {
-      const endTime = Date.now();
-      return fetchNewest(
-        { startTime: Math.max(windowStart, endTime - LIVE_LOOKBACK_MS), endTime },
-        signal,
-      );
+    queryKey: liveKey,
+    queryFn: async ({ signal }) => {
+      const previous = queryClient.getQueryState<TRow[]>(liveKey);
+      const window = livePollWindow({
+        historyStart: history.startTime,
+        historyEnd: history.endTime,
+        lastPollAt: previous?.dataUpdatedAt || undefined,
+        now: Date.now(),
+      });
+      const fetched = await fetchNewest({ ...window, limit: LIVE_ROW_CAP }, signal);
+      return mergeLiveRows(previous?.data ?? [], fetched, { keyOf, timeOf: (row) => row.time });
     },
     enabled,
     refetchInterval: intervalMs,

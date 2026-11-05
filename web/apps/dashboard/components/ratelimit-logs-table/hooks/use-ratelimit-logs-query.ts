@@ -318,7 +318,7 @@ export function useRatelimitLogsQuery({
     enabled: startPolling,
     intervalMs: pollIntervalMs,
     queryKey: getQueryKey(trpc.ratelimit.logs.query, queryParams),
-    windowStart: queryParams.startTime,
+    history: { startTime: queryParams.startTime, endTime: queryParams.endTime },
     fetchNewest: async (window, signal) => {
       const page = await trpcClient.ratelimit.logs.query.query(
         { ...queryParams, ...window, page: 1 },

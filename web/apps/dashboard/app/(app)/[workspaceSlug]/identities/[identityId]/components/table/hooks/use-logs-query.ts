@@ -1,5 +1,6 @@
 import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { useLiveTail } from "@/hooks/use-live-tail";
+import { getTimestampFromRelative } from "@/lib/duration";
 import { shownTotalOf, tableStateOf, useInfiniteList } from "@/lib/loadable/list";
 import { trpc, trpcClient } from "@/lib/trpc/client";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
@@ -73,8 +74,8 @@ export const useIdentityLogsQuery = ({
         }
 
         case "since": {
-          // TypeScript knows filter.value is string for this field
-          params.since = filter.value;
+          params.startTime = getTimestampFromRelative(filter.value, timestamp);
+          params.endTime = timestamp;
           break;
         }
 
@@ -120,10 +121,10 @@ export const useIdentityLogsQuery = ({
     enabled: startPolling,
     intervalMs: pollIntervalMs,
     queryKey: getQueryKey(trpc.identity.logs.query, queryParams),
-    windowStart: queryParams.startTime,
+    history: { startTime: queryParams.startTime, endTime: queryParams.endTime },
     fetchNewest: async (window, signal) => {
       const page = await trpcClient.identity.logs.query.query(
-        { ...queryParams, ...window, since: "" },
+        { ...queryParams, ...window },
         { signal },
       );
       return page.logs;

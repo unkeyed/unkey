@@ -123,7 +123,7 @@ export function useKeyDetailsLogsQuery({
     enabled: startPolling,
     intervalMs: pollIntervalMs,
     queryKey: getQueryKey(trpc.key.logs.query, queryParams),
-    windowStart: queryParams.startTime,
+    history: { startTime: queryParams.startTime, endTime: queryParams.endTime },
     fetchNewest: async (window, signal) => {
       const page = await trpcClient.key.logs.query.query(
         { ...queryParams, ...window, page: 1 },
