@@ -1,7 +1,3 @@
--- Hourly MCP tool call volume, outcomes and latency. Not keyed by workspace:
--- root key calls carry none, so a per-workspace rollup would silently
--- undercount. Per-workspace questions use mcp_tool_calls_raw_v1.
-
 CREATE TABLE IF NOT EXISTS default.mcp_tool_calls_per_hour_v1
 (
     `time`        DateTime,

@@ -41,17 +41,6 @@ func (c chain) Authenticate(ctx context.Context, sess *zen.Session) (*principal.
 	// claiming a request, so a later resolver accepting a credential an earlier
 	// one rejected is a valid authentication under its own trust configuration,
 	// not a bypass.
-	//
-	// When nothing resolves, which error is reported matters, and it must not
-	// depend on resolver order. The chain keeps the most authoritative rejection
-	// by severity (see [errorSeverity]): an infrastructure failure (a resolver
-	// that could not determine validity, so the client should retry) outranks an
-	// authorization failure (a resolver that verified the credential but denied
-	// it), which outranks an authentication rejection (a resolver that could not
-	// verify the credential, leaving open that another resolver could). Without
-	// this, a sibling resolver's 401 could mask a 403 from the resolver that
-	// actually verified the token, or a 503 outage, turning either into a forced
-	// logout. Ties keep the first error for deterministic reporting.
 	var bestErr error
 	bestSeverity := -1
 	for _, resolver := range c {
@@ -113,8 +102,14 @@ const (
 	severityAuthorization
 	// severityInfrastructure is an availability failure (5xx): the resolver
 	// could not determine validity at all, so the client should retry rather
-	// than treat the credential as bad. It outranks every refusal.
+	// than treat the credential as bad. It outranks every refusal by a
+	// resolver that does not own the credential.
 	severityInfrastructure
+	// severityRejected is a refusal by the resolver that owns the credential
+	// (Auth.Authentication.CredentialRejected, 401). Resolvers use that code
+	// only after recognizing the credential as their own, such as a CLI
+	// session token by its token_use claim, so its answer is final.
+	severityRejected
 )
 
 // errorSeverity ranks a resolver rejection so [chain.Authenticate] can report
@@ -122,11 +117,15 @@ const (
 // their failures with fault codes: availability failures (JWKS endpoint outage,
 // workspace lookup failure) as the internal application codes that map to 5xx,
 // authorization denials under the authorization category, and credential
-// rejections under the authentication category.
+// rejections under the authentication category, where only the credential's
+// owner uses CredentialRejected.
 func errorSeverity(err error) int {
 	urn, ok := fault.GetCode(err)
 	if !ok {
 		return severityOther
+	}
+	if urn == codes.Auth.Authentication.CredentialRejected.URN() {
+		return severityRejected
 	}
 	if urn == codes.App.Internal.ServiceUnavailable.URN() || urn == codes.App.Internal.UnexpectedError.URN() {
 		return severityInfrastructure

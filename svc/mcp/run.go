@@ -5,14 +5,17 @@ package mcp
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/auth/clisession"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -52,14 +55,29 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(func() error { calls.Close(); return nil })
 
+	clk := clock.New()
+	rejected, err := cache.New(cache.Config[[sha256.Size]byte, struct{}]{
+		Fresh:     clisession.AccessTokenLifetime,
+		Stale:     clisession.AccessTokenLifetime,
+		MaxSize:   100_000,
+		Resource:  "mcp_rejected_session_token",
+		Clock:     clk,
+		Scheduler: nil,
+	})
+	if err != nil {
+		return fmt.Errorf("create rejected session token cache: %w", err)
+	}
+	r.Defer(func() error { rejected.Close(); return nil })
+
 	handler, err := gateway.New(gateway.Config{
 		PublicURL:  cfg.PublicURL,
 		APIURL:     cfg.APIURL,
 		Issuer:     cfg.OAuthIssuer,
 		Version:    buildinfo.Version,
 		HTTPClient: &http.Client{Timeout: 2 * time.Minute},
-		Clock:      clock.New(),
+		Clock:      clk,
 		Calls:      calls,
+		Rejected:   rejected,
 	}, registry)
 	if err != nil {
 		return fmt.Errorf("build gateway: %w", err)

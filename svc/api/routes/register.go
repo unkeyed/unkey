@@ -663,10 +663,8 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(protectedMiddlewares, &v2CliListSessions.Handler{Devices: svc.CLIDevice})
 	srv.RegisterRoute(protectedMiddlewares, &v2CliRevokeSession.Handler{Devices: svc.CLIDevice})
 
-	// OAuth protocol endpoints answer in RFC 6749 shapes and are not in the
-	// OpenAPI document, so they skip request validation.
 	if svc.CLIDevice.OAuthEnabled() {
-		oauthMiddlewares := []zen.Middleware{
+		oauthMiddlewaresWithoutValidation := []zen.Middleware{
 			withPanicRecovery,
 			withObservability,
 			zen.WithSQLComment(),
@@ -674,10 +672,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 			withErrorHandling,
 			withTimeout,
 		}
-		srv.RegisterRoute(oauthMiddlewares, &oauth.MetadataHandler{OAuth: svc.CLIDevice.OAuth})
-		srv.RegisterRoute(oauthMiddlewares, &oauth.AuthorizeHandler{Devices: svc.CLIDevice})
-		srv.RegisterRoute(oauthMiddlewares, &oauth.TokenHandler{Devices: svc.CLIDevice})
-		srv.RegisterRoute(oauthMiddlewares, &oauth.RegisterHandler{Devices: svc.CLIDevice})
+		srv.RegisterRoute(oauthMiddlewaresWithoutValidation, &oauth.MetadataHandler{OAuth: svc.CLIDevice.OAuth})
+		srv.RegisterRoute(oauthMiddlewaresWithoutValidation, &oauth.AuthorizeHandler{Devices: svc.CLIDevice})
+		srv.RegisterRoute(oauthMiddlewaresWithoutValidation, &oauth.TokenHandler{Devices: svc.CLIDevice})
+		srv.RegisterRoute(oauthMiddlewaresWithoutValidation, &oauth.RegisterHandler{Devices: svc.CLIDevice})
 	}
 
 	// ---------------------------------------------------------------------------

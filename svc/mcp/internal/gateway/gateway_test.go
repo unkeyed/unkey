@@ -3,6 +3,7 @@ package gateway
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/jwt"
@@ -40,6 +42,7 @@ func TestUnauthenticatedRequestsGetChallenge(t *testing.T) {
 	h := newHarness(t)
 	cliToken, _ := h.sessionToken(t, h.clock.Now().Add(time.Hour), clisession.Audience)
 	expiredToken, _ := h.sessionToken(t, h.clock.Now().Add(10*time.Second), clisession.Audience, publicURL)
+	speakeasyToken := uid.New(uid.TestPrefix, 32)
 
 	mounts := map[string]string{
 		"/":            "/.well-known/oauth-protected-resource",
@@ -54,7 +57,7 @@ func TestUnauthenticatedRequestsGetChallenge(t *testing.T) {
 			require.Equal(t, http.StatusUnauthorized, res.StatusCode)
 			require.Equal(t, `Bearer resource_metadata="`+publicURL+metadataPath+`"`, res.Header.Get("WWW-Authenticate"))
 
-			for _, token := range []string{cliToken, expiredToken} {
+			for _, token := range []string{cliToken, expiredToken, speakeasyToken} {
 				res = h.postInitialize(t, path, http.Header{"Authorization": {"Bearer " + token}})
 				require.Equal(t, http.StatusUnauthorized, res.StatusCode)
 				require.Equal(t, `Bearer resource_metadata="`+publicURL+metadataPath+`", error="invalid_token"`, res.Header.Get("WWW-Authenticate"))
@@ -138,7 +141,7 @@ func TestInstallPagesAndRedirects(t *testing.T) {
 // forwarded to the API as a Bearer token.
 func TestToolsAreServedOnEveryMountWithEveryCredentialHeader(t *testing.T) {
 	h := newHarness(t)
-	rootKey := uid.New(uid.KeyPrefix)
+	rootKey := newRootKey()
 	cases := []struct {
 		path    string
 		toolset tools.ToolsetID
@@ -172,6 +175,37 @@ func TestToolsAreServedOnEveryMountWithEveryCredentialHeader(t *testing.T) {
 			require.Equal(t, "Bearer "+rootKey, request.header.Get("Authorization"))
 		})
 	}
+}
+
+// TestRejectedSessionTokenGetsChallenge guarantees that once the API answers
+// 401 to a session token, for example because its session was revoked, the
+// next request with that token gets the gate's 401. That is what makes the
+// client refresh or sign in again instead of failing tool calls until the
+// token expires. Root keys have no refresh, so their 401s are not remembered.
+func TestRejectedSessionTokenGetsChallenge(t *testing.T) {
+	h := newHarness(t)
+	token, _ := h.sessionToken(t, h.clock.Now().Add(15*time.Minute), clisession.Audience, publicURL)
+	oauth := http.Header{"Authorization": {"Bearer " + token}}
+	root := http.Header{"Authorization": {"Bearer " + newRootKey()}}
+	h.api.respond(http.StatusUnauthorized, openapi.UnauthorizedErrorResponse{
+		Meta:  openapi.Meta{RequestId: uid.New(uid.RequestPrefix)},
+		Error: openapi.BaseError{Title: "Unauthorized", Detail: "This MCP session is no longer valid. Sign in to the Unkey MCP server again from your MCP client.", Status: http.StatusUnauthorized, Type: "https://unkey.com/docs/errors/unkey/authentication/credential_rejected"},
+	})
+
+	for _, header := range []http.Header{oauth, root} {
+		result, err := h.connect(t, "/", header).CallTool(context.Background(), &mcp.CallToolParams{Name: "unkey_v2_workspace_get_flags"})
+		require.NoError(t, err)
+		require.True(t, result.IsError)
+	}
+	forwarded := len(h.api.recorded())
+
+	res := h.postInitialize(t, "/", oauth)
+	require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	require.Equal(t, `Bearer resource_metadata="`+publicURL+`/.well-known/oauth-protected-resource", error="invalid_token"`, res.Header.Get("WWW-Authenticate"))
+	require.Len(t, h.api.recorded(), forwarded, "a rejected token never reaches the API again")
+
+	res = h.postInitialize(t, "/", root)
+	require.Equal(t, http.StatusOK, res.StatusCode)
 }
 
 func TestToolCallForwarding(t *testing.T) {
@@ -375,6 +409,16 @@ func newHarness(t *testing.T) *harness {
 	require.NoError(t, err)
 
 	h := &harness{calls: &callRecorder{mu: sync.Mutex{}, rows: nil}, api: api, clock: clock.NewTestClock(time.Now()), registry: registry, signer: signer, server: nil}
+	rejected, err := cache.New(cache.Config[[sha256.Size]byte, struct{}]{
+		Fresh:     15 * time.Minute,
+		Stale:     15 * time.Minute,
+		MaxSize:   100,
+		Resource:  "mcp_rejected_session_token",
+		Clock:     h.clock,
+		Scheduler: nil,
+	})
+	require.NoError(t, err)
+	t.Cleanup(rejected.Close)
 	handler, err := New(Config{
 		PublicURL:  publicURL,
 		APIURL:     api.server.URL,
@@ -383,11 +427,16 @@ func newHarness(t *testing.T) *harness {
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
 		Clock:      h.clock,
 		Calls:      h.calls,
+		Rejected:   rejected,
 	}, registry)
 	require.NoError(t, err)
 	h.server = httptest.NewServer(handler)
 	t.Cleanup(h.server.Close)
 	return h
+}
+
+func newRootKey() string {
+	return uid.New("unkey", 24)
 }
 
 func (h *harness) sessionToken(t *testing.T, expiresAt time.Time, audience ...string) (string, clisession.Claims) {

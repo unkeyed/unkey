@@ -15,7 +15,7 @@ import (
 const origin = "https://mcp.unkey.com"
 
 func TestParseHeaderPrecedence(t *testing.T) {
-	rootKey := uid.New(uid.KeyPrefix)
+	rootKey := newRootKey()
 	other := uid.New(uid.KeyPrefix)
 
 	cases := []struct {
@@ -30,6 +30,7 @@ func TestParseHeaderPrecedence(t *testing.T) {
 		{name: "speakeasy root key header", header: http.Header{"Mcp-Unkey-V2-Root-Key": {rootKey}}, want: rootKey},
 		{name: "authorization wins", header: http.Header{"Authorization": {"Bearer " + rootKey}, "Mcp-Unkey-V2-Bearer": {other}}, want: rootKey},
 		{name: "empty authorization falls through", header: http.Header{"Authorization": {" "}, "Mcp-Unkey-V2-Root-Key": {rootKey}}, want: rootKey},
+		{name: "legacy headers take any value", header: http.Header{"Mcp-Unkey-V2-Bearer": {other}}, want: other},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -53,6 +54,9 @@ func TestParseRejects(t *testing.T) {
 
 	_, err = Parse(http.Header{"Authorization": {"Bearer " + notSession}})
 	require.ErrorIs(t, err, ErrUnusable)
+
+	_, err = Parse(http.Header{"Authorization": {"Bearer " + uid.New(uid.KeyPrefix)}})
+	require.ErrorIs(t, err, ErrUnusable, "an opaque token from another issuer, such as Speakeasy")
 }
 
 // TestTriage guarantees that svc/mcp answers 401 for session tokens the
@@ -81,7 +85,7 @@ func TestTriage(t *testing.T) {
 	require.ErrorIs(t, session(now.Add(time.Minute), clisession.Audience).Triage(now, origin), ErrUnusable, "CLI token")
 	require.ErrorIs(t, session(now.Add(time.Minute), "https://mcp.unkey.com.evil.example").Triage(now, origin), ErrUnusable, "other origin")
 
-	rootKey, err := Parse(http.Header{"Authorization": {"Bearer " + uid.New(uid.KeyPrefix)}})
+	rootKey, err := Parse(http.Header{"Authorization": {"Bearer " + newRootKey()}})
 	require.NoError(t, err)
 	require.NoError(t, rootKey.Triage(now, origin))
 }
@@ -104,9 +108,13 @@ func TestWorkspaceIDRequiresAcceptedToken(t *testing.T) {
 	require.Empty(t, credential.WorkspaceID(http.StatusUnauthorized))
 	require.Equal(t, sessionID, credential.SessionID())
 
-	rootKey, err := Parse(http.Header{"Authorization": {"Bearer " + uid.New(uid.KeyPrefix)}})
+	rootKey, err := Parse(http.Header{"Authorization": {"Bearer " + newRootKey()}})
 	require.NoError(t, err)
 	require.Empty(t, rootKey.WorkspaceID(http.StatusOK))
+}
+
+func newRootKey() string {
+	return rootKeyPrefix + uid.New("", 24)
 }
 
 func newSigner(t *testing.T) *jwt.HS256Signer[clisession.Claims] {

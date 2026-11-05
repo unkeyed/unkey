@@ -21,7 +21,7 @@ import (
 const (
 	pollIntervalSeconds = 5
 	deviceTTL           = 10 * time.Minute
-	accessTTL           = 15 * time.Minute
+	accessTTL           = clisession.AccessTokenLifetime
 	sessionIdle         = 7 * 24 * time.Hour
 	sessionMax          = 30 * 24 * time.Hour
 

@@ -57,6 +57,9 @@ func (g *gateway) callTool(m mount, tool tools.Tool) mcp.ToolHandler {
 		start := g.cfg.Clock.Now()
 		response := g.call(ctx, credential, tool, req.Params.Arguments)
 		g.cfg.Calls.Buffer(callRow(m, tool, credential, req, response, start, g.cfg.Clock.Now().Sub(start)))
+		if digest, ok := credential.SessionDigest(); ok && response.status == http.StatusUnauthorized {
+			g.cfg.Rejected.Set(ctx, digest, struct{}{})
+		}
 		return response.result(), nil
 	}
 }

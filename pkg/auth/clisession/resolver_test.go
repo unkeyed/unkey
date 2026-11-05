@@ -132,13 +132,46 @@ func TestResolverRejectsRevokedAndExpiredSessions(t *testing.T) {
 	resolver, err := NewResolver(fakeSessions{session: Session{}, err: ErrInactive}, clk, []byte(testSecret))
 	require.NoError(t, err)
 	_, err = resolver.Resolve(context.Background(), sess)
-	requireCode(t, err, codes.Auth.Authentication.Malformed.URN())
+	requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
 
 	clk.Tick(2 * time.Hour)
 	expiredResolver, err := NewResolver(fakeSessions{session: fixture.session(clk), err: nil}, clk, []byte(testSecret))
 	require.NoError(t, err)
 	_, err = expiredResolver.Resolve(context.Background(), sess)
-	requireCode(t, err, codes.Auth.Authentication.Malformed.URN())
+	requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
+}
+
+func TestResolverTellsEachClientHowToSignInAgain(t *testing.T) {
+	tests := []struct {
+		name     string
+		audience []string
+		want     string
+	}{
+		{
+			name:     "cli",
+			audience: []string{Audience},
+			want:     "This CLI session is no longer valid. Run unkey login again.",
+		},
+		{
+			name:     "mcp",
+			audience: []string{Audience, "https://mcp.unkey.com"},
+			want:     "This MCP session is no longer valid. Sign in to the Unkey MCP server again from your MCP client.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clk := clock.NewTestClock()
+			claims := newTokenFixture().claims(clk)
+			claims.Audience = tt.audience
+			resolver, err := NewResolver(fakeSessions{session: Session{}, err: ErrInactive}, clk, []byte(testSecret))
+			require.NoError(t, err)
+
+			_, err = resolver.Resolve(context.Background(), bearerSession(t, sign(t, testSecret, claims)))
+			requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
+			require.Equal(t, tt.want, fault.UserFacingMessage(err))
+		})
+	}
 }
 
 func TestResolverRejectsTokensThatDoNotMatchTheSession(t *testing.T) {
@@ -154,21 +187,21 @@ func TestResolverRejectsTokensThatDoNotMatchTheSession(t *testing.T) {
 			claims:   func(c Claims) Claims { return c },
 			session:  func(s Session) Session { s.WorkspaceID = uid.New(uid.WorkspacePrefix); return s },
 			allowErr: nil,
-			want:     codes.Auth.Authentication.Malformed.URN(),
+			want:     codes.Auth.Authentication.CredentialRejected.URN(),
 		},
 		{
 			name:     "subject differs from the session row",
 			claims:   func(c Claims) Claims { return c },
 			session:  func(s Session) Session { s.UserID = uid.New(uid.TestPrefix); return s },
 			allowErr: nil,
-			want:     codes.Auth.Authentication.Malformed.URN(),
+			want:     codes.Auth.Authentication.CredentialRejected.URN(),
 		},
 		{
 			name:     "empty permissions claim",
 			claims:   func(c Claims) Claims { c.Permissions = nil; return c },
 			session:  func(s Session) Session { return s },
 			allowErr: nil,
-			want:     codes.Auth.Authentication.Malformed.URN(),
+			want:     codes.Auth.Authentication.CredentialRejected.URN(),
 		},
 		{
 			name:     "session lookup fails",
@@ -216,7 +249,7 @@ func TestResolverAcceptsEveryConfiguredSecret(t *testing.T) {
 			got, err := resolver.Resolve(context.Background(), bearerSession(t, sign(t, tt.secret, fixture.claims(clk))))
 			if !tt.accepted {
 				require.Nil(t, got)
-				requireCode(t, err, codes.Auth.Authentication.Malformed.URN())
+				requireCode(t, err, codes.Auth.Authentication.CredentialRejected.URN())
 				return
 			}
 			require.NoError(t, err)

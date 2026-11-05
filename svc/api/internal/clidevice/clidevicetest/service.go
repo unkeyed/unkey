@@ -8,6 +8,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/auth/clisession"
+	authjwt "github.com/unkeyed/unkey/pkg/auth/jwt"
 	"github.com/unkeyed/unkey/pkg/cache"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -17,7 +18,10 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-const signingSecret = "test-cli-signing-secret-32-bytes!"
+const (
+	signingSecret          = "test-cli-signing-secret-32-bytes!"
+	dashboardSigningSecret = "test-dashboard-signing-secret-32!"
+)
 
 const (
 	// Issuer is the OAuth issuer [NewOAuth] configures.
@@ -88,8 +92,16 @@ func NewOAuth(h *testutil.Harness, documents ClientDocuments) *clidevice.Service
 }
 
 // Middleware is the harness's public stack followed by authentication that
-// accepts only access tokens svc issued.
+// accepts only access tokens svc issued. As in production, a dashboard JWT
+// resolver runs first and rejects those tokens before the CLI session
+// resolver accepts them.
 func Middleware(h *testutil.Harness, svc *clidevice.Service) []zen.Middleware {
+	dashboard, err := authjwt.NewResolver(authjwt.WorkspaceLookupFunc(func(context.Context, string) (string, error) {
+		return "", authjwt.ErrWorkspaceNotFound
+	}), Issuer, "dashboard", []byte(dashboardSigningSecret))
+	if err != nil {
+		panic(err)
+	}
 	resolver, err := clisession.NewResolver(svc, h.Clock, []byte(signingSecret))
 	if err != nil {
 		panic(err)
@@ -99,7 +111,7 @@ func Middleware(h *testutil.Harness, svc *clidevice.Service) []zen.Middleware {
 		panic(err)
 	}
 	return append(slices.Clone(h.PublicMiddleware()), middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:                auth.New(resolver),
+		Auth:                auth.New(dashboard, resolver),
 		KeyVerifications:    nil,
 		Region:              "test",
 		Database:            h.DB,

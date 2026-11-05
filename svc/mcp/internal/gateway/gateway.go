@@ -4,6 +4,8 @@
 package gateway
 
 import (
+	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +16,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/mcp/internal/caller"
@@ -40,6 +43,9 @@ type Config struct {
 	// Calls receives one row per tools/call. It must drop rather than block
 	// when full.
 	Calls CallRecorder
+	// Rejected holds the digests of OAuth session tokens the API answered
+	// 401 to. Entries must outlive the longest access token lifetime.
+	Rejected cache.Cache[[sha256.Size]byte, struct{}]
 }
 
 // CallRecorder is satisfied by the ClickHouse buffer and by its no-op
@@ -79,8 +85,8 @@ func New(cfg Config, registry *tools.Registry) (http.Handler, error) {
 	if caller.Origin(cfg.APIURL) == "" {
 		return nil, fmt.Errorf("API URL %q must be absolute", cfg.APIURL)
 	}
-	if cfg.Issuer == "" || cfg.HTTPClient == nil || cfg.Clock == nil || cfg.Calls == nil {
-		return nil, errors.New("issuer, HTTP client, clock and call recorder are required")
+	if cfg.Issuer == "" || cfg.HTTPClient == nil || cfg.Clock == nil || cfg.Calls == nil || cfg.Rejected == nil {
+		return nil, errors.New("issuer, HTTP client, clock, call recorder and rejected token cache are required")
 	}
 
 	g := &gateway{cfg: cfg, origin: caller.Origin(cfg.PublicURL), registry: registry}
@@ -154,12 +160,27 @@ func (g *gateway) mcpHandler(m mount) http.Handler {
 		if err == nil {
 			err = credential.Triage(g.cfg.Clock.Now(), g.origin)
 		}
+		if err == nil && g.rejected(r.Context(), credential) {
+			err = caller.ErrUnusable
+		}
 		if err != nil {
 			challenge(w, m, err)
 			return
 		}
 		streamable.ServeHTTP(w, r)
 	})
+}
+
+// rejected reports whether the API already answered 401 to this session
+// token. Without it the client would keep a revoked token until it expires,
+// because only the gate's 401 makes it refresh or sign in again.
+func (g *gateway) rejected(ctx context.Context, credential caller.Credential) bool {
+	digest, ok := credential.SessionDigest()
+	if !ok {
+		return false
+	}
+	_, hit := g.cfg.Rejected.Get(ctx, digest)
+	return hit == cache.Hit
 }
 
 // challenge answers 401 with the RFC 9728 pointer to the mount's protected

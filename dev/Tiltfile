@@ -548,8 +548,8 @@ workos_api_key = "${WORKOS_API_KEY}"
 dashboard_base_url = "http://localhost:3000"
 signing_secrets = ["local-dev-cli-signing-secret-32bytes"]
 issuer_url = "http://localhost:7070"
-oauth_resource_origins = ["http://localhost:7071"]
-oauth_default_resource = "http://localhost:7071"
+oauth_resource_origins = ["http://localhost:7095"]
+oauth_default_resource = "http://localhost:7095"
 '''
         resource['data']['unkey.toml'] = api_config
 k8s_yaml(encode_yaml_stream(api_resources))
@@ -752,7 +752,6 @@ k8s_resource(
 )
 
 
-# ─── MCP (the Unkey API as MCP tools, forwards to the local API) ───────────
 go_service_image('unkey/mcp:dev', 'mcp')
 k8s_yaml('k8s/manifests/mcp.yaml')
 k8s_resource(

@@ -25,9 +25,6 @@ spec:
           env:
             - name: PORT
               value: "7095"
-            # MCP clients reach svc/mcp and the API through Tilt's port
-            # forwards, so OAuth resources and the issuer use localhost URLs.
-            # Tool calls go to the API inside the cluster.
             - name: PUBLIC_URL
               value: "http://localhost:7095"
             - name: OAUTH_ISSUER

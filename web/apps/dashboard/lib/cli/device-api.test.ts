@@ -9,9 +9,9 @@ import { newId } from "@unkey/id";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   approveDeviceLogin,
-  clientRedirect,
   denyDeviceLogin,
   getDeviceLogin,
+  httpClientRedirect,
   listCliSessions,
   revokeCliSession,
 } from "./device-api";
@@ -163,13 +163,13 @@ describe("dashboard CLI API", () => {
   });
 
   it("refuses to open a redirect that is not http or https", () => {
-    expect(clientRedirect(undefined)).toBeUndefined();
-    expect(clientRedirect("https://claude.ai/api/mcp/auth_callback?code=c")).toBe(
+    expect(httpClientRedirect(undefined)).toBeUndefined();
+    expect(httpClientRedirect("https://claude.ai/api/mcp/auth_callback?code=c")).toBe(
       "https://claude.ai/api/mcp/auth_callback?code=c",
     );
-    expect(() => clientRedirect("javascript:alert(document.domain)")).toThrow();
-    expect(() => clientRedirect("cursor://anysphere.cursor-mcp/oauth/callback")).toThrow();
-    expect(() => clientRedirect("not a url")).toThrow();
+    expect(() => httpClientRedirect("javascript:alert(document.domain)")).toThrow();
+    expect(() => httpClientRedirect("cursor://anysphere.cursor-mcp/oauth/callback")).toThrow();
+    expect(() => httpClientRedirect("not a url")).toThrow();
   });
 
   it("uses the operation fallback for proxy-local errors", async () => {
