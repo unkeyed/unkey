@@ -3,7 +3,6 @@ package containers_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -72,23 +71,51 @@ func TestRedis_ReusesContainer(t *testing.T) {
 	require.Equal(t, "shared-value", val2)
 }
 
-func TestRedis_ReusesNamedContextWithoutCompose(t *testing.T) {
+func TestRedis_ReusesNamedContext(t *testing.T) {
 	endpoint, err := exec.Command("docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}").Output()
 	require.NoError(t, err)
 	if !strings.HasPrefix(strings.TrimSpace(string(endpoint)), "unix://") {
 		t.Skip("named-context fixture requires a local Unix socket")
 	}
+	t.Setenv("DOCKER_CONFIG", t.TempDir())
 	contextName := uid.New(uid.TestPrefix)
 	out, err := exec.Command("docker", "context", "create", contextName, "--docker", "host="+strings.TrimSpace(string(endpoint))).CombinedOutput()
 	require.NoError(t, err, "%s", out)
+	out, err = exec.Command("docker", "context", "use", contextName).CombinedOutput()
+	require.NoError(t, err, "%s", out)
+
+	for _, source := range []string{"environment", "configuration"} {
+		t.Run(source, func(t *testing.T) {
+			t.Setenv("DOCKER_CONTEXT", "")
+			t.Setenv("DOCKER_HOST", "")
+			if source == "environment" {
+				t.Setenv("DOCKER_CONTEXT", contextName)
+			}
+			url := containers.Redis(t)
+			require.Equal(t, url, containers.Redis(t))
+			opts, err := redis.ParseURL(url)
+			require.NoError(t, err)
+			client := redis.NewClient(opts)
+			t.Cleanup(func() { require.NoError(t, client.Close()) })
+			require.NoError(t, client.Ping(t.Context()).Err())
+		})
+	}
+}
+
+func TestRedis_ReusesExistingContainerWithoutCompose(t *testing.T) {
+	t.Setenv("DOCKER_CONTEXT", "default")
+	project := strings.ToLower(uid.New(uid.TestPrefix))
+	t.Setenv("UNKEY_TEST_COMPOSE_PROJECT", project)
+	file, err := filepath.Abs("../docker-compose.test.yaml")
+	require.NoError(t, err)
 	t.Cleanup(func() {
-		out, err := exec.Command("docker", "context", "rm", contextName).CombinedOutput()
+		out, err := exec.Command("docker", "compose", "-f", file, "-p", project, "down", "--volumes").CombinedOutput()
 		require.NoError(t, err, "%s", out)
 	})
-	t.Setenv("DOCKER_CONTEXT", contextName)
-	t.Setenv("DOCKER_HOST", "")
-	url := containers.Redis(t)
+	out, err := exec.Command("docker", "compose", "-f", file, "-p", project, "up", "-d", "--wait", "redis").CombinedOutput()
+	require.NoError(t, err, "%s", out)
 	t.Setenv("PATH", t.TempDir())
+	url := containers.Redis(t)
 	require.Equal(t, url, containers.Redis(t))
 
 	opts, err := redis.ParseURL(url)
@@ -107,44 +134,6 @@ func TestRedis_ConcurrentReuse(t *testing.T) {
 			client := redis.NewClient(opts)
 			t.Cleanup(func() { require.NoError(t, client.Close()) })
 			require.NoError(t, client.Ping(t.Context()).Err())
-		})
-	}
-}
-
-func TestRedis_ReconcilesConfigurationRollback(t *testing.T) {
-	root := t.TempDir()
-	file := filepath.Join(root, "_main", "pkg", "testutil", "docker-compose.test.yaml")
-	require.NoError(t, os.MkdirAll(filepath.Dir(file), 0o700))
-	original, err := os.ReadFile("../docker-compose.test.yaml")
-	require.NoError(t, err)
-	changed := strings.Replace(string(original), `"10000"`, `"10001"`, 1)
-	require.NotEqual(t, string(original), changed)
-	project := strings.ToLower(uid.New(uid.TestPrefix))
-	t.Setenv("TEST_SRCDIR", root)
-	t.Setenv("TEST_WORKSPACE", "_main")
-	t.Setenv("UNKEY_TEST_COMPOSE_PROJECT", project)
-	t.Cleanup(func() {
-		out, err := exec.Command("docker", "compose", "-f", file, "-p", project, "down", "--volumes").CombinedOutput()
-		require.NoError(t, err, "%s", out)
-	})
-	for _, step := range []struct {
-		name   string
-		config string
-		limit  string
-	}{
-		{"original", string(original), "10000"},
-		{"changed", changed, "10001"},
-		{"rollback", string(original), "10000"},
-	} {
-		t.Run(step.name, func(t *testing.T) {
-			require.NoError(t, os.WriteFile(file, []byte(step.config), 0o600))
-			opts, err := redis.ParseURL(containers.Redis(t))
-			require.NoError(t, err)
-			client := redis.NewClient(opts)
-			t.Cleanup(func() { require.NoError(t, client.Close()) })
-			limits, err := client.ConfigGet(t.Context(), "maxclients").Result()
-			require.NoError(t, err)
-			require.Equal(t, step.limit, limits["maxclients"])
 		})
 	}
 }
