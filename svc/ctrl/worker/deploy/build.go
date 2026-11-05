@@ -212,6 +212,14 @@ type gitBuildParams struct {
 	EnvironmentID                 string
 }
 
+// isForkBuild reports whether the build runs instructions we do not trust.
+// PrNumber > 0 is a live fork PR (clones the base via refs/pull/<n>/head);
+// ForkRepository != "" is a dashboard deploy of a fork ref by SHA (clones the
+// fork directly).
+func (p gitBuildParams) isForkBuild() bool {
+	return p.PrNumber > 0 || p.ForkRepository != ""
+}
+
 // gitBuildContext carries the inputs that the shared git-build scaffold
 // resolves identically for every build method: Dockerfile and Railpack
 // builders receive it and only implement what differentiates them.
@@ -264,11 +272,7 @@ func (w *Workflow) runGitBuild(
 	}
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
-		// A fork build runs build instructions we do not trust. PrNumber > 0
-		// is a live fork PR (clones the base via refs/pull/<n>/head);
-		// ForkRepository != "" is a dashboard deploy of a fork ref by SHA
-		// (clones the fork directly).
-		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
+		isForkBuild := params.isForkBuild()
 
 		// tokenless means no GIT_AUTH_TOKEN secret is registered, so
 		// fork-controlled build instructions cannot mount a GitHub credential.
@@ -525,19 +529,26 @@ func (w *Workflow) solveWithStatus(
 	// same sequence must not start numbering before this one is done
 	<-statusDrained
 	if err != nil {
-		// Context cancellations and timeouts are transient — let Restate retry.
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("build interrupted: %w", err)
-		}
-		if isTransientSolveError(err) {
-			return fmt.Errorf("build hit a transient registry error: %w", err)
-		}
-		if isStaleGitRefError(err) {
-			return fmt.Errorf("%w: %w", errStaleGitRef, err)
-		}
-		return restate.ToTerminalError(fmt.Errorf("build failed: %w", err))
+		return classifySolveError(err, params)
 	}
 	return nil
+}
+
+func classifySolveError(err error, params gitBuildParams) error {
+	// Context cancellations and timeouts are transient — let Restate retry.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("build interrupted: %w", err)
+	}
+	if isTransientSolveError(err) {
+		return fmt.Errorf("build hit a transient registry error: %w", err)
+	}
+	// A fork's Dockerfile can put any text in the solve error, for example
+	// through a RUN command or a custom syntax frontend, so only trusted builds
+	// may trigger a reset that terminates the project's other builds.
+	if !params.isForkBuild() && isStaleGitRefError(err) {
+		return fmt.Errorf("%w: %w", errStaleGitRef, err)
+	}
+	return restate.ToTerminalError(fmt.Errorf("build failed: %w", err))
 }
 
 // errStaleGitRef marks a solve that failed because the build machine's cached

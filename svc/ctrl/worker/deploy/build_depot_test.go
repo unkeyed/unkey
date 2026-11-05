@@ -10,6 +10,7 @@ import (
 	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
 	corev1 "buf.build/gen/go/depot/api/protocolbuffers/go/depot/core/v1"
 	"connectrpc.com/connect"
+	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,6 +38,28 @@ error: some local refs could not be updated; try running
 fatal: could not read Username for 'https://github.com': terminal prompts disabled`,
 	} {
 		require.False(t, isStaleGitRefError(errors.New(other)), other)
+	}
+}
+
+func TestClassifySolveErrorStaleGitRef(t *testing.T) {
+	gitFailure := errors.New("failed to fetch remote https://github.com/acme/app.git: exit status 1: git stderr:\n" +
+		"error: some local refs could not be updated; try running\n 'git remote prune origin' to remove any old, conflicting branches")
+	spoofed := errors.New(`process "/bin/sh -c echo 'some local refs could not be updated'; false" did not complete successfully: exit code: 1`)
+
+	trusted := gitBuildParams{Repository: "acme/app"}
+	forkPR := gitBuildParams{Repository: "acme/app", PrNumber: 7}
+	forkRef := gitBuildParams{Repository: "acme/app", ForkRepository: "contributor/app"}
+
+	err := classifySolveError(gitFailure, trusted)
+	require.ErrorIs(t, err, errStaleGitRef)
+	require.False(t, restate.IsTerminalError(err), "a stale ref must be retried after the cache reset")
+
+	for name, params := range map[string]gitBuildParams{"fork PR": forkPR, "fork ref": forkRef} {
+		for _, solveErr := range []error{gitFailure, spoofed} {
+			err := classifySolveError(solveErr, params)
+			require.NotErrorIs(t, err, errStaleGitRef, name)
+			require.True(t, restate.IsTerminalError(err), name)
+		}
 	}
 }
 
