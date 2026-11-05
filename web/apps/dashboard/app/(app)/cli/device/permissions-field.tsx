@@ -20,7 +20,7 @@ import { buildUrns } from "@/app/(app)/[workspaceSlug]/settings/root-keys/compon
 import { PolicyList } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/policy-list";
 import { TEMPLATE_ICONS } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/template-gallery";
 import { grantLabel } from "@/app/(app)/[workspaceSlug]/settings/root-keys/lib/grant-label";
-import { grantableCatalogues, uncoveredPermissions } from "@/lib/cli/grants";
+import { canGrant, grantableCatalogues, uncoveredPermissions } from "@/lib/cli/grants";
 import { IconPlusOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -46,10 +46,6 @@ const PRESETS = TEMPLATES.flatMap((template) =>
 );
 
 type Preset = (typeof PRESETS)[number];
-
-function canGrant(grantable: readonly string[], workspaceId: string, policies: Policy[]): boolean {
-  return uncoveredPermissions(grantable, buildUrns(workspaceId, policies)).length === 0;
-}
 
 export type Access =
   | { kind: "none" }

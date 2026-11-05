@@ -4,8 +4,9 @@ import {
   type ScopeCatalogue,
   offeredActions,
 } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/catalogue.types";
+import { TEMPLATES } from "@/app/(app)/[workspaceSlug]/settings/root-keys/components/builder/lib/templates";
 import { describe, expect, it } from "vitest";
-import { grantableCatalogues, uncoveredPermissions } from "./grants";
+import { canGrant, grantableCatalogues, uncoveredPermissions } from "./grants";
 
 const ws = "ws_test";
 const urn = (resource: string, action: string) => `unkey:v1:${ws}:${resource}#${action}`;
@@ -118,5 +119,60 @@ describe("grantableCatalogues", () => {
   it("grants nothing from another workspace", () => {
     const catalogues = grantableCatalogues(CATALOGUES, ws, ["unkey:v1:ws_other:**#*"]);
     expect(catalogues.workspace.groups).toEqual([]);
+  });
+});
+
+describe("canGrant with the templates", () => {
+  const grantsOf = (table: Record<string, readonly string[]>) =>
+    Object.entries(table).flatMap(([resource, actions]) =>
+      actions.map((action) => urn(resource, action)),
+    );
+  const crud = ["read", "write", "delete"];
+  const env = "projects/*/apps/*/environments/*";
+  const developer = grantsOf({
+    flags: ["read", "write"],
+    "github/apps/*": crud,
+    limits: ["read"],
+    usage: ["read"],
+    "logs/apiRequests": ["read"],
+    "projects/*": crud,
+    "projects/*/apps/*": crud,
+    [env]: crud,
+    [`${env}/deployments/*`]: crud,
+    [`${env}/deployments/*/logs`]: ["read"],
+    [`${env}/deployments/*/buildLogs`]: ["read"],
+    [`${env}/domains/*`]: crud,
+    [`${env}/variables/*`]: crud,
+    [`${env}/gateway/logs`]: ["read"],
+    [`${env}/gateway/policies/*`]: crud,
+    "projects/*/identities/*": crud,
+    "projects/*/keyspaces/*": crud,
+    "projects/*/keyspaces/*/logs": ["read"],
+    "projects/*/keyspaces/*/keys/*": [...crud, "decrypt", "verify"],
+    "projects/*/portals/*": crud,
+    "projects/*/ratelimits/namespaces/*": [...crud, "limit"],
+    "projects/*/ratelimits/namespaces/*/logs": ["read"],
+    "projects/*/ratelimits/namespaces/*/overrides/*": crud,
+    "projects/*/rbac/permissions/*": crud,
+    "projects/*/rbac/roles/*": crud,
+  });
+  const offered = (grantable: readonly string[]) =>
+    TEMPLATES.filter(
+      (template) => template.id !== "custom" && canGrant(grantable, ws, template.materialise()),
+    ).map((template) => template.id);
+
+  it("offers every template to the admin wildcard", () => {
+    expect(offered([urn("**", "*")])).toEqual([
+      "read",
+      "write",
+      "compute-read",
+      "compute-write",
+      "verify",
+      "ratelimit",
+    ]);
+  });
+
+  it("offers a developer both compute templates but not the root key ones", () => {
+    expect(offered(developer)).toEqual(["compute-read", "compute-write", "verify", "ratelimit"]);
   });
 });

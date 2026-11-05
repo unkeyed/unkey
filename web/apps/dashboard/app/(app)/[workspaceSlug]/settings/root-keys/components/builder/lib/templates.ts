@@ -3,13 +3,22 @@ import {
   ACTIONS,
   type Action,
   CRUD_ACTIONS,
+  type PermissionRow,
   type PermissionSelection,
   READ_ACTIONS,
   type ResourceScope,
 } from "./catalogue.types";
 import { type Policy, newPolicy, setRowsActions } from "./policy";
 
-export const TEMPLATE_IDS = ["read", "write", "verify", "ratelimit", "custom"] as const;
+export const TEMPLATE_IDS = [
+  "read",
+  "write",
+  "compute-read",
+  "compute-write",
+  "verify",
+  "ratelimit",
+  "custom",
+] as const;
 
 export type TemplateId = (typeof TEMPLATE_IDS)[number];
 
@@ -28,6 +37,29 @@ function everyRow(scope: ResourceScope, actions: readonly Action[]): Policy {
   };
 }
 
+const COMPUTE_GROUPS: ReadonlySet<string> = new Set([
+  "projects",
+  "apps",
+  "environments",
+  "deployments",
+  "gateway",
+  "github",
+  "limits",
+  "usage",
+  "logs",
+]);
+
+function computeRows(): PermissionRow[] {
+  return CATALOGUES.workspace.groups
+    .filter((group) => COMPUTE_GROUPS.has(group.id))
+    .flatMap((group) => group.rows);
+}
+
+function computePolicy(actions: readonly Action[]): Policy {
+  const policy = newPolicy("workspace");
+  return { ...policy, selection: setRowsActions(policy.selection, computeRows(), actions) };
+}
+
 function withSelection(scope: ResourceScope, selection: PermissionSelection): Policy {
   return { ...newPolicy(scope), selection };
 }
@@ -44,6 +76,18 @@ export const TEMPLATES: readonly RootKeyTemplate[] = [
     title: "All write permissions",
     description: "Every resource, full control",
     materialise: () => [everyRow("workspace", ACTIONS)],
+  },
+  {
+    id: "compute-read",
+    title: "Compute read only",
+    description: "Projects, apps, deployments, and logs, read only",
+    materialise: () => [computePolicy(READ_ACTIONS)],
+  },
+  {
+    id: "compute-write",
+    title: "Compute full control",
+    description: "Projects, apps, deployments, domains, and variables",
+    materialise: () => [computePolicy(CRUD_ACTIONS)],
   },
   {
     id: "verify",

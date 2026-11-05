@@ -12,11 +12,15 @@ describe("organization roles", () => {
     expect(isOrganizationRole("developer")).toBe(true);
     expect(isOrganizationRole("viewer")).toBe(false);
     expect(isOrganizationRole("basic_member")).toBe(false);
+    expect(isOrganizationRole("member")).toBe(false);
   });
 
-  it("keeps legacy members active during migration", () => {
-    expect(canAccessWorkspace("basic_member")).toBe(true);
-    expect(canMutateWorkspace("basic_member")).toBe(true);
+  it("treats both legacy member roles as developers", () => {
+    for (const role of ["basic_member", "member"]) {
+      expect(canAccessWorkspace(role)).toBe(true);
+      expect(canMutateWorkspace(role)).toBe(true);
+      expect(organizationRoleLabel(role)).toBe("Developer");
+    }
   });
 
   it("rejects unknown roles", () => {

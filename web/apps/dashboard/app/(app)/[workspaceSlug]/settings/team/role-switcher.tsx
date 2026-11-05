@@ -1,6 +1,11 @@
 "use client";
 
-import { type OrganizationRole, isOrganizationRole, organizationRoleLabel } from "@/lib/auth/roles";
+import {
+  type OrganizationRole,
+  isLegacyMemberRole,
+  isOrganizationRole,
+  organizationRoleLabel,
+} from "@/lib/auth/roles";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -24,7 +29,7 @@ type RoleSwitcherProps = {
 
 export const RoleSwitcher = memo<RoleSwitcherProps>(
   ({ member, organization, user, userMembership }) => {
-    const [role, setRole] = useState(member.role === "basic_member" ? "developer" : member.role);
+    const [role, setRole] = useState(isLegacyMemberRole(member.role) ? "developer" : member.role);
     const isAdmin = userMembership?.role === "admin";
     const isCurrentUser = member.userId === user.id;
     const utils = trpc.useUtils();

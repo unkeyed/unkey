@@ -129,8 +129,10 @@ var rolePolicies = map[string][]resourcePermission{
 		{resource: "**", action: rbac.ActionType(rbacpermissions.Wildcard)},
 	},
 	"developer": developerPermissions,
-	// Keep basic_member valid while existing WorkOS memberships migrate to developer.
+	// Keep the legacy member roles valid while existing WorkOS memberships
+	// migrate to developer.
 	"basic_member": developerPermissions,
+	"member":       developerPermissions,
 	"viewer":       viewerPermissions,
 }
 

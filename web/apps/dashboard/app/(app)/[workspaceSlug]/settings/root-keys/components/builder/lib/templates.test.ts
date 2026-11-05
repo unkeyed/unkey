@@ -97,6 +97,37 @@ describe("TEMPLATES", () => {
     ]);
   });
 
+  it("materialises Compute read only into the compute tree and its workspace resources", () => {
+    expect(materialise("compute-read")).toHaveLength(1);
+    expect(urnsOf("compute-read")).toEqual([
+      "unkey:v1:ws_123:projects/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/variables/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/buildLogs#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs#read",
+      "unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/policies/*#read",
+      "unkey:v1:ws_123:github/apps/*#read",
+      "unkey:v1:ws_123:limits#read",
+      "unkey:v1:ws_123:usage#read",
+      "unkey:v1:ws_123:logs/apiRequests#read",
+    ]);
+  });
+
+  it("gives Compute full control every compute action and nothing outside compute", () => {
+    const urns = urnsOf("compute-write");
+    expect(urns).toContain("unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#write");
+    expect(urns).toContain("unkey:v1:ws_123:projects/*/apps/*/environments/*/domains/*#delete");
+    expect(urns).toContain("unkey:v1:ws_123:github/apps/*#write");
+    expect(urns).toContain("unkey:v1:ws_123:limits#read");
+    expect(
+      urns.filter((urn) => /keyspaces|ratelimits|rootKeys|identities|rbac|portals/.test(urn)),
+    ).toEqual([]);
+  });
+
   it("materialises Start new into 1 policy", () => {
     expect(materialise("custom")).toHaveLength(1);
     expect(urnsOf("custom")).toEqual([]);
@@ -108,6 +139,12 @@ describe("TEMPLATES", () => {
     ).toEqual([
       ["read", "All read permissions", "Every resource, read only"],
       ["write", "All write permissions", "Every resource, full control"],
+      ["compute-read", "Compute read only", "Projects, apps, deployments, and logs, read only"],
+      [
+        "compute-write",
+        "Compute full control",
+        "Projects, apps, deployments, domains, and variables",
+      ],
       ["verify", "Verify keys", "Every keyspace, verify only"],
       ["ratelimit", "Standalone ratelimiting", "Namespaces, logs, and overrides"],
       ["custom", "Start new", "Build a custom policy"],

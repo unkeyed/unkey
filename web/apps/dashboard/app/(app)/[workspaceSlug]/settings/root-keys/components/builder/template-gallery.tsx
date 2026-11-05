@@ -2,6 +2,8 @@
 
 import {
   IconCheckOutline18,
+  IconCloudOutline18,
+  IconCloudUploadOutline18,
   IconEyeOutline18,
   IconGaugeOutline18,
   IconPenWriting3Outline18,
@@ -17,6 +19,8 @@ import type { TemplateId } from "./lib/templates";
 export const TEMPLATE_ICONS: Record<TemplateId, ReactNode> = {
   read: <IconEyeOutline18 />,
   write: <IconPenWriting3Outline18 />,
+  "compute-read": <IconCloudOutline18 />,
+  "compute-write": <IconCloudUploadOutline18 />,
   verify: <IconCheckOutline18 />,
   ratelimit: <IconGaugeOutline18 />,
   custom: <IconPlusOutline18 />,
