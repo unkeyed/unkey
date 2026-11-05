@@ -7,6 +7,8 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/email"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/slack"
 )
 
@@ -24,12 +26,16 @@ type Service struct {
 	email           email.Sender
 	slack           slackSender
 	slackWebhookURL string
+	db              db.Database
+	auditlogs       auditlogs.AuditLogService
 }
 
 type Config struct {
 	Members         memberResolver
 	Email           email.Sender
 	SlackWebhookURL string
+	DB              db.Database
+	Auditlogs       auditlogs.AuditLogService
 }
 
 func New(cfg Config) *Service {
@@ -44,6 +50,8 @@ func New(cfg Config) *Service {
 		email:                             cfg.Email,
 		slack:                             slackClient,
 		slackWebhookURL:                   cfg.SlackWebhookURL,
+		db:                                cfg.DB,
+		auditlogs:                         cfg.Auditlogs,
 	}
 }
 

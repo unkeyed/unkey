@@ -9,6 +9,18 @@ import (
 )
 
 func (s *Service) Notify(ctx restate.Context, req *hydrav1.KeyLeakNotification) (*hydrav1.KeyLeakResponse, error) {
+	if req.GetRevoke() {
+		revoked, err := s.revoke(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		if !revoked {
+			ctx.Log().Info("leaked key was already deleted or its hash did not match, skipping alerts",
+				"key_id", req.GetKeyId(), "workspace_id", req.GetWorkspaceId())
+			return &hydrav1.KeyLeakResponse{}, nil
+		}
+	}
+
 	client := hydrav1.NewKeyLeakServiceClient(ctx)
 	client.NotifySlack().Send(req)
 

@@ -426,6 +426,8 @@ func Run(ctx context.Context, cfg Config) error {
 		Members:         workos.New(cfg.WorkOSAPIKey, ""),
 		Email:           email.NewResend(cfg.Email.ResendAPIKey, cfg.Email.From),
 		SlackWebhookURL: cfg.Slack.KeyLeakWebhookURL,
+		DB:              database,
+		Auditlogs:       auditlogSvc,
 	}).Definition(
 		restate.WithJournalRetention(time.Hour),
 		restate.WithIdempotencyRetention(24*time.Hour),
