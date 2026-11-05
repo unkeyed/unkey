@@ -11,6 +11,8 @@ post:
     Your root key must have the following permission:
     - `unkey:v1:<workspace_id>:flags#write`
   operationId: workspace.updateFlag
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: updateFlag
   x-unkey-idempotency: idempotent
   security:

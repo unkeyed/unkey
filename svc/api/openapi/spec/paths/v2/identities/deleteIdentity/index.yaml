@@ -12,6 +12,8 @@ post:
     > Associated API keys remain functional but lose shared resources
     > External ID becomes available for reuse immediately
   operationId: identities.deleteIdentity
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: deleteIdentity
   security:
     - bearer: []

@@ -27,6 +27,8 @@ post:
     - `environment.*.set_environment_variables` (for any environment)
     - `environment.<environment_id>.set_environment_variables` (for a specific environment)
   operationId: environments.setEnvironmentVariables
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: setEnvironmentVariables
   security:
     - bearer: []

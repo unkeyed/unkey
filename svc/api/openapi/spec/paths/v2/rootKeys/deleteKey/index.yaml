@@ -8,6 +8,8 @@ post:
     Use `rootKeys/*#delete` to delete any root key in the workspace.
     Deleted keys cannot authenticate.
   operationId: rootKeys.deleteKey
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: deleteKey
   security:
     - bearer: []

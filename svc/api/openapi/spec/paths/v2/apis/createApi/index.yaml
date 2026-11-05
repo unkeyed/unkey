@@ -14,6 +14,8 @@ post:
     Your root key must have one of the following permissions:
     - `api.*.create_api` (to create APIs in any workspace)
   operationId: apis.createApi
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: createApi
   security:
     - bearer: []

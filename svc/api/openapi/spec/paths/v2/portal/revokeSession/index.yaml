@@ -29,6 +29,8 @@ post:
     A root key that cannot read the portal's sessions gets **404**. One that can
     read them but lacks the permission gets **403**.
   operationId: portal.revokeSession
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: revokeSession
   security:
     - bearer: []

@@ -9883,6 +9883,10 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getGatewayRequests
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getRatelimits:
         post:
@@ -9958,6 +9962,9 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRatelimits
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getRuntimeLogs:
         post:
@@ -10035,6 +10042,10 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getRuntimeLogs
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/analytics.getVerifications:
         post:
@@ -10105,6 +10116,9 @@ paths:
             tags:
                 - analytics
             x-speakeasy-name-override: getVerifications
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/apis.createApi:
         post:
@@ -10170,6 +10184,9 @@ paths:
             tags:
                 - apis
             x-speakeasy-name-override: createApi
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/apis.deleteApi:
         post:
             description: |
@@ -10248,6 +10265,9 @@ paths:
             tags:
                 - apis
             x-speakeasy-name-override: deleteApi
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/apis.getApi:
         post:
             description: |
@@ -10316,6 +10336,9 @@ paths:
             tags:
                 - apis
             x-speakeasy-name-override: getApi
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/apis.listKeys:
         post:
@@ -10400,6 +10423,9 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.createApp:
         post:
@@ -10557,6 +10583,10 @@ paths:
                 - apps
             x-speakeasy-name-override: createApp
             x-unkey-idempotency: conditionally-idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/apps.deleteApp:
         post:
             description: |
@@ -10677,6 +10707,10 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: deleteApp
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/apps.getApp:
         post:
             description: |
@@ -10798,6 +10832,10 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: getApp
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.listApps:
         post:
@@ -10944,6 +10982,10 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/apps.updateApp:
         post:
@@ -11086,6 +11128,10 @@ paths:
             tags:
                 - apps
             x-speakeasy-name-override: updateApp
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/cli.decideDeviceLogin:
         post:
             description: |
@@ -11137,6 +11183,8 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: decideDeviceLogin
+            x-unkey-mcp:
+                exclude: CLI sign-in and session plumbing. MCP clients sign in with OAuth.
     /v2/cli.exchangeToken:
         post:
             description: |
@@ -11219,6 +11267,8 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: exchangeToken
+            x-unkey-mcp:
+                exclude: CLI sign-in and session plumbing. MCP clients sign in with OAuth.
     /v2/cli.getDeviceLogin:
         post:
             description: |
@@ -11261,6 +11311,8 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: getDeviceLogin
+            x-unkey-mcp:
+                exclude: CLI sign-in and session plumbing. MCP clients sign in with OAuth.
             x-unkey-workspace-rate-limit-exempt: true
     /v2/cli.listSessions:
         post:
@@ -11299,6 +11351,8 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: listSessions
+            x-unkey-mcp:
+                exclude: CLI sign-in and session plumbing. MCP clients sign in with OAuth.
             x-unkey-workspace-rate-limit-exempt: true
     /v2/cli.revokeSession:
         post:
@@ -11348,6 +11402,8 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: revokeSession
+            x-unkey-mcp:
+                exclude: CLI sign-in and session plumbing. MCP clients sign in with OAuth.
     /v2/cli.startDeviceLogin:
         post:
             description: |
@@ -11392,6 +11448,8 @@ paths:
                 - cli
             x-speakeasy-ignore: true
             x-speakeasy-name-override: startDeviceLogin
+            x-unkey-mcp:
+                exclude: CLI sign-in and session plumbing. MCP clients sign in with OAuth.
     /v2/deploy.createDeployment:
         post:
             deprecated: true
@@ -11459,6 +11517,8 @@ paths:
                 - deploy
             x-speakeasy-group: internal
             x-speakeasy-name-override: createDeployment
+            x-unkey-mcp:
+                exclude: Deprecated.
     /v2/deploy.getDeployment:
         post:
             deprecated: true
@@ -11526,6 +11586,8 @@ paths:
                 - deploy
             x-speakeasy-group: internal
             x-speakeasy-name-override: getDeployment
+            x-unkey-mcp:
+                exclude: Deprecated.
             x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.authorizeDeployment:
         post:
@@ -11664,6 +11726,9 @@ paths:
                 - deployments
             x-speakeasy-name-override: authorizeDeployment
             x-unkey-idempotency: conditionally-idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/deployments.cancelDeployment:
         post:
             description: |
@@ -11801,6 +11866,9 @@ paths:
                 - deployments
             x-speakeasy-name-override: cancelDeployment
             x-unkey-idempotency: conditionally-idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/deployments.createDeployment:
         post:
             deprecated: true
@@ -11877,6 +11945,8 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: createDeployment
+            x-unkey-mcp:
+                exclude: Deprecated.
     /v2/deployments.getDeployment:
         post:
             description: |
@@ -11980,6 +12050,10 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: getDeployment
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.listBuildLogs:
         post:
@@ -12176,6 +12250,10 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.listDeployments:
         post:
@@ -12353,6 +12431,10 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/deployments.promoteDeployment:
         post:
@@ -12460,6 +12542,10 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: promoteDeployment
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/deployments.rollbackDeployment:
         post:
             description: |
@@ -12565,6 +12651,10 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: rollbackDeployment
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/deployments.startDeployment:
         post:
             description: |
@@ -12667,6 +12757,10 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: startDeployment
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/deployments.stopDeployment:
         post:
             description: |
@@ -12769,6 +12863,10 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: stopDeployment
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/domains.createDomain:
         post:
             description: |
@@ -13044,6 +13142,10 @@ paths:
                 - domains
             x-speakeasy-name-override: createDomain
             x-unkey-idempotency: conditionally-idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/domains.deleteDomain:
         post:
             description: |
@@ -13213,6 +13315,10 @@ paths:
                 - domains
             x-speakeasy-name-override: deleteDomain
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/domains.getDomain:
         post:
             description: |
@@ -13499,6 +13605,10 @@ paths:
                 - domains
             x-speakeasy-name-override: getDomain
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/domains.listDomains:
         post:
@@ -13799,6 +13909,10 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/domains.verifyDomain:
         post:
@@ -13992,6 +14106,10 @@ paths:
                 - domains
             x-speakeasy-name-override: verifyDomain
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/environments.getEnvironment:
         post:
             description: |
@@ -14134,6 +14252,10 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: getEnvironment
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.listEnvironmentVariables:
         post:
@@ -14226,6 +14348,10 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.listEnvironments:
         post:
@@ -14395,6 +14521,10 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: listEnvironments
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/environments.removeEnvironmentVariables:
         post:
@@ -14483,6 +14613,10 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: removeEnvironmentVariables
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/environments.setEnvironmentVariables:
         post:
             description: |
@@ -14611,6 +14745,10 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: setEnvironmentVariables
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/environments.updateSettings:
         post:
             description: |
@@ -14735,6 +14873,10 @@ paths:
             tags:
                 - environments
             x-speakeasy-name-override: updateSettings
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/gateway.listPolicies:
         post:
             description: |
@@ -14812,6 +14954,10 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: listPolicies
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/gateway.setPolicies:
         post:
@@ -14937,6 +15083,10 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: setPolicies
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/gateway.updatePolicy:
         post:
             description: |
@@ -15049,6 +15199,10 @@ paths:
             tags:
                 - gateway
             x-speakeasy-name-override: updatePolicy
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/github.installApp:
         post:
             description: |
@@ -15122,6 +15276,10 @@ paths:
                 - github
             x-speakeasy-name-override: installApp
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/identities.createIdentity:
         post:
             description: |
@@ -15236,6 +15394,9 @@ paths:
             tags:
                 - identities
             x-speakeasy-name-override: createIdentity
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/identities.deleteIdentity:
         post:
             description: |
@@ -15336,6 +15497,9 @@ paths:
             tags:
                 - identities
             x-speakeasy-name-override: deleteIdentity
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/identities.getIdentity:
         post:
             description: |
@@ -15445,6 +15609,9 @@ paths:
             tags:
                 - identities
             x-speakeasy-name-override: getIdentity
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/identities.listIdentities:
         post:
@@ -15567,6 +15734,9 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/identities.updateIdentity:
         post:
@@ -15665,6 +15835,9 @@ paths:
             tags:
                 - identities
             x-speakeasy-name-override: updateIdentity
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.addPermissions:
         post:
             description: |
@@ -15737,6 +15910,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: addPermissions
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.addRoles:
         post:
             description: |
@@ -15809,6 +15985,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: addRoles
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.createKey:
         post:
             description: |
@@ -15884,6 +16063,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: createKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.deleteKey:
         post:
             description: |
@@ -15956,6 +16138,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: deleteKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.getKey:
         post:
             description: |
@@ -16034,6 +16219,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: getKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/keys.migrateKeys:
         post:
@@ -16100,6 +16288,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: migrateKeys
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.removePermissions:
         post:
             description: |
@@ -16172,6 +16363,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: removePermissions
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.removeRoles:
         post:
             description: |
@@ -16244,6 +16438,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: removeRoles
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.rerollKey:
         post:
             description: |
@@ -16335,6 +16532,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: rerollKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.setPermissions:
         post:
             description: |
@@ -16407,6 +16607,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: setPermissions
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.setRoles:
         post:
             description: |
@@ -16479,6 +16682,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: setRoles
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.updateCredits:
         post:
             description: |
@@ -16555,6 +16761,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: updateCredits
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.updateKey:
         post:
             description: |
@@ -16638,6 +16847,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: updateKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.verifyKey:
         post:
             description: |
@@ -16732,6 +16944,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: verifyKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/keys.whoami:
         post:
             description: |
@@ -16802,6 +17017,9 @@ paths:
             tags:
                 - keys
             x-speakeasy-name-override: whoami
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/liveness:
         get:
@@ -16875,6 +17093,8 @@ paths:
                 - liveness
             x-excluded: true
             x-speakeasy-ignore: true
+            x-unkey-mcp:
+                exclude: Unauthenticated GET health check, not an API action.
     /v2/logs.getApiRequestMetrics:
         post:
             description: |
@@ -17004,6 +17224,10 @@ paths:
                 - logs
             x-speakeasy-name-override: getApiRequestMetrics
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/logs.listApiRequests:
         post:
@@ -17151,6 +17375,9 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.createPermission:
         post:
@@ -17221,6 +17448,9 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: CreatePermission
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/permissions.createRole:
         post:
             description: |
@@ -17307,6 +17537,9 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: CreateRole
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/permissions.deletePermission:
         post:
             description: |
@@ -17379,6 +17612,9 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: DeletePermission
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/permissions.deleteRole:
         post:
             description: |
@@ -17446,6 +17682,9 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: DeleteRole
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/permissions.getPermission:
         post:
             description: |
@@ -17511,6 +17750,9 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: GetPermission
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.getRole:
         post:
@@ -17577,6 +17819,9 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: GetRole
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.listPermissions:
         post:
@@ -17646,6 +17891,9 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.listRoles:
         post:
@@ -17721,6 +17969,9 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/permissions.setRolePermissions:
         post:
@@ -17789,6 +18040,9 @@ paths:
             tags:
                 - permissions
             x-speakeasy-name-override: setRolePermissions
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/permissions.updatePermission:
         post:
             description: |
@@ -17956,6 +18210,9 @@ paths:
                 - permissions
             x-speakeasy-name-override: UpdatePermission
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/permissions.updateRole:
         post:
             description: |
@@ -18123,6 +18380,9 @@ paths:
                 - permissions
             x-speakeasy-name-override: UpdateRole
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/portal.createPortal:
         post:
             description: |
@@ -18207,6 +18467,9 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: createPortal
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/portal.createSession:
         post:
             description: |
@@ -18319,6 +18582,9 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: createSession
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/portal.deletePortal:
         post:
             description: |
@@ -18399,6 +18665,9 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: deletePortal
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/portal.exchangeCode:
         post:
             description: |
@@ -18467,6 +18736,8 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: exchangeCode
+            x-unkey-mcp:
+                exclude: Exchanges a one-time portal code for a browser session cookie.
     /v2/portal.getPortal:
         post:
             description: |
@@ -18537,6 +18808,9 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: getPortal
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.getVerifications:
         post:
@@ -18618,6 +18892,8 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: getVerifications
+            x-unkey-mcp:
+                exclude: Authenticated by the portal session cookie, which an MCP client cannot hold.
             x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.listKeys:
         post:
@@ -18696,6 +18972,8 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                exclude: Authenticated by the portal session cookie, which an MCP client cannot hold.
             x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.listSessions:
         post:
@@ -18779,6 +19057,9 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/portal.rerollKey:
         post:
@@ -18847,6 +19128,8 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: rerollKey
+            x-unkey-mcp:
+                exclude: Authenticated by the portal session cookie, which an MCP client cannot hold.
     /v2/portal.revokeSession:
         post:
             description: |
@@ -18933,6 +19216,9 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: revokeSession
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/portal.updatePortal:
         post:
             description: |
@@ -19025,6 +19311,9 @@ paths:
             tags:
                 - portal
             x-speakeasy-name-override: updatePortal
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/projects.createProject:
         post:
             description: |
@@ -19149,6 +19438,10 @@ paths:
                 - projects
             x-speakeasy-name-override: createProject
             x-unkey-idempotency: conditionally-idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/projects.deleteProject:
         post:
             description: |
@@ -19267,6 +19560,10 @@ paths:
             tags:
                 - projects
             x-speakeasy-name-override: deleteProject
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/projects.getProject:
         post:
             description: |
@@ -19383,6 +19680,10 @@ paths:
             tags:
                 - projects
             x-speakeasy-name-override: getProject
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/projects.listProjects:
         post:
@@ -19507,6 +19808,10 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/projects.updateProject:
         post:
@@ -19643,6 +19948,10 @@ paths:
             tags:
                 - projects
             x-speakeasy-name-override: updateProject
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
     /v2/ratelimit.createNamespace:
         post:
             description: |
@@ -19766,6 +20075,9 @@ paths:
                 - ratelimit
             x-speakeasy-name-override: createNamespace
             x-unkey-idempotency: conditionally-idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/ratelimit.deleteNamespace:
         post:
             description: |
@@ -19878,6 +20190,9 @@ paths:
                 - ratelimit
             x-speakeasy-name-override: deleteNamespace
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/ratelimit.deleteOverride:
         post:
             description: |
@@ -19977,6 +20292,9 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: deleteOverride
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/ratelimit.getOverride:
         post:
             description: |
@@ -20076,6 +20394,9 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: getOverride
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.limit:
         post:
@@ -20209,6 +20530,9 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: limit
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/ratelimit.listNamespaces:
         post:
             description: |
@@ -20347,6 +20671,9 @@ paths:
                     nextCursor: $.pagination.cursor
                 type: cursor
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.listOverrides:
         post:
@@ -20444,6 +20771,9 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/ratelimit.multiLimit:
         post:
@@ -20620,6 +20950,9 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: multiLimit
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/ratelimit.setOverride:
         post:
             description: |
@@ -20723,6 +21056,9 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: setOverride
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/ratelimit.updateNamespace:
         post:
             description: |
@@ -20862,6 +21198,9 @@ paths:
                 - ratelimit
             x-speakeasy-name-override: updateNamespace
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/rootKeys.createKey:
         post:
             description: |
@@ -20910,6 +21249,9 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: createKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/rootKeys.deleteKey:
         post:
             description: |
@@ -20973,6 +21315,9 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: deleteKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/rootKeys.listKeys:
         post:
             description: |
@@ -21036,6 +21381,9 @@ paths:
                 outputs:
                     nextCursor: $.pagination.cursor
                 type: cursor
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/rootKeys.rerollKey:
         post:
@@ -21104,6 +21452,9 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: rerollKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/rootKeys.updateKey:
         post:
             description: |
@@ -21170,6 +21521,9 @@ paths:
             tags:
                 - rootKeys
             x-speakeasy-name-override: updateKey
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v2/workspace.getFlags:
         post:
             description: |
@@ -21246,6 +21600,9 @@ paths:
                 - workspace
             x-speakeasy-name-override: getFlags
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
             x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.getLimits:
         post:
@@ -21418,6 +21775,10 @@ paths:
                 - workspace
             x-speakeasy-name-override: getLimits
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.getUsage:
         post:
@@ -21737,6 +22098,10 @@ paths:
                 - workspace
             x-speakeasy-name-override: getUsage
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
             x-unkey-workspace-rate-limit-exempt: true
     /v2/workspace.updateFlag:
         post:
@@ -21805,6 +22170,9 @@ paths:
                 - workspace
             x-speakeasy-name-override: updateFlag
             x-unkey-idempotency: idempotent
+            x-unkey-mcp:
+                toolsets:
+                    - v2
     /v3/deployments.createDeployment:
         post:
             description: |
@@ -21882,6 +22250,10 @@ paths:
             tags:
                 - deployments
             x-speakeasy-name-override: createDeploymentV3
+            x-unkey-mcp:
+                toolsets:
+                    - v2
+                    - compute
 security:
     - bearer: []
 servers:

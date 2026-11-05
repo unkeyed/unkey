@@ -11,6 +11,8 @@ post:
 
     **Authentication**: Requires a valid root key with appropriate permissions.
   operationId: deploy.createDeployment
+  x-unkey-mcp:
+    exclude: "Deprecated."
   x-speakeasy-name-override: createDeployment
   x-speakeasy-group: internal
   security:

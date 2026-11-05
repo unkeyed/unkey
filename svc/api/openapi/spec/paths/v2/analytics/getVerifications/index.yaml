@@ -5,6 +5,8 @@ post:
     - bearer: []
   x-speakeasy-name-override: getVerifications
   operationId: analytics.getVerifications
+  x-unkey-mcp:
+    toolsets: [v2]
   x-unkey-workspace-rate-limit-exempt: true
   summary: Query key verification data
   description: |

@@ -17,6 +17,8 @@ post:
     - `project.*.create_app` (to create apps in any project)
     - `project.<project_id>.create_app` (to create apps in a specific project)
   operationId: apps.createApp
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: createApp
   x-unkey-idempotency: conditionally-idempotent
   security:

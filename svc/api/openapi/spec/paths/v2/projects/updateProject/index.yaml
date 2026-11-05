@@ -13,6 +13,8 @@ post:
     - `project.*.update_project` (to update any project)
     - `project.<project_id>.update_project` (to update a specific project)
   operationId: projects.updateProject
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: updateProject
   security:
     - bearer: []

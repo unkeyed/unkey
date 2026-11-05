@@ -10,6 +10,8 @@ post:
     **Important**
     Requires `identity.*.create_identity` permission
   operationId: identities.createIdentity
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: createIdentity
   security:
     - bearer: []

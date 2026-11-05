@@ -25,6 +25,8 @@ post:
 
     **Note**: If your credential lacks permission to verify this key, the response is HTTP 200 with `valid: false` and `code: NOT_FOUND`. This does not distinguish a missing key from an inaccessible key.
   operationId: keys.verifyKey
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: verifyKey
   requestBody:
     required: true

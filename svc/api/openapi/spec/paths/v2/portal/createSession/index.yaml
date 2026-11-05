@@ -35,6 +35,8 @@ post:
 
     Your root key must also be associated with a workspace that has an enabled portal.
   operationId: portal.createSession
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: createSession
   security:
     - bearer: []

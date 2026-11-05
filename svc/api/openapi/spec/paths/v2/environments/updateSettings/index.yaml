@@ -16,6 +16,8 @@ post:
     - `environment.*.update_environment` (to update any environment)
     - `environment.<environment_id>.update_environment` (to update a specific environment)
   operationId: environments.updateSettings
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: updateSettings
   security:
     - bearer: []

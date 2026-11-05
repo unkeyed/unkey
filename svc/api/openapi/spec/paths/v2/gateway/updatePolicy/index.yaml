@@ -22,6 +22,8 @@ post:
     - `environment.*.update_policy` (for any environment)
     - `environment.<environment_id>.update_policy` (for a specific environment)
   operationId: gateway.updatePolicy
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: updatePolicy
   security:
     - bearer: []

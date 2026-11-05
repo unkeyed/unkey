@@ -11,6 +11,8 @@ post:
     with a portal session cookie and may only reroll keys owned by the session's
     external identity; any other key returns 404.
   operationId: portal.rerollKey
+  x-unkey-mcp:
+    exclude: "Authenticated by the portal session cookie, which an MCP client cannot hold."
   x-speakeasy-name-override: rerollKey
   security:
     - portalSession: []

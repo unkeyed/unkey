@@ -10,6 +10,8 @@ post:
     The CLI session is created later, when the CLI polls, with this set or a narrower one if the member's role changed.
     For a login an MCP client started through OAuth, the response carries redirectUrl and the session is created when the client redeems the authorization code.
   operationId: cli.decideDeviceLogin
+  x-unkey-mcp:
+    exclude: "CLI sign-in and session plumbing. MCP clients sign in with OAuth."
   x-speakeasy-name-override: decideDeviceLogin
   requestBody:
     required: true

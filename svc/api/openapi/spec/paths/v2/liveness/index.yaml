@@ -5,6 +5,8 @@ get:
     - liveness
   security: []
   operationId: liveness
+  x-unkey-mcp:
+    exclude: "Unauthenticated GET health check, not an API action."
   summary: Health check
   description: |
     Check if the Unkey API service is healthy and ready to handle requests.
