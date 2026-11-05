@@ -428,7 +428,19 @@ func (w *Workflow) withBuildkit(
 	if w.buildConfig.Backend == BuildBackendKubernetes {
 		return w.withKubernetesBuildkit(buildCtx, params, fn)
 	}
-	return w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
+	buildID, err := w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
+	if errors.Is(err, errStaleGitRef) {
+		// Reset terminates every machine on the project, so it runs only after
+		// withDepotBuildkit has released ours. The retry then clones from scratch.
+		logger.Warn("resetting depot project cache after stale git ref",
+			"depot_project_id", depotProjectID,
+			"project_id", params.ProjectID,
+			"build_id", buildID)
+		if resetErr := w.resetDepotProjectCache(buildCtx, depotProjectID); resetErr != nil {
+			return buildID, errors.Join(err, resetErr)
+		}
+	}
+	return buildID, err
 }
 
 // withDepotBuildkit creates a Depot build, acquires a remote BuildKit
@@ -520,9 +532,26 @@ func (w *Workflow) solveWithStatus(
 		if isTransientSolveError(err) {
 			return fmt.Errorf("build hit a transient registry error: %w", err)
 		}
+		if isStaleGitRefError(err) {
+			return fmt.Errorf("%w: %w", errStaleGitRef, err)
+		}
 		return restate.ToTerminalError(fmt.Errorf("build failed: %w", err))
 	}
 	return nil
+}
+
+// errStaleGitRef marks a solve that failed because the build machine's cached
+// clone holds a remote-tracking ref that collides with a remote branch, such as
+// origin/release/v1 after the branch was renamed to release. Git never
+// prunes the old ref on its own, so every later build of the project fails the
+// same way until the Depot project's cache is reset.
+var errStaleGitRef = errors.New("build cache holds a stale git ref")
+
+// isStaleGitRefError reports whether git failed to fetch because a cached ref
+// conflicts with a remote one. Matches the line git prints for every such
+// conflict, which upstream BuildKit also keys on.
+func isStaleGitRefError(err error) bool {
+	return strings.Contains(err.Error(), "some local refs could not be updated")
 }
 
 // transientSolveErrorSubstrings are status phrases registries return on
@@ -760,17 +789,8 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		return project.DepotProjectID.String, nil
 	}
 
-	httpClient := &http.Client{}
-	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			req.Header().Set("Authorization", "Bearer "+w.registryConfig.Password)
-			return next(ctx, req)
-		}
-	})
-
-	projectClient := corev1connect.NewProjectServiceClient(httpClient, w.buildConfig.Depot.APIUrl, connect.WithInterceptors(authInterceptor))
 	//nolint: exhaustruct // optional fields
-	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
+	createResp, err := w.depotProjectClient().CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
 		RegionId: w.buildConfig.Depot.ProjectRegion,
 		//nolint: exhaustruct // missing fields is deprecated
@@ -804,6 +824,28 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		"project_name", projectName)
 
 	return depotProjectID, nil
+}
+
+// resetDepotProjectCache deletes all cached data of a Depot project and
+// terminates its machines, so the next build starts from an empty cache.
+func (w *Workflow) resetDepotProjectCache(ctx context.Context, depotProjectID string) error {
+	_, err := w.depotProjectClient().ResetProject(ctx, connect.NewRequest(&corev1.ResetProjectRequest{
+		ProjectId: depotProjectID,
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to reset depot project cache: %w", err)
+	}
+	return nil
+}
+
+func (w *Workflow) depotProjectClient() corev1connect.ProjectServiceClient {
+	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			req.Header().Set("Authorization", "Bearer "+w.registryConfig.Password)
+			return next(ctx, req)
+		}
+	})
+	return corev1connect.NewProjectServiceClient(&http.Client{}, w.buildConfig.Depot.APIUrl, connect.WithInterceptors(authInterceptor))
 }
 
 // processBuildStatus consumes build status events from buildkit and writes
