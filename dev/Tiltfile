@@ -752,6 +752,18 @@ k8s_resource(
 )
 
 
+# ─── MCP (the Unkey API as MCP tools, forwards to the local API) ───────────
+go_service_image('unkey/mcp:dev', 'mcp')
+k8s_yaml('k8s/manifests/mcp.yaml')
+k8s_resource(
+  'mcp',
+  port_forwards='7095:7095',
+  resource_deps=['api', 'mcp-compile'],
+  labels=['unkey'],
+  auto_init=True,
+  trigger_mode=TRIGGER_MODE_AUTO
+)
+
 # Portal - standalone K8s service for local development. Amp runs the Vite
 # server directly, so omit this manual resource in orb mode to avoid port 3100
 # ownership conflicts.
