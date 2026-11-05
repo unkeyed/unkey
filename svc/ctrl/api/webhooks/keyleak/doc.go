@@ -3,5 +3,7 @@
 // endpoint and verifier and shares one report shape and validation. A 200
 // response means no keys matched or every matching key's notification was
 // accepted by Restate, not that delivery completed. Database lookup failures
-// return 503 and are not durably retried. Keys are not revoked.
+// return 503 and are not durably retried. TruffleHog reports ask the worker to
+// revoke each matched key before alerting the workspace. GitHub reports never
+// revoke keys.
 package keyleak
