@@ -1060,14 +1060,15 @@ type Querier interface {
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
 	//FindLeakedKeysByHashes
 	//
-	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name, 'unkey_root_keys' AS store, 'root' AS kind
 	//  FROM unkey_root_keys k
 	//  JOIN workspaces w ON w.id = k.workspace_id
 	//  WHERE k.hash IN (/*SLICE:hashes*/?)
 	//    AND k.deleted_at IS NULL
 	//    AND w.deleted_at_m IS NULL
 	//  UNION ALL
-	//  SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+	//  SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name, 'keys' AS store,
+	//    CASE WHEN k.for_workspace_id IS NOT NULL THEN 'root' ELSE 'api' END AS kind
 	//  FROM `keys` k
 	//  JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
 	//  WHERE k.hash IN (/*SLICE:hashes*/?)
@@ -1157,6 +1158,13 @@ type Querier interface {
 	//  FROM regions
 	//  WHERE platform = ? AND name = ? LIMIT 1
 	FindRegionByPlatformAndName(ctx context.Context, arg FindRegionByPlatformAndNameParams) (Region, error)
+	// FindUnkeyRootKeyByID reads a root key's hash and deletion state, including
+	// soft-deleted keys.
+	//
+	//  SELECT id, workspace_id, hash, deleted_at
+	//  FROM unkey_root_keys
+	//  WHERE id = ?
+	FindUnkeyRootKeyByID(ctx context.Context, id string) (FindUnkeyRootKeyByIDRow, error)
 	// Resolves a hostname to its verified row in custom_domains or portal_domains so
 	// certificate issuance never acts on a pending competing claim. Verification
 	// revokes contested claims first; if two verified rows ever coexist, the most
@@ -2735,6 +2743,22 @@ type Querier interface {
 	//    AND status = 'pending'
 	//    AND invocation_id IS NULL
 	RevertDeploymentAuthorization(ctx context.Context, arg RevertDeploymentAuthorizationParams) (sql.Result, error)
+	//RevokeLeakedKey
+	//
+	//  UPDATE `keys`
+	//  SET deleted_at_m = ?
+	//  WHERE id = ?
+	//    AND hash = ?
+	//    AND deleted_at_m IS NULL
+	RevokeLeakedKey(ctx context.Context, arg RevokeLeakedKeyParams) (int64, error)
+	//RevokeLeakedUnkeyRootKey
+	//
+	//  UPDATE unkey_root_keys
+	//  SET deleted_at = ?
+	//  WHERE id = ?
+	//    AND hash = ?
+	//    AND deleted_at IS NULL
+	RevokeLeakedUnkeyRootKey(ctx context.Context, arg RevokeLeakedUnkeyRootKeyParams) (int64, error)
 	//ScanDeploymentsForCleanup
 	//
 	//  SELECT d.pk, d.environment_id, CAST((e.id IS NULL) AS SIGNED) AS orphaned
