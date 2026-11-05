@@ -22,8 +22,15 @@ export async function runInOrder<R>(
   return { applied, failure: null };
 }
 
+export function redeployEnvironmentIds(applied: readonly ConnectionOp[]): string[] {
+  const ids = applied
+    .filter((op) => CALLER_KINDS[op.environment.kind].needsRedeploy)
+    .map((op) => op.environment.id);
+  return [...new Set(ids)];
+}
+
 export function needsRedeploy(applied: readonly ConnectionOp[]): boolean {
-  return applied.some((op) => CALLER_KINDS[op.environment.kind].needsRedeploy);
+  return redeployEnvironmentIds(applied).length > 0;
 }
 
 export function failureDescription(

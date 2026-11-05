@@ -5,6 +5,7 @@ import {
 } from "@/lib/collections/deploy/deployment-status";
 import { trackSave } from "@/lib/collections/deploy/pending-redeploy";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
+import { ENVIRONMENT_KIND, appEnvironmentsOptions } from "@/lib/queries/environments";
 import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
 import { trpcClient } from "@/lib/trpc/client";
@@ -153,7 +154,17 @@ export function useUpdateApp(projectId: string) {
         success: "App updated",
         error: (err) => getErrorToast(err, "Failed to update app"),
       });
-      await (changes.imageReference ? trackSave(request) : request);
+      const environments = changes.imageReference
+        ? await queryClient
+            .ensureQueryData(appEnvironmentsOptions(projectId, appId))
+            .catch(() => [])
+        : [];
+      await trackSave(
+        request,
+        environments
+          .filter((environment) => environment.kind === ENVIRONMENT_KIND.production)
+          .map((environment) => environment.id),
+      );
     },
     onSuccess: (_data, { appId, changes }) => {
       queryClient.setQueryData<App[]>(queryKeys.apps.list(projectId), (apps) =>

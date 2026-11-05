@@ -1,4 +1,3 @@
-import type { Deployment } from "@/lib/deploy-data";
 import type { V2EnvironmentsUpdateSettingsRequestBody } from "@unkey/api/models/components";
 import { useSyncExternalStore } from "react";
 
@@ -15,10 +14,12 @@ export function appliesOnNextDeploy(body: V2EnvironmentsUpdateSettingsRequestBod
   return Object.keys(body).some((key) => !APPLIES_WITHOUT_REDEPLOY.has(key));
 }
 
+export type RedeployScope = readonly string[];
+
 const saveStore = {
   savedCount: 0,
   dismissedAtCount: 0,
-  target: null as SettingsBannerTarget | null,
+  scope: null as RedeployScope | null,
   listeners: new Set<() => void>(),
   notify() {
     for (const cb of this.listeners) {
@@ -37,40 +38,38 @@ const saveStore = {
   },
 };
 
-export function trackSave<T>(promise: Promise<T>): Promise<T> {
+export function trackSave<T>(promise: Promise<T>, environmentIds: RedeployScope): Promise<T> {
   return promise.then((result) => {
-    showSettingsBanner();
+    showRedeployBanner(environmentIds);
     return result;
   });
 }
 
-type SettingsBannerTarget = {
-  deployment: Pick<Deployment, "id" | "projectId" | "appId" | "environmentId">;
-  environmentSlug: string;
-};
-
-export function showSettingsBanner(target: SettingsBannerTarget | null = null): void {
-  saveStore.target = target;
+export function showRedeployBanner(environmentIds: RedeployScope): void {
+  if (environmentIds.length === 0) {
+    return;
+  }
+  saveStore.scope = [...environmentIds];
   saveStore.savedCount++;
   saveStore.notify();
 }
 
-export function useSettingsBannerTarget(): SettingsBannerTarget | null {
+export function useRedeployScope(): RedeployScope | null {
   return useSyncExternalStore(
     (cb) => saveStore.subscribe(cb),
-    () => saveStore.target,
+    () => saveStore.scope,
   );
 }
 
-export function useSettingsBannerVisible(): boolean {
+export function useRedeployBannerVisible(): boolean {
   return useSyncExternalStore(
     (cb) => saveStore.subscribe(cb),
     () => saveStore.savedCount > saveStore.dismissedAtCount,
   );
 }
 
-export function dismissSettingsBanner(target = saveStore.target): void {
-  if (target === saveStore.target) {
+export function dismissRedeployBanner(scope = saveStore.scope): void {
+  if (scope === saveStore.scope) {
     saveStore.dismiss();
   }
 }
