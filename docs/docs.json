@@ -236,6 +236,7 @@
                   "platform/security/overview",
                   "platform/security/key-storage",
                   "platform/security/github-secret-scanning",
+                  "platform/security/trufflehog-secret-scanning",
                   "platform/security/delete-protection"
                 ]
               },

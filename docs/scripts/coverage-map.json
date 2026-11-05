@@ -667,6 +667,14 @@
       ]
     },
     {
+      "id": "apim.trufflehog-secret-scanning",
+      "product": "api-management",
+      "capability": "TruffleHog secret scanning",
+      "pages": [
+        "platform/security/trufflehog-secret-scanning"
+      ]
+    },
+    {
       "id": "apim.key-recovery",
       "product": "api-management",
       "capability": "key recovery",
