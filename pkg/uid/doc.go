@@ -1,7 +1,8 @@
 // Package uid generates prefixed random identifiers for Unkey resources.
 //
-// The package provides two main functions for generating random strings:
-// [New] for prefixed identifiers and [DNS1035] for DNS-compliant labels.
+// The package provides three main functions for generating random strings:
+// [New] for prefixed identifiers, [DNS1035] for DNS-compliant labels, and [Slug]
+// for readable slugs.
 //
 // # Security
 //
