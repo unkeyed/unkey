@@ -11,85 +11,69 @@ import (
 )
 
 const listPrivateNetworkEnvironmentDeploymentIds = `-- name: ListPrivateNetworkEnvironmentDeploymentIds :many
-SELECT ranked.id, ranked.workspace_id, ranked.project_id, ranked.app_id, ranked.environment_id
-FROM (
-    SELECT
-        candidate.id,
-        candidate.workspace_id,
-        candidate.project_id,
-        candidate.app_id,
-        candidate.environment_id,
-        ROW_NUMBER() OVER (
-            PARTITION BY candidate.app_id, candidate.environment_id, candidate.workspace_id, candidate.project_id
-            ORDER BY candidate.created_at DESC, candidate.id DESC
-        ) AS position
+SELECT
+    e.workspace_id,
+    e.project_id,
+    e.app_id,
+    e.id AS environment_id,
+    newest.id
+FROM environments e
+INNER JOIN deployments newest ON newest.id = (
+    SELECT candidate.id
     FROM deployments candidate FORCE INDEX (app_environment_ready_created_idx)
-    INNER JOIN environments target_env ON target_env.id = candidate.environment_id
-        AND target_env.app_id = candidate.app_id
-    WHERE candidate.app_id IN (/*SLICE:app_ids*/?)
-        AND candidate.environment_id IN (/*SLICE:environment_ids*/?)
+    WHERE candidate.app_id = e.app_id
+        AND candidate.environment_id = e.id
         AND (candidate.first_ready_at IS NOT NULL) = TRUE
-        AND target_env.kind = 'preview'
-) AS ranked
-WHERE ranked.position = 1
+        AND candidate.workspace_id = e.workspace_id
+        AND candidate.project_id = e.project_id
+    ORDER BY candidate.created_at DESC, candidate.id DESC
+    LIMIT 1
+)
+WHERE e.id IN (/*SLICE:environment_ids*/?)
+    AND e.kind = 'preview'
 `
 
-type ListPrivateNetworkEnvironmentDeploymentIdsParams struct {
-	AppIds         []string `db:"app_ids"`
-	EnvironmentIds []string `db:"environment_ids"`
-}
-
 type ListPrivateNetworkEnvironmentDeploymentIdsRow struct {
-	ID            string `db:"id"`
 	WorkspaceID   string `db:"workspace_id"`
 	ProjectID     string `db:"project_id"`
 	AppID         string `db:"app_id"`
 	EnvironmentID string `db:"environment_id"`
+	ID            string `db:"id"`
 }
 
-// ListPrivateNetworkEnvironmentDeploymentIds returns, for each app and
-// environment among the given values, the newest deployment that was ever
-// ready in that environment when it is a preview environment of the app. Rows
-// cover every combination of the given values, so callers keep only the keys
-// they asked for.
+// ListPrivateNetworkEnvironmentDeploymentIds returns, for each given preview
+// environment, the newest deployment that was ever ready in it. Environments
+// without such a deployment have no row. Each environment costs one probe of
+// app_environment_ready_created_idx, so the cost does not grow with history.
 //
-//	SELECT ranked.id, ranked.workspace_id, ranked.project_id, ranked.app_id, ranked.environment_id
-//	FROM (
-//	    SELECT
-//	        candidate.id,
-//	        candidate.workspace_id,
-//	        candidate.project_id,
-//	        candidate.app_id,
-//	        candidate.environment_id,
-//	        ROW_NUMBER() OVER (
-//	            PARTITION BY candidate.app_id, candidate.environment_id, candidate.workspace_id, candidate.project_id
-//	            ORDER BY candidate.created_at DESC, candidate.id DESC
-//	        ) AS position
+//	SELECT
+//	    e.workspace_id,
+//	    e.project_id,
+//	    e.app_id,
+//	    e.id AS environment_id,
+//	    newest.id
+//	FROM environments e
+//	INNER JOIN deployments newest ON newest.id = (
+//	    SELECT candidate.id
 //	    FROM deployments candidate FORCE INDEX (app_environment_ready_created_idx)
-//	    INNER JOIN environments target_env ON target_env.id = candidate.environment_id
-//	        AND target_env.app_id = candidate.app_id
-//	    WHERE candidate.app_id IN (/*SLICE:app_ids*/?)
-//	        AND candidate.environment_id IN (/*SLICE:environment_ids*/?)
+//	    WHERE candidate.app_id = e.app_id
+//	        AND candidate.environment_id = e.id
 //	        AND (candidate.first_ready_at IS NOT NULL) = TRUE
-//	        AND target_env.kind = 'preview'
-//	) AS ranked
-//	WHERE ranked.position = 1
-func (q *Queries) ListPrivateNetworkEnvironmentDeploymentIds(ctx context.Context, arg ListPrivateNetworkEnvironmentDeploymentIdsParams) ([]ListPrivateNetworkEnvironmentDeploymentIdsRow, error) {
+//	        AND candidate.workspace_id = e.workspace_id
+//	        AND candidate.project_id = e.project_id
+//	    ORDER BY candidate.created_at DESC, candidate.id DESC
+//	    LIMIT 1
+//	)
+//	WHERE e.id IN (/*SLICE:environment_ids*/?)
+//	    AND e.kind = 'preview'
+func (q *Queries) ListPrivateNetworkEnvironmentDeploymentIds(ctx context.Context, environmentIds []string) ([]ListPrivateNetworkEnvironmentDeploymentIdsRow, error) {
 	query := listPrivateNetworkEnvironmentDeploymentIds
 	var queryParams []interface{}
-	if len(arg.AppIds) > 0 {
-		for _, v := range arg.AppIds {
+	if len(environmentIds) > 0 {
+		for _, v := range environmentIds {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:app_ids*/?", strings.Repeat(",?", len(arg.AppIds))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:app_ids*/?", "NULL", 1)
-	}
-	if len(arg.EnvironmentIds) > 0 {
-		for _, v := range arg.EnvironmentIds {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:environment_ids*/?", strings.Repeat(",?", len(arg.EnvironmentIds))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:environment_ids*/?", strings.Repeat(",?", len(environmentIds))[1:], 1)
 	} else {
 		query = strings.Replace(query, "/*SLICE:environment_ids*/?", "NULL", 1)
 	}
@@ -102,11 +86,11 @@ func (q *Queries) ListPrivateNetworkEnvironmentDeploymentIds(ctx context.Context
 	for rows.Next() {
 		var i ListPrivateNetworkEnvironmentDeploymentIdsRow
 		if err := rows.Scan(
-			&i.ID,
 			&i.WorkspaceID,
 			&i.ProjectID,
 			&i.AppID,
 			&i.EnvironmentID,
+			&i.ID,
 		); err != nil {
 			return nil, err
 		}

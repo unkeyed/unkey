@@ -2,7 +2,6 @@ package privatenetwork
 
 import (
 	"context"
-	"database/sql"
 	"slices"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -87,6 +86,7 @@ func selectDeployments(ctx context.Context, queries *db.Queries, selections []db
 	deploymentIDs := make([]string, len(selections))
 	previews := make(map[previewKey][]int)
 	environments := make(map[environmentKey][]int)
+	var previewCallers []string
 	for i, selection := range selections {
 		switch selection.SelectionMode {
 		case db.DeploymentConnectionAppTargetsSelectionModeDeployment:
@@ -104,6 +104,7 @@ func selectDeployments(ctx context.Context, queries *db.Queries, selections []db
 					forkKey:     selection.CallerForkKey,
 				}
 				previews[key] = append(previews[key], i)
+				previewCallers = append(previewCallers, selection.CallerDeploymentID)
 			}
 		case db.DeploymentConnectionAppTargetsSelectionModeEnvironment:
 			switch {
@@ -123,14 +124,9 @@ func selectDeployments(ctx context.Context, queries *db.Queries, selections []db
 	}
 
 	if len(previews) > 0 {
-		branches := distinct(previews, func(key previewKey) string { return key.gitBranch })
-		gitBranches := make([]sql.NullString, len(branches))
-		for i, branch := range branches {
-			gitBranches[i] = sql.NullString{String: branch, Valid: true}
-		}
 		rows, err := queries.ListPrivateNetworkPreviewDeploymentIds(ctx, db.ListPrivateNetworkPreviewDeploymentIdsParams{
-			AppIds:      distinct(previews, func(key previewKey) string { return key.appID }),
-			GitBranches: gitBranches,
+			CallerDeploymentIds: slices.Compact(slices.Sorted(slices.Values(previewCallers))),
+			AppIds:              distinct(previews, func(key previewKey) string { return key.appID }),
 		})
 		if err != nil {
 			return nil, err
@@ -148,10 +144,8 @@ func selectDeployments(ctx context.Context, queries *db.Queries, selections []db
 		}
 	}
 	if len(environments) > 0 {
-		rows, err := queries.ListPrivateNetworkEnvironmentDeploymentIds(ctx, db.ListPrivateNetworkEnvironmentDeploymentIdsParams{
-			AppIds:         distinct(environments, func(key environmentKey) string { return key.appID }),
-			EnvironmentIds: distinct(environments, func(key environmentKey) string { return key.environmentID }),
-		})
+		rows, err := queries.ListPrivateNetworkEnvironmentDeploymentIds(ctx,
+			distinct(environments, func(key environmentKey) string { return key.environmentID }))
 		if err != nil {
 			return nil, err
 		}
