@@ -23,6 +23,13 @@ message KeyLeakNotification {
   string url = 5;
   string type = 6;
   string date = 7;
+  KeyLeakReporter reporter = 8;
+}
+
+enum KeyLeakReporter {
+  KEY_LEAK_REPORTER_UNSPECIFIED = 0;
+  KEY_LEAK_REPORTER_GITHUB = 1;
+  KEY_LEAK_REPORTER_TRUFFLEHOG = 2;
 }
 
 message KeyLeakEmailRequest {

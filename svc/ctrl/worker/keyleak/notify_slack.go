@@ -35,13 +35,15 @@ func (s *Service) NotifySlack(ctx restate.Context, req *hydrav1.KeyLeakNotificat
 }
 
 func slackMessage(req *hydrav1.KeyLeakNotification, members string) slack.Payload {
-	title := "Key exposed on GitHub"
+	reporter := reporterOf(req)
+	kind := "Key"
 	switch req.GetType() {
 	case "unkey_root_key":
-		title = "Root key exposed on GitHub"
+		kind = "Root key"
 	case "unkey_key":
-		title = "API key exposed on GitHub"
+		kind = "API key"
 	}
+	title := kind + " " + reporter.finding
 	workspace := slackText(req.GetWorkspaceName())
 	keyID := slackText(req.GetKeyId())
 	source := slackSource(req.GetUrl(), req.GetSource())
@@ -56,7 +58,7 @@ func slackMessage(req *hydrav1.KeyLeakNotification, members string) slack.Payloa
 			),
 			slack.NewMarkdownBlock(members),
 			slack.NewMarkdownBlock("*Source*\n" + source),
-			slack.NewContextBlock(fmt.Sprintf("Reported %s · GitHub %s", slackText(req.GetDate()), slackText(req.GetSource()))),
+			slack.NewContextBlock(fmt.Sprintf("Reported %s · %s %s", slackText(req.GetDate()), reporter.name, slackText(req.GetSource()))),
 			slack.NewMarkdownContextBlock("Organization ID: `" + slackText(req.GetOrgId()) + "`"),
 		},
 	}
