@@ -53,7 +53,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/set
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysSetRolesResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysSetRolesResponseBody)
 			}
 
 			req := components.V2KeysSetRolesRequestBody{
@@ -65,7 +65,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/set
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2KeysSetRolesResponseBody)
+			return util.Output(ctx, cmd, res.V2KeysSetRolesResponseBody)
 		},
 	}
 }

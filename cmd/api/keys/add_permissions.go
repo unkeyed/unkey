@@ -53,7 +53,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/add
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2KeysAddPermissionsResponseBody)
+				return util.Output(ctx, cmd, res.V2KeysAddPermissionsResponseBody)
 			}
 
 			req := components.V2KeysAddPermissionsRequestBody{
@@ -65,7 +65,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/add
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2KeysAddPermissionsResponseBody)
+			return util.Output(ctx, cmd, res.V2KeysAddPermissionsResponseBody)
 		},
 	}
 }

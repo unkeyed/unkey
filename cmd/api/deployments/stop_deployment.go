@@ -36,14 +36,14 @@ func stopDeploymentCmd() *cli.Command {
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsStopDeploymentResponseBody)
+				return util.Output(ctx, cmd, res.V2DeploymentsStopDeploymentResponseBody)
 			}
 			req := components.V2DeploymentsStopDeploymentRequestBody{DeploymentID: cmd.String("deployment-id")}
 			res, err := client.Deployments.StopDeployment(ctx, req)
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DeploymentsStopDeploymentResponseBody)
+			return util.Output(ctx, cmd, res.V2DeploymentsStopDeploymentResponseBody)
 		},
 	}
 }

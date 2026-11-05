@@ -69,8 +69,19 @@ export const FormDescription = ({
 
 export type Requirement = "required" | "optional";
 
+export type LabelActionProps =
+  | {
+      label?: React.ReactNode;
+      labelAction?: never;
+    }
+  | {
+      label: React.ReactNode;
+      labelAction?: React.ReactNode;
+    };
+
 export type FormLabelProps = {
-  label?: string;
+  label?: React.ReactNode;
+  labelAction?: React.ReactNode;
   requirement?: Requirement;
   hasError?: boolean;
   htmlFor: string;
@@ -83,6 +94,7 @@ export const FormLabel = ({
   hasError,
   htmlFor,
   tooltipContent,
+  labelAction,
 }: FormLabelProps) => {
   if (!label) {
     return null;
@@ -103,6 +115,7 @@ export const FormLabel = ({
           </span>
         </InfoTooltip>
       )}
+      {labelAction ? <div className="ml-auto flex h-5 items-center">{labelAction}</div> : null}
     </div>
   );
 };

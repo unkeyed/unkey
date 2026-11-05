@@ -3,12 +3,12 @@
 import { ListTableRow, listTable } from "@/components/list-views";
 import { useNearViewport } from "@/hooks/use-near-viewport";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import type { Project } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
+import type { Project } from "@/lib/queries/projects";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Skeleton } from "@unkey/ui";
+import Link from "next/link";
 import { DeployedAgo } from "../../[projectId]/_components/apps-list/app-source";
-import { warmProjectPage } from "../../[projectId]/_components/apps-list/queries";
 import {
   type WarmHandlers,
   useWarmAppPage,
@@ -33,17 +33,16 @@ type ProjectItemProps = { project: Project; name: string };
 function useProjectListItem(project: Project, nearViewport: boolean) {
   const { apps, isLoading } = useProjectCard(project.id, { nearViewport });
   const { warmApp, cancelWarm } = useWarmAppPage();
-  const warmProjectAndOnlyApp = () => {
-    warmProjectPage(project.id);
+  const warmOnlyApp = () => {
     const onlyApp = apps.length === 1 ? apps[0] : undefined;
     if (onlyApp) {
       warmApp(project.id, onlyApp.id);
     }
   };
   const warm: WarmHandlers = {
-    onPointerEnter: warmProjectAndOnlyApp,
+    onPointerEnter: warmOnlyApp,
     onPointerLeave: cancelWarm,
-    onFocusCapture: warmProjectAndOnlyApp,
+    onFocusCapture: warmOnlyApp,
   };
 
   return { apps, isLoading, warm };
@@ -75,8 +74,12 @@ export function ProjectRowItem({ project, name }: ProjectItemProps) {
     <ListTableRow
       ref={ref}
       table={PROJECT_TABLE}
-      href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId: project.id })}
       label={`View ${name} project`}
+      link={
+        <Link
+          href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId: project.id })}
+        />
+      }
       {...warm}
       cells={{
         project: (

@@ -66,7 +66,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	case errors.Is(err, util.ErrNoCredentials):
 		status.Credential = "none"
 		status.Authentication = "missing"
-		return errors.Join(write(cmd, status), err)
+		return errors.Join(write(ctx, cmd, status), err)
 	case err != nil && cred.Source == util.SourceSession:
 		err = fmt.Errorf("could not refresh the browser session: %w", err)
 	case err != nil:
@@ -76,7 +76,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	case cred.Source != util.SourceSession:
 		status.Authentication = "unchecked"
 		status.Detail = "The API cannot confirm a root key or report its workspace without a resource permission."
-		return write(cmd, status)
+		return write(ctx, cmd, status)
 	default:
 		status.UserID, err = verifySession(ctx, cred)
 	}
@@ -88,13 +88,13 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		if errors.As(err, &response) && response.StatusCode == http.StatusUnauthorized {
 			err = errors.New("the browser session no longer works. Run 'unkey login' to sign in again")
 		}
-		return errors.Join(write(cmd, status), err)
+		return errors.Join(write(ctx, cmd, status), err)
 	}
 	status.Authentication = "verified"
 	if status.UserID == "" {
 		status.Detail = "The API accepted the session but did not list it, so the user is unknown."
 	}
-	return write(cmd, status)
+	return write(ctx, cmd, status)
 }
 
 // verifySession lists CLI sessions because it is the only endpoint a CLI
@@ -120,8 +120,8 @@ func verifySession(ctx context.Context, cred util.ResolvedCredential) (string, e
 	return "", nil
 }
 
-func write(cmd *cli.Command, status report) error {
-	return util.Output(cmd, struct {
+func write(ctx context.Context, cmd *cli.Command, status report) error {
+	return util.Output(ctx, cmd, struct {
 		Data report `json:"data"`
 	}{Data: status})
 }

@@ -130,8 +130,15 @@ func run(ctx context.Context, opts options) error {
 		return fmt.Errorf("could not store the CLI session, so it was revoked: %w", err)
 	}
 
+	if path, ok := session.FileInUse(); ok {
+		warnUnencrypted("CLI session", path)
+	}
 	fmt.Println("Signed in.")
 	return nil
+}
+
+func warnUnencrypted(secret, path string) {
+	fmt.Fprintf(os.Stderr, "Warning: the system keychain is unavailable, so the %s is stored unencrypted in %s. Only your user can read the file. See https://www.unkey.com/docs/platform/cli/login#where-credentials-are-stored\n", secret, path)
 }
 
 func openBrowser(url string) error {
@@ -186,9 +193,12 @@ func storeRootKey(keys credentials.RootKeyStore, key string) error {
 		keys = credentials.DefaultRootKeyStore()
 	}
 
-	_, err := credentials.StoreRootKey(keys, key)
+	location, err := credentials.StoreRootKey(keys, key)
 	if err != nil {
 		return fmt.Errorf("failed to store root key: %w", err)
+	}
+	if location != credentials.KeychainLocation {
+		warnUnencrypted("root key", location)
 	}
 	fmt.Println("Root key saved.")
 	return nil

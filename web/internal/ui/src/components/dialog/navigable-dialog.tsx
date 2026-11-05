@@ -73,10 +73,7 @@ const NavigableDialogRoot = <TStepName extends string>({
               }
               e.stopPropagation();
             }}
-            className={cn(
-              "overflow-hidden rounded-2xl! p-0 gap-0 flex flex-col max-h-[90vh]",
-              dialogClassName,
-            )}
+            className={cn("overflow-hidden p-0 gap-0 flex flex-col max-h-[90vh]", dialogClassName)}
             initialFocus={preventAutoFocus ? false : undefined}
           >
             {children}

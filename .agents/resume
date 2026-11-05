@@ -15,11 +15,7 @@ log=$HOME/.cache/amp/logs/resume-docker.log
 mkdir -p -- "$(dirname -- "$log")"
 setsid -f bash -c '
   set -euo pipefail
-  if [[ -x /opt/orb-worker/docker-start.sh ]]; then
-    sudo bash /opt/orb-worker/docker-start.sh
-  else
-    sudo systemctl start docker
-  fi
+  "$1/dev/orb/start-docker.sh"
   sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
   if [[ -x /opt/orb-worker/docker-start.sh ]]; then
     bash "$1/dev/orb/resume.sh"

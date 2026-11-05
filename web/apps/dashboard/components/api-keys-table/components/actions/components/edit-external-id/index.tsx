@@ -74,8 +74,8 @@ export const EditExternalId = ({
                 <Button
                   type="button"
                   variant="primary"
-                  size="xlg"
-                  className="rounded-lg flex-1"
+                  size="md"
+                  className="flex-1"
                   loading={updateExternalId.isLoading}
                   onClick={handleSubmit}
                 >
@@ -86,8 +86,8 @@ export const EditExternalId = ({
                   type="button"
                   variant="primary"
                   color="danger"
-                  size="xlg"
-                  className="rounded-lg flex-1"
+                  size="md"
+                  className="flex-1"
                   loading={updateExternalId.isLoading}
                   onClick={handleClearButtonClick}
                   ref={clearButtonRef}
@@ -95,18 +95,11 @@ export const EditExternalId = ({
                   Clear External ID
                 </Button>
               ) : (
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="xlg"
-                  className="rounded-lg flex-1"
-                  disabled
-                >
+                <Button type="button" variant="primary" size="md" className="flex-1" disabled>
                   Update External ID
                 </Button>
               )}
             </div>
-            <div className="text-gray-9 text-xs">Changes will be applied immediately</div>
           </div>
         }
       >

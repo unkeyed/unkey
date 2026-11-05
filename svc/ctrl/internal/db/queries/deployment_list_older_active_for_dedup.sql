@@ -17,6 +17,11 @@ FROM deployments older
 WHERE older.app_id = sqlc.arg('app_id')
   AND older.environment_id = sqlc.arg('environment_id')
   AND older.git_branch = sqlc.arg('git_branch')
+  AND older.fork_repository_full_name <=> (
+    SELECT src.fork_repository_full_name
+    FROM deployments src
+    WHERE src.id = sqlc.arg('deployment_id')
+  )
   AND older.status IN ('pending', 'awaiting_approval')
   AND older.created_at < (
     SELECT src.created_at

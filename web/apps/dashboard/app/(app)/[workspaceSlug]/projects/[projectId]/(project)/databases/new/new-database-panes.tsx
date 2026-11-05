@@ -1,8 +1,8 @@
 "use client";
 
 import { PaneSubmit } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/_components/flow/pane-actions";
-import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
-import { IconCircleInfoOutline12, IconPenWriting3Outline18, Mysql, Postgres } from "@unkey/icons";
+import type { EnvironmentKind } from "@/lib/queries/environments";
+import { IconCircleInfoOutline12, IconPenWriting3Outline18 } from "@unkey/icons";
 import {
   Alert,
   AlertDescription,
@@ -15,7 +15,7 @@ import {
   RadioGroup,
   RadioOption,
 } from "@unkey/ui";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import {
   CLUSTERS,
   type Cluster,
@@ -31,6 +31,7 @@ import {
   sizeSpec,
   skusFor,
 } from "../database-model";
+import { engineIcon } from "../engine-icon";
 import {
   type DatabaseConfig,
   type EnvironmentPlan,
@@ -42,11 +43,6 @@ import {
 import { EnvironmentHeading, PickerField, Price } from "./fields";
 import { PreviewItem } from "./preview-item";
 import { ReviewNote, ReviewSummary } from "./review";
-
-const engineIcon: Record<Engine, ReactNode> = {
-  postgres: <Postgres className="size-4 text-info-11" />,
-  mysql: <Mysql className="size-4" />,
-};
 
 const clusterNote: Record<Engine, string | undefined> = {
   postgres: undefined,
@@ -86,15 +82,18 @@ export function ConfigurePane({
             onValueChange={(engine) => onChange({ ...config, engine })}
             className="sm:grid-cols-2"
           >
-            {ENGINES.map((id) => (
-              <RadioCard
-                key={id}
-                value={id}
-                icon={engineIcon[id]}
-                title={engineCopy[id].title}
-                description={engineCopy[id].description}
-              />
-            ))}
+            {ENGINES.map((id) => {
+              const Icon = engineIcon[id];
+              return (
+                <RadioCard
+                  key={id}
+                  value={id}
+                  icon={<Icon className="size-4" />}
+                  title={engineCopy[id].title}
+                  description={engineCopy[id].description}
+                />
+              );
+            })}
           </RadioGroup>
         )}
       </FormField>

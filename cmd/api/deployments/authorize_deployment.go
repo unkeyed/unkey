@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/compute/cli/deployments/a
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsAuthorizeDeploymentResponseBody)
+				return util.Output(ctx, cmd, res.V2DeploymentsAuthorizeDeploymentResponseBody)
 			}
 
 			req := components.V2DeploymentsAuthorizeDeploymentRequestBody{
@@ -58,7 +58,7 @@ For full documentation, see https://www.unkey.com/docs/compute/cli/deployments/a
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2DeploymentsAuthorizeDeploymentResponseBody)
+			return util.Output(ctx, cmd, res.V2DeploymentsAuthorizeDeploymentResponseBody)
 		},
 	}
 }

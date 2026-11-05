@@ -21,7 +21,7 @@ func TestFindVerifiedDomainClaimExcludingWorkspace(t *testing.T) {
 
 	ctx := context.Background()
 	// Isolated so the schema is applied fresh, including portal_domains.
-	mysqlCfg := containers.MySQLIsolated(t)
+	mysqlCfg := containers.MySQLLogicalIsolated(t)
 	database, err := New(mysqlCfg.DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

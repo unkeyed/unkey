@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -97,9 +98,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ovrID = override.ID
 		}
 
-		txErr = principal.Authorize(rbac.Or(
+		namespaceURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(nsRow.ProjectID).RatelimitNamespace(nsRow.ID)
+		permissionQuery := rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(nsRow.ProjectID).RatelimitNamespace(nsRow.ID).Override(ovrID),
+				namespaceURN.Override(ovrID),
 				permissions.Write,
 			),
 			rbac.T(rbac.Tuple{
@@ -112,9 +114,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   "*",
 				Action:       rbac.SetOverride,
 			}),
-		))
+		)
+		txErr = principal.Authorize(permissionQuery)
 		if txErr != nil {
-			return zero, txErr
+			return zero, apierrors.MaskInsufficientPermissionsWithVisibility(
+				txErr,
+				principal.Permissions,
+				permissionQuery,
+				rbac.U(namespaceURN, permissions.Read),
+				codes.Data.RatelimitNamespace.NotFound.URN(),
+				"This namespace does not exist.",
+			)
 		}
 
 		now := time.Now().UnixMilli()

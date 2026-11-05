@@ -49,7 +49,7 @@ For full documentation, see https://www.unkey.com/docs/api-management/cli/rateli
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2RatelimitListNamespacesResponseBody)
+				return util.Output(ctx, cmd, res.V2RatelimitListNamespacesResponseBody)
 			}
 
 			req := components.V2RatelimitListNamespacesRequestBody{
@@ -71,7 +71,7 @@ For full documentation, see https://www.unkey.com/docs/api-management/cli/rateli
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2RatelimitListNamespacesResponseBody)
+			return util.Output(ctx, cmd, res.V2RatelimitListNamespacesResponseBody)
 		},
 	}
 }

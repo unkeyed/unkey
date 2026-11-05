@@ -1,5 +1,5 @@
-import type { ProjectApp } from "@/lib/collections/deploy/project-cards";
 import { plural } from "@/lib/fmt";
+import type { ProjectApp } from "@/lib/queries/apps";
 
 export type ProjectSummary = {
   appsByRecency: ProjectApp[];

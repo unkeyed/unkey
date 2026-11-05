@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2PermissionsCreatePermissionResponseBody)
+				return util.Output(ctx, cmd, res.V2PermissionsCreatePermissionResponseBody)
 			}
 
 			req := components.V2PermissionsCreatePermissionRequestBody{
@@ -65,7 +65,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2PermissionsCreatePermissionResponseBody)
+			return util.Output(ctx, cmd, res.V2PermissionsCreatePermissionResponseBody)
 		},
 	}
 }

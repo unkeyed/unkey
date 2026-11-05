@@ -7,11 +7,12 @@ import {
 import { createCollection } from "@tanstack/react-db";
 
 import { plural } from "@/lib/fmt";
+import { trpcClient } from "@/lib/trpc/client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
+import { queryClient } from "../client";
 import { cachedAppEnvironmentIds } from "./app-environments";
 import { trackSave } from "./pending-redeploy";
 import { extractStringFilter } from "./utils";
@@ -93,7 +94,7 @@ export const envVars = createCollection<EnvVar, string, QueryCollectionUtils<Env
             : envVarErrorToast(err, "Failed to update environment variable"),
       });
 
-      await trackSave(mutation);
+      await trackSave(mutation, [modified.environmentId]);
     },
     onDelete: async ({ transaction }) => {
       const originals = transaction.mutations.map((m) => m.original);
@@ -112,7 +113,7 @@ export const envVars = createCollection<EnvVar, string, QueryCollectionUtils<Env
           envVarErrorToast(err, `Failed to delete ${plural(count, "environment variable")}`),
       });
 
-      await trackSave(mutation);
+      await trackSave(mutation, [...new Set(originals.map((v) => v.environmentId))]);
     },
   }),
 );
@@ -260,20 +261,23 @@ async function writeEnvironments(
   environmentIds: string[],
   write: (environmentId: string, sent: () => void) => Promise<void>,
 ): Promise<void> {
-  let wroteAny = false;
+  const writtenEnvironmentIds = new Set<string>();
   const writes = await Promise.allSettled(
     environmentIds.map((environmentId) =>
       write(environmentId, () => {
-        wroteAny = true;
+        writtenEnvironmentIds.add(environmentId);
       }),
     ),
   );
   const failed = writes.find((w): w is PromiseRejectedResult => w.status === "rejected");
-  if (failed && !wroteAny) {
+  if (failed && writtenEnvironmentIds.size === 0) {
     await envVars.utils.refetch().catch(() => {});
     throw failed.reason;
   }
-  await trackSave(envVars.utils.refetch().catch(() => {}));
+  await trackSave(
+    envVars.utils.refetch().catch(() => {}),
+    [...writtenEnvironmentIds],
+  );
   if (failed) {
     const savedEnvironmentIds = environmentIds.filter((_, i) => writes[i].status === "fulfilled");
     throw new PartialAddError(savedEnvironmentIds, failed.reason);

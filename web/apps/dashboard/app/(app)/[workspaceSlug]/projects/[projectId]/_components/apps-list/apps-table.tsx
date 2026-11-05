@@ -5,6 +5,7 @@ import { ListTableRow, listTable } from "@/components/list-views";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { InfoTooltip, badgeVariants } from "@unkey/ui";
 import { cn } from "cn";
+import Link from "next/link";
 import type { AppRowData } from "./app-row-model";
 import { AppActionsButton, DeployedAgo, LinkOrText, SourceLabel } from "./app-source";
 
@@ -33,8 +34,8 @@ export function AppsTableRow({
   return (
     <ListTableRow
       table={APPS_TABLE}
-      href={row.href}
       label={`View ${app.name}`}
+      link={<Link href={row.href} />}
       {...warm}
       cells={{
         app: (

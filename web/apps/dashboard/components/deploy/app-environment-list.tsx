@@ -1,6 +1,6 @@
 "use client";
 
-import type { Environment } from "@/lib/collections/deploy/environments";
+import type { Environment } from "@/lib/queries/environments";
 import { IconCloudOutline18, IconEyeOutline18 } from "@unkey/icons";
 import { Checkbox, Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";

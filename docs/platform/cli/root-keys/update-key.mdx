@@ -24,7 +24,7 @@ Use `rootKeys/*#write` to update any root key in the workspace.
 in the authenticated workspace and within the caller's permissions.
 An expiring root key can only update root keys that expire no later than itself.
 
-Provide at least one of `--name`, `--enabled`, or `--permissions`. Omitted fields stay unchanged. An empty `--permissions=` removes all permissions. Use `--body` with `name: null` to remove the name.
+Provide at least one of `--name`, `--enabled`, `--permissions`, or `--ip-allowlist`. Omitted fields stay unchanged. An empty `--permissions=` removes all permissions. An empty `--ip-allowlist=` removes the network restriction. Use `--body` with `name: null` to remove the name.
 
 ## Usage
 
@@ -36,6 +36,10 @@ unkey root-keys update --key-id=<key-id> [flags]
 
 <ParamField body="--enabled" type="boolean">
   Whether the root key can authenticate. Omit to keep the current state.
+</ParamField>
+
+<ParamField body="--ip-allowlist" type="string[]">
+  Replacement IPv4 or IPv6 addresses and CIDR ranges. Omit to keep the current list. Pass comma-separated values. Pass `--ip-allowlist=` for unrestricted access. A restricted root-key caller can expand the target's list only within the caller's allowed networks and cannot send an empty list.
 </ParamField>
 
 <ParamField body="--key-id" type="string" required>

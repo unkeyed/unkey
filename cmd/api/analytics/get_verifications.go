@@ -40,7 +40,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/analytic
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AnalyticsGetVerificationsResponseBody)
+				return util.Output(ctx, cmd, res.V2AnalyticsGetVerificationsResponseBody)
 			}
 
 			res, err := client.Analytics.GetVerifications(ctx, components.V2AnalyticsGetVerificationsRequestBody{
@@ -49,7 +49,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/analytic
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AnalyticsGetVerificationsResponseBody)
+			return util.Output(ctx, cmd, res.V2AnalyticsGetVerificationsResponseBody)
 		},
 	}
 }

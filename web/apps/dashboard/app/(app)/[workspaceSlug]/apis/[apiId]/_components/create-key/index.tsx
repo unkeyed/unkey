@@ -183,21 +183,18 @@ export const CreateKeyDialog = ({
             </NavigableDialogBody>
             <NavigableDialogFooter>
               <div className="flex justify-center items-center w-full">
-                <div className="flex flex-col items-center justify-center w-2/3 gap-2">
+                <div className="flex flex-col items-center justify-center w-full gap-2">
                   <Button
                     type="submit"
                     form="new-key-form"
                     variant="primary"
-                    size="xlg"
-                    className="w-full rounded-lg"
+                    size="md"
+                    className="w-full"
                     disabled={!formState.isValid}
                     loading={key.isLoading}
                   >
                     Create key
                   </Button>
-                  <div className="text-xs text-gray-9">
-                    This key will be created immediately and ready-to-use right away
-                  </div>
                 </div>
               </div>
             </NavigableDialogFooter>

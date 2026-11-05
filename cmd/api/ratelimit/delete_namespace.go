@@ -48,7 +48,7 @@ For full documentation, see https://www.unkey.com/docs/api-management/cli/rateli
 				return err
 			}
 			question := fmt.Sprintf("Delete rate limit namespace %q and all of its overrides? Its name cannot be reused.", req.Namespace)
-			if err := util.Confirm(cmd, question); err != nil {
+			if err := util.Confirm(ctx, cmd, question); err != nil {
 				return err
 			}
 
@@ -56,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-management/cli/rateli
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2RatelimitDeleteNamespaceResponseBody)
+			return util.Output(ctx, cmd, res.V2RatelimitDeleteNamespaceResponseBody)
 		},
 	}
 }

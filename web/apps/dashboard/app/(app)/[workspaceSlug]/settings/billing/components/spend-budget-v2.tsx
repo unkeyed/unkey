@@ -81,7 +81,7 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
       title="Compute spend budget"
       subTitle="Applies to usage spend per calendar month."
       footer={
-        <div className="flex w-full items-center justify-between gap-4">
+        <div className="flex w-full items-center justify-end gap-2">
           {hasBudget ? (
             <Button
               type="button"
@@ -93,14 +93,11 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
             >
               Remove budget
             </Button>
-          ) : (
-            <span />
-          )}
+          ) : null}
           <Button
             type="button"
             variant="primary"
-            size="xlg"
-            className="rounded-lg px-8"
+            size="md"
             disabled={invalid}
             loading={save.isLoading}
             onClick={() => {

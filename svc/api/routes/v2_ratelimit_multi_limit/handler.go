@@ -38,6 +38,7 @@ type (
 type Handler struct {
 	DB              db.Database
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
+	AuditLogBuffer  *batch.BatchProcessor[auditlog.Event]
 	Ratelimit       ratelimit.Service
 	NamespaceCache  cache.Cache[cache.ScopedKey, db.FindRatelimitNamespace]
 	Auditlogs       auditlogs.AuditLogService
@@ -178,7 +179,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		// Apply override if found, otherwise use request values
-		limit, duration, overrideID, matchErr := getLimitAndDuration(check, ns)
+		limit, duration, override, matchErr := getLimitAndDuration(check, ns)
 		if matchErr != nil {
 			return fault.Wrap(matchErr,
 				fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -200,9 +201,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		checkMetadata[i] = checkMeta{
 			namespaceName: check.Namespace,
-			namespaceID:   ns.ID,
+			namespace:     ns,
 			identifier:    check.Identifier,
-			overrideID:    overrideID,
+			override:      override,
 			limit:         limit,
 			cost:          cost,
 		}
@@ -229,11 +230,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RequestID:   s.RequestID(),
 				WorkspaceID: principal.AuthorizedWorkspaceID,
 				Time:        startMillis,
-				NamespaceID: meta.namespaceID,
+				NamespaceID: meta.namespace.ID,
 				Identifier:  meta.identifier,
 				Passed:      result.Success,
 				Latency:     float64(latency) / float64(len(results)),
-				OverrideID:  meta.overrideID,
+				OverrideID:  meta.override.ID,
 				Limit:       uint64(result.Limit),
 				Remaining:   uint64(result.Remaining),
 				ResetAt:     result.Reset.UnixMilli(),
@@ -241,6 +242,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			})
 		}
 	}
+
+	h.bufferAuditLogs(s, principal, checkMetadata, time.Now().UnixMilli())
 
 	// Build response and calculate overall success
 	limits := make([]openapi.V2RatelimitMultiLimitCheck, len(results))
@@ -254,7 +257,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:      meta.limit,
 			Remaining:  result.Remaining,
 			Reset:      result.Reset.UnixMilli(),
-			OverrideId: meta.overrideID,
+			OverrideId: meta.override.ID,
 		}
 
 		if !result.Success {
@@ -271,6 +274,60 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limits: limits,
 		},
 	})
+}
+
+// bufferAuditLogs keeps MySQL out of the high-volume rate limit path by sending
+// one action per check to the direct ClickHouse buffer.
+func (h *Handler) bufferAuditLogs(
+	s *zen.Session,
+	p *principal.Principal,
+	checks []checkMeta,
+	timeMillis int64,
+) {
+	if p.Subject.Type != principal.SubjectTypeRootKey {
+		return
+	}
+
+	correlationID := auditlog.NewCorrelationID()
+	for _, check := range checks {
+		targets := []auditlog.EventTarget{
+			{
+				Type: string(auditlog.RatelimitNamespaceTargetType),
+				ID:   check.namespace.ID,
+				Name: check.namespace.Name,
+				Meta: nil,
+			},
+		}
+		if check.override.ID != "" {
+			targets = append(targets, auditlog.EventTarget{
+				Type: string(auditlog.RatelimitOverrideTargetType),
+				ID:   check.override.ID,
+				Name: check.override.Identifier,
+				Meta: nil,
+			})
+		}
+
+		h.AuditLogBuffer.Buffer(auditlog.Event{
+			EventID:     uid.New(uid.AuditLogPrefix),
+			Time:        timeMillis,
+			WorkspaceID: p.AuthorizedWorkspaceID,
+			Bucket:      auditlog.BucketUnkeyMutations,
+			Source:      auditlog.EventSourcePlatform,
+			Event:       string(auditlog.RatelimitLimitEvent),
+			Description: "Applied rate limit to namespace " + check.namespace.ID,
+			Actor: auditlog.EventActor{
+				Type: string(p.Subject.Type),
+				ID:   p.Subject.ID,
+				Name: p.Subject.Name,
+				Meta: nil,
+			},
+			RemoteIP:      s.Location(),
+			UserAgent:     s.UserAgent(),
+			Meta:          nil,
+			Targets:       targets,
+			CorrelationID: correlationID,
+		})
+	}
 }
 
 func (h *Handler) getNamespaces(ctx context.Context, workspaceID string, names []string) (map[string]db.FindRatelimitNamespace, []string, error) {
@@ -447,24 +504,27 @@ func (h *Handler) createNamespaces(ctx context.Context, s *zen.Session, principa
 
 type checkMeta struct {
 	namespaceName string
-	namespaceID   string
+	namespace     db.FindRatelimitNamespace
 	identifier    string
-	overrideID    string
+	override      db.FindRatelimitNamespaceLimitOverride
 	limit         int64
 	cost          int64
 }
 
-func getLimitAndDuration(check openapi.V2RatelimitLimitRequestBody, namespace db.FindRatelimitNamespace) (int64, int64, string, error) {
+func getLimitAndDuration(
+	check openapi.V2RatelimitLimitRequestBody,
+	namespace db.FindRatelimitNamespace,
+) (int64, int64, db.FindRatelimitNamespaceLimitOverride, error) {
 	override, found, err := matchOverride(check.Identifier, namespace)
 	if err != nil {
-		return 0, 0, "", err
+		return 0, 0, override, err
 	}
 
 	if found {
-		return override.Limit, override.Duration, override.ID, nil
+		return override.Limit, override.Duration, override, nil
 	}
 
-	return check.Limit, check.Duration, "", nil
+	return check.Limit, check.Duration, override, nil
 }
 
 func matchOverride(identifier string, namespace db.FindRatelimitNamespace) (db.FindRatelimitNamespaceLimitOverride, bool, error) {

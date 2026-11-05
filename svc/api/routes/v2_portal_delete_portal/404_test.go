@@ -6,7 +6,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_delete_portal"
 )
@@ -16,7 +19,7 @@ import (
 // workspace the caller cannot see.
 func TestDeletePortalMasksEveryMiss(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, "portal.*.delete_portal")
+	route, headers := newRoute(t, h, rbac.U(urn.V1{WorkspaceID: h.Resources().UserWorkspace.ID, Resource: "**"}, permissions.Delete).Value)
 	workspace := h.Resources().UserWorkspace
 
 	// A control case, so the misses below cannot be masking a broken handler. Its
@@ -71,7 +74,7 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 	require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, ""))
 
-	deniedKey := h.CreateRootKey(workspace.ID, "portal.*.read_portal")
+	deniedKey := h.CreateRootKey(workspace.ID)
 	denied := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(deniedKey), request(stored.ID))
 	require.Equal(t, http.StatusNotFound, denied.Status,
 		"a denial must be masked, received: %s", denied.RawBody)
@@ -81,7 +84,7 @@ func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, "portal.delete"),
 		"a denied delete must not write an audit entry")
 
-	allowedKey := h.CreateRootKey(workspace.ID, "portal.*.delete_portal")
+	allowedKey := h.CreateRootKey(workspace.ID, rbac.U(urn.V1{WorkspaceID: workspace.ID, Resource: "**"}, permissions.Delete).Value)
 	absent := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(allowedKey),
 		request(uid.New(uid.PortalPrefix)))
 	require.Equal(t, http.StatusNotFound, absent.Status,

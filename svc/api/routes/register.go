@@ -256,6 +256,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2RatelimitMultiLimit.Handler{
 			DB:              svc.Database,
 			RatelimitEvents: svc.RatelimitEvents,
+			AuditLogBuffer:  svc.AuditLogBuffer,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,

@@ -58,6 +58,7 @@ function linkOf(
 const SEED_LINKS = [
   { org: "acme", name: "main", preview: "dev" },
   { org: "acme", name: "analytics", preview: "main" },
+  { org: "acme", name: "billing", preview: "dev" },
 ];
 
 function seed(): DatabaseLink[] {
@@ -87,16 +88,37 @@ export function useDatabases(projectId: string): Database[] | undefined {
     () => undefined,
   );
   const planetscale = usePlanetscaleStore();
-  return useMemo(
-    () =>
-      links?.map((link) => {
-        const db = planetscale?.databases.find(
-          (d) => d.org === link.planetscale.org && d.name === link.name,
-        );
-        return { ...link, status: db?.state ?? "ready" };
-      }),
-    [links, planetscale],
-  );
+  return useMemo(() => {
+    if (!links || !planetscale) {
+      return undefined;
+    }
+    return links.map((link): Database => {
+      const db = planetscale.databases.find(
+        (d) => d.org === link.planetscale.org && d.name === link.name,
+      );
+      if (!db) {
+        throw new Error(`${link.planetscale.org} has no database named ${link.name}.`);
+      }
+      return match(db.state)
+        .with("provisioning", (): Database => ({ ...link, status: "provisioning" }))
+        .with(
+          "ready",
+          (): Database => ({
+            ...link,
+            status: "ready",
+            instance: {
+              branchCount: db.branches.length,
+              tableCount: db.tableCount,
+              schemaUpdatedAt: db.schemaUpdatedAt,
+              lastBackupAt: db.lastBackupAt,
+              maintenanceAt: db.maintenanceAt,
+              vitals: db.vitals,
+            },
+          }),
+        )
+        .exhaustive();
+    });
+  }, [links, planetscale]);
 }
 
 export function linkDatabase(projectId: string, input: CreateDatabaseInput): DatabaseLink {

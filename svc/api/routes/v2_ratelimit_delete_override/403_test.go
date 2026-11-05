@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
 )
@@ -20,12 +21,19 @@ import (
 func TestDeleteOverrideMasksUnauthorizedResources(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
+	projectID := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: h.Resources().UserWorkspace.ID,
+		Name:        "Override authorization",
+		Slug:        uid.New(uid.TestPrefix),
+	}).ID
 
 	// Create a namespace in the default workspace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: h.Resources().UserWorkspace.ID, // Use the default workspace
+		ProjectID:   projectID,
 		Name:        uid.New("test"),
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -64,6 +72,31 @@ func TestDeleteOverrideMasksUnauthorizedResources(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
 	require.Equal(t, "Resource does not exist.", res.Body.Error.Detail)
+
+	for _, namespace := range []string{namespaceID, uid.New(uid.RatelimitNamespacePrefix), uid.New("namespace")} {
+		missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+		}, handler.Request{
+			Namespace:  namespace,
+			Identifier: "absent-identifier",
+		})
+		require.Equal(t, res.Status, missing.Status)
+		require.Equal(t, res.Body.Error, missing.Body.Error)
+	}
+
+	readerKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/%s#read", h.Resources().UserWorkspace.ID, projectID, namespaceID, overrideID),
+	)
+	readable := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {"Bearer " + readerKey},
+	}, handler.Request{
+		Namespace:  namespaceID,
+		Identifier: identifier,
+	})
+	require.Equal(t, http.StatusForbidden, readable.Status, readable.RawBody)
+	require.Contains(t, readable.Body.Error.Detail, "#delete")
 
 	// Create a different workspace and key for testing cross-workspace access
 	differentWorkspace := h.CreateWorkspace()

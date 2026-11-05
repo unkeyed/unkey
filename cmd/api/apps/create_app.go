@@ -57,7 +57,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/create
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2AppsCreateAppResponseBody)
+				return util.Output(ctx, cmd, res.V2AppsCreateAppResponseBody)
 			}
 			project := cmd.String("project")
 			name := cmd.String("name")
@@ -92,7 +92,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/create
 			if err != nil {
 				return err
 			}
-			return util.Output(cmd, res.V2AppsCreateAppResponseBody)
+			return util.Output(ctx, cmd, res.V2AppsCreateAppResponseBody)
 		},
 	}
 }

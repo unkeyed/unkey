@@ -7,8 +7,10 @@ import {
   expandDeploymentStatusGroups,
   isDeploymentSettling,
 } from "@/lib/collections/deploy/deployment-status";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
+import type { RedeployScope } from "@/lib/collections/deploy/pending-redeploy";
 import { type Deployment, withDeploymentDetails } from "@/lib/deploy-data/deployment";
+import { ENVIRONMENT_KIND, type Environment, productionFirst } from "@/lib/queries/environments";
+import { DEPLOY_DATA_STALE_MS } from "@/lib/queries/stale-time";
 import { queryKeys } from "@/lib/query-keys";
 import { getUnkeyClient } from "@/lib/unkey-client";
 import {
@@ -16,6 +18,7 @@ import {
   type QueryClient,
   type UseQueryResult,
   useInfiniteQuery,
+  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
@@ -94,7 +97,38 @@ export function useCurrentDeployment({
     isLoading: app.isLoading || deployment.isLoading,
     isError: app.isError || deployment.isError,
     error: app.error ?? deployment.error,
+    refetch: app.isError ? app.refetch : deployment.refetch,
   };
+}
+
+export type RedeployTarget = { environment: Environment; deployment: Deployment };
+
+export function useRedeployTargets(scope: RedeployScope | null): RedeployTarget[] | undefined {
+  const { projectId, appId } = useAppScope();
+  const queryClient = useQueryClient();
+  const environments = useEnvironments().data;
+  const scoped = productionFirst(
+    (environments ?? []).filter((environment) => scope?.includes(environment.id)),
+  );
+  const production = scoped.find((environment) => environment.kind === ENVIRONMENT_KIND.production);
+  const others = scoped.filter((environment) => environment !== production);
+  const live = useCurrentDeployment({ enabled: production !== undefined });
+  const newest = useQueries({
+    queries: others.map((environment) =>
+      recentDeploymentsOptions(queryClient, projectId, appId, environment.id, 1),
+    ),
+  });
+  const liveLoading = production !== undefined && live.data === undefined && !live.isError;
+  if (environments === undefined || liveLoading || newest.some((query) => query.isLoading)) {
+    return undefined;
+  }
+  const deployments = new Map(
+    others.map((environment, i) => [environment.id, newest[i].data?.[0]]),
+  );
+  return scoped.flatMap((environment) => {
+    const deployment = environment === production ? live.data : deployments.get(environment.id);
+    return deployment ? [{ environment, deployment }] : [];
+  });
 }
 
 // The newest deployments of the scope, skipped pushes left out
@@ -157,7 +191,7 @@ export function deploymentDetailOptions(
 ) {
   return {
     queryKey: queryKeys.deployments.detail(projectId, deploymentId),
-    staleTime: STALE_MS,
+    staleTime: DEPLOY_DATA_STALE_MS,
     retry: 3,
     queryFn: async ({ signal }: { signal?: AbortSignal }): Promise<Deployment | null> => {
       let row: Awaited<
@@ -188,7 +222,7 @@ export function recentDeploymentsOptions(
 ) {
   return {
     queryKey: queryKeys.deployments.recent(projectId, appId, environmentId, limit),
-    staleTime: STALE_MS,
+    staleTime: DEPLOY_DATA_STALE_MS,
     retry: 3,
     queryFn: async ({ signal }: { signal?: AbortSignal }): Promise<Deployment[]> => {
       const { data } = await listDeployments(signal, {
@@ -204,9 +238,6 @@ export function recentDeploymentsOptions(
 }
 
 const PAGE_SIZE = 25;
-
-// Matches the client the collections use, so a revisit within it reads the cache
-const STALE_MS = 30_000;
 
 // Skipped pushes never deployed, so the overview and pickers leave them out
 const RECENT_STATUSES = DEPLOYMENT_STATUSES.filter((status) => status !== "skipped");
@@ -244,7 +275,7 @@ function deploymentListOptions(
 ) {
   return {
     queryKey: queryKeys.deployments.list(projectId, appId, filter),
-    staleTime: STALE_MS,
+    staleTime: DEPLOY_DATA_STALE_MS,
     retry: 3,
     getNextPageParam: (page: DeploymentsPage) => page.nextCursor,
     queryFn: async ({

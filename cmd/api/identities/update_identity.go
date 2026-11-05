@@ -50,14 +50,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2IdentitiesUpdateIdentityResponseBody)
+				return util.Output(ctx, cmd, res.V2IdentitiesUpdateIdentityResponseBody)
 			}
 			send := func(req components.V2IdentitiesUpdateIdentityRequestBody) error {
 				res, err := client.Identities.UpdateIdentity(ctx, req)
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2IdentitiesUpdateIdentityResponseBody)
+				return util.Output(ctx, cmd, res.V2IdentitiesUpdateIdentityResponseBody)
 			}
 			req := components.V2IdentitiesUpdateIdentityRequestBody{
 				Identity:   cmd.String("identity"),

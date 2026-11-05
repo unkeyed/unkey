@@ -1,5 +1,5 @@
 import type { Router } from "@/lib/trpc/routers";
-import type { TRPCClientErrorLike } from "@trpc/client";
+import { TRPCClientError, type TRPCClientErrorLike } from "@trpc/client";
 
 /**
  * Check if a tRPC error is a WorkOS redirect (307) that should be ignored
@@ -46,3 +46,9 @@ export const baseQueryOptions = {
   refetchOnWindowFocus: false,
   refetchOnReconnect: true,
 };
+
+export function trpcErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof TRPCClientError && error.data?.code !== "INTERNAL_SERVER_ERROR"
+    ? error.message
+    : fallback;
+}

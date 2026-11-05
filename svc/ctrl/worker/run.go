@@ -57,6 +57,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keylastusedsync"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/keyleak"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/legacybilling"
+	workerportaldomain "github.com/unkeyed/unkey/svc/ctrl/worker/portaldomain"
 
 	"github.com/unkeyed/unkey/internal/services/flags"
 	ratelimitdb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
@@ -404,15 +405,14 @@ func Run(ctx context.Context, cfg Config) error {
 		DB: database,
 	}), restate.WithIngressPrivate(true),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~1 hour total.
-		// Scraping is best-effort (fire-and-forget from deploy); bound retries to avoid
-		// wasting resources on permanently broken endpoints. Pause (not kill) on
-		// exhaustion so any future compensation logic can run via re-entry.
+		// Scraping is best-effort (fire-and-forget from deploy) and has no
+		// compensation, so kill on exhaustion instead of leaving paused invocations.
 		restate.WithInvocationRetryPolicy(
 			restate.WithInitialRetryInterval(1*time.Minute),
 			restate.WithRetryIntervalFactor(2.0),
 			restate.WithMaxRetryInterval(10*time.Minute),
 			restate.WithMaxRetryAttempts(10),
-			restate.PauseOnMaxAttempts(),
+			restate.KillOnMaxAttempts(),
 		),
 	))
 
@@ -480,14 +480,28 @@ func Run(ctx context.Context, cfg Config) error {
 		Resolver:    domainverify.SystemResolver{},
 		CnameDomain: cfg.CnameDomain,
 	}),
-		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
-		// kill) on exhaustion so compensations remain possible via operator
-		// cancel.
+		// Pause (not kill) on exhaustion so compensations remain possible via
+		// operator cancel.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialRetryInterval(1*time.Minute),
-			restate.WithRetryIntervalFactor(1.0), // Fixed interval, no exponential backoff
-			restate.WithMaxRetryInterval(1*time.Minute),
-			restate.WithMaxRetryAttempts(1440),
+			restate.WithInitialRetryInterval(domainverify.RetryInterval),
+			restate.WithRetryIntervalFactor(1.0),
+			restate.WithMaxRetryInterval(domainverify.RetryInterval),
+			restate.WithMaxRetryAttempts(domainverify.RetryAttemptsMax),
+			restate.PauseOnMaxAttempts(),
+		),
+	))
+
+	restateSrv.Bind(hydrav1.NewPortalDomainServiceServer(workerportaldomain.New(workerportaldomain.Config{
+		DB:            database,
+		Resolver:      domainverify.SystemResolver{},
+		EnvironmentID: cfg.Portal.EnvironmentID,
+	}),
+		// Same cadence and exhaustion behavior as custom domain verification.
+		restate.WithInvocationRetryPolicy(
+			restate.WithInitialRetryInterval(domainverify.RetryInterval),
+			restate.WithRetryIntervalFactor(1.0),
+			restate.WithMaxRetryInterval(domainverify.RetryInterval),
+			restate.WithMaxRetryAttempts(domainverify.RetryAttemptsMax),
 			restate.PauseOnMaxAttempts(),
 		),
 	))
