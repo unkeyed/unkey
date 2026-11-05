@@ -431,7 +431,7 @@ func (w *Workflow) withBuildkit(
 	buildID, err := w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
 	if errors.Is(err, errStaleGitRef) {
 		// Reset terminates every machine on the project, so it runs only after
-		// withDepotBuildkit has released ours. The retry then clones from scratch.
+		// withDepotBuildkit has released ours.
 		logger.Warn("resetting depot project cache after stale git ref",
 			"depot_project_id", depotProjectID,
 			"project_id", params.ProjectID,
@@ -547,9 +547,6 @@ func (w *Workflow) solveWithStatus(
 // same way until the Depot project's cache is reset.
 var errStaleGitRef = errors.New("build cache holds a stale git ref")
 
-// isStaleGitRefError reports whether git failed to fetch because a cached ref
-// conflicts with a remote one. Matches the line git prints for every such
-// conflict, which upstream BuildKit also keys on.
 func isStaleGitRefError(err error) bool {
 	return strings.Contains(err.Error(), "some local refs could not be updated")
 }
@@ -826,8 +823,6 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 	return depotProjectID, nil
 }
 
-// resetDepotProjectCache deletes all cached data of a Depot project and
-// terminates its machines, so the next build starts from an empty cache.
 func (w *Workflow) resetDepotProjectCache(ctx context.Context, depotProjectID string) error {
 	_, err := w.depotProjectClient().ResetProject(ctx, connect.NewRequest(&corev1.ResetProjectRequest{
 		ProjectId: depotProjectID,
