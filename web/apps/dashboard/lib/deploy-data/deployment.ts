@@ -78,6 +78,7 @@ export const deploymentSchema = z.object({
   triggeredBy: z.string().nullable(),
   triggerReason: z.string().nullable(),
   createdAt: z.number(),
+  firstReadyAt: z.number().nullable(),
   updatedAt: z.number().nullable(),
   // When the build/deploy pipeline finished, from deployment_steps (the only
   // timing stop/wake don't mutate). Null while a build is still in progress or
@@ -147,6 +148,7 @@ type RowDetails = Pick<
 > & {
   // A server older than this bundle omits it, as after a rollback with a tab still open
   targetRegions?: Deployment["targetRegions"];
+  firstReadyAt?: Deployment["firstReadyAt"];
 };
 
 // Once a row in one of these statuses has no instances left, nothing changes its
@@ -244,6 +246,7 @@ function toDeployment(
     triggeredBy: deployment.trigger.actor?.id ?? null,
     triggerReason: details.triggerReason,
     createdAt: deployment.createdAt,
+    firstReadyAt: details.firstReadyAt ?? null,
     updatedAt: deployment.updatedAt ?? null,
     buildEndedAt: deployment.finishedAt ?? null,
     crashLoop: crashLoop

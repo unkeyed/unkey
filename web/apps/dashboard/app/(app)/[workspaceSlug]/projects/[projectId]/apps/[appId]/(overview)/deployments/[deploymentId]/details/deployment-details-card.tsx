@@ -113,10 +113,19 @@ export function DeploymentDetailsCard({ page }: DeploymentDetailsCardProps) {
             )}
             <TimestampInfo
               value={deployment.createdAt}
-              displayType="relative"
+              displayType="local"
               className="shrink-0 text-xs text-gray-10"
             />
           </Row>
+          {deployment.firstReadyAt !== null && (
+            <Row label="Ready">
+              <TimestampInfo
+                value={deployment.firstReadyAt}
+                displayType="local"
+                className="shrink-0 text-xs text-gray-10"
+              />
+            </Row>
+          )}
         </Column>
       </div>
       <InstantRollbackRow key={deployment.id} />

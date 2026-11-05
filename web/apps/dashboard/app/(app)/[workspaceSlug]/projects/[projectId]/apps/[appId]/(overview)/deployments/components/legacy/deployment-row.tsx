@@ -132,7 +132,10 @@ export function DeploymentRow({
       </span>
       <span className="ml-auto flex shrink-0 items-center gap-3">
         <span className="hidden w-36 shrink-0 justify-end md:flex">
-          <RowTime value={deployment.createdAt} />
+          <RowTime
+            value={deployment.firstReadyAt ?? deployment.createdAt}
+            label={deployment.firstReadyAt !== null ? "Ready" : "Created"}
+          />
         </span>
         <span className="hidden w-5 shrink-0 justify-center md:flex">
           <AuthorCell deployment={deployment} />

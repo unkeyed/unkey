@@ -19,7 +19,7 @@ type TargetRegion = DesiredRegion & { replicas: number };
 
 type DeploymentDetails = Pick<
   InferSelectModel<typeof deployments>,
-  "id" | "projectId" | "appId" | "environmentId" | "desiredState" | "triggerReason"
+  "id" | "projectId" | "appId" | "environmentId" | "desiredState" | "triggerReason" | "firstReadyAt"
 > & {
   instances: ReturnType<typeof mapInstanceRow>[];
   desiredInstanceCount: number;
@@ -44,6 +44,7 @@ export const listDeploymentDetails = workspaceProcedure
         environmentId: deployments.environmentId,
         desiredState: deployments.desiredState,
         triggerReason: deployments.triggerReason,
+        firstReadyAt: deployments.firstReadyAt,
       })
       .from(deployments)
       .where(

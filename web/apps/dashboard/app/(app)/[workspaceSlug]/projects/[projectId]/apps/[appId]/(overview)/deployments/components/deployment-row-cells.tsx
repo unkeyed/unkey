@@ -282,13 +282,16 @@ export function AuthorCell({
 
 export function RowTime({
   value,
+  label,
   className,
 }: {
   value: number;
+  label?: "Ready" | "Created";
   className?: string;
 }) {
   return (
-    <Interactive className="shrink-0">
+    <Interactive className="shrink-0 gap-1">
+      {label && <span className={cn("text-sm text-gray-9", className)}>{label}</span>}
       <TimestampInfo
         value={value}
         displayType="relative"

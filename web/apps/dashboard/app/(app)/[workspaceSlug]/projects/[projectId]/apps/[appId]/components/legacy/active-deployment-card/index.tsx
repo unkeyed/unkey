@@ -134,7 +134,7 @@ export function ActiveDeploymentCard({
                   )}
                   <TimestampInfo
                     value={deployment.createdAt}
-                    displayType="relative"
+                    displayType="local"
                     className="text-gray-9 text-xs"
                   />
                 </div>
@@ -142,12 +142,22 @@ export function ActiveDeploymentCard({
               .with("oci", "unknown", () => (
                 <TimestampInfo
                   value={deployment.createdAt}
-                  displayType="relative"
+                  displayType="local"
                   className="text-gray-9 text-xs self-start text-left"
                 />
               ))
               .exhaustive()}
           </MetadataCell>
+
+          {deployment.firstReadyAt !== null && (
+            <MetadataCell label="Ready">
+              <TimestampInfo
+                value={deployment.firstReadyAt}
+                displayType="local"
+                className="text-gray-9 text-xs self-start text-left"
+              />
+            </MetadataCell>
+          )}
 
           <MetadataCell label="Source">
             <div className="flex items-center gap-2 min-w-0">
