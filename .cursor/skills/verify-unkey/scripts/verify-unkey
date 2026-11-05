@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+# Drive one isolated Unkey CLI build. Scratch lives under runs/. Proof lives under evidence/.
+set -euo pipefail
+
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+SKILL_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+REPO_ROOT=$(cd "$SKILL_DIR/../../.." && pwd)
+RUNS_DIR="$SKILL_DIR/runs"
+EVIDENCE_DIR="$SKILL_DIR/evidence"
+CURRENT_FILE="$RUNS_DIR/current"
+
+die() {
+  echo "verify-unkey: $*" >&2
+  exit 1
+}
+
+load_current() {
+  [[ -f "$CURRENT_FILE" ]] || die "no current run. launch first"
+  # shellcheck disable=SC1090
+  source "$CURRENT_FILE"
+  [[ -n "${RUN_DIR:-}" && -n "${RUN_HOME:-}" && -n "${RUN_BIN:-}" && -n "${RUN_ID:-}" ]] || die "current run file is incomplete"
+}
+
+cli_env() {
+  load_current
+  export HOME="$RUN_HOME"
+  export PATH="$(dirname "$RUN_BIN"):$PATH"
+  unset UNKEY_ROOT_KEY UNKEY_CONFIG UNKEY_API_BASE_URL UNKEY_API_URL UNKEY_OUTPUT || true
+}
+
+cmd_launch() {
+  [[ ! -f "$CURRENT_FILE" ]] || die "a run is already current. cleanup before launching another"
+  command -v mise >/dev/null 2>&1 || die "mise is not on PATH. From the repo root run ./dev/install-mise, then mise install go"
+  mkdir -p "$RUNS_DIR" "$EVIDENCE_DIR"
+  local run_dir home bin_dir
+  run_dir=$(mktemp -d "$RUNS_DIR/run.XXXXXX")
+  home="$run_dir/home"
+  bin_dir="$run_dir/bin"
+  mkdir -p "$home" "$bin_dir"
+  if ! (cd "$REPO_ROOT" && mise exec -- go build -o "$bin_dir/unkey" ./build/cli); then
+    rm -rf "$run_dir"
+    die "go build failed"
+  fi
+  local version keyring
+  if ! version=$(HOME="$home" "$bin_dir/unkey" version); then
+    rm -rf "$run_dir"
+    die "built binary could not print its version"
+  fi
+  [[ -n "$version" && "$version" != *$'\n'* ]] || die "version output was not a single line: $(printf '%q' "$version")"
+  if command -v secret-tool >/dev/null 2>&1; then
+    keyring=shared
+  else
+    keyring=isolated
+  fi
+  cat >"$run_dir/run.env" <<EOF
+RUN_ID=$(basename "$run_dir")
+RUN_DIR=$run_dir
+RUN_HOME=$home
+RUN_BIN=$bin_dir/unkey
+VERSION=$version
+KEYRING=$keyring
+REPO_ROOT=$REPO_ROOT
+EOF
+  cp "$run_dir/run.env" "$CURRENT_FILE"
+  echo "run: $(basename "$run_dir")"
+  echo "bin: $bin_dir/unkey"
+  echo "home: $home"
+  echo "ready: unkey version -> $version"
+  echo "keyring: $keyring"
+}
+
+cmd_doctor() {
+  load_current
+  [[ -x "$RUN_BIN" ]] || die "binary is missing: $RUN_BIN"
+  [[ "$RUN_HOME" == "$RUNS_DIR"/* ]] || die "home is outside this skill's runs directory: $RUN_HOME"
+  [[ -d "$RUN_HOME" ]] || die "home is missing: $RUN_HOME"
+  local got
+  got=$(HOME="$RUN_HOME" "$RUN_BIN" version)
+  [[ "$got" == "${VERSION:-}" ]] || die "version changed. launched $VERSION, binary now prints $(printf '%q' "$got")"
+  local stderr_file
+  stderr_file=$(mktemp)
+  HOME="$RUN_HOME" "$RUN_BIN" version >/dev/null 2>"$stderr_file"
+  [[ ! -s "$stderr_file" ]] || die "version wrote to stderr: $(cat "$stderr_file")"
+  rm -f "$stderr_file"
+  local credentials=refused
+  if [[ "${KEYRING:-shared}" == isolated ]]; then
+    credentials=allowed
+  fi
+  echo "run_id: $RUN_ID"
+  echo "bin: $RUN_BIN"
+  echo "home: $RUN_HOME"
+  echo "version: $VERSION"
+  echo "keyring: ${KEYRING:-shared}"
+  echo "credential_commands: $credentials"
+  echo "status: ready"
+}
+
+cmd_run() {
+  local capture=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --capture)
+        [[ $# -ge 2 ]] || die "--capture needs a name"
+        capture=$2
+        shift 2
+        ;;
+      --)
+        shift
+        break
+        ;;
+      *)
+        die "unknown run option: $1"
+        ;;
+    esac
+  done
+  [[ $# -gt 0 ]] || die "run needs the unkey arguments after --"
+  cmd_doctor >/dev/null
+  cli_env
+  local stdout_file stderr_file status
+  stdout_file=$(mktemp)
+  stderr_file=$(mktemp)
+  set +e
+  "$RUN_BIN" "$@" >"$stdout_file" 2>"$stderr_file"
+  status=$?
+  set -e
+  if [[ -n "$capture" ]]; then
+    [[ "$capture" != */* && "$capture" != .* ]] || die "capture name must be a single path segment"
+    local dest="$EVIDENCE_DIR/$capture"
+    mkdir -p "$dest"
+    cp "$stdout_file" "$dest/stdout.txt"
+    cp "$stderr_file" "$dest/stderr.txt"
+    printf '%s\n' "$status" >"$dest/exit.txt"
+    printf '%q ' "$RUN_BIN" "$@" >"$dest/argv.txt"
+    printf '\n' >>"$dest/argv.txt"
+    echo "evidence: $dest"
+  fi
+  echo "-- stdout --"
+  cat "$stdout_file"
+  echo "-- stderr --"
+  cat "$stderr_file"
+  echo "exit: $status"
+  rm -f "$stdout_file" "$stderr_file"
+}
+
+cmd_cleanup() {
+  [[ -f "$CURRENT_FILE" ]] || {
+    echo "no current run"
+    return 0
+  }
+  load_current
+  rm -rf "$RUN_DIR"
+  rm -f "$CURRENT_FILE"
+  echo "removed run $RUN_ID"
+  echo "evidence kept: $EVIDENCE_DIR"
+}
+
+usage() {
+  echo "usage: verify-unkey launch|doctor|run|cleanup" >&2
+  exit 2
+}
+
+[[ $# -ge 1 ]] || usage
+case "$1" in
+  launch) shift; [[ $# -eq 0 ]] || usage; cmd_launch ;;
+  doctor) shift; [[ $# -eq 0 ]] || usage; cmd_doctor ;;
+  run) shift; cmd_run "$@" ;;
+  cleanup) shift; [[ $# -eq 0 ]] || usage; cmd_cleanup ;;
+  *) usage ;;
+esac
