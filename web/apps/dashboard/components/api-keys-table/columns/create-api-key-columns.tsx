@@ -346,7 +346,7 @@ export const createApiKeyColumns = ({
     enableSorting: false,
     meta: {
       width: {
-        min: 140,
+        min: 60,
         max: 400,
       },
     },

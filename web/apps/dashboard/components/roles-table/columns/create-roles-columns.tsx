@@ -119,7 +119,7 @@ export const createRolesColumns = ({
     ),
     meta: {
       width: {
-        min: 200,
+        min: 170,
         max: 400,
       },
     },
@@ -147,7 +147,7 @@ export const createRolesColumns = ({
     ),
     meta: {
       width: {
-        min: 180,
+        min: 140,
         max: 400,
       },
     },

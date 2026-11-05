@@ -64,7 +64,7 @@ export const createPermissionsColumns = ({
     enableSorting: true,
     meta: {
       width: {
-        min: 260,
+        min: 220,
         max: 400,
       },
     },
@@ -93,7 +93,7 @@ export const createPermissionsColumns = ({
     enableSorting: true,
     meta: {
       width: {
-        min: 260,
+        min: 220,
         max: 400,
       },
     },
@@ -117,7 +117,7 @@ export const createPermissionsColumns = ({
     sortDescFirst: true,
     meta: {
       width: {
-        min: 200,
+        min: 150,
         max: 400,
       },
     },
@@ -145,7 +145,7 @@ export const createPermissionsColumns = ({
     sortDescFirst: true,
     meta: {
       width: {
-        min: 200,
+        min: 150,
         max: 400,
       },
     },
@@ -171,7 +171,7 @@ export const createPermissionsColumns = ({
     enableSorting: true,
     meta: {
       width: {
-        min: 200,
+        min: 150,
         max: 400,
       },
     },
