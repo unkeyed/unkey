@@ -1,12 +1,15 @@
--- name: FindCLISessionByID :one
+-- name: FindDeviceSessionByID :one
 SELECT
     pk,
     id,
+    kind,
     workspace_id,
     user_id,
     user_name,
     permissions,
     device_name,
+    oauth_client_id,
+    resource,
     refresh_token_hash,
     previous_refresh_token_hash,
     refresh_family,
@@ -15,18 +18,21 @@ SELECT
     last_used_at,
     expires_at,
     revoked_at
-FROM cli_sessions
+FROM device_sessions
 WHERE id = sqlc.arg(id);
 
--- name: FindCLISessionByRefreshTokenHash :one
+-- name: FindDeviceSessionByRefreshTokenHash :one
 SELECT
     pk,
     id,
+    kind,
     workspace_id,
     user_id,
     user_name,
     permissions,
     device_name,
+    oauth_client_id,
+    resource,
     refresh_token_hash,
     previous_refresh_token_hash,
     refresh_family,
@@ -35,18 +41,21 @@ SELECT
     last_used_at,
     expires_at,
     revoked_at
-FROM cli_sessions
+FROM device_sessions
 WHERE refresh_token_hash = sqlc.arg(refresh_token_hash);
 
--- name: FindCLISessionByPreviousRefreshTokenHash :one
+-- name: FindDeviceSessionByPreviousRefreshTokenHash :one
 SELECT
     pk,
     id,
+    kind,
     workspace_id,
     user_id,
     user_name,
     permissions,
     device_name,
+    oauth_client_id,
+    resource,
     refresh_token_hash,
     previous_refresh_token_hash,
     refresh_family,
@@ -55,18 +64,21 @@ SELECT
     last_used_at,
     expires_at,
     revoked_at
-FROM cli_sessions
+FROM device_sessions
 WHERE previous_refresh_token_hash = sqlc.arg(previous_refresh_token_hash);
 
--- name: ListCLISessionsByWorkspace :many
+-- name: ListDeviceSessionsByWorkspace :many
 SELECT
     pk,
     id,
+    kind,
     workspace_id,
     user_id,
     user_name,
     permissions,
     device_name,
+    oauth_client_id,
+    resource,
     refresh_token_hash,
     previous_refresh_token_hash,
     refresh_family,
@@ -75,22 +87,25 @@ SELECT
     last_used_at,
     expires_at,
     revoked_at
-FROM cli_sessions
+FROM device_sessions
 WHERE workspace_id = sqlc.arg(workspace_id)
   AND revoked_at IS NULL
   AND expires_at > sqlc.arg(now)
 ORDER BY created_at DESC
 LIMIT 100;
 
--- name: ListCLISessionsByUser :many
+-- name: ListDeviceSessionsByUser :many
 SELECT
     pk,
     id,
+    kind,
     workspace_id,
     user_id,
     user_name,
     permissions,
     device_name,
+    oauth_client_id,
+    resource,
     refresh_token_hash,
     previous_refresh_token_hash,
     refresh_family,
@@ -99,7 +114,7 @@ SELECT
     last_used_at,
     expires_at,
     revoked_at
-FROM cli_sessions
+FROM device_sessions
 WHERE workspace_id = sqlc.arg(workspace_id)
   AND user_id = sqlc.arg(user_id)
   AND revoked_at IS NULL
@@ -107,15 +122,18 @@ WHERE workspace_id = sqlc.arg(workspace_id)
 ORDER BY created_at DESC
 LIMIT 100;
 
--- name: FindUnrevokedCLISessionByRefreshFamily :one
+-- name: FindUnrevokedDeviceSessionByRefreshFamily :one
 SELECT
     pk,
     id,
+    kind,
     workspace_id,
     user_id,
     user_name,
     permissions,
     device_name,
+    oauth_client_id,
+    resource,
     refresh_token_hash,
     previous_refresh_token_hash,
     refresh_family,
@@ -124,7 +142,7 @@ SELECT
     last_used_at,
     expires_at,
     revoked_at
-FROM cli_sessions
+FROM device_sessions
 WHERE refresh_family = sqlc.arg(refresh_family)
   AND revoked_at IS NULL
 LIMIT 1;

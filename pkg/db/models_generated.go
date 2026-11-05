@@ -621,6 +621,48 @@ func (ns NullDeviceAuthorizationsStatus) Value() (driver.Value, error) {
 	return string(ns.DeviceAuthorizationsStatus), nil
 }
 
+type DeviceSessionsKind string
+
+const (
+	DeviceSessionsKindCli DeviceSessionsKind = "cli"
+	DeviceSessionsKindMcp DeviceSessionsKind = "mcp"
+)
+
+func (e *DeviceSessionsKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeviceSessionsKind(s)
+	case string:
+		*e = DeviceSessionsKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeviceSessionsKind: %T", src)
+	}
+	return nil
+}
+
+type NullDeviceSessionsKind struct {
+	DeviceSessionsKind DeviceSessionsKind
+	Valid              bool // Valid is true if DeviceSessionsKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeviceSessionsKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeviceSessionsKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeviceSessionsKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeviceSessionsKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeviceSessionsKind), nil
+}
+
 type FrontlineRoutesSticky string
 
 const (
@@ -955,24 +997,6 @@ type AppSourceOci struct {
 	UpdatedAt      sql.NullInt64 `db:"updated_at"`
 }
 
-type CliSession struct {
-	Pk                       uint64          `db:"pk"`
-	ID                       string          `db:"id"`
-	WorkspaceID              string          `db:"workspace_id"`
-	UserID                   string          `db:"user_id"`
-	UserName                 sql.NullString  `db:"user_name"`
-	Permissions              json.RawMessage `db:"permissions"`
-	DeviceName               sql.NullString  `db:"device_name"`
-	RefreshTokenHash         string          `db:"refresh_token_hash"`
-	PreviousRefreshTokenHash sql.NullString  `db:"previous_refresh_token_hash"`
-	RefreshFamily            string          `db:"refresh_family"`
-	RotatedAt                sql.NullInt64   `db:"rotated_at"`
-	CreatedAt                int64           `db:"created_at"`
-	LastUsedAt               int64           `db:"last_used_at"`
-	ExpiresAt                int64           `db:"expires_at"`
-	RevokedAt                sql.NullInt64   `db:"revoked_at"`
-}
-
 type Deployment struct {
 	Pk                            uint64                            `db:"pk"`
 	ID                            string                            `db:"id"`
@@ -1046,6 +1070,27 @@ type DeviceAuthorization struct {
 	SessionID          sql.NullString             `db:"session_id"`
 	CreatedAt          int64                      `db:"created_at"`
 	ApprovedAt         sql.NullInt64              `db:"approved_at"`
+}
+
+type DeviceSession struct {
+	Pk                       uint64             `db:"pk"`
+	ID                       string             `db:"id"`
+	Kind                     DeviceSessionsKind `db:"kind"`
+	WorkspaceID              string             `db:"workspace_id"`
+	UserID                   string             `db:"user_id"`
+	UserName                 sql.NullString     `db:"user_name"`
+	Permissions              json.RawMessage    `db:"permissions"`
+	DeviceName               sql.NullString     `db:"device_name"`
+	OauthClientID            sql.NullString     `db:"oauth_client_id"`
+	Resource                 sql.NullString     `db:"resource"`
+	RefreshTokenHash         string             `db:"refresh_token_hash"`
+	PreviousRefreshTokenHash sql.NullString     `db:"previous_refresh_token_hash"`
+	RefreshFamily            string             `db:"refresh_family"`
+	RotatedAt                sql.NullInt64      `db:"rotated_at"`
+	CreatedAt                int64              `db:"created_at"`
+	LastUsedAt               int64              `db:"last_used_at"`
+	ExpiresAt                int64              `db:"expires_at"`
+	RevokedAt                sql.NullInt64      `db:"revoked_at"`
 }
 
 type EncryptedKey struct {

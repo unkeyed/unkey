@@ -54,6 +54,7 @@ func TestListSessionsWithoutBodyOrContentType(t *testing.T) {
 	require.Len(t, res.Body.Data.Sessions, 1)
 	require.Equal(t, tokens.SessionID, res.Body.Data.Sessions[0].Id)
 	require.Equal(t, p.Subject.ID, res.Body.Data.Sessions[0].UserId)
+	require.Equal(t, openapi.V2CliSessionKindCli, res.Body.Data.Sessions[0].Kind)
 	require.Equal(t, permissions, res.Body.Data.Sessions[0].Permissions)
 }
 

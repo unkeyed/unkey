@@ -197,7 +197,7 @@ func (s *Service) deleteExpired(ctx context.Context) {
 	if _, err := db.Query.DeleteExpiredDeviceAuthorizations(ctx, s.DB.RW(), cutoff); err != nil {
 		logger.Error("device authorization cleanup failed", "error", err.Error())
 	}
-	if _, err := db.Query.DeleteExpiredCLISessions(ctx, s.DB.RW(), cutoff); err != nil {
-		logger.Error("cli session cleanup failed", "error", err.Error())
+	if _, err := db.Query.DeleteExpiredDeviceSessions(ctx, s.DB.RW(), cutoff); err != nil {
+		logger.Error("device session cleanup failed", "error", err.Error())
 	}
 }

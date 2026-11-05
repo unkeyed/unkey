@@ -275,7 +275,7 @@ func TestRefreshNarrowsOnDemotionAndFailsOnRemoval(t *testing.T) {
 	_, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
 	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
 
-	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	row, err := db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
 	require.NoError(t, err)
 	require.True(t, row.RevokedAt.Valid)
 
@@ -289,7 +289,7 @@ func TestRefreshNarrowsOnDemotionAndFailsOnRemoval(t *testing.T) {
 	membership.gone[keptID] = true
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshed.RefreshToken})
 	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
-	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), kept.SessionID)
+	row, err = db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), kept.SessionID)
 	require.NoError(t, err)
 	require.True(t, row.RevokedAt.Valid)
 }
@@ -327,7 +327,7 @@ func TestRefreshTokenTwoRotationsOldRevokesTheFamily(t *testing.T) {
 	require.Equal(t, codes.Auth.Authentication.CredentialRejected.URN(), codeOf(t, err))
 	require.Contains(t, fault.UserFacingMessage(err), "session was revoked")
 
-	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	row, err := db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
 	require.NoError(t, err)
 	require.True(t, row.RevokedAt.Valid)
 
@@ -370,7 +370,7 @@ func TestPreviousRefreshTokenWithinGraceDoesNotRevokeTheFamily(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, refreshed.RefreshToken, again.RefreshToken)
 
-	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	row, err := db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
 	require.NoError(t, err)
 	require.False(t, row.RevokedAt.Valid)
 
@@ -414,7 +414,7 @@ func TestOverlappingRefreshesHonorTheGraceWindow(t *testing.T) {
 	for range 2 {
 		require.NoError(t, <-results)
 	}
-	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	row, err := db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
 	require.NoError(t, err)
 	require.False(t, row.RevokedAt.Valid)
 }
@@ -444,14 +444,14 @@ func TestRefreshMovesTheIdleDeadline(t *testing.T) {
 	svc := newService(h, mem{})
 	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
 
-	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	row, err := db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
 	require.NoError(t, err)
 	require.Equal(t, row.CreatedAt+sessionIdle.Milliseconds(), row.ExpiresAt)
 
 	h.Clock.Tick(24 * time.Hour)
 	_, err = svc.Refresh(t.Context(), RefreshRequest{RefreshToken: tokens.RefreshToken})
 	require.NoError(t, err)
-	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	row, err = db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
 	require.NoError(t, err)
 	require.Equal(t, h.Clock.Now().UnixMilli()+sessionIdle.Milliseconds(), row.ExpiresAt)
 }
@@ -461,7 +461,7 @@ func TestActiveSessionEndsAtSessionMax(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	svc := newService(h, mem{})
 	tokens := login(t, svc, workspace, uid.New(uid.TestPrefix), permissionOnlyDeveloperHas(t, workspace.ID))
-	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+	row, err := db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
 	require.NoError(t, err)
 	deadline := row.CreatedAt + sessionMax.Milliseconds()
 
@@ -471,7 +471,7 @@ func TestActiveSessionEndsAtSessionMax(t *testing.T) {
 		refreshed, err := svc.Refresh(t.Context(), RefreshRequest{RefreshToken: refreshToken})
 		require.NoError(t, err)
 		refreshToken = refreshed.RefreshToken
-		row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
+		row, err = db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), tokens.SessionID)
 		require.NoError(t, err)
 		require.LessOrEqual(t, row.ExpiresAt, deadline)
 	}
@@ -577,7 +577,7 @@ func TestRevokeAndListAreScopedToTheCaller(t *testing.T) {
 		SessionID: owned.SessionID,
 	})
 	require.Equal(t, codes.Auth.Authorization.Forbidden.URN(), codeOf(t, err))
-	row, err := db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
+	row, err := db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), owned.SessionID)
 	require.NoError(t, err)
 	require.False(t, row.RevokedAt.Valid)
 
@@ -587,7 +587,7 @@ func TestRevokeAndListAreScopedToTheCaller(t *testing.T) {
 	})
 	require.Equal(t, codes.App.Validation.InvalidInput.URN(), codeOf(t, err))
 	require.Contains(t, fault.UserFacingMessage(err), "not found")
-	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
+	row, err = db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), owned.SessionID)
 	require.NoError(t, err)
 	require.False(t, row.RevokedAt.Valid)
 
@@ -608,7 +608,7 @@ func TestRevokeAndListAreScopedToTheCaller(t *testing.T) {
 	admin := adminPrincipal(workspace, uid.New(uid.TestPrefix))
 	require.NoError(t, svc.Revoke(t.Context(), RevokeRequest{Principal: admin, SessionID: owned.SessionID}))
 	require.NoError(t, svc.Revoke(t.Context(), RevokeRequest{Principal: admin, SessionID: owned.SessionID}))
-	row, err = db.Query.FindCLISessionByID(t.Context(), h.DB.RW(), owned.SessionID)
+	row, err = db.Query.FindDeviceSessionByID(t.Context(), h.DB.RW(), owned.SessionID)
 	require.NoError(t, err)
 	require.True(t, row.RevokedAt.Valid)
 	logs := h.FindAuditLogsByTargetID(t.Context(), t, owned.SessionID)
@@ -661,7 +661,7 @@ func TestConcurrentPollsIssueOneSession(t *testing.T) {
 	}
 	require.Equal(t, 1, completed)
 
-	rows, err := db.Query.ListCLISessionsByUser(t.Context(), h.DB.RW(), db.ListCLISessionsByUserParams{
+	rows, err := db.Query.ListDeviceSessionsByUser(t.Context(), h.DB.RW(), db.ListDeviceSessionsByUserParams{
 		WorkspaceID: workspace.ID,
 		UserID:      userID,
 		Now:         h.Clock.Now().UnixMilli(),
@@ -746,7 +746,7 @@ func TestApproverDemotedBeforePollIsDenied(t *testing.T) {
 	require.Equal(t, PollDenied, polled.Status)
 	require.Empty(t, polled.AccessToken)
 
-	rows, err := db.Query.ListCLISessionsByUser(t.Context(), h.DB.RW(), db.ListCLISessionsByUserParams{
+	rows, err := db.Query.ListDeviceSessionsByUser(t.Context(), h.DB.RW(), db.ListDeviceSessionsByUserParams{
 		WorkspaceID: workspace.ID,
 		UserID:      userID,
 		Now:         h.Clock.Now().UnixMilli(),

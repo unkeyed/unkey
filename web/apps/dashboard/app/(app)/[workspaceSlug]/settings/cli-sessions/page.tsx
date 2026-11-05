@@ -15,7 +15,7 @@ export default async function CliSessionsSettingsPage() {
         email: user.email,
       }));
     } catch (error) {
-      console.error("Failed to load CLI session owners:", error);
+      console.error("Failed to load session owners:", error);
     }
   }
 

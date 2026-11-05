@@ -14,7 +14,6 @@ type BulkQuerier interface {
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
 	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsPolicyConfigParams) error
 	InsertAppSourceOcis(ctx context.Context, db DBTX, args []InsertAppSourceOciParams) error
-	InsertCLISessions(ctx context.Context, db DBTX, args []InsertCLISessionParams) error
 	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error
@@ -23,6 +22,7 @@ type BulkQuerier interface {
 	InsertDeploymentSteps(ctx context.Context, db DBTX, args []InsertDeploymentStepParams) error
 	InsertDeploymentTopologies(ctx context.Context, db DBTX, args []InsertDeploymentTopologyParams) error
 	InsertDeviceAuthorizations(ctx context.Context, db DBTX, args []InsertDeviceAuthorizationParams) error
+	InsertDeviceSessions(ctx context.Context, db DBTX, args []InsertDeviceSessionParams) error
 	InsertEnvironments(ctx context.Context, db DBTX, args []InsertEnvironmentParams) error
 	UpsertFlag(ctx context.Context, db DBTX, args []UpsertFlagParams) error
 	InsertGithubAppInstallations(ctx context.Context, db DBTX, args []InsertGithubAppInstallationParams) error
