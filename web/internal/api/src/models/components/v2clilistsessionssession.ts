@@ -22,6 +22,14 @@ export type V2CliListSessionsSession = {
    * The CLI machine's name, or the MCP client's self-reported name.
    */
   deviceName?: string | undefined;
+  /**
+   * Host of the MCP client's metadata document. Absent for CLI sessions and dynamically registered clients.
+   */
+  clientHost?: string | undefined;
+  /**
+   * URL of the MCP server an mcp session is bound to. Absent for CLI sessions.
+   */
+  resource?: string | undefined;
   permissions: Array<string>;
   createdAt: number;
   lastUsedAt: number;
@@ -45,6 +53,8 @@ export const V2CliListSessionsSession$inboundSchema: z.ZodType<
   userId: z.string(),
   kind: V2CliSessionKind$inboundSchema,
   deviceName: z.string().optional(),
+  clientHost: z.string().optional(),
+  resource: z.string().optional(),
   permissions: z.array(z.string()),
   createdAt: z.number().int(),
   lastUsedAt: z.number().int(),

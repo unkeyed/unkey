@@ -477,6 +477,57 @@ func TestConfig_ValidateCLIAuthRequiresBothHalves(t *testing.T) {
 			cliAuth: CLIAuthConfig{WorkOSAPIKey: "sk_test", SigningSecrets: []string{secret, " "}},
 			wantErr: true,
 		},
+		{
+			name: "oauth issuer and resource origins pass",
+			cliAuth: CLIAuthConfig{
+				WorkOSAPIKey:         "sk_test",
+				SigningSecrets:       []string{secret},
+				IssuerURL:            "https://api.unkey.com",
+				OAuthResourceOrigins: []string{"https://mcp.unkey.com"},
+				OAuthDefaultResource: "https://mcp.unkey.com",
+			},
+			wantErr: false,
+		},
+		{
+			name: "oauth issuer with a path is rejected",
+			cliAuth: CLIAuthConfig{
+				WorkOSAPIKey:         "sk_test",
+				SigningSecrets:       []string{secret},
+				IssuerURL:            "https://api.unkey.com/oauth",
+				OAuthResourceOrigins: []string{"https://mcp.unkey.com"},
+				OAuthDefaultResource: "https://mcp.unkey.com",
+			},
+			wantErr: true,
+		},
+		{
+			name: "oauth without cli login is rejected",
+			cliAuth: CLIAuthConfig{
+				IssuerURL:            "https://api.unkey.com",
+				OAuthResourceOrigins: []string{"https://mcp.unkey.com"},
+				OAuthDefaultResource: "https://mcp.unkey.com",
+			},
+			wantErr: true,
+		},
+		{
+			name: "oauth default resource off the allowed origins is rejected",
+			cliAuth: CLIAuthConfig{
+				WorkOSAPIKey:         "sk_test",
+				SigningSecrets:       []string{secret},
+				IssuerURL:            "https://api.unkey.com",
+				OAuthResourceOrigins: []string{"https://mcp.unkey.com"},
+				OAuthDefaultResource: "https://api.unkey.com",
+			},
+			wantErr: true,
+		},
+		{
+			name: "oauth resource origins without an issuer are rejected",
+			cliAuth: CLIAuthConfig{
+				WorkOSAPIKey:         "sk_test",
+				SigningSecrets:       []string{secret},
+				OAuthResourceOrigins: []string{"https://mcp.unkey.com"},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

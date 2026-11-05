@@ -172,11 +172,16 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 			UserID:      row.UserID,
 			Kind:        row.Kind,
 			DeviceName:  row.DeviceName.String,
+			ClientHost:  "",
+			Resource:    row.Resource.String,
 			Permissions: permissions,
 			CreatedAt:   row.CreatedAt,
 			LastUsedAt:  row.LastUsedAt,
 			ExpiresAt:   row.ExpiresAt,
 			RevokedAt:   0,
+		}
+		if row.OauthClientID.Valid {
+			info.ClientHost = clientHost(row.OauthClientID.String, "")
 		}
 		if row.RevokedAt.Valid {
 			info.RevokedAt = row.RevokedAt.Int64

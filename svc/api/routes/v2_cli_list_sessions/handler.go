@@ -44,6 +44,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UserId:      row.UserID,
 			Kind:        openapi.V2CliSessionKind(row.Kind),
 			DeviceName:  nil,
+			ClientHost:  nil,
+			Resource:    nil,
 			Permissions: permissions,
 			CreatedAt:   row.CreatedAt,
 			LastUsedAt:  row.LastUsedAt,
@@ -52,6 +54,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if row.DeviceName != "" {
 			item.DeviceName = &row.DeviceName
+		}
+		if row.ClientHost != "" {
+			item.ClientHost = &row.ClientHost
+		}
+		if row.Resource != "" {
+			item.Resource = &row.Resource
 		}
 		if row.RevokedAt != 0 {
 			revokedAt := row.RevokedAt

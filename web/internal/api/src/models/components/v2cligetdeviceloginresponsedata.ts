@@ -6,6 +6,10 @@ import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
+import {
+  V2CliDeviceLoginOAuth,
+  V2CliDeviceLoginOAuth$inboundSchema,
+} from "./v2clideviceloginoauth.js";
 
 export type V2CliGetDeviceLoginResponseData = {
   userCode: string;
@@ -41,6 +45,10 @@ export type V2CliGetDeviceLoginResponseData = {
    * Unix millisecond expiry.
    */
   expiresAt: number;
+  /**
+   * Present only when an MCP client started the login through OAuth. Skip the code comparison and send the browser to the decision's redirectUrl.
+   */
+  oauth?: V2CliDeviceLoginOAuth | undefined;
 };
 
 /** @internal */
@@ -58,6 +66,7 @@ export const V2CliGetDeviceLoginResponseData$inboundSchema: z.ZodType<
   grantablePermissions: z.array(z.string()).optional(),
   createdAt: z.number().int(),
   expiresAt: z.number().int(),
+  oauth: V2CliDeviceLoginOAuth$inboundSchema.optional(),
 });
 
 export function v2CliGetDeviceLoginResponseDataFromJSON(

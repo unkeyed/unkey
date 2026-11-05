@@ -24,6 +24,8 @@ type V2CliGetDeviceLoginResponseData struct {
 	CreatedAt int64 `json:"createdAt"`
 	// Unix millisecond expiry.
 	ExpiresAt int64 `json:"expiresAt"`
+	// Present only when an MCP client started the login through OAuth. Skip the code comparison and send the browser to the decision's redirectUrl.
+	Oauth *V2CliDeviceLoginOAuth `json:"oauth,omitzero"`
 }
 
 func (v V2CliGetDeviceLoginResponseData) MarshalJSON() ([]byte, error) {
@@ -98,6 +100,13 @@ func (v *V2CliGetDeviceLoginResponseData) GetExpiresAt() int64 {
 		return 0
 	}
 	return v.ExpiresAt
+}
+
+func (v *V2CliGetDeviceLoginResponseData) GetOauth() *V2CliDeviceLoginOAuth {
+	if v == nil {
+		return nil
+	}
+	return v.Oauth
 }
 
 // #region class-body-v2cligetdeviceloginresponsedata

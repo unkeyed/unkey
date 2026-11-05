@@ -1774,6 +1774,8 @@ type DeviceAuthorization struct {
 	SessionID          sql.NullString             `db:"session_id"`
 	CreatedAt          int64                      `db:"created_at"`
 	ApprovedAt         sql.NullInt64              `db:"approved_at"`
+	Oauth              json.RawMessage            `db:"oauth"`
+	CodeHash           sql.NullString             `db:"code_hash"`
 }
 
 type DeviceSession struct {

@@ -55,7 +55,8 @@ type Memberships interface {
 	ActiveRoles(ctx context.Context, orgID string, userID string) (roles []string, found bool, err error)
 }
 
-// Service runs device login and CLI sessions.
+// Service runs device login, the OAuth authorization server, and the
+// sessions both create.
 type Service struct {
 	DB               db.Database
 	Auditlogs        auditlogs.AuditLogService
@@ -65,6 +66,9 @@ type Service struct {
 	DashboardBaseURL string
 	Signer           tokenjwt.Signer[clisession.Claims]
 	SessionCache     cache.Cache[string, SessionVerdict]
+
+	// OAuth is nil when the OAuth authorization server is off.
+	OAuth *OAuthServer
 }
 
 // SessionVerdict is the cached answer for one CLI session.

@@ -60,7 +60,7 @@ func TestPollReturnsForbiddenWhenLoginIsDenied(t *testing.T) {
 	h.Register(route, h.PublicMiddleware()...)
 	started, err := devices.Start(t.Context(), clidevice.StartRequest{DeviceName: "laptop", RemoteIP: "203.0.113.43"})
 	require.NoError(t, err)
-	require.NoError(t, devices.Deny(t.Context(), clidevice.DenyRequest{
+	_, err = devices.Deny(t.Context(), clidevice.DenyRequest{
 		Principal: &principal.Principal{
 			Version:               principal.Version,
 			Type:                  principal.TypeJWT,
@@ -69,7 +69,8 @@ func TestPollReturnsForbiddenWhenLoginIsDenied(t *testing.T) {
 			AuthorizedWorkspaceID: h.Resources().UserWorkspace.ID,
 		},
 		UserCode: started.UserCode,
-	}))
+	})
+	require.NoError(t, err)
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, withClientIP("203.0.113.44"), handler.Request{LoginId: &started.LoginID})
 	require.Equal(t, http.StatusForbidden, res.Status, res.RawBody)

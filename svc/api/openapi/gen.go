@@ -3692,11 +3692,29 @@ type V2CliDecideDeviceLoginRequestBody1Decision string
 
 // V2CliDecideDeviceLoginResponseBody defines model for V2CliDecideDeviceLoginResponseBody.
 type V2CliDecideDeviceLoginResponseBody struct {
-	// Data Empty response object by design. A successful response indicates this operation was successfully executed.
-	Data EmptyResponse `json:"data"`
+	Data V2CliDecideDeviceLoginResponseData `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
+}
+
+// V2CliDecideDeviceLoginResponseData defines model for V2CliDecideDeviceLoginResponseData.
+type V2CliDecideDeviceLoginResponseData struct {
+	// RedirectUrl Where to send the browser after an OAuth login is decided. It carries the authorization code or the access_denied error to the client.
+	// Absent for CLI logins.
+	RedirectUrl *string `json:"redirectUrl,omitempty"`
+}
+
+// V2CliDeviceLoginOAuth Present only when an MCP client started the login through OAuth. Skip the code comparison and send the browser to the decision's redirectUrl.
+type V2CliDeviceLoginOAuth struct {
+	// ClientHost Host that vouches for the client. For a client metadata document, the host serving it. For a registered client, the host the authorization code is sent to.
+	ClientHost string `json:"clientHost"`
+
+	// ClientName The client's self-reported name. Show clientHost next to it.
+	ClientName string `json:"clientName"`
+
+	// Resource URL of the MCP server the session will be used with.
+	Resource string `json:"resource"`
 }
 
 // V2CliExchangeTokenPendingResponseBody defines model for V2CliExchangeTokenPendingResponseBody.
@@ -3779,6 +3797,9 @@ type V2CliGetDeviceLoginResponseData struct {
 	// GrantablePermissions Permissions the signed-in member's role allows. The approval page starts with all of them selected.
 	GrantablePermissions *[]string `json:"grantablePermissions,omitempty"`
 
+	// Oauth Present only when an MCP client started the login through OAuth. Skip the code comparison and send the browser to the decision's redirectUrl.
+	Oauth *V2CliDeviceLoginOAuth `json:"oauth,omitempty"`
+
 	// RequesterIp IP address that started the login. Empty when the API could not determine it.
 	RequesterIp *string `json:"requesterIp,omitempty"`
 
@@ -3808,7 +3829,9 @@ type V2CliListSessionsResponseData struct {
 
 // V2CliListSessionsSession defines model for V2CliListSessionsSession.
 type V2CliListSessionsSession struct {
-	CreatedAt int64 `json:"createdAt"`
+	// ClientHost Host of the MCP client's metadata document. Absent for CLI sessions and dynamically registered clients.
+	ClientHost *string `json:"clientHost,omitempty"`
+	CreatedAt  int64   `json:"createdAt"`
 
 	// DeviceName The CLI machine's name, or the MCP client's self-reported name.
 	DeviceName *string `json:"deviceName,omitempty"`
@@ -3821,6 +3844,9 @@ type V2CliListSessionsSession struct {
 	Kind        V2CliSessionKind `json:"kind"`
 	LastUsedAt  int64            `json:"lastUsedAt"`
 	Permissions []string         `json:"permissions"`
+
+	// Resource URL of the MCP server an mcp session is bound to. Absent for CLI sessions.
+	Resource *string `json:"resource,omitempty"`
 
 	// RevokedAt Unix millisecond time the session was revoked. Omitted when the session is still active.
 	RevokedAt *int64 `json:"revokedAt,omitempty"`

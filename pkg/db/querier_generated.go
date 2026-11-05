@@ -20,7 +20,9 @@ type Querier interface {
 	//      approver_name = ?,
 	//      approver_roles = CAST(? AS JSON),
 	//      permissions = CAST(? AS JSON),
-	//      approved_at = ?
+	//      approved_at = ?,
+	//      expires_at = ?,
+	//      code_hash = ?
 	//  WHERE id = ?
 	//    AND status IN ('pending', 'approved')
 	//    AND (
@@ -625,6 +627,30 @@ type Querier interface {
 	//    AND a.deleted_at IS NULL
 	//    AND p.deleted_at IS NULL
 	FindDeploymentWithEnvironment(ctx context.Context, db DBTX, id string) (FindDeploymentWithEnvironmentRow, error)
+	//FindDeviceAuthorizationByCodeHash
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      user_code,
+	//      expires_at,
+	//      status,
+	//      device_name,
+	//      requester_ip,
+	//      requester_user_agent,
+	//      workspace_id,
+	//      approver_user_id,
+	//      approver_name,
+	//      approver_roles,
+	//      permissions,
+	//      session_id,
+	//      created_at,
+	//      approved_at,
+	//      oauth,
+	//      code_hash
+	//  FROM device_authorizations
+	//  WHERE code_hash = ?
+	FindDeviceAuthorizationByCodeHash(ctx context.Context, db DBTX, codeHash sql.NullString) (DeviceAuthorization, error)
 	//FindDeviceAuthorizationByID
 	//
 	//  SELECT
@@ -643,7 +669,9 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      oauth,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE id = ?
 	FindDeviceAuthorizationByID(ctx context.Context, db DBTX, id string) (DeviceAuthorization, error)
@@ -665,7 +693,9 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      oauth,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE id = ?
 	//  FOR UPDATE
@@ -688,7 +718,9 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      oauth,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE user_code = ?
 	FindDeviceAuthorizationByUserCode(ctx context.Context, db DBTX, userCode string) (DeviceAuthorization, error)
@@ -710,7 +742,9 @@ type Querier interface {
 	//      permissions,
 	//      session_id,
 	//      created_at,
-	//      approved_at
+	//      approved_at,
+	//      oauth,
+	//      code_hash
 	//  FROM device_authorizations
 	//  WHERE user_code = ?
 	//  FOR UPDATE
@@ -2054,8 +2088,10 @@ type Querier interface {
 	//      device_name,
 	//      requester_ip,
 	//      requester_user_agent,
-	//      created_at
+	//      created_at,
+	//      oauth
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,

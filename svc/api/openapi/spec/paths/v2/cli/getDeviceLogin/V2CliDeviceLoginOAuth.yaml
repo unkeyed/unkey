@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+description: Present only when an MCP client started the login through OAuth. Skip the code comparison and send the browser to the decision's redirectUrl.
+required:
+  - clientName
+  - clientHost
+  - resource
+properties:
+  clientName:
+    type: string
+    description: The client's self-reported name. Show clientHost next to it.
+  clientHost:
+    type: string
+    description: Host that vouches for the client. For a client metadata document, the host serving it. For a registered client, the host the authorization code is sent to.
+  resource:
+    type: string
+    description: URL of the MCP server the session will be used with.

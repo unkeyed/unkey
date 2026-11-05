@@ -8,7 +8,11 @@ type V2CliListSessionsSession struct {
 	// How the session started. cli is `unkey login`. mcp is an MCP client that signed in with OAuth.
 	Kind V2CliSessionKind `json:"kind"`
 	// The CLI machine's name, or the MCP client's self-reported name.
-	DeviceName  *string  `json:"deviceName,omitzero"`
+	DeviceName *string `json:"deviceName,omitzero"`
+	// Host of the MCP client's metadata document. Absent for CLI sessions and dynamically registered clients.
+	ClientHost *string `json:"clientHost,omitzero"`
+	// URL of the MCP server an mcp session is bound to. Absent for CLI sessions.
+	Resource    *string  `json:"resource,omitzero"`
 	Permissions []string `json:"permissions"`
 	CreatedAt   int64    `json:"createdAt"`
 	LastUsedAt  int64    `json:"lastUsedAt"`
@@ -44,6 +48,20 @@ func (v *V2CliListSessionsSession) GetDeviceName() *string {
 		return nil
 	}
 	return v.DeviceName
+}
+
+func (v *V2CliListSessionsSession) GetClientHost() *string {
+	if v == nil {
+		return nil
+	}
+	return v.ClientHost
+}
+
+func (v *V2CliListSessionsSession) GetResource() *string {
+	if v == nil {
+		return nil
+	}
+	return v.Resource
 }
 
 func (v *V2CliListSessionsSession) GetPermissions() []string {

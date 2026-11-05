@@ -7,7 +7,81 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const findDeviceAuthorizationByCodeHash = `-- name: FindDeviceAuthorizationByCodeHash :one
+SELECT
+    pk,
+    id,
+    user_code,
+    expires_at,
+    status,
+    device_name,
+    requester_ip,
+    requester_user_agent,
+    workspace_id,
+    approver_user_id,
+    approver_name,
+    approver_roles,
+    permissions,
+    session_id,
+    created_at,
+    approved_at,
+    oauth,
+    code_hash
+FROM device_authorizations
+WHERE code_hash = ?
+`
+
+// FindDeviceAuthorizationByCodeHash
+//
+//	SELECT
+//	    pk,
+//	    id,
+//	    user_code,
+//	    expires_at,
+//	    status,
+//	    device_name,
+//	    requester_ip,
+//	    requester_user_agent,
+//	    workspace_id,
+//	    approver_user_id,
+//	    approver_name,
+//	    approver_roles,
+//	    permissions,
+//	    session_id,
+//	    created_at,
+//	    approved_at,
+//	    oauth,
+//	    code_hash
+//	FROM device_authorizations
+//	WHERE code_hash = ?
+func (q *Queries) FindDeviceAuthorizationByCodeHash(ctx context.Context, db DBTX, codeHash sql.NullString) (DeviceAuthorization, error) {
+	row := db.QueryRowContext(ctx, findDeviceAuthorizationByCodeHash, codeHash)
+	var i DeviceAuthorization
+	err := row.Scan(
+		&i.Pk,
+		&i.ID,
+		&i.UserCode,
+		&i.ExpiresAt,
+		&i.Status,
+		&i.DeviceName,
+		&i.RequesterIp,
+		&i.RequesterUserAgent,
+		&i.WorkspaceID,
+		&i.ApproverUserID,
+		&i.ApproverName,
+		&i.ApproverRoles,
+		&i.Permissions,
+		&i.SessionID,
+		&i.CreatedAt,
+		&i.ApprovedAt,
+		&i.Oauth,
+		&i.CodeHash,
+	)
+	return i, err
+}
 
 const findDeviceAuthorizationByID = `-- name: FindDeviceAuthorizationByID :one
 SELECT
@@ -26,7 +100,9 @@ SELECT
     permissions,
     session_id,
     created_at,
-    approved_at
+    approved_at,
+    oauth,
+    code_hash
 FROM device_authorizations
 WHERE id = ?
 `
@@ -49,7 +125,9 @@ WHERE id = ?
 //	    permissions,
 //	    session_id,
 //	    created_at,
-//	    approved_at
+//	    approved_at,
+//	    oauth,
+//	    code_hash
 //	FROM device_authorizations
 //	WHERE id = ?
 func (q *Queries) FindDeviceAuthorizationByID(ctx context.Context, db DBTX, id string) (DeviceAuthorization, error) {
@@ -72,6 +150,8 @@ func (q *Queries) FindDeviceAuthorizationByID(ctx context.Context, db DBTX, id s
 		&i.SessionID,
 		&i.CreatedAt,
 		&i.ApprovedAt,
+		&i.Oauth,
+		&i.CodeHash,
 	)
 	return i, err
 }
@@ -93,7 +173,9 @@ SELECT
     permissions,
     session_id,
     created_at,
-    approved_at
+    approved_at,
+    oauth,
+    code_hash
 FROM device_authorizations
 WHERE id = ?
 FOR UPDATE
@@ -117,7 +199,9 @@ FOR UPDATE
 //	    permissions,
 //	    session_id,
 //	    created_at,
-//	    approved_at
+//	    approved_at,
+//	    oauth,
+//	    code_hash
 //	FROM device_authorizations
 //	WHERE id = ?
 //	FOR UPDATE
@@ -141,6 +225,8 @@ func (q *Queries) FindDeviceAuthorizationByIDForUpdate(ctx context.Context, db D
 		&i.SessionID,
 		&i.CreatedAt,
 		&i.ApprovedAt,
+		&i.Oauth,
+		&i.CodeHash,
 	)
 	return i, err
 }
@@ -162,7 +248,9 @@ SELECT
     permissions,
     session_id,
     created_at,
-    approved_at
+    approved_at,
+    oauth,
+    code_hash
 FROM device_authorizations
 WHERE user_code = ?
 `
@@ -185,7 +273,9 @@ WHERE user_code = ?
 //	    permissions,
 //	    session_id,
 //	    created_at,
-//	    approved_at
+//	    approved_at,
+//	    oauth,
+//	    code_hash
 //	FROM device_authorizations
 //	WHERE user_code = ?
 func (q *Queries) FindDeviceAuthorizationByUserCode(ctx context.Context, db DBTX, userCode string) (DeviceAuthorization, error) {
@@ -208,6 +298,8 @@ func (q *Queries) FindDeviceAuthorizationByUserCode(ctx context.Context, db DBTX
 		&i.SessionID,
 		&i.CreatedAt,
 		&i.ApprovedAt,
+		&i.Oauth,
+		&i.CodeHash,
 	)
 	return i, err
 }
@@ -229,7 +321,9 @@ SELECT
     permissions,
     session_id,
     created_at,
-    approved_at
+    approved_at,
+    oauth,
+    code_hash
 FROM device_authorizations
 WHERE user_code = ?
 FOR UPDATE
@@ -253,7 +347,9 @@ FOR UPDATE
 //	    permissions,
 //	    session_id,
 //	    created_at,
-//	    approved_at
+//	    approved_at,
+//	    oauth,
+//	    code_hash
 //	FROM device_authorizations
 //	WHERE user_code = ?
 //	FOR UPDATE
@@ -277,6 +373,8 @@ func (q *Queries) FindDeviceAuthorizationByUserCodeForUpdate(ctx context.Context
 		&i.SessionID,
 		&i.CreatedAt,
 		&i.ApprovedAt,
+		&i.Oauth,
+		&i.CodeHash,
 	)
 	return i, err
 }

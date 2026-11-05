@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"net/url"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	principalpermissions "github.com/unkeyed/unkey/svc/api/internal/principal"
 )
 
@@ -26,6 +28,14 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 		}
 		return Authorization{}, err
 	}
+	var oauth *AuthorizationOAuth
+	if row.Oauth != nil {
+		oauth = &AuthorizationOAuth{
+			ClientName: row.DeviceName.String,
+			ClientHost: clientHost(row.Oauth.ClientID, row.Oauth.RedirectURI),
+			Resource:   row.Oauth.Resource,
+		}
+	}
 	return Authorization{
 		UserCode:           row.UserCode,
 		DeviceName:         row.DeviceName.String,
@@ -35,37 +45,43 @@ func (s *Service) Get(ctx context.Context, req GetRequest) (Authorization, error
 		WorkspaceID:        row.WorkspaceID.String,
 		CreatedAt:          row.CreatedAt,
 		ExpiresAt:          row.ExpiresAt,
+		OAuth:              oauth,
 	}, nil
 }
 
-// Approve stores the permissions the dashboard user granted.
-func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
+// Approve stores the permissions the dashboard user granted. For an OAuth
+// login it mints an authorization code and returns the redirect that hands it
+// to the client. Only the code's hash is stored, and each approval mints a new
+// code, so a code from an earlier approval stops working.
+func (s *Service) Approve(ctx context.Context, req ApproveRequest) (string, error) {
 	if err := s.requireEnabled(); err != nil {
-		return err
+		return "", err
 	}
 	source, err := RequireDashboardSession(req.Principal)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
-		return err
+		return "", err
 	}
 
 	validated, err := principalpermissions.ValidateDelegatedPermissions(ctx, req.Principal, req.Permissions)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	rolesJSON, err := json.Marshal(source.Roles)
 	if err != nil {
-		return err
+		return "", err
 	}
 	permsJSON, err := json.Marshal(validated)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	var binding *mysqltype.DeviceAuthorizationOAuth
+	code := ""
+	err = db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -88,6 +104,15 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 			return forbidden("This workspace cannot approve a CLI login.")
 		}
 
+		now := s.Clock.Now().UnixMilli()
+		expiresAt := row.ExpiresAt
+		codeHash := sql.NullString{String: "", Valid: false}
+		code = ""
+		if row.Oauth != nil {
+			code = newAuthorizationCode()
+			codeHash = sql.NullString{String: hashAuthorizationCode(code), Valid: true}
+			expiresAt = min(row.ExpiresAt, now+authorizationCodeTTL.Milliseconds())
+		}
 		n, err := db.Query.ApproveDeviceAuthorization(ctx, tx, db.ApproveDeviceAuthorizationParams{
 			WorkspaceID: sql.NullString{
 				String: req.Principal.AuthorizedWorkspaceID,
@@ -104,10 +129,12 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 			ApproverRoles: rolesJSON,
 			Permissions:   permsJSON,
 			ApprovedAt: sql.NullInt64{
-				Int64: s.Clock.Now().UnixMilli(),
+				Int64: now,
 				Valid: true,
 			},
-			ID: row.ID,
+			ExpiresAt: expiresAt,
+			CodeHash:  codeHash,
+			ID:        row.ID,
 		})
 		if err != nil {
 			return err
@@ -115,23 +142,30 @@ func (s *Service) Approve(ctx context.Context, req ApproveRequest) error {
 		if n != 1 {
 			return invalid("Could not approve this login. Run unkey login again.")
 		}
+		binding = row.Oauth
 		return nil
 	})
+	if err != nil {
+		return "", err
+	}
+	return s.decisionRedirect(binding, url.Values{"code": {code}})
 }
 
-// Deny marks the login denied.
-func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
+// Deny marks the login denied. For an OAuth login it returns the redirect
+// that tells the client access was denied.
+func (s *Service) Deny(ctx context.Context, req DenyRequest) (string, error) {
 	if err := s.requireEnabled(); err != nil {
-		return err
+		return "", err
 	}
 	if _, err := RequireDashboardSession(req.Principal); err != nil {
-		return err
+		return "", err
 	}
 	if err := s.limitUserCodeAttempts(ctx, req.Principal.Subject.ID); err != nil {
-		return err
+		return "", err
 	}
 
-	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	var binding *mysqltype.DeviceAuthorizationOAuth
+	err := db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		row, err := db.Query.FindDeviceAuthorizationByUserCodeForUpdate(ctx, tx, normalizeUserCode(req.UserCode))
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -142,6 +176,7 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 		if row.Status == db.DeviceAuthorizationsStatusConsumed {
 			return invalid("This login was already used.")
 		}
+		binding = row.Oauth
 		if row.Status == db.DeviceAuthorizationsStatusDenied {
 			return nil
 		}
@@ -158,6 +193,10 @@ func (s *Service) Deny(ctx context.Context, req DenyRequest) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return "", err
+	}
+	return s.decisionRedirect(binding, url.Values{"error": {string(OAuthAccessDenied)}})
 }
 
 func (s *Service) authorizationStatus(row db.DeviceAuthorization) db.DeviceAuthorizationsStatus {
