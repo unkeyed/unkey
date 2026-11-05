@@ -16,7 +16,7 @@ WHERE app_id = ?
   AND environment_id = ?
   AND status = 'ready'
   AND id != ?
-ORDER BY created_at DESC
+ORDER BY created_at DESC, pk DESC
 LIMIT 1
 `
 
@@ -34,7 +34,7 @@ type FindLatestReadyDeploymentByAppAndEnvParams struct {
 //	  AND environment_id = ?
 //	  AND status = 'ready'
 //	  AND id != ?
-//	ORDER BY created_at DESC
+//	ORDER BY created_at DESC, pk DESC
 //	LIMIT 1
 func (q *Queries) FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error) {
 	row := q.db.QueryRowContext(ctx, findLatestReadyDeploymentByAppAndEnv, arg.AppID, arg.EnvironmentID, arg.ExcludeID)

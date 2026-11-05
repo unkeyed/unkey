@@ -1055,7 +1055,7 @@ type Querier interface {
 	//    AND environment_id = ?
 	//    AND status = 'ready'
 	//    AND id != ?
-	//  ORDER BY created_at DESC
+	//  ORDER BY created_at DESC, pk DESC
 	//  LIMIT 1
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
 	//FindLeakedKeysByHashes
