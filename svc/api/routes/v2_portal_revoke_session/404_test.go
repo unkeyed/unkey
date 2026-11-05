@@ -1,13 +1,15 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
@@ -16,7 +18,7 @@ import (
 // An unknown portal and another workspace's portal get the same 404.
 func TestRevokeSessionUnknownPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 
 	other := h.CreateWorkspace()
 	theirs, mapping := seedPortal(t, h, other.ID, "revoke-theirs")
@@ -41,7 +43,7 @@ func TestRevokeSessionUnknownPortal(t *testing.T) {
 		"a foreign portal's sessions are untouched")
 }
 
-// Without the minting permission the portal reads as absent. Managing the
+// Without session access the portal reads as absent. Managing the
 // portal is not enough.
 func TestRevokeSessionWithoutPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -52,9 +54,13 @@ func TestRevokeSessionWithoutPermission(t *testing.T) {
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
 
 	testCases := map[string][]string{
-		"no permissions":      nil,
-		"portal admin only":   {"portal.*.create_portal", "portal.*.update_portal", "portal.*.delete_portal", "portal.*.read_portal"},
-		"another portal only": {fmt.Sprintf("portal.%s.create_portal_session", uid.New(uid.PortalPrefix))},
+		"no permissions": nil,
+		"portal admin only": {
+			rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Read).Value,
+			rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Write).Value,
+			rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(stored.ID), permissions.Delete).Value,
+		},
+		"another portal only": {rbac.U(urn.New().Workspace(workspace.ID).Project(stored.ProjectID).Portal(uid.New(uid.PortalPrefix)).Session("*"), permissions.Write).Value},
 	}
 
 	for name, permissions := range testCases {
@@ -63,7 +69,7 @@ func TestRevokeSessionWithoutPermission(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.ID, "user_1"))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 			require.NotContains(t, res.RawBody, stored.ID, "a denial must not disclose the portal id")
-			require.NotContains(t, res.RawBody, "create_portal_session", "a denial must not echo the required permission")
+			require.NotContains(t, res.RawBody, "#write", "a denial must not echo the required permission")
 		})
 	}
 

@@ -7,14 +7,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 )
 
-// The grants that mint a session also revoke one, including the dashboard's
-// workspace admin grant.
-func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
+func TestRevokeSessionPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := registerRoute(h)
 	workspace := h.Resources().UserWorkspace
@@ -25,38 +26,30 @@ func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
 		shouldPass bool
 	}{
 		{
-			name:       "legacy wildcard tuple",
-			permission: func(_, _ string) string { return "portal.*.create_portal_session" },
-			shouldPass: true,
-		},
-		{
-			name:       "legacy tuple for this portal",
-			permission: func(_, id string) string { return fmt.Sprintf("portal.%s.create_portal_session", id) },
-			shouldPass: true,
-		},
-		{
 			name: "sessions of this portal",
 			permission: func(p, id string) string {
-				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspace.ID, p, id)
+				return rbac.U(urn.New().Workspace(workspace.ID).Project(p).Portal(id).Session("*"), permissions.Write).Value
 			},
 			shouldPass: true,
 		},
 		{
-			name:       "workspace admin",
-			permission: func(_, _ string) string { return fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID) },
+			name: "workspace admin",
+			permission: func(_, _ string) string {
+				return rbac.U(urn.V1{WorkspaceID: workspace.ID, Resource: "**"}, permissions.Wildcard).Value
+			},
 			shouldPass: true,
 		},
 		{
 			name: "this portal itself",
 			permission: func(p, id string) string {
-				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#*", workspace.ID, p, id)
+				return rbac.U(urn.New().Workspace(workspace.ID).Project(p).Portal(id), permissions.Write).Value
 			},
 			shouldPass: false,
 		},
 		{
 			name: "read on this portal's sessions",
 			permission: func(p, id string) string {
-				return fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#read", workspace.ID, p, id)
+				return rbac.U(urn.New().Workspace(workspace.ID).Project(p).Portal(id).Session("*"), permissions.Read).Value
 			},
 			shouldPass: false,
 		},
@@ -90,6 +83,9 @@ func TestRevokeSessionAuthorizesMintingGrants(t *testing.T) {
 
 			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.Slug, "user_1"))
 			require.Equal(t, http.StatusNotFound, res.Status, "expected a masked 404 for %s, got: %s", tc.name, res.RawBody)
+			missing := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request("missing-portal", "user_1"))
+			require.Equal(t, missing.Status, res.Status)
+			require.Equal(t, missing.Body.Error, res.Body.Error)
 			require.Equal(t, 1, h.CountLivePortalSessions(t, stored.ID, "user_1"),
 				"a denied request must not revoke")
 		})

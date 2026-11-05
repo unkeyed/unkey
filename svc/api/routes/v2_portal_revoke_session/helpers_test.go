@@ -12,6 +12,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
@@ -31,11 +34,12 @@ func registerRoute(h *testutil.Harness) *handler.Handler {
 }
 
 // newRoute registers the handler and returns it with a root key's headers.
-func newRoute(t *testing.T, h *testutil.Harness, permissions ...string) (*handler.Handler, http.Header) {
+func newRoute(t *testing.T, h *testutil.Harness) (*handler.Handler, http.Header) {
 	t.Helper()
 
 	route := registerRoute(h)
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, permissions...)
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID,
+		rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Portal("*").Session("*"), permissions.Write).Value)
 	return route, testutil.RootKeyHeaders(rootKey)
 }
 

@@ -2,13 +2,15 @@ package handler_test
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -65,7 +67,8 @@ func jwtHeaders() http.Header {
 func TestRevokeSessionAcceptsDashboardAdmin(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.Resources().UserWorkspace
-	route := registerAs(h, dashboardPrincipal(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID)))
+	route := registerAs(h, dashboardPrincipal(workspace.ID,
+		rbac.U(urn.V1{WorkspaceID: workspace.ID, Resource: "**"}, permissions.Wildcard).Value))
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-dashboard")
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys:read"})
