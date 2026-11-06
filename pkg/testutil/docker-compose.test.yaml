@@ -38,7 +38,7 @@ services:
 
   clickhouse:
     labels: *unkey-labels
-    image: clickhouse/clickhouse-server:26.2.1.1139@sha256:f57ed23ab5c4ee0e9a05c2e811bb3580ead222cea30421b3e66234c32e272bce
+    image: clickhouse/clickhouse-server:26.9.11.2@sha256:cdc54a9494fdf608b48c240a62b8101a56e781aa94208cbcd7cf095238e5cb90
     environment:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: password
