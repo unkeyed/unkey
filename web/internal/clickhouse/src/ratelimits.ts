@@ -618,7 +618,6 @@ export const ratelimitOverviewLogsParams = z.object({
 export const ratelimitOverviewLogs = z.object({
   time: z.int(),
   identifier: z.string(),
-  request_id: z.string(),
   passed_count: z.int(),
   blocked_count: z.int(),
   // total_tokens = sum of tokens across all decisions for the identifier in
@@ -644,36 +643,71 @@ interface ExtendedParamsOverviewLogs extends RatelimitOverviewLogsParams {
   [key: string]: unknown;
 }
 
+// The overview aggregates every decision a namespace received in the window.
+// Reading that from ratelimits_raw_v2 means scanning the whole decision stream,
+// which is hundreds of millions of rows for a busy namespace and pushes the
+// query past the client timeout. The pre-aggregated rollups hold one row per
+// (namespace, bucket, identifier) instead, so pick the finest rollup whose
+// retention covers the window to keep `last_request_time` as precise as
+// possible.
+
+const OVERVIEW_ROLLUP_TIERS: Array<{ maxWindowMs: number; table: string }> = [
+  { maxWindowMs: 6 * 24 * 60 * 60 * 1000, table: "default.ratelimits_per_minute_v2" },
+  { maxWindowMs: 29 * 24 * 60 * 60 * 1000, table: "default.ratelimits_per_hour_v2" },
+  { maxWindowMs: 90 * 24 * 60 * 60 * 1000, table: "default.ratelimits_per_day_v2" },
+];
+const OVERVIEW_ROLLUP_DEFAULT_TABLE = "default.ratelimits_per_month_v2";
+
+function overviewRollupTable(startTime: number, endTime: number): string {
+  const windowMs = Math.max(0, endTime - startTime);
+  return (
+    OVERVIEW_ROLLUP_TIERS.find((tier) => windowMs <= tier.maxWindowMs)?.table ??
+    OVERVIEW_ROLLUP_DEFAULT_TABLE
+  );
+}
+
 // getRatelimitOverviewLogs returns per-identifier rate limit aggregates for a
-// namespace, paginated with LIMIT/OFFSET over the `page` argument. Because
-// OFFSET is only stable under a total ordering, the ORDER BY always ends with
-// `last_request_time` then `request_id` as tiebreakers so a row never appears
-// on two pages or gets skipped between them. The total row count rides along on
-// each page via `count() OVER ()`; only when a page lands past the end (no rows)
-// does it fall back to a dedicated count query so the caller can clamp the page.
+// namespace, paginated with LIMIT/OFFSET over the `page` argument. A busy
+// namespace receives hundreds of millions of decisions in the window, so the
+// aggregate reads a pre-aggregated rollup instead of the raw decision stream;
+// see overviewRollupTable. Because OFFSET is only stable under a total
+// ordering, the ORDER BY always ends with `last_request_time` then `identifier`
+// as tiebreakers so a row never appears on two pages or gets skipped between
+// them. The total row count rides along on each page via `count() OVER ()`;
+// only when a page lands past the end (no rows) does it fall back to a
+// dedicated count query so the caller can clamp the page.
 export function getRatelimitOverviewLogs(ch: Querier) {
   return async (args: RatelimitOverviewLogsParams) => {
     const paramSchemaExtension: Record<string, z.ZodType> = {};
     const parameters: ExtendedParamsOverviewLogs = { ...args };
 
     const hasIdentifierFilters = args.identifiers && args.identifiers.length > 0;
-    const hasStatusFilters = args.status && args.status.length > 0;
     const hasSortingRules = args.sorts && args.sorts.length > 0;
 
-    const statusCondition = hasStatusFilters
-      ? args.status
-          ?.map((filter, index) => {
-            if (filter.operator === "is") {
-              const paramName = `statusValue_${index}`;
-              paramSchemaExtension[paramName] = z.boolean();
-              parameters[paramName] = filter.value === "passed";
-              return `passed = {${paramName}: Boolean}`;
-            }
-            return null;
-          })
-          .filter(Boolean)
-          .join(" OR ") || "TRUE"
-      : "TRUE";
+    const wantedStatuses = new Set(
+      (args.status ?? []).flatMap((filter) => (filter.operator === "is" ? [filter.value] : [])),
+    );
+    const passedOnly = wantedStatuses.has("passed") && !wantedStatuses.has("blocked");
+    const blockedOnly = wantedStatuses.has("blocked") && !wantedStatuses.has("passed");
+
+    // Selecting a status narrows which decisions the counts describe: a
+    // passed-only filter leaves the blocked counts at zero, and the reverse.
+    const passedCountExpr = blockedOnly ? "0" : "sum(r.passed)";
+    const blockedCountExpr = passedOnly ? "0" : "sum(r.total) - sum(r.passed)";
+    const passedTokensExpr = blockedOnly ? "0" : "sum(r.passed_tokens)";
+    const totalTokensExpr = passedOnly
+      ? "sum(r.passed_tokens)"
+      : blockedOnly
+        ? "sum(r.total_tokens) - sum(r.passed_tokens)"
+        : "sum(r.total_tokens)";
+    const blockedTokensExpr = passedOnly
+      ? "0"
+      : "greatest(sum(r.total_tokens) - sum(r.passed_tokens), 0)";
+    const havingClause = passedOnly
+      ? "HAVING sum(r.passed) > 0"
+      : blockedOnly
+        ? "HAVING sum(r.total) - sum(r.passed) > 0"
+        : "";
 
     const identifierConditions = hasIdentifierFilters
       ? args.identifiers
@@ -731,7 +765,7 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     const orderByClause = [
       ...orderByWithoutTime,
       `last_request_time ${timeDirection}`,
-      `request_id ${timeDirection}`,
+      `identifier ${timeDirection}`,
     ].join(", ");
 
     const page = args.page ?? 1;
@@ -740,38 +774,29 @@ export function getRatelimitOverviewLogs(ch: Querier) {
     paramSchemaExtension.offset = z.int();
 
     const extendedParamsSchema = ratelimitOverviewLogsParams.extend(paramSchemaExtension);
+    const rollupTable = overviewRollupTable(args.startTime, args.endTime);
     const query = ch.query({
-      query: `WITH filtered_ratelimits AS (
+      query: `WITH aggregated_data AS (
     SELECT
-        request_id,
-        time,
         identifier,
-        toUInt8(passed) as status,
-        tokens
-    FROM default.ratelimits_raw_v2
+        toUnixTimestamp64Milli(CAST(max(time) AS DateTime64(3))) as last_request_time,
+        ${passedCountExpr} as passed_count,
+        ${blockedCountExpr} as blocked_count,
+        ${passedTokensExpr} as passed_tokens,
+        ${totalTokensExpr} as total_tokens,
+        ${blockedTokensExpr} as blocked_tokens
+    FROM ${rollupTable} AS r
     WHERE workspace_id = {workspaceId: String}
         AND namespace_id = {namespaceId: String}
-        AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+        AND time >= fromUnixTimestamp64Milli({startTime: Int64})
+        AND time <= fromUnixTimestamp64Milli({endTime: Int64})
         AND (${identifierConditions})
-        AND (${statusCondition})
-),
-aggregated_data AS (
-    SELECT
-        identifier,
-        max(time) as last_request_time,
-        max(request_id) as last_request_id,
-        countIf(status = 1) as passed_count,
-        countIf(status = 0) as blocked_count,
-        sumIf(tokens, status = 1) as passed_tokens,
-        sum(tokens) as total_tokens,
-        greatest(sum(tokens) - sumIf(tokens, status = 1), 0) as blocked_tokens
-    FROM filtered_ratelimits
     GROUP BY identifier
+    ${havingClause}
 )
 SELECT
     identifier,
     last_request_time as time,
-    last_request_id as request_id,
     passed_count,
     blocked_count,
     passed_tokens,
@@ -790,13 +815,18 @@ OFFSET {offset: Int}`,
     const countOnlyQuery = ch.query({
       query: `
 SELECT
-    count(DISTINCT identifier) as total_count
-FROM default.ratelimits_raw_v2
-WHERE workspace_id = {workspaceId: String}
-    AND namespace_id = {namespaceId: String}
-    AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
-    AND (${identifierConditions})
-    AND (${statusCondition})`,
+    count() as total_count
+FROM (
+    SELECT identifier
+    FROM ${rollupTable} AS r
+    WHERE r.workspace_id = {workspaceId: String}
+        AND namespace_id = {namespaceId: String}
+        AND time >= fromUnixTimestamp64Milli({startTime: Int64})
+        AND time <= fromUnixTimestamp64Milli({endTime: Int64})
+        AND (${identifierConditions})
+    GROUP BY identifier
+    ${havingClause}
+)`,
       params: extendedParamsSchema,
       schema: z.object({
         total_count: z.int(),
@@ -815,7 +845,6 @@ WHERE workspace_id = {workspaceId: String}
         val: (result.val ?? []).map((row) => ({
           time: row.time,
           identifier: row.identifier,
-          request_id: row.request_id,
           passed_count: row.passed_count,
           blocked_count: row.blocked_count,
           passed_tokens: row.passed_tokens,
