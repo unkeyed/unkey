@@ -39,6 +39,9 @@ type Handler struct {
 	Keys             keys.KeyService
 	AuditLogBuffer   *batch.BatchProcessor[auditlog.Event]
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
+	// KeyVerificationFailures records every verification that is not VALID
+	// for internal investigation. Nil records nothing.
+	KeyVerificationFailures *keys.FailureRecorder
 }
 
 // Method returns the HTTP method this route responds to
@@ -82,30 +85,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if key.Key.ID != "" {
 			key.Hide(keys.ReasonWorkspaceMismatch)
 		}
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			// nolint:exhaustruct
-			Data: openapi.V2KeysVerifyKeyResponseData{
-				Code:  openapi.NOTFOUND,
-				Valid: false,
-			},
-		})
+		return h.notFound(s, principal, req.Key, key)
 	}
 
 	// Check if API is deleted
 	if key.Key.ApiDeletedAtM.Valid {
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			// nolint:exhaustruct
-			Data: openapi.V2KeysVerifyKeyResponseData{
-				Code:  openapi.NOTFOUND,
-				Valid: false,
-			},
-		})
+		return h.notFound(s, principal, req.Key, key)
 	}
 
 	err = principal.Authorize(rbac.Or(
@@ -128,16 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// Return 200 OK with NOT_FOUND because returning a permission error here
 		// would leak that the key exists.
 		key.Hide(keys.ReasonPermissionDenied)
-		return s.JSON(http.StatusOK, Response{
-			Meta: openapi.Meta{
-				RequestId: s.RequestID(),
-			},
-			// nolint:exhaustruct
-			Data: openapi.V2KeysVerifyKeyResponseData{
-				Code:  openapi.NOTFOUND,
-				Valid: false,
-			},
-		})
+		return h.notFound(s, principal, req.Key, key)
 	}
 
 	opts := []keys.VerifyOption{
@@ -277,6 +253,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	verification := key.TelemetrySnapshot()
 	h.KeyVerifications.Buffer(verification)
+	if key.Status != keys.StatusValid {
+		h.recordFailure(key.FailureSnapshot(principal), req.Key)
+	}
 	h.bufferAuditLog(s, principal, key, verification.Time)
 
 	// A keyspace mismatch returns NOT_FOUND but leaves the loaded key intact.
@@ -292,6 +271,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		},
 		Data: keyData,
 	})
+}
+
+// notFound answers NOT_FOUND for a verification that ends before Verify and
+// records it as a failure, since it never reaches the key_verifications stream.
+func (h *Handler) notFound(s *zen.Session, principal *authprincipal.Principal, rawKey string, key *keys.KeyVerifier) error {
+	failure := key.FailureSnapshot(principal)
+	failure.Outcome = string(openapi.NOTFOUND)
+	h.recordFailure(failure, rawKey)
+
+	return s.JSON(http.StatusOK, Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		// nolint:exhaustruct
+		Data: openapi.V2KeysVerifyKeyResponseData{
+			Code:  openapi.NOTFOUND,
+			Valid: false,
+		},
+	})
+}
+
+func (h *Handler) recordFailure(failure schema.KeyVerificationFailure, rawKey string) {
+	if h.KeyVerificationFailures == nil {
+		return
+	}
+	h.KeyVerificationFailures.Record(failure, rawKey)
 }
 
 // bufferAuditLog keeps MySQL out of the high-volume key verification path by

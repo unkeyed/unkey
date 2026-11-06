@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auth/ipallowlist"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -42,9 +43,10 @@ type KeyVerifier struct {
 
 	isRootKey bool // Whether this is a root key (special handling)
 
-	message string   // Internal message for validation failures
-	reason  Reason   // Internal cause of the current Status
-	tags    []string // Tags associated with this verification
+	message     string   // Internal message for validation failures
+	reason      Reason   // Internal cause of the current Status
+	cacheResult string   // How the verification cache answered the lookup; empty when Get did not run
+	tags        []string // Tags associated with this verification
 
 	session *zen.Session // The current request session
 	region  string       // Geographic region identifier
@@ -158,6 +160,40 @@ func (k *KeyVerifier) Hide(reason Reason) {
 	k.setInvalid(StatusNotFound, reason, "key is hidden from the caller")
 	if undecided {
 		k.recordStatus()
+	}
+}
+
+// FailureSnapshot captures a verification that did not end VALID for the
+// internal key_verification_failures stream. Outcome is the code the caller
+// received. The key ID fields are filled whenever the hash matched a key, even
+// one the caller may not see. The key shape fields and SampleWeight are left
+// for [FailureRecorder.Record].
+func (k *KeyVerifier) FailureSnapshot(p *principal.Principal) schema.KeyVerificationFailure {
+	rootKeyID := ""
+	if p.Subject.Type == principal.SubjectTypeRootKey {
+		rootKeyID = p.Subject.ID
+	}
+
+	return schema.KeyVerificationFailure{
+		RequestID:      k.session.RequestID(),
+		Time:           time.Now().UnixMilli(),
+		WorkspaceID:    p.AuthorizedWorkspaceID,
+		PrincipalType:  string(p.Type),
+		RootKeyID:      rootKeyID,
+		Region:         k.region,
+		Source:         k.source,
+		IPAddress:      k.session.Location(),
+		UserAgent:      k.session.UserAgent(),
+		Outcome:        string(k.ToOpenAPIStatus()),
+		Reason:         string(k.reason),
+		CacheResult:    k.cacheResult,
+		KeyID:          k.Key.ID,
+		KeySpaceID:     k.Key.KeyAuthID,
+		KeyWorkspaceID: k.Key.WorkspaceID,
+		KeyLength:      0,
+		KeyPrefix:      "",
+		KeyCharset:     "",
+		SampleWeight:   0,
 	}
 }
 

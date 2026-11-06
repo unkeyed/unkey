@@ -317,13 +317,14 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		if mysql.IsNotFound(err) {
 			// nolint:exhaustruct
 			return &KeyVerifier{
-				Status:    StatusNotFound,
-				reason:    ReasonUnknownHash,
-				message:   "key does not exist",
-				session:   sess,
-				region:    s.region,
-				source:    s.source,
-				startTime: startTime,
+				Status:      StatusNotFound,
+				reason:      ReasonUnknownHash,
+				cacheResult: cacheResult(hit),
+				message:     "key does not exist",
+				session:     sess,
+				region:      s.region,
+				source:      s.source,
+				startTime:   startTime,
 			}, nil
 		}
 
@@ -337,13 +338,14 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 	if hit == cache.Null {
 		// nolint:exhaustruct
 		return &KeyVerifier{
-			Status:    StatusNotFound,
-			reason:    ReasonUnknownHash,
-			message:   "key does not exist",
-			session:   sess,
-			region:    s.region,
-			source:    s.source,
-			startTime: startTime,
+			Status:      StatusNotFound,
+			reason:      ReasonUnknownHash,
+			cacheResult: cacheResult(hit),
+			message:     "key does not exist",
+			session:     sess,
+			region:      s.region,
+			source:      s.source,
+			startTime:   startTime,
 		}, nil
 	}
 
@@ -351,13 +353,14 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
 		// nolint:exhaustruct
 		return &KeyVerifier{
-			Status:    StatusWorkspaceNotFound,
-			reason:    ReasonWorkspaceNotFound,
-			message:   "workspace not found",
-			session:   sess,
-			region:    s.region,
-			source:    s.source,
-			startTime: startTime,
+			Status:      StatusWorkspaceNotFound,
+			reason:      ReasonWorkspaceNotFound,
+			cacheResult: cacheResult(hit),
+			message:     "workspace not found",
+			session:     sess,
+			region:      s.region,
+			source:      s.source,
+			startTime:   startTime,
 		}, nil
 	}
 
@@ -367,6 +370,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		kv = &KeyVerifier{
 			Status:                StatusWorkspaceDisabled,
 			reason:                ReasonWorkspaceDisabled,
+			cacheResult:           cacheResult(hit),
 			message:               "workspace is disabled",
 			session:               sess,
 			rBAC:                  s.rbac,
@@ -402,6 +406,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		// By default we assume the key is valid unless proven otherwise
 		Status:           StatusValid,
 		reason:           ReasonNone,
+		cacheResult:      cacheResult(hit),
 		ratelimitConfigs: key.RatelimitConfigs,
 		AllowedIPs:       key.AllowedIPs,
 		Roles:            key.Roles,
@@ -464,4 +469,20 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 	}
 
 	return kv, nil
+}
+
+// cacheResult describes how the verification cache answered a lookup: "null"
+// is a cached unknown hash and "miss" an unknown hash that cost a MySQL query.
+// "hit" also covers a miss that loaded the key, because the cache reports both
+// the same way.
+func cacheResult(hit cache.CacheHit) string {
+	switch hit {
+	case cache.Hit:
+		return "hit"
+	case cache.Null:
+		return "null"
+	case cache.Miss:
+		return "miss"
+	}
+	return ""
 }
