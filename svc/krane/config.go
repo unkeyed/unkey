@@ -78,13 +78,6 @@ type Config struct {
 	// Defaults to "ebs-csi-gp3" (prod). Set to "standard" for local Minikube development.
 	StorageClassName string `toml:"storage_class_name" config:"default=ebs-csi-gp3"`
 
-	// DisableGvisor puts user workloads on the node's default runtime instead
-	// of the gVisor sandbox. Local development sets it because minikube's
-	// gvisor addon installs no working runsc. The zero value keeps the
-	// sandbox, so a config that never mentions it still isolates untrusted
-	// code
-	DisableGvisor bool `toml:"disable_gvisor"`
-
 	// MaxConcurrentRollouts caps how many healthy workloads in the cluster
 	// roll out a pod template change at the same time. A krane release that
 	// changes the rendered template would otherwise restart every workload at
