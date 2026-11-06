@@ -326,6 +326,68 @@ var (
 			Help:      "ReportInstanceEvents RPC transport failures.",
 		},
 	)
+
+	// PrivateNetworkLastCompletedPassUnixSeconds is when a private network loop
+	// last attempted all of its input. It starts at 0 for each leadership term.
+	PrivateNetworkLastCompletedPassUnixSeconds = vec.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_last_completed_pass_unix_seconds",
+			Help:      "Unix time when a private network loop last processed its whole input.",
+		},
+		vec.Values("loop", "discovery", "endpoints"),
+	)
+
+	// PrivateNetworkPassDurationSeconds measures private network passes,
+	// complete or not.
+	PrivateNetworkPassDurationSeconds = vec.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_pass_duration_seconds",
+			Help:      "Duration of private network reconciliation passes.",
+			Buckets:   []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 20, 30},
+		},
+		vec.Values("loop", "discovery", "endpoints"),
+	)
+
+	// PrivateNetworkErrorsTotal counts private network failures by loop and
+	// the step that failed.
+	PrivateNetworkErrorsTotal = vec.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_errors_total",
+			Help:      "Private network reconciliation failures by loop and failed step.",
+		},
+		vec.Values("loop", "discovery", "endpoints"),
+		vec.Values("stage", "list", "snapshot", "invalid_entry", "service", "endpoint_slice", "policy", "connection", "cleanup"),
+	)
+
+	// PrivateNetworkEntries counts the entries of the last complete snapshot
+	// by kind and publication state.
+	PrivateNetworkEntries = vec.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_entries",
+			Help:      "Entries of the last complete private network snapshot by kind and publication state.",
+		},
+		vec.Values("kind", "connection", "replica"),
+		vec.Values("state", "current", "waiting_for_endpoints", "unresolved", "failed"),
+	)
+
+	// PrivateNetworkDeferredDeletions counts grants missing from one snapshot
+	// that wait for a second snapshot before deletion.
+	PrivateNetworkDeferredDeletions = promauto.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "private_network_deferred_deletions",
+			Help:      "Omission-driven deletions awaiting an independent confirming snapshot.",
+		},
+	)
 )
 
 // ResetLeaderGauges zeroes the gauges only the leader sets, so a replica that

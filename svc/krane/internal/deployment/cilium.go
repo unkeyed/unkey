@@ -6,10 +6,10 @@ import (
 	"strconv"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/svc/krane/internal/cilium"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // ensureCiliumNetworkPolicy creates or updates a CiliumNetworkPolicy that
@@ -22,6 +22,48 @@ import (
 // so it is garbage-collected automatically when the deployment is deleted.
 func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.ApplyDeployment, owner metav1.OwnerReference) error {
 	policyName := fmt.Sprintf("%s-frontline-ingress", req.GetK8SName())
+
+	spec := map[string]interface{}{
+		"endpointSelector": map[string]interface{}{
+			"matchLabels": map[string]interface{}{
+				labels.LabelKeyDeploymentID: req.GetDeploymentId(),
+			},
+		},
+		"ingress": []interface{}{
+			map[string]interface{}{
+				"fromEndpoints": []interface{}{
+					map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							labels.LabelKeyNamespace: frontlineNamespace,
+						},
+					},
+				},
+				"toPorts": []interface{}{
+					map[string]interface{}{
+						"ports": []interface{}{
+							map[string]interface{}{
+								"port":     strconv.Itoa(int(req.GetPort())),
+								"protocol": "TCP",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	if c.privateNetworkEnabled(req) {
+		self := cilium.DeploymentEndpoint(labels.New().
+			WorkspaceID(req.GetWorkspaceId()).
+			ProjectID(req.GetProjectId()).
+			AppID(req.GetAppId()).
+			DeploymentID(req.GetDeploymentId()))
+		ports := cilium.UnicastPorts()
+		// An egress rule would otherwise switch on egress default-deny and cut
+		// the deployment off from everything but its own replicas.
+		spec["enableDefaultDeny"] = map[string]interface{}{"ingress": true, "egress": false}
+		spec["ingress"] = append(spec["ingress"].([]interface{}), map[string]interface{}{"fromEndpoints": []interface{}{self}, "toPorts": ports})
+		spec["egress"] = []interface{}{map[string]interface{}{"toEndpoints": []interface{}{self}, "toPorts": ports}}
+	}
 
 	policy := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -49,46 +91,13 @@ func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.
 					},
 				},
 			},
-			"spec": map[string]interface{}{
-				"endpointSelector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
-						labels.LabelKeyDeploymentID: req.GetDeploymentId(),
-					},
-				},
-				"ingress": []interface{}{
-					map[string]interface{}{
-						"fromEndpoints": []interface{}{
-							map[string]interface{}{
-								"matchLabels": map[string]interface{}{
-									labels.LabelKeyNamespace: frontlineNamespace,
-								},
-							},
-						},
-						"toPorts": []interface{}{
-							map[string]interface{}{
-								"ports": []interface{}{
-									map[string]interface{}{
-										"port":     strconv.Itoa(int(req.GetPort())),
-										"protocol": "TCP",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			"spec": spec,
 		},
-	}
-
-	gvr := schema.GroupVersionResource{
-		Group:    "cilium.io",
-		Version:  "v2",
-		Resource: "ciliumnetworkpolicies",
 	}
 
 	// Server-side apply so concurrent reconciles converge instead of
 	// fighting over field ownership.
-	_, err := c.dynamicClient.Resource(gvr).Namespace(req.GetK8SNamespace()).Apply(
+	_, err := c.dynamicClient.Resource(cilium.NetworkPolicyResource).Namespace(req.GetK8SNamespace()).Apply(
 		ctx,
 		policyName,
 		policy,

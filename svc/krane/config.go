@@ -32,6 +32,11 @@ type K8sConfig struct {
 	Burst int `toml:"burst" config:"default=200,min=1"`
 }
 
+// PrivateNetworkConfig controls private network discovery and deployment enrollment.
+type PrivateNetworkConfig struct {
+	Enabled bool `toml:"enabled"`
+}
+
 // ClusterConfig identifies the infrastructure cell where krane is running.
 type ClusterConfig struct {
 	// CellID uniquely identifies the cell within the Unkey network.
@@ -93,6 +98,8 @@ type Config struct {
 
 	// K8s tunes the client-go REST config. See [K8sConfig].
 	K8s K8sConfig `toml:"k8s"`
+
+	PrivateNetwork PrivateNetworkConfig `toml:"private_network"`
 
 	Observability config.Observability `toml:"observability"`
 

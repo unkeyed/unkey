@@ -8,17 +8,19 @@ import (
 // Label key constants for krane resources.
 // These are the single source of truth for label keys used across the codebase.
 const (
-	LabelKeyWorkspaceID     = "unkey.com/workspace.id"
-	LabelKeyProjectID       = "unkey.com/project.id"
-	LabelKeyAppID           = "unkey.com/app.id"
-	LabelKeyEnvironmentID   = "unkey.com/environment.id"
-	LabelKeyDeploymentID    = "unkey.com/deployment.id"
-	LabelKeyBuildID         = "unkey.com/build.id"
-	LabelKeyNetworkPolicyID = "unkey.com/networkpolicy.id"
-	LabelKeyPlatform        = "unkey.com/platform"
-	LabelKeyManagedBy       = "app.kubernetes.io/managed-by"
-	LabelKeyComponent       = "app.kubernetes.io/component"
-	LabelKeyNamespace       = "io.kubernetes.pod.namespace"
+	LabelKeyWorkspaceID        = "unkey.com/workspace.id"
+	LabelKeyProjectID          = "unkey.com/project.id"
+	LabelKeyAppID              = "unkey.com/app.id"
+	LabelKeyEnvironmentID      = "unkey.com/environment.id"
+	LabelKeyDeploymentID       = "unkey.com/deployment.id"
+	LabelKeyCallerDeploymentID = "unkey.com/caller-deployment.id"
+	LabelKeyConnectionID       = "unkey.com/connection.id"
+	LabelKeyBuildID            = "unkey.com/build.id"
+	LabelKeyNetworkPolicyID    = "unkey.com/networkpolicy.id"
+	LabelKeyPlatform           = "unkey.com/platform"
+	LabelKeyManagedBy          = "app.kubernetes.io/managed-by"
+	LabelKeyComponent          = "app.kubernetes.io/component"
+	LabelKeyNamespace          = "io.kubernetes.pod.namespace"
 )
 
 // Labels represents a map of Kubernetes labels for krane resources.
@@ -125,6 +127,22 @@ func (l Labels) ComponentDeployment() Labels {
 func (l Labels) ComponentCiliumNetworkPolicy() Labels {
 	l[LabelKeyComponent] = "ciliumnetworkpolicy"
 	return l
+}
+
+// Component sets the "app.kubernetes.io/component" label to component.
+func (l Labels) Component(component string) Labels {
+	l[LabelKeyComponent] = component
+	return l
+}
+
+// Matches reports whether other contains every label in l.
+func (l Labels) Matches(other map[string]string) bool {
+	for key, value := range l {
+		if got, ok := other[key]; !ok || got != value {
+			return false
+		}
+	}
+	return true
 }
 
 // ProjectID adds project ID label to the label set.
