@@ -1,0 +1,37 @@
+---
+title: "portal_domain_limit_exceeded"
+sidebarTitle: "portal_domain_limit_exceeded"
+description: "The workspace already has as many portal domains as it can hold."
+sources:
+  - pkg/codes/unkey_limits.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/domain/domaingate/domaingate.go
+---
+
+<Danger>`err:unkey:limits:portal_domain_limit_exceeded`</Danger>
+
+Your workspace already has as many portal domains as it can hold, so `portal.createDomain` didn't add another one. You get HTTP 403. Waiting won't change it.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "A workspace can hold at most 10 portal domains. Remove a domain you no longer need, then retry.",
+    "status": 403,
+    "title": "Forbidden",
+    "type": "/errors/unkey/limits/portal_domain_limit_exceeded"
+  }
+}
+```
+
+## How to fix
+
+1. Remove a portal domain you no longer use with `portal.deleteDomain`.
+2. Create the domain again.
+
+## Related errors
+
+- [`err:unkey:limits:custom_domain_limit_exceeded`](/errors/unkey/limits/custom_domain_limit_exceeded): the same limit for custom domains on your apps, which your plan sets.
+- [`err:unkey:data:domain_already_exists`](/errors/unkey/data/domain_already_exists): the domain is already attached to this workspace.

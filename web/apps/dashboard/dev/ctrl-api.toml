@@ -6,6 +6,10 @@ default_domain = "unkey.local"
 cname_domain = "unkey.local"
 database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
+[portal]
+environment_id = ""
+cname_domain = "portal.unkey.local"
+
 [restate]
 url = "http://restate:8080"
 admin_url = "http://restate:9070"

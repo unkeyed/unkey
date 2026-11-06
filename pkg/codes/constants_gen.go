@@ -287,6 +287,11 @@ const (
 	// Exceeded indicates the workspace has already attached as many custom domains as its plan allows.
 	UnkeyLimitsErrorsCustomDomainExceeded URN = "err:unkey:limits:custom_domain_limit_exceeded"
 
+	// PortalDomain
+
+	// Exceeded indicates the workspace has already attached as many portal domains as the cap allows.
+	UnkeyLimitsErrorsPortalDomainExceeded URN = "err:unkey:limits:portal_domain_limit_exceeded"
+
 	// ----------------
 	// UnkeyFrontlineErrors
 	// ----------------

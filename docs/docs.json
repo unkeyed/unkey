@@ -329,7 +329,8 @@
                       {
                         "group": "Limits",
                         "pages": [
-                          "errors/unkey/limits/custom_domain_limit_exceeded"
+                          "errors/unkey/limits/custom_domain_limit_exceeded",
+                          "errors/unkey/limits/portal_domain_limit_exceeded"
                         ]
                       }
                     ]

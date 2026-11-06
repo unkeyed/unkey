@@ -332,7 +332,8 @@ func WithErrorHandling() zen.Middleware {
 			// Plan allowance exhausted. Forbidden rather than 429: no amount of
 			// waiting changes the answer, the caller has to change their plan or
 			// free up an existing resource.
-			case codes.UnkeyLimitsErrorsCustomDomainExceeded:
+			case codes.UnkeyLimitsErrorsCustomDomainExceeded,
+				codes.UnkeyLimitsErrorsPortalDomainExceeded:
 				return s.ProblemJSON(http.StatusForbidden, openapi.ForbiddenErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

@@ -6,12 +6,21 @@ type limitsCustomDomain struct {
 	Exceeded Code
 }
 
+// limitsPortalDomain defines errors related to the workspace's portal domain cap.
+type limitsPortalDomain struct {
+	// Exceeded indicates the workspace has already attached as many portal domains as the cap allows.
+	Exceeded Code
+}
+
 // UnkeyLimitsErrors defines all plan allowance errors in the Unkey system. These
 // are distinct from rate limits: the caller cannot retry their way out of one,
 // they have to change their plan or free up an existing resource.
 type UnkeyLimitsErrors struct {
 	// CustomDomain contains errors related to the custom domain allowance.
 	CustomDomain limitsCustomDomain
+
+	// PortalDomain contains errors related to the portal domain cap.
+	PortalDomain limitsPortalDomain
 }
 
 // Limits contains all predefined plan allowance error codes. These errors can be
@@ -20,5 +29,8 @@ type UnkeyLimitsErrors struct {
 var Limits = UnkeyLimitsErrors{
 	CustomDomain: limitsCustomDomain{
 		Exceeded: Code{SystemUnkey, CategoryUnkeyLimits, "custom_domain_limit_exceeded"},
+	},
+	PortalDomain: limitsPortalDomain{
+		Exceeded: Code{SystemUnkey, CategoryUnkeyLimits, "portal_domain_limit_exceeded"},
 	},
 }
