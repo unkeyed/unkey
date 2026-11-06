@@ -8,7 +8,7 @@ import { CapturingQuerier } from "./test-utils";
 
 const baseRequest: AuditLogsRequest = {
   workspaceId: "ws_123",
-  bucketId: "unkey_mutations",
+  bucket: "unkey_mutations",
   limit: 50,
   offset: 0,
   startTime: 1,
@@ -73,6 +73,20 @@ describe("getAuditLogs", () => {
     expect(json).not.toContain("OFFSET");
 
     expect(ch.queries.join("\n")).not.toContain("count()");
+  });
+
+  // Read-in-order needs every primary-key column before time fixed by an
+  // equality. A single-element bucket IN leaves the prefix unfixed, so CH
+  // sorts the retention window and the dashboard query times out.
+  it("fixes the bucket with an equality so read-in-order applies", () => {
+    const ch = new CapturingQuerier();
+
+    getAuditLogs(ch)(baseRequest);
+
+    for (const query of ch.queries) {
+      expect(query).toContain("bucket = {bucket: String}");
+      expect(query).not.toContain("bucket IN");
+    }
   });
 
   it("adds event and actor predicates only to the window scans", () => {
@@ -154,7 +168,7 @@ describe("getAuditLogs", () => {
     expect(result.val?.[1]?.targets).toEqual([["key", "key_1", "", "{}"]]);
     expect(ch.params[1]).toMatchObject({
       workspaceId: "ws_123",
-      bucketId: "unkey_mutations",
+      bucket: "unkey_mutations",
       times: [20, 10],
       eventIds: ["evt_newer", "evt_older"],
     });
