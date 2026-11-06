@@ -1,0 +1,68 @@
+post:
+  tags:
+    - deployments
+  summary: List connections pinning a deployment
+  description: |
+    List the current defaults and active deployment snapshots that pin this
+    deployment, ordered by connection ID. A default comes before the snapshots
+    of the same connection, which follow in caller deployment ID order.
+    Snapshots count only while their caller is running or in flight with
+    private networking enabled.
+    Requires read access to the target deployment. Missing and unreadable
+    deployments return the same 404 response. Pins from caller apps the caller
+    cannot read are omitted.
+  operationId: deployments.listConnectionPins
+  x-speakeasy-name-override: listConnectionPins
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2DeploymentsListConnectionPinsRequestBody.yaml"
+  responses:
+    "200":
+      description: Connections pinning the deployment.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2DeploymentsListConnectionPinsResponseBody.yaml"
+    "400":
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: Deployment not found.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
+    "503":
+      description: Database unavailable or authorized scan limit reached.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"
+  x-speakeasy-pagination:
+    type: cursor
+    inputs:
+      - name: cursor
+        in: requestBody
+        type: cursor
+    outputs:
+      nextCursor: "$.pagination.cursor"

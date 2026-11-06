@@ -868,6 +868,7 @@ type CreateDeploymentRequest struct {
 	EnvironmentID          string
 	Status                 mysqltype.DeploymentsStatus
 	DesiredState           mysqltype.DeploymentsDesiredState
+	Capabilities           mysqltype.DeploymentCapabilities
 	Source                 db.DeploymentsSource
 	GitBranch              string
 	GitCommitSha           string
@@ -947,6 +948,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		Port:                          8080,
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGTERM,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
+		Capabilities:                  req.Capabilities,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
 		PrNumber:                      sql.NullInt64{Int64: req.PrNumber, Valid: req.PrNumber != 0},
 		ForkRepositoryFullName:        sql.NullString{String: req.ForkRepositoryFullName, Valid: req.ForkRepositoryFullName != ""},
