@@ -10,6 +10,7 @@ import { portalExchangeCode } from "../funcs/portalExchangeCode.js";
 import { portalGetDomain } from "../funcs/portalGetDomain.js";
 import { portalGetPortal } from "../funcs/portalGetPortal.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
+import { portalListDomains } from "../funcs/portalListDomains.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
 import { portalListSessions } from "../funcs/portalListSessions.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
@@ -264,6 +265,27 @@ export class Portal extends ClientSDK {
     return unwrapAsync(portalGetVerifications(
       this,
       security,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * List portal domains
+   *
+   * @remarks
+   * List the custom domains attached to a portal, with their verification status and DNS records.
+   *
+   * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/*#read`.
+   * Without the permission this returns **404**, not 403, unless the key can read
+   * the portal itself.
+   */
+  async listDomains(
+    request: components.V2PortalListDomainsRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalListDomainsResponseBody> {
+    return unwrapAsync(portalListDomains(
+      this,
       request,
       options,
     ));

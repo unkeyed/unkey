@@ -9,6 +9,7 @@
 # published one. Add them to both Portal reference groups once it republishes.
 /v2/portal.createDomain
 /v2/portal.getDomain
+/v2/portal.listDomains
 # Internal to the hosted portal and x-excluded on purpose; never listed.
 /v2/portal.exchangeCode
 /v2/portal.getVerifications
