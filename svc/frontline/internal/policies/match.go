@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/svc/frontline/internal/policies/canonicalpath"
 )
 
 // regexCache caches compiled regular expressions to avoid recompilation.
@@ -86,21 +87,32 @@ func evalMatchExpr(req *http.Request, remoteIP netip.Addr, expr *frontlinev1.Mat
 	}
 }
 
+// evalPathMatch tests the canonical forms of the request path, always
+// ignoring case, because app frameworks route those variants to the same
+// handler and a policy must not be bypassed by them.
 func evalPathMatch(req *http.Request, pm *frontlinev1.PathMatch, rc *regexCache) (bool, error) {
 	if pm == nil || pm.GetPath() == nil {
 		return true, nil
 	}
-	return evalStringMatch(req.URL.Path, pm.GetPath(), rc)
+	for _, candidate := range canonicalpath.Candidates(req.URL.Path) {
+		matched, err := evalStringMatch(candidate, pm.GetPath(), true, rc)
+		if err != nil || matched {
+			return matched, err
+		}
+	}
+	return false, nil
 }
 
 // evalMethodMatch checks if the request method matches any of the specified methods.
-// Always case-insensitive per HTTP spec. OR semantics across the list.
+// Always case-insensitive per HTTP spec. OR semantics across the list. GET also
+// covers HEAD, because most frameworks answer HEAD with the GET handler.
 func evalMethodMatch(req *http.Request, mm *frontlinev1.MethodMatch) bool {
 	if mm == nil || len(mm.GetMethods()) == 0 {
 		return true
 	}
+	isHead := strings.EqualFold(req.Method, http.MethodHead)
 	for _, m := range mm.GetMethods() {
-		if strings.EqualFold(req.Method, m) {
+		if strings.EqualFold(req.Method, m) || (isHead && strings.EqualFold(m, http.MethodGet)) {
 			return true
 		}
 	}
@@ -117,7 +129,7 @@ func evalHeaderMatch(req *http.Request, hm *frontlinev1.HeaderMatch, rc *regexCa
 		return m.Present == (len(values) > 0), nil
 	case *frontlinev1.HeaderMatch_Value:
 		for _, v := range values {
-			matched, err := evalStringMatch(v, m.Value, rc)
+			matched, err := evalStringMatch(v, m.Value, m.Value.GetIgnoreCase(), rc)
 			if err != nil {
 				return false, err
 			}
@@ -141,7 +153,7 @@ func evalQueryParamMatch(req *http.Request, qm *frontlinev1.QueryParamMatch, rc 
 		return m.Present == exists, nil
 	case *frontlinev1.QueryParamMatch_Value:
 		for _, v := range values {
-			matched, err := evalStringMatch(v, m.Value, rc)
+			matched, err := evalStringMatch(v, m.Value, m.Value.GetIgnoreCase(), rc)
 			if err != nil {
 				return false, err
 			}
@@ -194,28 +206,30 @@ func listContainsIP(entries []string, ip netip.Addr) (bool, error) {
 	return false, nil
 }
 
-// evalStringMatch evaluates a value against a StringMatch (exact, prefix, or regex).
-func evalStringMatch(value string, sm *frontlinev1.StringMatch, rc *regexCache) (bool, error) {
+// evalStringMatch evaluates a value against a StringMatch (exact, prefix, or
+// regex). ignoreCase is passed separately because path matching ignores case
+// regardless of the StringMatch setting.
+func evalStringMatch(value string, sm *frontlinev1.StringMatch, ignoreCase bool, rc *regexCache) (bool, error) {
 	if sm == nil {
 		return true, nil
 	}
 
 	switch m := sm.GetMatch().(type) {
 	case *frontlinev1.StringMatch_Exact:
-		if sm.GetIgnoreCase() {
+		if ignoreCase {
 			return strings.EqualFold(value, m.Exact), nil
 		}
 		return value == m.Exact, nil
 
 	case *frontlinev1.StringMatch_Prefix:
-		if sm.GetIgnoreCase() {
+		if ignoreCase {
 			return len(value) >= len(m.Prefix) && strings.EqualFold(value[:len(m.Prefix)], m.Prefix), nil
 		}
 		return strings.HasPrefix(value, m.Prefix), nil
 
 	case *frontlinev1.StringMatch_Regex:
 		pattern := m.Regex
-		if sm.GetIgnoreCase() {
+		if ignoreCase {
 			pattern = "(?i)" + pattern
 		}
 		re, err := rc.get(pattern)
