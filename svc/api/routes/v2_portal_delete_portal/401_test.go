@@ -15,7 +15,7 @@ import (
 // malformed, so those cases live below rather than here.
 func TestDeletePortalRequiresAuthentication(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: &testutil.MockPortalDomainClient{}}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -44,7 +44,7 @@ func TestDeletePortalRequiresAuthentication(t *testing.T) {
 
 func TestDeletePortalRejectsMalformedAuthorization(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: &testutil.MockPortalDomainClient{}}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace

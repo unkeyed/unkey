@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ctrl/v1/portal_domain.proto.
  */
 export const file_ctrl_v1_portal_domain: GenFile = /*@__PURE__*/
-  fileDesc("ChtjdHJsL3YxL3BvcnRhbF9kb21haW4ucHJvdG8SB2N0cmwudjEidAoWQWRkUG9ydGFsRG9tYWluUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEQoJcG9ydGFsX2lkGAIgASgJEg4KBmRvbWFpbhgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIo4BChdBZGRQb3J0YWxEb21haW5SZXNwb25zZRIRCglkb21haW5faWQYASABKAkSFAoMdGFyZ2V0X2NuYW1lGAIgASgJEhoKEnZlcmlmaWNhdGlvbl90b2tlbhgEIAEoCRIuCg5kb21haW5fY29ubmVjdBgFIAEoCzIWLmN0cmwudjEuRG9tYWluQ29ubmVjdCJ6ChlEZWxldGVQb3J0YWxEb21haW5SZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIRCglwb3J0YWxfaWQYAiABKAkSEQoJZG9tYWluX2lkGAMgASgJEiEKBWFjdG9yGAQgASgLMhIuY3RybC52MS5BY3RvckluZm8iHAoaRGVsZXRlUG9ydGFsRG9tYWluUmVzcG9uc2UihQEKJFJldHJ5UG9ydGFsRG9tYWluVmVyaWZpY2F0aW9uUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEQoJcG9ydGFsX2lkGAIgASgJEhEKCWRvbWFpbl9pZBgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIicKJVJldHJ5UG9ydGFsRG9tYWluVmVyaWZpY2F0aW9uUmVzcG9uc2Uy0QIKE1BvcnRhbERvbWFpblNlcnZpY2USVgoPQWRkUG9ydGFsRG9tYWluEh8uY3RybC52MS5BZGRQb3J0YWxEb21haW5SZXF1ZXN0GiAuY3RybC52MS5BZGRQb3J0YWxEb21haW5SZXNwb25zZSIAEl8KEkRlbGV0ZVBvcnRhbERvbWFpbhIiLmN0cmwudjEuRGVsZXRlUG9ydGFsRG9tYWluUmVxdWVzdBojLmN0cmwudjEuRGVsZXRlUG9ydGFsRG9tYWluUmVzcG9uc2UiABKAAQodUmV0cnlQb3J0YWxEb21haW5WZXJpZmljYXRpb24SLS5jdHJsLnYxLlJldHJ5UG9ydGFsRG9tYWluVmVyaWZpY2F0aW9uUmVxdWVzdBouLmN0cmwudjEuUmV0cnlQb3J0YWxEb21haW5WZXJpZmljYXRpb25SZXNwb25zZSIAQpABCgtjb20uY3RybC52MUIRUG9ydGFsRG9tYWluUHJvdG9QAVoxZ2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9jdHJsL3YxO2N0cmx2MaICA0NYWKoCB0N0cmwuVjHKAgdDdHJsXFYx4gITQ3RybFxWMVxHUEJNZXRhZGF0YeoCCEN0cmw6OlYxYgZwcm90bzM", [file_ctrl_v1_actor, file_ctrl_v1_custom_domain]);
+  fileDesc("ChtjdHJsL3YxL3BvcnRhbF9kb21haW4ucHJvdG8SB2N0cmwudjEidAoWQWRkUG9ydGFsRG9tYWluUmVxdWVzdBIUCgx3b3Jrc3BhY2VfaWQYASABKAkSEQoJcG9ydGFsX2lkGAIgASgJEg4KBmRvbWFpbhgDIAEoCRIhCgVhY3RvchgEIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIo4BChdBZGRQb3J0YWxEb21haW5SZXNwb25zZRIRCglkb21haW5faWQYASABKAkSFAoMdGFyZ2V0X2NuYW1lGAIgASgJEhoKEnZlcmlmaWNhdGlvbl90b2tlbhgEIAEoCRIuCg5kb21haW5fY29ubmVjdBgFIAEoCzIWLmN0cmwudjEuRG9tYWluQ29ubmVjdCJ6ChlEZWxldGVQb3J0YWxEb21haW5SZXF1ZXN0EhQKDHdvcmtzcGFjZV9pZBgBIAEoCRIRCglwb3J0YWxfaWQYAiABKAkSEQoJZG9tYWluX2lkGAMgASgJEiEKBWFjdG9yGAQgASgLMhIuY3RybC52MS5BY3RvckluZm8iHAoaRGVsZXRlUG9ydGFsRG9tYWluUmVzcG9uc2UiaAoaRGVsZXRlUG9ydGFsRG9tYWluc1JlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhEKCXBvcnRhbF9pZBgCIAEoCRIhCgVhY3RvchgDIAEoCzISLmN0cmwudjEuQWN0b3JJbmZvIi4KG0RlbGV0ZVBvcnRhbERvbWFpbnNSZXNwb25zZRIPCgdkZWxldGVkGAEgASgFIoUBCiRSZXRyeVBvcnRhbERvbWFpblZlcmlmaWNhdGlvblJlcXVlc3QSFAoMd29ya3NwYWNlX2lkGAEgASgJEhEKCXBvcnRhbF9pZBgCIAEoCRIRCglkb21haW5faWQYAyABKAkSIQoFYWN0b3IYBCABKAsyEi5jdHJsLnYxLkFjdG9ySW5mbyInCiVSZXRyeVBvcnRhbERvbWFpblZlcmlmaWNhdGlvblJlc3BvbnNlMrUDChNQb3J0YWxEb21haW5TZXJ2aWNlElYKD0FkZFBvcnRhbERvbWFpbhIfLmN0cmwudjEuQWRkUG9ydGFsRG9tYWluUmVxdWVzdBogLmN0cmwudjEuQWRkUG9ydGFsRG9tYWluUmVzcG9uc2UiABJfChJEZWxldGVQb3J0YWxEb21haW4SIi5jdHJsLnYxLkRlbGV0ZVBvcnRhbERvbWFpblJlcXVlc3QaIy5jdHJsLnYxLkRlbGV0ZVBvcnRhbERvbWFpblJlc3BvbnNlIgASYgoTRGVsZXRlUG9ydGFsRG9tYWlucxIjLmN0cmwudjEuRGVsZXRlUG9ydGFsRG9tYWluc1JlcXVlc3QaJC5jdHJsLnYxLkRlbGV0ZVBvcnRhbERvbWFpbnNSZXNwb25zZSIAEoABCh1SZXRyeVBvcnRhbERvbWFpblZlcmlmaWNhdGlvbhItLmN0cmwudjEuUmV0cnlQb3J0YWxEb21haW5WZXJpZmljYXRpb25SZXF1ZXN0Gi4uY3RybC52MS5SZXRyeVBvcnRhbERvbWFpblZlcmlmaWNhdGlvblJlc3BvbnNlIgBCkAEKC2NvbS5jdHJsLnYxQhFQb3J0YWxEb21haW5Qcm90b1ABWjFnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2N0cmwvdjE7Y3RybHYxogIDQ1hYqgIHQ3RybC5WMcoCB0N0cmxcVjHiAhNDdHJsXFYxXEdQQk1ldGFkYXRh6gIIQ3RybDo6VjFiBnByb3RvMw", [file_ctrl_v1_actor, file_ctrl_v1_custom_domain]);
 
 /**
  * @generated from message ctrl.v1.AddPortalDomainRequest
@@ -135,6 +135,50 @@ export const DeletePortalDomainResponseSchema: GenMessage<DeletePortalDomainResp
   messageDesc(file_ctrl_v1_portal_domain, 3);
 
 /**
+ * @generated from message ctrl.v1.DeletePortalDomainsRequest
+ */
+export type DeletePortalDomainsRequest = Message<"ctrl.v1.DeletePortalDomainsRequest"> & {
+  /**
+   * @generated from field: string workspace_id = 1;
+   */
+  workspaceId: string;
+
+  /**
+   * @generated from field: string portal_id = 2;
+   */
+  portalId: string;
+
+  /**
+   * @generated from field: ctrl.v1.ActorInfo actor = 3;
+   */
+  actor?: ActorInfo;
+};
+
+/**
+ * Describes the message ctrl.v1.DeletePortalDomainsRequest.
+ * Use `create(DeletePortalDomainsRequestSchema)` to create a new message.
+ */
+export const DeletePortalDomainsRequestSchema: GenMessage<DeletePortalDomainsRequest> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_portal_domain, 4);
+
+/**
+ * @generated from message ctrl.v1.DeletePortalDomainsResponse
+ */
+export type DeletePortalDomainsResponse = Message<"ctrl.v1.DeletePortalDomainsResponse"> & {
+  /**
+   * @generated from field: int32 deleted = 1;
+   */
+  deleted: number;
+};
+
+/**
+ * Describes the message ctrl.v1.DeletePortalDomainsResponse.
+ * Use `create(DeletePortalDomainsResponseSchema)` to create a new message.
+ */
+export const DeletePortalDomainsResponseSchema: GenMessage<DeletePortalDomainsResponse> = /*@__PURE__*/
+  messageDesc(file_ctrl_v1_portal_domain, 5);
+
+/**
  * @generated from message ctrl.v1.RetryPortalDomainVerificationRequest
  */
 export type RetryPortalDomainVerificationRequest = Message<"ctrl.v1.RetryPortalDomainVerificationRequest"> & {
@@ -164,7 +208,7 @@ export type RetryPortalDomainVerificationRequest = Message<"ctrl.v1.RetryPortalD
  * Use `create(RetryPortalDomainVerificationRequestSchema)` to create a new message.
  */
 export const RetryPortalDomainVerificationRequestSchema: GenMessage<RetryPortalDomainVerificationRequest> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_portal_domain, 4);
+  messageDesc(file_ctrl_v1_portal_domain, 6);
 
 /**
  * @generated from message ctrl.v1.RetryPortalDomainVerificationResponse
@@ -177,7 +221,7 @@ export type RetryPortalDomainVerificationResponse = Message<"ctrl.v1.RetryPortal
  * Use `create(RetryPortalDomainVerificationResponseSchema)` to create a new message.
  */
 export const RetryPortalDomainVerificationResponseSchema: GenMessage<RetryPortalDomainVerificationResponse> = /*@__PURE__*/
-  messageDesc(file_ctrl_v1_portal_domain, 5);
+  messageDesc(file_ctrl_v1_portal_domain, 7);
 
 /**
  * PortalDomainService manages the hostnames tenants attach to their portal.
@@ -201,6 +245,16 @@ export const PortalDomainService: GenService<{
     methodKind: "unary";
     input: typeof DeletePortalDomainRequestSchema;
     output: typeof DeletePortalDomainResponseSchema;
+  },
+  /**
+   * Delete every domain on a portal, for a portal that is being deleted.
+   *
+   * @generated from rpc ctrl.v1.PortalDomainService.DeletePortalDomains
+   */
+  deletePortalDomains: {
+    methodKind: "unary";
+    input: typeof DeletePortalDomainsRequestSchema;
+    output: typeof DeletePortalDomainsResponseSchema;
   },
   /**
    * Retry verification for a pending, verifying, or failed domain.

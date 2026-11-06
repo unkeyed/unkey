@@ -21,7 +21,7 @@ import (
 // delete a portal.
 func TestDeletePortalAuthorizesAdminURN(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: &testutil.MockPortalDomainClient{}}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -48,7 +48,7 @@ func keyspaceMappingWithProject(t *testing.T, h *testutil.Harness, workspaceID s
 // reach this route.
 func TestDeletePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: &testutil.MockPortalDomainClient{}}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
@@ -138,7 +138,7 @@ func TestDeletePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 
 func TestDeletePortalReportsMissingDeleteToURNReader(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: &testutil.MockPortalDomainClient{}}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace

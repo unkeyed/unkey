@@ -65,7 +65,7 @@ func TestDeletePortalMasksEveryMiss(t *testing.T) {
 // portal that does not exist must receive the same bytes.
 func TestDeletePortalDenialMatchesAbsence(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs, Clock: h.Clock, CtrlClient: &testutil.MockPortalDomainClient{}}
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace

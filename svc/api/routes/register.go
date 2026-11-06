@@ -969,9 +969,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2PortalDeletePortal.Handler{
-			DB:        svc.Database,
-			Auditlogs: svc.Auditlogs,
-			Clock:     svc.Clock,
+			DB:         svc.Database,
+			Auditlogs:  svc.Auditlogs,
+			Clock:      svc.Clock,
+			CtrlClient: svc.CtrlPortalDomainClient,
 		},
 	)
 

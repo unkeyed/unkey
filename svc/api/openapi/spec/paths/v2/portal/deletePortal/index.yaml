@@ -14,6 +14,9 @@ post:
     The app or keyspace it served is untouched, and its slug becomes free for a
     new portal.
 
+    Its custom domains are deleted with it: they stop serving and their DNS
+    records can be removed. Their certificates are not revoked.
+
     **Required Permissions**
 
     Your root key must have `delete` permission on

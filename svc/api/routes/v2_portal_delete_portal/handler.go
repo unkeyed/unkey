@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -16,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -35,9 +38,10 @@ type (
 const notFoundMessage = "Portal not found."
 
 type Handler struct {
-	DB        db.Database
-	Auditlogs auditlogs.AuditLogService
-	Clock     clock.Clock
+	DB         db.Database
+	Auditlogs  auditlogs.AuditLogService
+	Clock      clock.Clock
+	CtrlClient ctrl.PortalDomainServiceClient
 }
 
 func (h *Handler) Method() string {
@@ -99,11 +103,51 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		// Held until commit, so a domain ctrl is attaching either lands before the
+		// count below or finds the portal gone.
+		if _, err = db.Query.LockPortalForUpdate(ctx, tx, db.LockPortalForUpdateParams{
+			ID:          found.ID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+		}); err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to lock portal"),
+				fault.Public("We're unable to delete the portal."),
+			)
+		}
+
+		domainCount, err := db.Query.CountPortalDomainsByPortal(ctx, tx, db.CountPortalDomainsByPortalParams{
+			PortalID:    found.ID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to count portal domains"),
+				fault.Public("We're unable to delete the portal."),
+			)
+		}
+
+		// The domains' routes, challenges, and verification workflows live in ctrl.
+		// ctrl does not touch the portal row, so calling it under the lock cannot
+		// deadlock, and a failure rolls the portal delete back.
+		if domainCount > 0 {
+			actor, actorErr := ctrlclient.Actor(s)
+			if actorErr != nil {
+				return actorErr
+			}
+			if _, err = h.CtrlClient.DeletePortalDomains(ctx, &ctrlv1.DeletePortalDomainsRequest{
+				WorkspaceId: principal.AuthorizedWorkspaceID,
+				PortalId:    found.ID,
+				Actor:       actor,
+			}); err != nil {
+				return ctrlclient.HandleError(err, "delete portal domains")
+			}
+		}
+
 		// Scoped on (id, workspace_id) so one workspace can never delete another's
-		// row even if the resolve above were ever widened. There is no branding
-		// cleanup to do: `logo_url` and `primary_color` are columns on this row, not
-		// a side table, so the row going away takes the branding with it. Do not add
-		// a second delete here.
+		// row even if the resolve above were ever widened. Branding is columns on
+		// this row, so it needs no separate delete.
 		affected, err := db.Query.DeletePortal(ctx, tx, db.DeletePortalParams{
 			ID:          found.ID,
 			WorkspaceID: principal.AuthorizedWorkspaceID,
