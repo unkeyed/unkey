@@ -55,9 +55,10 @@ type Config[T any] struct {
 	FlushInterval time.Duration
 
 	// Flush is the function called to process each batch.
-	// It must handle all errors internally and must not panic.
+	// It must not panic. A returned error records the batch as failed and its
+	// items as errors; a nil error records the batch as a success.
 	// The slice is borrowed until Flush returns; copy rows that must outlive it.
-	Flush func(ctx context.Context, batch []T)
+	Flush func(ctx context.Context, batch []T) error
 
 	// Consumers specifies how many goroutine workers should process the channel.
 	// Multiple consumers can improve throughput for CPU-bound flush operations.
@@ -77,7 +78,7 @@ type Config[T any] struct {
 //	    BufferSize:    10000,            // Buffer up to 10000 pending logs
 //	    FlushInterval: 5 * time.Second,  // Flush at least every 5 seconds
 //	    Consumers:     4,                // Use 4 worker goroutines
-//	    Flush: func(ctx context.Context, logs []LogEntry) {
+//	    Flush: func(ctx context.Context, logs []LogEntry) error {
 //	        err := db.BulkInsertLogs(ctx, logs)
 //	        if err != nil {
 //	            logger.Error("Failed to insert logs", err)
@@ -105,14 +106,15 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 			// Record batch size distribution
 			metrics.BatchSizeDistribution.WithLabelValues(config.Name, trigger).Observe(float64(batchSize))
 
-			// Record batch operation
+			// Record the operation and its items from the flush's real outcome.
+			if err := config.Flush(ctx, batch); err != nil {
+				metrics.BatchOperationsTotal.WithLabelValues(config.Name, trigger, "error").Inc()
+				metrics.BatchItemsProcessedErrorsTotal.WithLabelValues(config.Name).Add(float64(batchSize))
+				return
+			}
+
 			metrics.BatchOperationsTotal.WithLabelValues(config.Name, trigger, "success").Inc()
-
-			// Record total items processed
 			metrics.BatchItemsProcessedTotal.WithLabelValues(config.Name).Add(float64(batchSize))
-
-			// Call the user's flush function
-			config.Flush(ctx, batch)
 		},
 		config: config,
 	}

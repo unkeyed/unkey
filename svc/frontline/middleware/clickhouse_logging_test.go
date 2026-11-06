@@ -43,8 +43,9 @@ func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.Fr
 		BufferSize:    10,
 		FlushInterval: time.Hour,
 		Consumers:     1,
-		Flush: func(_ context.Context, b []schema.FrontlineRequest) {
+		Flush: func(_ context.Context, b []schema.FrontlineRequest) error {
 			rows = append(rows, b...)
+			return nil
 		},
 	})
 
@@ -140,8 +141,9 @@ func TestClickHouseLogging_SkipsUnattributedAndDisabledRequests(t *testing.T) {
 				BufferSize:    10,
 				FlushInterval: time.Hour,
 				Consumers:     1,
-				Flush: func(_ context.Context, batch []schema.FrontlineRequest) {
+				Flush: func(_ context.Context, batch []schema.FrontlineRequest) error {
 					rows = append(rows, batch...)
+					return nil
 				},
 			})
 			t.Cleanup(buf.Close)

@@ -41,7 +41,7 @@ func TestAnalyticsRoutesCompressResultsButNotSizeErrors(t *testing.T) {
 		FlushInterval: time.Hour,
 		Consumers:     1,
 		Drop:          false,
-		Flush:         func(context.Context, []schema.ApiRequest) {},
+		Flush:         func(context.Context, []schema.ApiRequest) error { return nil },
 	})
 	t.Cleanup(requests.Close)
 	server, err := zen.New(zen.Config{})
@@ -140,7 +140,7 @@ func TestLogRoutesCompressWithoutLoggingResponses(t *testing.T) {
 		FlushInterval: time.Hour,
 		Consumers:     1,
 		Drop:          false,
-		Flush:         func(_ context.Context, rows []schema.ApiRequest) { logged.Add(int64(len(rows))) },
+		Flush:         func(_ context.Context, rows []schema.ApiRequest) error { logged.Add(int64(len(rows))); return nil },
 	})
 	t.Cleanup(func() {
 		requests.Close()

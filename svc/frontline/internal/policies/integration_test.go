@@ -163,10 +163,11 @@ func newTestHarness(t *testing.T) *testHarness {
 		FlushInterval: time.Hour,
 		Drop:          false,
 		Consumers:     1,
-		Flush: func(_ context.Context, verifications []schema.KeyVerification) {
+		Flush: func(_ context.Context, verifications []schema.KeyVerification) error {
 			for _, verification := range verifications {
 				verificationEvents <- verification
 			}
+			return nil
 		},
 	})
 	t.Cleanup(keyVerifications.Close)

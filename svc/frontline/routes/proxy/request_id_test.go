@@ -62,10 +62,11 @@ func TestRequestID_PreservedAcrossRegions(t *testing.T) {
 				BufferSize:    3,
 				Consumers:     1,
 				FlushInterval: time.Hour,
-				Flush: func(_ context.Context, records []schema.FrontlineRequest) {
+				Flush: func(_ context.Context, records []schema.FrontlineRequest) error {
 					for _, record := range records {
 						rows <- record
 					}
+					return nil
 				},
 			})
 			t.Cleanup(logs.Close)

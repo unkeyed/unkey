@@ -36,8 +36,9 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 		BufferSize:    1,
 		FlushInterval: time.Hour,
 		Consumers:     1,
-		Flush: func(_ context.Context, events []auditlog.Event) {
+		Flush: func(_ context.Context, events []auditlog.Event) error {
 			eventCountFlushed.Add(int64(len(events)))
+			return nil
 		},
 	})
 	t.Cleanup(func() {

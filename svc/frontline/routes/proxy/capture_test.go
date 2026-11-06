@@ -67,7 +67,10 @@ func TestRequestLogging_RoutingFailures(t *testing.T) {
 			var rows []schema.FrontlineRequest
 			logs := batch.New(batch.Config[schema.FrontlineRequest]{
 				Name: "test", BatchSize: 10, BufferSize: 10, FlushInterval: time.Hour, Consumers: 1,
-				Flush: func(_ context.Context, batch []schema.FrontlineRequest) { rows = append(rows, batch...) },
+				Flush: func(_ context.Context, batch []schema.FrontlineRequest) error {
+					rows = append(rows, batch...)
+					return nil
+				},
 			})
 			t.Cleanup(logs.Close)
 			expected := make(map[string]db.FindFrontlineRouteByFQDNRow)
@@ -195,7 +198,10 @@ func TestRequestLogging_PeerFailures(t *testing.T) {
 				var rows []schema.FrontlineRequest
 				logs := batch.New(batch.Config[schema.FrontlineRequest]{
 					Name: "test", BatchSize: 10, BufferSize: 10, FlushInterval: time.Hour, Consumers: 1,
-					Flush: func(_ context.Context, batch []schema.FrontlineRequest) { rows = append(rows, batch...) },
+					Flush: func(_ context.Context, batch []schema.FrontlineRequest) error {
+						rows = append(rows, batch...)
+						return nil
+					},
 				})
 				t.Cleanup(logs.Close)
 				h := handler.Handler{RouterService: &stubRouter{decision: decision}, ProxyService: service, Clock: clk, Metadata: metadata}
@@ -258,8 +264,9 @@ func TestRequestLogging_PolicyRejections(t *testing.T) {
 				BufferSize:    10,
 				FlushInterval: time.Hour,
 				Consumers:     1,
-				Flush: func(_ context.Context, batch []schema.FrontlineRequest) {
+				Flush: func(_ context.Context, batch []schema.FrontlineRequest) error {
 					rows = append(rows, batch...)
+					return nil
 				},
 			})
 			t.Cleanup(buf.Close)
@@ -370,7 +377,10 @@ func TestRequestLogging_KeyAuthRejectionCapture(t *testing.T) {
 			var rows []schema.FrontlineRequest
 			buf := batch.New(batch.Config[schema.FrontlineRequest]{
 				Name: "test", BatchSize: 10, BufferSize: 10, FlushInterval: time.Hour, Consumers: 1,
-				Flush: func(_ context.Context, batch []schema.FrontlineRequest) { rows = append(rows, batch...) },
+				Flush: func(_ context.Context, batch []schema.FrontlineRequest) error {
+					rows = append(rows, batch...)
+					return nil
+				},
 			})
 			t.Cleanup(buf.Close)
 			clk := clock.NewTestClock()
@@ -521,7 +531,10 @@ func TestRequestLogging_RejectedUploadIsBounded(t *testing.T) {
 			var rows []schema.FrontlineRequest
 			buf := batch.New(batch.Config[schema.FrontlineRequest]{
 				Name: "test", BatchSize: 10, BufferSize: 10, FlushInterval: time.Hour, Consumers: 1,
-				Flush: func(_ context.Context, batch []schema.FrontlineRequest) { rows = append(rows, batch...) },
+				Flush: func(_ context.Context, batch []schema.FrontlineRequest) error {
+					rows = append(rows, batch...)
+					return nil
+				},
 			})
 			t.Cleanup(buf.Close)
 			clk := clock.NewTestClock()

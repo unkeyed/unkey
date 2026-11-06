@@ -191,8 +191,9 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				BufferSize:    1,
 				FlushInterval: time.Hour,
 				Consumers:     1,
-				Flush: func(_ context.Context, rows []schema.KeyVerification) {
+				Flush: func(_ context.Context, rows []schema.KeyVerification) error {
 					flushed <- slices.Clone(rows)
+					return nil
 				},
 			})
 			t.Cleanup(verifications.Close)
@@ -255,8 +256,9 @@ func TestWithAuthentication_RejectsRootPrincipalWithoutKeySource(t *testing.T) {
 		BufferSize:    1,
 		FlushInterval: time.Hour,
 		Consumers:     1,
-		Flush: func(_ context.Context, rows []schema.KeyVerification) {
+		Flush: func(_ context.Context, rows []schema.KeyVerification) error {
 			flushed <- slices.Clone(rows)
+			return nil
 		},
 	})
 
@@ -334,8 +336,9 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 		BufferSize:    1,
 		FlushInterval: time.Hour,
 		Consumers:     1,
-		Flush: func(_ context.Context, rows []schema.KeyVerification) {
+		Flush: func(_ context.Context, rows []schema.KeyVerification) error {
 			flushed <- slices.Clone(rows)
+			return nil
 		},
 	})
 	t.Cleanup(verifications.Close)
@@ -502,8 +505,9 @@ func TestWithAuthentication_MarksNewRootKeyUsageWithEmptyWorkspace(t *testing.T)
 		BufferSize:    1,
 		FlushInterval: time.Hour,
 		Consumers:     1,
-		Flush: func(_ context.Context, rows []schema.KeyVerification) {
+		Flush: func(_ context.Context, rows []schema.KeyVerification) error {
 			flushed <- slices.Clone(rows)
+			return nil
 		},
 	})
 	t.Cleanup(verifications.Close)
