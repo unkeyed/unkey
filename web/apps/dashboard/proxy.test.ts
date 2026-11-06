@@ -121,6 +121,15 @@ describe("proxy auth mode split", () => {
     ).toBe(false);
   });
 
+  it("serves /auth.md to signed-out agents without AuthKit", () => {
+    expect(
+      unstable_doesMiddlewareMatch({
+        config,
+        url: "http://localhost:3000/auth.md",
+      }),
+    ).toBe(false);
+  });
+
   it.each([
     "/media/vendor/jquery/js/jquery.min.js",
     "/wp-includes/js/jquery/jquery.js",

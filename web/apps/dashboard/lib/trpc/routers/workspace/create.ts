@@ -30,20 +30,17 @@ export const createWorkspace = protectedProcedure
 
     const orgId = await db
       .transaction(async (tx) => {
-        if (env().AUTH_PROVIDER === "local") {
-          // Check if this user already has a workspace
-          const existingWorkspaces = await tx.query.workspaces.findMany({
-            where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
-            columns: { id: true },
-          });
+        const tenantWorkspace = await tx.query.workspaces.findFirst({
+          where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
+          columns: { id: true },
+        });
 
-          if (existingWorkspaces.length > 0) {
-            throw new TRPCError({
-              code: "METHOD_NOT_SUPPORTED",
-              message:
-                "You cannot create additional workspaces in local development mode. Use workOS auth provider if you need to test multi-workspace functionality.",
-            });
-          }
+        if (env().AUTH_PROVIDER === "local" && tenantWorkspace) {
+          throw new TRPCError({
+            code: "METHOD_NOT_SUPPORTED",
+            message:
+              "You cannot create additional workspaces in local development mode. Use workOS auth provider if you need to test multi-workspace functionality.",
+          });
         }
 
         const duplicateSlug = await tx.query.workspaces.findFirst({
@@ -58,10 +55,14 @@ export const createWorkspace = protectedProcedure
           });
         }
 
-        const orgId = await authProvider.createTenant({
-          name: input.name,
-          userId,
-        });
+        // Without an organization in the session, protectedProcedure sets the tenant id to the user id.
+        const claimed =
+          !tenantWorkspace &&
+          ctx.tenant.id !== userId &&
+          (await authProvider.claimTenant({ orgId: ctx.tenant.id, userId, name: input.name }));
+        const orgId = claimed
+          ? ctx.tenant.id
+          : await authProvider.createTenant({ name: input.name, userId });
 
         const workspace: InsertWorkspace = {
           id: newId("workspace"),

@@ -100,6 +100,10 @@ export class LocalAuthProvider extends BaseAuthProvider {
     return LOCAL_ORG_ID;
   }
 
+  async claimTenant(_params: { orgId: string; userId: string; name: string }): Promise<boolean> {
+    return false;
+  }
+
   protected async createOrg(name: string): Promise<Organization> {
     if (!name) {
       throw new Error("Organization name is required.");

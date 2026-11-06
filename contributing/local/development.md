@@ -340,6 +340,20 @@ in, check the code, narrow the permissions if you want, and click Allow. Use
 `AUTH_PROVIDER=workos` so the signed-in user id is the WorkOS user stored on
 the workspace.
 
+Agent registration lets an AI agent follow `http://localhost:3000/auth.md`,
+get claimed by a signed-in user, and call the local API as that user. Enable
+Agent Registration with the Service auth method in the development WorkOS
+environment. Then set the environment's AuthKit domain as
+`WORKOS_AUTHKIT_URL` in both `dev/.env.workos` and the dashboard `.env`, for
+example `https://example-local-dev.authkit.app`. Start Tilt with the flag:
+
+```bash
+mise run dev -- --agent_auth=true
+```
+
+The flag adds the `workos_agent` API auth entry and the CLI login config,
+whose WorkOS API key looks up the claiming user's roles.
+
 Stripe billing:
 
 The dashboard subscription flow needs all four variables in

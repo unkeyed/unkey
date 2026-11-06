@@ -133,6 +133,12 @@ spec:
                   name: workos-credentials
                   key: WORKOS_API_KEY
                   optional: true
+            - name: WORKOS_AUTHKIT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: workos-credentials
+                  key: WORKOS_AUTHKIT_URL
+                  optional: true
           ports:
             - containerPort: 7070
           volumeMounts:

@@ -96,6 +96,60 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
+  /**
+   * Turns an organization the user alone belongs to into their tenant, making
+   * them its admin. AuthKit creates such an organization, with the user as a
+   * plain member, when a new user signs up while claiming an agent
+   * registration. Returns false when anyone else has a membership in it, or
+   * when it has domains, SSO connections, or directories, because an
+   * organization set up for single sign-on is not the user's to take over.
+   */
+  async claimTenant(params: { orgId: string; userId: string; name: string }): Promise<boolean> {
+    if (!params.orgId || !params.userId || !params.name) {
+      throw new Error("Organization id, userId, and name are required.");
+    }
+    try {
+      const provider = await this.getProvider();
+      const [memberships, organization, connections, directories] = await Promise.all([
+        this.collectPages((after) =>
+          provider.userManagement.listOrganizationMemberships({
+            organizationId: params.orgId,
+            limit: PAGE_SIZE,
+            statuses: ["active", "inactive", "pending"],
+            after,
+          }),
+        ),
+        provider.organizations.getOrganization(params.orgId),
+        provider.sso.listConnections({ organizationId: params.orgId, limit: 1 }),
+        provider.directorySync.listDirectories({ organizationId: params.orgId, limit: 1 }),
+      ]);
+      const [membership, ...others] = memberships;
+      if (
+        !membership ||
+        others.length > 0 ||
+        membership.userId !== params.userId ||
+        membership.status !== "active" ||
+        organization.domains.length > 0 ||
+        connections.data.length > 0 ||
+        directories.data.length > 0
+      ) {
+        return false;
+      }
+      if (membership.role.slug !== "admin") {
+        await provider.userManagement.updateOrganizationMembership(membership.id, {
+          roleSlug: "admin",
+        });
+      }
+      await provider.organizations.updateOrganization({
+        organization: params.orgId,
+        name: params.name,
+      });
+      return true;
+    } catch (error) {
+      throw this.providerError(error);
+    }
+  }
+
   protected async createOrg(name: string): Promise<Organization> {
     if (!name) {
       throw new Error("Organization name is required.");

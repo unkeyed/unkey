@@ -26,6 +26,7 @@ config.define_string('topolvm_backing_size')
 config.define_bool('orb')
 config.define_bool('orb-metal')
 config.define_bool('cli_auth')
+config.define_bool('agent_auth')
 config.define_string_list('resources', args=True)
 cfg = config.parse()
 ORB = cfg.get('orb', False)
@@ -541,7 +542,18 @@ for resource in api_resources:
         api_config = resource['data']['unkey.toml']
         if not has_github_credentials:
             api_config = api_config.replace('app_id = ${UNKEY_GITHUB_APP_ID}', 'app_id = 0')
-        if cfg.get('cli_auth', False):
+        agent_auth = cfg.get('agent_auth', False)
+        if agent_auth:
+            api_config += '''
+[[auth]]
+type = "jwt"
+issuer = "${WORKOS_AUTHKIT_URL}"
+audience = "${WORKOS_CLIENT_ID}"
+jwks_url = "https://api.workos.com/sso/jwks/${WORKOS_CLIENT_ID}"
+provider = "workos_agent"
+'''
+        # workos_agent looks up the claiming user's roles with the CLI's WorkOS client.
+        if cfg.get('cli_auth', False) or agent_auth:
             api_config += '''
 [cli_auth]
 workos_api_key = "${WORKOS_API_KEY}"

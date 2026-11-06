@@ -72,10 +72,11 @@ type RestateConfig struct {
 }
 
 const (
-	authTypeJWT           = "jwt"
-	authTypePortalSession = "portal_session"
-	authTypeRootKey       = "root_key"
-	jwtProviderWorkOS     = "workos"
+	authTypeJWT            = "jwt"
+	authTypePortalSession  = "portal_session"
+	authTypeRootKey        = "root_key"
+	jwtProviderWorkOS      = "workos"
+	jwtProviderWorkOSAgent = "workos_agent"
 )
 
 // AuthConfig is a discriminated union for one authentication resolver.
@@ -111,7 +112,9 @@ type JWTAuthConfig struct {
 
 	// Provider selects role mapping after JWT verification. Empty leaves the
 	// principal without role-derived permissions. "workos" maps the roles claim
-	// to API permissions.
+	// to API permissions. "workos_agent" accepts WorkOS AuthKit agent access
+	// tokens and grants the claiming user's current WorkOS roles, looked up with
+	// [CLIAuthConfig.WorkOSAPIKey], which it therefore requires.
 	Provider string `toml:"provider"`
 }
 
@@ -477,8 +480,14 @@ func (c *Config) Validate() error {
 					return fmt.Errorf("auth[%d].jwks_url must use https", i)
 				}
 			}
-			if auth.Provider != "" && auth.Provider != jwtProviderWorkOS {
-				return fmt.Errorf("auth[%d].provider must be %q when set", i, jwtProviderWorkOS)
+			switch auth.Provider {
+			case "", jwtProviderWorkOS:
+			case jwtProviderWorkOSAgent:
+				if strings.TrimSpace(c.CLIAuth.WorkOSAPIKey) == "" {
+					return fmt.Errorf("auth[%d].provider %q requires cli_auth.workos_api_key to look up the claiming user's roles", i, jwtProviderWorkOSAgent)
+				}
+			default:
+				return fmt.Errorf("auth[%d].provider must be %q or %q when set", i, jwtProviderWorkOS, jwtProviderWorkOSAgent)
 			}
 		case PortalSessionAuthConfig:
 		case RootKeyAuthConfig:

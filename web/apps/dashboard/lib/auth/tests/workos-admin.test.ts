@@ -7,6 +7,10 @@ const mocks = vi.hoisted(() => ({
   listUsers: vi.fn(),
   getUser: vi.fn(),
   getOrganization: vi.fn(),
+  updateOrganization: vi.fn(),
+  updateOrganizationMembership: vi.fn(),
+  listConnections: vi.fn(),
+  listDirectories: vi.fn(),
   logOperation: vi.fn(),
 }));
 
@@ -14,6 +18,7 @@ vi.mock("@workos-inc/authkit-nextjs", () => ({
   getWorkOS: () => ({
     organizations: {
       getOrganization: mocks.getOrganization,
+      updateOrganization: mocks.updateOrganization,
     },
     userManagement: {
       getOrganizationMembership: mocks.getOrganizationMembership,
@@ -21,6 +26,13 @@ vi.mock("@workos-inc/authkit-nextjs", () => ({
       listOrganizationMemberships: mocks.listOrganizationMemberships,
       listUsers: mocks.listUsers,
       getUser: mocks.getUser,
+      updateOrganizationMembership: mocks.updateOrganizationMembership,
+    },
+    sso: {
+      listConnections: mocks.listConnections,
+    },
+    directorySync: {
+      listDirectories: mocks.listDirectories,
     },
   }),
 }));
@@ -372,5 +384,113 @@ describe("WorkOSAuthProvider server-side membership operations", () => {
 
     expect(mocks.getOrganizationMembership).toHaveBeenCalledWith("om_123");
     expect(mocks.deactivateOrganizationMembership).toHaveBeenCalledWith("om_123");
+  });
+
+  describe("claimTenant", () => {
+    const params = { orgId: "org_agent", userId: "user_123", name: "Acme" };
+    const member = (userId: string, overrides: Record<string, unknown> = {}) => ({
+      id: `om_${userId}`,
+      organizationId: "org_agent",
+      userId,
+      role: { slug: "member" },
+      status: "active",
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      mocks.getOrganization.mockResolvedValue({ id: "org_agent", domains: [] });
+      mocks.listConnections.mockResolvedValue({ data: [] });
+      mocks.listDirectories.mockResolvedValue({ data: [] });
+    });
+
+    it("makes the sole member an admin and renames the organization", async () => {
+      mocks.listOrganizationMemberships.mockResolvedValue({
+        data: [member("user_123")],
+        listMetadata: {},
+      });
+
+      await expect(new WorkOSAuthProvider().claimTenant(params)).resolves.toBe(true);
+
+      expect(mocks.listOrganizationMemberships.mock.calls[0][0]).toMatchObject({
+        organizationId: "org_agent",
+        statuses: ["active", "inactive", "pending"],
+      });
+      expect(mocks.updateOrganizationMembership).toHaveBeenCalledWith("om_user_123", {
+        roleSlug: "admin",
+      });
+      expect(mocks.updateOrganization).toHaveBeenCalledWith({
+        organization: "org_agent",
+        name: "Acme",
+      });
+    });
+
+    it("leaves an existing admin role alone", async () => {
+      mocks.listOrganizationMemberships.mockResolvedValue({
+        data: [member("user_123", { role: { slug: "admin" } })],
+        listMetadata: {},
+      });
+
+      await expect(new WorkOSAuthProvider().claimTenant(params)).resolves.toBe(true);
+
+      expect(mocks.updateOrganizationMembership).not.toHaveBeenCalled();
+      expect(mocks.updateOrganization).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+      ["has another member", [member("user_123"), member("user_other")]],
+      ["has another member on a later page", "paged"],
+      ["belongs to someone else", [member("user_other")]],
+      [
+        "has only an inactive membership for the user",
+        [member("user_123", { status: "inactive" })],
+      ],
+      ["has no members", []],
+    ])("does not claim an organization that %s", async (_case, memberships) => {
+      if (memberships === "paged") {
+        mocks.listOrganizationMemberships
+          .mockResolvedValueOnce({ data: [member("user_123")], listMetadata: { after: "m_1" } })
+          .mockResolvedValueOnce({ data: [member("user_other")], listMetadata: {} });
+      } else {
+        mocks.listOrganizationMemberships.mockResolvedValue({
+          data: memberships,
+          listMetadata: {},
+        });
+      }
+
+      await expect(new WorkOSAuthProvider().claimTenant(params)).resolves.toBe(false);
+
+      expect(mocks.updateOrganizationMembership).not.toHaveBeenCalled();
+      expect(mocks.updateOrganization).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        "a domain",
+        () =>
+          mocks.getOrganization.mockResolvedValue({
+            id: "org_agent",
+            domains: [{ domain: "acme.com" }],
+          }),
+      ],
+      [
+        "an SSO connection",
+        () => mocks.listConnections.mockResolvedValue({ data: [{ id: "conn_1" }] }),
+      ],
+      [
+        "a directory",
+        () => mocks.listDirectories.mockResolvedValue({ data: [{ id: "directory_1" }] }),
+      ],
+    ])("does not claim a sole-member organization that has %s", async (_case, setUp) => {
+      setUp();
+      mocks.listOrganizationMemberships.mockResolvedValue({
+        data: [member("user_123")],
+        listMetadata: {},
+      });
+
+      await expect(new WorkOSAuthProvider().claimTenant(params)).resolves.toBe(false);
+
+      expect(mocks.updateOrganizationMembership).not.toHaveBeenCalled();
+      expect(mocks.updateOrganization).not.toHaveBeenCalled();
+    });
   });
 });

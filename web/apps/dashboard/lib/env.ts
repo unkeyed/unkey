@@ -55,6 +55,7 @@ export const env = () =>
       WORKOS_WEBHOOK_SECRET: z.string().optional(),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
       WORKOS_API_HOSTNAME: z.string().optional(),
+      WORKOS_AUTHKIT_URL: z.url({ protocol: /^https$/ }).optional(),
 
       NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
     })
