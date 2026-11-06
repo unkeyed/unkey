@@ -1,0 +1,8 @@
+type: object
+required:
+  - connectionId
+properties:
+  connectionId:
+    type: string
+    minLength: 1
+additionalProperties: false
