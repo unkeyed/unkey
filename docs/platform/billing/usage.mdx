@@ -12,7 +12,7 @@ sources:
   - svc/api/routes/v2_workspace_get_usage/handler.go
   - pkg/clickhouse/billable_verifications.go
 ---
-Usage covers one calendar month (UTC), with one total per product: API for every workspace, Compute once you have a Compute plan.
+Find usage under **Settings > Usage**. It covers one calendar month (UTC), and you can switch between the current and previous month. Each product has its own total. Every workspace will have an API total. A Compute total will be visible once a Compute plan is active.
 
 ## API Management
 
@@ -37,8 +37,8 @@ Compute usage totals cost for the period, broken down by <Tooltip tip="A group o
 | CPU (vCPU-hrs) | Average active virtual CPU per running instance. Billed on actual usage, not the vCPU ceiling you configured. Idle time waiting on I/O does not count as active CPU. |
 | Memory (GiB-hrs) | Average memory used per running instance. Billed on actual usage, not the memory ceiling you configured. |
 | Storage (GiB-hrs) | Ephemeral disk volume mounted per instance. Billed on the allocated size for as long as the instance runs, up to 10 GiB per instance. |
-| Egress (GiB) | Total outbound network data transfer for the month. |
-| Verified keys | Distinct keys with at least one verification during the month through a Key Auth policy on Compute. These bill to the project, not a keyspace. |
+| Egress (GiB) | Outbound data sent to the public internet during the month. Traffic to private network addresses isn't billed. |
+| Verified keys | Distinct keys with at least one verification during the month through a Key Auth policy on Compute. These bill to the project, not a keyspace, and appear on a **Gateway** row under each project. |
 
 Runtime settings are ceilings and headroom. Most workloads never pin 100% of CPU or memory, so configuring 1 vCPU while averaging 0.5 vCPU bills the 0.5, not the 1. Preview deployments use the same rates as production.
 
