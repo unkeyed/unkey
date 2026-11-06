@@ -145,3 +145,23 @@ actions:
   - target: $["components"]["schemas"]["V2WorkspaceGetLimitsLimit"]["properties"]["limit"]
     update:
       nullable: true
+  - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetAppName"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetAppName"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetEnvironmentId"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetEnvironmentId"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetEnvironmentSlug"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetEnvironmentSlug"]
+    update:
+      nullable: true
+  - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetDeploymentId"]["type"]
+    update: string
+  - target: $["components"]["schemas"]["DeploymentConnectionSummary"]["properties"]["targetDeploymentId"]
+    update:
+      nullable: true

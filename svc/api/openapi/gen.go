@@ -1200,6 +1200,21 @@ type Deployment struct {
 // Example: promote
 type DeploymentAction string
 
+// DeploymentConnectionSummary defines model for DeploymentConnectionSummary.
+type DeploymentConnectionSummary struct {
+	Id          string `json:"id"`
+	TargetAppId string `json:"targetAppId"`
+
+	// TargetAppName Current target app name, or null if the app no longer exists.
+	TargetAppName         nullable.Nullable[string] `json:"targetAppName"`
+	TargetDeploymentId    nullable.Nullable[string] `json:"targetDeploymentId"`
+	TargetEnvironmentId   nullable.Nullable[string] `json:"targetEnvironmentId"`
+	TargetEnvironmentSlug nullable.Nullable[string] `json:"targetEnvironmentSlug"`
+
+	// TargetType Automatic environment selection, an explicit target environment, or a pinned deployment.
+	TargetType ConnectionTargetType `json:"targetType"`
+}
+
 // DeploymentDocker defines model for DeploymentDocker.
 type DeploymentDocker struct {
 	// Image The OCI image reference requested for this deployment.
@@ -4391,6 +4406,25 @@ type V2DeploymentsListBuildLogsRequestBody struct {
 type V2DeploymentsListBuildLogsResponseBody struct {
 	// Data The log entries, in the order the build printed them.
 	Data []BuildLogEntry `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// V2DeploymentsListConnectionsRequestBody defines model for V2DeploymentsListConnectionsRequestBody.
+type V2DeploymentsListConnectionsRequestBody struct {
+	// Cursor Cursor from the previous page.
+	Cursor       *string `json:"cursor,omitempty"`
+	DeploymentId string  `json:"deploymentId"`
+	Limit        *int    `json:"limit,omitempty"`
+}
+
+// V2DeploymentsListConnectionsResponseBody defines model for V2DeploymentsListConnectionsResponseBody.
+type V2DeploymentsListConnectionsResponseBody struct {
+	Data []DeploymentConnectionSummary `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -8768,6 +8802,9 @@ type DeploymentsGetDeploymentJSONRequestBody = V2DeploymentsGetDeploymentRequest
 
 // DeploymentsListBuildLogsJSONRequestBody defines body for DeploymentsListBuildLogs for application/json ContentType.
 type DeploymentsListBuildLogsJSONRequestBody = V2DeploymentsListBuildLogsRequestBody
+
+// DeploymentsListConnectionsJSONRequestBody defines body for DeploymentsListConnections for application/json ContentType.
+type DeploymentsListConnectionsJSONRequestBody = V2DeploymentsListConnectionsRequestBody
 
 // DeploymentsListDeploymentsJSONRequestBody defines body for DeploymentsListDeployments for application/json ContentType.
 type DeploymentsListDeploymentsJSONRequestBody = V2DeploymentsListDeploymentsRequestBody

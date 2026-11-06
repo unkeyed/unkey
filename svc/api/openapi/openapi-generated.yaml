@@ -1208,6 +1208,39 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2DeploymentsListConnectionsRequestBody:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    type: string
+                    minLength: 1
+                limit:
+                    type: integer
+                    default: 100
+                    minimum: 1
+                    maximum: 100
+                cursor:
+                    type: string
+                    description: Cursor from the previous page.
+            additionalProperties: false
+        V2DeploymentsListConnectionsResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    type: array
+                    items:
+                        "$ref": "#/components/schemas/DeploymentConnectionSummary"
+                pagination:
+                    "$ref": "#/components/schemas/Pagination"
+            additionalProperties: false
         V2DeploymentsListDeploymentsRequestBody:
             type: object
             properties:
@@ -6630,6 +6663,41 @@ components:
                 The output stream a build log entry was printed to. Many tools write progress
                 and warnings to `stderr`, so `stderr` does not mean that the step failed.
             example: stdout
+        DeploymentConnectionSummary:
+            type: object
+            required:
+                - id
+                - targetAppId
+                - targetAppName
+                - targetType
+                - targetEnvironmentId
+                - targetEnvironmentSlug
+                - targetDeploymentId
+            properties:
+                id:
+                    type: string
+                targetAppId:
+                    type: string
+                targetAppName:
+                    type:
+                        - string
+                        - "null"
+                    description: Current target app name, or null if the app no longer exists.
+                targetType:
+                    "$ref": "#/components/schemas/ConnectionTargetType"
+                targetEnvironmentId:
+                    type:
+                        - string
+                        - "null"
+                targetEnvironmentSlug:
+                    type:
+                        - string
+                        - "null"
+                targetDeploymentId:
+                    type:
+                        - string
+                        - "null"
+            additionalProperties: false
         V2DomainsCreateDomainResponseData:
             type: object
             required:
@@ -12741,6 +12809,74 @@ paths:
                 type: cursor
             x-unkey-idempotency: idempotent
             x-unkey-workspace-rate-limit-exempt: true
+    /v2/deployments.listConnections:
+        post:
+            description: |
+                List the connections saved in this deployment, ordered by connection ID.
+                These snapshots are separate from the caller environment's current defaults.
+                Removed target apps and environments retain their saved IDs with null labels.
+                Requires read access to the deployment. Missing and unreadable deployments
+                return the same 404 response. Stopped deployments and soft-deleted parents
+                remain readable while their deployment records exist. Connections to target
+                apps the caller cannot read are omitted.
+            operationId: deployments.listConnections
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2DeploymentsListConnectionsRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2DeploymentsListConnectionsResponseBody'
+                    description: Saved deployment connections.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid request.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Authentication required.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Deployment not found.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+                "503":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: Database unavailable or authorized scan limit reached.
+            security:
+                - bearer: []
+            summary: List saved deployment connections
+            tags:
+                - deployments
+            x-speakeasy-name-override: listConnections
+            x-speakeasy-pagination:
+                inputs:
+                    - in: requestBody
+                      name: cursor
+                      type: cursor
+                outputs:
+                    nextCursor: $.pagination.cursor
+                type: cursor
     /v2/deployments.listDeployments:
         post:
             description: |
