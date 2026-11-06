@@ -9,13 +9,14 @@ SELECT COUNT(*) FROM deployment_connections WHERE workspace_id = sqlc.arg(worksp
 -- name: CountOrphanConnectionAppTargets :one
 -- CountOrphanConnectionAppTargets verifies deletion cascades in tests.
 SELECT COUNT(*) FROM connection_app_targets t
-LEFT JOIN app_connections b ON b.id = t.connection_id WHERE b.id IS NULL;
+LEFT JOIN app_connections b ON b.id = t.connection_id
+WHERE t.connection_id IN (sqlc.slice('connection_ids')) AND b.id IS NULL;
 
 -- name: CountOrphanDeploymentConnectionAppTargets :one
 -- CountOrphanDeploymentConnectionAppTargets verifies deletion cascades in tests.
 SELECT COUNT(*) FROM deployment_connection_app_targets t
 LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
-WHERE b.pk IS NULL;
+WHERE t.connection_id IN (sqlc.slice('connection_ids')) AND b.pk IS NULL;
 
 -- name: CountDeploymentConnectionAppTargetsByConnectionId :one
 -- CountDeploymentConnectionAppTargetsByConnectionId verifies deletion isolation in tests.

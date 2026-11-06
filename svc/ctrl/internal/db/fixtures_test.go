@@ -37,7 +37,7 @@ func TestBeginRollbackTx_CleansUpAfterContextCancellation(t *testing.T) {
 
 func openTestDatabase(t *testing.T) *sql.DB {
 	t.Helper()
-	database, err := sql.Open("mysql", containers.MySQL(t).DSN)
+	database, err := sql.Open("mysql", containers.MySQLLogicalIsolated(t).DSN)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	return database

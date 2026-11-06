@@ -164,13 +164,22 @@ export const deployments = mysqlTable(
     index("environment_idx").on(table.environmentId),
     index("status_idx").on(table.status),
     index("app_created_at_idx").on(table.appId, table.createdAt),
-    index("app_environment_created_idx").on(
+    index("app_environment_ready_created_idx").on(
       table.appId,
       table.environmentId,
+      sql`(first_ready_at IS NOT NULL)`,
       table.createdAt,
       table.id,
     ),
     index("app_branch_created_idx").on(table.appId, table.gitBranch, table.createdAt, table.id),
+    index("app_branch_fork_ready_created_idx").on(
+      table.appId,
+      table.gitBranch,
+      sql`(CASE WHEN fork_repository_full_name IS NULL THEN '' ELSE fork_repository_full_name END)`,
+      sql`(first_ready_at IS NOT NULL)`,
+      table.createdAt,
+      table.id,
+    ),
     index("desired_state_status_id_idx").on(table.desiredState, table.status, table.id),
   ],
 );

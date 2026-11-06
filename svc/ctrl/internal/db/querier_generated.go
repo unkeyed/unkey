@@ -228,14 +228,15 @@ type Querier interface {
 	// CountOrphanConnectionAppTargets verifies deletion cascades in tests.
 	//
 	//  SELECT COUNT(*) FROM connection_app_targets t
-	//  LEFT JOIN app_connections b ON b.id = t.connection_id WHERE b.id IS NULL
-	CountOrphanConnectionAppTargets(ctx context.Context) (int64, error)
+	//  LEFT JOIN app_connections b ON b.id = t.connection_id
+	//  WHERE t.connection_id IN (/*SLICE:connection_ids*/?) AND b.id IS NULL
+	CountOrphanConnectionAppTargets(ctx context.Context, connectionIds []string) (int64, error)
 	// CountOrphanDeploymentConnectionAppTargets verifies deletion cascades in tests.
 	//
 	//  SELECT COUNT(*) FROM deployment_connection_app_targets t
 	//  LEFT JOIN deployment_connections b ON b.deployment_id = t.deployment_id AND b.connection_id = t.connection_id
-	//  WHERE b.pk IS NULL
-	CountOrphanDeploymentConnectionAppTargets(ctx context.Context) (int64, error)
+	//  WHERE t.connection_id IN (/*SLICE:connection_ids*/?) AND b.pk IS NULL
+	CountOrphanDeploymentConnectionAppTargets(ctx context.Context, connectionIds []string) (int64, error)
 	// Covered by unique_workspace_domain_idx, which leads on workspace_id.
 	//
 	//  SELECT COUNT(*)
@@ -2189,6 +2190,10 @@ type Querier interface {
 	//  WHERE b.stripe_customer_id IS NOT NULL
 	//    AND b.stripe_customer_id <> ''
 	ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error)
+	//ListDeploymentAppIds
+	//
+	//  SELECT DISTINCT app_id FROM deployments WHERE id IN (/*SLICE:ids*/?)
+	ListDeploymentAppIds(ctx context.Context, ids []string) ([]string, error)
 	// ListDeploymentConnectionsByDeploymentId returns the connections a deployment
 	// saved with their app targets. Only tests use it.
 	//
@@ -2341,6 +2346,215 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error)
+	// ListPrivateNetworkClusters supplies cell identities for DNS locality.
+	// Clusters without a cell ID cannot identify imported EndpointSlices.
+	//
+	//  SELECT c.cell_id, r.platform, r.name AS region
+	//  FROM clusters c
+	//  INNER JOIN regions r ON r.id = c.region_id
+	//  WHERE r.platform = ?
+	//      AND c.cell_id IS NOT NULL
+	//  ORDER BY c.cell_id
+	ListPrivateNetworkClusters(ctx context.Context, platform string) ([]ListPrivateNetworkClustersRow, error)
+	// ListPrivateNetworkConnectionSelections returns the directed app connections
+	// saved by the given caller deployments, with the saved target selection and
+	// the caller and live deployment facts needed to resolve it.
+	// LiveEnvironmentID is the environment of the target app's live deployment,
+	// empty when there is none. Callers must come from ListPrivateNetworkReplicas
+	// in the same transaction, which decides which deployments are active callers.
+	// Rows are paged by (caller deployment, connection).
+	//
+	//  SELECT
+	//      b.workspace_id,
+	//      b.project_id,
+	//      b.resource_id AS app_id,
+	//      target_app.slug AS app_slug,
+	//      w.k8s_namespace,
+	//      caller.id AS caller_deployment_id,
+	//      b.connection_id,
+	//      b.name AS connection_name,
+	//      t.selection_mode,
+	//      COALESCE(t.target_deployment_id, '') AS target_deployment_id,
+	//      COALESCE(t.target_environment_id, '') AS target_environment_id,
+	//      caller_env.kind AS caller_environment_kind,
+	//      caller.source AS caller_source,
+	//      COALESCE(caller.git_branch, '') AS caller_git_branch,
+	//      COALESCE(caller.fork_repository_full_name, '') AS caller_fork_key,
+	//      COALESCE(target_app.current_deployment_id, '') AS live_deployment_id,
+	//      COALESCE(live_env.id, '') AS live_environment_id
+	//  FROM deployment_connections b
+	//  STRAIGHT_JOIN deployments caller ON caller.id = b.deployment_id
+	//      AND caller.app_id = b.app_id
+	//      AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
+	//      AND caller.environment_id = b.environment_id
+	//  STRAIGHT_JOIN environments caller_env ON caller_env.id = caller.environment_id
+	//      AND caller_env.app_id = caller.app_id
+	//  STRAIGHT_JOIN deployment_connection_app_targets t
+	//      ON t.deployment_id = b.deployment_id AND t.connection_id = b.connection_id
+	//  STRAIGHT_JOIN apps target_app ON target_app.id = b.resource_id
+	//      AND target_app.workspace_id = b.workspace_id AND target_app.project_id = b.project_id
+	//  STRAIGHT_JOIN workspaces w ON w.id = b.workspace_id
+	//  LEFT JOIN deployments live ON live.id = target_app.current_deployment_id
+	//  LEFT JOIN environments live_env ON live_env.id = live.environment_id
+	//      AND live_env.app_id = live.app_id
+	//  WHERE b.deployment_id IN (/*SLICE:caller_deployment_ids*/?)
+	//      AND (
+	//          b.deployment_id > ?
+	//          OR (b.deployment_id = ? AND b.connection_id > ?)
+	//      )
+	//      AND b.resource_type = 'app'
+	//      AND b.resource_id <> b.app_id
+	//      AND b.name NOT LIKE 'unkey%'
+	//      AND b.name <> 'self'
+	//  ORDER BY b.deployment_id, b.connection_id
+	//  LIMIT ?
+	ListPrivateNetworkConnectionSelections(ctx context.Context, arg ListPrivateNetworkConnectionSelectionsParams) ([]ListPrivateNetworkConnectionSelectionsRow, error)
+	// ListPrivateNetworkDeploymentRegions returns the regions on the platform where
+	// each given deployment is meant to run.
+	//
+	//  SELECT dt.deployment_id, r.name AS region
+	//  FROM deployment_topology dt
+	//  INNER JOIN regions r ON r.id = dt.region_id
+	//  WHERE dt.deployment_id IN (/*SLICE:deployment_ids*/?)
+	//      AND dt.desired_status = 'running'
+	//      AND r.platform = ?
+	//  ORDER BY dt.deployment_id, r.name
+	ListPrivateNetworkDeploymentRegions(ctx context.Context, arg ListPrivateNetworkDeploymentRegionsParams) ([]ListPrivateNetworkDeploymentRegionsRow, error)
+	// ListPrivateNetworkEnvironmentDeploymentIds returns, for each given preview
+	// environment, the newest deployment that was ever ready in it. Environments
+	// without such a deployment have no row. Each environment costs one probe of
+	// app_environment_ready_created_idx, so the cost does not grow with history.
+	//
+	//  SELECT
+	//      e.workspace_id,
+	//      e.project_id,
+	//      e.app_id,
+	//      e.id AS environment_id,
+	//      newest.id
+	//  FROM environments e
+	//  INNER JOIN deployments newest ON newest.id = (
+	//      SELECT candidate.id
+	//      FROM deployments candidate FORCE INDEX (app_environment_ready_created_idx)
+	//      WHERE candidate.app_id = e.app_id
+	//          AND candidate.environment_id = e.id
+	//          AND (candidate.first_ready_at IS NOT NULL) = TRUE
+	//          AND candidate.workspace_id = e.workspace_id
+	//          AND candidate.project_id = e.project_id
+	//      ORDER BY candidate.created_at DESC, candidate.id DESC
+	//      LIMIT 1
+	//  )
+	//  WHERE e.id IN (/*SLICE:environment_ids*/?)
+	//      AND e.kind = 'preview'
+	ListPrivateNetworkEnvironmentDeploymentIds(ctx context.Context, environmentIds []string) ([]ListPrivateNetworkEnvironmentDeploymentIdsRow, error)
+	// ListPrivateNetworkPreviewDeploymentIds returns, for each connection from one
+	// of the given caller deployments to one of the given apps, the newest
+	// deployment of the target app that was ever ready on the caller's git branch
+	// and fork in a preview environment. Rows are keyed by target app, branch, and
+	// fork; keys without such a deployment have no row.
+	// Each key costs one probe of app_branch_fork_ready_created_idx, so the cost
+	// does not grow with branch history. The ORDER BY names every index column
+	// because MySQL does not treat columns bound by a correlated equality as
+	// constant and would otherwise sort the whole branch history per key.
+	//
+	//  SELECT
+	//      k.workspace_id,
+	//      k.project_id,
+	//      k.app_id,
+	//      k.git_branch,
+	//      k.fork_key,
+	//      (
+	//          SELECT candidate.id
+	//          FROM deployments candidate FORCE INDEX (app_branch_fork_ready_created_idx)
+	//          INNER JOIN environments candidate_env ON candidate_env.id = candidate.environment_id
+	//              AND candidate_env.app_id = candidate.app_id
+	//          WHERE candidate.app_id = k.app_id
+	//              AND candidate.git_branch = k.git_branch
+	//              AND (CASE WHEN candidate.fork_repository_full_name IS NULL THEN '' ELSE candidate.fork_repository_full_name END) = k.fork_key
+	//              AND (candidate.first_ready_at IS NOT NULL) = TRUE
+	//              AND candidate.workspace_id = k.workspace_id
+	//              AND candidate.project_id = k.project_id
+	//              AND candidate.source = 'git'
+	//              AND candidate_env.kind = 'preview'
+	//          ORDER BY
+	//              candidate.app_id DESC,
+	//              candidate.git_branch DESC,
+	//              (CASE WHEN candidate.fork_repository_full_name IS NULL THEN '' ELSE candidate.fork_repository_full_name END) DESC,
+	//              (candidate.first_ready_at IS NOT NULL) DESC,
+	//              candidate.created_at DESC,
+	//              candidate.id DESC
+	//          LIMIT 1
+	//      ) AS id
+	//  FROM (
+	//      SELECT DISTINCT
+	//          b.workspace_id,
+	//          b.project_id,
+	//          b.resource_id AS app_id,
+	//          COALESCE(caller.git_branch, '') AS git_branch,
+	//          COALESCE(caller.fork_repository_full_name, '') AS fork_key
+	//      FROM deployment_connections b
+	//      INNER JOIN deployments caller ON caller.id = b.deployment_id
+	//      WHERE b.deployment_id IN (/*SLICE:caller_deployment_ids*/?)
+	//          AND b.resource_type = 'app'
+	//          AND b.resource_id IN (/*SLICE:app_ids*/?)
+	//  ) AS k
+	//  HAVING id IS NOT NULL
+	ListPrivateNetworkPreviewDeploymentIds(ctx context.Context, arg ListPrivateNetworkPreviewDeploymentIdsParams) ([]ListPrivateNetworkPreviewDeploymentIdsRow, error)
+	// ListPrivateNetworkReplicas returns the given deployments that are active,
+	// were created with private networking, and run on the platform. Each one
+	// resolves its own replicas under the self name and is a caller for
+	// ListPrivateNetworkConnectionSelections.
+	// NO_SEMIJOIN keeps the topology check per deployment; as a semijoin MySQL may
+	// read every running topology row first.
+	//
+	//  SELECT
+	//      d.workspace_id,
+	//      d.project_id,
+	//      d.app_id,
+	//      a.slug AS app_slug,
+	//      w.k8s_namespace,
+	//      d.id AS deployment_id,
+	//      d.port,
+	//      d.environment_id
+	//  FROM deployments d
+	//  STRAIGHT_JOIN apps a ON a.id = d.app_id
+	//      AND a.workspace_id = d.workspace_id AND a.project_id = d.project_id
+	//  STRAIGHT_JOIN environments e ON e.id = d.environment_id AND e.app_id = d.app_id
+	//  STRAIGHT_JOIN workspaces w ON w.id = d.workspace_id
+	//  WHERE d.id IN (/*SLICE:deployment_ids*/?)
+	//      AND d.desired_state = 'running'
+	//      AND d.status IN ('deploying', 'network', 'finalizing', 'ready')
+	//      AND JSON_CONTAINS(d.capabilities, 'true', '$.private_networking')
+	//      AND w.k8s_namespace <> ''
+	//      AND EXISTS (
+	//          SELECT /*+ NO_SEMIJOIN() */ 1 FROM deployment_topology dt
+	//          INNER JOIN regions r ON r.id = dt.region_id
+	//          WHERE dt.deployment_id = d.id
+	//              AND dt.desired_status = 'running'
+	//              AND r.platform = ?
+	//      )
+	ListPrivateNetworkReplicas(ctx context.Context, arg ListPrivateNetworkReplicasParams) ([]ListPrivateNetworkReplicasRow, error)
+	// ListPrivateNetworkTargets returns the given deployments that are ready, meant
+	// to run, and running in a region on the platform.
+	//
+	//  SELECT
+	//      target.id,
+	//      target.workspace_id,
+	//      target.project_id,
+	//      target.app_id,
+	//      target.environment_id,
+	//      target.port
+	//  FROM deployments target
+	//  WHERE target.id IN (/*SLICE:deployment_ids*/?)
+	//      AND target.status = 'ready'
+	//      AND target.desired_state = 'running'
+	//      AND EXISTS (
+	//          SELECT 1 FROM deployment_topology target_dt
+	//          INNER JOIN regions target_region ON target_region.id = target_dt.region_id
+	//          WHERE target_dt.deployment_id = target.id
+	//              AND target_dt.desired_status = 'running'
+	//              AND target_region.platform = ?
+	//      )
+	ListPrivateNetworkTargets(ctx context.Context, arg ListPrivateNetworkTargetsParams) ([]ListPrivateNetworkTargetsRow, error)
 	// Returns deployments in a non-terminal (progressing) status for an
 	// environment. The environment delete workflow uses this to cancel
 	// in-flight Restate invocations before the cascade drops deployment

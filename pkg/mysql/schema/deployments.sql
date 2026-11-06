@@ -55,9 +55,11 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);
 
 CREATE INDEX `app_created_at_idx` ON `deployments` (`app_id`,`created_at`);
 
-CREATE INDEX `app_environment_created_idx` ON `deployments` (`app_id`,`environment_id`,`created_at`,`id`);
+CREATE INDEX `app_environment_ready_created_idx` ON `deployments` (`app_id`,`environment_id`,(first_ready_at IS NOT NULL),`created_at`,`id`);
 
 CREATE INDEX `app_branch_created_idx` ON `deployments` (`app_id`,`git_branch`,`created_at`,`id`);
+
+CREATE INDEX `app_branch_fork_ready_created_idx` ON `deployments` (`app_id`,`git_branch`,(CASE WHEN fork_repository_full_name IS NULL THEN '' ELSE fork_repository_full_name END),(first_ready_at IS NOT NULL),`created_at`,`id`);
 
 CREATE INDEX `desired_state_status_id_idx` ON `deployments` (`desired_state`,`status`,`id`);
 
