@@ -37,6 +37,17 @@ func TestUpdatePolicyBadRequest(t *testing.T) {
 		require.Contains(t, res.Body.Error.Detail, "at least one field")
 	})
 
+	t.Run("subject rate limit without keyauth before it", func(t *testing.T) {
+		req := makeRequest(env, ids[0])
+		req.Ratelimit = &openapi.RatelimitPolicy{
+			Limit: 10, WindowMs: 1000,
+			Identifier: &openapi.RatelimitIdentifier{AuthenticatedSubject: &openapi.AuthenticatedSubjectKey{}},
+		}
+		res := callTyped(t, req)
+		require.Contains(t, res.Body.Error.Type, "invalid_input")
+		require.Contains(t, res.Body.Error.Detail, "needs an enabled keyauth policy before it")
+	})
+
 	t.Run("more than one rule variant", func(t *testing.T) {
 		req := makeRequest(env, ids[0])
 		req.Firewall = &openapi.FirewallPolicy{Action: "ACTION_DENY"}

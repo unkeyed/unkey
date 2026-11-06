@@ -90,6 +90,15 @@ type frontlineOpenApi struct {
 	ValidationBusy Code
 }
 
+// frontlineRequest defines errors for requests frontline refuses before running
+// any policy.
+type frontlineRequest struct {
+	// AmbiguousPath represents a 400 error - the path contains an encoded
+	// slash, backslash, or dot segment, which upstream frameworks disagree on,
+	// so policies cannot match it reliably.
+	AmbiguousPath Code
+}
+
 // UnkeyFrontlineErrors defines all frontline-related errors in the Unkey system.
 // These errors occur when the frontline service has issues serving a request —
 // from routing through policy evaluation to upstream proxying.
@@ -112,6 +121,9 @@ type UnkeyFrontlineErrors struct {
 
 	// OpenApi contains errors raised by the OpenAPI request validation policy.
 	OpenApi frontlineOpenApi
+
+	// Request contains errors for requests refused before any policy runs.
+	Request frontlineRequest
 }
 
 // Frontline contains all predefined frontline error codes.
@@ -151,5 +163,8 @@ var Frontline = UnkeyFrontlineErrors{
 	OpenApi: frontlineOpenApi{
 		InvalidRequest: Code{SystemFrontline, CategoryClient, "openapi_validation_failed"},
 		ValidationBusy: Code{SystemFrontline, CategoryCapacity, "openapi_validation_busy"},
+	},
+	Request: frontlineRequest{
+		AmbiguousPath: Code{SystemFrontline, CategoryClient, "ambiguous_path"},
 	},
 }

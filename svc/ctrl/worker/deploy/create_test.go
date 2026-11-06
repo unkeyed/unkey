@@ -1524,6 +1524,7 @@ func newCreateHarnessWithAppSource(t *testing.T, ctx context.Context, appSource 
 				Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
 			},
 			K8s:                             nil,
+			DepotProjects:                   deploy.NewDepotProjectClient("", ""),
 			RegistryConfig:                  deploy.RegistryConfig{Repository: fixtureBuildRepository, Username: "", Password: "", Insecure: false},
 			BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 			Clickhouse:                      nil,

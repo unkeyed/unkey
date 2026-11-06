@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
 	"connectrpc.com/connect"
 	"github.com/go-acme/lego/v4/challenge"
 	restate "github.com/restatedev/sdk-go"
@@ -262,6 +263,11 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("configure image resolver: %w", err)
 	}
 
+	var depotProjects corev1connect.ProjectServiceClient
+	if buildConfig.Backend == deploy.BuildBackendDepot {
+		depotProjects = deploy.NewDepotProjectClient(buildConfig.Depot.APIUrl, registryConfig.Password)
+	}
+
 	// The kubernetes build backend runs build Jobs in the worker's own
 	// cluster, so it only works when the worker itself runs in-cluster.
 	var k8sClient kubernetes.Interface
@@ -299,6 +305,7 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		Build:                           buildConfig,
 		K8s:                             k8sClient,
+		DepotProjects:                   depotProjects,
 		RegistryConfig:                  registryConfig,
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		Clickhouse:                      ch,

@@ -29,7 +29,38 @@ func ToProto(policies []openapi.Policy) ([]*frontlinev1.Policy, error) {
 		converted.Id = uid.New(uid.PolicyPrefix)
 		out = append(out, converted)
 	}
+	if err := CheckOrder(out); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+// CheckOrder rejects an enabled rate limit keyed on the caller when no enabled
+// keyauth policy runs before it. Without one there is never a principal, so
+// the gateway fails every matching request, or counts them all in one shared
+// "unknown" bucket that anonymous traffic can exhaust.
+func CheckOrder(policies []*frontlinev1.Policy) error {
+	keyauthSeen := false
+	for i, p := range policies {
+		if !p.GetEnabled() {
+			continue
+		}
+		if p.GetKeyauth() != nil {
+			keyauthSeen = true
+			continue
+		}
+		rl := p.GetRatelimit()
+		if rl == nil || keyauthSeen {
+			continue
+		}
+		sources := append([]*frontlinev1.RateLimitIdentifier{rl.GetIdentifier()}, rl.GetIdentifiers()...)
+		for _, id := range sources {
+			if id.GetAuthenticatedSubject() != nil || id.GetPrincipalField() != nil {
+				return invalid(fmt.Sprintf("policies[%d] limits by authenticatedSubject or principalField, so it needs an enabled keyauth policy before it.", i))
+			}
+		}
+	}
+	return nil
 }
 
 // VariantName names the set variant for audit metadata.

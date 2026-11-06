@@ -313,6 +313,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
 		},
 		K8s:            nil,
+		DepotProjects:  deploy.NewDepotProjectClient("", ""),
 		BuildSteps:     batch.NewNoop[schema.BuildStepV1](),
 		BuildStepLogs:  batch.NewNoop[schema.BuildStepLogV1](),
 		RegistryConfig: deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},

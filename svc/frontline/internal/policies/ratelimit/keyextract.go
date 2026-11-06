@@ -6,6 +6,7 @@ import (
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/frontline/internal/policies/canonicalpath"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
@@ -85,7 +86,7 @@ func writeEscapedIdentifierPart(key *strings.Builder, part string) {
 // Supported identifier sources:
 //   - RemoteIpKey:              client IP via sess.Location()
 //   - HeaderKey:                value of the named request header
-//   - PathKey:                  request URL path
+//   - PathKey:                  canonical, lowercased request path, so route variants share a bucket
 //   - AuthenticatedSubjectKey:  subject from a principal set by a prior auth policy
 //   - PrincipalFieldKey:        dotted-path field from a principal set by a prior auth policy
 func extractIdentifierPart(
@@ -104,7 +105,7 @@ func extractIdentifierPart(
 	case *frontlinev1.RateLimitIdentifier_Header:
 		return req.Header.Get(src.Header.GetName())
 	case *frontlinev1.RateLimitIdentifier_Path:
-		return req.URL.Path
+		return strings.ToLower(canonicalpath.Clean(req.URL.Path))
 	case *frontlinev1.RateLimitIdentifier_AuthenticatedSubject:
 		if principal == nil {
 			return ""
