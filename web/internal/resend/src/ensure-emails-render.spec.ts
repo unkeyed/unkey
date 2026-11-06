@@ -147,20 +147,21 @@ test("security details have readable labels in plain text", async () => {
   expect(text).toMatch(/Source\s+content\s+Detected\s+Thu Oct 22 2026/);
 });
 
-test("TruffleHog root key alert says the root key was revoked and labels its details", async () => {
+test("TruffleHog root key alert says the root key was disabled and labels its details", async () => {
   const text = await render(
     React.createElement(TruffleHogKeyDetected, TruffleHogKeyDetected.PreviewProps),
     { plainText: true },
   );
 
   expect(text).toMatch(
-    /TruffleHog found an Unkey root key exposed publicly at Docker, and we revoked it on\s+Thu Nov 05 2026, so requests using it now fail\./,
+    /TruffleHog found an Unkey root key exposed publicly at Docker on\s+Thu Nov 05 2026\. The key is now disabled, so requests using it fail\./,
   );
-  expect(text).toMatch(/Source\s+Docker\s+Revoked\s+Thu Nov 05 2026/);
+  expect(text).toMatch(/Then delete the disabled key\. Do not enable it again\./);
+  expect(text).toMatch(/Source\s+Docker\s+Reported\s+Thu Nov 05 2026/);
   expect(text).toContain("Root key recovery guide");
 });
 
-test("TruffleHog API key alert names the revoked key without root key advice", async () => {
+test("TruffleHog API key alert names the disabled key without root key advice", async () => {
   const { keyId } = TruffleHogApiKeyDetected.PreviewProps;
   const text = await render(
     React.createElement(TruffleHogApiKeyDetected, TruffleHogApiKeyDetected.PreviewProps),
@@ -168,15 +169,15 @@ test("TruffleHog API key alert names the revoked key without root key advice", a
   );
 
   expect(text).toMatch(
-    /TruffleHog found one of the API keys your workspace issued exposed publicly at Docker,\s+and we revoked it on\s+Thu Nov 05 2026, so requests using it now fail\./,
+    /TruffleHog found one of the API keys your workspace issued exposed publicly at Docker\s+on\s+Thu Nov 05 2026\. The key is now disabled, so requests using it fail\./,
   );
   expect(text).toMatch(
     new RegExp(
-      `Find the user it belongs to by key ID\\s+${keyId}\\s+and issue them a\\s+replacement\\.`,
+      `Find the user it belongs to by key ID\\s+${keyId}\\s+and issue them a\\s+replacement\\. Then delete the disabled key\\. Do not enable it again\\.`,
     ),
   );
   expect(text).toMatch(
-    new RegExp(`Source\\s+Docker\\s+Key ID\\s+${keyId}\\s+Revoked\\s+Thu Nov 05 2026`),
+    new RegExp(`Source\\s+Docker\\s+Key ID\\s+${keyId}\\s+Reported\\s+Thu Nov 05 2026`),
   );
   expect(text).toContain(
     "https://www.unkey.com/docs/api-management/security/overview#leaked-credentials",

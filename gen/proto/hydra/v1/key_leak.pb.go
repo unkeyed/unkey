@@ -182,7 +182,7 @@ type KeyLeakNotification struct {
 	Reporter      KeyLeakReporter        `protobuf:"varint,8,opt,name=reporter,proto3,enum=hydra.v1.KeyLeakReporter" json:"reporter,omitempty"`
 	WorkspaceId   string                 `protobuf:"bytes,9,opt,name=workspace_id,json=workspaceId,proto3" json:"workspace_id,omitempty"`
 	KeyStore      KeyLeakKeyStore        `protobuf:"varint,10,opt,name=key_store,json=keyStore,proto3,enum=hydra.v1.KeyLeakKeyStore" json:"key_store,omitempty"`
-	Revoke        bool                   `protobuf:"varint,11,opt,name=revoke,proto3" json:"revoke,omitempty"`
+	Disable       bool                   `protobuf:"varint,11,opt,name=disable,proto3" json:"disable,omitempty"`
 	KeyHash       string                 `protobuf:"bytes,12,opt,name=key_hash,json=keyHash,proto3" json:"key_hash,omitempty"`
 	KeyKind       KeyLeakKeyKind         `protobuf:"varint,13,opt,name=key_kind,json=keyKind,proto3,enum=hydra.v1.KeyLeakKeyKind" json:"key_kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -289,9 +289,9 @@ func (x *KeyLeakNotification) GetKeyStore() KeyLeakKeyStore {
 	return KeyLeakKeyStore_KEY_LEAK_KEY_STORE_UNSPECIFIED
 }
 
-func (x *KeyLeakNotification) GetRevoke() bool {
+func (x *KeyLeakNotification) GetDisable() bool {
 	if x != nil {
-		return x.Revoke
+		return x.Disable
 	}
 	return false
 }
@@ -402,7 +402,7 @@ var File_hydra_v1_key_leak_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_key_leak_proto_rawDesc = "" +
 	"\n" +
-	"\x17hydra/v1/key_leak.proto\x12\bhydra.v1\x1a\x1bbuf/validate/validate.proto\x1a\x18dev/restate/sdk/go.proto\"\xbf\x03\n" +
+	"\x17hydra/v1/key_leak.proto\x12\bhydra.v1\x1a\x1bbuf/validate/validate.proto\x1a\x18dev/restate/sdk/go.proto\"\xc1\x03\n" +
 	"\x13KeyLeakNotification\x12\x15\n" +
 	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12\x1e\n" +
 	"\x06org_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05orgId\x12%\n" +
@@ -414,8 +414,8 @@ const file_hydra_v1_key_leak_proto_rawDesc = "" +
 	"\breporter\x18\b \x01(\x0e2\x19.hydra.v1.KeyLeakReporterR\breporter\x12!\n" +
 	"\fworkspace_id\x18\t \x01(\tR\vworkspaceId\x126\n" +
 	"\tkey_store\x18\n" +
-	" \x01(\x0e2\x19.hydra.v1.KeyLeakKeyStoreR\bkeyStore\x12\x16\n" +
-	"\x06revoke\x18\v \x01(\bR\x06revoke\x12\x19\n" +
+	" \x01(\x0e2\x19.hydra.v1.KeyLeakKeyStoreR\bkeyStore\x12\x18\n" +
+	"\adisable\x18\v \x01(\bR\adisable\x12\x19\n" +
 	"\bkey_hash\x18\f \x01(\tR\akeyHash\x123\n" +
 	"\bkey_kind\x18\r \x01(\x0e2\x18.hydra.v1.KeyLeakKeyKindR\akeyKind\"f\n" +
 	"\x13KeyLeakEmailRequest\x129\n" +

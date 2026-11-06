@@ -37,6 +37,7 @@ type Container struct {
 	// project is the Compose project that owns this container. Shared services
 	// use the per-worktree project; isolated services get their own.
 	project string
+	ports   map[int]int
 }
 
 // Addr returns the localhost address mapped to a container port.
@@ -48,6 +49,9 @@ func (c Container) Addr(t testing.TB, containerPort int) string {
 // Port returns the host port mapped to a container port on this service.
 func (c Container) Port(t testing.TB, containerPort int) int {
 	t.Helper()
+	if port, ok := c.ports[containerPort]; ok {
+		return port
+	}
 	return composeServicePort(t, c.project, c.Name, containerPort)
 }
 
@@ -103,7 +107,7 @@ func (c Container) logs(lines int) string {
 	return string(out)
 }
 
-func startService(t testing.TB, service string) Container {
+func startComposeService(t testing.TB, service string) Container {
 	t.Helper()
 
 	span := startContainerSpan(t, "containers.compose.up_wait", attribute.String("container.service", service))
@@ -124,6 +128,7 @@ func startService(t testing.TB, service string) Container {
 			return Container{
 				Name:    service,
 				project: project,
+				ports:   nil,
 			}
 		}
 		if time.Now().After(deadline) {
@@ -166,7 +171,7 @@ func startIsolatedService(t testing.TB, service string) (Container, func()) {
 	out, err := cmd.CombinedOutput()
 	require.NoError(t, err, "docker compose %s failed:\n%s", strings.Join(upArgs, " "), string(out))
 
-	return Container{Name: service, project: project}, func() {
+	return Container{Name: service, project: project, ports: nil}, func() {
 		removeComposeProject(project)
 	}
 }

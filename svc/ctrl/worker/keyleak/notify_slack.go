@@ -41,8 +41,8 @@ func slackMessage(req *hydrav1.KeyLeakNotification, members string) slack.Payloa
 	keyID := slackText(req.GetKeyId())
 	source := slackSource(req.GetUrl(), req.GetSource())
 	action := "Rotate or revoke this key."
-	if req.GetRevoke() {
-		action = "This key was revoked automatically."
+	if req.GetDisable() {
+		action = "This key is disabled."
 	}
 	return slack.Payload{
 		Text: fmt.Sprintf("%s. Workspace: %s. Key ID: %s. %s\n%s", title, workspace, keyID, action, source),

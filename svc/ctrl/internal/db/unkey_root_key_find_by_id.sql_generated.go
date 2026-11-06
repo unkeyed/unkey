@@ -11,7 +11,7 @@ import (
 )
 
 const findUnkeyRootKeyByID = `-- name: FindUnkeyRootKeyByID :one
-SELECT id, workspace_id, hash, deleted_at
+SELECT id, workspace_id, hash, enabled, deleted_at
 FROM unkey_root_keys
 WHERE id = ?
 `
@@ -20,13 +20,14 @@ type FindUnkeyRootKeyByIDRow struct {
 	ID          string        `db:"id"`
 	WorkspaceID string        `db:"workspace_id"`
 	Hash        string        `db:"hash"`
+	Enabled     bool          `db:"enabled"`
 	DeletedAt   sql.NullInt64 `db:"deleted_at"`
 }
 
-// FindUnkeyRootKeyByID reads a root key's hash and deletion state, including
-// soft-deleted keys.
+// FindUnkeyRootKeyByID reads a root key's hash, enabled flag, and deletion
+// state, including soft-deleted keys.
 //
-//	SELECT id, workspace_id, hash, deleted_at
+//	SELECT id, workspace_id, hash, enabled, deleted_at
 //	FROM unkey_root_keys
 //	WHERE id = ?
 func (q *Queries) FindUnkeyRootKeyByID(ctx context.Context, id string) (FindUnkeyRootKeyByIDRow, error) {
@@ -36,6 +37,7 @@ func (q *Queries) FindUnkeyRootKeyByID(ctx context.Context, id string) (FindUnke
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Hash,
+		&i.Enabled,
 		&i.DeletedAt,
 	)
 	return i, err

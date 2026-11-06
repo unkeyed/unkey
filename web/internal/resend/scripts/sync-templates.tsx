@@ -47,8 +47,8 @@ const templates: TemplateSync[] = [
   },
   {
     alias: "trufflehog-key-detected",
-    name: "Leaked root key revoked after a TruffleHog report",
-    subject: "Exposed Unkey root key revoked",
+    name: "Leaked root key disabled after a TruffleHog report",
+    subject: "Exposed Unkey root key disabled",
     from: "James from Unkey <james@updates.unkey.com>",
     replyTo: "support@unkey.com",
     element: <TruffleHogKeyDetected date="{{{DATE}}}" source="{{{SOURCE}}}" url="{{{URL}}}" />,
@@ -60,8 +60,8 @@ const templates: TemplateSync[] = [
   },
   {
     alias: "trufflehog-api-key-detected",
-    name: "Leaked API key revoked after a TruffleHog report",
-    subject: "Exposed API key revoked",
+    name: "Leaked API key disabled after a TruffleHog report",
+    subject: "Exposed API key disabled",
     from: "James from Unkey <james@updates.unkey.com>",
     replyTo: "support@unkey.com",
     element: (
