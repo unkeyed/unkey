@@ -7129,7 +7129,7 @@
     "evidence": "platform/security/trufflehog-secret-scanning.mdx",
     "scene": {
       "kind": "sequence",
-      "heading": "Revoke a reported root key",
+      "heading": "Disable a reported root key",
       "fields": [
         [
           "Detection",
@@ -7140,11 +7140,11 @@
           "workspace email"
         ],
         [
-          "Revocation",
-          "deleted after 3 days"
+          "Response",
+          "disabled right away"
         ]
       ],
-      "note": "Rotate the key before Unkey deletes it"
+      "note": "Replace the key, then delete it"
     }
   },
   {

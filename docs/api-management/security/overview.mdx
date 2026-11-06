@@ -40,7 +40,7 @@ A root key has only the permissions you give it, down to one keyspace. For examp
 
 GitHub's secret scanning recognizes root keys by their `unkey_` prefix. If one is pushed to a public repository, every member of your workspace gets an email. The keys you issue to your users use your own prefixes, and GitHub doesn't scan for them, so delete or reroll a user's key yourself when you learn it leaked. Details are on [GitHub secret scanning](/platform/security/github-secret-scanning).
 
-TruffleHog also reports root keys it finds in public sources such as GitLab, npm, and Docker images. Unkey deletes the key as soon as the report arrives. See [TruffleHog secret scanning](/platform/security/trufflehog-secret-scanning).
+TruffleHog also reports root keys it finds in public sources such as GitLab, npm, and Docker images. Unkey disables the key as soon as the report arrives. See [TruffleHog secret scanning](/platform/security/trufflehog-secret-scanning).
 
 ## Everything is audited
 
