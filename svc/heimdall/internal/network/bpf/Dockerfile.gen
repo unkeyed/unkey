@@ -12,7 +12,7 @@
 # Ubuntu 24.04 base — matches the depot CI runner so the image is a
 # single-step pull there. linux/amd64 forced everywhere so arm64 dev
 # machines (Apple Silicon) produce the same bytes as x86_64 CI runners.
-FROM --platform=linux/amd64 ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
+FROM --platform=linux/amd64 ubuntu:25.10@sha256:7cc5e35f6567ee8c66d2abb4aab0fd866669e6207c237c3a8f0947a5c7f17092
 
 RUN apt-get update -qq \
  && apt-get install -y -qq --no-install-recommends \
