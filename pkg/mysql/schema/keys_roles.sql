@@ -10,3 +10,5 @@ CREATE TABLE `keys_roles` (
 	CONSTRAINT `unique_key_id_role_id` UNIQUE(`key_id`,`role_id`)
 );
 
+CREATE INDEX `idx_keys_roles_on_workspace_id_role_id` ON `keys_roles` (`workspace_id`,`role_id`);
+
