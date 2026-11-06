@@ -24,7 +24,7 @@ type Reporter struct {
 	webhookName string
 	eventType   string
 	proto       hydrav1.KeyLeakReporter
-	revoke      bool
+	disable     bool
 }
 
 var (
@@ -32,13 +32,13 @@ var (
 		webhookName: "github_secret_scanning",
 		eventType:   githubsecrets.EventType,
 		proto:       hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_GITHUB,
-		revoke:      false,
+		disable:     false,
 	}
 	TruffleHog = Reporter{
 		webhookName: "trufflehog_secret_scanning",
 		eventType:   trufflehog.EventType,
 		proto:       hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG,
-		revoke:      true,
+		disable:     true,
 	}
 )
 
@@ -135,7 +135,7 @@ func (h *handler) report(ctx context.Context, event webhook.Event, tokens []repo
 			Reporter:      h.reporter.proto,
 			WorkspaceId:   key.WorkspaceID,
 			KeyStore:      store,
-			Revoke:        h.reporter.revoke,
+			Disable:       h.reporter.disable,
 			KeyHash:       key.Hash,
 			KeyKind:       kind,
 		}, restate.WithIdempotencyKey(reportID+":"+key.Hash))

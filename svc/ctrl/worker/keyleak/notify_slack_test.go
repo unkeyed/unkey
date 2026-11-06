@@ -36,7 +36,7 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 		keyType  string
 		reporter hydrav1.KeyLeakReporter
 		keyKind  hydrav1.KeyLeakKeyKind
-		revoke   bool
+		disable  bool
 		source   string
 		url      string
 		members  []string
@@ -65,10 +65,10 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 			absent: []string{"GitHub"},
 		},
 		{
-			name: "revoked TruffleHog leak names the kind it matched", keyType: "unkey_root_key", reporter: hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG,
-			keyKind: hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API, revoke: true,
+			name: "disabled TruffleHog leak names the kind it matched", keyType: "unkey_root_key", reporter: hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG,
+			keyKind: hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API, disable: true,
 			source: "Docker", url: "https://hub.docker.com/r/unkeyed/example",
-			want:   []string{"API key reported by TruffleHog", "This key was revoked automatically.\n<https://hub.docker.com/r/unkeyed/example|View source>"},
+			want:   []string{"API key reported by TruffleHog", "This key is disabled.\n<https://hub.docker.com/r/unkeyed/example|View source>"},
 			absent: []string{"Rotate or revoke", "Root key"},
 		},
 		{
@@ -143,7 +143,7 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 			leak := &hydrav1.KeyLeakNotification{
 				KeyId: uid.New(uid.KeyPrefix), OrgId: orgIDs[i], WorkspaceName: "R&D <!here> @channel",
 				Type: test.keyType, Source: "content", Url: test.url, Date: "Thu Oct 22 2026", Reporter: test.reporter,
-				KeyKind: test.keyKind, Revoke: test.revoke,
+				KeyKind: test.keyKind, Disable: test.disable,
 			}
 			if strings.Contains(test.url, "/commit/") {
 				leak.Source = "commit"
@@ -190,7 +190,7 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 					Type: "mrkdwn", Text: "Organization ID: `" + leak.OrgId + "`", Verbatim: true,
 				})
 				require.Contains(t, text.String(), leak.Date)
-				if !test.revoke {
+				if !test.disable {
 					require.Contains(t, text.String(), "Rotate or revoke this key.")
 				}
 				for _, want := range test.want {

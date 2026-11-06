@@ -4,6 +4,6 @@
 // response means no keys matched or every matching key's notification was
 // accepted by Restate, not that delivery completed. Database lookup failures
 // return 503 and are not durably retried. TruffleHog reports ask the worker to
-// revoke each matched key before alerting the workspace. GitHub reports never
-// revoke keys.
+// disable each matched key before alerting the workspace. GitHub reports never
+// disable keys.
 package keyleak

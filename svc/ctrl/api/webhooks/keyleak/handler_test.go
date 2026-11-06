@@ -508,7 +508,7 @@ func TestKeyLeakNeverSubmitsRawTokensToRestate(t *testing.T) {
 		require.Equal(t, hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_GITHUB, notification.GetReporter())
 		require.Equal(t, workspace.ID, notification.GetWorkspaceId())
 		require.Equal(t, hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_KEYS, notification.GetKeyStore())
-		require.False(t, notification.GetRevoke(), "GitHub reports must never revoke keys")
+		require.False(t, notification.GetDisable(), "GitHub reports must never disable keys")
 		require.Equal(t, hash.Sha256(token.Token), notification.GetKeyHash())
 		_, err := time.Parse("Mon Jan 02 2006", notification.GetDate())
 		require.NoError(t, err)
@@ -576,7 +576,7 @@ func TestKeyLeakTruffleHogReports(t *testing.T) {
 		require.NoError(t, err)
 		require.Contains(t, string(encoded), "Root key reported by TruffleHog")
 		require.Contains(t, string(encoded), "TruffleHog Docker")
-		require.Contains(t, string(encoded), "This key was revoked automatically.")
+		require.Contains(t, string(encoded), "This key is disabled.")
 		require.Contains(t, string(encoded), root.KeyID)
 		require.NotContains(t, string(encoded), "GitHub")
 		require.NotContains(t, string(encoded), root.Key)
@@ -613,20 +613,21 @@ func TestKeyLeakTruffleHogReports(t *testing.T) {
 
 	key, err := database.FindKeyByID(ctx, root.KeyID)
 	require.NoError(t, err)
-	require.True(t, key.DeletedAtM.Valid, "TruffleHog reports must revoke the key before alerting")
+	require.False(t, key.Enabled, "TruffleHog reports must disable the key before alerting")
+	require.False(t, key.DeletedAtM.Valid, "a disabled key must stay visible in the dashboard")
 	require.Empty(t, slackMessages)
 	require.Empty(t, sender.delivered)
 }
 
-// TestKeyLeakTruffleHogRevokesReportedKeys guarantees the TruffleHog partner
-// revocation contract: every reported key that is not already deleted is
-// revoked once, with one audit log in the owning workspace, before the
-// workspace is alerted. This covers root keys in either key store and API keys
-// the workspace issued to its users, and the alert carries which kind it was.
-// Disabled and expired keys are revoked too because they can be re-enabled. A
-// key that is already deleted keeps its deletion and its workspace is not
-// alerted.
-func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
+// TestKeyLeakTruffleHogDisablesReportedKeys guarantees the TruffleHog partner
+// revocation contract: every reported key that is not deleted is disabled, and
+// kept, before the workspace is alerted. This covers root keys in either key
+// store and API keys the workspace issued to its users, and the alert carries
+// which kind it was. Disabling a key writes one audit log in the owning
+// workspace. A key the workspace had already disabled stays disabled without
+// an audit log, and the workspace is still alerted so it does not re-enable
+// it. A deleted key is left alone and its workspace is not alerted.
+func TestKeyLeakTruffleHogDisablesReportedKeys(t *testing.T) {
 	ctx := t.Context()
 	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
@@ -687,6 +688,21 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 		require.Never(t, func() bool { return len(sender.delivered) > 0 || len(slackMessages) > 0 },
 			2*time.Second, 50*time.Millisecond, message)
 	}
+	report := func(t *testing.T, report truffleHogReport) *hydrav1.KeyLeakNotification {
+		t.Helper()
+		body, err := json.Marshal([]truffleHogReport{report})
+		require.NoError(t, err)
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, sign(body))
+		require.Equal(t, http.StatusOK, res.Code, res.Body.String())
+		select {
+		case notification := <-notifications:
+			return notification
+		case <-time.After(20 * time.Second):
+			t.Fatal("TruffleHog report must enqueue a notification")
+		}
+		return nil
+	}
 
 	type keyState struct {
 		disabled bool
@@ -694,29 +710,33 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 		deleted  bool
 	}
 	type created struct{ token, keyID string }
+	type stored struct {
+		enabled   bool
+		deletedAt sql.NullInt64
+	}
 	expired := time.Now().Add(-time.Hour)
 	api := seeder.CreateAPI(ctx, seed.CreateApiRequest{WorkspaceID: workspace.ID})
-	keysDeletedAt := func(t *testing.T, keyID string) sql.NullInt64 {
+	readKey := func(t *testing.T, keyID string) stored {
 		t.Helper()
 		key, err := database.FindKeyByID(ctx, keyID)
 		require.NoError(t, err)
-		return key.DeletedAtM
+		return stored{enabled: key.Enabled, deletedAt: key.DeletedAtM}
 	}
 	for _, store := range []struct {
-		name      string
-		proto     hydrav1.KeyLeakKeyStore
-		kind      hydrav1.KeyLeakKeyKind
-		event     auditlog.AuditLogEvent
-		template  string
-		title     string
-		create    func(t *testing.T, state keyState) created
-		deletedAt func(t *testing.T, keyID string) sql.NullInt64
+		name     string
+		proto    hydrav1.KeyLeakKeyStore
+		kind     hydrav1.KeyLeakKeyKind
+		event    auditlog.AuditLogEvent
+		template string
+		title    string
+		create   func(t *testing.T, state keyState) created
+		read     func(t *testing.T, keyID string) stored
 	}{
 		{
 			name:     "unkey_root_keys",
 			proto:    hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_ROOT_KEYS,
 			kind:     hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_ROOT,
-			event:    auditlog.RootKeyDeleteEvent,
+			event:    auditlog.RootKeyUpdateEvent,
 			template: "trufflehog-key-detected",
 			title:    "Root key reported by TruffleHog",
 			create: func(t *testing.T, state keyState) created {
@@ -739,18 +759,18 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 				}
 				return key
 			},
-			deletedAt: func(t *testing.T, keyID string) sql.NullInt64 {
+			read: func(t *testing.T, keyID string) stored {
 				t.Helper()
 				key, err := database.FindUnkeyRootKeyByID(ctx, keyID)
 				require.NoError(t, err)
-				return key.DeletedAt
+				return stored{enabled: key.Enabled, deletedAt: key.DeletedAt}
 			},
 		},
 		{
 			name:     "keys",
 			proto:    hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_KEYS,
 			kind:     hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_ROOT,
-			event:    auditlog.KeyDeleteEvent,
+			event:    auditlog.KeyUpdateEvent,
 			template: "trufflehog-key-detected",
 			title:    "Root key reported by TruffleHog",
 			create: func(t *testing.T, state keyState) created {
@@ -761,13 +781,13 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 				})
 				return created{token: key.Key, keyID: key.KeyID}
 			},
-			deletedAt: keysDeletedAt,
+			read: readKey,
 		},
 		{
 			name:     "issued keys",
 			proto:    hydrav1.KeyLeakKeyStore_KEY_LEAK_KEY_STORE_KEYS,
 			kind:     hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API,
-			event:    auditlog.KeyDeleteEvent,
+			event:    auditlog.KeyUpdateEvent,
 			template: "trufflehog-api-key-detected",
 			title:    "API key reported by TruffleHog",
 			create: func(t *testing.T, state keyState) created {
@@ -778,90 +798,86 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 				})
 				return created{token: key.Key, keyID: key.KeyID}
 			},
-			deletedAt: keysDeletedAt,
+			read: readKey,
 		},
 	} {
+		requireAlerted := func(t *testing.T, keyID string, sent truffleHogReport, notification *hydrav1.KeyLeakNotification) {
+			t.Helper()
+			select {
+			case message := <-slackMessages:
+				encoded, err := json.Marshal(message)
+				require.NoError(t, err)
+				require.Contains(t, string(encoded), keyID)
+				require.Contains(t, string(encoded), store.title)
+				require.Contains(t, string(encoded), "This key is disabled.")
+			case <-time.After(20 * time.Second):
+				t.Fatal("a disabled key must send a Slack alert")
+			}
+			for range 2 {
+				select {
+				case message := <-sender.delivered:
+					require.Equal(t, store.template, message.TemplateID)
+					variables := map[string]string{"DATE": notification.GetDate(), "SOURCE": sent.Source, "URL": sent.URL}
+					if store.kind == hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API {
+						variables["KEY_ID"] = keyID
+					}
+					require.Equal(t, variables, message.Variables)
+				case <-time.After(20 * time.Second):
+					t.Fatal("a disabled key must email workspace members")
+				}
+			}
+		}
+
 		for _, state := range []struct {
-			name string
+			name   string
+			audits int
 			keyState
 		}{
-			{name: "active"},
-			{name: "disabled", keyState: keyState{disabled: true}},
-			{name: "expired", keyState: keyState{expires: &expired}},
+			{name: "active", audits: 1},
+			{name: "already disabled", audits: 0, keyState: keyState{disabled: true}},
+			{name: "expired", audits: 1, keyState: keyState{expires: &expired}},
 		} {
 			t.Run(store.name+"/"+state.name, func(t *testing.T) {
 				key := store.create(t, state.keyState)
-				report := truffleHogReport{
+				sent := truffleHogReport{
 					ID: uid.New(uid.TestPrefix), Token: key.token, Type: "Unkey",
 					URL: "https://hub.docker.com/r/unkeyed/" + key.keyID, Source: "Docker",
 				}
-				body, err := json.Marshal([]truffleHogReport{report})
-				require.NoError(t, err)
-				res := httptest.NewRecorder()
-				handler.ServeHTTP(res, sign(body))
-				require.Equal(t, http.StatusOK, res.Code, res.Body.String())
-
-				var notification *hydrav1.KeyLeakNotification
-				select {
-				case notification = <-notifications:
-				case <-time.After(20 * time.Second):
-					t.Fatal("TruffleHog report must enqueue a notification")
-				}
+				notification := report(t, sent)
 				require.Equal(t, key.keyID, notification.GetKeyId())
 				require.Equal(t, workspace.ID, notification.GetWorkspaceId())
 				require.Equal(t, store.proto, notification.GetKeyStore())
 				require.Equal(t, store.kind, notification.GetKeyKind())
-				require.True(t, notification.GetRevoke())
+				require.True(t, notification.GetDisable())
 				require.Equal(t, hash.Sha256(key.token), notification.GetKeyHash())
 
-				select {
-				case message := <-slackMessages:
-					encoded, err := json.Marshal(message)
-					require.NoError(t, err)
-					require.Contains(t, string(encoded), key.keyID)
-					require.Contains(t, string(encoded), store.title)
-					require.Contains(t, string(encoded), "This key was revoked automatically.")
-				case <-time.After(20 * time.Second):
-					t.Fatal("a revoked key must send a Slack alert")
-				}
-				for range 2 {
-					select {
-					case message := <-sender.delivered:
-						require.Equal(t, store.template, message.TemplateID)
-						variables := map[string]string{"DATE": notification.GetDate(), "SOURCE": report.Source, "URL": report.URL}
-						if store.kind == hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API {
-							variables["KEY_ID"] = key.keyID
-						}
-						require.Equal(t, variables, message.Variables)
-					case <-time.After(20 * time.Second):
-						t.Fatal("a revoked key must email workspace members")
-					}
-				}
-				deletedAt := store.deletedAt(t, key.keyID)
-				require.True(t, deletedAt.Valid, "the key must be revoked before the workspace is alerted")
+				requireAlerted(t, key.keyID, sent, notification)
+				require.Equal(t, stored{enabled: false}, store.read(t, key.keyID), "the key must be disabled, not deleted, before the workspace is alerted")
 				logged := keyAuditEvents(t, database, workspace.ID, key.keyID)
-				require.Len(t, logged, 1, "a key is revoked and audited exactly once")
-				require.Equal(t, string(store.event), logged[0].Event)
-				require.Equal(t, workspace.ID, logged[0].WorkspaceID)
-				require.Equal(t, string(auditlog.SystemActor), logged[0].Actor.Type)
-				require.Contains(t, logged[0].Description, "TruffleHog")
+				require.Len(t, logged, state.audits, "only the report that disables the key writes an audit log")
+				for _, event := range logged {
+					require.Equal(t, string(store.event), event.Event)
+					require.Equal(t, workspace.ID, event.WorkspaceID)
+					require.Equal(t, string(auditlog.SystemActor), event.Actor.Type)
+					require.Contains(t, event.Description, "TruffleHog")
+				}
 
-				res = httptest.NewRecorder()
-				handler.ServeHTTP(res, sign(body))
-				require.Equal(t, http.StatusOK, res.Code, res.Body.String())
-				notifyCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
-				t.Cleanup(cancel)
-				_, err = client.Notify().Request(notifyCtx, notification)
-				require.NoError(t, err, "a repeated report of a revoked key must succeed")
-				requireNoAlerts(t, "a repeated report must not alert the workspace again")
-				require.Equal(t, deletedAt, store.deletedAt(t, key.keyID), "a repeated report must not rewrite the deletion")
-				require.Len(t, keyAuditEvents(t, database, workspace.ID, key.keyID), 1)
+				replayed := report(t, sent)
+				require.Equal(t, key.keyID, replayed.GetKeyId())
+				requireNoAlerts(t, "a replayed report must not alert the workspace again")
+
+				sent.ID = uid.New(uid.TestPrefix)
+				sent.URL += "/latest"
+				requireAlerted(t, key.keyID, sent, report(t, sent))
+				require.Equal(t, stored{enabled: false}, store.read(t, key.keyID))
+				require.Len(t, keyAuditEvents(t, database, workspace.ID, key.keyID), state.audits,
+					"a new report of a disabled key alerts again without another audit log")
 			})
 		}
 
 		t.Run(store.name+"/deleted before report", func(t *testing.T) {
 			key := store.create(t, keyState{deleted: true})
-			deletedAt := store.deletedAt(t, key.keyID)
+			before := store.read(t, key.keyID)
 			body, err := json.Marshal([]truffleHogReport{{
 				ID: uid.New(uid.TestPrefix), Token: key.token, Type: "Unkey",
 				URL: "https://hub.docker.com/r/unkeyed/" + key.keyID, Source: "Docker",
@@ -877,11 +893,11 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 				KeyId: key.keyID, OrgId: workspace.OrgID, WorkspaceName: workspace.Name,
 				Source: "Docker", Url: "https://hub.docker.com/r/unkeyed/" + key.keyID, Type: "Unkey", Date: "Thu Nov 05 2026",
 				Reporter: hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG, WorkspaceId: workspace.ID,
-				KeyStore: store.proto, Revoke: true, KeyHash: hash.Sha256(key.token),
+				KeyStore: store.proto, Disable: true, KeyHash: hash.Sha256(key.token),
 			})
 			require.NoError(t, err, "a key deleted after the report was matched must not fail the notification")
 			requireNoAlerts(t, "a key that was already deleted must not alert the workspace")
-			require.Equal(t, deletedAt, store.deletedAt(t, key.keyID), "revocation must not rewrite an earlier deletion")
+			require.Equal(t, before, store.read(t, key.keyID), "disabling must not touch a deleted key")
 			require.Empty(t, keyAuditEvents(t, database, workspace.ID, key.keyID))
 		})
 
@@ -893,15 +909,15 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 				KeyId: key.keyID, OrgId: workspace.OrgID, WorkspaceName: workspace.Name,
 				Source: "Docker", Url: "https://hub.docker.com/r/unkeyed/" + key.keyID, Type: "Unkey", Date: "Thu Nov 05 2026",
 				Reporter: hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG, WorkspaceId: workspace.ID,
-				KeyStore: store.proto, Revoke: true, KeyHash: hash.Sha256(uid.New(uid.TestPrefix)),
+				KeyStore: store.proto, Disable: true, KeyHash: hash.Sha256(uid.New(uid.TestPrefix)),
 			})
 			require.NoError(t, err)
 			requireNoAlerts(t, "a notification without the key's hash must not alert the workspace")
-			require.False(t, store.deletedAt(t, key.keyID).Valid, "knowing a key's id must not be enough to revoke it")
+			require.True(t, store.read(t, key.keyID).enabled, "knowing a key's id must not be enough to disable it")
 			require.Empty(t, keyAuditEvents(t, database, workspace.ID, key.keyID))
 		})
 
-		t.Run(store.name+"/key gone before revocation", func(t *testing.T) {
+		t.Run(store.name+"/key gone before disabling", func(t *testing.T) {
 			keyID := uid.New(uid.KeyPrefix)
 			notifyCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 			t.Cleanup(cancel)
@@ -909,7 +925,7 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 				KeyId: keyID, OrgId: workspace.OrgID, WorkspaceName: workspace.Name,
 				Source: "Docker", Url: "https://hub.docker.com/r/unkeyed/" + keyID, Type: "Unkey", Date: "Thu Nov 05 2026",
 				Reporter: hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG, WorkspaceId: workspace.ID,
-				KeyStore: store.proto, Revoke: true, KeyHash: hash.Sha256(uid.New(uid.TestPrefix)),
+				KeyStore: store.proto, Disable: true, KeyHash: hash.Sha256(uid.New(uid.TestPrefix)),
 			})
 			require.NoError(t, err, "a permanently deleted key must end the notification instead of retrying")
 			requireNoAlerts(t, "a key that no longer exists must not alert the workspace")
@@ -920,10 +936,10 @@ func TestKeyLeakTruffleHogRevokesReportedKeys(t *testing.T) {
 		notifyCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 		t.Cleanup(cancel)
 		_, err := client.Notify().Request(notifyCtx, &hydrav1.KeyLeakNotification{
-			KeyId: uid.New(uid.KeyPrefix), OrgId: workspace.OrgID, WorkspaceId: workspace.ID, Revoke: true,
+			KeyId: uid.New(uid.KeyPrefix), OrgId: workspace.OrgID, WorkspaceId: workspace.ID, Disable: true,
 		})
 		require.Error(t, err, "a notification without a key store must fail instead of guessing a table")
-		requireNoAlerts(t, "a failed revocation must not alert the workspace")
+		requireNoAlerts(t, "a failed disable must not alert the workspace")
 	})
 }
 

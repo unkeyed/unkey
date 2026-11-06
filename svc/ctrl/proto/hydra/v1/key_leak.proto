@@ -26,7 +26,7 @@ message KeyLeakNotification {
   KeyLeakReporter reporter = 8;
   string workspace_id = 9;
   KeyLeakKeyStore key_store = 10;
-  bool revoke = 11;
+  bool disable = 11;
   string key_hash = 12;
   KeyLeakKeyKind key_kind = 13;
 }

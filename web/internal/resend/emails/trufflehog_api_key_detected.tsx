@@ -12,23 +12,23 @@ export type Props = {
 export function TruffleHogApiKeyDetected({ date, source, url, keyId }: Props) {
   return (
     <Layout
-      title="Exposed API key revoked"
-      preview="TruffleHog found one of the API keys your workspace issued exposed publicly. We revoked it, so requests using it now fail."
+      title="Exposed API key disabled"
+      preview="TruffleHog found one of the API keys your workspace issued exposed publicly. It is now disabled, so requests using it fail."
       body={[
-        <Fragment key="revocation">
-          TruffleHog found one of the API keys your workspace issued exposed publicly at {source},
-          and we revoked it on <Emphasis>{date}</Emphasis>, so requests using it now fail.
+        <Fragment key="disabled">
+          TruffleHog found one of the API keys your workspace issued exposed publicly at {source} on{" "}
+          <Emphasis>{date}</Emphasis>. The key is now disabled, so requests using it fail.
         </Fragment>,
         <Fragment key="replacement">
           Find the user it belongs to by key ID <Emphasis>{keyId}</Emphasis> and issue them a
-          replacement.
+          replacement. Then delete the disabled key. Do not enable it again.
         </Fragment>,
       ]}
       action={{ label: "Open dashboard", href: "https://app.unkey.com" }}
       details={[
         { label: "Source", value: source },
         { label: "Key ID", value: keyId },
-        { label: "Revoked", value: date },
+        { label: "Reported", value: date },
       ]}
       sections={[
         {
