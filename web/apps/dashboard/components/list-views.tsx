@@ -24,9 +24,7 @@ import {
   ResourceListViewToggle,
   Skeleton,
 } from "@unkey/ui";
-import type { Route } from "next";
-import Link from "next/link";
-import { type ComponentProps, Fragment, type ReactNode } from "react";
+import { type ComponentProps, Fragment, type ReactElement, type ReactNode } from "react";
 
 type ListColumnSkeleton = "title" | "text" | "none";
 
@@ -211,17 +209,17 @@ export function ListTableView<Row, Id extends string>({
 export function ListTableRow<Id extends string>({
   table,
   cells,
-  href,
+  link,
   label,
   ...props
 }: Omit<ComponentProps<"li">, "children"> & {
   table: ListTable<Id>;
   cells: Record<Id, ReactNode>;
-  href: Route;
+  link: ReactElement;
   label: string;
 }) {
   return (
-    <ResourceListTableRow link={<Link href={href} aria-label={label} />} {...props}>
+    <ResourceListTableRow link={link} label={label} {...props}>
       {table.columns.map((column) => (
         <Fragment key={column.id}>{cells[column.id]}</Fragment>
       ))}

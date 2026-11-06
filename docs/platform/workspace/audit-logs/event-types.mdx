@@ -7,14 +7,24 @@ sources:
   - web/internal/schema/src/auditlog.ts
   - svc/api/routes/v2_keys_verify_key/handler.go
   - internal/services/keys/get.go
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+  - svc/api/routes/v2_ratelimit_multi_limit/handler.go
+  - svc/api/internal/clidevice/issue.go
 ---
 
 Every audit log entry has one of the event names below, in the form `resource.action` (a few have an extra part, such as `portal.session.create`). Filter on them in the dashboard's **Events** menu or in a [log drain](/platform/workspace/log-drains).
 
-The **Events** menu and the log drain picker also list six event types that aren't recorded. Filtering on these event types matches nothing:
+The **Events** menu and the log drain picker also list event types that aren't recorded. Filtering on these event types matches nothing:
 
+- `workspace.delete`
+- `workspace.opt_in`
+- `auditLogBucket.create`
+- `ratelimit.read_override`
 - `environment.create`
 - `deployment.redeploy`
+- `portal.domain.create`
+- `portal.domain.delete`
+- `portal.domain.verify`
 - `secret.update`
 - `webhook.create`
 - `webhook.update`
@@ -27,13 +37,10 @@ Unkey doesn't send webhooks. Use a [log drain](/platform/workspace/log-drains) t
 | Event | Recorded when |
 | --- | --- |
 | `workspace.create` | A workspace is created. |
-| `workspace.update` | The workspace is renamed, changes plan, or another workspace-level setting changes. |
-| `workspace.delete` | A workspace is deleted. |
-| `workspace.opt_in` | The workspace opts into a feature. |
+| `workspace.update` | The workspace is renamed, changes plan, or another workspace-level setting changes. A [feature flag change](/platform/cli/workspace/update-flag) records the flag's `slug` and its `before` and `after` values in the metadata. |
 | `workspace.install_github` | The GitHub app is installed for the workspace. |
-| `auditLogBucket.create` | An audit log bucket is created. |
 | `logdrain.create`, `logdrain.update`, `logdrain.delete` | A [log drain](/platform/workspace/log-drains) is created, changed, or deleted. |
-| `secret.create`, `secret.decrypt` | A one-time share link is created, or someone reveals it. |
+| `secret.create`, `secret.decrypt` | A one-time share link is created, or someone reveals it. Revealing a link doesn't require signing in, so `secret.decrypt` uses the `system` actor with ID `secret-share`. |
 
 ## Keyspaces and keys
 
@@ -58,6 +65,14 @@ Root-key lifecycle actions use separate events from API key actions.
 | `rootKey.update` | A root key's name or permissions change. |
 | `rootKey.reroll` | A root key is rerolled. |
 | `rootKey.delete` | A root key is deleted. |
+
+## CLI sessions
+
+| Event | Recorded when |
+| --- | --- |
+| `cli.session.create` | A [CLI login](/platform/cli/login) is approved and the CLI receives its session. |
+| `cli.session.refresh` | The CLI refreshes its session token. |
+| `cli.session.revoke` | A CLI session is revoked. |
 
 ## Authentication
 
@@ -120,9 +135,8 @@ event delivery. A denial does not by itself prove that a credential was compromi
 | `ratelimit.create` | A rate limit is created on a key or identity. |
 | `ratelimit.update` | A rate limit on a key or identity changes. |
 | `ratelimit.delete` | A rate limit is removed. |
-| `ratelimit.limit` | A root key calls `ratelimit.limit` or `ratelimit.multiLimit`. |
+| `ratelimit.limit` | A root key calls `ratelimit.limit` or `ratelimit.multiLimit`. A `ratelimit.multiLimit` call records one entry per limit checked, all with the same correlation ID. |
 | `ratelimit.set_override` | An override is created or changed. |
-| `ratelimit.read_override` | An override is read. |
 | `ratelimit.delete_override` | An override is deleted. |
 
 ## Developer portal

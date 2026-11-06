@@ -29,7 +29,7 @@ func secretToolSet(bin, service, account, secret string) error {
 		"account", account,
 	}, secret)
 	if err != nil {
-		return classifySecretToolWrite(err, stderr)
+		return secretToolUnavailable(err, strings.TrimSpace(stderr))
 	}
 	return nil
 }
@@ -50,46 +50,28 @@ func secretToolDelete(bin, service, account string) error {
 	return classified
 }
 
-func classifySecretToolWrite(err error, stderr string) error {
-	if errors.Is(err, exec.ErrNotFound) {
-		return ErrUnavailable
-	}
+// classifySecretTool maps a failed lookup or clear. secret-tool exits with no
+// output when no item matches, so empty stderr is [ErrNotFound].
+func classifySecretTool(err error, stderr string) error {
 	msg := strings.TrimSpace(stderr)
-	lower := strings.ToLower(msg)
-	if strings.Contains(lower, "not provided by any") ||
-		strings.Contains(lower, "cannot autolaunch") ||
-		strings.Contains(lower, "locked") ||
-		strings.Contains(lower, "no session") {
-		if msg == "" {
-			return ErrUnavailable
-		}
-		return withDetail(ErrUnavailable, msg)
+	missing := msg == "" || strings.Contains(strings.ToLower(msg), "no such secret item")
+	if missing && !errors.Is(err, ErrUnavailable) && !errors.Is(err, exec.ErrNotFound) {
+		return ErrNotFound
 	}
-	if msg == "" {
-		return fmt.Errorf("secret-tool: %w", err)
-	}
-	return fmt.Errorf("secret-tool: %w: %s", err, msg)
+	return secretToolUnavailable(err, msg)
 }
 
-func classifySecretTool(err error, stderr string) error {
-	if errors.Is(err, exec.ErrNotFound) {
-		return ErrUnavailable
+// secretToolUnavailable reports every other secret-tool failure as
+// [ErrUnavailable], so callers fall back to a file. The messages come from
+// D-Bus and the Secret Service provider and differ between dbus-daemon,
+// dbus-broker, and each provider, so no list of them can tell a store that
+// could work from one that cannot.
+func secretToolUnavailable(err error, msg string) error {
+	if errors.Is(err, ErrUnavailable) {
+		return err
 	}
-	msg := strings.TrimSpace(stderr)
-	lower := strings.ToLower(msg)
-	switch {
-	case msg == "":
-		return ErrNotFound
-	case strings.Contains(lower, "not provided by any") ||
-		strings.Contains(lower, "cannot autolaunch") ||
-		strings.Contains(lower, "locked") ||
-		strings.Contains(lower, "no session"):
-		return withDetail(ErrUnavailable, msg)
-	case strings.Contains(lower, "not found") ||
-		strings.Contains(lower, "no such") ||
-		strings.Contains(lower, "no matching"):
-		return ErrNotFound
-	default:
-		return fmt.Errorf("secret-tool: %w: %s", err, msg)
+	if msg == "" {
+		return fmt.Errorf("%w: secret-tool: %w", ErrUnavailable, err)
 	}
+	return fmt.Errorf("%w: secret-tool: %w: %s", ErrUnavailable, err, msg)
 }

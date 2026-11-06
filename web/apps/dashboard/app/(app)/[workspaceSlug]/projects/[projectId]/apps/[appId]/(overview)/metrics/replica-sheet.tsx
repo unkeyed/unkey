@@ -61,7 +61,7 @@ export function ReplicaSheet({ sheet, markers, onClose }: Props) {
             <SlidePanelTitle className="truncate">{sheet.name}</SlidePanelTitle>
             <SlidePanelCloseButton />
           </SlidePanelHeader>
-          <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6">
+          <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-4 pb-6">
             <DetailList>
               <DetailRow label="Status">{PHASE[sheet.status].label}</DetailRow>
               <DetailRow label="Region">
