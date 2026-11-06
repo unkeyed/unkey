@@ -18,6 +18,18 @@ import (
 const (
 	defaultTTL           = 10 * time.Minute
 	defaultReplayWorkers = 8
+
+	// replayMaxAttempts bounds how often a single buffered credit change is sent
+	// to the database before it is counted as dropped.
+	replayMaxAttempts = 4
+
+	// replayTimeout bounds the total time spent retrying one change so a sick
+	// database cannot hold a replay worker indefinitely.
+	replayTimeout = 30 * time.Second
+
+	// replayBaseBackoff and replayMaxBackoff shape the wait between attempts.
+	replayBaseBackoff = 250 * time.Millisecond
+	replayMaxBackoff  = 2 * time.Second
 )
 
 // CreditChange represents a change to a credit balance that needs to be
@@ -285,17 +297,55 @@ func (s *counterService) initializeFromDatabase(ctx context.Context, req UsageRe
 	return s.handleResult(req, remainingCounter, success), nil
 }
 
-// replayRequests processes buffered credit changes and updates the database
+// replayRequests processes buffered credit changes and updates the database.
+// A failed change is retried because the database decrement is the durable
+// record of consumed credits: dropping it lets the next database read restore
+// credits the key already used.
 func (s *counterService) replayRequests() {
 	for ptr := range s.replayBuffer.Consume() {
 		if ptr == nil {
 			continue
 		}
-		err := s.syncWithDB(context.Background(), *ptr)
-		if err != nil {
-			logger.Error("failed to replay credit change", "error", err)
+		if err := s.replayWithRetry(context.Background(), *ptr); err != nil {
+			logger.Error("failed to replay credit change", "error", err, "keyID", ptr.KeyID, "cost", ptr.Cost)
 		}
 	}
+}
+
+// replayWithRetry sends one credit change to the database, retrying failed
+// attempts with backoff under a bounded budget. It returns the last error and
+// counts the change as dropped when no attempt succeeds.
+func (s *counterService) replayWithRetry(ctx context.Context, change CreditChange) error {
+	ctx, cancel := context.WithTimeout(ctx, replayTimeout)
+	defer cancel()
+
+	var err error
+	for attempt := 1; attempt <= replayMaxAttempts; attempt++ {
+		err = s.syncWithDB(ctx, change)
+		if err == nil {
+			return nil
+		}
+		if attempt == replayMaxAttempts || ctx.Err() != nil {
+			break
+		}
+		select {
+		case <-ctx.Done():
+		case <-time.After(replayBackoff(attempt)):
+		}
+	}
+
+	metrics.UsagelimiterReplayOperations.WithLabelValues("dropped").Inc()
+	return err
+}
+
+// replayBackoff returns the wait before the next attempt, doubling each time up
+// to replayMaxBackoff.
+func replayBackoff(attempt int) time.Duration {
+	backoff := time.Duration(1<<uint(attempt-1)) * replayBaseBackoff
+	if backoff > replayMaxBackoff {
+		return replayMaxBackoff
+	}
+	return backoff
 }
 
 func (s *counterService) syncWithDB(ctx context.Context, change CreditChange) error {
