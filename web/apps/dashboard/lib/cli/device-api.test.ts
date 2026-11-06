@@ -9,6 +9,7 @@ import { newId } from "@unkey/id";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   approveDeviceLogin,
+  clientRedirect,
   denyDeviceLogin,
   getDeviceLogin,
   listCliSessions,
@@ -150,6 +151,25 @@ describe("dashboard CLI API", () => {
     );
 
     await expect(getDeviceLogin(userCode)).rejects.toBeInstanceOf(ResponseValidationError);
+  });
+
+  it("returns the client redirect an OAuth decision carries", async () => {
+    const redirectUrl = "http://localhost:53123/callback?code=ukc_test&state=s";
+    const decided: V2CliDecideDeviceLoginResponseBody = { meta, data: { redirectUrl } };
+    vi.stubGlobal("fetch", async () => Response.json(decided));
+
+    await expect(approveDeviceLogin({ userCode, permissions })).resolves.toBe(redirectUrl);
+    await expect(denyDeviceLogin(userCode)).resolves.toBe(redirectUrl);
+  });
+
+  it("refuses to open a redirect that is not http or https", () => {
+    expect(clientRedirect(undefined)).toBeUndefined();
+    expect(clientRedirect("https://claude.ai/api/mcp/auth_callback?code=c")).toBe(
+      "https://claude.ai/api/mcp/auth_callback?code=c",
+    );
+    expect(() => clientRedirect("javascript:alert(document.domain)")).toThrow();
+    expect(() => clientRedirect("cursor://anysphere.cursor-mcp/oauth/callback")).toThrow();
+    expect(() => clientRedirect("not a url")).toThrow();
   });
 
   it("uses the operation fallback for proxy-local errors", async () => {

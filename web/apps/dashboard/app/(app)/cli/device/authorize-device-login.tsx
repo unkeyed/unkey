@@ -15,6 +15,7 @@ import {
   getDeviceLogin,
 } from "@/lib/cli/device-api";
 import { formatUserCode } from "@/lib/cli/format-user-code";
+import { type LoginCopy, loginCopy } from "@/lib/cli/login-copy";
 import { fromQuery } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -179,28 +180,30 @@ function DeviceLoginView({
   onChanged: (status: "approved" | "denied") => Promise<void>;
   onStale: () => void;
 }) {
+  const copy = loginCopy(login);
   return match(login.status)
     .with("pending", () => (
       <PendingLogin
         login={login}
+        copy={copy}
         workspaceId={workspace.id}
         onChanged={onChanged}
         onStale={onStale}
       />
     ))
-    .with("approved", "consumed", () => <Approved workspaceSlug={workspace.slug} />)
+    .with("approved", "consumed", () => <Approved copy={copy} workspaceSlug={workspace.slug} />)
     .with("denied", () => (
       <BrandHeader
         tone="closed"
         title="This login was denied"
-        description="Run unkey login again if you want to start a new one."
+        description={copy.deniedDescription}
       />
     ))
     .otherwise(() => (
       <BrandHeader
         tone="closed"
         title="This login has expired"
-        description="Run unkey login again to get a new code."
+        description={copy.expiredDescription}
       />
     ));
 }
@@ -314,13 +317,13 @@ function Step({
   );
 }
 
-function Approved({ workspaceSlug }: { workspaceSlug: string }) {
+function Approved({ copy, workspaceSlug }: { copy: LoginCopy; workspaceSlug: string }) {
   return (
     <div className="flex w-full flex-col items-center gap-8">
       <BrandHeader
         tone="success"
-        title="You're signed in to the Unkey CLI"
-        description="Head back to your terminal to keep going. You can close this tab."
+        title={copy.approvedTitle}
+        description={copy.approvedDescription}
       />
       <div className="flex items-center gap-3 text-sm text-gray-11">
         <Link
@@ -331,12 +334,12 @@ function Approved({ workspaceSlug }: { workspaceSlug: string }) {
         </Link>
         <span aria-hidden="true">·</span>
         <a
-          href="https://www.unkey.com/docs/platform/cli/overview"
+          href={copy.docs.href}
           target="_blank"
           rel="noopener noreferrer"
           className="underline-offset-4 hover:text-gray-12 hover:underline"
         >
-          CLI docs
+          {copy.docs.label}
         </a>
       </div>
     </div>
@@ -345,11 +348,13 @@ function Approved({ workspaceSlug }: { workspaceSlug: string }) {
 
 function PendingLogin({
   login,
+  copy,
   workspaceId,
   onChanged,
   onStale,
 }: {
   login: DeviceLogin;
+  copy: LoginCopy;
   workspaceId: string;
   onChanged: (status: "approved" | "denied") => Promise<void>;
   onStale: () => void;
@@ -359,7 +364,10 @@ function PendingLogin({
   const permissionsRef = useRef<HTMLButtonElement>(null);
   const approve = useMutation({
     mutationFn: approveDeviceLogin,
-    async onSuccess() {
+    async onSuccess(redirectUrl) {
+      if (redirectUrl) {
+        window.location.assign(redirectUrl);
+      }
       await onChanged("approved");
     },
     onError(error) {
@@ -369,7 +377,10 @@ function PendingLogin({
   });
   const deny = useMutation({
     mutationFn: () => denyDeviceLogin(login.userCode),
-    async onSuccess() {
+    async onSuccess(redirectUrl) {
+      if (redirectUrl) {
+        window.location.assign(redirectUrl);
+      }
       await onChanged("denied");
     },
     onError(error) {
@@ -399,33 +410,29 @@ function PendingLogin({
 
   return (
     <form onSubmit={authorize} className="flex w-full flex-col gap-8">
-      <BrandHeader
-        tone="pending"
-        title="Sign in to the Unkey CLI"
-        description="Approve this request so the CLI can work in your workspace."
-      />
+      <BrandHeader tone="pending" title={copy.title} description={copy.description} />
       <OnboardingCard>
         <OnboardingCardContent className="mt-0 flex flex-col gap-6">
+          {copy.confirmCode ? (
+            <Step
+              number={1}
+              title="Confirm the code"
+              description="Check this code matches the one in your terminal."
+            >
+              <CodeBoxes userCode={login.userCode} />
+            </Step>
+          ) : null}
           <Step
-            number={1}
-            title="Confirm the code"
-            description="Check this code matches the one in your terminal."
-          >
-            <CodeBoxes userCode={login.userCode} />
-          </Step>
-          <Step
-            number={2}
+            number={copy.confirmCode ? 2 : 1}
             title="Choose access"
-            description="Pick what the CLI can do in this workspace."
+            description={copy.accessDescription}
           >
             <div className="flex flex-col gap-4">
               <FormField label="Workspace">
                 {({ id }) => <WorkspacePicker id={id} userCode={login.userCode} disabled={busy} />}
               </FormField>
               {grantable.length === 0 ? (
-                <p className="text-sm text-gray-11">
-                  Your role has no permissions it can give to the CLI.
-                </p>
+                <p className="text-sm text-gray-11">{copy.noPermissions}</p>
               ) : (
                 <PermissionsField
                   access={access}
@@ -447,8 +454,7 @@ function PendingLogin({
               aria-hidden="true"
               className="mt-0.5 size-3.5 shrink-0 text-gray-9"
             />
-            Only authorize if you started this login. Whoever started it gets access to this
-            workspace.
+            {copy.warning}
           </p>
         </OnboardingCardContent>
         <OnboardingCardFooter className="flex items-center justify-end gap-2">
@@ -469,7 +475,7 @@ function PendingLogin({
             disabled={busy || grantable.length === 0}
             loading={approve.isLoading}
           >
-            Authorize CLI
+            {copy.authorizeLabel}
           </Button>
         </OnboardingCardFooter>
       </OnboardingCard>

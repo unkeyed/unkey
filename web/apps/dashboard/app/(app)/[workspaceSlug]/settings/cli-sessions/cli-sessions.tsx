@@ -4,6 +4,7 @@ import { ListPager } from "@/components/list-pager";
 import { LoadError } from "@/components/load-error";
 import type { User } from "@/lib/auth/types";
 import { type CliSession, listCliSessions, revokeCliSession } from "@/lib/cli/device-api";
+import { serverLabel } from "@/lib/cli/login-copy";
 import { listOf } from "@/lib/loadable/list";
 import { fromQuery } from "@/lib/loadable/loadable";
 import { getErrorMessage } from "@/lib/unkey-client";
@@ -215,6 +216,18 @@ function SessionItem({
           </Badge>
         </ItemTitle>
         <ItemDescription>
+          {session.clientHost ? (
+            <>
+              <span>via {session.clientHost}</span>
+              {" · "}
+            </>
+          ) : null}
+          {session.resource ? (
+            <>
+              <span>{serverLabel(session.resource)}</span>
+              {" · "}
+            </>
+          ) : null}
           {match(owner)
             .with("hidden", () => null)
             .with("unknown", () => (
