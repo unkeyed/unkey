@@ -332,7 +332,7 @@ type CreateAppRequest struct {
 	SourceType db.AppsSourceType
 }
 
-func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
+func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.FindAppByIdRow {
 	now := time.Now().UnixMilli()
 
 	sourceType := req.SourceType
@@ -360,7 +360,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 }
 
 // CreateAppWithSettings creates an app plus its build and runtime settings for a given environment.
-func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest, environmentID string) db.App {
+func (s *Seeder) CreateAppWithSettings(ctx context.Context, req CreateAppRequest, environmentID string) db.FindAppByIdRow {
 	app := s.CreateApp(ctx, req)
 	now := time.Now().UnixMilli()
 

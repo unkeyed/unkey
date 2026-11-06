@@ -482,7 +482,7 @@ func TestUpdateAppRejectsSourceSwitching(t *testing.T) {
 		Name:        "Sources",
 		Slug:        appSlug(),
 	})
-	createApp := func(t *testing.T, sourceType db.AppsSourceType) db.App {
+	createApp := func(t *testing.T, sourceType db.AppsSourceType) db.FindAppByIdRow {
 		t.Helper()
 		return h.CreateApp(seed.CreateAppRequest{
 			ID:          uid.New(uid.AppPrefix),

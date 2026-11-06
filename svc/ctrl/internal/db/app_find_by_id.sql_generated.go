@@ -7,22 +7,37 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findAppById = `-- name: FindAppById :one
-SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
+SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
 FROM apps
 WHERE id = ?
 `
 
+type FindAppByIdRow struct {
+	Pk               uint64         `db:"pk"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	ProjectID        string         `db:"project_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	SourceType       AppsSourceType `db:"source_type"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
+	DeletedAt        sql.NullInt64  `db:"deleted_at"`
+}
+
 // FindAppById
 //
-//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
+//	SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
 //	FROM apps
 //	WHERE id = ?
-func (q *Queries) FindAppById(ctx context.Context, id string) (App, error) {
+func (q *Queries) FindAppById(ctx context.Context, id string) (FindAppByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, findAppById, id)
-	var i App
+	var i FindAppByIdRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
@@ -31,8 +46,6 @@ func (q *Queries) FindAppById(ctx context.Context, id string) (App, error) {
 		&i.Name,
 		&i.Slug,
 		&i.SourceType,
-		&i.CurrentDeploymentID,
-		&i.IsRolledBack,
 		&i.DeleteProtection,
 		&i.CreatedAt,
 		&i.UpdatedAt,

@@ -31,7 +31,7 @@ func (s *Service) Delete(
 
 	logger.Info("starting app deletion", "app_id", appID)
 
-	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
+	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindAppByIdRow, error) {
 		row, findErr := s.db.FindAppById(runCtx, appID)
 		return row, restateutil.TerminalNotFound(findErr)
 	}, restate.WithName("find app"))

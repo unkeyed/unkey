@@ -563,10 +563,10 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.delete_protection, apps.created_at, apps.updated_at, apps.deleted_at
 	//  FROM apps
 	//  WHERE id = ?
-	FindAppById(ctx context.Context, id string) (App, error)
+	FindAppById(ctx context.Context, id string) (FindAppByIdRow, error)
 	//FindAppEnvVarsByAppAndEnv
 	//
 	//  SELECT `key`, value
