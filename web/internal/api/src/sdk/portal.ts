@@ -16,6 +16,7 @@ import { portalListSessions } from "../funcs/portalListSessions.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
 import { portalRevokeSession } from "../funcs/portalRevokeSession.js";
 import { portalUpdatePortal } from "../funcs/portalUpdatePortal.js";
+import { portalVerifyDomain } from "../funcs/portalVerifyDomain.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
 import * as operations from "../models/operations/index.js";
@@ -453,6 +454,34 @@ export class Portal extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2PortalUpdatePortalResponseBody> {
     return unwrapAsync(portalUpdatePortal(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Verify portal domain
+   *
+   * @remarks
+   * Restart verification for a portal domain.
+   *
+   * Call this after you correct the DNS records of a domain that shows `failed`, or to give a
+   * `pending` domain a new 24-hour verification period. The endpoint returns when Unkey accepts
+   * the retry. Poll `portal.getDomain` for the result.
+   *
+   * A domain that is already `verified` returns a 202 and starts nothing.
+   *
+   * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#write`.
+   * Use `portals/<portal_id>/domains/*#write` to manage every domain on the portal.
+   * Without the permission this returns **404**, not 403, unless the key can read
+   * the portal or the domain.
+   */
+  async verifyDomain(
+    request: components.V2PortalVerifyDomainRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalVerifyDomainResponseBody> {
+    return unwrapAsync(portalVerifyDomain(
       this,
       request,
       options,

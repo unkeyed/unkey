@@ -1,0 +1,79 @@
+post:
+  tags:
+    - portal
+  summary: Verify portal domain
+  description: |
+    Restart verification for a portal domain.
+
+    Call this after you correct the DNS records of a domain that shows `failed`, or to give a
+    `pending` domain a new 24-hour verification period. The endpoint returns when Unkey accepts
+    the retry. Poll `portal.getDomain` for the result.
+
+    A domain that is already `verified` returns a 202 and starts nothing.
+
+    Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#write`.
+    Use `portals/<portal_id>/domains/*#write` to manage every domain on the portal.
+    Without the permission this returns **404**, not 403, unless the key can read
+    the portal or the domain.
+  operationId: portal.verifyDomain
+  x-speakeasy-name-override: verifyDomain
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalVerifyDomainRequestBody.yaml"
+    required: true
+  responses:
+    "202":
+      description: Verification retry accepted. The workflow runs in the background.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalVerifyDomainResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Verification restarted
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: |
+        Your root key can read the portal or the domain but may not manage it. The error names the missing permission.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal or domain on that portal, or your root key may not read either.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
