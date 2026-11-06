@@ -30,9 +30,6 @@ import (
 //
 // It seeds a project with a full resource tree, then calls ProjectService/Delete
 // through the Restate ingress and asserts that every table is cleaned up.
-//
-// Note: instances are NOT covered here. They are cleaned up asynchronously by
-// the reconciler once k8s pods are removed, not by the project delete handler.
 func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()

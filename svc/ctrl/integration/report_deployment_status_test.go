@@ -1,16 +1,157 @@
 package integration
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+func TestReportDeploymentStatusCannotRecreateInstancesDuringDeletion(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+	const bearer = "test-bearer"
+	clusterKey := &ctrlv1.ClusterKey{CellId: uid.DNS1035(12), Platform: "test", Region: uid.DNS1035(12)}
+	svc := h.ClusterService(clusterKey, bearer)
+	deployment := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: clusterKey.GetRegion(), DesiredState: ""})
+	req := connect.NewRequest(&ctrlv1.ReportDeploymentStatusRequest{
+		Cluster: clusterKey,
+		Change: &ctrlv1.ReportDeploymentStatusRequest_Update_{
+			Update: &ctrlv1.ReportDeploymentStatusRequest_Update{
+				K8SName: deployment.K8sName,
+				Instances: []*ctrlv1.ReportDeploymentStatusRequest_Update_Instance{{
+					K8SName: uid.DNS1035(16), Address: "10.0.0.1:8080",
+					Status: ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING,
+				}},
+			},
+		},
+	})
+	req.Header().Set("Authorization", "Bearer "+bearer)
+
+	err := db.TxRetry(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		queries := db.NewQueries(tx)
+		if _, err := queries.LockDeploymentsByEnvironmentId(txCtx, deployment.EnvironmentID); err != nil {
+			return err
+		}
+		reportCtx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		_, err := svc.ReportDeploymentStatus(reportCtx, req)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("report must wait for deletion: got %v", err)
+		}
+		if err := queries.DeleteInstancesByEnvironment(txCtx, deployment.EnvironmentID); err != nil {
+			return err
+		}
+		return queries.DeleteDeploymentsByEnvironmentId(txCtx, deployment.EnvironmentID)
+	})
+	require.NoError(t, err)
+	_, err = svc.ReportDeploymentStatus(ctx, req)
+	require.True(t, db.IsNotFound(err))
+	instances, err := h.DB.FindInstancesByDeploymentId(ctx, deployment.ID)
+	require.NoError(t, err)
+	require.Empty(t, instances)
+}
+
+func TestReportDeploymentStatusDeleteIsIdempotentAfterDeploymentRemoval(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+	const bearer = "test-bearer"
+	clusterKey := &ctrlv1.ClusterKey{CellId: uid.DNS1035(12), Platform: "test", Region: uid.DNS1035(12)}
+	svc := h.ClusterService(clusterKey, bearer)
+	deployment := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: clusterKey.GetRegion(), DesiredState: ""})
+
+	require.NoError(t, h.DB.DeleteDeploymentTopologiesByEnvironmentId(ctx, deployment.EnvironmentID))
+	require.NoError(t, h.DB.DeleteDeploymentsByEnvironmentId(ctx, deployment.EnvironmentID))
+	desired := connect.NewRequest(&ctrlv1.GetDesiredDeploymentStateRequest{Cluster: clusterKey, DeploymentId: deployment.ID})
+	desired.Header().Set("Authorization", "Bearer "+bearer)
+	_, err := svc.GetDesiredDeploymentState(ctx, desired)
+	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+
+	for range 2 {
+		req := connect.NewRequest(&ctrlv1.ReportDeploymentStatusRequest{
+			Cluster: clusterKey,
+			Change: &ctrlv1.ReportDeploymentStatusRequest_Delete_{
+				Delete: &ctrlv1.ReportDeploymentStatusRequest_Delete{K8SName: deployment.K8sName},
+			},
+		})
+		req.Header().Set("Authorization", "Bearer "+bearer)
+		res, err := svc.ReportDeploymentStatus(ctx, req)
+		require.NoError(t, err)
+		require.NotNil(t, res)
+	}
+	_, err = h.DB.FindDeploymentById(ctx, deployment.ID)
+	require.True(t, db.IsNotFound(err))
+}
+
+func TestReportDeploymentStatusDeleteOnlyStopsAfterLastRegion(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+	const bearer = "test-bearer"
+	clusterKeys := []*ctrlv1.ClusterKey{
+		{CellId: uid.DNS1035(12), Platform: "test", Region: uid.DNS1035(12)},
+		{CellId: uid.DNS1035(12), Platform: "test", Region: uid.DNS1035(12)},
+	}
+	svc := h.ClusterService(clusterKeys[0], bearer)
+	h.ClusterService(clusterKeys[1], bearer)
+	deployment := h.CreateDeployment(ctx, CreateDeploymentRequest{
+		Region: clusterKeys[0].GetRegion(), DesiredState: mysqltype.DeploymentsDesiredStateStopped,
+	})
+	for _, key := range clusterKeys {
+		req := connect.NewRequest(&ctrlv1.ReportDeploymentStatusRequest{
+			Cluster: key,
+			Change: &ctrlv1.ReportDeploymentStatusRequest_Update_{
+				Update: &ctrlv1.ReportDeploymentStatusRequest_Update{
+					K8SName: deployment.K8sName,
+					Instances: []*ctrlv1.ReportDeploymentStatusRequest_Update_Instance{{
+						K8SName: uid.DNS1035(16), Address: "10.0.0.1:8080",
+						Status: ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING,
+					}},
+				},
+			},
+		})
+		req.Header().Set("Authorization", "Bearer "+bearer)
+		_, err := svc.ReportDeploymentStatus(ctx, req)
+		require.NoError(t, err)
+	}
+
+	for i, key := range clusterKeys {
+		for range 2 {
+			req := connect.NewRequest(&ctrlv1.ReportDeploymentStatusRequest{
+				Cluster: key,
+				Change: &ctrlv1.ReportDeploymentStatusRequest_Delete_{
+					Delete: &ctrlv1.ReportDeploymentStatusRequest_Delete{K8SName: deployment.K8sName},
+				},
+			})
+			req.Header().Set("Authorization", "Bearer "+bearer)
+			_, err := svc.ReportDeploymentStatus(ctx, req)
+			require.NoError(t, err)
+		}
+		instances, err := h.DB.FindInstancesByDeploymentId(ctx, deployment.ID)
+		require.NoError(t, err)
+		require.Len(t, instances, len(clusterKeys)-i-1)
+		current, err := h.DB.FindDeploymentById(ctx, deployment.ID)
+		require.NoError(t, err)
+		if i == 0 {
+			require.Equal(t, deployment.Status, current.Status)
+			region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
+				Platform: clusterKeys[1].GetPlatform(), Name: clusterKeys[1].GetRegion(),
+			})
+			require.NoError(t, err)
+			require.Equal(t, region.ID, instances[0].RegionID)
+		} else {
+			require.Equal(t, mysqltype.DeploymentsStatusStopped, current.Status)
+		}
+	}
+}
 
 func TestReportDeploymentStatusConcurrentReportsForKnownInstances(t *testing.T) {
 	h := New(t)

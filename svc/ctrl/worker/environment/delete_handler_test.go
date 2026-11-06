@@ -78,6 +78,25 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
 
+	envOther := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+		ID: uid.New(uid.EnvironmentPrefix), WorkspaceID: workspaceID,
+		ProjectID: project.ID, AppID: app.ID, Slug: "other", Kind: mysqltype.EnvironmentKindPreview,
+	})
+	deploymentOther := seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID: uid.New(uid.DeploymentPrefix), WorkspaceID: workspaceID,
+		ProjectID: project.ID, AppID: app.ID, EnvironmentID: envOther.ID,
+		Status: mysqltype.DeploymentsStatusReady,
+	})
+	for range 2 {
+		region := seeder.CreateRegion(ctx, seed.CreateRegionRequest{Name: uid.DNS1035(12), Platform: "test"})
+		for _, deployment := range []db.Deployment{building, finished, deploymentOther} {
+			seeder.CreateInstance(ctx, seed.CreateInstanceRequest{
+				DeploymentID: deployment.ID, WorkspaceID: workspaceID,
+				ProjectID: project.ID, AppID: app.ID, RegionID: region.ID, Address: "10.0.0.1:8080",
+			})
+		}
+	}
+
 	connectionID := uid.New(uid.ConnectionPrefix)
 	require.NoError(t, database.InsertDeploymentConnection(ctx, db.InsertDeploymentConnectionParams{
 		DeploymentID: finished.ID, ConnectionID: connectionID, WorkspaceID: workspaceID, ProjectID: project.ID,
@@ -126,6 +145,18 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 	require.True(t, db.IsNotFound(err), "the cascade must drop the building deployment")
 	_, err = database.FindDeploymentById(ctx, finished.ID)
 	require.True(t, db.IsNotFound(err), "the cascade must drop the finished deployment")
+	for _, deployment := range []db.Deployment{building, finished} {
+		instances, err := database.FindInstancesByDeploymentId(ctx, deployment.ID)
+		require.NoError(t, err)
+		require.Empty(t, instances, "the cascade must remove instances from every region")
+	}
+	instancesOther, err := database.FindInstancesByDeploymentId(ctx, deploymentOther.ID)
+	require.NoError(t, err)
+	require.Len(t, instancesOther, 2, "another environment's instances must remain")
+
+	_, err = hydrav1.NewEnvironmentServiceIngressClient(restateCfg.IngressClient, env.ID).
+		Delete().Request(ctx, &hydrav1.DeleteEnvironmentRequest{})
+	require.NoError(t, err)
 	saved, err := database.CountDeploymentConnectionsByDeploymentId(ctx, finished.ID)
 	require.NoError(t, err)
 	require.Zero(t, saved, "the cascade must drop the saved deployment connections")
