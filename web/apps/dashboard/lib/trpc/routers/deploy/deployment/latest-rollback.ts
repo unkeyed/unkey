@@ -1,6 +1,6 @@
 import type { User } from "@/lib/auth/types";
 import { clickhouse } from "@/lib/clickhouse";
-import { db } from "@/lib/db";
+import { and, db, eq, schema } from "@/lib/db";
 import { getCachedUser } from "@/lib/trpc/routers/audit/fetch";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
@@ -18,12 +18,22 @@ export const getLatestRollback = workspaceProcedure
           eq(table.workspaceId, ctx.workspace.id),
           isNull(table.deletedAt),
         ),
-      columns: { currentDeploymentId: true, isRolledBack: true },
+      columns: { id: true },
     });
     if (!app) {
       throw new TRPCError({ code: "NOT_FOUND", message: "App not found" });
     }
-    if (!app.isRolledBack || app.currentDeploymentId !== input.deploymentId) {
+    const d = schema.deployments;
+    const e = schema.environments;
+    const [environment] = await db
+      .select({ currentDeploymentId: e.currentDeploymentId, isRolledBack: e.isRolledBack })
+      .from(d)
+      .innerJoin(e, eq(e.id, d.environmentId))
+      .where(
+        and(eq(d.id, input.deploymentId), eq(d.appId, app.id), eq(d.workspaceId, ctx.workspace.id)),
+      )
+      .limit(1);
+    if (!environment?.isRolledBack || environment.currentDeploymentId !== input.deploymentId) {
       return null;
     }
     const result = await clickhouse.auditLogs.latestByTarget({

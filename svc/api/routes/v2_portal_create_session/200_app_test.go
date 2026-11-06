@@ -133,12 +133,13 @@ func redeployAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID str
 		CreatedAt:                     now,
 	}))
 
-	// The app must point at this deployment so createSession can find its config.
-	require.NoError(t, db.Query.UpdateAppDeployments(ctx, h.DB.RW(), db.UpdateAppDeploymentsParams{
+	// The production environment must point at this deployment so createSession
+	// can find its config.
+	require.NoError(t, db.Query.UpdateEnvironmentDeployments(ctx, h.DB.RW(), db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
-		AppID:               app.AppID,
+		EnvironmentID:       app.EnvironmentID,
 	}))
 }
 

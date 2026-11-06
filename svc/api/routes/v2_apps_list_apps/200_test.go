@@ -1,14 +1,17 @@
 package handler_test
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -414,4 +417,58 @@ func TestListAppsSearch(t *testing.T) {
 			list(t, "   "),
 		)
 	})
+}
+
+func TestListAppsReportsProductionLiveDeployment(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Live Pointer",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Live Pointer App",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+
+	setLive := func(kind mysqltype.EnvironmentKind, deploymentID string, rolledBack bool) {
+		environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+			ID:          uid.New(uid.EnvironmentPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			AppID:       app.ID,
+			Slug:        string(kind),
+			Kind:        kind,
+		})
+		require.NoError(t, db.Query.UpdateEnvironmentDeployments(t.Context(), h.DB.RW(), db.UpdateEnvironmentDeploymentsParams{
+			CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
+			IsRolledBack:        rolledBack,
+			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			EnvironmentID:       environment.ID,
+		}))
+	}
+	// The preview environment is created first so a query that ignores the kind
+	// would pick it.
+	setLive(mysqltype.EnvironmentKindPreview, uid.New(uid.DeploymentPrefix), false)
+	productionDeploymentID := uid.New(uid.DeploymentPrefix)
+	setLive(mysqltype.EnvironmentKindProduction, productionDeploymentID, true)
+
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+(workspace.ID)+":**#*")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.ID})
+	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, productionDeploymentID, res.Body.Data[0].CurrentDeploymentId)
+	require.True(t, res.Body.Data[0].IsRolledBack)
 }

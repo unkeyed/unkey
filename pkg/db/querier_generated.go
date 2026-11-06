@@ -425,6 +425,17 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppEnvVarsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppEnvVarsByAppAndEnvParams) ([]FindAppEnvVarsByAppAndEnvRow, error)
+	// Returns the live pointer of an app's oldest production environment, which
+	// is the one the app was created with.
+	//
+	//  SELECT e.current_deployment_id, e.is_rolled_back
+	//  FROM environments e
+	//  WHERE e.app_id = ?
+	//    AND e.kind = 'production'
+	//    AND e.deleted_at IS NULL
+	//  ORDER BY e.pk ASC
+	//  LIMIT 1
+	FindAppLivePointer(ctx context.Context, db DBTX, appID string) (FindAppLivePointerRow, error)
 	// Returns the sentinel_config of an app's current deployment, scoped to the
 	// workspace. Used by portal.createSession to resolve the keyspaces an
 	// app-mapped portal config grants access to (the keyauth policies carry the
@@ -432,7 +443,16 @@ type Querier interface {
 	//
 	//  SELECT d.sentinel_config
 	//  FROM apps a
-	//  JOIN deployments d ON a.current_deployment_id = d.id
+	//  JOIN environments e ON e.id = (
+	//    SELECT pe.id
+	//    FROM environments pe
+	//    WHERE pe.app_id = a.id
+	//      AND pe.kind = 'production'
+	//      AND pe.deleted_at IS NULL
+	//    ORDER BY pe.pk ASC
+	//    LIMIT 1
+	//  )
+	//  JOIN deployments d ON e.current_deployment_id = d.id
 	//  WHERE a.id = ?
 	//    AND a.workspace_id = ?
 	FindAppPolicyConfigByID(ctx context.Context, db DBTX, arg FindAppPolicyConfigByIDParams) ([]byte, error)
@@ -2729,7 +2749,7 @@ type Querier interface {
 	//  FROM app_runtime_settings
 	//  WHERE app_id = ?
 	ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppRuntimeSetting, error)
-	//ListAppsByProject
+	// The app's oldest production environment is the one it was created with.
 	//
 	//  SELECT
 	//    apps.pk,
@@ -2739,8 +2759,8 @@ type Querier interface {
 	//    apps.name,
 	//    apps.slug,
 	//    apps.source_type,
-	//    apps.current_deployment_id,
-	//    apps.is_rolled_back,
+	//    pe.current_deployment_id,
+	//    pe.is_rolled_back,
 	//    apps.delete_protection,
 	//    apps.created_at,
 	//    apps.updated_at,
@@ -2750,6 +2770,15 @@ type Querier interface {
 	//  FROM apps
 	//  LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
 	//  LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
+	//  LEFT JOIN environments pe ON pe.id = (
+	//    SELECT e.id
+	//    FROM environments e
+	//    WHERE e.app_id = apps.id
+	//      AND e.kind = 'production'
+	//      AND e.deleted_at IS NULL
+	//    ORDER BY e.pk ASC
+	//    LIMIT 1
+	//  )
 	//  WHERE apps.project_id = ?
 	//    AND apps.deleted_at IS NULL
 	//    AND EXISTS (SELECT 1 FROM projects p WHERE p.id = apps.project_id AND p.deleted_at IS NULL)
