@@ -116,6 +116,8 @@ Rotate it with "revoke immediately" or delete it, then remove the secret from wh
 
 If a root key is pushed to a public GitHub repository, [GitHub secret scanning](/platform/security/github-secret-scanning) reports it and every member of the workspace gets an email saying where it was found.
 
+If [TruffleHog](/platform/security/trufflehog-secret-scanning) finds a root key in a public source, Unkey disables the key right away and emails every member.
+
 Unkey stores root keys hashed, so it can't recover the secret, only identify which key ID a request used. That's another reason to create one key per service.
 
 ## Permissions reference

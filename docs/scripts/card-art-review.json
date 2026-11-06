@@ -1325,6 +1325,11 @@
     "reason": "Generic avatar and detached device dominate the second-factor scene."
   },
   {
+    "id": "platform--security--overview--5",
+    "decision": "remove",
+    "reason": "Only the homepage ships card artwork."
+  },
+  {
     "id": "platform--ai-coding--overview--1",
     "decision": "remove",
     "reason": "No individual card illustration shipped; homepage is the only page that shows card art."

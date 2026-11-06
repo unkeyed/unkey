@@ -7122,6 +7122,32 @@
     }
   },
   {
+    "id": "platform--security--overview--5",
+    "source": "platform/security/overview.mdx",
+    "href": "/platform/security/trufflehog-secret-scanning",
+    "title": "TruffleHog secret scanning",
+    "evidence": "platform/security/trufflehog-secret-scanning.mdx",
+    "scene": {
+      "kind": "sequence",
+      "heading": "Disable a reported root key",
+      "fields": [
+        [
+          "Detection",
+          "TruffleHog scan"
+        ],
+        [
+          "Notification",
+          "workspace email"
+        ],
+        [
+          "Response",
+          "disabled right away"
+        ]
+      ],
+      "note": "Replace the key, then delete it"
+    }
+  },
+  {
     "id": "platform--ai-coding--overview--1",
     "source": "platform/ai-coding/overview.mdx",
     "href": "/platform/ai-coding/mcp-servers",
