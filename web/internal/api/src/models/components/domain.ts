@@ -4,39 +4,11 @@
 
 import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
-import { ClosedEnum } from "../../types/enums.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { DnsRecord, DnsRecord$inboundSchema } from "./dnsrecord.js";
 import { DomainConnect, DomainConnect$inboundSchema } from "./domainconnect.js";
-
-/**
- * The verification status of the domain.
- *
- * @remarks
- *
- * - `pending`: the domain is created. No DNS check has completed yet.
- * - `verifying`: Unkey checks the DNS records approximately each minute.
- * - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
- * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
- */
-export const DomainStatus = {
-  Pending: "pending",
-  Verifying: "verifying",
-  Verified: "verified",
-  Failed: "failed",
-} as const;
-/**
- * The verification status of the domain.
- *
- * @remarks
- *
- * - `pending`: the domain is created. No DNS check has completed yet.
- * - `verifying`: Unkey checks the DNS records approximately each minute.
- * - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
- * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
- */
-export type DomainStatus = ClosedEnum<typeof DomainStatus>;
+import { DomainStatus, DomainStatus$inboundSchema } from "./domainstatus.js";
 
 export type Domain = {
   /**
@@ -73,7 +45,7 @@ export type Domain = {
    * - `pending`: the domain is created. No DNS check has completed yet.
    * - `verifying`: Unkey checks the DNS records approximately each minute.
    * - `verified`: the domain is verified. Unkey has configured routing and requested a certificate.
-   * - `failed`: the required DNS records did not appear within 24 hours. Fix the records, then retry verification.
+   * - `failed`: verification stopped. `verificationError` says why, for example the records did not appear within 24 hours. Fix the cause, then retry verification.
    */
   status: DomainStatus;
   /**
@@ -108,10 +80,6 @@ export type Domain = {
    */
   updatedAt?: number | undefined;
 };
-
-/** @internal */
-export const DomainStatus$inboundSchema: z.ZodNativeEnum<typeof DomainStatus> =
-  z.nativeEnum(DomainStatus);
 
 /** @internal */
 export const Domain$inboundSchema: z.ZodType<Domain, z.ZodTypeDef, unknown> = z

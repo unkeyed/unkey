@@ -30,14 +30,12 @@ SELECT
 FROM portal_domains
 WHERE id = ?
   AND workspace_id = ?
-  AND portal_id = ?
 LIMIT 1
 `
 
 type FindPortalDomainByIdParams struct {
 	ID          string `db:"id"`
 	WorkspaceID string `db:"workspace_id"`
-	PortalID    string `db:"portal_id"`
 }
 
 type FindPortalDomainByIdRow struct {
@@ -58,8 +56,9 @@ type FindPortalDomainByIdRow struct {
 	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
 }
 
-// Scoped to workspace and portal so a caller cannot read a domain attached to
-// another tenant's portal by guessing its id.
+// Scoped to the workspace so a caller cannot read another tenant's domain by
+// guessing its id. Callers compare portal_id with the portal they resolved,
+// which lets this run concurrently with the portal lookup.
 //
 //	SELECT
 //	    id,
@@ -80,10 +79,9 @@ type FindPortalDomainByIdRow struct {
 //	FROM portal_domains
 //	WHERE id = ?
 //	  AND workspace_id = ?
-//	  AND portal_id = ?
 //	LIMIT 1
 func (q *Queries) FindPortalDomainById(ctx context.Context, db DBTX, arg FindPortalDomainByIdParams) (FindPortalDomainByIdRow, error) {
-	row := db.QueryRowContext(ctx, findPortalDomainById, arg.ID, arg.WorkspaceID, arg.PortalID)
+	row := db.QueryRowContext(ctx, findPortalDomainById, arg.ID, arg.WorkspaceID)
 	var i FindPortalDomainByIdRow
 	err := row.Scan(
 		&i.ID,

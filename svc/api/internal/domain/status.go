@@ -22,3 +22,19 @@ func Status(s db.CustomDomainsVerificationStatus) openapi.DomainStatus {
 		return openapi.DomainStatusPending
 	}
 }
+
+// PortalStatus is [Status] for portal domains, which share the API enum.
+func PortalStatus(s db.PortalDomainsVerificationStatus) openapi.DomainStatus {
+	switch s {
+	case db.PortalDomainsVerificationStatusVerifying:
+		return openapi.DomainStatusVerifying
+	case db.PortalDomainsVerificationStatusVerified:
+		return openapi.DomainStatusVerified
+	case db.PortalDomainsVerificationStatusFailed:
+		return openapi.DomainStatusFailed
+	case db.PortalDomainsVerificationStatusPending:
+		return openapi.DomainStatusPending
+	default:
+		return openapi.DomainStatusPending
+	}
+}
