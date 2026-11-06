@@ -21,6 +21,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
+	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -223,6 +224,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					fault.Public("We're unable to set the environment variables."),
 				)
 			}
+		}
+
+		sizes, err := db.Query.ListAppEnvVarSizesByAppAndEnv(ctx, tx, db.ListAppEnvVarSizesByAppAndEnvParams{
+			AppID:         env.AppID,
+			EnvironmentID: env.ID,
+		})
+		if err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("unable to measure variables"),
+				fault.Public("We're unable to set the environment variables."),
+			)
+		}
+		totalBytes := 0
+		for _, size := range sizes {
+			totalBytes += validation.EnvVarBytesEncrypted(int(size.KeyBytes), int(size.ValueBytes))
+		}
+		if err := apierrors.MaxByteSize("The environment's variables in total", totalBytes, validation.EnvVarsBytesMax); err != nil {
+			return err
 		}
 
 		auditLogs := make([]auditlog.AuditLog, 0, len(keys))

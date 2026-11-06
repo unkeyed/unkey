@@ -27,3 +27,13 @@ func (k *KeyMutex) Lock(key string) (unlock func()) {
 	m.Lock()
 	return m.Unlock
 }
+
+// TryLock acquires the per-key mutex only if nobody holds it.
+func (k *KeyMutex) TryLock(key string) (unlock func(), ok bool) {
+	v, _ := k.mu.LoadOrStore(key, &sync.Mutex{})
+	m := v.(*sync.Mutex)
+	if !m.TryLock() {
+		return nil, false
+	}
+	return m.Unlock, true
+}

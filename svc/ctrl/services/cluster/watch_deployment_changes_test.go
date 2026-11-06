@@ -23,6 +23,7 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 	for _, test := range []struct {
 		name            string
 		lookupErr       error
+		desiredStatus   db.DeploymentTopologyDesiredStatus
 		streamErr       error
 		emptyCheckpoint bool
 		authorized      bool
@@ -34,6 +35,7 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 		{name: "empty checkpoint aborts stream", authorized: true, emptyCheckpoint: true, wantCode: connect.CodeInternal},
 		{name: "replay discards token", authorized: true, replay: true, wantState: true},
 		{name: "removed topology advances checkpoint", authorized: true, lookupErr: sql.ErrNoRows},
+		{name: "unconvertible row advances checkpoint", authorized: true, desiredStatus: "unknown"},
 		{name: "transient lookup aborts without checkpoint", authorized: true, lookupErr: errors.New("database unavailable"), wantCode: connect.CodeInternal},
 		{name: "expired position requires snapshot", authorized: true, streamErr: cdc.ErrExpired, wantCode: connect.CodeOutOfRange},
 		{name: "invalid token", authorized: true, streamErr: cdc.ErrInvalidToken, wantCode: connect.CodeInvalidArgument},
@@ -46,7 +48,7 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 			require.NoError(t, err)
 			t.Cleanup(clusterCache.Close)
 			svc := &Service{
-				db: &watchDatabase{lookupErr: test.lookupErr}, bearer: "test-token", clusterCache: clusterCache,
+				db: &watchDatabase{lookupErr: test.lookupErr, desiredStatus: test.desiredStatus}, bearer: "test-token", clusterCache: clusterCache,
 				deploymentStream: watchSource(func(ctx context.Context, region string, token []byte, apply func(deploymentstream.Event) error) error {
 					if region != "region_test" {
 						return errors.New("incorrect region filter")
@@ -111,7 +113,8 @@ func (s watchSource) Watch(ctx context.Context, region string, token []byte, app
 
 type watchDatabase struct {
 	db.Database
-	lookupErr error
+	lookupErr     error
+	desiredStatus db.DeploymentTopologyDesiredStatus
 }
 
 func (s *watchDatabase) FindCluster(context.Context, db.FindClusterParams) (db.FindClusterRow, error) {
@@ -119,5 +122,9 @@ func (s *watchDatabase) FindCluster(context.Context, db.FindClusterParams) (db.F
 }
 
 func (s *watchDatabase) FindDeploymentTopologyByDeploymentAndRegion(context.Context, db.FindDeploymentTopologyByDeploymentAndRegionParams) (db.FindDeploymentTopologyByDeploymentAndRegionRow, error) {
-	return db.FindDeploymentTopologyByDeploymentAndRegionRow{ID: "deploy_test", DesiredStatus: db.DeploymentTopologyDesiredStatusRunning}, s.lookupErr
+	status := db.DeploymentTopologyDesiredStatusRunning
+	if s.desiredStatus != "" {
+		status = s.desiredStatus
+	}
+	return db.FindDeploymentTopologyByDeploymentAndRegionRow{ID: "deploy_test", DesiredStatus: status}, s.lookupErr
 }
