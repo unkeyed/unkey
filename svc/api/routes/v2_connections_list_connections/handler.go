@@ -1,0 +1,94 @@
+package handler
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
+	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/connections"
+	"github.com/unkeyed/unkey/svc/api/internal/pagination"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+)
+
+type (
+	Request  = openapi.V2ConnectionsListConnectionsRequestBody
+	Response = openapi.V2ConnectionsListConnectionsResponseBody
+)
+
+type Handler struct {
+	DB db.Database
+}
+
+func (h *Handler) Method() string { return http.MethodPost }
+func (h *Handler) Path() string   { return "/v2/connections.listConnections" }
+
+func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
+	principal, err := s.GetPrincipal()
+	if err != nil {
+		return err
+	}
+
+	req, err := zen.BindBody[Request](s)
+	if err != nil {
+		return err
+	}
+
+	environment, err := connections.RequireEnvironment(ctx, h.DB.RO(), principal, req.Project, req.App, req.Environment)
+	if err != nil {
+		return err
+	}
+
+	page := pagination.Parse(req.Limit, req.Cursor, 100)
+	rows, err := pagination.FetchAuthorized(ctx, page, func(ctx context.Context, cursor string, limit int32) ([]db.ListAppConnectionsRow, error) {
+		return db.Query.ListAppConnections(ctx, h.DB.RO(), db.ListAppConnectionsParams{
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
+			ProjectID:     environment.ProjectID,
+			AppID:         environment.AppID,
+			EnvironmentID: environment.ID,
+			IDCursor:      cursor,
+			Limit:         limit,
+		})
+	}, func(row db.ListAppConnectionsRow) bool {
+		resource := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(row.TargetAppID)
+		return rbac.Check(rbac.U(resource, permissions.Read), principal.Permissions) == nil
+	}, func(row db.ListAppConnectionsRow) string { return row.ID })
+	if err != nil {
+		return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Public("Failed to retrieve connections."))
+	}
+
+	rows, pg := pagination.Paginate(rows, page, func(row db.ListAppConnectionsRow) string { return row.ID })
+	data := make([]openapi.AppConnection, 0, len(rows))
+	for _, row := range rows {
+		connection := openapi.AppConnection{
+			Id:                  row.ID,
+			AppId:               row.AppID,
+			EnvironmentId:       row.EnvironmentID,
+			Name:                row.Name,
+			TargetAppId:         row.TargetAppID,
+			TargetAppName:       row.TargetAppName,
+			TargetAppSlug:       row.TargetAppSlug,
+			TargetType:          openapi.ConnectionTargetType(row.SelectionMode),
+			TargetEnvironmentId: nil,
+			TargetDeploymentId:  nil,
+		}
+		if row.TargetEnvironmentID.Valid {
+			connection.TargetEnvironmentId = new(row.TargetEnvironmentID.String)
+		}
+		if row.TargetDeploymentID.Valid {
+			connection.TargetDeploymentId = new(row.TargetDeploymentID.String)
+		}
+		data = append(data, connection)
+	}
+
+	return s.JSON(http.StatusOK, Response{
+		Meta:       openapi.Meta{RequestId: s.RequestID()},
+		Data:       data,
+		Pagination: pg,
+	})
+}
