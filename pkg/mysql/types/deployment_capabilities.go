@@ -10,7 +10,8 @@ import (
 // Running deployments keep them regardless of later flag or setting changes.
 // They are stored as a JSON object in which a missing key is off.
 type DeploymentCapabilities struct {
-	PrivateNetworking bool `json:"private_networking"`
+	// PrivateNetworking enrolls the deployment in private networking where its region enables it.
+	PrivateNetworking bool `json:"private_networking" proto:"1"`
 }
 
 // Scan implements sql.Scanner for reading the JSON object from the database.

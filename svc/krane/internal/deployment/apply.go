@@ -11,6 +11,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/deploy/privatenetwork"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
@@ -434,6 +435,12 @@ func (c *Controller) buildDeployment(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		Containers:                    []corev1.Container{container},
 	}
 
+	if c.privateNetworkEnabled(req) {
+		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, corev1.EnvVar{
+			Name: "UNKEY_PRIVATE_DOMAIN", Value: privatenetwork.ConnectionHost(req.GetDeploymentId(), privatenetwork.SelfName, req.GetK8SNamespace()),
+		})
+	}
+
 	if len(volumes) > 0 {
 		podSpec.Volumes = volumes
 	}
@@ -742,6 +749,10 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, owner metav1.OwnerRef
 		},
 	}
 	return pdb
+}
+
+func (c *Controller) privateNetworkEnabled(req *ctrlv1.ApplyDeployment) bool {
+	return req.GetCapabilities().GetPrivateNetworking() && c.privateNetworkingEnabled
 }
 
 func deploymentLabels(req *ctrlv1.ApplyDeployment) labels.Labels {

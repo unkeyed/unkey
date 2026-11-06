@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/uid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -256,6 +257,10 @@ var fieldAssertions = map[string]func(t *testing.T, dep *appsv1.Deployment){
 	},
 }
 
+var fieldsRenderedElsewhere = map[string]string{
+	"capabilities": "requires cluster enrollment; asserted by TestBuildDeployment_PrivateNetworkDNS",
+}
+
 // labelDeploymentIDKey returns the label key used for the deployment id by
 // rendering a known value and reading it back, so the test does not hardcode
 // the label package's internal key string.
@@ -286,6 +291,9 @@ func TestApplyDeploymentFieldCoverage(t *testing.T) {
 
 	for i := 0; i < fields.Len(); i++ {
 		name := string(fields.Get(i).Name())
+		if _, ok := fieldsRenderedElsewhere[name]; ok {
+			continue
+		}
 		require.Contains(t, fieldAssertions, name, "ApplyDeployment proto field must be covered by fieldAssertions")
 	}
 }
@@ -455,4 +463,52 @@ func TestPodDrainSeconds(t *testing.T) {
 			require.Equal(t, tt.want, podDrainSeconds(tt.pod))
 		})
 	}
+}
+
+func TestBuildDeployment_PrivateNetworkDNS(t *testing.T) {
+	enabled := &ctrlv1.DeploymentCapabilities{PrivateNetworking: true}
+	for _, tt := range []struct {
+		name           string
+		capabilities   *ctrlv1.DeploymentCapabilities
+		clusterEnabled bool
+		wantDomain     bool
+	}{
+		{name: "enrolled", capabilities: enabled, clusterEnabled: true, wantDomain: true},
+		{name: "not_enrolled", capabilities: &ctrlv1.DeploymentCapabilities{PrivateNetworking: false}, clusterEnabled: true},
+		{name: "missing_capabilities", clusterEnabled: true},
+		{name: "cluster_disabled", capabilities: enabled},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			controller := testController()
+			controller.privateNetworkingEnabled = tt.clusterEnabled
+			req := fullApplyRequest(t)
+			req.Capabilities = tt.capabilities
+
+			dep := controller.buildDeployment(req, false)
+			require.Empty(t, dep.Spec.Template.Spec.DNSPolicy)
+			require.Nil(t, dep.Spec.Template.Spec.DNSConfig)
+			host, exists := envValue(mainContainer(t, dep), "UNKEY_PRIVATE_DOMAIN")
+			require.Equal(t, tt.wantDomain, exists)
+			if tt.wantDomain {
+				require.Equal(t, "unkey-connection-4274bb18f26b961b84db17a83974f205.test-ns.unkey.internal", host)
+			}
+		})
+	}
+}
+
+func TestBuildDeployment_PrivateNetworkSelfHostBelongsToDeployment(t *testing.T) {
+	controller := testController()
+	controller.privateNetworkingEnabled = true
+	selfHost := func(deploymentID string) string {
+		req := fullApplyRequest(t)
+		req.Capabilities = &ctrlv1.DeploymentCapabilities{PrivateNetworking: true}
+		req.DeploymentId = deploymentID
+		host, ok := envValue(mainContainer(t, controller.buildDeployment(req, false)), "UNKEY_PRIVATE_DOMAIN")
+		require.True(t, ok)
+		return host
+	}
+
+	first, second := uid.New(uid.DeploymentPrefix), uid.New(uid.DeploymentPrefix)
+	require.Equal(t, selfHost(first), selfHost(first))
+	require.NotEqual(t, selfHost(first), selfHost(second))
 }
