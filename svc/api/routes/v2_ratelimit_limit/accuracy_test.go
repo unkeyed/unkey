@@ -1,7 +1,6 @@
 package v2RatelimitLimit_test
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"net/http"
@@ -9,8 +8,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
 )
@@ -64,20 +65,11 @@ func TestRateLimitAccuracy(t *testing.T) {
 										Auditlogs:       h.Auditlogs,
 									}
 									h.Register(route)
-									ctx := context.Background()
 
 									// Create a namespace
-									namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-									namespaceName := uid.New("test")
-									err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
-										ID:          namespaceID,
-										WorkspaceID: h.Resources().UserWorkspace.ID,
-										Name:        namespaceName,
-										CreatedAt:   time.Now().UnixMilli(),
-									})
-									require.NoError(t, err)
+									_, namespaceName := createNamespace(t, h)
 
-									rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, fmt.Sprintf("ratelimit.%s.limit", namespaceID))
+									rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").RatelimitNamespace("*"), permissions.Limit).Value)
 
 									headers := http.Header{
 										"Content-Type":  {"application/json"},

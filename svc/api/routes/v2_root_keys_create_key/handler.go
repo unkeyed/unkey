@@ -91,7 +91,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	keyID := uid.New(uid.KeyPrefix)
+	keyID := uid.New(uid.RootKeyPrefix)
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		var callerAllowlist ipallowlist.Allowlist

@@ -232,7 +232,8 @@ func TestToResponseIsCurrent(t *testing.T) {
 }
 
 func TestToResponseTrigger(t *testing.T) {
-	rootKeyID := uid.New(uid.KeyPrefix)
+	rootKeyID := uid.New(uid.RootKeyPrefix)
+	legacyRootKeyID := uid.New(uid.KeyPrefix)
 	userID := "user_" + uid.New(uid.TestPrefix)
 
 	cases := []struct {
@@ -245,6 +246,7 @@ func TestToResponseTrigger(t *testing.T) {
 		{name: "empty actor", trigger: db.DeploymentsTriggerApi, triggeredBy: sql.NullString{Valid: true, String: ""}, want: nil},
 		{name: "rebuild operator", trigger: db.DeploymentsTriggerUnkey, triggeredBy: sql.NullString{Valid: true, String: "unkey-ops"}, want: &openapi.DeploymentTriggerActor{Type: openapi.DeploymentTriggerActorTypeSystem, Id: "unkey-ops"}},
 		{name: "root key", trigger: db.DeploymentsTriggerCli, triggeredBy: sql.NullString{Valid: true, String: rootKeyID}, want: &openapi.DeploymentTriggerActor{Type: openapi.DeploymentTriggerActorTypeRootKey, Id: rootKeyID}},
+		{name: "legacy root key", trigger: db.DeploymentsTriggerApi, triggeredBy: sql.NullString{Valid: true, String: legacyRootKeyID}, want: &openapi.DeploymentTriggerActor{Type: openapi.DeploymentTriggerActorTypeRootKey, Id: legacyRootKeyID}},
 		{name: "user", trigger: db.DeploymentsTriggerDashboard, triggeredBy: sql.NullString{Valid: true, String: userID}, want: &openapi.DeploymentTriggerActor{Type: openapi.DeploymentTriggerActorTypeUser, Id: userID}},
 		{name: "user id prefix wins over the github trigger", trigger: db.DeploymentsTriggerGithub, triggeredBy: sql.NullString{Valid: true, String: userID}, want: &openapi.DeploymentTriggerActor{Type: openapi.DeploymentTriggerActorTypeUser, Id: userID}},
 		{name: "github login", trigger: db.DeploymentsTriggerGithub, triggeredBy: sql.NullString{Valid: true, String: "dana"}, want: &openapi.DeploymentTriggerActor{Type: openapi.DeploymentTriggerActorTypeGithub, Id: "dana"}},

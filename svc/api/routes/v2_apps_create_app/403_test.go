@@ -9,7 +9,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -44,17 +47,11 @@ func TestCreateAppForbidden(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
-		{name: "wildcard project permission", permissions: []string{"project.*.create_app"}, shouldPass: true},
-		{name: "specific project permission", permissions: []string{fmt.Sprintf("project.%s.create_app", project.ID)}, shouldPass: true},
-		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.create_app"}, shouldPass: true},
-		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
-		{name: "read does not grant create", permissions: []string{"project.*.read_app"}, shouldPass: false},
-		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style wildcard app permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*/apps/*#write"}, shouldPass: true},
-		{name: "urn style specific project permission", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#write"}, shouldPass: true},
-		{name: "urn style wrong action", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*/apps/*#read"}, shouldPass: false},
-		{name: "urn style other project", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + uid.New(uid.ProjectPrefix) + "/apps/*#write"}, shouldPass: false},
-		{name: "urn style project resource does not grant app create", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/*#write"}, shouldPass: false},
+		{name: "wildcard app permission", permissions: []string{rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Write).Value}, shouldPass: true},
+		{name: "specific project permission", permissions: []string{rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Write).Value}, shouldPass: true},
+		{name: "read does not grant create", permissions: []string{rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Read).Value}, shouldPass: false},
+		{name: "other project", permissions: []string{rbac.U(urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).App("*"), permissions.Write).Value}, shouldPass: false},
+		{name: "project resource does not grant app create", permissions: []string{rbac.U(urn.New().Workspace(workspace.ID).Project("*"), permissions.Write).Value}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 

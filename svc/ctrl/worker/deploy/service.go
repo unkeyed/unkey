@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"buf.build/gen/go/depot/api/connectrpc/go/depot/core/v1/corev1connect"
 	"k8s.io/client-go/kubernetes"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -96,6 +97,7 @@ type Workflow struct {
 	// Build dependencies
 	buildConfig                     BuildConfig
 	k8s                             kubernetes.Interface
+	depotProjects                   corev1connect.ProjectServiceClient
 	registryConfig                  RegistryConfig
 	buildPlatform                   BuildPlatform
 	clickhouse                      clickhouse.ClickHouse
@@ -137,6 +139,10 @@ type Config struct {
 	// build Jobs. Required when Build.Backend is [BuildBackendKubernetes],
 	// unused otherwise.
 	K8s kubernetes.Interface
+
+	// DepotProjects creates and resets the Depot projects builds run in.
+	// Required when Build.Backend is [BuildBackendDepot], unused otherwise.
+	DepotProjects corev1connect.ProjectServiceClient
 
 	// RegistryConfig provides credentials for the container registry.
 	RegistryConfig RegistryConfig
@@ -183,6 +189,11 @@ func New(cfg Config) (*Workflow, error) {
 			return nil, err
 		}
 	}
+	if cfg.Build.Backend == BuildBackendDepot {
+		if err := assert.NotNil(cfg.DepotProjects, "depot build backend requires a depot project client"); err != nil {
+			return nil, err
+		}
+	}
 
 	// Reclaim build workspaces orphaned by a previous crash. Runs before any
 	// handler is bound, so no live workspace can match.
@@ -199,6 +210,7 @@ func New(cfg Config) (*Workflow, error) {
 		github:                          cfg.GitHub,
 		buildConfig:                     cfg.Build,
 		k8s:                             cfg.K8s,
+		depotProjects:                   cfg.DepotProjects,
 		registryConfig:                  cfg.RegistryConfig,
 		buildPlatform:                   cfg.BuildPlatform,
 		clickhouse:                      cfg.Clickhouse,

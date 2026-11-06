@@ -249,7 +249,7 @@ func triggerActor(trigger db.DeploymentsTrigger, triggeredBy string) *openapi.De
 	switch {
 	case triggeredBy == deployactor.OpsID:
 		actorType = openapi.DeploymentTriggerActorTypeSystem
-	case strings.HasPrefix(triggeredBy, string(uid.KeyPrefix)+"_"):
+	case strings.HasPrefix(triggeredBy, string(uid.RootKeyPrefix)+"_"), strings.HasPrefix(triggeredBy, string(uid.KeyPrefix)+"_"):
 		actorType = openapi.DeploymentTriggerActorTypeRootKey
 	case strings.HasPrefix(triggeredBy, "user_"):
 		actorType = openapi.DeploymentTriggerActorTypeUser

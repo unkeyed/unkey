@@ -181,7 +181,7 @@ function EditablePolicyForm({
   return (
     <FormProvider {...form}>
       <form onSubmit={submit} className="flex h-full flex-col">
-        <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-3">
+        <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 pt-4 pb-3">
           <KeyFields ipAllowlistEnabled={ipAllowlistEnabled}>
             <PolicyList />
           </KeyFields>
@@ -206,7 +206,7 @@ function EditablePolicyForm({
 function LegacyKeyView({ draft, onAction }: { draft: LegacyRootKeyDraft } & ActionProps) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-3">
+      <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 pt-4 pb-3">
         <MigrationNotice />
         <FormInput label="Name" value={draft.name} readOnly />
         <div className="flex flex-col gap-2">
@@ -260,7 +260,7 @@ function MigrationNotice() {
 
 function DraftSkeleton() {
   return (
-    <div className="flex flex-col gap-6 px-6 py-3">
+    <div className="flex flex-col gap-6 px-6 pt-4 pb-3">
       <div className="flex flex-col gap-2">
         <Skeleton className="h-4 w-14" />
         <Skeleton className="h-9 w-full" />

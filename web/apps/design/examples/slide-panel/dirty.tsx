@@ -30,7 +30,7 @@ export default function SlidePanelDirty() {
           <SlidePanelTitle>Rename app</SlidePanelTitle>
           <SlidePanelCloseButton />
         </SlidePanelHeader>
-        <SlidePanelContent className="px-6 pb-6">
+        <SlidePanelContent className="px-6 pt-4 pb-6">
           <FormInput label="Name" value={name} onChange={(e) => setName(e.target.value)} />
         </SlidePanelContent>
       </SlidePanel>

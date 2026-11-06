@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildAppLinks, buildProjectLinks } from "../leaves";
 import { routes } from "./index";
 
 const ws = "acme";
@@ -113,9 +114,30 @@ describe("routes.projects.apps.new", () => {
 describe("app-scoped paths", () => {
   const scope = { workspaceSlug: ws, projectId, appId };
 
+  it.each([false, true])(
+    "shows active Connections in app navigation with metrics=%s",
+    (metrics) => {
+      const segments = ["projects", projectId, "apps", appId, "connections"];
+      const links = buildAppLinks(ws, projectId, appId, segments, { metrics, connections: true });
+      expect(links.find((link) => link.key === "connections")).toMatchObject({
+        label: "Connections",
+        href: "/acme/projects/proj_123/apps/app_456/connections",
+        isActive: true,
+      });
+      expect(
+        buildProjectLinks(ws, projectId, ["projects", projectId], { databases: false }).map(
+          (link) => link.key,
+        ),
+      ).not.toContain("connections");
+    },
+  );
+
   it("builds app leaf paths", () => {
     expect(routes.projects.apps.settings(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/settings",
+    );
+    expect(routes.projects.apps.connections(scope)).toBe(
+      "/acme/projects/proj_123/apps/app_456/connections",
     );
     expect(routes.projects.apps.deployments(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/deployments",
@@ -134,7 +156,7 @@ describe("app-scoped paths", () => {
     );
   });
 
-  it("asks the domains and policies pages to open their add flow", () => {
+  it("asks the domains, policies and connections pages to open their add flow", () => {
     expect(routes.projects.apps.domains({ ...scope, add: true })).toBe(
       "/acme/projects/proj_123/apps/app_456/domains?add=true",
     );
@@ -143,6 +165,12 @@ describe("app-scoped paths", () => {
     );
     expect(routes.projects.apps.policies({ ...scope, add: false })).toBe(
       "/acme/projects/proj_123/apps/app_456/policies",
+    );
+    expect(routes.projects.apps.connections({ ...scope, add: true })).toBe(
+      "/acme/projects/proj_123/apps/app_456/connections?add=true",
+    );
+    expect(routes.projects.apps.connections({ ...scope, add: false })).toBe(
+      "/acme/projects/proj_123/apps/app_456/connections",
     );
   });
 

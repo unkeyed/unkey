@@ -5,6 +5,7 @@ type Prefix string
 
 const (
 	KeyPrefix                 Prefix = "key"
+	RootKeyPrefix             Prefix = "rk"
 	APIPrefix                 Prefix = "api"
 	RequestPrefix             Prefix = "req"
 	WorkspacePrefix           Prefix = "ws"

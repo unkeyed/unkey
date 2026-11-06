@@ -32,6 +32,7 @@ export const RANGE_LABELS: Record<RangePreset, string> = {
 
 export type MetricUnit =
   | "requestsPerSecond"
+  | "queriesPerSecond"
   | "ratio"
   | "milliseconds"
   | "millicores"
@@ -84,6 +85,11 @@ function nonZero(format: (v: number) => string) {
 export const UNITS: Record<MetricUnit, UnitView> = {
   requestsPerSecond: {
     format: (v) => ({ value: decimal.format(v), unit: "req/s" }),
+    tick: nonZero(formatCompactQuantity),
+    yFloor: 1,
+  },
+  queriesPerSecond: {
+    format: (v) => ({ value: formatCompactQuantity(v), unit: "queries/s" }),
     tick: nonZero(formatCompactQuantity),
     yFloor: 1,
   },
