@@ -22,7 +22,7 @@ func TestKeyVerificationFailuresRollup(t *testing.T) {
 
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	now := time.Now().UnixMilli()
-	row := func(weight uint32, cacheResult string) schema.KeyVerificationFailure {
+	row := func(fingerprint uint64, weight uint32, cacheResult string) schema.KeyVerificationFailure {
 		return schema.KeyVerificationFailure{
 			RequestID:      uid.New(uid.RequestPrefix),
 			Time:           now,
@@ -39,6 +39,7 @@ func TestKeyVerificationFailuresRollup(t *testing.T) {
 			KeyID:          "",
 			KeySpaceID:     "",
 			KeyWorkspaceID: "",
+			KeyFingerprint: fingerprint,
 			KeyLength:      35,
 			KeyPrefix:      "",
 			KeyCharset:     "base58",
@@ -55,19 +56,21 @@ func TestKeyVerificationFailuresRollup(t *testing.T) {
 		Drop:          false,
 		OnFlushError:  nil,
 	})
-	buffer.Buffer(row(1, "miss"))
-	buffer.Buffer(row(1, "null"))
-	buffer.Buffer(row(100, "miss"))
+	buffer.Buffer(row(1, 1, "miss"))
+	buffer.Buffer(row(2, 1, "null"))
+	buffer.Buffer(row(3, 100, "miss"))
 	buffer.Close()
 
 	var got struct {
 		Count       uint64 `ch:"count"`
 		CacheMisses uint64 `ch:"cache_misses"`
+		Keys        uint64 `ch:"keys"`
 		Rows        uint64 `ch:"rows"`
 	}
 	ctx := ch.Context(context.Background(), ch.WithParameters(map[string]string{"ws": workspaceID}))
 	require.NoError(t, client.conn.QueryRow(ctx, `
 		SELECT sum(count) AS count, sum(cache_misses) AS cache_misses,
+			uniqCombined64Merge(key_fingerprints) AS keys,
 			(SELECT count() FROM default.key_verification_failures_raw_v1 WHERE workspace_id = {ws:String}) AS rows
 		FROM default.key_verification_failures_per_minute_v1
 		WHERE workspace_id = {ws:String}`,
@@ -76,4 +79,5 @@ func TestKeyVerificationFailuresRollup(t *testing.T) {
 	require.Equal(t, uint64(3), got.Rows)
 	require.Equal(t, uint64(102), got.Count)
 	require.Equal(t, uint64(101), got.CacheMisses)
+	require.Equal(t, uint64(3), got.Keys)
 }

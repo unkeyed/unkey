@@ -190,6 +190,7 @@ func (k *KeyVerifier) FailureSnapshot(p *principal.Principal) schema.KeyVerifica
 		KeyID:          k.Key.ID,
 		KeySpaceID:     k.Key.KeyAuthID,
 		KeyWorkspaceID: k.Key.WorkspaceID,
+		KeyFingerprint: 0,
 		KeyLength:      0,
 		KeyPrefix:      "",
 		KeyCharset:     "",

@@ -2,8 +2,10 @@ package keys
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"strings"
@@ -48,7 +50,7 @@ type failureSink struct {
 	rows []schema.KeyVerificationFailure
 }
 
-func newFailureRecorder(t *testing.T, clk clock.Clock, rowsPerSecond int) (*FailureRecorder, func() []schema.KeyVerificationFailure) {
+func newFailureRecorder(t *testing.T, clk clock.Clock, rowsPerSecond int, secret string) (*FailureRecorder, func() []schema.KeyVerificationFailure) {
 	t.Helper()
 
 	sink := &failureSink{}
@@ -67,9 +69,10 @@ func newFailureRecorder(t *testing.T, clk clock.Clock, rowsPerSecond int) (*Fail
 	})
 
 	r := NewFailureRecorder(FailureRecorderConfig{
-		Buffer:        buffer,
-		RowsPerSecond: rowsPerSecond,
-		Clock:         clk,
+		Buffer:            buffer,
+		FingerprintSecret: secret,
+		RowsPerSecond:     rowsPerSecond,
+		Clock:             clk,
 	})
 
 	return r, func() []schema.KeyVerificationFailure {
@@ -80,10 +83,45 @@ func newFailureRecorder(t *testing.T, clk clock.Clock, rowsPerSecond int) (*Fail
 	}
 }
 
+func expectedFingerprint(secret, workspaceID, rawKey string) uint64 {
+	sum := sha256.Sum256([]byte(rawKey))
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(workspaceID + "\x00" + base64.StdEncoding.EncodeToString(sum[:])))
+	return binary.BigEndian.Uint64(mac.Sum(nil)[:8])
+}
+
+func TestFailureRecorder_Fingerprint(t *testing.T) {
+	const secret = "failure-recorder-test-secret-0123456789"
+	const rawKey = "prod_3ZbWnLyqhUSv6fsfa2AzNdh8M"
+
+	r, rows := newFailureRecorder(t, clock.NewTestClock(), 100, secret)
+	r.Record(schema.KeyVerificationFailure{WorkspaceID: "ws_a"}, rawKey)     //nolint:exhaustruct
+	r.Record(schema.KeyVerificationFailure{WorkspaceID: "ws_a"}, rawKey)     //nolint:exhaustruct
+	r.Record(schema.KeyVerificationFailure{WorkspaceID: "ws_b"}, rawKey)     //nolint:exhaustruct
+	r.Record(schema.KeyVerificationFailure{WorkspaceID: "ws_a"}, rawKey+"x") //nolint:exhaustruct
+
+	got := rows()
+	require.Len(t, got, 4)
+	require.Equal(t, expectedFingerprint(secret, "ws_a", rawKey), got[0].KeyFingerprint)
+	require.Equal(t, got[0].KeyFingerprint, got[1].KeyFingerprint, "same key, same workspace")
+	require.Equal(t, expectedFingerprint(secret, "ws_b", rawKey), got[2].KeyFingerprint)
+	require.NotEqual(t, got[0].KeyFingerprint, got[2].KeyFingerprint, "same key, other workspace")
+	require.NotEqual(t, got[0].KeyFingerprint, got[3].KeyFingerprint, "other key")
+}
+
+func TestFailureRecorder_NoSecretLeavesFingerprintEmpty(t *testing.T) {
+	r, rows := newFailureRecorder(t, clock.NewTestClock(), 100, "")
+	r.Record(schema.KeyVerificationFailure{WorkspaceID: "ws_a"}, "prod_abcdefghijkmnopqrs") //nolint:exhaustruct
+
+	got := rows()
+	require.Len(t, got, 1)
+	require.Zero(t, got[0].KeyFingerprint)
+}
+
 func TestFailureRecorder_RecordsKeyShape(t *testing.T) {
 	const rawKey = "prod_3ZbWnLyqhUSv6fsfa2AzNdh8M"
 
-	r, rows := newFailureRecorder(t, clock.NewTestClock(), 100)
+	r, rows := newFailureRecorder(t, clock.NewTestClock(), 100, "")
 	r.Record(schema.KeyVerificationFailure{WorkspaceID: "ws_a"}, rawKey) //nolint:exhaustruct
 
 	got := rows()
@@ -96,7 +134,7 @@ func TestFailureRecorder_RecordsKeyShape(t *testing.T) {
 
 func TestFailureRecorder_SamplesAboveCap(t *testing.T) {
 	clk := clock.NewTestClock(time.Unix(1_800_000_000, 0))
-	r, rows := newFailureRecorder(t, clk, 10)
+	r, rows := newFailureRecorder(t, clk, 10, "failure-recorder-test-secret-0123456789")
 
 	// 10 full-weight rows, then 250 over the cap of which every 100th is kept.
 	for range 260 {
@@ -128,7 +166,7 @@ func TestFailureRecorder_NeverStoresRawKeyOrHash(t *testing.T) {
 		hex.EncodeToString(sum[:]),
 	}
 
-	r, rows := newFailureRecorder(t, clock.NewTestClock(), 100)
+	r, rows := newFailureRecorder(t, clock.NewTestClock(), 100, "failure-recorder-test-secret-0123456789")
 	r.Record(schema.KeyVerificationFailure{WorkspaceID: "ws_a"}, rawKey) //nolint:exhaustruct
 
 	got := rows()

@@ -582,9 +582,10 @@ func Run(ctx context.Context, cfg Config) error {
 		RatelimitEvents:  ratelimits,
 		KeyVerifications: keyVerifications,
 		KeyVerificationFailures: keys.NewFailureRecorder(keys.FailureRecorderConfig{
-			Buffer:        keyVerificationFailures,
-			RowsPerSecond: 1_000,
-			Clock:         clk,
+			Buffer:            keyVerificationFailures,
+			FingerprintSecret: cfg.ClickHouse.KeyFingerprintSecret,
+			RowsPerSecond:     1_000,
+			Clock:             clk,
 		}),
 		Clock:               clk,
 		Keys:                keySvc,

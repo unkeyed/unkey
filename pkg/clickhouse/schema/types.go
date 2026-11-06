@@ -69,6 +69,7 @@ type KeyVerificationFailure struct {
 	KeyID          string `ch:"key_id" json:"key_id"`
 	KeySpaceID     string `ch:"key_space_id" json:"key_space_id"`
 	KeyWorkspaceID string `ch:"key_workspace_id" json:"key_workspace_id"`
+	KeyFingerprint uint64 `ch:"key_fingerprint" json:"key_fingerprint"`
 	KeyLength      uint16 `ch:"key_length" json:"key_length"`
 	KeyPrefix      string `ch:"key_prefix" json:"key_prefix"`
 	KeyCharset     string `ch:"key_charset" json:"key_charset"`

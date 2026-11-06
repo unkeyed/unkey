@@ -166,8 +166,9 @@ func (h *Harness) RunAPI(config ApiConfig) *ApiCluster {
 				ReadonlyReplica: "",
 			},
 			ClickHouse: api.ClickHouseConfig{
-				URL:          h.chDSN,
-				AnalyticsURL: "",
+				URL:                  h.chDSN,
+				AnalyticsURL:         "",
+				KeyFingerprintSecret: "",
 			},
 			Observability: sharedconfig.Observability{
 				Tracing: nil,
