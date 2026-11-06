@@ -58,7 +58,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/go-containerregistry v0.20.7
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
-	github.com/klauspost/compress v1.19.1
+	github.com/klauspost/compress v1.20.3
 	github.com/moby/buildkit v0.26.3
 	github.com/moby/moby/client v0.5.1
 	github.com/oapi-codegen/nullable v1.1.0
@@ -136,7 +136,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Microsoft/hcsshim v0.14.0-rc.1 // indirect
 	github.com/TwiN/go-color v1.4.1 // indirect
-	github.com/andybalholm/brotli v1.2.2 // indirect
+	github.com/andybalholm/brotli v1.2.8 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
