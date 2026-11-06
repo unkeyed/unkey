@@ -82,7 +82,8 @@ func Attach(command *cli.Command, legacy string) {
 		}
 		_, operation, _ := strings.Cut(legacy, " ")
 		read := strings.HasPrefix(operation, "get-") || strings.HasPrefix(operation, "list-") || legacy == "keys whoami"
-		destructive := strings.HasPrefix(operation, "delete-") || strings.HasPrefix(operation, "remove-")
+		prunable := legacy == "environments set-environment-variables"
+		destructive := strings.HasPrefix(operation, "delete-") || strings.HasPrefix(operation, "remove-") || prunable
 		form := form{
 			prompt:        nil,
 			out:           os.Stderr,
@@ -146,19 +147,19 @@ func Attach(command *cli.Command, legacy string) {
 			return action(util.WithResourceLabels(ctx, labels), cmd)
 		}
 		if destructive {
-			cmd.Action = form.destructiveAction(cmd.Action, bodyFlag, schema, values, array, needsChanges)
+			cmd.Action = form.destructiveAction(cmd.Action, bodyFlag, schema, values, array, needsChanges, prunable)
 		}
 		cmd.Action = form.recoverValidation(cmd.Action, bodyFlag, schema, values, array, needsChanges, destructive)
 		return nil
 	}
 }
 
-func (f *form) destructiveAction(action cli.Action, body *cli.StringFlag, schema *Schema, values map[string]any, array, needsChanges bool) cli.Action {
+func (f *form) destructiveAction(action cli.Action, body *cli.StringFlag, schema *Schema, values map[string]any, array, needsChanges, prunable bool) cli.Action {
 	return func(ctx context.Context, cmd *cli.Command) (err error) {
 		if f.screen != nil {
 			defer func() { err = errors.Join(err, f.screen.finish()) }()
 		}
-		ctx = util.WithConfirmation(ctx, func(warning string) error {
+		confirm := func(warning string) error {
 			for field, selection := range f.selections {
 				id := strings.TrimPrefix(selection.Key, "id:")
 				if values[field] == id {
@@ -166,7 +167,7 @@ func (f *form) destructiveAction(action cli.Action, body *cli.StringFlag, schema
 				}
 			}
 			hideWarning := func() {}
-			if f.screen != nil {
+			if f.screen != nil && warning != "" {
 				hideWarning = f.section("confirmation", func(p palette) string {
 					return p.mark("!") + " " + warning + "\n"
 				})
@@ -180,9 +181,17 @@ func (f *form) destructiveAction(action cli.Action, body *cli.StringFlag, schema
 				return f.screen.finish()
 			}
 			return nil
-		})
+		}
+		ctx = util.WithConfirmation(ctx, confirm)
 		for {
-			err := action(ctx, cmd)
+			if prunable && values["prune"] != true {
+				err = confirm("")
+			} else {
+				err = nil
+			}
+			if err == nil {
+				err = action(ctx, cmd)
+			}
 			if !errors.Is(err, errReviewEdited) {
 				return err
 			}

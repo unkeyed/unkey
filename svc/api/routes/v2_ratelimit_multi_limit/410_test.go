@@ -20,6 +20,7 @@ func TestSoftDeletedNamespace(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
+		AuditLogBuffer: h.AuditLogBuffer,
 		Ratelimit:      h.Ratelimit,
 		DB:             h.DB,
 		NamespaceCache: h.Caches.RatelimitNamespace,

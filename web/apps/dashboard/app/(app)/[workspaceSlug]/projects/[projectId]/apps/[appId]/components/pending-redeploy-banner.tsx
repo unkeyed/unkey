@@ -4,48 +4,74 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { useGuardedNavigate } from "@/components/leave-guard";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import {
-  dismissSettingsBanner,
-  useSettingsBannerVisible,
+  dismissRedeployBanner,
+  showRedeployBanner,
+  useRedeployBannerVisible,
+  useRedeployScope,
 } from "@/lib/collections/deploy/pending-redeploy";
-import { useApp, useCurrentDeployment, useDeployActions } from "@/lib/deploy-data";
+import { type RedeployTarget, useDeployActions, useRedeployTargets } from "@/lib/deploy-data";
 import { routes } from "@/lib/navigation/routes";
+import { ENVIRONMENT_KIND } from "@/lib/queries/environments";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { cn } from "cn";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { GlowIcon } from "../components/glow-icon";
+
+const environmentList = new Intl.ListFormat("en", { type: "conjunction" });
 
 export function PendingRedeployBanner() {
   const { refetchDeployments, refetchApps } = useDeployActions();
-  const { data: app } = useApp();
-  const currentDeploymentId = app?.currentDeploymentId ?? null;
   const navigate = useGuardedNavigate();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
-  const visible = useSettingsBannerVisible();
-  const currentDeployment = useCurrentDeployment({ enabled: visible }).data ?? undefined;
+  const visible = useRedeployBannerVisible();
+  const scope = useRedeployScope();
+  const targets = useRedeployTargets(visible ? scope : null) ?? [];
+  const [mounted, setMounted] = useState(false);
 
-  const show = visible && !!currentDeployment;
+  useEffect(() => setMounted(true), []);
+
+  const show = visible && targets.length > 0;
 
   const redeploy = useMutation({
-    mutationFn: async (deployment: {
-      id: string;
-      projectId: string;
-      appId: string;
-      environmentId: string;
-    }) => {
-      const res = await getUnkeyClient().deployments.createDeploymentV3({
-        project: deployment.projectId,
-        app: deployment.appId,
-        environment: deployment.environmentId,
-        deployment: { deploymentId: deployment.id },
+    mutationFn: (targets: RedeployTarget[]) =>
+      Promise.allSettled(
+        targets.map(async ({ deployment }) => {
+          const res = await getUnkeyClient().deployments.createDeploymentV3({
+            project: deployment.projectId,
+            app: deployment.appId,
+            environment: deployment.environmentId,
+            deployment: { deploymentId: deployment.id },
+          });
+          return res.data.deploymentId;
+        }),
+      ),
+    onSuccess: async (results, targets) => {
+      const failure = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failure) {
+        const failed = targets.filter((_, i) => results[i].status === "rejected");
+        toast.error(
+          `Redeploy failed for ${environmentList.format(failed.map(({ environment }) => environment.slug))}`,
+          { description: getErrorMessage(failure.reason) },
+        );
+        showRedeployBanner(failed.map(({ environment }) => environment.id));
+      } else {
+        dismissRedeployBanner();
+      }
+      const started = targets.flatMap((target, i) => {
+        const result = results[i];
+        return result.status === "fulfilled" ? [{ target, deploymentId: result.value }] : [];
       });
-      return { deploymentId: res.data.deploymentId };
-    },
-    onSuccess: async (data) => {
-      if (!currentDeployment) {
+      const opened =
+        started.find(({ target }) => target.environment.kind === ENVIRONMENT_KIND.production) ??
+        started[0];
+      if (!opened) {
         return;
       }
       refetchDeployments();
@@ -53,32 +79,33 @@ export function PendingRedeployBanner() {
       navigate(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,
-          projectId: currentDeployment.projectId,
-          appId: currentDeployment.appId,
-          deploymentId: data.deploymentId,
+          projectId: opened.target.deployment.projectId,
+          appId: opened.target.deployment.appId,
+          deploymentId: opened.deploymentId,
         }),
       );
-      dismissSettingsBanner();
-    },
-    onError: (error) => {
-      toast.error("Redeploy failed", { description: getErrorMessage(error) });
     },
   });
 
   useEffect(
     function getDismissedAutomatically() {
-      if (!visible || !currentDeploymentId) {
+      if (!show) {
         return;
       }
-      const timer = setTimeout(() => dismissSettingsBanner(), 10_000);
+      const timer = setTimeout(() => dismissRedeployBanner(scope), 10_000);
       return () => {
         clearTimeout(timer);
       };
     },
-    [visible, currentDeploymentId],
+    [show, scope],
   );
 
-  return (
+  if (!mounted) {
+    return null;
+  }
+
+  // The app shell isolates page content in its own stacking context, under the sticky top nav.
+  return createPortal(
     <div
       aria-hidden={!show}
       inert={!show || undefined}
@@ -90,7 +117,7 @@ export function PendingRedeployBanner() {
       <div className="relative flex items-start gap-4 rounded-xl bg-raised p-4 shadow-floating w-100">
         <button
           type="button"
-          onClick={() => dismissSettingsBanner()}
+          onClick={() => dismissRedeployBanner()}
           className="absolute top-3 right-3 text-gray-9 hover:text-gray-11 transition-colors cursor-pointer"
           aria-label="Dismiss"
         >
@@ -106,7 +133,8 @@ export function PendingRedeployBanner() {
           <div className="flex flex-col gap-1 pr-5">
             <span className="text-sm font-semibold text-gray-12 leading-5">Changes detected</span>
             <span className="text-xs text-gray-11 leading-4">
-              Redeploy to apply your latest changes to production.
+              Redeploy to apply your latest changes to{" "}
+              {environmentList.format(targets.map(({ environment }) => environment.slug))}.
             </span>
           </div>
           <Button
@@ -120,9 +148,7 @@ export function PendingRedeployBanner() {
                 openPaywall();
                 return;
               }
-              if (currentDeployment) {
-                redeploy.mutate(currentDeployment);
-              }
+              redeploy.mutate(targets);
             }}
           >
             Redeploy
@@ -130,6 +156,7 @@ export function PendingRedeployBanner() {
         </div>
       </div>
       {planGate}
-    </div>
+    </div>,
+    document.body,
   );
 }

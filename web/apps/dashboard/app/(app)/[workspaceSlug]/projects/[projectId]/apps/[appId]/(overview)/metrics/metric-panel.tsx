@@ -77,7 +77,7 @@ function PanelBody({
         </div>
         <SlidePanelCloseButton />
       </SlidePanelHeader>
-      <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-2 pb-6">
+      <SlidePanelContent className="flex flex-col gap-6 overflow-y-auto px-6 pt-4 pb-6">
         <Card {...outdatedProps(panel.outdated)}>
           <dl className="grid grid-cols-4 border-b border-grayA-4">
             {STATS.map(({ key, label }) => (

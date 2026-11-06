@@ -111,21 +111,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   "*",
-			Action:       rbac.CreateApp,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Project,
-			ResourceID:   project.ID,
-			Action:       rbac.CreateApp,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*"),
-			permissions.Write,
-		),
+	err = principal.Authorize(rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*"),
+		permissions.Write,
 	))
 	if err != nil {
 		return err
@@ -133,16 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	var resolved *githubapp.Resolved
 	if req.Git != nil && req.Git.Repository != nil {
-		if err = principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.App,
-				ResourceID:   "*",
-				Action:       rbac.ConnectRepository,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*"),
-				permissions.Write,
-			),
+		if err = principal.Authorize(rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*"),
+			permissions.Write,
 		)); err != nil {
 			return err
 		}

@@ -1,12 +1,13 @@
 "use client";
 
-import { LoadError } from "@/components/load-error";
+import { ListViews } from "@/components/list-views";
+import { ResourceSearchInput, useListSearch } from "@/components/resource-search-input";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { listOf } from "@/lib/loadable/list";
+import { GRID_PAGE_SIZE } from "@/lib/list-limits";
+import { useShowMore } from "@/lib/loadable/list";
 import { readyOr } from "@/lib/loadable/loadable";
 import { routes } from "@/lib/navigation/routes";
 import { IconDatabaseOutline18, IconPlusOutline18 } from "@unkey/icons";
-import { match } from "@unkey/match";
 import {
   Button,
   EmptyState,
@@ -21,14 +22,14 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
-  ResourceList,
   toast,
 } from "@unkey/ui";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import type { ReactNode } from "react";
+import { DatabaseCard, DatabaseCardSkeleton } from "./database-card";
 import { DatabasePanel } from "./database-panel";
-import { DatabasesTable, DatabasesTableSkeleton } from "./databases-table";
+import { DATABASE_TABLE, DatabaseRow } from "./databases-table";
 import { useDeleteDatabase, useProjectDatabases } from "./use-project-databases";
 
 export default function DatabasesPage() {
@@ -39,6 +40,15 @@ export default function DatabasesPage() {
     "database",
     parseAsString.withOptions({ history: "replace" }),
   );
+  const search = useListSearch();
+  const needle = search.toLowerCase();
+  const list = useShowMore({
+    all: readyOr(databases, []),
+    isLoading: databases.status === "loading",
+    matches: (rows) => rows.filter((db) => db.name.toLowerCase().includes(needle)),
+    search,
+    pageSize: GRID_PAGE_SIZE,
+  });
   const scope = { workspaceSlug: workspace.slug, projectId };
   const createButton = (
     <Button
@@ -60,29 +70,19 @@ export default function DatabasesPage() {
         <PageHeaderActions>{createButton}</PageHeaderActions>
       </PageHeader>
       <PageBody className="flex-1">
-        {match(listOf(databases))
-          .with({ status: "loading" }, () => (
-            <ResourceList>
-              <DatabasesTableSkeleton />
-            </ResourceList>
-          ))
-          .with({ status: "failed" }, ({ error, retry }) => (
-            <ResourceList>
-              <LoadError
-                title="Could not load databases"
-                error={error}
-                frame="none"
-                onRetry={retry}
-              />
-            </ResourceList>
-          ))
-          .with({ status: "empty" }, () => <DatabasesEmpty action={createButton} />)
-          .with({ status: "ready" }, ({ rows }) => (
-            <ResourceList>
-              <DatabasesTable databases={rows} onSelect={setDatabaseId} />
-            </ResourceList>
-          ))
-          .exhaustive()}
+        <ListViews
+          list={list}
+          viewStorageKey="databases-view"
+          noun="databases"
+          failedTitle="Could not load databases"
+          empty={<DatabasesEmpty action={createButton} />}
+          controls={<ResourceSearchInput label="Search databases" placeholder="Search databases" />}
+          table={DATABASE_TABLE}
+          rowKey={(db) => db.id}
+          renderCard={(db) => <DatabaseCard db={db} onSelect={setDatabaseId} />}
+          renderRow={(db) => <DatabaseRow db={db} onSelect={setDatabaseId} />}
+          cardSkeleton={<DatabaseCardSkeleton />}
+        />
         <DatabasePanel
           db={readyOr(databases, []).find((db) => db.id === databaseId)}
           onClose={() => setDatabaseId(null)}

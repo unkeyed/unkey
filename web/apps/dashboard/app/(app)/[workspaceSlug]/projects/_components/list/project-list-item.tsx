@@ -7,6 +7,7 @@ import { routes } from "@/lib/navigation/routes";
 import type { Project } from "@/lib/queries/projects";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { Skeleton } from "@unkey/ui";
+import Link from "next/link";
 import { DeployedAgo } from "../../[projectId]/_components/apps-list/app-source";
 import {
   type WarmHandlers,
@@ -73,8 +74,12 @@ export function ProjectRowItem({ project, name }: ProjectItemProps) {
     <ListTableRow
       ref={ref}
       table={PROJECT_TABLE}
-      href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId: project.id })}
       label={`View ${name} project`}
+      link={
+        <Link
+          href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId: project.id })}
+        />
+      }
       {...warm}
       cells={{
         project: (

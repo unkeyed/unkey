@@ -104,6 +104,9 @@ export const unkeyAuditLogEvents = z.enum([
   "portal.domain.create",
   "portal.domain.delete",
   "portal.domain.verify",
+  "cli.session.create",
+  "cli.session.refresh",
+  "cli.session.revoke",
 ]);
 
 export const auditLogSchemaV1 = z.object({

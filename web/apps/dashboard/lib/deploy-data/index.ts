@@ -34,8 +34,10 @@ export {
   useCurrentDeployment,
   useDeployment,
   useDeploymentsPage,
+  type RedeployTarget,
   useProductionDeployments,
   useRecentDeployments,
+  useRedeployTargets,
   warmDeploymentsPage,
 } from "./deployments";
 export { useCustomDomainMutations } from "./queries";

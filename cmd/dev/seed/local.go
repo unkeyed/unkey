@@ -84,7 +84,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 	userKeySpaceID := fmt.Sprintf("ks_%s", slug)
 	userApiID := fmt.Sprintf("api_%s", slug)
 
-	rootKeyID := uid.New(uid.KeyPrefix)
+	rootKeyID := uid.New(uid.RootKeyPrefix)
 	keyResult, err := keyService.CreateKey(ctx, keys.CreateKeyRequest{
 		Prefix:     "unkey",
 		ByteLength: 16,
