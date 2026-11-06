@@ -285,6 +285,60 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			wantErr: "policies[0].ratelimit.identifiers[1] must set exactly one of",
 		},
 		{
+			name: "subject rate limit without keyauth",
+			policies: []openapi.Policy{
+				{Name: "r", Enabled: true, Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifier: &openapi.RatelimitIdentifier{AuthenticatedSubject: &openapi.AuthenticatedSubjectKey{}},
+				}},
+			},
+			wantErr: "policies[0] limits by authenticatedSubject or principalField",
+		},
+		{
+			name: "compound principal rate limit before keyauth",
+			policies: []openapi.Policy{
+				{Name: "r", Enabled: true, Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifiers: &[]openapi.RatelimitIdentifier{
+						{Path: &openapi.PathKey{}},
+						{PrincipalField: &openapi.PrincipalFieldKey{Path: "org"}},
+					},
+				}},
+				{Name: "k", Enabled: true, Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{"ks_1"}}},
+			},
+			wantErr: "policies[0] limits by authenticatedSubject or principalField",
+		},
+		{
+			name: "subject rate limit after a disabled keyauth",
+			policies: []openapi.Policy{
+				{Name: "k", Enabled: false, Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{"ks_1"}}},
+				{Name: "r", Enabled: true, Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifier: &openapi.RatelimitIdentifier{AuthenticatedSubject: &openapi.AuthenticatedSubjectKey{}},
+				}},
+			},
+			wantErr: "policies[1] limits by authenticatedSubject or principalField",
+		},
+		{
+			name: "subject rate limit after keyauth",
+			policies: []openapi.Policy{
+				{Name: "k", Enabled: true, Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{"ks_1"}}},
+				{Name: "r", Enabled: true, Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifier: &openapi.RatelimitIdentifier{AuthenticatedSubject: &openapi.AuthenticatedSubjectKey{}},
+				}},
+			},
+		},
+		{
+			name: "disabled subject rate limit without keyauth",
+			policies: []openapi.Policy{
+				{Name: "r", Enabled: false, Ratelimit: &openapi.RatelimitPolicy{
+					Limit: 10, WindowMs: 1000,
+					Identifier: &openapi.RatelimitIdentifier{AuthenticatedSubject: &openapi.AuthenticatedSubjectKey{}},
+				}},
+			},
+		},
+		{
 			name: "error names the failing index",
 			policies: []openapi.Policy{
 				{Name: "ok", Enabled: true, Firewall: firewall},
