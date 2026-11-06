@@ -82,6 +82,10 @@ func suspendGenerationKey(period string) string {
 	return "spend_suspend_generation:" + period
 }
 
+func pendingStoppedAlertKey(period string) string {
+	return "spend_pending_stopped_alert:" + period
+}
+
 // underBudgetStreakKey counts consecutive ticks seen under budget while
 // suspended (and still stop-enabled), scoped to a billing period. A spend-driven
 // resume waits for resumeConfirmations of them: gross month-to-date only grows
@@ -174,18 +178,13 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 	restate.Clear(ctx, alertHighWaterKey(prev.Key()))
 	restate.Clear(ctx, suspendGenerationKey(prev.Key()))
 	restate.Clear(ctx, underBudgetStreakKey(prev.Key()))
+	restate.Clear(ctx, pendingStoppedAlertKey(prev.Key()))
 
 	if req.GetBudgetCents() <= 0 {
 		if req.GetCurrentlySuspended() {
-			// Budget was removed while suspended: nothing caps spend anymore, so
-			// bring compute back and clear the flag.
-			hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
-				Resume().
-				Send(&hydrav1.ResumeRequest{})
-			if err := h.setSuspended(ctx, workspaceID, false); err != nil {
-				return nil, fmt.Errorf("clear spend-suspended: %w", err)
+			if err := h.resume(ctx, workspaceID, req.GetPeriod()); err != nil {
+				return nil, err
 			}
-			restate.Clear(ctx, underBudgetStreakKey(req.GetPeriod()))
 			logger.Info("deploy spend cap: resumed after budget removed",
 				"workspace_id", workspaceID)
 		}
@@ -263,104 +262,88 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 	// workspace opted into stopping; resume when spend falls back under budget,
 	// stopping is turned off, or the period rolls.
 	switch {
-	case willSuspend:
-		// Skip enforcement when the plan was cancelled after the snapshot that
-		// dispatched this check: suspending a plan-less workspace re-sets
-		// deploy_spend_suspended that deprovisionCompute just cleared and strands
-		// it, so a later resubscribe starts blocked. Nothing is running to stop.
-		entitled, err := h.hasActiveDeployPlan(ctx, workspaceID)
-		if err != nil {
-			return nil, err
-		}
-		if !entitled {
-			logger.Info("deploy spend cap: skipping suspend for workspace with no active plan",
-				"workspace_id", workspaceID, "billing_period", req.GetPeriod())
-			return &hydrav1.CheckWorkspaceSpendResponse{}, nil
-		}
+	case req.GetStop() && gross >= budgetMicroCents:
+		if !suspended {
+			entitled, err := h.hasActiveDeployPlan(ctx, workspaceID)
+			if err != nil {
+				return nil, err
+			}
+			if !entitled {
+				logger.Info("deploy spend cap: skipping suspend for workspace with no active plan",
+					"workspace_id", workspaceID, "billing_period", req.GetPeriod())
+				return &hydrav1.CheckWorkspaceSpendResponse{}, nil
+			}
 
-		logger.Info("deploy spend threshold crossed",
-			"workspace_id", workspaceID,
-			"billing_period", req.GetPeriod(),
-			"threshold", int32(100),
-			"gross_cents", gross/deploybilling.MicroCentsPerCent,
-			"budget_cents", req.GetBudgetCents(),
-			"stop", req.GetStop(),
-		)
+			logger.Info("deploy spend threshold crossed",
+				"workspace_id", workspaceID,
+				"billing_period", req.GetPeriod(),
+				"threshold", int32(100),
+				"gross_cents", gross/deploybilling.MicroCentsPerCent,
+				"budget_cents", req.GetBudgetCents(),
+				"stop", req.GetStop(),
+			)
 
-		// Persist the flag before teardown so new deployments are blocked
-		// immediately; then stop running compute.
-		if err := h.setSuspended(ctx, workspaceID, true); err != nil {
-			return nil, fmt.Errorf("set spend-suspended: %w", err)
+			genKey := suspendGenerationKey(req.GetPeriod())
+			generation, err := restate.Get[int32](ctx, genKey)
+			if err != nil {
+				return nil, fmt.Errorf("get suspend generation: %w", err)
+			}
+			generation++
+			restate.Set(ctx, genKey, generation)
+			restate.Set(ctx, pendingStoppedAlertKey(req.GetPeriod()), &budgetAlert{
+				WorkspaceID:     workspaceID,
+				Period:          req.GetPeriod(),
+				OrgID:           req.GetOrgId(),
+				WorkspaceName:   req.GetWorkspaceName(),
+				WorkspaceSlug:   req.GetWorkspaceSlug(),
+				Threshold:       100,
+				SpendMicroCents: gross,
+				BudgetCents:     req.GetBudgetCents(),
+				Year:            now.Year(),
+				Suspension:      generation,
+			})
+
+			if err := h.setSuspended(ctx, workspaceID, true); err != nil {
+				return nil, fmt.Errorf("set spend-suspended: %w", err)
+			}
+			suspended = true
 		}
-		suspended = true
-		// A fresh suspension starts a clean resume streak.
 		restate.Clear(ctx, underBudgetStreakKey(req.GetPeriod()))
 
-		hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
+		result, err := awaitEnforcement(ctx, hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
 			Teardown().
-			Send(&hydrav1.TeardownRequest{Mode: hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND})
+			RequestFuture(&hydrav1.TeardownRequest{Mode: hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND}))
+		if err != nil {
+			return nil, fmt.Errorf("suspend compute: %w", err)
+		}
+		if !result.GetDrained() {
+			return nil, restate.TerminalErrorf("spend-cap teardown did not drain compute")
+		}
 
 		logger.Info("deploy spend cap: suspended compute",
 			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
 			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
 
-		// Journaled read+write: a replay reuses this generation and dedupes at
-		// Resend; a later suspension reads a higher value and sends.
-		genKey := suspendGenerationKey(req.GetPeriod())
-		generation, err := restate.Get[int32](ctx, genKey)
+		pendingAlert, err := restate.Get[*budgetAlert](ctx, pendingStoppedAlertKey(req.GetPeriod()))
 		if err != nil {
-			return nil, fmt.Errorf("get suspend generation: %w", err)
+			return nil, fmt.Errorf("get pending stopped alert: %w", err)
 		}
-		generation++
-		restate.Set(ctx, genKey, generation)
-
-		err = h.stoppedAlert(ctx, budgetAlert{
-			WorkspaceID:     workspaceID,
-			Period:          req.GetPeriod(),
-			OrgID:           req.GetOrgId(),
-			WorkspaceName:   req.GetWorkspaceName(),
-			WorkspaceSlug:   req.GetWorkspaceSlug(),
-			Threshold:       100,
-			SpendMicroCents: gross,
-			BudgetCents:     req.GetBudgetCents(),
-			Year:            now.Year(),
-			Suspension:      generation,
-		})
-		if err != nil {
+		if pendingAlert == nil {
+			break
+		}
+		if err := h.stoppedAlert(ctx, *pendingAlert); err != nil {
 			return nil, err
 		}
 		restate.Set(ctx, stateKey, gross)
+		restate.Clear(ctx, pendingStoppedAlertKey(req.GetPeriod()))
 		alerted = crossed
 
 	case suspended && !req.GetStop():
-		// Stopping was turned off while suspended: a deliberate user action, so
-		// resume immediately without waiting for the under-budget streak.
-		hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
-			Resume().
-			Send(&hydrav1.ResumeRequest{})
-		if err := h.setSuspended(ctx, workspaceID, false); err != nil {
-			return nil, fmt.Errorf("clear spend-suspended: %w", err)
+		if err := h.resume(ctx, workspaceID, req.GetPeriod()); err != nil {
+			return nil, err
 		}
 		suspended = false
-		restate.Clear(ctx, underBudgetStreakKey(req.GetPeriod()))
 		logger.Info("deploy spend cap: resumed compute (stop disabled)",
-			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
-			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
-
-	case suspended && gross >= budgetMicroCents:
-		// Still at or over budget (stop is on; the stop-disabled case above ran
-		// otherwise). Reset the resume streak: spend is back over the cap, so any
-		// earlier under-budget tick was a transient underread, not a real drop.
-		restate.Clear(ctx, underBudgetStreakKey(req.GetPeriod()))
-		// The flag can say stopped while compute still runs (kill before the
-		// teardown send, drain grace expired, create racing the gate). Re-send
-		// Teardown: it early-returns when nothing runs and merges into the
-		// recorded suspension state so previously stopped apps stay resumable.
-		// No email, no flag change: enforcement catching up, not a transition.
-		hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
-			Teardown().
-			Send(&hydrav1.TeardownRequest{Mode: hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND})
-		logger.Info("deploy spend cap: re-enforced suspension",
 			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
 			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
 
@@ -385,14 +368,10 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 			break
 		}
 
-		hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
-			Resume().
-			Send(&hydrav1.ResumeRequest{})
-		if err := h.setSuspended(ctx, workspaceID, false); err != nil {
-			return nil, fmt.Errorf("clear spend-suspended: %w", err)
+		if err := h.resume(ctx, workspaceID, req.GetPeriod()); err != nil {
+			return nil, err
 		}
 		suspended = false
-		restate.Clear(ctx, streakKey)
 		logger.Info("deploy spend cap: resumed compute",
 			"workspace_id", workspaceID, "billing_period", req.GetPeriod(),
 			"gross_cents", gross/deploybilling.MicroCentsPerCent, "budget_cents", req.GetBudgetCents())
@@ -404,4 +383,32 @@ func (h *CheckHandler) CheckWorkspaceSpend(
 		Alerted:          sentAlert,
 		Suspended:        suspended,
 	}, nil
+}
+
+func (h *CheckHandler) resume(ctx restate.ObjectContext, workspaceID, period string) error {
+	_, err := awaitEnforcement(ctx, hydrav1.NewDeployTeardownServiceClient(ctx, workspaceID).
+		Resume().RequestFuture(&hydrav1.ResumeRequest{}))
+	if err != nil {
+		return fmt.Errorf("resume compute: %w", err)
+	}
+	if err := h.setSuspended(ctx, workspaceID, false); err != nil {
+		return fmt.Errorf("clear spend-suspended: %w", err)
+	}
+	restate.Clear(ctx, underBudgetStreakKey(period))
+	restate.Clear(ctx, pendingStoppedAlertKey(period))
+	return nil
+}
+
+func awaitEnforcement[T any](ctx restate.Context, response restate.ResponseFuture[T]) (T, error) {
+	timeout := restate.After(ctx, 10*time.Minute)
+	finished, err := restate.WaitFirst(ctx, response, timeout)
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+	if finished == timeout {
+		var zero T
+		return zero, restate.TerminalErrorf("timed out waiting for spend-cap enforcement")
+	}
+	return response.Response()
 }
