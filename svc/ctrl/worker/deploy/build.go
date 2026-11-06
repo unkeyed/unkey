@@ -212,6 +212,14 @@ type gitBuildParams struct {
 	EnvironmentID                 string
 }
 
+// isForkBuild reports whether the build runs instructions we do not trust.
+// PrNumber > 0 is a live fork PR (clones the base via refs/pull/<n>/head);
+// ForkRepository != "" is a dashboard deploy of a fork ref by SHA (clones the
+// fork directly).
+func (p gitBuildParams) isForkBuild() bool {
+	return p.PrNumber > 0 || p.ForkRepository != ""
+}
+
 // gitBuildContext carries the inputs that the shared git-build scaffold
 // resolves identically for every build method: Dockerfile and Railpack
 // builders receive it and only implement what differentiates them.
@@ -264,11 +272,7 @@ func (w *Workflow) runGitBuild(
 	}
 
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*buildResult, error) {
-		// A fork build runs build instructions we do not trust. PrNumber > 0
-		// is a live fork PR (clones the base via refs/pull/<n>/head);
-		// ForkRepository != "" is a dashboard deploy of a fork ref by SHA
-		// (clones the fork directly).
-		isForkBuild := params.PrNumber > 0 || params.ForkRepository != ""
+		isForkBuild := params.isForkBuild()
 
 		// tokenless means no GIT_AUTH_TOKEN secret is registered, so
 		// fork-controlled build instructions cannot mount a GitHub credential.
@@ -428,6 +432,15 @@ func (w *Workflow) withBuildkit(
 	if w.buildConfig.Backend == BuildBackendKubernetes {
 		return w.withKubernetesBuildkit(buildCtx, params, fn)
 	}
+	buildID, err := w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
+	if !errors.Is(err, errStaleGitRef) {
+		return buildID, err
+	}
+	// Reset terminates every machine on the project, so it runs only after
+	// withDepotBuildkit has released ours.
+	if resetErr := w.resetDepotProjectCache(buildCtx, depotProjectID); resetErr != nil {
+		return buildID, errors.Join(err, resetErr)
+	}
 	return w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
 }
 
@@ -513,16 +526,37 @@ func (w *Workflow) solveWithStatus(
 	// same sequence must not start numbering before this one is done
 	<-statusDrained
 	if err != nil {
-		// Context cancellations and timeouts are transient — let Restate retry.
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("build interrupted: %w", err)
-		}
-		if isTransientSolveError(err) {
-			return fmt.Errorf("build hit a transient registry error: %w", err)
-		}
-		return restate.ToTerminalError(fmt.Errorf("build failed: %w", err))
+		return classifySolveError(err, params)
 	}
 	return nil
+}
+
+func classifySolveError(err error, params gitBuildParams) error {
+	// Context cancellations and timeouts are transient — let Restate retry.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("build interrupted: %w", err)
+	}
+	if isTransientSolveError(err) {
+		return fmt.Errorf("build hit a transient registry error: %w", err)
+	}
+	// A fork's Dockerfile can put any text in the solve error, for example
+	// through a RUN command or a custom syntax frontend, so only trusted builds
+	// may trigger a reset that terminates the project's other builds.
+	if !params.isForkBuild() && isStaleGitRefError(err) {
+		return fmt.Errorf("%w: %w", errStaleGitRef, err)
+	}
+	return restate.ToTerminalError(fmt.Errorf("build failed: %w", err))
+}
+
+// errStaleGitRef marks a solve that failed because the build machine's cached
+// clone holds a remote-tracking ref that collides with a remote branch, such as
+// origin/release/v1 after the branch was renamed to release. Git never
+// prunes the old ref on its own, so every later build of the project fails the
+// same way until the Depot project's cache is reset.
+var errStaleGitRef = errors.New("build cache holds a stale git ref")
+
+func isStaleGitRefError(err error) bool {
+	return strings.Contains(err.Error(), "some local refs could not be updated")
 }
 
 // transientSolveErrorSubstrings are status phrases registries return on
@@ -760,17 +794,8 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		return project.DepotProjectID.String, nil
 	}
 
-	httpClient := &http.Client{}
-	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			req.Header().Set("Authorization", "Bearer "+w.registryConfig.Password)
-			return next(ctx, req)
-		}
-	})
-
-	projectClient := corev1connect.NewProjectServiceClient(httpClient, w.buildConfig.Depot.APIUrl, connect.WithInterceptors(authInterceptor))
 	//nolint: exhaustruct // optional fields
-	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
+	createResp, err := w.depotProjects.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
 		RegionId: w.buildConfig.Depot.ProjectRegion,
 		//nolint: exhaustruct // missing fields is deprecated
@@ -804,6 +829,28 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		"project_name", projectName)
 
 	return depotProjectID, nil
+}
+
+func (w *Workflow) resetDepotProjectCache(ctx context.Context, depotProjectID string) error {
+	_, err := w.depotProjects.ResetProject(ctx, connect.NewRequest(&corev1.ResetProjectRequest{
+		ProjectId: depotProjectID,
+	}))
+	if err != nil {
+		return fmt.Errorf("failed to reset depot project cache: %w", err)
+	}
+	return nil
+}
+
+// NewDepotProjectClient returns a client for Depot's project API that
+// authenticates with the Depot organization token.
+func NewDepotProjectClient(apiURL, token string) corev1connect.ProjectServiceClient {
+	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			req.Header().Set("Authorization", "Bearer "+token)
+			return next(ctx, req)
+		}
+	})
+	return corev1connect.NewProjectServiceClient(&http.Client{}, apiURL, connect.WithInterceptors(authInterceptor))
 }
 
 // processBuildStatus consumes build status events from buildkit and writes
