@@ -124,9 +124,19 @@ var (
 		vec.Values("outcome", "updated", "conflict", "error"),
 	)
 
-	// PrivateNetworkCatalogRefreshesTotal counts catalog refreshes. A
-	// "bootstrap" refresh reads every running deployment after a CDC copy; an
-	// "update" refresh reads only the callers that changed rows may affect.
+	// PrivateNetworkSnapshotsTotal counts StreamPrivateNetworkState calls by
+	// result.
+	PrivateNetworkSnapshotsTotal = vec.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "control",
+			Name:      "private_network_snapshots_total",
+			Help:      "StreamPrivateNetworkState calls by outcome.",
+		},
+		vec.Values("result", "success", "unauthenticated", "unknown_cluster", "database_error", "unavailable", "send_error"),
+	)
+
+	// PrivateNetworkCatalogRefreshesTotal counts catalog refreshes by kind.
 	PrivateNetworkCatalogRefreshesTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",

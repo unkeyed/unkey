@@ -109,6 +109,7 @@ type catalogDeployment struct {
 	firstReady                               bool
 	disabled                                 bool
 	created                                  int64
+	port                                     int32
 	regions                                  []string
 }
 
@@ -130,6 +131,7 @@ func (f *catalogFixture) deploy(t *testing.T, d catalogDeployment) {
 		ForkRepositoryFullName: sql.NullString{String: d.fork, Valid: d.fork != ""},
 		Source:                 source,
 		Capabilities:           mysqltype.DeploymentCapabilities{PrivateNetworking: !d.disabled},
+		Port:                   d.port,
 	})
 	for _, region := range d.regions {
 		require.NoError(t, f.database().InsertDeploymentTopology(ctx, db.InsertDeploymentTopologyParams{
@@ -211,10 +213,10 @@ func (f *catalogFixture) seedDeployments(t *testing.T) {
 		{id: f.targetManualLatestFailed, app: f.target, environment: f.targetManual, branch: "manual", status: mysqltype.DeploymentsStatusFailed, desired: running, firstReady: true, created: 41},
 		{id: f.targetPinnedStopped, app: f.target, environment: f.targetPreview, branch: "pin", status: mysqltype.DeploymentsStatusStopped, desired: stopped, firstReady: true, created: 50},
 
-		{id: f.callerProdLive, app: f.caller, environment: f.callerProd, branch: "main", status: ready, firstReady: true, created: 9, regions: []string{f.region, f.region2}},
-		{id: f.callerProdDeploying, app: f.caller, environment: f.callerProd, branch: "main", status: mysqltype.DeploymentsStatusDeploying, created: 10},
+		{id: f.callerProdLive, app: f.caller, environment: f.callerProd, branch: "main", status: ready, firstReady: true, created: 9, port: 4000, regions: []string{f.region, f.region2}},
+		{id: f.callerProdDeploying, app: f.caller, environment: f.callerProd, branch: "main", status: mysqltype.DeploymentsStatusDeploying, created: 10, port: 4000},
 		{id: f.callerProdDisabled, app: f.caller, environment: f.callerProd, branch: "main", status: ready, firstReady: true, disabled: true, created: 8},
-		{id: f.targetLive, app: f.target, environment: f.targetProd, branch: "main", status: ready, firstReady: true, created: 20},
+		{id: f.targetLive, app: f.target, environment: f.targetProd, branch: "main", status: ready, firstReady: true, created: 20, port: 7946},
 		{id: f.foreignLive, workspace: f.otherWorkspace, project: f.foreignProject, app: f.foreign, environment: f.foreignProd, branch: "main", status: ready, firstReady: true, disabled: true, created: 60},
 		{id: f.unscheduledCaller1, workspace: f.unscheduledWorkspace, project: f.unscheduledProject, app: f.unscheduledCaller, environment: f.unscheduledEnv, status: ready, created: 1},
 		{id: f.unscheduledCaller2, workspace: f.unscheduledWorkspace, project: f.unscheduledProject, app: f.unscheduledCaller, environment: f.unscheduledEnv, status: ready, created: 1},
@@ -505,6 +507,7 @@ func TestListConnections(t *testing.T) {
 		require.Equal(t, f.targetPreviewOld, selected[f.previewConnection+"/"+f.callerPreviewOwn].GetTargetDeploymentId(), "branch matching selects only preview-kind deployments, never a production-kind custom environment")
 		require.Contains(t, selected, f.canaryConnection+"/"+f.callerCanaryOCI)
 		require.Empty(t, selected[f.canaryConnection+"/"+f.callerCanaryOCI].GetTargetDeploymentId(), "an explicit production-kind environment without the live deployment must not fall back to its newest ready build")
+		require.Equal(t, int32(7946), selected[f.productionConnection+"/"+f.callerProdLive].GetTargetPort(), "port comes from the target deployment")
 		for _, excluded := range []string{
 			f.crossWorkspaceConnection + "/" + f.callerProdLive, f.otherProjectConnection + "/" + f.callerProdLive,
 			f.previewConnection + "/" + f.callerUnapproved, f.previewConnection + "/" + f.callerWrongPlatform,

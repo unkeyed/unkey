@@ -130,6 +130,7 @@ func newHeartbeatService(t *testing.T, database db.Database, bearer, regionalDom
 		TopologyCache:  topologyCache,
 		InstanceEvents: batch.NewNoop[schema.InstanceEventV1](),
 		RegionalDomain: regionalDomain,
+		PrivateNetwork: unavailablePrivateNetwork{},
 	})
 	require.NoError(t, err)
 	return svc
