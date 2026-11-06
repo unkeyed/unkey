@@ -25,6 +25,9 @@ data:
     url = "http://vault:8060"
     token = "vault-test-token-123"
 
+    [private_network]
+    enabled = true
+
     # Tilt adds registry configuration when dev/.env.depot exists. Without
     # that section, Krane skips pull-secret creation for the local registry.
 
