@@ -60,6 +60,15 @@ type dataEnvironment struct {
 	NotFound Code
 }
 
+// dataConnection defines errors related to private app connection operations.
+type dataConnection struct {
+	// Conflict indicates the caller environment already connects to the target
+	// app or already uses the connection name.
+	Conflict Code
+	// NotFound indicates the requested connection does not exist.
+	NotFound Code
+}
+
 // dataDomain defines errors related to custom domain operations.
 type dataDomain struct {
 	// Duplicate indicates the domain is already attached to this workspace.
@@ -169,6 +178,7 @@ type UnkeyDataErrors struct {
 	Project            dataProject
 	App                dataApp
 	Environment        dataEnvironment
+	Connection         dataConnection
 	Domain             dataDomain
 	Deployment         dataDeployment
 	Policy             dataPolicy
@@ -224,6 +234,11 @@ var Data = UnkeyDataErrors{
 
 	Environment: dataEnvironment{
 		NotFound: Code{SystemUnkey, CategoryUnkeyData, "environment_not_found"},
+	},
+
+	Connection: dataConnection{
+		Conflict: Code{SystemUnkey, CategoryUnkeyData, "connection_conflict"},
+		NotFound: Code{SystemUnkey, CategoryUnkeyData, "connection_not_found"},
 	},
 
 	Domain: dataDomain{
