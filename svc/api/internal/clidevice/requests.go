@@ -1,6 +1,9 @@
 package clidevice
 
-import "github.com/unkeyed/unkey/pkg/auth/principal"
+import (
+	"github.com/unkeyed/unkey/pkg/auth/principal"
+	"github.com/unkeyed/unkey/pkg/db"
+)
 
 // StartRequest is an unauthenticated cli.startDeviceLogin call.
 type StartRequest struct {
@@ -96,6 +99,7 @@ type ListRequest struct {
 type SessionInfo struct {
 	ID          string
 	UserID      string
+	Kind        db.DeviceSessionsKind
 	DeviceName  string
 	Permissions []string
 	CreatedAt   int64

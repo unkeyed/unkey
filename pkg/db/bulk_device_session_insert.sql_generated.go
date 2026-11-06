@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// bulkInsertCLISession is the base query for bulk insert
-const bulkInsertCLISession = `INSERT INTO cli_sessions ( id, workspace_id, user_id, user_name, permissions, device_name, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at ) VALUES %s`
+// bulkInsertDeviceSession is the base query for bulk insert
+const bulkInsertDeviceSession = `INSERT INTO device_sessions ( id, kind, workspace_id, user_id, user_name, permissions, device_name, oauth_client_id, resource, refresh_token_hash, refresh_family, created_at, last_used_at, expires_at ) VALUES %s`
 
-// InsertCLISessions performs bulk insert in a single query
-func (q *BulkQueries) InsertCLISessions(ctx context.Context, db DBTX, args []InsertCLISessionParams) error {
+// InsertDeviceSessions performs bulk insert in a single query
+func (q *BulkQueries) InsertDeviceSessions(ctx context.Context, db DBTX, args []InsertDeviceSessionParams) error {
 
 	if len(args) == 0 {
 		return nil
@@ -21,20 +21,23 @@ func (q *BulkQueries) InsertCLISessions(ctx context.Context, db DBTX, args []Ins
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
-	bulkQuery := fmt.Sprintf(bulkInsertCLISession, strings.Join(valueClauses, ", "))
+	bulkQuery := fmt.Sprintf(bulkInsertDeviceSession, strings.Join(valueClauses, ", "))
 
 	// Collect all arguments
 	var allArgs []any
 	for _, arg := range args {
 		allArgs = append(allArgs, arg.ID)
+		allArgs = append(allArgs, arg.Kind)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.UserID)
 		allArgs = append(allArgs, arg.UserName)
 		allArgs = append(allArgs, arg.Permissions)
 		allArgs = append(allArgs, arg.DeviceName)
+		allArgs = append(allArgs, arg.OauthClientID)
+		allArgs = append(allArgs, arg.Resource)
 		allArgs = append(allArgs, arg.RefreshTokenHash)
 		allArgs = append(allArgs, arg.RefreshFamily)
 		allArgs = append(allArgs, arg.CreatedAt)

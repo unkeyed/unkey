@@ -138,19 +138,8 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 			return nil
 		}
 
-		if err := db.Query.InsertCLISession(ctx, tx, db.InsertCLISessionParams{
-			ID:               sessionID,
-			WorkspaceID:      workspace.ID,
-			UserID:           locked.ApproverUserID.String,
-			UserName:         locked.ApproverName,
-			Permissions:      permsJSON,
-			DeviceName:       locked.DeviceName,
-			RefreshTokenHash: hashRefreshToken(refreshToken),
-			RefreshFamily:    family,
-			CreatedAt:        now,
-			LastUsedAt:       now,
-			ExpiresAt:        sessionExpiry(now, now),
-		}); err != nil {
+		session := newSession(locked, sessionID, workspace.ID, permsJSON, refreshToken, family, now)
+		if err := db.Query.InsertDeviceSession(ctx, tx, session); err != nil {
 			return err
 		}
 		n, err := db.Query.ConsumeDeviceAuthorization(ctx, tx, db.ConsumeDeviceAuthorizationParams{
@@ -170,7 +159,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
 			Event:         auditlog.CLISessionCreateEvent,
-			Display:       "Created CLI session " + sessionID,
+			Display:       "Created " + kindLabel(session.Kind) + " session " + sessionID,
 			WorkspaceID:   workspace.ID,
 			ActorType:     auditlog.UserActor,
 			ActorID:       locked.ApproverUserID.String,
@@ -184,7 +173,7 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 				ID:          sessionID,
 				Name:        locked.DeviceName.String,
 				DisplayName: locked.DeviceName.String,
-				Meta:        map[string]any{},
+				Meta:        map[string]any{"kind": string(session.Kind)},
 			}},
 		}}); err != nil {
 			return err
@@ -205,6 +194,31 @@ func (s *Service) issue(ctx context.Context, row db.DeviceAuthorization, remoteI
 		return nil
 	})
 	return result, err
+}
+
+// newSession is the only builder of device session rows. The grant that
+// created the session decides its kind.
+func newSession(grant db.DeviceAuthorization, id string, workspaceID string, permissions []byte, refreshToken string, refreshFamily string, now int64) db.InsertDeviceSessionParams {
+	return db.InsertDeviceSessionParams{
+		ID:               id,
+		Kind:             db.DeviceSessionsKindCli,
+		WorkspaceID:      workspaceID,
+		UserID:           grant.ApproverUserID.String,
+		UserName:         grant.ApproverName,
+		Permissions:      permissions,
+		DeviceName:       grant.DeviceName,
+		OauthClientID:    sql.NullString{String: "", Valid: false},
+		Resource:         sql.NullString{String: "", Valid: false},
+		RefreshTokenHash: hashRefreshToken(refreshToken),
+		RefreshFamily:    refreshFamily,
+		CreatedAt:        now,
+		LastUsedAt:       now,
+		ExpiresAt:        sessionExpiry(now, now),
+	}
+}
+
+func kindLabel(kind db.DeviceSessionsKind) string {
+	return strings.ToUpper(string(kind))
 }
 
 func approvalChanged(read db.DeviceAuthorization, locked db.DeviceAuthorization) bool {

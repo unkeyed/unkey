@@ -560,6 +560,24 @@ func (e V2CliDecideDeviceLoginRequestBody1Decision) Valid() bool {
 	}
 }
 
+// Defines values for V2CliSessionKind.
+const (
+	V2CliSessionKindCli V2CliSessionKind = "cli"
+	V2CliSessionKindMcp V2CliSessionKind = "mcp"
+)
+
+// Valid indicates whether the value is a known member of the V2CliSessionKind enum.
+func (e V2CliSessionKind) Valid() bool {
+	switch e {
+	case V2CliSessionKindCli:
+		return true
+	case V2CliSessionKindMcp:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
 const (
 	AWAITINGAPPROVAL V2DeployGetDeploymentResponseDataStatus = "AWAITING_APPROVAL"
@@ -3790,14 +3808,19 @@ type V2CliListSessionsResponseData struct {
 
 // V2CliListSessionsSession defines model for V2CliListSessionsSession.
 type V2CliListSessionsSession struct {
-	CreatedAt  int64   `json:"createdAt"`
+	CreatedAt int64 `json:"createdAt"`
+
+	// DeviceName The CLI machine's name, or the MCP client's self-reported name.
 	DeviceName *string `json:"deviceName,omitempty"`
 
 	// ExpiresAt Unix millisecond time the session expires. Each refresh moves it to 7 days later, but never past 30 days after createdAt.
-	ExpiresAt   int64    `json:"expiresAt"`
-	Id          string   `json:"id"`
-	LastUsedAt  int64    `json:"lastUsedAt"`
-	Permissions []string `json:"permissions"`
+	ExpiresAt int64  `json:"expiresAt"`
+	Id        string `json:"id"`
+
+	// Kind How the session started. cli is `unkey login`. mcp is an MCP client that signed in with OAuth.
+	Kind        V2CliSessionKind `json:"kind"`
+	LastUsedAt  int64            `json:"lastUsedAt"`
+	Permissions []string         `json:"permissions"`
 
 	// RevokedAt Unix millisecond time the session was revoked. Omitted when the session is still active.
 	RevokedAt *int64 `json:"revokedAt,omitempty"`
@@ -3818,6 +3841,9 @@ type V2CliRevokeSessionResponseBody struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// V2CliSessionKind How the session started. cli is `unkey login`. mcp is an MCP client that signed in with OAuth.
+type V2CliSessionKind string
 
 // V2CliStartDeviceLoginRequestBody defines model for V2CliStartDeviceLoginRequestBody.
 type V2CliStartDeviceLoginRequestBody struct {

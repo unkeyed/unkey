@@ -327,7 +327,7 @@ function Approved({ workspaceSlug }: { workspaceSlug: string }) {
           href={routes.settings.cliSessions({ workspaceSlug })}
           className="underline-offset-4 hover:text-gray-12 hover:underline"
         >
-          Manage CLI sessions
+          Manage sessions
         </Link>
         <span aria-hidden="true">·</span>
         <a

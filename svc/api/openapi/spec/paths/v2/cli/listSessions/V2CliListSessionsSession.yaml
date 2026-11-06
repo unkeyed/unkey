@@ -2,6 +2,7 @@ type: object
 required:
   - id
   - userId
+  - kind
   - permissions
   - createdAt
   - lastUsedAt
@@ -11,8 +12,11 @@ properties:
     type: string
   userId:
     type: string
+  kind:
+    $ref: ./V2CliSessionKind.yaml
   deviceName:
     type: string
+    description: The CLI machine's name, or the MCP client's self-reported name.
   permissions:
     type: array
     items:

@@ -26,7 +26,7 @@ func (s *Service) Allow(ctx context.Context, sessionID string) (clisession.Sessi
 		return verdict.Session, nil
 	}
 
-	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), sessionID)
+	row, err := db.Query.FindDeviceSessionByID(ctx, s.DB.RW(), sessionID)
 	if err != nil {
 		if db.IsNotFound(err) {
 			var inactive clisession.Session
@@ -74,18 +74,18 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		return err
 	}
 
-	row, err := db.Query.FindCLISessionByID(ctx, s.DB.RW(), strings.TrimSpace(req.SessionID))
+	row, err := db.Query.FindDeviceSessionByID(ctx, s.DB.RW(), strings.TrimSpace(req.SessionID))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return invalid("This CLI session was not found.")
+			return invalid("This session was not found.")
 		}
 		return err
 	}
 	if row.WorkspaceID != req.Principal.AuthorizedWorkspaceID {
-		return invalid("This CLI session was not found.")
+		return invalid("This session was not found.")
 	}
 	if row.UserID != req.Principal.Subject.ID && !isAdmin(req.Principal) {
-		return forbidden("You can only revoke your own CLI sessions.")
+		return forbidden("You can only revoke your own sessions.")
 	}
 	if row.RevokedAt.Valid {
 		s.SessionCache.Remove(ctx, row.ID)
@@ -93,7 +93,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 	}
 
 	return db.TxRetry(ctx, s.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		n, err := db.Query.RevokeCLISession(ctx, tx, db.RevokeCLISessionParams{
+		n, err := db.Query.RevokeDeviceSession(ctx, tx, db.RevokeDeviceSessionParams{
 			RevokedAt: sql.NullInt64{
 				Int64: s.Clock.Now().UnixMilli(),
 				Valid: true,
@@ -112,7 +112,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 		actor := auditactor.FromPrincipal(req.Principal)
 		if err := s.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
 			Event:         auditlog.CLISessionRevokeEvent,
-			Display:       "Revoked CLI session " + row.ID,
+			Display:       "Revoked " + kindLabel(row.Kind) + " session " + row.ID,
 			WorkspaceID:   row.WorkspaceID,
 			ActorType:     actor.Type,
 			ActorID:       actor.ID,
@@ -126,7 +126,7 @@ func (s *Service) Revoke(ctx context.Context, req RevokeRequest) error {
 				ID:          row.ID,
 				Name:        row.DeviceName.String,
 				DisplayName: row.DeviceName.String,
-				Meta:        map[string]any{},
+				Meta:        map[string]any{"kind": string(row.Kind)},
 			}},
 		}}); err != nil {
 			return err
@@ -142,16 +142,16 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 		return nil, err
 	}
 
-	var rows []db.CliSession
+	var rows []db.DeviceSession
 	var err error
 	now := s.Clock.Now().UnixMilli()
 	if isAdmin(req.Principal) {
-		rows, err = db.Query.ListCLISessionsByWorkspace(ctx, s.DB.RO(), db.ListCLISessionsByWorkspaceParams{
+		rows, err = db.Query.ListDeviceSessionsByWorkspace(ctx, s.DB.RO(), db.ListDeviceSessionsByWorkspaceParams{
 			WorkspaceID: req.Principal.AuthorizedWorkspaceID,
 			Now:         now,
 		})
 	} else {
-		rows, err = db.Query.ListCLISessionsByUser(ctx, s.DB.RO(), db.ListCLISessionsByUserParams{
+		rows, err = db.Query.ListDeviceSessionsByUser(ctx, s.DB.RO(), db.ListDeviceSessionsByUserParams{
 			WorkspaceID: req.Principal.AuthorizedWorkspaceID,
 			UserID:      req.Principal.Subject.ID,
 			Now:         now,
@@ -170,6 +170,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) ([]SessionInfo, err
 		info := SessionInfo{
 			ID:          row.ID,
 			UserID:      row.UserID,
+			Kind:        row.Kind,
 			DeviceName:  row.DeviceName.String,
 			Permissions: permissions,
 			CreatedAt:   row.CreatedAt,

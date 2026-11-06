@@ -3,8 +3,11 @@
 package components
 
 type V2CliListSessionsSession struct {
-	ID          string   `json:"id"`
-	UserID      string   `json:"userId"`
+	ID     string `json:"id"`
+	UserID string `json:"userId"`
+	// How the session started. cli is `unkey login`. mcp is an MCP client that signed in with OAuth.
+	Kind V2CliSessionKind `json:"kind"`
+	// The CLI machine's name, or the MCP client's self-reported name.
 	DeviceName  *string  `json:"deviceName,omitzero"`
 	Permissions []string `json:"permissions"`
 	CreatedAt   int64    `json:"createdAt"`
@@ -27,6 +30,13 @@ func (v *V2CliListSessionsSession) GetUserID() string {
 		return ""
 	}
 	return v.UserID
+}
+
+func (v *V2CliListSessionsSession) GetKind() V2CliSessionKind {
+	if v == nil {
+		return V2CliSessionKind("")
+	}
+	return v.Kind
 }
 
 func (v *V2CliListSessionsSession) GetDeviceName() *string {

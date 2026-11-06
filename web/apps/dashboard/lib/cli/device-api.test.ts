@@ -38,6 +38,7 @@ const sessionsResponse: V2CliListSessionsResponseBody = {
       {
         id: sessionId,
         userId: newId("test"),
+        kind: "cli",
         permissions,
         createdAt: 1_700_000_000_000,
         lastUsedAt: 1_700_000_100_000,

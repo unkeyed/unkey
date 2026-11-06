@@ -9,7 +9,7 @@ import { fromQuery } from "@/lib/loadable/loadable";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IconLaptop2Outline18, IconTerminalOutline18 } from "@unkey/icons";
+import { IconLaptop2Outline18, IconSparkle3Outline18, IconTerminalOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   AlertDialog,
@@ -46,7 +46,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "cn";
-import { Fragment, useState } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 
 type SessionState = "active" | "expired" | "revoked";
 
@@ -54,6 +54,11 @@ const STATES: Record<SessionState, { badge: string | null; label: string }> = {
   active: { badge: null, label: "Expires" },
   expired: { badge: "Expired", label: "Expired" },
   revoked: { badge: "Revoked", label: "Revoked" },
+};
+
+const KINDS: Record<CliSession["kind"], { badge: string; icon: ReactNode }> = {
+  cli: { badge: "CLI", icon: <IconLaptop2Outline18 /> },
+  mcp: { badge: "MCP", icon: <IconSparkle3Outline18 /> },
 };
 
 function sessionState(session: CliSession): SessionState {
@@ -73,7 +78,7 @@ export function CliSessions({ owners }: { owners: CliSessionOwner[] }) {
     <PageContainer>
       <PageHeader className="max-w-[920px]">
         <PageHeaderContent>
-          <PageHeaderTitle>CLI sessions</PageHeaderTitle>
+          <PageHeaderTitle>Sessions</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <PageBody className="max-w-[920px]">
@@ -103,7 +108,7 @@ function CliSessionResults({
   const revoke = useMutation({
     mutationFn: revokeCliSession,
     async onSuccess() {
-      toast.success("CLI session revoked.");
+      toast.success("Session revoked.");
       await queryClient.invalidateQueries({ queryKey });
     },
     onError(error) {
@@ -142,12 +147,7 @@ function CliSessionResults({
         .with({ status: "loading" }, () => <CliSessionsSkeleton />)
         .with({ status: "failed" }, ({ error, retry }) => (
           <ItemGroup variant="outline">
-            <LoadError
-              title="Could not load CLI sessions"
-              error={error}
-              frame="none"
-              onRetry={retry}
-            />
+            <LoadError title="Could not load sessions" error={error} frame="none" onRetry={retry} />
           </ItemGroup>
         ))
         .with({ status: "empty" }, () => <CliSessionsEmpty />)
@@ -163,7 +163,7 @@ function CliSessionResults({
               "bg-gray-8",
               rows.filter((session) => sessionState(session) !== "active"),
             )}
-            <ListPager state={footer} noun="CLI sessions" />
+            <ListPager state={footer} noun="sessions" />
           </>
         ))
         .exhaustive()}
@@ -202,14 +202,18 @@ function SessionItem({
   const state = sessionState(session);
   const { badge, label } = STATES[state];
   const endsAt = session.revokedAt ?? session.expiresAt;
+  const kind = KINDS[session.kind];
 
   return (
     <Item>
-      <ItemMedia className="bg-grayA-3 text-gray-11">
-        <IconLaptop2Outline18 />
-      </ItemMedia>
+      <ItemMedia className="bg-grayA-3 text-gray-11">{kind.icon}</ItemMedia>
       <ItemContent>
-        <ItemTitle>{session.deviceName || "Unknown device"}</ItemTitle>
+        <ItemTitle className="flex items-center gap-2">
+          <span className="truncate">{session.deviceName || "Unknown device"}</span>
+          <Badge variant="secondary" size="sm">
+            {kind.badge}
+          </Badge>
+        </ItemTitle>
         <ItemDescription>
           {match(owner)
             .with("hidden", () => null)
@@ -275,11 +279,10 @@ function RevokeSessionDialog({
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Revoke this CLI session?</AlertDialogTitle>
+          <AlertDialogTitle>Revoke this session?</AlertDialogTitle>
           <AlertDialogDescription>
-            The CLI on{" "}
             <span className="font-medium text-gray-12">
-              {session?.deviceName || "this unknown device"}
+              {session?.deviceName || "This unknown device"}
             </span>{" "}
             loses access right away.
           </AlertDialogDescription>
@@ -311,7 +314,7 @@ const SKELETON_ROWS = ["first", "second", "third"] as const;
 function CliSessionsSkeleton() {
   return (
     <ItemGroup variant="outline" aria-busy="true">
-      <output className="sr-only">Loading CLI sessions...</output>
+      <output className="sr-only">Loading sessions...</output>
       <div aria-hidden="true">
         {SKELETON_ROWS.map((row, index) => (
           <Fragment key={row}>
@@ -339,13 +342,13 @@ function CliSessionsEmpty() {
           <IconTerminalOutline18 />
         </EmptyStateIcon>
         <EmptyStateHeader>
-          <EmptyStateTitle>No CLI sessions yet</EmptyStateTitle>
+          <EmptyStateTitle>No sessions yet</EmptyStateTitle>
           <EmptyStateDescription>
             Run{" "}
             <code className="rounded-md bg-grayA-3 px-1.5 py-0.5 font-mono text-xs text-gray-12">
               unkey login
             </code>{" "}
-            to start one.
+            or connect an MCP client to start one.
           </EmptyStateDescription>
         </EmptyStateHeader>
       </EmptyState>
