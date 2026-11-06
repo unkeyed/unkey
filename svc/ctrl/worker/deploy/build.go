@@ -433,18 +433,15 @@ func (w *Workflow) withBuildkit(
 		return w.withKubernetesBuildkit(buildCtx, params, fn)
 	}
 	buildID, err := w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
-	if errors.Is(err, errStaleGitRef) {
-		// Reset terminates every machine on the project, so it runs only after
-		// withDepotBuildkit has released ours.
-		logger.Warn("resetting depot project cache after stale git ref",
-			"depot_project_id", depotProjectID,
-			"project_id", params.ProjectID,
-			"build_id", buildID)
-		if resetErr := w.resetDepotProjectCache(buildCtx, depotProjectID); resetErr != nil {
-			return buildID, errors.Join(err, resetErr)
-		}
+	if !errors.Is(err, errStaleGitRef) {
+		return buildID, err
 	}
-	return buildID, err
+	// Reset terminates every machine on the project, so it runs only after
+	// withDepotBuildkit has released ours.
+	if resetErr := w.resetDepotProjectCache(buildCtx, depotProjectID); resetErr != nil {
+		return buildID, errors.Join(err, resetErr)
+	}
+	return w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
 }
 
 // withDepotBuildkit creates a Depot build, acquires a remote BuildKit
@@ -798,7 +795,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 	}
 
 	//nolint: exhaustruct // optional fields
-	createResp, err := w.depotProjectClient().CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
+	createResp, err := w.depotProjects.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
 		RegionId: w.buildConfig.Depot.ProjectRegion,
 		//nolint: exhaustruct // missing fields is deprecated
@@ -835,7 +832,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 }
 
 func (w *Workflow) resetDepotProjectCache(ctx context.Context, depotProjectID string) error {
-	_, err := w.depotProjectClient().ResetProject(ctx, connect.NewRequest(&corev1.ResetProjectRequest{
+	_, err := w.depotProjects.ResetProject(ctx, connect.NewRequest(&corev1.ResetProjectRequest{
 		ProjectId: depotProjectID,
 	}))
 	if err != nil {
@@ -844,14 +841,16 @@ func (w *Workflow) resetDepotProjectCache(ctx context.Context, depotProjectID st
 	return nil
 }
 
-func (w *Workflow) depotProjectClient() corev1connect.ProjectServiceClient {
+// NewDepotProjectClient returns a client for Depot's project API that
+// authenticates with the Depot organization token.
+func NewDepotProjectClient(apiURL, token string) corev1connect.ProjectServiceClient {
 	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			req.Header().Set("Authorization", "Bearer "+w.registryConfig.Password)
+			req.Header().Set("Authorization", "Bearer "+token)
 			return next(ctx, req)
 		}
 	})
-	return corev1connect.NewProjectServiceClient(&http.Client{}, w.buildConfig.Depot.APIUrl, connect.WithInterceptors(authInterceptor))
+	return corev1connect.NewProjectServiceClient(&http.Client{}, apiURL, connect.WithInterceptors(authInterceptor))
 }
 
 // processBuildStatus consumes build status events from buildkit and writes

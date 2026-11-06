@@ -82,10 +82,7 @@ func TestResetDepotProjectCache(t *testing.T) {
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 
-	w := &Workflow{
-		buildConfig:    BuildConfig{Backend: BuildBackendDepot, Depot: DepotConfig{APIUrl: server.URL}},
-		registryConfig: RegistryConfig{Password: "depot_org_token"},
-	}
+	w := &Workflow{depotProjects: NewDepotProjectClient(server.URL, "depot_org_token")}
 
 	require.NoError(t, w.resetDepotProjectCache(context.Background(), "depot_project_1"))
 	require.Equal(t, []string{"depot_project_1"}, recorder.projectIDs)
