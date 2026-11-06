@@ -9,7 +9,7 @@ examples:
   byId:
     summary: Delete by id
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
   bySlug:
     summary: Delete by slug
     value:

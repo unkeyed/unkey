@@ -1,0 +1,61 @@
+package handler_test
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"testing"
+
+	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/uid"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_domain"
+)
+
+// ctrl trusts the portal id it is sent, so every miss must stop in the API.
+func TestCreatePortalDomainUnresolvedPortalNeverReachesCtrl(t *testing.T) {
+	f := setup(t)
+
+	other := f.h.CreateWorkspace()
+	otherMapping, _ := f.h.SeedKeyspaceMapping(t, other.ID)
+	foreign := f.h.SeedPortal(t, other.ID, "foreign", "foreign", otherMapping, nil, nil)
+
+	testCases := []struct {
+		name        string
+		portal      string
+		permissions []string
+	}{
+		{name: "unknown portal", portal: uid.New(uid.PortalPrefix), permissions: []string{f.grant("write")}},
+		{name: "portal in another workspace", portal: foreign.ID, permissions: []string{f.grant("write")}},
+		{name: "no permissions", portal: f.portal.ID, permissions: []string{}},
+		{name: "portal write without domains", portal: f.portal.ID, permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s#write", f.workspaceID, f.projectID, f.portal.ID)}},
+		{name: "domains on another portal", portal: f.portal.ID, permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/domains/*#write", f.workspaceID, f.projectID, uid.New(uid.PortalPrefix))}},
+		{name: "legacy tuple", portal: f.portal.ID, permissions: []string{"portal.*.update_portal"}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := f.call(t, handler.Request{Portal: tc.portal, Domain: randomDomain()}, tc.permissions...)
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+			require.Contains(t, res.RawBody, "Portal not found.")
+			require.NotContains(t, res.RawBody, f.portal.ID, "a masked denial must not disclose the portal id")
+		})
+	}
+
+	require.Empty(t, f.ctrl.AddPortalDomainCalls)
+}
+
+// ctrl re-checks the portal on the primary, so a portal deleted after the API's
+// lookup gets the same response as one that never existed.
+func TestCreatePortalDomainPortalDeletedBeforeCtrl(t *testing.T) {
+	f := setup(t)
+	f.ctrl.AddPortalDomainFunc = func(_ context.Context, _ *ctrlv1.AddPortalDomainRequest) (*ctrlv1.AddPortalDomainResponse, error) {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("portal not found"))
+	}
+
+	res := f.call(t, handler.Request{Portal: f.portal.ID, Domain: randomDomain()}, f.grant("write"))
+	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+	require.Contains(t, res.RawBody, "Portal not found.")
+}

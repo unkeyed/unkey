@@ -67,6 +67,7 @@ func TestSpecExcludesInternalPortalOperations(t *testing.T) {
 	}, excluded, "every excluded operation is accounted for")
 
 	public := []string{
+		"portal.createDomain",
 		"portal.createPortal",
 		"portal.createSession",
 		"portal.deletePortal",

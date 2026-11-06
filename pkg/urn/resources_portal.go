@@ -13,7 +13,8 @@ var portalPattern = compileResourcePattern(portalPathFormat)
 //	workspace
 //	└── projects/{project_id}
 //	    └── portals/{portal_id}
-//	        └── sessions/{session_id}
+//	        ├── sessions/{session_id}
+//	        └── domains/{domain_id}
 type Portal struct {
 	WorkspaceID string
 	ProjectID   string
@@ -65,5 +66,20 @@ func (p Portal) Session(sessionID string) PortalSession {
 		ProjectID:   p.ProjectID,
 		PortalID:    p.PortalID,
 		SessionID:   sessionID,
+	}
+}
+
+// Domain returns a portal domain resource path.
+//
+// Subresource:
+//
+//	portals/{portal_id}
+//	└── domains/{domain_id}
+func (p Portal) Domain(domainID string) PortalDomain {
+	return PortalDomain{
+		WorkspaceID: p.WorkspaceID,
+		ProjectID:   p.ProjectID,
+		PortalID:    p.PortalID,
+		DomainID:    domainID,
 	}
 }

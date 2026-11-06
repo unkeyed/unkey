@@ -19,7 +19,7 @@ examples:
   byId:
     summary: Revoke by portal id
     value:
-      portal: pc_1234abcd
+      portal: prt_1234abcd
       externalId: user_123
   bySlug:
     summary: Revoke by portal slug

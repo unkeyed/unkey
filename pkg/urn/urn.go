@@ -52,6 +52,7 @@ var resourcePathShapes = []resourcePathShape{
 	{resource: new(Key), segments: []string{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "keys", resourceIDSegment}},
 	{resource: new(Portal), segments: []string{"projects", resourceIDSegment, "portals", resourceIDSegment}},
 	{resource: portalSession{}, segments: []string{"projects", resourceIDSegment, "portals", resourceIDSegment, "sessions", resourceIDSegment}},
+	{resource: new(PortalDomain), segments: []string{"projects", resourceIDSegment, "portals", resourceIDSegment, "domains", resourceIDSegment}},
 	{resource: new(RatelimitNamespace), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment}},
 	{resource: new(RatelimitLogs), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "logs"}},
 	{resource: new(RatelimitOverride), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "overrides", resourceIDSegment}},

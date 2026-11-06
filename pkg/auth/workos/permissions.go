@@ -35,6 +35,9 @@ var developerPermissions = []resourcePermission{
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Delete)},
+	{resource: "projects/*/portals/*/domains/*", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "projects/*/portals/*/domains/*", action: rbac.ActionType(rbacpermissions.Write)},
+	{resource: "projects/*/portals/*/domains/*", action: rbac.ActionType(rbacpermissions.Delete)},
 
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Write)},
@@ -103,6 +106,7 @@ var viewerPermissions = []resourcePermission{
 	{resource: "logs/apiRequests", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "projects/*/portals/*/domains/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*", action: rbac.ActionType(rbacpermissions.Read)},

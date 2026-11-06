@@ -202,6 +202,9 @@ func (portalSession) permissionActions(bool) permissionActionSet {
 	return newPermissionActionSet(PermissionRead, PermissionWrite)
 }
 
+// permissionActions returns the read, write, and delete actions for portal domains.
+func (PortalDomain) permissionActions(bool) permissionActionSet { return readWriteDelete }
+
 // permissionActions returns every action supported by rate limit namespaces.
 func (RatelimitNamespace) permissionActions(bool) permissionActionSet { return namespaceActions }
 
