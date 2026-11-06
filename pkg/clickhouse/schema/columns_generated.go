@@ -13,6 +13,16 @@ func (KeyVerification) InsertColumns() string {
 }
 
 // Table implements [Row].
+func (KeyVerificationFailure) Table() string {
+	return "default.key_verification_failures_raw_v1"
+}
+
+// InsertColumns implements [Row]; derived from KeyVerificationFailure's ch tags.
+func (KeyVerificationFailure) InsertColumns() string {
+	return "`request_id`, `time`, `workspace_id`, `principal_type`, `root_key_id`, `region`, `source`, `ip_address`, `user_agent`, `outcome`, `reason`, `cache_result`, `key_id`, `key_space_id`, `key_workspace_id`, `key_length`, `key_prefix`, `key_charset`, `sample_weight`"
+}
+
+// Table implements [Row].
 func (Ratelimit) Table() string {
 	return "default.ratelimits_raw_v2"
 }

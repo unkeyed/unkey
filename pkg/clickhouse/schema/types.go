@@ -40,6 +40,43 @@ type KeyVerification struct {
 	Latency      float64  `ch:"latency" json:"latency"`
 }
 
+// KeyVerificationFailure is one verifyKey call that did not return VALID.
+// The table is internal: it feeds no customer analytics, billing, or log
+// drain, so it may hold the reasons and key IDs that callers must not see.
+// It never holds the raw key or its sha256 hash.
+//
+//unkey:table default.key_verification_failures_raw_v1
+type KeyVerificationFailure struct {
+	RequestID string `ch:"request_id" json:"request_id"`
+	Time      int64  `ch:"time" json:"time"`
+	// WorkspaceID is the caller's authorized workspace, not the key owner's.
+	WorkspaceID   string `ch:"workspace_id" json:"workspace_id"`
+	PrincipalType string `ch:"principal_type" json:"principal_type"`
+	// RootKeyID is the root key that made the call. It is empty for other
+	// principals.
+	RootKeyID string `ch:"root_key_id" json:"root_key_id"`
+	Region    string `ch:"region" json:"region"`
+	Source    string `ch:"source" json:"source"`
+	IPAddress string `ch:"ip_address" json:"ip_address"`
+	UserAgent string `ch:"user_agent" json:"user_agent"`
+	// Outcome is the code the caller received.
+	Outcome string `ch:"outcome" json:"outcome"`
+	// Reason is the internal cause, one of the keys.Reason values.
+	Reason      string `ch:"reason" json:"reason"`
+	CacheResult string `ch:"cache_result" json:"cache_result"`
+	// The key fields are set when the hash matched a key, including a key in
+	// another workspace.
+	KeyID          string `ch:"key_id" json:"key_id"`
+	KeySpaceID     string `ch:"key_space_id" json:"key_space_id"`
+	KeyWorkspaceID string `ch:"key_workspace_id" json:"key_workspace_id"`
+	KeyLength      uint16 `ch:"key_length" json:"key_length"`
+	KeyPrefix      string `ch:"key_prefix" json:"key_prefix"`
+	KeyCharset     string `ch:"key_charset" json:"key_charset"`
+	// SampleWeight is the number of failures this row stands for: 1 below the
+	// per-pod cap, more for a sampled row above it. Count with sum(sample_weight).
+	SampleWeight uint32 `ch:"sample_weight" json:"sample_weight"`
+}
+
 // Ratelimit represents the v2 ratelimit raw table structure.
 // This matches the ratelimits_raw_v2 table schema with additional
 // latency field compared to v1.
