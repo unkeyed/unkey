@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   bigint,
+  index,
   mysqlEnum,
   mysqlTable,
   unique,
@@ -160,6 +161,7 @@ export const rolesPermissions = mysqlTable(
       table.workspaceId,
     ),
     unique("unique_tuple_permission_id_role_id").on(table.permissionId, table.roleId),
+    index("idx_roles_permissions_on_workspace_id_role_id").on(table.workspaceId, table.roleId),
   ],
 );
 
@@ -197,6 +199,7 @@ export const keysRoles = mysqlTable(
       table.workspaceId,
     ),
     uniqueIndex("unique_key_id_role_id").on(table.keyId, table.roleId),
+    index("idx_keys_roles_on_workspace_id_role_id").on(table.workspaceId, table.roleId),
   ],
 );
 

@@ -10,3 +10,5 @@ CREATE TABLE `roles_permissions` (
 	CONSTRAINT `unique_tuple_permission_id_role_id` UNIQUE(`permission_id`,`role_id`)
 );
 
+CREATE INDEX `idx_roles_permissions_on_workspace_id_role_id` ON `roles_permissions` (`workspace_id`,`role_id`);
+
