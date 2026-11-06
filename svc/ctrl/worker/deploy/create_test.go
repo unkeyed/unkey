@@ -1841,10 +1841,10 @@ func (h *createHarness) setRuntimeBounds(t *testing.T, ctx context.Context, port
 
 func (h *createHarness) setCurrentDeployment(t *testing.T, ctx context.Context, deploymentID string) {
 	t.Helper()
-	require.NoError(t, h.database.SetAppCurrentDeployment(ctx, db.SetAppCurrentDeploymentParams{
-		DeploymentID: sql.NullString{Valid: true, String: deploymentID},
-		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		AppID:        h.appID,
+	require.NoError(t, h.database.SetEnvironmentCurrentDeployment(ctx, db.SetEnvironmentCurrentDeploymentParams{
+		DeploymentID:  sql.NullString{Valid: true, String: deploymentID},
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		EnvironmentID: h.environmentID,
 	}))
 }
 

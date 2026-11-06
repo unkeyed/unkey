@@ -223,8 +223,8 @@ type SwapLiveDeploymentRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId      string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	FrontlineRouteIds []string               `protobuf:"bytes,2,rep,name=frontline_route_ids,json=frontlineRouteIds,proto3" json:"frontline_route_ids,omitempty"`
-	// If true, sets apps.is_rolled_back = true (rollback semantics).
-	// If false, clears apps.is_rolled_back to false (deploy / promote semantics).
+	// If true, sets environments.is_rolled_back = true (rollback semantics).
+	// If false, clears environments.is_rolled_back (deploy / promote semantics).
 	SetRollbackFlag bool `protobuf:"varint,3,opt,name=set_rollback_flag,json=setRollbackFlag,proto3" json:"set_rollback_flag,omitempty"`
 	// Automatic deployments set this to prevent stale builds from replacing a
 	// newer deployment or undoing a rollback. Manual rollback and promote

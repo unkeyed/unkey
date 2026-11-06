@@ -38,7 +38,7 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 		ID: uid.New(uid.DeploymentPrefix), WorkspaceID: setup.Workspace.ID, ProjectID: setup.Project.ID,
 		AppID: setup.App.ID, EnvironmentID: setup.Environment.ID, Status: mysqltype.DeploymentsStatusReady,
 	})
-	setCurrentDeployment(t, h, setup.App.ID, live.ID)
+	setCurrentDeployment(t, h, setup.Environment.ID, live.ID)
 
 	res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{DeploymentId: previous.ID})
 	require.Equal(t, http.StatusInternalServerError, res.Status, "expected 500, received: %s", res.RawBody)

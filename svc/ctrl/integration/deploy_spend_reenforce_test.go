@@ -17,15 +17,15 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 )
 
-// setAppCurrent points an app's current deployment at dep, the precondition a
+// setEnvironmentCurrent points an environment's current deployment at dep, the precondition a
 // SUSPEND teardown needs to record (and Resume to restore) that deployment.
-func setAppCurrent(t *testing.T, h *Harness, appID, deploymentID string) {
+func setEnvironmentCurrent(t *testing.T, h *Harness, environmentID, deploymentID string) {
 	t.Helper()
-	require.NoError(t, h.DB.UpdateAppDeployments(h.Context(), db.UpdateAppDeploymentsParams{
+	require.NoError(t, h.DB.UpdateEnvironmentDeployments(h.Context(), db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: h.Now()},
-		AppID:               appID,
+		EnvironmentID:       environmentID,
 	}))
 }
 
@@ -44,7 +44,7 @@ func TestDeploySpendCheck_ReEnforcesLeakedCompute(t *testing.T) {
 		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
-	setAppCurrent(t, h, dep.AppID, dep.ID)
+	setEnvironmentCurrent(t, h, dep.EnvironmentID, dep.ID)
 
 	// Torn state: the column says suspended but compute is still running.
 	require.NoError(t, h.DB.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
@@ -74,7 +74,7 @@ func TestDeploySpendCheck_ReEnforcesLeakedCompute(t *testing.T) {
 	// Re-enforcement re-sent Teardown, which stops the leaked deployment
 	// (current cleared, desired_state stopped), exactly as the first suspend would.
 	require.Eventually(t, func() bool {
-		app, e := h.DB.FindAppById(ctx, dep.AppID)
+		app, e := h.DB.FindEnvironmentById(ctx, dep.EnvironmentID)
 		if e != nil || app.CurrentDeploymentID.Valid {
 			return false
 		}
@@ -103,7 +103,7 @@ func TestDeploySpendCheck_SkipsSuspendAfterCancel(t *testing.T) {
 		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
-	setAppCurrent(t, h, dep.AppID, dep.ID)
+	setEnvironmentCurrent(t, h, dep.EnvironmentID, dep.ID)
 
 	// Simulate the cancel that raced ahead of this check: deprovisionCompute
 	// clears the plan, so the workspace is no longer Deploy-entitled.
@@ -153,7 +153,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
-	setAppCurrent(t, h, dep1.AppID, dep1.ID)
+	setEnvironmentCurrent(t, h, dep1.EnvironmentID, dep1.ID)
 
 	tEnv := startSpendCheck(t, h.DB)
 	client := hydrav1.NewDeploySpendCheckServiceIngressClient(tEnv.Ingress(), dep1.WorkspaceID)
@@ -177,7 +177,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, r.GetSuspended())
 	require.Eventually(t, func() bool {
-		app, e := h.DB.FindAppById(ctx, dep1.AppID)
+		app, e := h.DB.FindEnvironmentById(ctx, dep1.EnvironmentID)
 		if e != nil || app.CurrentDeploymentID.Valid {
 			return false
 		}
@@ -192,7 +192,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 	require.NotEqual(t, dep1.AppID, dep2.AppID, "second deployment must be a distinct app")
-	setAppCurrent(t, h, dep2.AppID, dep2.ID)
+	setEnvironmentCurrent(t, h, dep2.EnvironmentID, dep2.ID)
 
 	// 3) Re-enforce: the re-teardown finds dep2 running and MERGES {app2: dep2}
 	//    into the recorded {app1: dep1}.
@@ -200,7 +200,7 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, r.GetSuspended())
 	require.Eventually(t, func() bool {
-		app, e := h.DB.FindAppById(ctx, dep2.AppID)
+		app, e := h.DB.FindEnvironmentById(ctx, dep2.EnvironmentID)
 		if e != nil || app.CurrentDeploymentID.Valid {
 			return false
 		}
@@ -223,8 +223,8 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, r.GetSuspended(), "budget raised above spend should resume")
 	require.Eventually(t, func() bool {
-		a1, e1 := h.DB.FindAppById(ctx, dep1.AppID)
-		a2, e2 := h.DB.FindAppById(ctx, dep2.AppID)
+		a1, e1 := h.DB.FindEnvironmentById(ctx, dep1.EnvironmentID)
+		a2, e2 := h.DB.FindEnvironmentById(ctx, dep2.EnvironmentID)
 		if e1 != nil || e2 != nil {
 			return false
 		}
@@ -246,7 +246,7 @@ func TestDeploySpendCheck_StalePeriodNoOp(t *testing.T) {
 		Region:       uid.DNS1035(12),
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
-	setAppCurrent(t, h, dep.AppID, dep.ID)
+	setEnvironmentCurrent(t, h, dep.EnvironmentID, dep.ID)
 
 	tEnv := startSpendCheck(t, h.DB)
 	client := hydrav1.NewDeploySpendCheckServiceIngressClient(tEnv.Ingress(), dep.WorkspaceID)

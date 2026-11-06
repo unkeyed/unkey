@@ -6,7 +6,11 @@ const suspensionKey = "suspension"
 
 // suspension records what a SUSPEND teardown stopped so Resume can restore it.
 type suspension struct {
-	// AppCurrent maps app_id -> the deployment_id that was that app's current
-	// deployment when it was suspended, so resume re-promotes exactly that one.
+	// EnvironmentCurrent maps environment_id -> the deployment_id that was that
+	// environment's current deployment when it was suspended, so resume
+	// re-promotes exactly that one.
+	EnvironmentCurrent map[string]string
+	// AppCurrent maps app_id -> deployment_id. Records written before the live
+	// pointer moved to environments still carry it; Resume restores them too.
 	AppCurrent map[string]string
 }

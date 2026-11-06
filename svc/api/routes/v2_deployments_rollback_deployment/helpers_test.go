@@ -37,15 +37,15 @@ func authHeaders(rootKey string) http.Header {
 	}
 }
 
-// setCurrentDeployment marks a deployment as the app's live deployment,
+// setCurrentDeployment marks a deployment as the environment's live deployment,
 // mimicking what ctrl persists after a promotion.
-func setCurrentDeployment(t *testing.T, h *testutil.Harness, appID, deploymentID string) {
+func setCurrentDeployment(t *testing.T, h *testutil.Harness, environmentID, deploymentID string) {
 	t.Helper()
-	err := db.Query.UpdateAppDeployments(context.Background(), h.DB.RW(), db.UpdateAppDeploymentsParams{
+	err := db.Query.UpdateEnvironmentDeployments(context.Background(), h.DB.RW(), db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{String: deploymentID, Valid: true},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		AppID:               appID,
+		EnvironmentID:       environmentID,
 	})
 	require.NoError(t, err)
 }

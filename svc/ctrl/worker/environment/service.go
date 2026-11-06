@@ -71,7 +71,7 @@ func New(cfg Config) (*Service, error) {
 }
 
 // loadDeployments reads each deployment with its environment kind and its
-// app's live pointer, keyed by id, in one step. A deployment outside the keyed
+// environment's live pointer, keyed by id, in one step. A deployment outside the keyed
 // environment is refused: the key is the lock.
 func (s *Service) loadDeployments(ctx restate.ObjectContext, deploymentIDs ...string) (map[string]db.FindDeploymentWithEnvironmentAndAppRow, error) {
 	environmentID := restate.Key(ctx)

@@ -2882,8 +2882,8 @@ type Querier interface {
 	//    a.slug AS app_slug,
 	//    e.slug AS environment_slug,
 	//    e.kind AS environment_kind,
-	//    a.current_deployment_id AS app_current_deployment_id,
-	//    a.is_rolled_back AS app_is_rolled_back
+	//    e.current_deployment_id AS environment_current_deployment_id,
+	//    e.is_rolled_back AS environment_is_rolled_back
 	//  FROM deployments d
 	//  JOIN projects p ON d.project_id = p.id
 	//  JOIN environments e ON d.environment_id = e.id
@@ -4132,6 +4132,15 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
+	//UpdateEnvironmentDeployments
+	//
+	//  UPDATE environments
+	//  SET
+	//    current_deployment_id = ?,
+	//    is_rolled_back = ?,
+	//    updated_at = ?
+	//  WHERE id = ?
+	UpdateEnvironmentDeployments(ctx context.Context, db DBTX, arg UpdateEnvironmentDeploymentsParams) error
 	//UpdateGithubRepoConnectionDefaultBranch
 	//
 	//  UPDATE github_repo_connections

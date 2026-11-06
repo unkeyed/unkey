@@ -208,7 +208,7 @@ func TestToResponseIsCurrent(t *testing.T) {
 	}
 
 	current := func(id string) db.ListDeploymentEnvAndAppStateRow {
-		return db.ListDeploymentEnvAndAppStateRow{AppCurrentDeploymentID: sql.NullString{Valid: id != "", String: id}}
+		return db.ListDeploymentEnvAndAppStateRow{EnvironmentCurrentDeploymentID: sql.NullString{Valid: id != "", String: id}}
 	}
 
 	t.Run("app points here", func(t *testing.T) {
@@ -217,7 +217,7 @@ func TestToResponseIsCurrent(t *testing.T) {
 	})
 	t.Run("app points here even when rolled back (still serves traffic)", func(t *testing.T) {
 		state := current(dep.ID)
-		state.AppIsRolledBack = true
+		state.EnvironmentIsRolledBack = true
 		got := toResponse(Input{Deployment: dep, State: state})
 		require.True(t, got.IsCurrent)
 	})

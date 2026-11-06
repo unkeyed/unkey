@@ -70,11 +70,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	app, err := db.Query.FindAppById(ctx, h.DB.RW(), dep.AppID)
+	environment, err := db.Query.FindEnvironmentById(ctx, h.DB.RW(), dep.EnvironmentID)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to load app for stop"),
+			fault.Internal("failed to load environment for stop"),
 			fault.Public("Failed to resolve the current live deployment."),
 		)
 	}
@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err := deploygate.CheckStopTarget(deploygate.StopInput{
 		Status:              dep.Status,
 		DesiredState:        dep.DesiredState,
-		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		CurrentDeploymentID: environment.CurrentDeploymentID.String,
 		DeploymentID:        dep.ID,
 	}); err != nil {
 		return err

@@ -15,7 +15,7 @@
 // DeployWorkflow is a Restate workflow keyed by deployment_id. Each deployment
 // is one run, so multiple deployments per environment can build in parallel.
 // The contended resource
-// (apps.current_deployment_id) is serialized inside RoutingService via
+// (environments.current_deployment_id) is serialized inside RoutingService via
 // SwapLiveDeployment, which is keyed by env_id. Promotion and rollback, which
 // read that pointer before they swap it, live on the env-keyed
 // EnvironmentService in the environment package.
@@ -60,7 +60,7 @@
 // It saves the desired state for each region and waits for enough running
 // instances. It then creates domain routes, moves sticky routes through
 // RoutingService, and marks the deployment ready. In production, it also
-// updates the app's live deployment unless the environment was rolled back.
+// updates the environment's live deployment unless it was rolled back.
 // The previous live deployment is scheduled to stop after 30 minutes via
 // DeploymentService.ScheduleDesiredStateChange.
 // Preview deployments schedule the deployment displaced from the sticky

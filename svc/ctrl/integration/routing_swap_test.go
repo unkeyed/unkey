@@ -73,8 +73,8 @@ func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 	require.Less(t, baseline.Pk, older.Pk)
 	require.Less(t, older.Pk, newer.Pk)
 
-	require.NoError(t, h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
-		AppID:               app.ID,
+	require.NoError(t, h.DB.UpdateEnvironmentDeployments(ctx, db.UpdateEnvironmentDeploymentsParams{
+		EnvironmentID:       environment.ID,
 		CurrentDeploymentID: sql.NullString{Valid: true, String: baseline.ID},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
@@ -136,10 +136,10 @@ func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 	)
 	require.Empty(t, olderResponse.GetPreviousDeploymentId())
 
-	gotApp, err := h.DB.FindAppById(ctx, app.ID)
+	gotEnvironment, err := h.DB.FindEnvironmentById(ctx, environment.ID)
 	require.NoError(t, err)
-	require.True(t, gotApp.CurrentDeploymentID.Valid)
-	require.Equal(t, newer.ID, gotApp.CurrentDeploymentID.String)
+	require.True(t, gotEnvironment.CurrentDeploymentID.Valid)
+	require.Equal(t, newer.ID, gotEnvironment.CurrentDeploymentID.String)
 
 	gotRoute, err := h.DB.FindFrontlineRouteByFQDN(ctx, fqdn)
 	require.NoError(t, err)
@@ -174,10 +174,10 @@ func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 		afterRollbackResponse.GetAutomaticPromotionSkipReason(),
 	)
 
-	gotApp, err = h.DB.FindAppById(ctx, app.ID)
+	gotEnvironment, err = h.DB.FindEnvironmentById(ctx, environment.ID)
 	require.NoError(t, err)
-	require.Equal(t, baseline.ID, gotApp.CurrentDeploymentID.String)
-	require.True(t, gotApp.IsRolledBack)
+	require.Equal(t, baseline.ID, gotEnvironment.CurrentDeploymentID.String)
+	require.True(t, gotEnvironment.IsRolledBack)
 
 	gotRoute, err = h.DB.FindFrontlineRouteByFQDN(ctx, fqdn)
 	require.NoError(t, err)

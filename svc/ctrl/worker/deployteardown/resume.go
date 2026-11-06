@@ -20,15 +20,56 @@ import (
 // is still safe to restore. Fields are exported so Restate can serialize it
 // into the journal.
 type restoreCheck struct {
-	Eligible bool
-	Reason   string
+	Eligible      bool
+	Reason        string
+	EnvironmentID string
+	AppID         string
+}
+
+func staleRestore(reason string) restoreCheck {
+	return restoreCheck{Eligible: false, Reason: reason, EnvironmentID: "", AppID: ""}
+}
+
+// restoreEntry is one suspended deployment and the environment or, for records
+// written before the live pointer moved to environments, the app it was
+// current for.
+type restoreEntry struct {
+	DeploymentID  string
+	EnvironmentID string
+	AppID         string
+}
+
+func (e restoreEntry) owns(environmentID, appID string) bool {
+	if e.EnvironmentID != "" {
+		return e.EnvironmentID == environmentID
+	}
+	return e.AppID == appID
+}
+
+// restoreEntries lists the record's entries in a stable order so replays are
+// deterministic.
+func restoreEntries(susp *suspension) []restoreEntry {
+	entries := make([]restoreEntry, 0, len(susp.EnvironmentCurrent)+len(susp.AppCurrent))
+	for environmentID, deploymentID := range susp.EnvironmentCurrent {
+		entries = append(entries, restoreEntry{DeploymentID: deploymentID, EnvironmentID: environmentID, AppID: ""})
+	}
+	for appID, deploymentID := range susp.AppCurrent {
+		entries = append(entries, restoreEntry{DeploymentID: deploymentID, EnvironmentID: "", AppID: appID})
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].EnvironmentID != entries[j].EnvironmentID {
+			return entries[i].EnvironmentID < entries[j].EnvironmentID
+		}
+		return entries[i].AppID < entries[j].AppID
+	})
+	return entries
 }
 
 // Resume reverses a SUSPEND: it returns each suspended deployment to running and
-// restores its app's current deployment from the record Teardown(SUSPEND)
+// restores its environment's current deployment from the record Teardown(SUSPEND)
 // saved. The workspace id is the virtual object key.
 //
-// Per app: restore current_deployment_id first, guarded on the pointer still
+// Per environment: restore current_deployment_id first, guarded on the pointer still
 // being unset, and only wake the deployment's compute if that guarded restore
 // actually claimed it. Ordering the guarded pointer restore ahead of the
 // desired-state write closes a race: if a promote set a different current while
@@ -52,59 +93,52 @@ func (v *VirtualObject) Resume(ctx restate.ObjectContext, _ *hydrav1.ResumeReque
 	if err != nil {
 		return nil, fmt.Errorf("read suspension record: %w", err)
 	}
-	if susp == nil || len(susp.AppCurrent) == 0 {
+	if susp == nil || len(susp.EnvironmentCurrent)+len(susp.AppCurrent) == 0 {
 		logger.Info("resume: nothing suspended", "workspace_id", workspaceID)
 		return &hydrav1.ResumeResponse{DeploymentsResumed: 0}, nil
 	}
 
-	// Restore in a stable order so replays are deterministic.
-	appIDs := make([]string, 0, len(susp.AppCurrent))
-	for appID := range susp.AppCurrent {
-		appIDs = append(appIDs, appID)
-	}
-	sort.Strings(appIDs)
-
 	resumed := 0
-	for _, appID := range appIDs {
-		deploymentID := susp.AppCurrent[appID]
+	for _, entry := range restoreEntries(susp) {
+		deploymentID := entry.DeploymentID
 
 		// The suspension record is a snapshot; the world may have moved on
 		// while suspended. Verify the recorded deployment still exists and
-		// belongs to this workspace and app, and that nothing promoted a new
-		// current deployment in the meantime: restoring over either would
-		// start stale compute or roll the app back to an old version.
-		// Not-found and mismatch outcomes are returned as values (not errors)
-		// so Restate journals the verdict instead of retrying it forever.
+		// belongs to this workspace and the recorded environment or app, and
+		// that nothing promoted a new current deployment in the meantime:
+		// restoring over either would start stale compute or roll the
+		// environment back to an old version. Not-found and mismatch outcomes
+		// are returned as values (not errors) so Restate journals the verdict
+		// instead of retrying it forever.
 		check, err := restate.Run(ctx, func(rc restate.RunContext) (restoreCheck, error) {
 			d, dErr := v.db.FindDeploymentById(rc, deploymentID)
 			if dErr != nil {
 				if db.IsNotFound(dErr) {
-					return restoreCheck{Eligible: false, Reason: "deployment no longer exists"}, nil
+					return staleRestore("deployment no longer exists"), nil
 				}
 				return restoreCheck{}, dErr
 			}
-			if d.WorkspaceID != workspaceID || d.AppID != appID {
-				return restoreCheck{Eligible: false, Reason: "deployment no longer belongs to this workspace/app"}, nil
+			if d.WorkspaceID != workspaceID || !entry.owns(d.EnvironmentID, d.AppID) {
+				return staleRestore("deployment no longer belongs to this workspace/environment"), nil
 			}
-			app, aErr := v.db.FindAppById(rc, appID)
-			if aErr != nil {
-				if db.IsNotFound(aErr) {
-					return restoreCheck{Eligible: false, Reason: "app no longer exists"}, nil
+			environment, eErr := v.db.FindEnvironmentById(rc, d.EnvironmentID)
+			if eErr != nil {
+				if db.IsNotFound(eErr) {
+					return staleRestore("environment no longer exists"), nil
 				}
-				return restoreCheck{}, aErr
+				return restoreCheck{}, eErr
 			}
-			if app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String != "" {
-				return restoreCheck{Eligible: false, Reason: "a newer current deployment was promoted while suspended"}, nil
+			if environment.CurrentDeploymentID.Valid && environment.CurrentDeploymentID.String != "" {
+				return staleRestore("a newer current deployment was promoted while suspended"), nil
 			}
-			return restoreCheck{Eligible: true, Reason: ""}, nil
-		}, restate.WithName("verify restore "+appID))
+			return restoreCheck{Eligible: true, Reason: "", EnvironmentID: d.EnvironmentID, AppID: d.AppID}, nil
+		}, restate.WithName("verify restore "+deploymentID))
 		if err != nil {
-			return nil, fmt.Errorf("verify restore for app %s: %w", appID, err)
+			return nil, fmt.Errorf("verify restore for deployment %s: %w", deploymentID, err)
 		}
 		if !check.Eligible {
-			logger.Warn("resume: skipping app, suspension record is stale",
+			logger.Warn("resume: skipping deployment, suspension record is stale",
 				"workspace_id", workspaceID,
-				"app_id", appID,
 				"deployment_id", deploymentID,
 				"reason", check.Reason,
 			)
@@ -121,41 +155,37 @@ func (v *VirtualObject) Resume(ctx restate.ObjectContext, _ *hydrav1.ResumeReque
 			return db.TxWithResult(rc, v.db.RW(), func(txCtx context.Context, tx db.DBTX) (bool, error) {
 				queries := db.NewQueries(tx)
 				now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-				if err := queries.SetAppCurrentDeployment(txCtx, db.SetAppCurrentDeploymentParams{
-					DeploymentID: sql.NullString{Valid: true, String: deploymentID},
-					UpdatedAt:    now,
-					AppID:        appID,
-				}); err != nil {
-					return false, err
-				}
-				app, aErr := queries.FindAppById(txCtx, appID)
-				if aErr != nil {
-					return false, aErr
-				}
-				if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String != deploymentID {
-					return false, nil
-				}
-				d, dErr := queries.FindDeploymentById(txCtx, deploymentID)
-				if dErr != nil {
-					return false, dErr
-				}
 				if err := queries.SetEnvironmentCurrentDeployment(txCtx, db.SetEnvironmentCurrentDeploymentParams{
 					DeploymentID:  sql.NullString{Valid: true, String: deploymentID},
 					UpdatedAt:     now,
-					EnvironmentID: d.EnvironmentID,
+					EnvironmentID: check.EnvironmentID,
+				}); err != nil {
+					return false, err
+				}
+				environment, eErr := queries.FindEnvironmentById(txCtx, check.EnvironmentID)
+				if eErr != nil {
+					return false, eErr
+				}
+				if !environment.CurrentDeploymentID.Valid || environment.CurrentDeploymentID.String != deploymentID {
+					return false, nil
+				}
+				if err := queries.SetAppCurrentDeployment(txCtx, db.SetAppCurrentDeploymentParams{
+					DeploymentID: sql.NullString{Valid: true, String: deploymentID},
+					UpdatedAt:    now,
+					AppID:        check.AppID,
 				}); err != nil {
 					return false, err
 				}
 				return true, nil
 			})
-		}, restate.WithName("restore current "+appID))
+		}, restate.WithName("restore current "+deploymentID))
 		if err != nil {
-			return nil, fmt.Errorf("restore current deployment for app %s: %w", appID, err)
+			return nil, fmt.Errorf("restore current deployment %s: %w", deploymentID, err)
 		}
 		if !claimed {
-			logger.Warn("resume: skipping app, current deployment changed before restore",
+			logger.Warn("resume: skipping deployment, current deployment changed before restore",
 				"workspace_id", workspaceID,
-				"app_id", appID,
+				"environment_id", check.EnvironmentID,
 				"deployment_id", deploymentID,
 			)
 			continue

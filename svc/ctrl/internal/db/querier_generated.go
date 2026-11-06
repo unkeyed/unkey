@@ -749,7 +749,7 @@ type Querier interface {
 	//      p.id AS project_id,
 	//      a.id AS app_id,
 	//      a.source_type AS source_type,
-	//      a.current_deployment_id AS current_deployment_id,
+	//      e.current_deployment_id AS current_deployment_id,
 	//      e.id AS environment_id,
 	//      e.slug AS environment_slug,
 	//      abs.dockerfile AS dockerfile,
@@ -852,8 +852,8 @@ type Querier interface {
 	//         d.github_deployment_id, d.pr_number,
 	//         w.slug AS workspace_slug,
 	//         p.slug AS project_slug,
-	//         a.slug AS app_slug, a.is_rolled_back AS app_is_rolled_back,
-	//         e.slug AS environment_slug, e.kind AS environment_kind
+	//         a.slug AS app_slug,
+	//         e.slug AS environment_slug, e.kind AS environment_kind, e.is_rolled_back AS environment_is_rolled_back
 	//  FROM deployments d
 	//  JOIN workspaces w ON w.id = d.workspace_id
 	//  JOIN projects p ON p.id = d.project_id
@@ -933,7 +933,7 @@ type Querier interface {
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, e.current_deployment_id, e.is_rolled_back
 	//  FROM deployments d
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
@@ -2383,7 +2383,7 @@ type Querier interface {
 	ListRepoConnectionDeployContexts(ctx context.Context, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
 	// ListRunningDeploymentsByBranch returns deployments in the same app,
 	// environment, and branch whose desired state is running, excluding one
-	// deployment id, the app's current deployment, and deployments from another
+	// deployment id, the environment's current deployment, and deployments from another
 	// source fork. Pinned deployments are included.
 	//
 	//  SELECT d.id
@@ -2399,7 +2399,7 @@ type Querier interface {
 	//    AND d.desired_state = 'running'
 	//    AND d.id != ?
 	//    AND NOT EXISTS (
-	//        SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.current_deployment_id = d.id
+	//        SELECT 1 FROM environments e WHERE e.id = d.environment_id AND e.current_deployment_id = d.id
 	//    )
 	//  ORDER BY d.created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error)
@@ -2409,9 +2409,9 @@ type Querier interface {
 	// status: a deployment that a resume revived (an instance started, desired_state
 	// back to 'running') but whose status is still 'stopped' from an earlier drain
 	// would otherwise be skipped here, and the next teardown would no-op and leave
-	// its compute running. Joins apps so the caller knows, per deployment, whether
-	// it is its app's current deployment and therefore must have current_deployment_id
-	// cleared before its desired state can change. Callers pass
+	// its compute running. Joins environments so the caller knows, per deployment,
+	// whether it is its environment's current deployment and therefore must have
+	// current_deployment_id cleared before its desired state can change. Callers pass
 	// db.ActiveComputeDeploymentStatuses so the status set has a single source of
 	// truth (deployment_status.go) instead of a SQL literal that can drift from the
 	// enum.
@@ -2420,9 +2420,9 @@ type Querier interface {
 	//    d.id,
 	//    d.app_id,
 	//    d.environment_id,
-	//    a.current_deployment_id
+	//    e.current_deployment_id
 	//  FROM deployments d
-	//  JOIN apps a ON a.id = d.app_id
+	//  JOIN environments e ON e.id = d.environment_id
 	//  WHERE d.workspace_id = ?
 	//    AND d.desired_state = 'running'
 	//    AND (
@@ -2523,12 +2523,12 @@ type Querier interface {
 	//      AND desired_state = 'running'
 	//  FOR UPDATE
 	LockDeploymentConnectionTargets(ctx context.Context, arg LockDeploymentConnectionTargetsParams) ([]LockDeploymentConnectionTargetsRow, error)
-	// LockDeploymentWithApp locks a deployment and its app for a desired-state
+	// LockDeploymentWithApp locks a deployment, its app and environment for a desired-state
 	// change, so a concurrent promotion cannot make the deployment current between
 	// the guard and the write. A deployment under a deleted project, app, or
 	// environment is not found.
 	//
-	//  SELECT d.id, d.app_id, a.current_deployment_id
+	//  SELECT d.id, d.app_id, e.current_deployment_id
 	//  FROM deployments d
 	//  JOIN apps a ON a.id = d.app_id
 	//  JOIN environments e ON e.id = d.environment_id

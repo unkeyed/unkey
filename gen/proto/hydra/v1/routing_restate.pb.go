@@ -22,9 +22,9 @@ type RoutingServiceClient interface {
 	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment.
 	AssignFrontlineRoutes(opts ...sdk_go.ClientOption) sdk_go.Client[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse]
 	// SwapLiveDeployment atomically reassigns the given frontline routes AND
-	// updates apps.current_deployment_id to point at the target deployment,
-	// returning the previously-live deployment ID. Setting set_rollback_flag
-	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
+	// updates environments.current_deployment_id to point at the target
+	// deployment, returning the previously-live deployment ID. Setting
+	// set_rollback_flag toggles environments.is_rolled_back. The caller is responsible for any follow-up
 	// work like scheduling the previous deployment to stop.
 	SwapLiveDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse]
 }
@@ -66,9 +66,9 @@ type RoutingServiceIngressClient interface {
 	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment.
 	AssignFrontlineRoutes() ingress.Requester[*AssignFrontlineRoutesRequest, *AssignFrontlineRoutesResponse]
 	// SwapLiveDeployment atomically reassigns the given frontline routes AND
-	// updates apps.current_deployment_id to point at the target deployment,
-	// returning the previously-live deployment ID. Setting set_rollback_flag
-	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
+	// updates environments.current_deployment_id to point at the target
+	// deployment, returning the previously-live deployment ID. Setting
+	// set_rollback_flag toggles environments.is_rolled_back. The caller is responsible for any follow-up
 	// work like scheduling the previous deployment to stop.
 	SwapLiveDeployment() ingress.Requester[*SwapLiveDeploymentRequest, *SwapLiveDeploymentResponse]
 }
@@ -108,9 +108,9 @@ type RoutingServiceServer interface {
 	// AssignFrontlineRoutes creates or reassigns frontline routes to a deployment.
 	AssignFrontlineRoutes(ctx sdk_go.ObjectContext, req *AssignFrontlineRoutesRequest) (*AssignFrontlineRoutesResponse, error)
 	// SwapLiveDeployment atomically reassigns the given frontline routes AND
-	// updates apps.current_deployment_id to point at the target deployment,
-	// returning the previously-live deployment ID. Setting set_rollback_flag
-	// toggles apps.is_rolled_back. The caller is responsible for any follow-up
+	// updates environments.current_deployment_id to point at the target
+	// deployment, returning the previously-live deployment ID. Setting
+	// set_rollback_flag toggles environments.is_rolled_back. The caller is responsible for any follow-up
 	// work like scheduling the previous deployment to stop.
 	SwapLiveDeployment(ctx sdk_go.ObjectContext, req *SwapLiveDeploymentRequest) (*SwapLiveDeploymentResponse, error)
 }

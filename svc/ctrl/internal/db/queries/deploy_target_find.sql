@@ -6,7 +6,7 @@ SELECT
     p.id AS project_id,
     a.id AS app_id,
     a.source_type AS source_type,
-    a.current_deployment_id AS current_deployment_id,
+    e.current_deployment_id AS current_deployment_id,
     e.id AS environment_id,
     e.slug AS environment_slug,
     abs.dockerfile AS dockerfile,

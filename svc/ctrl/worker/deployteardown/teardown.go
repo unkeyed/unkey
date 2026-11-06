@@ -31,9 +31,10 @@ const (
 // Teardown stops every running deployment in the workspace and polls until they
 // drain. The workspace id is the virtual object key.
 //
-// For each deployment that is its app's current deployment it first clears
-// apps.current_deployment_id: the DeploymentService guard refuses to change the
-// current deployment, and a torn-down app genuinely has no current deployment,
+// For each deployment that is its environment's current deployment it first
+// clears environments.current_deployment_id: the DeploymentService guard refuses
+// to change the current deployment, and a torn-down environment genuinely has no
+// current deployment,
 // so clearing it makes the guard's precondition honestly true instead of
 // punching a hole in it. Frontline routes off frontline_routes + desired_state
 // and ignores current_deployment_id, so clearing it does not disturb routing.
@@ -65,40 +66,41 @@ func (v *VirtualObject) Teardown(
 
 	ids := make([]string, 0, len(running))
 
-	// appCurrent records each app's current deployment that SUSPEND is stopping
-	// so Resume can re-promote exactly that deployment. It is gathered from the
-	// same snapshot rows that drive the clear below, so recording it is free.
-	appCurrent := make(map[string]string, len(running))
+	// environmentCurrent records each environment's current deployment that
+	// SUSPEND is stopping so Resume can re-promote exactly that deployment. It is
+	// gathered from the same snapshot rows that drive the clear below, so
+	// recording it is free.
+	environmentCurrent := make(map[string]string, len(running))
 
 	for _, d := range running {
 		ids = append(ids, d.ID)
 
-		// Clear current_deployment_id only for the app's current deployment;
-		// clearing it for a non-current one would wrongly drop a different live
-		// deployment's pointer.
+		// Clear current_deployment_id only for the environment's current
+		// deployment; clearing it for a non-current one would wrongly drop a
+		// different live deployment's pointer.
 		if d.CurrentDeploymentID.Valid && d.CurrentDeploymentID.String == d.ID {
 			if req.GetMode() == hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND {
-				appCurrent[d.AppID] = d.ID
+				environmentCurrent[d.EnvironmentID] = d.ID
 			}
 
 			if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
 				return db.Tx(rc, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
 					now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-					if err := db.NewQueries(tx).ClearAppCurrentDeployment(txCtx, db.ClearAppCurrentDeploymentParams{
-						UpdatedAt:    now,
-						AppID:        d.AppID,
-						DeploymentID: sql.NullString{Valid: true, String: d.ID},
-					}); err != nil {
-						return err
-					}
-					return db.NewQueries(tx).ClearEnvironmentCurrentDeployment(txCtx, db.ClearEnvironmentCurrentDeploymentParams{
+					if err := db.NewQueries(tx).ClearEnvironmentCurrentDeployment(txCtx, db.ClearEnvironmentCurrentDeploymentParams{
 						UpdatedAt:     now,
 						EnvironmentID: d.EnvironmentID,
 						DeploymentID:  sql.NullString{Valid: true, String: d.ID},
+					}); err != nil {
+						return err
+					}
+					return db.NewQueries(tx).ClearAppCurrentDeployment(txCtx, db.ClearAppCurrentDeploymentParams{
+						UpdatedAt:    now,
+						AppID:        d.AppID,
+						DeploymentID: sql.NullString{Valid: true, String: d.ID},
 					})
 				})
-			}, restate.WithName("clear current deployment "+d.AppID)); err != nil {
-				return nil, fmt.Errorf("clear current deployment for app %s: %w", d.AppID, err)
+			}, restate.WithName("clear current deployment "+d.EnvironmentID)); err != nil {
+				return nil, fmt.Errorf("clear current deployment for environment %s: %w", d.EnvironmentID, err)
 			}
 		}
 
@@ -125,25 +127,27 @@ func (v *VirtualObject) Teardown(
 	// permanent, so it drops any stale record instead.
 	switch req.GetMode() {
 	case hydrav1.TeardownMode_TEARDOWN_MODE_SUSPEND:
-		if len(appCurrent) > 0 {
+		if len(environmentCurrent) > 0 {
 			// Merge into any existing suspension record: a re-enforcing teardown
-			// only sees deployments running now, and replacing would drop the apps
+			// only sees deployments running now, and replacing would drop the environments
 			// the first teardown stopped from the restore map, so Resume would
 			// never bring them back. New entries win on collision.
 			existing, err := restate.Get[*suspension](ctx, suspensionKey)
 			if err != nil {
 				return nil, fmt.Errorf("read suspension record: %w", err)
 			}
-			merged := make(map[string]string, len(appCurrent))
+			merged := make(map[string]string, len(environmentCurrent))
+			var legacy map[string]string
 			if existing != nil {
-				for appID, deploymentID := range existing.AppCurrent {
-					merged[appID] = deploymentID
+				for environmentID, deploymentID := range existing.EnvironmentCurrent {
+					merged[environmentID] = deploymentID
 				}
+				legacy = existing.AppCurrent
 			}
-			for appID, deploymentID := range appCurrent {
-				merged[appID] = deploymentID
+			for environmentID, deploymentID := range environmentCurrent {
+				merged[environmentID] = deploymentID
 			}
-			restate.Set(ctx, suspensionKey, &suspension{AppCurrent: merged})
+			restate.Set(ctx, suspensionKey, &suspension{EnvironmentCurrent: merged, AppCurrent: legacy})
 		}
 	case hydrav1.TeardownMode_TEARDOWN_MODE_ARCHIVE:
 		restate.Clear(ctx, suspensionKey)

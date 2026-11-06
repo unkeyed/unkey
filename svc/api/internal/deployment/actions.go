@@ -37,13 +37,13 @@ func availableActions(in Input) []openapi.DeploymentAction {
 		if rbac.Check(rbac.U(environment, permissions.Write), in.Permissions) != nil {
 			return actions
 		}
-		currentDeploymentID := in.State.AppCurrentDeploymentID.String
+		currentDeploymentID := in.State.EnvironmentCurrentDeploymentID.String
 		hasLiveDeployment := currentDeploymentID != ""
 		isCurrentDeployment := currentDeploymentID == d.ID
 		if ready && running && hasLiveDeployment {
 			// promote is illegal only when this is already the promoted-live
 			// deployment (current pointer and not in a rolled-back state).
-			if !isCurrentDeployment || in.State.AppIsRolledBack {
+			if !isCurrentDeployment || in.State.EnvironmentIsRolledBack {
 				actions = append(actions, openapi.DeploymentActionPromote)
 			}
 			// rollback is illegal when this is the current pointer, regardless of

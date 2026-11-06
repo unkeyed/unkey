@@ -128,7 +128,7 @@ func toResponse(in Input) openapi.Deployment {
 		}
 	}
 
-	isCurrent := in.State.AppCurrentDeploymentID.String != "" && in.State.AppCurrentDeploymentID.String == d.ID
+	isCurrent := in.State.EnvironmentCurrentDeploymentID.String != "" && in.State.EnvironmentCurrentDeploymentID.String == d.ID
 
 	regions := in.Regions
 	if regions == nil {

@@ -11,7 +11,7 @@ import (
 )
 
 const lockDeploymentWithApp = `-- name: LockDeploymentWithApp :one
-SELECT d.id, d.app_id, a.current_deployment_id
+SELECT d.id, d.app_id, e.current_deployment_id
 FROM deployments d
 JOIN apps a ON a.id = d.app_id
 JOIN environments e ON e.id = d.environment_id
@@ -29,12 +29,12 @@ type LockDeploymentWithAppRow struct {
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 }
 
-// LockDeploymentWithApp locks a deployment and its app for a desired-state
+// LockDeploymentWithApp locks a deployment, its app and environment for a desired-state
 // change, so a concurrent promotion cannot make the deployment current between
 // the guard and the write. A deployment under a deleted project, app, or
 // environment is not found.
 //
-//	SELECT d.id, d.app_id, a.current_deployment_id
+//	SELECT d.id, d.app_id, e.current_deployment_id
 //	FROM deployments d
 //	JOIN apps a ON a.id = d.app_id
 //	JOIN environments e ON e.id = d.environment_id

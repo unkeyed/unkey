@@ -74,12 +74,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// The current live pointer decides promote eligibility. See
 	// deploygate.CheckPromoteTarget for the invariant the API, ctrl service, and
 	// worker all enforce.
-	app, err := db.Query.FindAppById(ctx, h.DB.RW(), dep.AppID)
+	environment, err := db.Query.FindEnvironmentById(ctx, h.DB.RW(), dep.EnvironmentID)
 	if err != nil {
 		return fault.Wrap(
 			err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to load app for promotion eligibility"),
+			fault.Internal("failed to load environment for promotion eligibility"),
 			fault.Public("Failed to resolve the current live deployment."),
 		)
 	}
@@ -88,9 +88,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Status:              dep.Status,
 		DesiredState:        dep.DesiredState,
 		EnvironmentKind:     dep.EnvironmentKind,
-		CurrentDeploymentID: app.CurrentDeploymentID.String,
+		CurrentDeploymentID: environment.CurrentDeploymentID.String,
 		DeploymentID:        dep.ID,
-		IsRolledBack:        app.IsRolledBack,
+		IsRolledBack:        environment.IsRolledBack,
 	}); err != nil {
 		return err
 	}

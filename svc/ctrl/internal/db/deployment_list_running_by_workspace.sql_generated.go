@@ -18,9 +18,9 @@ SELECT
   d.id,
   d.app_id,
   d.environment_id,
-  a.current_deployment_id
+  e.current_deployment_id
 FROM deployments d
-JOIN apps a ON a.id = d.app_id
+JOIN environments e ON e.id = d.environment_id
 WHERE d.workspace_id = ?
   AND d.desired_state = 'running'
   AND (
@@ -47,9 +47,9 @@ type ListRunningDeploymentsByWorkspaceIdRow struct {
 // status: a deployment that a resume revived (an instance started, desired_state
 // back to 'running') but whose status is still 'stopped' from an earlier drain
 // would otherwise be skipped here, and the next teardown would no-op and leave
-// its compute running. Joins apps so the caller knows, per deployment, whether
-// it is its app's current deployment and therefore must have current_deployment_id
-// cleared before its desired state can change. Callers pass
+// its compute running. Joins environments so the caller knows, per deployment,
+// whether it is its environment's current deployment and therefore must have
+// current_deployment_id cleared before its desired state can change. Callers pass
 // db.ActiveComputeDeploymentStatuses so the status set has a single source of
 // truth (deployment_status.go) instead of a SQL literal that can drift from the
 // enum.
@@ -58,9 +58,9 @@ type ListRunningDeploymentsByWorkspaceIdRow struct {
 //	  d.id,
 //	  d.app_id,
 //	  d.environment_id,
-//	  a.current_deployment_id
+//	  e.current_deployment_id
 //	FROM deployments d
-//	JOIN apps a ON a.id = d.app_id
+//	JOIN environments e ON e.id = d.environment_id
 //	WHERE d.workspace_id = ?
 //	  AND d.desired_state = 'running'
 //	  AND (

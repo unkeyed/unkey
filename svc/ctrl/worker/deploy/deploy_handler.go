@@ -661,10 +661,10 @@ func (w *Workflow) ConfigureRouting(
 		}
 	}
 
-	// refresh app, cause it might have changed since we read it at the beginning of the workflow (e.g. another deployment promoted to live and updated current_deployment_id)
-	app, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.App, error) {
-		return w.db.FindAppById(runCtx, deployment.AppID)
-	}, restate.WithName("refresh app before promotion"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	// refresh environment, cause it might have changed since we read it at the beginning of the workflow (e.g. another deployment promoted to live and updated current_deployment_id)
+	environment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Environment, error) {
+		return w.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
+	}, restate.WithName("refresh environment before promotion"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, false, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
@@ -675,16 +675,16 @@ func (w *Workflow) ConfigureRouting(
 		return db.TxWithResult(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) ([]string, error) {
 			// Fetch sticky routes for this environment
 			stickyTypes := []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
-			if !app.IsRolledBack {
+			if !environment.IsRolledBack {
 				stickyTypes = append(stickyTypes, db.FrontlineRoutesStickyLive)
 			}
-			app, err := db.NewQueries(tx).FindAppById(txCtx, app.ID)
+			environment, err := db.NewQueries(tx).FindEnvironmentById(txCtx, environment.ID)
 			if err != nil {
 				return nil, err
 			}
 
-			// if the app is rolled back, we should not consider live sticky routes for promotion, even for production, because the live deployment is not healthy and should not receive traffic
-			if app.IsRolledBack {
+			// if the environment is rolled back, we should not consider live sticky routes for promotion, even for production, because the live deployment is not healthy and should not receive traffic
+			if environment.IsRolledBack {
 				stickyTypes = []db.FrontlineRoutesSticky{db.FrontlineRoutesStickyEnvironment}
 			}
 
@@ -711,7 +711,7 @@ func (w *Workflow) ConfigureRouting(
 	}
 
 	reassignRouteIDs := append(envAndLiveRouteIDs, branchRouteIDs...)
-	if deployment.EnvironmentKind.IsProduction() && !app.IsRolledBack {
+	if deployment.EnvironmentKind.IsProduction() && !environment.IsRolledBack {
 		return reassignRouteIDs, true, nil
 	}
 

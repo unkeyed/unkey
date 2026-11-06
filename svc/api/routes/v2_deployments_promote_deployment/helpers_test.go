@@ -37,27 +37,27 @@ func authHeaders(rootKey string) http.Header {
 	}
 }
 
-// setCurrentDeployment marks a deployment as the app's live deployment,
+// setCurrentDeployment marks a deployment as the environment's live deployment,
 // mimicking what ctrl persists after a promotion.
-func setCurrentDeployment(t *testing.T, h *testutil.Harness, appID, deploymentID string) {
+func setCurrentDeployment(t *testing.T, h *testutil.Harness, environmentID, deploymentID string) {
 	t.Helper()
-	setCurrentDeploymentState(t, h, appID, deploymentID, false)
+	setCurrentDeploymentState(t, h, environmentID, deploymentID, false)
 }
 
-// markRolledBack marks a deployment as the app's live deployment in a
+// markRolledBack marks a deployment as the environment's live deployment in a
 // rolled-back state, mimicking what ctrl persists after a rollback.
-func markRolledBack(t *testing.T, h *testutil.Harness, appID, deploymentID string) {
+func markRolledBack(t *testing.T, h *testutil.Harness, environmentID, deploymentID string) {
 	t.Helper()
-	setCurrentDeploymentState(t, h, appID, deploymentID, true)
+	setCurrentDeploymentState(t, h, environmentID, deploymentID, true)
 }
 
-func setCurrentDeploymentState(t *testing.T, h *testutil.Harness, appID, deploymentID string, rolledBack bool) {
+func setCurrentDeploymentState(t *testing.T, h *testutil.Harness, environmentID, deploymentID string, rolledBack bool) {
 	t.Helper()
-	err := db.Query.UpdateAppDeployments(context.Background(), h.DB.RW(), db.UpdateAppDeploymentsParams{
+	err := db.Query.UpdateEnvironmentDeployments(context.Background(), h.DB.RW(), db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{String: deploymentID, Valid: true},
 		IsRolledBack:        rolledBack,
 		UpdatedAt:           sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		AppID:               appID,
+		EnvironmentID:       environmentID,
 	})
 	require.NoError(t, err)
 }

@@ -102,13 +102,13 @@ func TestDeploySpendCheck_ReAlertAfterBudgetChange(t *testing.T) {
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
 
-	// Make the deployment its app's current deployment so suspend/resume have
+	// Make the deployment its environment's current deployment so suspend/resume have
 	// something to act on, mirroring the suspend/resume test.
-	require.NoError(t, h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{
+	require.NoError(t, h.DB.UpdateEnvironmentDeployments(ctx, db.UpdateEnvironmentDeploymentsParams{
 		CurrentDeploymentID: sql.NullString{Valid: true, String: dep.ID},
 		IsRolledBack:        false,
 		UpdatedAt:           sql.NullInt64{Valid: true, Int64: h.Now()},
-		AppID:               dep.AppID,
+		EnvironmentID:       dep.EnvironmentID,
 	}))
 
 	sender := email.NewCapture()

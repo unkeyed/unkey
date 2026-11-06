@@ -18,11 +18,10 @@ import (
 // the live one for its environment:
 //
 //  1. Reassign the given frontline routes to the target deployment.
-//  2. Update apps.current_deployment_id to the target deployment.
-//  3. Set apps.is_rolled_back per the request flag.
+//  2. Update environments.current_deployment_id to the target deployment.
+//  3. Set environments.is_rolled_back per the request flag.
 //
-// The environment's pointer and flag get the same values, so readers can move
-// from apps to environments.
+// The app's pointer and flag get the same values until nothing reads them.
 //
 // Because the RoutingService VO is keyed by env_id, concurrent swaps on the
 // same environment serialize here. Automatic deployments can require a
@@ -64,14 +63,14 @@ func (s *Service) SwapLiveDeployment(
 			if findErr != nil {
 				return "", restateutil.TerminalNotFound(findErr)
 			}
-			app, findErr := s.db.FindAppById(runCtx, deployment.AppID)
+			environment, findErr := s.db.FindEnvironmentById(runCtx, deployment.EnvironmentID)
 			if findErr != nil {
 				return "", restateutil.TerminalNotFound(findErr)
 			}
-			return app.CurrentDeploymentID.String, nil
+			return environment.CurrentDeploymentID.String, nil
 		}, restate.WithName("record current deployment before automatic promotion"))
 		if err != nil {
-			// The deployment or its app was deleted while the swap was queued,
+			// The deployment or its environment was deleted while the swap was queued,
 			// so there is no live pointer left to move
 			if restateutil.IsNotFoundTerminal(err) {
 				logger.Info("routing swap skipped, deployment no longer exists",
@@ -88,7 +87,7 @@ func (s *Service) SwapLiveDeployment(
 		return s.swapLiveDeployment(runCtx, req, previousDeploymentID)
 	}, restate.WithName("swap live deployment"))
 	if err != nil {
-		// The deployment or its app is gone, so there is no live pointer left to
+		// The deployment or its environment is gone, so there is no live pointer left to
 		// move
 		if restateutil.IsNotFoundTerminal(err) {
 			logger.Info("routing swap skipped, deployment no longer exists",
@@ -151,14 +150,14 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 			return swapLiveDeploymentResult{}, restate.ToTerminalError(
 				fmt.Errorf("cannot route traffic to a stopped deployment"), restate.WithErrorCode(412))
 		}
-		currentApp, findErr := queries.FindAppById(txCtx, deployment.AppID)
+		environment, findErr := queries.FindEnvironmentById(txCtx, deployment.EnvironmentID)
 		if findErr != nil {
 			return swapLiveDeploymentResult{}, restateutil.TerminalNotFound(findErr)
 		}
 
 		if req.GetAutomaticPromotion() &&
-			currentApp.CurrentDeploymentID.Valid &&
-			currentApp.CurrentDeploymentID.String == deploymentID {
+			environment.CurrentDeploymentID.Valid &&
+			environment.CurrentDeploymentID.String == deploymentID {
 			// The transaction may have committed before Restate persisted its
 			// result. A replay recovers the journaled previous deployment. A
 			// separate duplicate invocation journals the target and returns no
@@ -175,17 +174,17 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 			}, nil
 		}
 
-		if req.GetAutomaticPromotion() && currentApp.IsRolledBack {
+		if req.GetAutomaticPromotion() && environment.IsRolledBack {
 			return swapLiveDeploymentResult{
 				PreviousDeploymentID:         "",
-				CurrentDeploymentID:          currentApp.CurrentDeploymentID.String,
+				CurrentDeploymentID:          environment.CurrentDeploymentID.String,
 				AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK,
 				AlreadyCurrent:               false,
 			}, nil
 		}
 
-		if req.GetAutomaticPromotion() && currentApp.CurrentDeploymentID.Valid {
-			currentDeployment, currentErr := queries.FindDeploymentById(txCtx, currentApp.CurrentDeploymentID.String)
+		if req.GetAutomaticPromotion() && environment.CurrentDeploymentID.Valid {
+			currentDeployment, currentErr := queries.FindDeploymentById(txCtx, environment.CurrentDeploymentID.String)
 			// A live pointer to a row that no longer exists orders nothing, so
 			// the swap proceeds instead of failing
 			if currentErr != nil && !db.IsNotFound(currentErr) {
@@ -234,7 +233,7 @@ func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveD
 		}
 
 		return swapLiveDeploymentResult{
-			PreviousDeploymentID:         currentApp.CurrentDeploymentID.String,
+			PreviousDeploymentID:         environment.CurrentDeploymentID.String,
 			CurrentDeploymentID:          deploymentID,
 			AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED,
 			AlreadyCurrent:               false,
