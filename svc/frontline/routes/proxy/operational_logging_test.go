@@ -104,7 +104,10 @@ func TestOperationalLoggingKeepsFaultsAndCustomerTelemetry(t *testing.T) {
 			var rows []schema.FrontlineRequest
 			analytics := batch.New(batch.Config[schema.FrontlineRequest]{
 				Name: "test", BatchSize: 10, BufferSize: 10, Consumers: 1, FlushInterval: time.Hour,
-				Flush: func(_ context.Context, batch []schema.FrontlineRequest) { rows = append(rows, batch...) },
+				Flush: func(_ context.Context, batch []schema.FrontlineRequest) error {
+					rows = append(rows, batch...)
+					return nil
+				},
 			})
 			t.Cleanup(analytics.Close)
 			clk := clock.New()

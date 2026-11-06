@@ -192,10 +192,11 @@ func collectRows[T any](t *testing.T) (*batch.BatchProcessor[T], func() []T) {
 		FlushInterval: time.Hour,
 		Consumers:     1,
 		Drop:          false,
-		Flush: func(_ context.Context, batch []T) {
+		Flush: func(_ context.Context, batch []T) error {
 			mu.Lock()
 			defer mu.Unlock()
 			rows = append(rows, batch...)
+			return nil
 		},
 	})
 	return processor, func() []T {

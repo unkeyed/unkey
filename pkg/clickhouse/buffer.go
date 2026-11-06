@@ -68,10 +68,12 @@ func NewBuffer[T schema.Row](c *Client, cfg BufferConfig) *batch.BatchProcessor[
 		BufferSize:    cfg.BufferSize,
 		FlushInterval: cfg.FlushInterval,
 		Consumers:     cfg.Consumers,
-		Flush: func(ctx context.Context, rows []T) {
+		Flush: func(ctx context.Context, rows []T) error {
 			if err := flush(c, ctx, rows); err != nil {
 				onErr(ctx, table, len(rows), err)
+				return err
 			}
+			return nil
 		},
 	})
 }

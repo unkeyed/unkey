@@ -40,7 +40,7 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 		FlushInterval: time.Hour,
 		Consumers:     1,
 		Drop:          false,
-		Flush:         func(_ context.Context, batch []auditlog.Event) { events = append(events, batch...) },
+		Flush:         func(_ context.Context, batch []auditlog.Event) error { events = append(events, batch...); return nil },
 	})
 	t.Cleanup(auditLogBuffer.Close)
 	keyConfig := keys.Config{

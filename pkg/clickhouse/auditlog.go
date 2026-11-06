@@ -25,15 +25,17 @@ func NewAuditLogBuffer(c *Client, cfg BufferConfig) *batch.BatchProcessor[auditl
 		BufferSize:    cfg.BufferSize,
 		FlushInterval: cfg.FlushInterval,
 		Consumers:     cfg.Consumers,
-		Flush: func(ctx context.Context, events []auditlog.Event) {
+		Flush: func(ctx context.Context, events []auditlog.Event) error {
 			rows, err := EncodeAuditLogEvents(events)
 			if err != nil {
 				onErr(ctx, table, len(events), err)
-				return
+				return err
 			}
 			if err := flush(c, ctx, rows); err != nil {
 				onErr(ctx, table, len(rows), err)
+				return err
 			}
+			return nil
 		},
 	})
 }

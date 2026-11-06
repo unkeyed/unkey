@@ -142,7 +142,7 @@ func TestRegisteredRequestLogging(t *testing.T) {
 				BufferSize:    10,
 				Consumers:     1,
 				FlushInterval: time.Hour,
-				Flush:         func(_ context.Context, batch []schema.ApiRequest) { rows = append(rows, batch...) },
+				Flush:         func(_ context.Context, batch []schema.ApiRequest) error { rows = append(rows, batch...); return nil },
 			})
 			t.Cleanup(requests.Close)
 			validator, err := validation.New()

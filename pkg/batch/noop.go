@@ -17,6 +17,6 @@ func NewNoop[T any]() *BatchProcessor[T] {
 		FlushInterval: time.Hour,
 		Drop:          true,
 		Consumers:     1,
-		Flush:         func(_ context.Context, _ []T) {},
+		Flush:         func(_ context.Context, _ []T) error { return nil },
 	})
 }
