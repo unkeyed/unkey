@@ -53,13 +53,20 @@ func hashRefreshToken(token string) string {
 	return hash.Sha256(token)
 }
 
-func (s *Service) signAccessToken(userID string, name string, workspaceID string, sessionID string, device string, permissions []string) (string, error) {
+// signAccessToken adds resource, when set, to the audience so the MCP server
+// can tell the token was issued for it. The API only checks for
+// [clisession.Audience].
+func (s *Service) signAccessToken(userID string, name string, workspaceID string, sessionID string, device string, resource string, permissions []string) (string, error) {
+	audience := []string{clisession.Audience}
+	if resource != "" {
+		audience = append(audience, resource)
+	}
 	now := s.Clock.Now()
 	return s.Signer.Sign(clisession.Claims{
 		RegisteredClaims: tokenjwt.RegisteredClaims{
 			Issuer:    clisession.Issuer,
 			Subject:   userID,
-			Audience:  []string{clisession.Audience},
+			Audience:  audience,
 			ExpiresAt: now.Add(accessTTL).Unix(),
 			NotBefore: 0,
 			IssuedAt:  now.Unix(),

@@ -7,7 +7,9 @@ SET
     approver_name = sqlc.arg(approver_name),
     approver_roles = CAST(sqlc.arg(approver_roles) AS JSON),
     permissions = CAST(sqlc.arg(permissions) AS JSON),
-    approved_at = sqlc.arg(approved_at)
+    approved_at = sqlc.arg(approved_at),
+    expires_at = sqlc.arg(expires_at),
+    code_hash = sqlc.arg(code_hash)
 WHERE id = sqlc.arg(id)
   AND status IN ('pending', 'approved')
   AND (

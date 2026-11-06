@@ -129,6 +129,8 @@ export * from "./v2appsupdateapprequestbody.js";
 export * from "./v2appsupdateappresponsebody.js";
 export * from "./v2clidecidedeviceloginrequestbodyunion.js";
 export * from "./v2clidecidedeviceloginresponsebody.js";
+export * from "./v2clidecidedeviceloginresponsedata.js";
+export * from "./v2clideviceloginoauth.js";
 export * from "./v2cliexchangetokenpendingresponsebody.js";
 export * from "./v2cliexchangetokenrequestbodyunion.js";
 export * from "./v2cliexchangetokenresponsebody.js";

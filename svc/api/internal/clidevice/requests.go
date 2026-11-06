@@ -37,6 +37,15 @@ type Authorization struct {
 	WorkspaceID        string
 	CreatedAt          int64
 	ExpiresAt          int64
+	// OAuth is set when an MCP client started the login through OAuth.
+	OAuth *AuthorizationOAuth
+}
+
+// AuthorizationOAuth is what the consent page shows about an OAuth login.
+type AuthorizationOAuth struct {
+	ClientName string
+	ClientHost string
+	Resource   string
 }
 
 // ApproveRequest records the permissions the dashboard user granted.
@@ -66,9 +75,13 @@ type PollResult struct {
 	Tokens
 }
 
-// RefreshRequest exchanges a refresh token for a new pair.
+// RefreshRequest exchanges a refresh token for a new pair. ClientID is the
+// OAuth client presenting it, empty for the CLI, and must be the client the
+// session was issued to. Resource, when set, must be the session's resource.
 type RefreshRequest struct {
 	RefreshToken string
+	ClientID     string
+	Resource     string
 	RemoteIP     string
 	UserAgent    string
 }
@@ -97,10 +110,14 @@ type ListRequest struct {
 
 // SessionInfo is one row in the sessions list. Token hashes are not included.
 type SessionInfo struct {
-	ID          string
-	UserID      string
-	Kind        db.DeviceSessionsKind
-	DeviceName  string
+	ID         string
+	UserID     string
+	Kind       db.DeviceSessionsKind
+	DeviceName string
+	// ClientHost is the host shown next to an mcp session's client name. It
+	// is empty for CLI sessions and dynamically registered clients.
+	ClientHost  string
+	Resource    string
 	Permissions []string
 	CreatedAt   int64
 	LastUsedAt  int64

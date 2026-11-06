@@ -42,6 +42,12 @@ func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (Tokens, erro
 }
 
 func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.DeviceSession, currentHash string) (Tokens, error) {
+	if row.OauthClientID.String != req.ClientID {
+		return Tokens{}, invalidRefreshToken()
+	}
+	if req.Resource != "" && req.Resource != row.Resource.String {
+		return Tokens{}, oauthError(OAuthInvalidTarget, "resource does not match the session.")
+	}
 	if row.RevokedAt.Valid || row.ExpiresAt <= s.Clock.Now().UnixMilli() {
 		return Tokens{}, unauthenticated("This CLI session is no longer valid. Run unkey login again.")
 	}
@@ -89,7 +95,7 @@ func (s *Service) rotate(ctx context.Context, req RefreshRequest, row db.DeviceS
 	if err != nil {
 		return Tokens{}, err
 	}
-	accessToken, err := s.signAccessToken(row.UserID, row.UserName.String, workspace.ID, row.ID, row.DeviceName.String, narrowed)
+	accessToken, err := s.signAccessToken(row.UserID, row.UserName.String, workspace.ID, row.ID, row.DeviceName.String, row.Resource.String, narrowed)
 	if err != nil {
 		return Tokens{}, err
 	}

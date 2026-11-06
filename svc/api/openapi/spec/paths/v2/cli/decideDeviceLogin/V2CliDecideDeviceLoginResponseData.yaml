@@ -1,0 +1,11 @@
+type: object
+additionalProperties: false
+properties:
+  redirectUrl:
+    type: string
+    # Carries the live authorization code as a query parameter, so it is a
+    # credential in its own right.
+    x-unkey-redact: true
+    description: |
+      Where to send the browser after an OAuth login is decided. It carries the authorization code or the access_denied error to the client.
+      Absent for CLI logins.

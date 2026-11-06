@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/svc/api/internal/middleware"
+	"github.com/unkeyed/unkey/svc/api/routes/oauth"
 	openapi "github.com/unkeyed/unkey/svc/api/routes/openapi"
 	"github.com/unkeyed/unkey/svc/api/routes/reference"
 	v2Liveness "github.com/unkeyed/unkey/svc/api/routes/v2_liveness"
@@ -661,6 +662,23 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(protectedMiddlewares, &v2CliDecideDeviceLogin.Handler{Devices: svc.CLIDevice})
 	srv.RegisterRoute(protectedMiddlewares, &v2CliListSessions.Handler{Devices: svc.CLIDevice})
 	srv.RegisterRoute(protectedMiddlewares, &v2CliRevokeSession.Handler{Devices: svc.CLIDevice})
+
+	// OAuth protocol endpoints answer in RFC 6749 shapes and are not in the
+	// OpenAPI document, so they skip request validation.
+	if svc.CLIDevice.OAuthEnabled() {
+		oauthMiddlewares := []zen.Middleware{
+			withPanicRecovery,
+			withObservability,
+			zen.WithSQLComment(),
+			withMetrics,
+			withErrorHandling,
+			withTimeout,
+		}
+		srv.RegisterRoute(oauthMiddlewares, &oauth.MetadataHandler{OAuth: svc.CLIDevice.OAuth})
+		srv.RegisterRoute(oauthMiddlewares, &oauth.AuthorizeHandler{Devices: svc.CLIDevice})
+		srv.RegisterRoute(oauthMiddlewares, &oauth.TokenHandler{Devices: svc.CLIDevice})
+		srv.RegisterRoute(oauthMiddlewares, &oauth.RegisterHandler{Devices: svc.CLIDevice})
+	}
 
 	// ---------------------------------------------------------------------------
 	// v2/keys

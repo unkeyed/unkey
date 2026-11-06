@@ -17,6 +17,12 @@ properties:
   deviceName:
     type: string
     description: The CLI machine's name, or the MCP client's self-reported name.
+  clientHost:
+    type: string
+    description: Host of the MCP client's metadata document. Absent for CLI sessions and dynamically registered clients.
+  resource:
+    type: string
+    description: URL of the MCP server an mcp session is bound to. Absent for CLI sessions.
   permissions:
     type: array
     items:
