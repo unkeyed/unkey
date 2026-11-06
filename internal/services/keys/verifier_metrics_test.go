@@ -53,22 +53,23 @@ func counterValue(t *testing.T, name string, labels map[string]string) float64 {
 
 func TestKeyVerifier_VerifyRecordsTerminalStatus(t *testing.T) {
 	t.Run("passed verification", func(t *testing.T) {
-		labels := map[string]string{"type": "key", "code": string(StatusValid)}
+		labels := map[string]string{"type": "key", "code": string(StatusValid), "reason": string(ReasonNone)}
 		before := counterValue(t, verificationsMetric, labels)
 
-		k := &KeyVerifier{Status: StatusValid}
+		k := &KeyVerifier{Status: StatusValid, reason: ReasonNone}
 		require.NoError(t, k.Verify(t.Context()))
 
 		require.Equal(t, 1.0, counterValue(t, verificationsMetric, labels)-before)
 	})
 
 	t.Run("rejected during verification", func(t *testing.T) {
-		labels := map[string]string{"type": "key", "code": string(StatusNotFound)}
+		labels := map[string]string{"type": "key", "code": string(StatusNotFound), "reason": string(ReasonKeyspaceMismatch)}
 		before := counterValue(t, verificationsMetric, labels)
 
 		k := &KeyVerifier{
 			Key:    keysdb.FindKeyForVerificationRow{KeyAuthID: "ks_actual"},
 			Status: StatusValid,
+			reason: ReasonNone,
 		}
 		require.NoError(t, k.Verify(t.Context(), WithKeyspaces("ks_other")))
 
@@ -84,10 +85,10 @@ func TestKeyVerifier_VerifyRecordsLateRejections(t *testing.T) {
 		StatusUsageExceeded,
 	} {
 		t.Run(string(status), func(t *testing.T) {
-			labels := map[string]string{"type": "key", "code": string(status)}
+			labels := map[string]string{"type": "key", "code": string(status), "reason": string(ReasonRateLimited)}
 			before := counterValue(t, verificationsMetric, labels)
 
-			k := &KeyVerifier{Status: status}
+			k := &KeyVerifier{Status: status, reason: ReasonRateLimited}
 			k.recordVerifyOutcome(StatusValid)
 
 			require.Equal(t, 1.0, counterValue(t, verificationsMetric, labels)-before)
@@ -97,21 +98,44 @@ func TestKeyVerifier_VerifyRecordsLateRejections(t *testing.T) {
 
 func TestKeyVerifier_VerifyLeavesStatusesGetOwns(t *testing.T) {
 	t.Run("root key is recorded by Get", func(t *testing.T) {
-		labels := map[string]string{"type": "root_key", "code": string(StatusValid)}
+		labels := map[string]string{"type": "root_key", "code": string(StatusValid), "reason": string(ReasonNone)}
 		before := counterValue(t, verificationsMetric, labels)
 
-		k := &KeyVerifier{Status: StatusValid, isRootKey: true}
+		k := &KeyVerifier{Status: StatusValid, reason: ReasonNone, isRootKey: true}
 		k.recordVerifyOutcome(StatusValid)
 
 		require.Equal(t, 0.0, counterValue(t, verificationsMetric, labels)-before)
 	})
 
 	t.Run("status already decided at Get", func(t *testing.T) {
-		labels := map[string]string{"type": "key", "code": string(StatusExpired)}
+		labels := map[string]string{"type": "key", "code": string(StatusExpired), "reason": string(ReasonExpired)}
 		before := counterValue(t, verificationsMetric, labels)
 
-		k := &KeyVerifier{Status: StatusExpired}
+		k := &KeyVerifier{Status: StatusExpired, reason: ReasonExpired}
 		k.recordVerifyOutcome(StatusExpired)
+
+		require.Equal(t, 0.0, counterValue(t, verificationsMetric, labels)-before)
+	})
+}
+
+func TestKeyVerifier_HideRecordsUndecidedKeysOnce(t *testing.T) {
+	t.Run("key that passed Get", func(t *testing.T) {
+		labels := map[string]string{"type": "key", "code": string(StatusNotFound), "reason": string(ReasonWorkspaceMismatch)}
+		before := counterValue(t, verificationsMetric, labels)
+
+		k := &KeyVerifier{Status: StatusValid, reason: ReasonNone}
+		k.Hide(ReasonWorkspaceMismatch)
+
+		require.Equal(t, StatusNotFound, k.Status)
+		require.Equal(t, 1.0, counterValue(t, verificationsMetric, labels)-before)
+	})
+
+	t.Run("key Get already rejected", func(t *testing.T) {
+		labels := map[string]string{"type": "key", "code": string(StatusNotFound), "reason": string(ReasonPermissionDenied)}
+		before := counterValue(t, verificationsMetric, labels)
+
+		k := &KeyVerifier{Status: StatusDisabled, reason: ReasonDisabled}
+		k.Hide(ReasonPermissionDenied)
 
 		require.Equal(t, 0.0, counterValue(t, verificationsMetric, labels)-before)
 	})

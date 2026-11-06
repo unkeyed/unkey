@@ -24,19 +24,25 @@ var (
 		Help:      `Authentication attempts rejected by an IP allowlist. For root-key denials, search API logs in Grafana for "This IP address is not allowed to use the root key." The AuthIPAllowlistDenied alert includes a filtered Logs link.`,
 	})
 
-	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by type and outcome.
+	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by type, outcome,
+	// and internal reason.
 	// The type should be either "root_key" or "key"
 	// Use this counter to monitor API traffic patterns.
 	//
 	// Every verification is recorded exactly once with its terminal status:
 	// keys.Get records the statuses it decides (NOT_FOUND, DISABLED, EXPIRED,
-	// WORKSPACE_DISABLED, WORKSPACE_NOT_FOUND), and KeyVerifier.Verify records
-	// the outcome of a key that passed Get, including the Verify-stage
-	// rejections (FORBIDDEN, INSUFFICIENT_PERMISSIONS, RATE_LIMITED,
-	// USAGE_EXCEEDED).
+	// WORKSPACE_DISABLED, WORKSPACE_NOT_FOUND), KeyVerifier.Hide records keys
+	// that passed Get but are hidden from the caller, and KeyVerifier.Verify
+	// records the outcome of every other key that passed Get, including the
+	// Verify-stage rejections (FORBIDDEN, INSUFFICIENT_PERMISSIONS,
+	// RATE_LIMITED, USAGE_EXCEEDED).
+	//
+	// The reason label holds the values of keys.Reason. It tells apart the
+	// causes that share a code, such as unknown_hash and workspace_mismatch
+	// for NOT_FOUND.
 	//
 	// Example usage:
-	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
+	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID", "none").Inc()
 	KeyVerificationsTotal = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -56,6 +62,24 @@ var (
 			"USAGE_EXCEEDED",
 			"WORKSPACE_DISABLED",
 			"WORKSPACE_NOT_FOUND",
+		),
+		vec.Values("reason",
+			"none",
+			"unknown_hash",
+			"migration_not_found",
+			"key_deleted",
+			"api_deleted",
+			"workspace_mismatch",
+			"keyspace_mismatch",
+			"permission_denied",
+			"disabled",
+			"expired",
+			"ip_denied",
+			"workspace_disabled",
+			"workspace_not_found",
+			"insufficient_permissions",
+			"rate_limited",
+			"usage_exceeded",
 		),
 	)
 

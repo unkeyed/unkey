@@ -44,6 +44,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			// nolint:exhaustruct
 			return &KeyVerifier{
 				Status:    StatusNotFound,
+				reason:    ReasonMigrationNotFound,
 				message:   "migration does not exist",
 				session:   sess,
 				region:    s.region,
@@ -105,6 +106,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 		// nolint:exhaustruct
 		return &KeyVerifier{
 			Status:    StatusNotFound,
+			reason:    ReasonUnknownHash,
 			message:   "key does not exist",
 			session:   sess,
 			region:    s.region,

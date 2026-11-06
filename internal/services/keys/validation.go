@@ -59,7 +59,7 @@ func (k *KeyVerifier) withCredits(ctx context.Context, cost int64) error {
 	// Always update remaining requests with the accurate count from the usageLimiter
 	k.Key.RemainingRequests = sql.NullInt64{Int64: usage.Remaining, Valid: true}
 	if !usage.Valid {
-		k.setInvalid(StatusUsageExceeded, "Key usage limit exceeded.")
+		k.setInvalid(StatusUsageExceeded, ReasonUsageExceeded, "Key usage limit exceeded.")
 	} else {
 		// Only track spent credits if they were actually spent (usage was valid)
 		k.spentCredits = cost
@@ -84,7 +84,7 @@ func (k *KeyVerifier) withPermissions(ctx context.Context, query rbac.Permission
 	}
 
 	if !allowed.Valid {
-		k.setInvalid(StatusInsufficientPermissions, allowed.Message)
+		k.setInvalid(StatusInsufficientPermissions, ReasonInsufficientPermissions, allowed.Message)
 	}
 
 	return nil
@@ -222,7 +222,7 @@ func (k *KeyVerifier) withRateLimits(ctx context.Context, specifiedLimits []open
 		ratelimitsToCheck[names[i]] = config
 
 		if !resp[i].Success {
-			k.setInvalid(StatusRateLimited, fmt.Sprintf("key exceeded rate limit %s", names[i]))
+			k.setInvalid(StatusRateLimited, ReasonRateLimited, fmt.Sprintf("key exceeded rate limit %s", names[i]))
 		}
 	}
 

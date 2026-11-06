@@ -43,6 +43,7 @@ type KeyVerifier struct {
 	isRootKey bool // Whether this is a root key (special handling)
 
 	message string   // Internal message for validation failures
+	reason  Reason   // Internal cause of the current Status
 	tags    []string // Tags associated with this verification
 
 	session *zen.Session // The current request session
@@ -76,9 +77,13 @@ func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) e
 // Verify performs key verification with the given options.
 // Authentication failures set Status; configuration and system failures return errors.
 // A requested limit without a stored definition or complete inline override returns an error wrapping *RatelimitNotConfiguredError.
-func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
+func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) (err error) {
 	before := k.Status
-	defer k.recordVerifyOutcome(before)
+	defer func() {
+		if err == nil {
+			k.recordVerifyOutcome(before)
+		}
+	}()
 
 	// nolint:exhaustruct
 	config := &verifyConfig{}
@@ -93,7 +98,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	}
 
 	if config.keyspaces != nil && !slices.Contains(config.keyspaces, k.Key.KeyAuthID) {
-		k.setInvalid(StatusNotFound, "Key does not belong to an allowed keyspace.")
+		k.setInvalid(StatusNotFound, ReasonKeyspaceMismatch, "Key does not belong to an allowed keyspace.")
 		return nil
 	}
 
@@ -101,7 +106,6 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		return nil
 	}
 
-	var err error
 	if config.permissions != nil {
 		err = k.withPermissions(ctx, *config.permissions)
 		if err != nil {
@@ -127,21 +131,34 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 // recordVerifyOutcome records the terminal status of a verification that was
 // still undecided when it entered Verify. Statuses Get already decided, and
 // root keys, which never run through Verify, are recorded there instead.
+// Verify skips it when it returns an error: the caller gets an error response,
+// not a verification outcome, so there is no status to count.
 func (k *KeyVerifier) recordVerifyOutcome(before KeyStatus) {
 	if before != StatusValid || k.isRootKey {
 		return
 	}
 
-	k.recordStatus(k.Status)
+	k.recordStatus()
 }
 
-func (k *KeyVerifier) recordStatus(status KeyStatus) {
+func (k *KeyVerifier) recordStatus() {
 	keyType := "key"
 	if k.isRootKey {
 		keyType = "root_key"
 	}
 
-	metrics.KeyVerificationsTotal.WithLabelValues(keyType, string(status)).Inc()
+	metrics.KeyVerificationsTotal.WithLabelValues(keyType, string(k.Status), string(k.reason)).Inc()
+}
+
+// Hide reports the key to the caller as NOT_FOUND because the caller may not
+// see it, for example because it belongs to another workspace. A key that Get
+// left undecided is recorded here, since it never reaches Verify.
+func (k *KeyVerifier) Hide(reason Reason) {
+	undecided := k.Status == StatusValid && !k.isRootKey
+	k.setInvalid(StatusNotFound, reason, "key is hidden from the caller")
+	if undecided {
+		k.recordStatus()
+	}
 }
 
 // TelemetrySnapshot captures the final verification outcome for downstream

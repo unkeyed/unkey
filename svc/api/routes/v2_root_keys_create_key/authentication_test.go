@@ -107,8 +107,8 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 			req.Header.Set("User-Agent", "ip-denial-test")
 			session := &zen.Session{}
 			require.NoError(t, session.Init(httptest.NewRecorder(), req, 0))
-			validBefore := rootKeyVerificationCount(t, "VALID")
-			notFoundBefore := rootKeyVerificationCount(t, "NOT_FOUND")
+			validBefore := rootKeyVerificationCount(t, "VALID", "none")
+			notFoundBefore := rootKeyVerificationCount(t, "NOT_FOUND", "ip_denied")
 			var denialsBefore, denialsAfter dto.Metric
 			counter, counterErr := metrics.AuthIPAllowlistDenialsTotal.GetMetricWithLabelValues()
 			require.NoError(t, counterErr)
@@ -128,8 +128,8 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 				require.Empty(t, warnings)
 				require.NoError(t, err)
 				require.Equal(t, denialsBefore.GetCounter().GetValue(), denialsAfter.GetCounter().GetValue())
-				require.Equal(t, validBefore+1, rootKeyVerificationCount(t, "VALID"))
-				require.Equal(t, notFoundBefore, rootKeyVerificationCount(t, "NOT_FOUND"))
+				require.Equal(t, validBefore+1, rootKeyVerificationCount(t, "VALID", "none"))
+				require.Equal(t, notFoundBefore, rootKeyVerificationCount(t, "NOT_FOUND", "ip_denied"))
 			} else {
 				ipsExpected = append(ipsExpected, session.ClientIP().String())
 				metaExpected = append(metaExpected, map[string]any{
@@ -145,8 +145,8 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 				require.Equal(t, "The provided root key is invalid.", fault.UserFacingMessage(err))
 				require.Contains(t, fault.InternalMessage(err), session.ClientIP().String())
 				require.Contains(t, fault.InternalMessage(err), "This IP address is not allowed to use the root key.")
-				require.Equal(t, notFoundBefore+1, rootKeyVerificationCount(t, "NOT_FOUND"))
-				require.Equal(t, validBefore, rootKeyVerificationCount(t, "VALID"))
+				require.Equal(t, notFoundBefore+1, rootKeyVerificationCount(t, "NOT_FOUND", "ip_denied"))
+				require.Equal(t, validBefore, rootKeyVerificationCount(t, "VALID", "none"))
 			}
 		})
 	}
@@ -167,10 +167,10 @@ func TestRootKeyAuthenticationRestrictsNetworks(t *testing.T) {
 	}
 }
 
-func rootKeyVerificationCount(t *testing.T, code string) float64 {
+func rootKeyVerificationCount(t *testing.T, code, reason string) float64 {
 	t.Helper()
 	var metric dto.Metric
-	require.NoError(t, metrics.KeyVerificationsTotal.WithLabelValues("root_key", code).Write(&metric))
+	require.NoError(t, metrics.KeyVerificationsTotal.WithLabelValues("root_key", code, reason).Write(&metric))
 	return metric.GetCounter().GetValue()
 }
 

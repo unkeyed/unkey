@@ -309,7 +309,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		if kv.Status == StatusValid && !kv.isRootKey {
 			return
 		}
-		kv.recordStatus(kv.Status)
+		kv.recordStatus()
 	}()
 
 	err = loadErr
@@ -318,6 +318,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 			// nolint:exhaustruct
 			return &KeyVerifier{
 				Status:    StatusNotFound,
+				reason:    ReasonUnknownHash,
 				message:   "key does not exist",
 				session:   sess,
 				region:    s.region,
@@ -337,6 +338,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		// nolint:exhaustruct
 		return &KeyVerifier{
 			Status:    StatusNotFound,
+			reason:    ReasonUnknownHash,
 			message:   "key does not exist",
 			session:   sess,
 			region:    s.region,
@@ -350,6 +352,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		// nolint:exhaustruct
 		return &KeyVerifier{
 			Status:    StatusWorkspaceNotFound,
+			reason:    ReasonWorkspaceNotFound,
 			message:   "workspace not found",
 			session:   sess,
 			region:    s.region,
@@ -363,6 +366,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		// nolint:exhaustruct
 		kv = &KeyVerifier{
 			Status:                StatusWorkspaceDisabled,
+			reason:                ReasonWorkspaceDisabled,
 			message:               "workspace is disabled",
 			session:               sess,
 			rBAC:                  s.rbac,
@@ -397,6 +401,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 
 		// By default we assume the key is valid unless proven otherwise
 		Status:           StatusValid,
+		reason:           ReasonNone,
 		ratelimitConfigs: key.RatelimitConfigs,
 		AllowedIPs:       key.AllowedIPs,
 		Roles:            key.Roles,
@@ -405,22 +410,22 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 	}
 
 	if key.DeletedAtM.Valid {
-		kv.setInvalid(StatusNotFound, "key is deleted")
+		kv.setInvalid(StatusNotFound, ReasonKeyDeleted, "key is deleted")
 		return kv, nil
 	}
 
 	if key.ApiDeletedAtM.Valid {
-		kv.setInvalid(StatusNotFound, "key is deleted")
+		kv.setInvalid(StatusNotFound, ReasonAPIDeleted, "key is deleted")
 		return kv, nil
 	}
 
 	if !key.Enabled {
-		kv.setInvalid(StatusDisabled, "key is disabled")
+		kv.setInvalid(StatusDisabled, ReasonDisabled, "key is disabled")
 		return kv, nil
 	}
 
 	if key.Expires.Valid && startTime.After(key.Expires.Time) {
-		kv.setInvalid(StatusExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
+		kv.setInvalid(StatusExpired, ReasonExpired, fmt.Sprintf("the key has expired on %s", key.Expires.Time.Format(time.RFC3339)))
 		return kv, nil
 	}
 
@@ -454,7 +459,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 			}},
 			CorrelationID: "",
 		})
-		kv.setInvalid(StatusNotFound, "This IP address is not allowed to use the root key.")
+		kv.setInvalid(StatusNotFound, ReasonIPDenied, "This IP address is not allowed to use the root key.")
 		return kv, nil
 	}
 
