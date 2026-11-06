@@ -38,6 +38,12 @@ type cache[K comparable, V any] struct {
 	loadsMu sync.Mutex
 	loads   map[K]*inflight[V]
 
+	// removals counts Remove and Clear calls. An origin read writes its result
+	// only if removals did not change since the read started, so a read that
+	// overlaps an invalidation cannot write the old data back.
+	removalsMu sync.RWMutex
+	removals   uint64
+
 	metricReadsHit  prometheus.Counter
 	metricReadsMiss prometheus.Counter
 	metricDurations [opCount][statusCount]prometheus.Observer
@@ -68,12 +74,13 @@ var timingStatusNames = [statusCount]string{"fresh", "stale", "miss"}
 // inflight is an origin read for a key that other SWR callers wait for.
 // Its result fields are written before done is closed.
 type inflight[V any] struct {
-	done    chan struct{}
-	cancel  context.CancelFunc
-	waiters int
-	value   V
-	hit     CacheHit
-	err     error
+	done     chan struct{}
+	cancel   context.CancelFunc
+	waiters  int
+	removals uint64
+	value    V
+	hit      CacheHit
+	err      error
 }
 
 var errLoadPanicked = errors.New("cache: shared origin read panicked")
@@ -216,6 +223,8 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		inflightRefreshes: make(map[K]bool),
 		loadsMu:           sync.Mutex{}, //faultline:equivalent the zero sync.Mutex is ready to use
 		loads:             make(map[K]*inflight[V]),
+		removalsMu:        sync.RWMutex{}, //faultline:equivalent the zero sync.RWMutex is ready to use
+		removals:          0,
 		metricReadsHit:    metrics.CacheReads.WithLabelValues(config.Resource, "true"),
 		metricReadsMiss:   metrics.CacheReads.WithLabelValues(config.Resource, "false"),
 		metricDurations:   [opCount][statusCount]prometheus.Observer{},
@@ -488,6 +497,9 @@ func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 }
 
 func (c *cache[K, V]) Remove(ctx context.Context, keys ...K) {
+	c.removalsMu.Lock()
+	defer c.removalsMu.Unlock()
+	c.removals++
 	for _, key := range keys {
 		if c.store.delete(key) {
 			metrics.CacheDeleted.WithLabelValues(c.resource, "Explicit").Inc()
@@ -529,7 +541,26 @@ func (c *cache[K, V]) Restore(ctx context.Context, b []byte) error {
 }
 
 func (c *cache[K, V]) Clear(ctx context.Context) {
+	c.removalsMu.Lock()
+	defer c.removalsMu.Unlock()
+	c.removals++
 	c.store.clear()
+}
+
+func (c *cache[K, V]) removalCount() uint64 {
+	c.removalsMu.RLock()
+	defer c.removalsMu.RUnlock()
+	return c.removals
+}
+
+// writeOrigin runs write, which stores an origin result, unless Remove or
+// Clear ran since removals was read before the origin read.
+func (c *cache[K, V]) writeOrigin(removals uint64, write func()) {
+	c.removalsMu.RLock()
+	defer c.removalsMu.RUnlock()
+	if c.removals == removals {
+		write()
+	}
 }
 
 func (c *cache[K, V]) Name() string {
@@ -565,7 +596,8 @@ func (c *cache[K, V]) load(
 	}
 
 	c.loadsMu.Lock()
-	if f, ok := c.loads[key]; ok {
+	removals := c.removalCount()
+	if f, ok := c.loads[key]; ok && f.removals == removals {
 		f.waiters++
 		c.loadsMu.Unlock()
 		select {
@@ -595,12 +627,13 @@ func (c *cache[K, V]) load(
 		loadCtx, cancel = context.WithCancel(loadCtx)
 	}
 	f := &inflight[V]{
-		done:    make(chan struct{}),
-		cancel:  cancel,
-		waiters: 1,
-		value:   zero, //faultline:equivalent zero is the zero value
-		hit:     Miss,
-		err:     errLoadPanicked,
+		done:     make(chan struct{}),
+		cancel:   cancel,
+		waiters:  1,
+		removals: removals,
+		value:    zero, //faultline:equivalent zero is the zero value
+		hit:      Miss,
+		err:      errLoadPanicked,
 	}
 	c.loads[key] = f
 	c.loadsMu.Unlock()
@@ -621,10 +654,10 @@ func (c *cache[K, V]) load(
 	var hit CacheHit
 	switch op(err) {
 	case WriteValue:
-		c.Set(loadCtx, key, v)
+		c.writeOrigin(removals, func() { c.Set(loadCtx, key, v) })
 		hit = Hit
 	case WriteNull:
-		c.SetNull(loadCtx, key)
+		c.writeOrigin(removals, func() { c.SetNull(loadCtx, key) })
 		hit = Null //faultline:equivalent hit starts as Null, the zero CacheHit
 	case Noop: //faultline:equivalent hit starts as Null, the zero CacheHit
 		hit = Null //faultline:equivalent hit starts as Null, the zero CacheHit
@@ -742,13 +775,13 @@ func (c *cache[K, V]) SWRMany(
 
 	// Fetch missing keys synchronously
 	if len(missingKeys) > 0 {
+		removals := c.removalCount()
 		fetchedValues, err := refreshFromOrigin(ctx, missingKeys)
 
 		switch op(err) {
 		case WriteValue:
 			if fetchedValues != nil {
-				// Write the values we got
-				c.setInOrder(missingKeys, fetchedValues)
+				c.writeOrigin(removals, func() { c.setInOrder(missingKeys, fetchedValues) })
 				for key, value := range fetchedValues {
 					values[key] = value
 					hits[key] = Hit
@@ -763,14 +796,14 @@ func (c *cache[K, V]) SWRMany(
 				}
 
 				if len(notFoundKeys) > 0 { //faultline:equivalent SetNullMany with no keys writes nothing
-					c.SetNullMany(ctx, notFoundKeys)
+					c.writeOrigin(removals, func() { c.SetNullMany(ctx, notFoundKeys) })
 					for _, key := range notFoundKeys {
 						hits[key] = Null
 					}
 				}
 			}
 		case WriteNull:
-			c.SetNullMany(ctx, missingKeys)
+			c.writeOrigin(removals, func() { c.SetNullMany(ctx, missingKeys) })
 			for _, key := range missingKeys {
 				hits[key] = Null
 			}
@@ -822,6 +855,7 @@ func (c *cache[K, V]) SWRWithFallback(
 	}
 
 	// Cache miss on all candidates - fetch from origin
+	removals := c.removalCount()
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 	c.recordTiming(ctx, opSWRFallback, statusMiss, start)
 
@@ -835,10 +869,10 @@ func (c *cache[K, V]) SWRWithFallback(
 	var hit CacheHit
 	switch operation {
 	case WriteValue:
-		c.Set(ctx, canonicalKey, v)
+		c.writeOrigin(removals, func() { c.Set(ctx, canonicalKey, v) })
 		hit = Hit
 	case WriteNull:
-		c.SetNull(ctx, canonicalKey)
+		c.writeOrigin(removals, func() { c.SetNull(ctx, canonicalKey) })
 		hit = Null //faultline:equivalent hit starts as Null, the zero CacheHit
 	case Noop:
 		hit = Miss
@@ -853,6 +887,7 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 	op func(error) Op,
 ) {
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Inc()
+	removals := c.removalCount()
 	v, canonicalKey, err := refreshFromOrigin(ctx)
 
 	if err != nil && !db.IsNotFound(err) {
@@ -862,9 +897,9 @@ func (c *cache[K, V]) revalidateWithCanonicalKey(
 
 	switch op(err) {
 	case WriteValue:
-		c.Set(ctx, canonicalKey, v)
+		c.writeOrigin(removals, func() { c.Set(ctx, canonicalKey, v) })
 	case WriteNull:
-		c.SetNull(ctx, canonicalKey)
+		c.writeOrigin(removals, func() { c.SetNull(ctx, canonicalKey) })
 	case Noop: //faultline:equivalent the switch has no default, so an empty or missing Noop case does the same
 	}
 }
@@ -876,6 +911,7 @@ func (c *cache[K, V]) revalidateMany(
 	op func(error) Op,
 ) {
 	metrics.CacheRevalidations.WithLabelValues(c.resource).Add(float64(len(keys)))
+	removals := c.removalCount()
 	values, err := refreshFromOrigin(ctx, keys)
 
 	if err != nil && !db.IsNotFound(err) { //faultline:equivalent the condition only decides whether to log
@@ -885,8 +921,7 @@ func (c *cache[K, V]) revalidateMany(
 	switch op(err) {
 	case WriteValue:
 		if values != nil {
-			// Write the values we got
-			c.setInOrder(keys, values)
+			c.writeOrigin(removals, func() { c.setInOrder(keys, values) })
 
 			// Automatically write NULL for keys that weren't returned
 			var notFoundKeys []K
@@ -896,11 +931,11 @@ func (c *cache[K, V]) revalidateMany(
 				}
 			}
 			if len(notFoundKeys) > 0 { //faultline:equivalent SetNullMany with no keys writes nothing
-				c.SetNullMany(ctx, notFoundKeys)
+				c.writeOrigin(removals, func() { c.SetNullMany(ctx, notFoundKeys) })
 			}
 		}
 	case WriteNull:
-		c.SetNullMany(ctx, keys)
+		c.writeOrigin(removals, func() { c.SetNullMany(ctx, keys) })
 	case Noop: //faultline:equivalent the switch has no default, so an empty or missing Noop case does the same
 		// Don't cache anything
 	}
