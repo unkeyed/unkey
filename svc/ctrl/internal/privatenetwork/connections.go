@@ -4,23 +4,10 @@ import (
 	"context"
 	"slices"
 
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
-
-type connection struct {
-	WorkspaceID        string
-	ProjectID          string
-	AppID              string
-	AppSlug            string
-	K8sNamespace       string
-	DeploymentID       string
-	Port               int32
-	EnvironmentID      string
-	CallerDeploymentID string
-	ConnectionID       string
-	ConnectionName     string
-}
 
 // listConnections returns one page of the directed app connections saved by
 // the given caller deployments, paged as
@@ -40,7 +27,7 @@ type connection struct {
 // it never falls back to an older deployment. Read every page in the
 // transaction that read [db.Queries.ListPrivateNetworkReplicas], so all pages
 // see one snapshot.
-func listConnections(ctx context.Context, queries *db.Queries, params db.ListPrivateNetworkConnectionSelectionsParams, platform string) ([]connection, error) {
+func listConnections(ctx context.Context, queries *db.Queries, params db.ListPrivateNetworkConnectionSelectionsParams, platform string) ([]*ctrlv1.PrivateNetworkConnection, error) {
 	selections, err := queries.ListPrivateNetworkConnectionSelections(ctx, params)
 	if err != nil {
 		return nil, err
@@ -54,30 +41,27 @@ func listConnections(ctx context.Context, queries *db.Queries, params db.ListPri
 		return nil, err
 	}
 
-	connections := make([]connection, 0, len(selections))
+	connections := make([]*ctrlv1.PrivateNetworkConnection, 0, len(selections))
 	for i, selection := range selections {
-		c := connection{
-			WorkspaceID:        selection.WorkspaceID,
-			ProjectID:          selection.ProjectID,
-			AppID:              selection.AppID,
-			AppSlug:            selection.AppSlug,
-			K8sNamespace:       selection.K8sNamespace,
-			DeploymentID:       "",
-			Port:               0,
-			EnvironmentID:      "",
-			CallerDeploymentID: selection.CallerDeploymentID,
-			ConnectionID:       selection.ConnectionID,
+		connection := &ctrlv1.PrivateNetworkConnection{
+			WorkspaceId:        selection.WorkspaceID,
+			ProjectId:          selection.ProjectID,
+			TargetAppId:        selection.AppID,
+			TargetAppSlug:      selection.AppSlug,
+			K8SNamespace:       selection.K8sNamespace,
+			CallerDeploymentId: selection.CallerDeploymentID,
+			ConnectionId:       selection.ConnectionID,
 			ConnectionName:     selection.ConnectionName,
 		}
 		if target, ok := targets[deploymentIDs[i]]; ok &&
 			target.AppID == selection.AppID &&
 			target.WorkspaceID == selection.WorkspaceID &&
 			target.ProjectID == selection.ProjectID {
-			c.DeploymentID = target.ID
-			c.Port = target.Port
-			c.EnvironmentID = target.EnvironmentID
+			connection.TargetDeploymentId = target.ID
+			connection.TargetPort = target.Port
+			connection.TargetEnvironmentId = target.EnvironmentID
 		}
-		connections = append(connections, c)
+		connections = append(connections, connection)
 	}
 	return connections, nil
 }

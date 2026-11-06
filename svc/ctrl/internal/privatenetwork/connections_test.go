@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -352,41 +353,41 @@ func (f *catalogFixture) replicaIDs(t *testing.T) []string {
 	return deploymentIDs
 }
 
-func (f *catalogFixture) connectionsOn(t *testing.T, platform string) map[string]connection {
+func (f *catalogFixture) connectionsOn(t *testing.T, platform string) map[string]*ctrlv1.PrivateNetworkConnection {
 	t.Helper()
 	var callerIDs []string
 	for _, caller := range f.replicas(t, platform) {
 		callerIDs = append(callerIDs, caller.DeploymentID)
 	}
-	var rows []connection
+	var rows []*ctrlv1.PrivateNetworkConnection
 	for callerPage := range slices.Chunk(callerIDs, 3) {
 		for _, page := range f.pages(t, platform, callerPage, 1) {
 			rows = append(rows, page...)
 		}
 	}
-	byConnectionCaller := make(map[string]connection, len(rows))
+	byConnectionCaller := make(map[string]*ctrlv1.PrivateNetworkConnection, len(rows))
 	for _, row := range rows {
-		key := row.ConnectionID + "/" + row.CallerDeploymentID
+		key := row.GetConnectionId() + "/" + row.GetCallerDeploymentId()
 		require.NotContains(t, byConnectionCaller, key, "one row per connection and caller deployment, even across regions")
 		byConnectionCaller[key] = row
-		require.Equal(t, row.DeploymentID == "", row.Port == 0, "port is known exactly when %s is resolved", key)
-		require.Equal(t, f.workspace, row.WorkspaceID)
-		require.Equal(t, f.project, row.ProjectID)
+		require.Equal(t, row.GetTargetDeploymentId() == "", row.GetTargetPort() == 0, "port is known exactly when %s is resolved", key)
+		require.Equal(t, f.workspace, row.GetWorkspaceId())
+		require.Equal(t, f.project, row.GetProjectId())
 	}
 	return byConnectionCaller
 }
 
-func (f *catalogFixture) connections(t *testing.T) map[string]connection {
+func (f *catalogFixture) connections(t *testing.T) map[string]*ctrlv1.PrivateNetworkConnection {
 	t.Helper()
 	return f.connectionsOn(t, f.platform)
 }
 
-func (f *catalogFixture) pages(t *testing.T, platform string, callerIDs []string, pageSize int32) [][]connection {
+func (f *catalogFixture) pages(t *testing.T, platform string, callerIDs []string, pageSize int32) [][]*ctrlv1.PrivateNetworkConnection {
 	t.Helper()
 	params := db.ListPrivateNetworkConnectionSelectionsParams{
 		CallerDeploymentIds: callerIDs, AfterCallerDeploymentID: "", AfterConnectionID: "", Limit: pageSize,
 	}
-	var pages [][]connection
+	var pages [][]*ctrlv1.PrivateNetworkConnection
 	for {
 		page, err := listConnections(t.Context(), db.NewQueries(f.database().RW()), params, platform)
 		require.NoError(t, err)
@@ -396,7 +397,7 @@ func (f *catalogFixture) pages(t *testing.T, platform string, callerIDs []string
 			return pages
 		}
 		last := page[len(page)-1]
-		params.AfterCallerDeploymentID, params.AfterConnectionID = last.CallerDeploymentID, last.ConnectionID
+		params.AfterCallerDeploymentID, params.AfterConnectionID = last.GetCallerDeploymentId(), last.GetConnectionId()
 	}
 }
 
@@ -440,7 +441,7 @@ func TestListConnections(t *testing.T) {
 
 		pages := f.pages(t, f.platform, callers, 1)
 		require.Len(t, pages, 3, "two full pages for the same caller, then an empty page")
-		var split []connection
+		var split []*ctrlv1.PrivateNetworkConnection
 		for _, page := range pages {
 			split = append(split, page...)
 		}
@@ -451,9 +452,9 @@ func TestListConnections(t *testing.T) {
 		f := newCatalog(t)
 		whole := f.pages(t, f.platform, f.replicaIDs(t), 100)
 		require.Len(t, whole, 1)
-		byConnectionCaller := make(map[string]connection, len(whole[0]))
+		byConnectionCaller := make(map[string]*ctrlv1.PrivateNetworkConnection, len(whole[0]))
 		for _, row := range whole[0] {
-			byConnectionCaller[row.ConnectionID+"/"+row.CallerDeploymentID] = row
+			byConnectionCaller[row.GetConnectionId()+"/"+row.GetCallerDeploymentId()] = row
 		}
 		require.Equal(t, f.connections(t), byConnectionCaller, "same-branch callers on different forks and callers without a match must not share or shift targets")
 	})
@@ -467,7 +468,7 @@ func TestListConnections(t *testing.T) {
 			f.setStatus(t, f.callerProdDeploying, status)
 			current := f.connections(t)
 			require.Contains(t, current, f.productionConnection+"/"+f.callerProdDeploying, status)
-			require.Equal(t, f.targetLive, current[f.productionConnection+"/"+f.callerProdDeploying].DeploymentID, status)
+			require.Equal(t, f.targetLive, current[f.productionConnection+"/"+f.callerProdDeploying].GetTargetDeploymentId(), status)
 			require.Contains(t, f.replicaIDs(t), f.callerProdDeploying, status)
 		}
 	})
@@ -480,7 +481,7 @@ func TestListConnections(t *testing.T) {
 			f.setStatus(t, f.targetLive, status)
 			current := f.connections(t)
 			require.Contains(t, current, f.productionConnection+"/"+f.callerProdLive, status)
-			require.Empty(t, current[f.productionConnection+"/"+f.callerProdLive].DeploymentID, status)
+			require.Empty(t, current[f.productionConnection+"/"+f.callerProdLive].GetTargetDeploymentId(), status)
 		}
 	})
 
@@ -498,12 +499,12 @@ func TestListConnections(t *testing.T) {
 			f.explicitProdConnection + "/" + f.callerRollbackDep: f.targetLive,
 		} {
 			require.Contains(t, selected, key)
-			require.Equal(t, want, selected[key].DeploymentID, key)
+			require.Equal(t, want, selected[key].GetTargetDeploymentId(), key)
 		}
-		require.Equal(t, f.targetLive, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].DeploymentID, "an automatic caller in any production-kind environment follows the live pointer, not its git branch")
-		require.Equal(t, f.targetPreviewOld, selected[f.previewConnection+"/"+f.callerPreviewOwn].DeploymentID, "branch matching selects only preview-kind deployments, never a production-kind custom environment")
+		require.Equal(t, f.targetLive, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].GetTargetDeploymentId(), "an automatic caller in any production-kind environment follows the live pointer, not its git branch")
+		require.Equal(t, f.targetPreviewOld, selected[f.previewConnection+"/"+f.callerPreviewOwn].GetTargetDeploymentId(), "branch matching selects only preview-kind deployments, never a production-kind custom environment")
 		require.Contains(t, selected, f.canaryConnection+"/"+f.callerCanaryOCI)
-		require.Empty(t, selected[f.canaryConnection+"/"+f.callerCanaryOCI].DeploymentID, "an explicit production-kind environment without the live deployment must not fall back to its newest ready build")
+		require.Empty(t, selected[f.canaryConnection+"/"+f.callerCanaryOCI].GetTargetDeploymentId(), "an explicit production-kind environment without the live deployment must not fall back to its newest ready build")
 		for _, excluded := range []string{
 			f.crossWorkspaceConnection + "/" + f.callerProdLive, f.otherProjectConnection + "/" + f.callerProdLive,
 			f.previewConnection + "/" + f.callerUnapproved, f.previewConnection + "/" + f.callerWrongPlatform,
@@ -519,40 +520,40 @@ func TestListConnections(t *testing.T) {
 		f := newCatalog(t)
 		f.setLive(t, f.target, f.targetNewProd)
 		selected := f.connections(t)
-		require.Equal(t, f.targetNewProd, selected[f.productionConnection+"/"+f.callerProdLive].DeploymentID)
-		require.Equal(t, f.targetNewProd, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].DeploymentID)
-		require.Equal(t, f.targetNewProd, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].DeploymentID)
+		require.Equal(t, f.targetNewProd, selected[f.productionConnection+"/"+f.callerProdLive].GetTargetDeploymentId())
+		require.Equal(t, f.targetNewProd, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].GetTargetDeploymentId())
+		require.Equal(t, f.targetNewProd, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].GetTargetDeploymentId())
 		f.setLive(t, f.target, f.targetLive)
 		selected = f.connections(t)
-		require.Equal(t, f.targetLive, selected[f.productionConnection+"/"+f.callerProdLive].DeploymentID, "automatic production follows a rollback")
-		require.Equal(t, f.targetLive, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].DeploymentID, "an explicit production environment follows a rollback, not the newest ready deployment")
-		require.Equal(t, f.targetLive, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].DeploymentID, "a custom production-kind caller follows a rollback")
+		require.Equal(t, f.targetLive, selected[f.productionConnection+"/"+f.callerProdLive].GetTargetDeploymentId(), "automatic production follows a rollback")
+		require.Equal(t, f.targetLive, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].GetTargetDeploymentId(), "an explicit production environment follows a rollback, not the newest ready deployment")
+		require.Equal(t, f.targetLive, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].GetTargetDeploymentId(), "a custom production-kind caller follows a rollback")
 
 		f.setLive(t, f.target, f.targetCanaryReady)
 		selected = f.connections(t)
-		require.Equal(t, f.targetCanaryReady, selected[f.canaryConnection+"/"+f.callerCanaryOCI].DeploymentID, "an explicit production-kind environment follows the live pointer into that environment")
-		require.Equal(t, f.targetCanaryReady, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].DeploymentID)
-		require.Empty(t, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].DeploymentID, "an explicit environment ignores a live deployment in another environment")
+		require.Equal(t, f.targetCanaryReady, selected[f.canaryConnection+"/"+f.callerCanaryOCI].GetTargetDeploymentId(), "an explicit production-kind environment follows the live pointer into that environment")
+		require.Equal(t, f.targetCanaryReady, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].GetTargetDeploymentId())
+		require.Empty(t, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].GetTargetDeploymentId(), "an explicit environment ignores a live deployment in another environment")
 
 		f.setLive(t, f.target, "")
 		selected = f.connections(t)
-		require.Empty(t, selected[f.productionConnection+"/"+f.callerProdLive].DeploymentID)
-		require.Empty(t, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].DeploymentID)
-		require.Empty(t, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].DeploymentID, "production must not fall back to a non-live build")
-		require.Empty(t, selected[f.canaryConnection+"/"+f.callerCanaryOCI].DeploymentID, "a production-kind custom environment must not fall back to a non-live build")
+		require.Empty(t, selected[f.productionConnection+"/"+f.callerProdLive].GetTargetDeploymentId())
+		require.Empty(t, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].GetTargetDeploymentId())
+		require.Empty(t, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].GetTargetDeploymentId(), "production must not fall back to a non-live build")
+		require.Empty(t, selected[f.canaryConnection+"/"+f.callerCanaryOCI].GetTargetDeploymentId(), "a production-kind custom environment must not fall back to a non-live build")
 
 		f.setLive(t, f.target, f.targetLive)
 		f.setStatus(t, f.targetLive, mysqltype.DeploymentsStatusFailed)
 		selected = f.connections(t)
-		require.Empty(t, selected[f.productionConnection+"/"+f.callerProdLive].DeploymentID)
-		require.Empty(t, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].DeploymentID, "an unavailable live deployment must not select a branch match")
-		require.Empty(t, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].DeploymentID, "an unavailable live deployment must not select another production build")
+		require.Empty(t, selected[f.productionConnection+"/"+f.callerProdLive].GetTargetDeploymentId())
+		require.Empty(t, selected[f.stagingAutoConnection+"/"+f.callerStagingGit].GetTargetDeploymentId(), "an unavailable live deployment must not select a branch match")
+		require.Empty(t, selected[f.explicitProdConnection+"/"+f.callerRollbackDep].GetTargetDeploymentId(), "an unavailable live deployment must not select another production build")
 	})
 
 	t.Run("explicit preview environment falls back to its newest first-ready deployment", func(t *testing.T) {
 		f := newCatalog(t)
 		f.setStatus(t, f.targetManualLatestFailed, mysqltype.DeploymentsStatusReady)
-		require.Equal(t, f.targetManualLatestFailed, f.connections(t)[f.manualConnection+"/"+f.callerManualDep].DeploymentID)
+		require.Equal(t, f.targetManualLatestFailed, f.connections(t)[f.manualConnection+"/"+f.callerManualDep].GetTargetDeploymentId())
 	})
 
 	t.Run("defaults do not change saved connections across caller stop and restart", func(t *testing.T) {
@@ -594,9 +595,9 @@ func TestListConnections(t *testing.T) {
 			TargetDeploymentID:  current.TargetDeploymentID,
 		}))
 		updated := f.connections(t)
-		require.Equal(t, "changed", updated[f.productionConnection+"/"+f.callerNew].ConnectionName)
-		require.Empty(t, updated[f.productionConnection+"/"+f.callerNew].DeploymentID, "the new snapshot selects the failed manual target instead of live production")
-		require.Equal(t, f.targetLive, updated[f.productionConnection+"/"+f.callerProdLive].DeploymentID)
+		require.Equal(t, "changed", updated[f.productionConnection+"/"+f.callerNew].GetConnectionName())
+		require.Empty(t, updated[f.productionConnection+"/"+f.callerNew].GetTargetDeploymentId(), "the new snapshot selects the failed manual target instead of live production")
+		require.Equal(t, f.targetLive, updated[f.productionConnection+"/"+f.callerProdLive].GetTargetDeploymentId())
 
 		deleted, err := f.database().DeleteAppConnectionById(ctx, f.productionConnection)
 		require.NoError(t, err)
@@ -624,11 +625,11 @@ func TestListConnections(t *testing.T) {
 	t.Run("deleting and recreating a target environment fails closed", func(t *testing.T) {
 		f := newCatalog(t)
 		f.setLive(t, f.target, f.targetCanaryReady)
-		require.Equal(t, f.targetCanaryReady, f.connections(t)[f.canaryConnection+"/"+f.callerCanaryOCI].DeploymentID)
+		require.Equal(t, f.targetCanaryReady, f.connections(t)[f.canaryConnection+"/"+f.callerCanaryOCI].GetTargetDeploymentId())
 		require.NoError(t, f.database().DeleteEnvironmentById(t.Context(), f.targetCanary))
 		selected := f.connections(t)
 		require.Contains(t, selected, f.canaryConnection+"/"+f.callerCanaryOCI)
-		require.Empty(t, selected[f.canaryConnection+"/"+f.callerCanaryOCI].DeploymentID, "a deleted target environment fails closed even while its deployments linger")
+		require.Empty(t, selected[f.canaryConnection+"/"+f.callerCanaryOCI].GetTargetDeploymentId(), "a deleted target environment fails closed even while its deployments linger")
 
 		recreatedEnvironmentID := uid.New(uid.EnvironmentPrefix)
 		f.createEnvironment(t, f.workspace, f.project, f.target, recreatedEnvironmentID, "canary", mysqltype.EnvironmentKindProduction)
@@ -637,7 +638,7 @@ func TestListConnections(t *testing.T) {
 			status: mysqltype.DeploymentsStatusReady, firstReady: true, created: 70, regions: []string{f.region},
 		})
 		f.setLive(t, f.target, f.targetCanaryRecreated)
-		require.Empty(t, f.connections(t)[f.canaryConnection+"/"+f.callerCanaryOCI].DeploymentID, "recreating the slug must not revive the connection")
+		require.Empty(t, f.connections(t)[f.canaryConnection+"/"+f.callerCanaryOCI].GetTargetDeploymentId(), "recreating the slug must not revive the connection")
 	})
 
 	t.Run("deleting a caller environment removes its saved connections", func(t *testing.T) {
