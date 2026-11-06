@@ -5,6 +5,10 @@
 -- are returned as JSON arrays via JSON_ARRAYAGG so the caller can unmarshal
 -- them into typed Go structs. Key-level and identity-level rate limits are
 -- unioned so that both sources are available for the verification pipeline.
+--
+-- Soft-deleted keys are returned as tombstones so callers can tell a deleted
+-- key from an unknown hash. Tombstones skip the role, permission, and rate
+-- limit subqueries because verification discards them for a deleted key.
 select k.id,
        k.key_auth_id,
        k.workspace_id,
@@ -24,16 +28,16 @@ select k.id,
        a.id            as api_id,
        a.deleted_at_m  as api_deleted_at_m,
 
-       COALESCE(
+       IF(k.deleted_at_m IS NOT NULL, JSON_ARRAY(), COALESCE(
                (SELECT JSON_ARRAYAGG(name)
                 FROM (SELECT name
                       FROM keys_roles kr
                                JOIN roles r ON r.id = kr.role_id
                       WHERE kr.key_id = k.id) as roles),
                JSON_ARRAY()
-       )               as roles,
+       ))              as roles,
 
-       COALESCE(
+       IF(k.deleted_at_m IS NOT NULL, JSON_ARRAY(), COALESCE(
                (SELECT JSON_ARRAYAGG(slug)
                 FROM (SELECT slug
                       FROM keys_permissions kp
@@ -48,9 +52,9 @@ select k.id,
                                JOIN permissions p ON rp.permission_id = p.id
                       WHERE kr.key_id = k.id) as combined_perms),
                JSON_ARRAY()
-       )               as permissions,
+       ))              as permissions,
 
-       coalesce(
+       if(k.deleted_at_m is not null, json_array(), coalesce(
                (select json_arrayagg(
                     json_object(
                        'id', id,
@@ -72,7 +76,7 @@ select k.id,
                     where rl.identity_id = i.id
                 ) as combined_rl),
                json_array()
-       ) as ratelimits,
+       )) as ratelimits,
 
        i.id as identity_id,
        i.external_id,
@@ -86,5 +90,4 @@ from `keys` k
          JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
          LEFT JOIN identities i ON i.id = k.identity_id AND i.deleted = 0
-where k.hash = ?
-  and k.deleted_at_m is null;
+where k.hash = ?;

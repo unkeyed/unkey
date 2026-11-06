@@ -349,6 +349,23 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		}, nil
 	}
 
+	// A deleted key must answer NOT_FOUND before any other check, so its
+	// response matches a hash that never existed.
+	if key.DeletedAtM.Valid {
+		// nolint:exhaustruct
+		return &KeyVerifier{
+			Status:      StatusNotFound,
+			reason:      ReasonKeyDeleted,
+			cacheResult: cacheResult(hit),
+			message:     "key is deleted",
+			deletedKey:  &key.FindKeyForVerificationRow,
+			session:     sess,
+			region:      s.region,
+			source:      s.source,
+			startTime:   startTime,
+		}, nil
+	}
+
 	// ForWorkspace set but that doesn't exist
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
 		// nolint:exhaustruct
@@ -400,6 +417,7 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		source:                s.source,
 		message:               "",
 		isRootKey:             key.ForWorkspaceID.Valid,
+		deletedKey:            nil,
 		startTime:             startTime,
 		spentCredits:          0,
 
@@ -412,11 +430,6 @@ func (s *service) newKeyVerifier(sess *zen.Session, key keysdb.CachedKeyData, hi
 		Roles:            key.Roles,
 		Permissions:      key.Permissions,
 		RatelimitResults: nil,
-	}
-
-	if key.DeletedAtM.Valid {
-		kv.setInvalid(StatusNotFound, ReasonKeyDeleted, "key is deleted")
-		return kv, nil
 	}
 
 	if key.ApiDeletedAtM.Valid {

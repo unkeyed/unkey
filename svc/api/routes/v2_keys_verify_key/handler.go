@@ -73,14 +73,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Status == keys.StatusNotFound && req.MigrationId != nil {
-		key, err = h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
+		migrated, err := h.Keys.GetMigrated(ctx, s, req.Key, ptr.SafeDeref(req.MigrationId))
 		if err != nil {
 			return err
 		}
+		// A deleted key still runs the migration lookup so it takes as long as
+		// an unknown hash, but it keeps its reason unless that lookup found a key.
+		if !key.Deleted() || migrated.Key.ID != "" {
+			key = migrated
+		}
 	}
 
-	// Validate key belongs to authorized workspace. An unknown hash has no
-	// workspace and lands here too; it keeps the reason Get gave it.
+	// Validate key belongs to authorized workspace. An unknown hash or a deleted
+	// key has no workspace and lands here too; it keeps the reason Get gave it.
 	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		if key.Key.ID != "" {
 			key.Hide(keys.ReasonWorkspaceMismatch)

@@ -2,9 +2,11 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -117,5 +119,54 @@ func TestKeyVerificationWithMigration(t *testing.T) {
 		require.NotEqual(t, resendKey.LongTokenHash, key.Hash, "Hash should be different after migration")
 		require.Equal(t, hash.Sha256(resendKey.Token), key.Hash)
 		require.Equal(t, resendKey.Token[:7], key.Start, "start should match first 6 chars of raw key after migration")
+	})
+
+	t.Run("deleted key with a pending migration is not migrated", func(t *testing.T) {
+		migrationID := uid.New("migration")
+		err := db.Query.InsertKeyMigration(ctx, h.DB.RW(), db.InsertKeyMigrationParams{
+			ID:          migrationID,
+			WorkspaceID: workspace.ID,
+			Algorithm:   db.KeyMigrationsAlgorithmGithubcomSeamapiPrefixedApiKey,
+		})
+		require.NoError(t, err)
+
+		resendKey, err := prefixedapikey.GenerateAPIKey(&prefixedapikey.GenerateAPIKeyOptions{
+			KeyPrefix: "re",
+		})
+		require.NoError(t, err)
+
+		migrateRes := testutil.CallRoute[migrateHandler.Request, migrateHandler.Response](h, migrateRoute, headers, migrateHandler.Request{
+			ApiId:       api.ID,
+			MigrationId: migrationID,
+			Keys: []openapi.V2KeysMigrateKeyData{
+				{
+					Hash:    resendKey.LongTokenHash,
+					Enabled: new(true),
+				},
+			},
+		})
+		require.Equal(t, 200, migrateRes.Status, "expected 200, received: %#v", migrateRes)
+		require.Len(t, migrateRes.Body.Data.Migrated, 1)
+		keyID := migrateRes.Body.Data.Migrated[0].KeyId
+
+		err = db.Query.SoftDeleteKeyByID(ctx, h.DB.RW(), db.SoftDeleteKeyByIDParams{
+			Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+			ID:  keyID,
+		})
+		require.NoError(t, err)
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, verifyRoute, headers, handler.Request{
+			Key:         resendKey.Token,
+			MigrationId: new(migrationID),
+		})
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		// nolint:exhaustruct
+		require.Equal(t, openapi.V2KeysVerifyKeyResponseData{Code: openapi.NOTFOUND, Valid: false}, res.Body.Data)
+
+		key, err := db.Query.FindKeyByID(ctx, h.DB.RO(), keyID)
+		require.NoError(t, err)
+		require.Equal(t, resendKey.LongTokenHash, key.Hash, "a deleted key must keep its pre-migration hash")
+		require.True(t, key.PendingMigrationID.Valid)
+		require.Equal(t, migrationID, key.PendingMigrationID.String)
 	})
 }

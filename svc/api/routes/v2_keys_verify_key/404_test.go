@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	deleteHandler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_delete_key"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_verify_key"
 )
 
@@ -45,6 +46,16 @@ func TestNotFound(t *testing.T) {
 		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
 	})
 
+	// nolint:exhaustruct
+	bareNotFound := openapi.V2KeysVerifyKeyResponseData{Code: openapi.NOTFOUND, Valid: false}
+	verify := func(t *testing.T, req handler.Request) openapi.V2KeysVerifyKeyResponseData {
+		t.Helper()
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
+		require.NotNil(t, res.Body)
+		return res.Body.Data
+	}
+
 	t.Run("soft deleted key", func(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
@@ -52,14 +63,45 @@ func TestNotFound(t *testing.T) {
 			Deleted:     true,
 		})
 
-		req := handler.Request{
-			Key: key.Key,
+		// The second call answers from the cached tombstone.
+		require.Equal(t, bareNotFound, verify(t, handler.Request{Key: key.Key}))
+		require.Equal(t, bareNotFound, verify(t, handler.Request{Key: key.Key}))
+	})
+
+	t.Run("soft deleted key in another workspace", func(t *testing.T) {
+		otherWorkspace := h.CreateWorkspace()
+		otherApi := h.CreateApi(seed.CreateApiRequest{WorkspaceID: otherWorkspace.ID})
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: otherWorkspace.ID,
+			KeySpaceID:  otherApi.KeyAuthID.String,
+			Deleted:     true,
+		})
+
+		require.Equal(t, bareNotFound, verify(t, handler.Request{Key: key.Key}))
+	})
+
+	t.Run("key deleted through the API after a cached verification", func(t *testing.T) {
+		deleteRoute := &deleteHandler.Handler{
+			DB:        h.DB,
+			Auditlogs: h.Auditlogs,
+			KeyCache:  h.Caches.VerificationKeyByHash,
 		}
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		h.Register(deleteRoute)
+		deleteRootKey := h.CreateRootKey(workspace.ID, "api.*.delete_key")
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+		})
+
+		require.Equal(t, openapi.VALID, verify(t, handler.Request{Key: key.Key}).Code)
+
+		res := testutil.CallRoute[deleteHandler.Request, deleteHandler.Response](h, deleteRoute, http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {fmt.Sprintf("Bearer %s", deleteRootKey)},
+		}, deleteHandler.Request{KeyId: key.KeyID})
 		require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
-		require.NotNil(t, res.Body)
-		require.Equal(t, openapi.NOTFOUND, res.Body.Data.Code, "Key should be not found but got %s", res.Body.Data.Code)
-		require.False(t, res.Body.Data.Valid, "Key should be invalid but got %t", res.Body.Data.Valid)
+
+		require.Equal(t, bareNotFound, verify(t, handler.Request{Key: key.Key}))
 	})
 
 	t.Run("key belongs to different workspace", func(t *testing.T) {
