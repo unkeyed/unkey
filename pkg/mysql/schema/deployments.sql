@@ -55,6 +55,8 @@ CREATE INDEX `status_idx` ON `deployments` (`status`);
 
 CREATE INDEX `app_created_at_idx` ON `deployments` (`app_id`,`created_at`);
 
+CREATE INDEX `app_status_desired_created_idx` ON `deployments` (`app_id`,`status`,`desired_state`,`created_at`);
+
 CREATE INDEX `app_environment_ready_created_idx` ON `deployments` (`app_id`,`environment_id`,(first_ready_at IS NOT NULL),`created_at`,`id`);
 
 CREATE INDEX `app_branch_created_idx` ON `deployments` (`app_id`,`git_branch`,`created_at`,`id`);
