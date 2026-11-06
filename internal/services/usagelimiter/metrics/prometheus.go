@@ -50,12 +50,15 @@ var (
 		vec.Values("outcome", "allowed", "denied"),
 	)
 
-	// UsagelimiterReplayOperations counts replay operations to the database by status
+	// UsagelimiterReplayOperations counts replay operations to the database by status.
+	// "error" counts a failed attempt, and "dropped" counts a change every attempt
+	// failed for, so a non-zero dropped rate means consumed credits were lost.
 	// This counter helps monitor the replay queue health and success rate.
 	//
 	// Example usage:
 	//   metrics.UsagelimiterReplayOperations.WithLabelValues("success").Inc()
 	//   metrics.UsagelimiterReplayOperations.WithLabelValues("error").Inc()
+	//   metrics.UsagelimiterReplayOperations.WithLabelValues("dropped").Inc()
 	UsagelimiterReplayOperations = vec.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -63,7 +66,7 @@ var (
 			Name:      "replay_operations_total",
 			Help:      "Total number of credit replay operations to database.",
 		},
-		vec.Values("status", "success", "error"),
+		vec.Values("status", "success", "error", "dropped"),
 	)
 
 	// UsagelimiterReplayLatency measures the latency of replay operations to the database
