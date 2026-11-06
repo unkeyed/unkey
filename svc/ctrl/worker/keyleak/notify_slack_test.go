@@ -32,20 +32,44 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	tests := []struct {
-		name    string
-		keyType string
-		url     string
-		members []string
-		err     error
-		want    []string
-		absent  []string
+		name     string
+		keyType  string
+		reporter hydrav1.KeyLeakReporter
+		keyKind  hydrav1.KeyLeakKeyKind
+		disable  bool
+		source   string
+		url      string
+		members  []string
+		err      error
+		want     []string
+		absent   []string
 	}{
 		{
 			name: "root key with members", keyType: "unkey_root_key",
 			url:     "https://github.com/unkeyed/example/blob/abc/config.env?view=1&line=2#L4",
 			members: []string{"first@example.com", "second@example.com"},
 			want: []string{"Root key exposed on GitHub", "*Workspace members*", "<mailto:first@example.com|first@example.com>", "second@example.com",
-				"<https://github.com/unkeyed/example/blob/abc/config.env?view=1&amp;line=2#L4|View exposed file>"},
+				"<https://github.com/unkeyed/example/blob/abc/config.env?view=1&amp;line=2#L4|View exposed file>",
+				"Reported Thu Oct 22 2026 · GitHub content"},
+		},
+		{
+			name: "GitHub reporter", keyType: "unkey_key", reporter: hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_GITHUB,
+			url:  "https://github.com/unkeyed/example/commit/abc",
+			want: []string{"API key exposed on GitHub", "Reported Thu Oct 22 2026 · GitHub commit"},
+		},
+		{
+			name: "TruffleHog reporter", keyType: "Unkey", reporter: hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG,
+			keyKind: hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_ROOT,
+			source:  "Docker", url: "https://hub.docker.com/r/unkeyed/example",
+			want:   []string{"Root key reported by TruffleHog", "Reported Thu Oct 22 2026 · TruffleHog Docker", "|View source>"},
+			absent: []string{"GitHub"},
+		},
+		{
+			name: "disabled TruffleHog leak names the kind it matched", keyType: "unkey_root_key", reporter: hydrav1.KeyLeakReporter_KEY_LEAK_REPORTER_TRUFFLEHOG,
+			keyKind: hydrav1.KeyLeakKeyKind_KEY_LEAK_KEY_KIND_API, disable: true,
+			source: "Docker", url: "https://hub.docker.com/r/unkeyed/example",
+			want:   []string{"API key reported by TruffleHog", "This key is disabled.\n<https://hub.docker.com/r/unkeyed/example|View source>"},
+			absent: []string{"Rotate or revoke", "Root key"},
 		},
 		{
 			name: "API key without members", keyType: "unkey_key",
@@ -118,10 +142,14 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			leak := &hydrav1.KeyLeakNotification{
 				KeyId: uid.New(uid.KeyPrefix), OrgId: orgIDs[i], WorkspaceName: "R&D <!here> @channel",
-				Type: test.keyType, Source: "content", Url: test.url, Date: "Thu Oct 22 2026",
+				Type: test.keyType, Source: "content", Url: test.url, Date: "Thu Oct 22 2026", Reporter: test.reporter,
+				KeyKind: test.keyKind, Disable: test.disable,
 			}
 			if strings.Contains(test.url, "/commit/") {
 				leak.Source = "commit"
+			}
+			if test.source != "" {
+				leak.Source = test.source
 			}
 			ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 			t.Cleanup(cancel)
@@ -162,7 +190,9 @@ func TestNotifySlackFormatsLeakAndWorkspaceMembers(t *testing.T) {
 					Type: "mrkdwn", Text: "Organization ID: `" + leak.OrgId + "`", Verbatim: true,
 				})
 				require.Contains(t, text.String(), leak.Date)
-				require.Contains(t, text.String(), "Rotate or revoke this key.")
+				if !test.disable {
+					require.Contains(t, text.String(), "Rotate or revoke this key.")
+				}
 				for _, want := range test.want {
 					require.Contains(t, text.String(), want)
 				}

@@ -5,6 +5,8 @@ import React from "react";
 import { expect, test } from "vitest";
 import { ComputeBudgetAlert } from "../emails/compute_budget_alert";
 import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
+import { TruffleHogApiKeyDetected } from "../emails/trufflehog_api_key_detected";
+import { TruffleHogKeyDetected } from "../emails/trufflehog_key_detected";
 
 const pathToDirectoryWithEmails = path.resolve(__dirname, "../emails");
 const emailFilenames = readdirSync(pathToDirectoryWithEmails, { recursive: true }).filter(
@@ -87,6 +89,17 @@ test("Resend variables survive rendering in content and links", async () => {
       source: "{{{SOURCE}}}",
       url: "{{{URL}}}",
     }),
+    React.createElement(TruffleHogKeyDetected, {
+      date: "{{{DATE}}}",
+      source: "{{{SOURCE}}}",
+      url: "{{{URL}}}",
+    }),
+    React.createElement(TruffleHogApiKeyDetected, {
+      date: "{{{DATE}}}",
+      source: "{{{SOURCE}}}",
+      url: "{{{URL}}}",
+      keyId: "{{{KEY_ID}}}",
+    }),
     React.createElement(ComputeBudgetAlert, {
       workspaceName: "{{{WORKSPACE_NAME}}}",
       usage: "{{{USAGE}}}",
@@ -132,4 +145,42 @@ test("security details have readable labels in plain text", async () => {
   );
 
   expect(text).toMatch(/Source\s+content\s+Detected\s+Thu Oct 22 2026/);
+});
+
+test("TruffleHog root key alert says the root key was disabled and labels its details", async () => {
+  const text = await render(
+    React.createElement(TruffleHogKeyDetected, TruffleHogKeyDetected.PreviewProps),
+    { plainText: true },
+  );
+
+  expect(text).toMatch(
+    /TruffleHog found an Unkey root key exposed publicly at Docker on\s+Thu Nov 05 2026\. The key is now disabled, so requests using it fail\./,
+  );
+  expect(text).toMatch(/Then delete the disabled key\. Do not enable it again\./);
+  expect(text).toMatch(/Source\s+Docker\s+Reported\s+Thu Nov 05 2026/);
+  expect(text).toContain("Root key recovery guide");
+});
+
+test("TruffleHog API key alert names the disabled key without root key advice", async () => {
+  const { keyId } = TruffleHogApiKeyDetected.PreviewProps;
+  const text = await render(
+    React.createElement(TruffleHogApiKeyDetected, TruffleHogApiKeyDetected.PreviewProps),
+    { plainText: true },
+  );
+
+  expect(text).toMatch(
+    /TruffleHog found one of the API keys your workspace issued exposed publicly at Docker\s+on\s+Thu Nov 05 2026\. The key is now disabled, so requests using it fail\./,
+  );
+  expect(text).toMatch(
+    new RegExp(
+      `Find the user it belongs to by key ID\\s+${keyId}\\s+and issue them a\\s+replacement\\. Then delete the disabled key\\. Do not enable it again\\.`,
+    ),
+  );
+  expect(text).toMatch(
+    new RegExp(`Source\\s+Docker\\s+Key ID\\s+${keyId}\\s+Reported\\s+Thu Nov 05 2026`),
+  );
+  expect(text).toContain(
+    "https://www.unkey.com/docs/api-management/security/overview#leaked-credentials",
+  );
+  expect(text).not.toMatch(/root key/i);
 });

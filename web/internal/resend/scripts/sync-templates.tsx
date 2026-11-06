@@ -16,6 +16,8 @@ import ComputeBudgetStopped from "../emails/compute_budget_stopped";
 import FreeTierExceeded from "../emails/free_tier_exceeded";
 import FreeTierThrottled from "../emails/free_tier_throttled";
 import { SecretScanningKeyDetected } from "../emails/secret_scanning_key_detected";
+import { TruffleHogApiKeyDetected } from "../emails/trufflehog_api_key_detected";
+import { TruffleHogKeyDetected } from "../emails/trufflehog_key_detected";
 
 type TemplateSync = {
   // alias is how svc/ctrl refers to the template; it must not change once a
@@ -41,6 +43,40 @@ const templates: TemplateSync[] = [
       { key: "DATE", fallbackValue: "" },
       { key: "SOURCE", fallbackValue: "GitHub" },
       { key: "URL", fallbackValue: "https://app.unkey.com" },
+    ],
+  },
+  {
+    alias: "trufflehog-key-detected",
+    name: "Leaked root key disabled after a TruffleHog report",
+    subject: "Exposed Unkey root key disabled",
+    from: "James from Unkey <james@updates.unkey.com>",
+    replyTo: "support@unkey.com",
+    element: <TruffleHogKeyDetected date="{{{DATE}}}" source="{{{SOURCE}}}" url="{{{URL}}}" />,
+    variables: [
+      { key: "DATE", fallbackValue: "" },
+      { key: "SOURCE", fallbackValue: "a public source" },
+      { key: "URL", fallbackValue: "https://app.unkey.com" },
+    ],
+  },
+  {
+    alias: "trufflehog-api-key-detected",
+    name: "Leaked API key disabled after a TruffleHog report",
+    subject: "Exposed API key disabled",
+    from: "James from Unkey <james@updates.unkey.com>",
+    replyTo: "support@unkey.com",
+    element: (
+      <TruffleHogApiKeyDetected
+        date="{{{DATE}}}"
+        source="{{{SOURCE}}}"
+        url="{{{URL}}}"
+        keyId="{{{KEY_ID}}}"
+      />
+    ),
+    variables: [
+      { key: "DATE", fallbackValue: "" },
+      { key: "SOURCE", fallbackValue: "a public source" },
+      { key: "URL", fallbackValue: "https://app.unkey.com" },
+      { key: "KEY_ID", fallbackValue: "from your audit log" },
     ],
   },
   {

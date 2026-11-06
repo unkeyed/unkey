@@ -11,14 +11,15 @@ import (
 )
 
 const findLeakedKeysByHashes = `-- name: FindLeakedKeysByHashes :many
-SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name, 'unkey_root_keys' AS store, 'root' AS kind
 FROM unkey_root_keys k
 JOIN workspaces w ON w.id = k.workspace_id
 WHERE k.hash IN (/*SLICE:hashes*/?)
   AND k.deleted_at IS NULL
   AND w.deleted_at_m IS NULL
 UNION ALL
-SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name, 'keys' AS store,
+  CASE WHEN k.for_workspace_id IS NOT NULL THEN 'root' ELSE 'api' END AS kind
 FROM ` + "`" + `keys` + "`" + ` k
 JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
 WHERE k.hash IN (/*SLICE:hashes*/?)
@@ -34,20 +35,24 @@ type FindLeakedKeysByHashesParams struct {
 type FindLeakedKeysByHashesRow struct {
 	ID            string `db:"id"`
 	Hash          string `db:"hash"`
+	WorkspaceID   string `db:"workspace_id"`
 	OrgID         string `db:"org_id"`
 	WorkspaceName string `db:"workspace_name"`
+	Store         string `db:"store"`
+	Kind          string `db:"kind"`
 }
 
 // FindLeakedKeysByHashes
 //
-//	SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+//	SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name, 'unkey_root_keys' AS store, 'root' AS kind
 //	FROM unkey_root_keys k
 //	JOIN workspaces w ON w.id = k.workspace_id
 //	WHERE k.hash IN (/*SLICE:hashes*/?)
 //	  AND k.deleted_at IS NULL
 //	  AND w.deleted_at_m IS NULL
 //	UNION ALL
-//	SELECT k.id, k.hash, w.org_id, w.name AS workspace_name
+//	SELECT k.id, k.hash, w.id AS workspace_id, w.org_id, w.name AS workspace_name, 'keys' AS store,
+//	  CASE WHEN k.for_workspace_id IS NOT NULL THEN 'root' ELSE 'api' END AS kind
 //	FROM `keys` k
 //	JOIN workspaces w ON w.id = COALESCE(k.for_workspace_id, k.workspace_id)
 //	WHERE k.hash IN (/*SLICE:hashes*/?)
@@ -84,8 +89,11 @@ func (q *Queries) FindLeakedKeysByHashes(ctx context.Context, arg FindLeakedKeys
 		if err := rows.Scan(
 			&i.ID,
 			&i.Hash,
+			&i.WorkspaceID,
 			&i.OrgID,
 			&i.WorkspaceName,
+			&i.Store,
+			&i.Kind,
 		); err != nil {
 			return nil, err
 		}

@@ -35,28 +35,27 @@ func (s *Service) NotifySlack(ctx restate.Context, req *hydrav1.KeyLeakNotificat
 }
 
 func slackMessage(req *hydrav1.KeyLeakNotification, members string) slack.Payload {
-	title := "Key exposed on GitHub"
-	switch req.GetType() {
-	case "unkey_root_key":
-		title = "Root key exposed on GitHub"
-	case "unkey_key":
-		title = "API key exposed on GitHub"
-	}
+	reporter := reporterOf(req)
+	title := reporter.keyNoun(req) + " " + reporter.finding
 	workspace := slackText(req.GetWorkspaceName())
 	keyID := slackText(req.GetKeyId())
 	source := slackSource(req.GetUrl(), req.GetSource())
+	action := "Rotate or revoke this key."
+	if req.GetDisable() {
+		action = "This key is disabled."
+	}
 	return slack.Payload{
-		Text: fmt.Sprintf("%s. Workspace: %s. Key ID: %s. Rotate or revoke this key.\n%s", title, workspace, keyID, source),
+		Text: fmt.Sprintf("%s. Workspace: %s. Key ID: %s. %s\n%s", title, workspace, keyID, action, source),
 		Blocks: []slack.Block{
 			slack.NewHeaderBlock(title),
-			slack.NewMarkdownBlock("Rotate or revoke this key."),
+			slack.NewMarkdownBlock(action),
 			slack.NewSectionBlock(
 				slack.Field{Type: "mrkdwn", Text: "*Workspace*\n" + workspace, Verbatim: true},
 				slack.Field{Type: "mrkdwn", Text: "*Key ID*\n`" + keyID + "`", Verbatim: true},
 			),
 			slack.NewMarkdownBlock(members),
 			slack.NewMarkdownBlock("*Source*\n" + source),
-			slack.NewContextBlock(fmt.Sprintf("Reported %s · GitHub %s", slackText(req.GetDate()), slackText(req.GetSource()))),
+			slack.NewContextBlock(fmt.Sprintf("Reported %s · %s %s", slackText(req.GetDate()), reporter.name, slackText(req.GetSource()))),
 			slack.NewMarkdownContextBlock("Organization ID: `" + slackText(req.GetOrgId()) + "`"),
 		},
 	}
