@@ -8,15 +8,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_limit"
 )
 
-// TestLimitAuthorizesCanonicalRatelimitNamespacePermissions guarantees the
-// canonical catalog covers existing and automatically created namespaces.
-func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
+func TestLimitAuthorizesRatelimitNamespacePermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspaceID := h.Resources().UserWorkspace.ID
 	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID}).ProjectID
@@ -42,7 +43,7 @@ func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
 		}))
 		rootKey := h.CreateRootKey(
 			workspaceID,
-			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/%s#limit", workspaceID, projectID, namespaceID),
+			rbac.U(urn.New().Workspace(workspaceID).Project(projectID).RatelimitNamespace(namespaceID), permissions.Limit).Value,
 		)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -51,7 +52,7 @@ func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Namespace:  namespaceName,
-			Identifier: "canonical-identifier",
+			Identifier: "identifier",
 			Limit:      10,
 			Duration:   1_000,
 		})
@@ -64,8 +65,8 @@ func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
 		namespaceName := uid.New("namespace")
 		rootKey := h.CreateRootKey(
 			workspaceID,
-			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/*#write", workspaceID, projectID),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/ratelimits/namespaces/*#limit", workspaceID, projectID),
+			rbac.U(urn.New().Workspace(workspaceID).Project(projectID).RatelimitNamespace("*"), permissions.Write).Value,
+			rbac.U(urn.New().Workspace(workspaceID).Project(projectID).RatelimitNamespace("*"), permissions.Limit).Value,
 		)
 		headers := http.Header{
 			"Content-Type":  {"application/json"},
@@ -74,7 +75,7 @@ func TestLimitAuthorizesCanonicalRatelimitNamespacePermissions(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Namespace:  namespaceName,
-			Identifier: "canonical-identifier",
+			Identifier: "identifier",
 			Limit:      10,
 			Duration:   1_000,
 		})

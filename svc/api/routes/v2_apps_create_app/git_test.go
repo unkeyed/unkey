@@ -49,7 +49,7 @@ func TestCreateAppConnectRepository(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app", "app.*.connect_repository")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Write).Value)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -124,7 +124,7 @@ func TestCreateAppConnectRepositoryWithURNPermission(t *testing.T) {
 		Name:        "Payments",
 		Slug:        slug(),
 	})
-	permission := fmt.Sprintf("%s#%s", urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Write)
+	permission := rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Write).Value
 	rootKey := h.CreateRootKey(workspace.ID, permission)
 	h.SeedGitHubInstallation(t, workspace.ID, 12345)
 
@@ -148,7 +148,7 @@ func TestCreateAppConnectRepositoryWithURNPermission(t *testing.T) {
 
 // TestCreateAppConnectRepositoryRejectsURNPermissionOutsideScope
 // guarantees that repository connection cannot cross project, workspace, or
-// action boundaries after base app creation authorization succeeds.
+// action boundaries.
 func TestCreateAppConnectRepositoryRejectsURNPermissionOutsideScope(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -180,21 +180,21 @@ func TestCreateAppConnectRepositoryRejectsURNPermissionOutsideScope(t *testing.T
 	}{
 		{
 			name:       "wrong project",
-			permission: fmt.Sprintf("%s#%s", urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).App("*"), permissions.Write),
+			permission: rbac.U(urn.New().Workspace(workspace.ID).Project(uid.New(uid.ProjectPrefix)).App("*"), permissions.Write).Value,
 		},
 		{
 			name:       "wrong workspace",
-			permission: fmt.Sprintf("%s#%s", urn.New().Workspace(uid.New(uid.WorkspacePrefix)).Project(project.ID).App("*"), permissions.Write),
+			permission: rbac.U(urn.New().Workspace(uid.New(uid.WorkspacePrefix)).Project(project.ID).App("*"), permissions.Write).Value,
 		},
 		{
 			name:       "wrong action",
-			permission: fmt.Sprintf("%s#%s", urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Read),
+			permission: rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Read).Value,
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app", testCase.permission)
+			rootKey := h.CreateRootKey(workspace.ID, testCase.permission)
 			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -224,7 +224,7 @@ func TestCreateGitAppWithoutRepository(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app")
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project("*").App("*"), permissions.Write).Value)
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
@@ -247,48 +247,6 @@ func TestCreateGitAppWithoutRepository(t *testing.T) {
 	require.NotNil(t, ctrlClient.CreateAppCalls[0].GetGit())
 	_, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
 	require.True(t, db.IsNotFound(err))
-}
-
-func TestCreateAppConnectRepositoryForbidden(t *testing.T) {
-	h := testutil.NewHarness(t)
-
-	ctrlClient := &testutil.MockAppClient{
-		CreateAppFunc: func(_ context.Context, _ *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error) {
-			t.Fatal("ctrl CreateApp must not be called when connect_repository is missing")
-			return nil, nil
-		},
-	}
-	route := &handler.Handler{
-		DB:            h.DB,
-		CtrlClient:    ctrlClient,
-		Auditlogs:     h.Auditlogs,
-		GitHubAppName: "unkey-app",
-		GitHubClient:  github.NewNoop(),
-	}
-	h.Register(route)
-
-	workspace := h.Resources().UserWorkspace
-	// Has create_app but NOT connect_repository.
-	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-
-	project := h.CreateProject(seed.CreateProjectRequest{
-		ID:          uid.New(uid.ProjectPrefix),
-		WorkspaceID: workspace.ID,
-		Name:        "Payments",
-		Slug:        slug(),
-	})
-
-	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
-		Project: project.ID,
-		Name:    "Payments API",
-		Slug:    slug(),
-		Git:     &openapi.AppGitCreateInput{Repository: new("unkeyed/unkey")},
-	})
-	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }
 
 func TestCreateAppConnectRepositoryWithAppURN(t *testing.T) {

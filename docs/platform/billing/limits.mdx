@@ -23,22 +23,29 @@ Read the API Management table by the tier you pay for, and the Compute tables by
 API Management is sold as a free tier, seven fixed Pro tiers, and Enterprise. The tier you're on sets your monthly request quota, your key allowance, and how long logs are kept.
 
 
-| Plan       | Price  | Valid requests per month | API keys  | Log retention | Audit log retention |
-| ---------- | ------ | ------------------------ | --------- | ------------- | ------------------- |
-| Free       | $0     | 150,000                  | 1,000     | 7 days        | 30 days             |
-| Pro        | $25    | 250,000                  | 1,000,000 | 90 days       | 90 days             |
-| Pro        | $50    | 500,000                  | 1,000,000 | 90 days       | 90 days             |
-| Pro        | $75    | 1,000,000                | 1,000,000 | 90 days       | 90 days             |
-| Pro        | $100   | 2,000,000                | 1,000,000 | 90 days       | 90 days             |
-| Pro        | $250   | 10,000,000               | 1,000,000 | 90 days       | 90 days             |
-| Pro        | $500   | 50,000,000               | 1,000,000 | 90 days       | 90 days             |
-| Pro        | $1,000 | 100,000,000              | 1,000,000 | 90 days       | 90 days             |
-| Enterprise | Custom | Custom                   | Custom    | Custom        | Custom              |
+|                          | Free    | Pro                    | Enterprise |
+| ------------------------ | ------- | ---------------------- | ---------- |
+| Price per month          | \$0     | \$25 to \$1,000        | Custom     |
+| Valid requests per month | 150,000 | 250,000 to 100,000,000 | Custom     |
+| API keys                 | 1,000   | 1,000,000              | Custom     |
+| Log retention            | 7 days  | 90 days                | Custom     |
+| Audit log retention      | 30 days | 90 days                | Custom     |
 
+Pro comes in seven tiers. The price sets the monthly request quota:
 
-Only valid requests count against the quota. A verification rejected for a bad key, an exhausted rate limit, or any other reason isn't billed, so a key under attack doesn't consume the quota you bought. Passing the quota means moving to a higher tier, and you will receive an email when you do so.
+| Price per month | Valid requests per month |
+| --------------- | ------------------------ |
+| \$25            | 250,000                  |
+| \$50            | 500,000                  |
+| \$75            | 1,000,000                |
+| \$100           | 2,000,000                |
+| \$250           | 10,000,000               |
+| \$500           | 50,000,000               |
+| \$1,000         | 100,000,000              |
 
-The API keys column is the allowance your plan includes. Unlimited keyspaces are included on every tier.
+Only valid requests count against the quota. A verification rejected for a bad key, an exhausted rate limit, or any other reason isn't billed, so a key under attack doesn't consume the quota you bought. On the free tier, passing the quota emails your workspace admins. If the workspace is still on the free tier 5 days later, requests to the Unkey API are limited to 5 per minute until you upgrade. Paid tiers aren't limited when they pass their quota, so move to a higher tier to cover the extra volume.
+
+The API keys row is the allowance your plan includes. Unlimited keyspaces are included on every tier.
 
 [Enterprise](mailto:support@unkey.com?subject=Unkey%20Enterprise%20Quote) covers custom quotas, a dedicated Slack channel, annual contracts and SLAs.
 

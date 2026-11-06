@@ -49,6 +49,7 @@ func TestBranchRouteCollisionFallsBackToAppCode(t *testing.T) {
 			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
 		},
 		K8s:                             nil,
+		DepotProjects:                   deploy.NewDepotProjectClient("", ""),
 		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
 		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
 		Clickhouse:                      nil,

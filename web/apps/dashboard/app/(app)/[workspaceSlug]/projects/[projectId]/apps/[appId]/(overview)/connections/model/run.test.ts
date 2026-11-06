@@ -2,7 +2,7 @@ import { newId } from "@unkey/id";
 import { describe, expect, it } from "vitest";
 import type { CallerEnvironment } from "./callers";
 import type { ConnectionOp } from "./plan";
-import { failureDescription, needsRedeploy, runInOrder } from "./run";
+import { failureDescription, needsRedeploy, redeployEnvironmentIds, runInOrder } from "./run";
 
 const production: CallerEnvironment = { id: newId("environment"), kind: "production" };
 const preview: CallerEnvironment = { id: newId("environment"), kind: "preview" };
@@ -40,6 +40,14 @@ describe("needsRedeploy", () => {
     expect(needsRedeploy([deleteIn(production)])).toBe(true);
     expect(needsRedeploy([deleteIn(preview)])).toBe(false);
     expect(needsRedeploy([])).toBe(false);
+  });
+});
+
+describe("redeployEnvironmentIds", () => {
+  it("names each environment whose applied ops need a redeploy once", () => {
+    const ops = [deleteIn(production), deleteIn(preview), deleteIn(production)];
+    expect(redeployEnvironmentIds(ops)).toEqual([production.id]);
+    expect(redeployEnvironmentIds([deleteIn(preview)])).toEqual([]);
   });
 });
 
