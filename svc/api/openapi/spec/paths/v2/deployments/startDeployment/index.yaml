@@ -19,6 +19,8 @@ post:
     Your root key must have write permission on the deployment:
     - `unkey:v1:<workspace_id>:projects/<project_id>/apps/<app_id>/environments/<environment_id>/deployments/<deployment_id>#write`
   operationId: deployments.startDeployment
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: startDeployment
   security:
     - bearer: []

@@ -23,6 +23,8 @@ post:
     - `environment.*.create_domain` (to attach domains to any environment)
     - `environment.<environment_id>.create_domain` (to attach domains to a specific environment)
   operationId: domains.createDomain
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: createDomain
   x-unkey-idempotency: conditionally-idempotent
   security:

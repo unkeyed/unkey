@@ -19,6 +19,8 @@ post:
     - `environment.*.read_environment_variables` (for any environment)
     - `environment.<environment_id>.read_environment_variables` (for a specific environment)
   operationId: environments.listEnvironmentVariables
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-unkey-workspace-rate-limit-exempt: true
   x-speakeasy-name-override: listEnvironmentVariables
   security:

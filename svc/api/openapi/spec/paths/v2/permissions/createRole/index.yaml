@@ -18,6 +18,8 @@ post:
     When any requested permission slug does not exist, it must also have:
     - `rbac.*.create_permission`
   operationId: permissions.createRole
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: CreateRole
   security:
     - bearer: []

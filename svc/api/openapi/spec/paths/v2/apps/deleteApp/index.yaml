@@ -15,6 +15,8 @@ post:
     - `app.*.delete_app` (to delete any app)
     - `app.<app_id>.delete_app` (to delete a specific app)
   operationId: apps.deleteApp
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: deleteApp
   security:
     - bearer: []

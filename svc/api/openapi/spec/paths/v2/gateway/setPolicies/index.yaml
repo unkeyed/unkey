@@ -26,6 +26,8 @@ post:
     - `environment.*.set_policies` (for any environment)
     - `environment.<environment_id>.set_policies` (for a specific environment)
   operationId: gateway.setPolicies
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: setPolicies
   security:
     - bearer: []

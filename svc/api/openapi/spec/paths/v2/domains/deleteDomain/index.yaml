@@ -17,6 +17,8 @@ post:
     - `environment.*.delete_domain` (to delete domains in any environment)
     - `environment.<environment_id>.delete_domain` (to delete domains in a specific environment)
   operationId: domains.deleteDomain
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: deleteDomain
   x-unkey-idempotency: idempotent
   security:

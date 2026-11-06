@@ -7,6 +7,8 @@ post:
     Revokes a CLI session. A member can revoke their own sessions. An admin can revoke any session in the workspace.
     Requires a dashboard session or a CLI access token. Root keys are rejected.
   operationId: cli.revokeSession
+  x-unkey-mcp:
+    exclude: "CLI sign-in and session plumbing. MCP clients sign in with OAuth."
   x-speakeasy-name-override: revokeSession
   requestBody:
     required: true

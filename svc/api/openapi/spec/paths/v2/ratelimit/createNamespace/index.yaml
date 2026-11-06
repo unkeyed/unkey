@@ -14,6 +14,8 @@ post:
     Your root key must have the following permission:
     - `unkey:v1:<workspace_id>:projects/*/ratelimits/namespaces/*#write`
   operationId: ratelimit.createNamespace
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: createNamespace
   x-unkey-idempotency: conditionally-idempotent
   security:

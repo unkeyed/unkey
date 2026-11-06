@@ -19,6 +19,8 @@ post:
     Your root key must have `portal.*.create_portal`. A grant scoped to a specific
     portal id does not authorize creation, because the id does not exist yet.
   operationId: portal.createPortal
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: createPortal
   security:
     - bearer: []

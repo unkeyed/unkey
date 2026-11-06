@@ -12,6 +12,8 @@ post:
     Your root key must have the following permission:
     - `rbac.*.delete_role`
   operationId: permissions.deleteRole
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: DeleteRole
   security:
     - bearer: []

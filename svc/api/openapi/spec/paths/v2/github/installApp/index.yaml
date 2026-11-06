@@ -17,6 +17,8 @@ post:
     Your root key must have the following permission:
     - `workspace.*.install_github`
   operationId: github.installApp
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: installApp
   x-unkey-idempotency: idempotent
   security:

@@ -16,6 +16,8 @@ post:
 
     **Authentication**: requires a root key with permission to create deployments.
   operationId: deployments.createDeploymentV3
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: createDeploymentV3
   security:
     - bearer: []

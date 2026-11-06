@@ -15,6 +15,8 @@ post:
     - `project.*.delete_project` (to delete any project)
     - `project.<project_id>.delete_project` (to delete a specific project)
   operationId: projects.deleteProject
+  x-unkey-mcp:
+    toolsets: [v2, compute]
   x-speakeasy-name-override: deleteProject
   security:
     - bearer: []

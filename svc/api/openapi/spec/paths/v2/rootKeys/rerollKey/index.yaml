@@ -12,6 +12,8 @@ post:
     `expiration` controls the original key: 0 revokes it immediately, a positive value
     keeps it valid for that many milliseconds, and null keeps its current expiration.
   operationId: rootKeys.rerollKey
+  x-unkey-mcp:
+    toolsets: [v2]
   x-speakeasy-name-override: rerollKey
   security:
     - bearer: []
