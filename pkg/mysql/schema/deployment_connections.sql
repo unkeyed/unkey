@@ -19,3 +19,5 @@ CREATE INDEX `deployment_connections_connection_idx` ON `deployment_connections`
 
 CREATE INDEX `deployment_connections_app_env_idx` ON `deployment_connections` (`app_id`,`environment_id`);
 
+CREATE INDEX `deployment_connections_app_env_connection_idx` ON `deployment_connections` (`app_id`,`environment_id`,`connection_id`,`deployment_id`);
+
