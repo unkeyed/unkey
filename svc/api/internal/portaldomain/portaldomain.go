@@ -98,23 +98,6 @@ func FindPortalAndDomain(
 	return lookup, nil
 }
 
-// FindDomain loads one domain attached to portalID. A domain on another portal
-// or in another workspace is not found.
-func FindDomain(
-	ctx context.Context,
-	database db.Database,
-	workspaceID, portalID, domainID string,
-) (db.FindPortalDomainByIdRow, error) {
-	row, err := findDomain(ctx, database, workspaceID, domainID)
-	if err != nil {
-		return row, err
-	}
-	if row.PortalID != portalID {
-		return db.FindPortalDomainByIdRow{}, DomainNotFound(fmt.Sprintf("domain %s is not on portal %s", domainID, portalID))
-	}
-	return row, nil
-}
-
 // findDomain loads one domain in workspaceID.
 func findDomain(ctx context.Context, database db.Database, workspaceID, domainID string) (db.FindPortalDomainByIdRow, error) {
 	row, err := db.Query.FindPortalDomainById(ctx, database.RO(), db.FindPortalDomainByIdParams{

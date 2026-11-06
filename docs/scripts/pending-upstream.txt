@@ -11,6 +11,7 @@
 /v2/portal.getDomain
 /v2/portal.listDomains
 /v2/portal.verifyDomain
+/v2/portal.deleteDomain
 # Internal to the hosted portal and x-excluded on purpose; never listed.
 /v2/portal.exchangeCode
 /v2/portal.getVerifications

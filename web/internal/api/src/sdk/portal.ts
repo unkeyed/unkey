@@ -5,6 +5,7 @@
 import { portalCreateDomain } from "../funcs/portalCreateDomain.js";
 import { portalCreatePortal } from "../funcs/portalCreatePortal.js";
 import { portalCreateSession } from "../funcs/portalCreateSession.js";
+import { portalDeleteDomain } from "../funcs/portalDeleteDomain.js";
 import { portalDeletePortal } from "../funcs/portalDeletePortal.js";
 import { portalExchangeCode } from "../funcs/portalExchangeCode.js";
 import { portalGetDomain } from "../funcs/portalGetDomain.js";
@@ -124,6 +125,28 @@ export class Portal extends ClientSDK {
     options?: RequestOptions,
   ): Promise<operations.PortalCreateSessionResponse> {
     return unwrapAsync(portalCreateSession(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Delete portal domain
+   *
+   * @remarks
+   * Detach a custom domain from a portal. A verified domain stops serving the portal.
+   *
+   * Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#delete`.
+   * Use `portals/<portal_id>/domains/*#delete` to delete any domain on the portal.
+   * Without the permission this returns **404**, not 403, unless the key can read
+   * the portal or the domain.
+   */
+  async deleteDomain(
+    request: components.V2PortalDeleteDomainRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalDeleteDomainResponseBody> {
+    return unwrapAsync(portalDeleteDomain(
       this,
       request,
       options,

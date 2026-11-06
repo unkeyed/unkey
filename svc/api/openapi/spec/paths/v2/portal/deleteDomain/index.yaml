@@ -1,0 +1,73 @@
+post:
+  tags:
+    - portal
+  summary: Delete portal domain
+  description: |
+    Detach a custom domain from a portal. A verified domain stops serving the portal.
+
+    Requires `unkey:v1:<workspace_id>:projects/<project_id>/portals/<portal_id>/domains/<domain_id>#delete`.
+    Use `portals/<portal_id>/domains/*#delete` to delete any domain on the portal.
+    Without the permission this returns **404**, not 403, unless the key can read
+    the portal or the domain.
+  operationId: portal.deleteDomain
+  x-speakeasy-name-override: deleteDomain
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalDeleteDomainRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: The domain was deleted.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalDeleteDomainResponseBody.yaml"
+          examples:
+            accepted:
+              summary: Domain deleted
+              value:
+                meta:
+                  requestId: req_1234abcd
+                data: {}
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "403":
+      description: |
+        Your root key can read the portal or the domain but may not delete it. The error names the missing permission.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ForbiddenErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal or domain on that portal, or your root key may not read either.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"
