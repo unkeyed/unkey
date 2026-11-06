@@ -46,7 +46,7 @@ export const getRowClassName = (
 ) => {
   const hasMoreBlocked = isMostlyBlocked(log);
   const style = getStatusStyle(log);
-  const isSelected = selectedLog?.request_id === log.request_id;
+  const isSelected = selectedLog?.identifier === log.identifier;
 
   return cn(
     style.base,
