@@ -143,6 +143,50 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 	return live, nil
 }
 
+// Invocation is one row of Restate's sys_invocation table.
+type Invocation struct {
+	ID string
+	// Status is Restate's invocation status, such as "pending", "running",
+	// or "completed".
+	Status string
+}
+
+// ListKeyedInvocations returns every invocation Restate still records for
+// handler on the virtual object or workflow named service with the given
+// key. A workflow key has at most one run, but a virtual object key can have
+// many invocations, so the caller decides what several rows mean. Restate
+// drops completed rows when their retention expires.
+func (c *Client) ListKeyedInvocations(ctx context.Context, service, key, handler string) ([]Invocation, error) {
+	type queryResponse struct {
+		Rows []struct {
+			ID     string `json:"id"`
+			Status string `json:"status"`
+		} `json:"rows"`
+	}
+	result, err := call[queryResponse](ctx, c, "list invocations", http.MethodPost, "/query", map[string]string{
+		"query": fmt.Sprintf(
+			"select id, status from sys_invocation where target_service_name = %s and target_service_key = %s and target_handler_name = %s",
+			sqlString(service), sqlString(key), sqlString(handler),
+		),
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	invocations := make([]Invocation, 0, len(result.Rows))
+	for _, row := range result.Rows {
+		invocations = append(invocations, Invocation{ID: row.ID, Status: row.Status})
+	}
+	return invocations, nil
+}
+
+// sqlString quotes s as a string literal for the /query endpoint. Its SQL
+// dialect treats a backslash as an ordinary character, so doubling single
+// quotes is the only escape needed.
+func sqlString(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
+}
+
 // BuildConcurrencyScope is the Restate scope build invocations run in, so
 // every build concurrency rule pattern is this scope, a slash, and a limit
 // key: "builds/*" caps every workspace, "builds/ws_123" caps one

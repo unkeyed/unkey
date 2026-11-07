@@ -8,6 +8,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	"github.com/restatedev/sdk-go/ingress"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -99,11 +100,24 @@ func TestFlowControl(t *testing.T) {
 		require.NoError(t, err)
 		probe.awaitRunning(t, ws, 1)
 
+		queuedHolds := func(c *assert.CollectT) []restateadmin.Invocation {
+			callCtx, cancel := context.WithTimeout(ctx, awaitBudget)
+			defer cancel()
+			invocations, err := admin.ListKeyedInvocations(callCtx, probeService, queued, "Hold")
+			require.NoError(c, err)
+			return invocations
+		}
+
 		queuedParent, err := ingress.WorkflowSend[parentRequest](cfg.IngressClient, probeService, uid.New(uid.DeploymentPrefix), "Run").
 			Send(ctx, parentRequest{ChildKey: queued, LimitKey: ws})
 		require.NoError(t, err)
 		require.Eventually(t, func() bool { return probe.hasCalled(queued) }, awaitBudget, 50*time.Millisecond,
 			"the second caller never issued its call")
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			invocations := queuedHolds(c)
+			require.Len(c, invocations, 1)
+			require.Equal(c, "pending", invocations[0].Status)
+		}, awaitBudget, 50*time.Millisecond, "the second callee never queued behind the first")
 		require.Never(t, func() bool { return probe.hasStarted(queued) }, time.Second, 50*time.Millisecond,
 			"the second callee must wait behind the first")
 
@@ -126,6 +140,10 @@ func TestFlowControl(t *testing.T) {
 		_, parentErr := probe.parentResult(queued)
 		require.Error(t, parentErr)
 		require.True(t, restate.IsTerminalError(parentErr), "cancel must surface as a terminal error, got %v", parentErr)
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			require.Empty(c, queuedHolds(c))
+		}, awaitBudget, 50*time.Millisecond, "Restate never removed the cancelled callee")
+		require.False(t, probe.hasStarted(queued), "the cancelled callee started before Restate removed it")
 
 		// Restate cancels the callee through its own partition after the caller
 		// already sees the cancel, so free the slot only once the callee is gone

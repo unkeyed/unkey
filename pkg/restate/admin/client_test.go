@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -94,6 +95,72 @@ func TestFindLiveInvocations_ServerError(t *testing.T) {
 	_, err := client.FindLiveInvocations(context.Background(), []string{"inv_1"})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "status 500")
+}
+
+func TestListKeyedInvocations(t *testing.T) {
+	type invocationRow struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	first := invocationRow{ID: uid.New("inv"), Status: "running"}
+	second := invocationRow{ID: uid.New("inv"), Status: "pending"}
+
+	for _, tt := range []struct {
+		name string
+		rows []invocationRow
+		want []Invocation
+	}{
+		{name: "no invocation", rows: []invocationRow{}, want: []Invocation{}},
+		{name: "every match in response order", rows: []invocationRow{first, second}, want: []Invocation{
+			{ID: first.ID, Status: first.Status},
+			{ID: second.ID, Status: second.Status},
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			response, err := json.Marshal(struct {
+				Rows []invocationRow `json:"rows"`
+			}{Rows: tt.rows})
+			require.NoError(t, err)
+
+			var gotQuery string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Equal(t, "/query", r.URL.Path)
+				assert.Equal(t, "application/json", r.Header.Get("Accept"))
+				var req struct {
+					Query string `json:"query"`
+				}
+				if !assert.NoError(t, json.NewDecoder(r.Body).Decode(&req)) {
+					return
+				}
+				gotQuery = req.Query
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write(response)
+			}))
+			t.Cleanup(server.Close)
+
+			invocations, err := New(Config{BaseURL: server.URL, APIKey: ""}).
+				ListKeyedInvocations(context.Background(), "Pro'be", `it's\`, "Ho'ld")
+			require.NoError(t, err)
+			require.Equal(t, tt.want, invocations)
+			require.Equal(t,
+				`select id, status from sys_invocation where target_service_name = 'Pro''be' and target_service_key = 'it''s\' and target_handler_name = 'Ho''ld'`,
+				gotQuery)
+		})
+	}
+}
+
+func TestListKeyedInvocations_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	t.Cleanup(server.Close)
+
+	invocations, err := New(Config{BaseURL: server.URL, APIKey: ""}).
+		ListKeyedInvocations(context.Background(), "Probe", uid.New(uid.DeploymentPrefix), "Hold")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "list invocations failed with status 500: boom")
+	require.Nil(t, invocations)
 }
 
 func TestListRules(t *testing.T) {
