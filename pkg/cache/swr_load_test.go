@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -175,6 +176,26 @@ func TestSWRSharedReadFollowsCallerCancellation(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 	require.Equal(t, Miss, hit)
 
+}
+
+// TestSWRReadPastDeadlineReportsDeadline guarantees that a caller whose
+// deadline ends its origin read gets context.DeadlineExceeded, so request
+// timeouts are not reported as cancellations.
+func TestSWRReadPastDeadlineReportsDeadline(t *testing.T) {
+	c, _ := newPausedRefreshCache(t)
+	origin := func(ctx context.Context) (string, error) {
+		<-ctx.Done()
+		return "", ctx.Err()
+	}
+	// Each attempt races the read's deadline timer against its cancellation,
+	// so a single attempt can miss a regression.
+	for i := range 20 {
+		ctx, cancel := context.WithTimeout(t.Context(), time.Millisecond)
+		_, hit, err := c.SWR(ctx, fmt.Sprint(i), origin, func(error) Op { return Noop })
+		cancel()
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+		require.Equal(t, Miss, hit)
+	}
 }
 
 // TestSWRAbandonedReadIsReplaced guarantees that a read every caller has left
