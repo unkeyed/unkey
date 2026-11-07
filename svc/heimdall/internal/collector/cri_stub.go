@@ -10,8 +10,8 @@ import (
 // criHandler matches the Linux build's interface so the collector code
 // compiles across platforms.
 type criHandler interface {
-	OnStart(ctx context.Context, podUID string)
-	OnExit(ctx context.Context, podUID string)
+	OnStart(ctx context.Context, podUID, containerID string)
+	OnExit(ctx context.Context, podUID, containerID string)
 }
 
 // criWatcher is unavailable off-Linux (containerd only runs there).

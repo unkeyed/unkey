@@ -1,9 +1,4 @@
 // Package checkpoint defines the unit heimdall writes to ClickHouse.
-//
-// A checkpoint is a single counter reading for one container. Billing math
-// at query time is max(cpu_usage_usec) - min(cpu_usage_usec) over a window,
-// which is monotone and replay-safe — the same checkpoint re-written cannot
-// overcharge.
 package checkpoint
 
 import "strconv"
@@ -16,9 +11,9 @@ const (
 	EventPeriodic = "checkpoint"
 )
 
-// ContainerUID returns a stable identifier for a single container lifecycle:
-// the pod UID combined with the restart count. A restart produces a fresh
-// cgroup with a fresh counter, so we never diff counters across UIDs.
+// ContainerUID combines the pod UID with the recorded restart count.
+// Billing queries separate readings by this identifier even when the pod
+// cgroup and its CPU counter persist across container restarts.
 func ContainerUID(podUID string, restartCount int32) string {
 	return podUID + "/" + strconv.Itoa(int(restartCount))
 }
