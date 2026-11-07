@@ -3,6 +3,7 @@ package ratelimit
 import (
 	"context"
 	"errors"
+	"net"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -55,6 +56,24 @@ func replayTestRequest() RatelimitRequest {
 	}
 }
 
+// dialError returns a real dial-phase failure, the only error a replay may
+// retry: the connection was never established, so Redis never applied the
+// increment and repeating it cannot double count.
+func dialError(t *testing.T) error {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := listener.Addr().String()
+	require.NoError(t, listener.Close())
+
+	conn, err := net.Dial("tcp", addr)
+	if conn != nil {
+		_ = conn.Close()
+	}
+	require.Error(t, err)
+	return err
+}
+
 func TestReplayWithRetryRecoversTransientFailure(t *testing.T) {
 	t.Parallel()
 
@@ -63,7 +82,7 @@ func TestReplayWithRetryRecoversTransientFailure(t *testing.T) {
 		Counter: counter.NewMemory(),
 		increment: func(context.Context, string, int64) (int64, error) {
 			if calls.Add(1) < 3 {
-				return 0, errors.New("dial tcp: i/o timeout")
+				return 0, dialError(t)
 			}
 			return 5, nil
 		},
@@ -81,7 +100,7 @@ func TestReplayWithRetryGivesUpAfterBoundedAttempts(t *testing.T) {
 		Counter: counter.NewMemory(),
 		increment: func(context.Context, string, int64) (int64, error) {
 			calls.Add(1)
-			return 0, errors.New("connect: connection refused")
+			return 0, dialError(t)
 		},
 	})
 
@@ -97,7 +116,7 @@ func TestReplayRequestsRetriesBeforeDiscarding(t *testing.T) {
 		Counter: counter.NewMemory(),
 		increment: func(context.Context, string, int64) (int64, error) {
 			if calls.Add(1) < 2 {
-				return 0, errors.New("dial tcp: i/o timeout")
+				return 0, dialError(t)
 			}
 			return 1, nil
 		},
@@ -108,4 +127,42 @@ func TestReplayRequestsRetriesBeforeDiscarding(t *testing.T) {
 	svc.replayRequests()
 
 	require.EqualValues(t, 2, calls.Load(), "the buffered increment must reach Redis after a retry")
+}
+
+func TestReplayWithRetryDoesNotRetryAmbiguousFailure(t *testing.T) {
+	t.Parallel()
+
+	// A read error can follow a successful write, so the increment may already
+	// have been applied. Retrying it would double count the quota.
+	ambiguous := &net.OpError{Op: "read", Net: "tcp", Err: errors.New("i/o timeout")}
+
+	var calls atomic.Int64
+	svc := newReplayTestService(t, &replayTestCounter{
+		Counter: counter.NewMemory(),
+		increment: func(context.Context, string, int64) (int64, error) {
+			calls.Add(1)
+			return 0, ambiguous
+		},
+	})
+
+	require.Error(t, svc.replayWithRetry(context.Background(), replayTestRequest()))
+	require.EqualValues(t, 1, calls.Load(), "an ambiguous failure must not be repeated")
+}
+
+func TestReplayWithRetryDoesNotRetryOpenCircuit(t *testing.T) {
+	t.Parallel()
+
+	// While the breaker is open every call short-circuits, so retrying cannot
+	// succeed and would only hold the replay worker.
+	var calls atomic.Int64
+	svc := newReplayTestService(t, &replayTestCounter{
+		Counter: counter.NewMemory(),
+		increment: func(context.Context, string, int64) (int64, error) {
+			calls.Add(1)
+			return 0, circuitbreaker.ErrTripped
+		},
+	})
+
+	require.Error(t, svc.replayWithRetry(context.Background(), replayTestRequest()))
+	require.EqualValues(t, 1, calls.Load(), "an open breaker must not be retried")
 }

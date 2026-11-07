@@ -64,7 +64,8 @@ const (
 // replayMaxAttempts bounds how often a single buffered increment is sent to
 // Redis before it is given up and counted as lost. The increment is the durable
 // record of quota a caller already consumed, so a transient Redis blip must not
-// discard it on the first error.
+// discard it on the first error. Only failures that prove the increment never
+// reached Redis are retried; see replaySafeToRetry.
 const replayMaxAttempts = 4
 
 // replayTimeout bounds the total time spent retrying one increment so a sick
@@ -150,7 +151,7 @@ func (s *service) replayWithRetry(ctx context.Context, req RatelimitRequest) err
 		if err == nil {
 			return nil
 		}
-		if attempt == replayMaxAttempts || ctx.Err() != nil {
+		if attempt == replayMaxAttempts || ctx.Err() != nil || !replaySafeToRetry(err) {
 			break
 		}
 		select {
@@ -161,6 +162,21 @@ func (s *service) replayWithRetry(ctx context.Context, req RatelimitRequest) err
 
 	metrics.RatelimitReplayDropped.Inc()
 	return err
+}
+
+// replaySafeToRetry reports whether a failed increment can be sent to Redis
+// again. The origin INCRBY is not idempotent, so an error that may already have
+// applied the increment must not be repeated: a second attempt would double
+// count the quota and make the limit block the caller early. Only a dial-phase
+// failure proves the command never reached Redis. A tripped breaker
+// short-circuits every call for its open window, so a retry cannot succeed and
+// would only hold the replay worker.
+func replaySafeToRetry(err error) bool {
+	if isCircuitOpen(err) {
+		return false
+	}
+	var opErr *net.OpError
+	return errors.As(err, &opErr) && opErr.Op == "dial"
 }
 
 // replayBackoff returns the wait before the next attempt, doubling each time up
