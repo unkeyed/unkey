@@ -61,6 +61,60 @@ func TestListDeployments_AuthorizesEnvironmentCollectionURN(t *testing.T) {
 	require.Equal(t, target.ID, res.Body.Data[0].Id)
 }
 
+func TestListDeployments_CursorCannotProbeSiblingEnvironment(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+	setup := h.CreateTestDeploymentSetup()
+	other := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		AppID:       setup.App.ID,
+		Slug:        "preview",
+	})
+	visible := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+		CreatedAt:     1000,
+	})
+	forbidden := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: other.ID,
+		CreatedAt:     2000,
+	})
+	key := h.CreateRootKey(setup.Workspace.ID, deploymentPermission(
+		setup.Workspace.ID, setup.Project.ID, setup.App.ID, setup.Environment.ID, "*", "read",
+	))
+	for _, tc := range []struct {
+		name, cursor string
+		want         []string
+	}{
+		{name: "missing", cursor: uid.New(uid.DeploymentPrefix)},
+		{name: "forbidden", cursor: forbidden.ID},
+		{name: "readable", cursor: visible.ID, want: []string{visible.ID}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(key), handler.Request{
+				Project:     rid(setup.Project.ID),
+				App:         rid(setup.App.ID),
+				Environment: rid(setup.Environment.ID),
+				Cursor:      &tc.cursor,
+			})
+			require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+			require.ElementsMatch(t, tc.want, deploymentIDs(res.Body.Data))
+			require.False(t, res.Body.Pagination.HasMore)
+			require.Nil(t, res.Body.Pagination.Cursor)
+		})
+	}
+}
+
 // TestListDeployments_AuthorizesFilteredCollectionURNs guarantees project and
 // app filters require only their corresponding deployment collections.
 func TestListDeployments_AuthorizesFilteredCollectionURNs(t *testing.T) {

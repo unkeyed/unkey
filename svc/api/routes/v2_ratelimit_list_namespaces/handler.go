@@ -51,17 +51,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
+	allowed := func(row db.ListRatelimitNamespacesRow) bool {
+		resource := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).RatelimitNamespace(row.ID)
+		return rbac.Check(rbac.U(resource, permissions.Read), principal.Permissions) == nil
+	}
 	rows, err := pagination.FetchAuthorized(ctx, p, func(ctx context.Context, cursor string, limit int32) ([]db.ListRatelimitNamespacesRow, error) {
+		if cursor != "" && cursor == p.Cursor {
+			cursorRows, err := db.Query.ListRatelimitNamespaces(ctx, h.DB.RO(), db.ListRatelimitNamespacesParams{
+				WorkspaceID: principal.AuthorizedWorkspaceID,
+				CursorID:    cursor,
+				Limit:       1,
+			})
+			if err != nil {
+				return nil, err
+			}
+			if len(cursorRows) == 0 || cursorRows[0].ID != cursor || !allowed(cursorRows[0]) {
+				return nil, nil
+			}
+		}
 		return db.Query.ListRatelimitNamespaces(ctx, h.DB.RO(), db.ListRatelimitNamespacesParams{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			CursorID:    cursor,
 			Search:      search,
 			Limit:       limit,
 		})
-	}, func(row db.ListRatelimitNamespacesRow) bool {
-		resource := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).RatelimitNamespace(row.ID)
-		return rbac.Check(rbac.U(resource, permissions.Read), principal.Permissions) == nil
-	}, func(row db.ListRatelimitNamespacesRow) string { return row.ID })
+	}, allowed, func(row db.ListRatelimitNamespacesRow) string { return row.ID })
 	if errors.Is(err, pagination.ErrScanLimit) {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

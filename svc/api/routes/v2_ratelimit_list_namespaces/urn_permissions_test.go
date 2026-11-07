@@ -59,3 +59,36 @@ func TestListNamespacesPermissions(t *testing.T) {
 		})
 	}
 }
+
+func TestListNamespaces_CursorCannotProbeForbiddenNamespace(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+	workspace := h.CreateWorkspace()
+	visible := seedNamespace(t, h, workspace.ID, uid.New("name"))
+	forbidden := seedNamespace(t, h, workspace.ID, uid.New("name"))
+	headers := authHeaders(h.CreateRootKey(workspace.ID, fmt.Sprintf("%s#read",
+		urn.New().Workspace(workspace.ID).Project(visible.projectID).RatelimitNamespace(visible.id),
+	)))
+	for _, tc := range []struct {
+		name, cursor string
+		visible      bool
+	}{
+		{name: "missing", cursor: uid.New(uid.RatelimitNamespacePrefix)},
+		{name: "forbidden", cursor: forbidden.id},
+		{name: "readable", cursor: visible.id, visible: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Cursor: &tc.cursor})
+			require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+			if tc.visible {
+				require.Len(t, res.Body.Data, 1)
+				require.Equal(t, visible.id, res.Body.Data[0].Id)
+			} else {
+				require.Empty(t, res.Body.Data)
+			}
+			require.False(t, res.Body.Pagination.HasMore)
+			require.Nil(t, res.Body.Pagination.Cursor)
+		})
+	}
+}

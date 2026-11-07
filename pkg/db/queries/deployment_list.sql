@@ -22,10 +22,16 @@ WHERE d.workspace_id = sqlc.arg(workspace_id)
       d.created_at <= (
         SELECT c.created_at FROM `deployments` c
         WHERE c.id = sqlc.arg(cursor_id) AND c.workspace_id = sqlc.arg(workspace_id)
+          AND (sqlc.arg(project_id) = '' OR c.project_id = sqlc.arg(project_id))
+          AND (sqlc.arg(app_id) = '' OR c.app_id = sqlc.arg(app_id))
+          AND (sqlc.arg(environment_id) = '' OR c.environment_id = sqlc.arg(environment_id))
       )
       AND (d.created_at, d.pk) <= (
         SELECT c.created_at, c.pk FROM `deployments` c
         WHERE c.id = sqlc.arg(cursor_id) AND c.workspace_id = sqlc.arg(workspace_id)
+          AND (sqlc.arg(project_id) = '' OR c.project_id = sqlc.arg(project_id))
+          AND (sqlc.arg(app_id) = '' OR c.app_id = sqlc.arg(app_id))
+          AND (sqlc.arg(environment_id) = '' OR c.environment_id = sqlc.arg(environment_id))
       )
     )
   )

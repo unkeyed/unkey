@@ -33,10 +33,16 @@ WHERE d.workspace_id = ?
       d.created_at <= (
         SELECT c.created_at FROM ` + "`" + `deployments` + "`" + ` c
         WHERE c.id = ? AND c.workspace_id = ?
+          AND (? = '' OR c.project_id = ?)
+          AND (? = '' OR c.app_id = ?)
+          AND (? = '' OR c.environment_id = ?)
       )
       AND (d.created_at, d.pk) <= (
         SELECT c.created_at, c.pk FROM ` + "`" + `deployments` + "`" + ` c
         WHERE c.id = ? AND c.workspace_id = ?
+          AND (? = '' OR c.project_id = ?)
+          AND (? = '' OR c.app_id = ?)
+          AND (? = '' OR c.environment_id = ?)
       )
     )
   )
@@ -115,10 +121,16 @@ type ListDeploymentsRow struct {
 //	      d.created_at <= (
 //	        SELECT c.created_at FROM `deployments` c
 //	        WHERE c.id = ? AND c.workspace_id = ?
+//	          AND (? = '' OR c.project_id = ?)
+//	          AND (? = '' OR c.app_id = ?)
+//	          AND (? = '' OR c.environment_id = ?)
 //	      )
 //	      AND (d.created_at, d.pk) <= (
 //	        SELECT c.created_at, c.pk FROM `deployments` c
 //	        WHERE c.id = ? AND c.workspace_id = ?
+//	          AND (? = '' OR c.project_id = ?)
+//	          AND (? = '' OR c.app_id = ?)
+//	          AND (? = '' OR c.environment_id = ?)
 //	      )
 //	    )
 //	  )
@@ -159,8 +171,20 @@ func (q *Queries) ListDeployments(ctx context.Context, db DBTX, arg ListDeployme
 	queryParams = append(queryParams, arg.CursorID)
 	queryParams = append(queryParams, arg.CursorID)
 	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.ProjectID)
+	queryParams = append(queryParams, arg.ProjectID)
+	queryParams = append(queryParams, arg.AppID)
+	queryParams = append(queryParams, arg.AppID)
+	queryParams = append(queryParams, arg.EnvironmentID)
+	queryParams = append(queryParams, arg.EnvironmentID)
 	queryParams = append(queryParams, arg.CursorID)
 	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.ProjectID)
+	queryParams = append(queryParams, arg.ProjectID)
+	queryParams = append(queryParams, arg.AppID)
+	queryParams = append(queryParams, arg.AppID)
+	queryParams = append(queryParams, arg.EnvironmentID)
+	queryParams = append(queryParams, arg.EnvironmentID)
 	queryParams = append(queryParams, arg.Limit)
 	rows, err := db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
