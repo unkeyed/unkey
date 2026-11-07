@@ -202,7 +202,7 @@ func TestFreeTierSlackFollowUpOnlyWhenThrottled_Integration(t *testing.T) {
 	require.Len(t, messages, 2)
 	initial := []slack.Payload{<-messages, <-messages}
 	for _, message := range initial {
-		require.Contains(t, message.Text, "200,000 / 150,000 requests, 33.3% over quota")
+		require.Contains(t, message.Text, "200,000 / 150,000 requests in "+now.Format("January 2006")+", 33.3% over quota")
 		require.Equal(t, "Monthly request quota exceeded", message.Blocks[0].Text.Text)
 	}
 	for _, ws := range []db.Workspace{free, paid} {
@@ -225,7 +225,7 @@ func TestFreeTierSlackFollowUpOnlyWhenThrottled_Integration(t *testing.T) {
 	require.Contains(t, reminder.Text, "Weekly reminder")
 	require.Contains(t, reminder.Text, paid.Name)
 	require.Equal(t, "Monthly request quota still exceeded", reminder.Blocks[0].Text.Text)
-	require.Contains(t, reminder.Text, "200,000 / 150,000 requests, 33.3% over quota")
+	require.Contains(t, reminder.Text, "200,000 / 150,000 requests in "+now.Format("January 2006")+", 33.3% over quota")
 	require.Zero(t, sender.CountByTemplate(freeTierThrottledTemplate))
 
 	warnedAt := now.Add(-13 * 24 * time.Hour).Unix()

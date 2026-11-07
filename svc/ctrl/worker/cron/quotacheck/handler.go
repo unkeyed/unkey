@@ -119,7 +119,7 @@ func (h *Handler) Handle(
 ) (*hydrav1.RunQuotaCheckResponse, error) {
 	// Task-prefixed VO key ("quota-check-YYYY-MM") keeps this off the other
 	// period-keyed tasks' virtual object. TrimPrefix is a no-op on a bare key,
-	// so old in-flight invocations still parse during a rolling deploy.
+	// which production cron jobs still send.
 	billingPeriod := strings.TrimPrefix(restate.Key(ctx), "quota-check-")
 	logger.Info("running quota check", "billing_period", billingPeriod)
 
@@ -142,8 +142,8 @@ func (h *Handler) Handle(
 	}
 	now := nowTime.Unix()
 
-	if prev, ok := previousPeriodToRecheck(p, nowTime); ok {
-		hydrav1.NewCronServiceClient(ctx, "quota-check-"+prev.Key()).
+	if prevKey, ok := previousPeriodKeyToRecheck(restate.Key(ctx), p, nowTime); ok {
+		hydrav1.NewCronServiceClient(ctx, prevKey).
 			RunQuotaCheck().
 			Send(&hydrav1.RunQuotaCheckRequest{})
 	}
@@ -225,7 +225,7 @@ func (h *Handler) Handle(
 
 			if h.slackWebhookURL != "" {
 				_, notifyErr := restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-					return restate.Void{}, slack.NewClient().Send(rc, h.slackWebhookURL, quotaSlackMessage(e, h.billingBaseURL))
+					return restate.Void{}, slack.NewClient().Send(rc, h.slackWebhookURL, quotaSlackMessage(e, p, h.billingBaseURL))
 				}, restate.WithName("notify "+ws.ID))
 				if notifyErr != nil {
 					return nil, fmt.Errorf("failed to send notification: %w", notifyErr)
@@ -262,12 +262,14 @@ func (h *Handler) Handle(
 	}, nil
 }
 
-func previousPeriodToRecheck(p billingperiod.Period, now time.Time) (billingperiod.Period, bool) {
-	var none billingperiod.Period
+// previousPeriodKeyToRecheck keeps the caller's key prefix because the
+// previous month's notified-workspace state lives on the object its daily
+// runs used. Production cron jobs call with bare "YYYY-MM" keys.
+func previousPeriodKeyToRecheck(key string, p billingperiod.Period, now time.Time) (string, bool) {
 	if !isCurrentPeriod(p, now) || now.UTC().Day() != 1 {
-		return none, false
+		return "", false
 	}
-	return p.Prev(), true
+	return strings.TrimSuffix(key, p.Key()) + p.Prev().Key(), true
 }
 
 func shouldEnforceFreeTier(ws db.GetWorkspacesForQuotaCheckByIDsRow) bool {
