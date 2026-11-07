@@ -168,6 +168,10 @@ enum CreateOutcome {
   // The existing deployment was a git build but recorded no commit, so there is
   // nothing to rebuild.
   CREATE_OUTCOME_NO_SOURCE_COMMIT = 14;
+
+  // The caller named a fork repository that is neither the app's connected
+  // repository nor a fork of it.
+  CREATE_OUTCOME_FORK_REPOSITORY_NOT_RELATED = 15;
 }
 
 // CreateGitSource builds from a commit in the app's connected repository.

@@ -43,6 +43,14 @@ func errorForOutcome(outcome hydrav1.CreateOutcome, detail string) error {
 			fault.Public("This app has no GitHub repository connected. Connect one, or deploy a prebuilt image instead."),
 		)
 
+	case hydrav1.CreateOutcome_CREATE_OUTCOME_FORK_REPOSITORY_NOT_RELATED:
+		return fault.New(
+			"fork repository not related",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("create rejected: fork repository is not the app's repository or a fork of it: "+detail),
+			fault.Public("Unkey only builds from an app's connected repository or a fork of it, and the requested repository is neither."),
+		)
+
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED:
 		return fault.New(
 			"commit not resolved",

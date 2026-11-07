@@ -208,6 +208,50 @@ func (w *Workflow) ownedImageSource(
 	return normalized, nil
 }
 
+// forkRepositoryRejection refuses a caller-supplied fork repository that is not
+// the app's connected repository or a fork of it. resolveCloneToken mints the
+// app's installation credential scoped to the named repository, so without this
+// check a caller could build and read any same-owner repository the
+// installation covers, including one it cannot reach on GitHub. A different-owner
+// repository never receives the installation credential, so it is left to
+// resolveCloneToken.
+func (w *Workflow) forkRepositoryRejection(target db.FindDeployTargetRow, forkRepository string) *rejection {
+	base := target.GithubRepositoryFullName.String
+	if forkRepository == "" || strings.EqualFold(forkRepository, base) {
+		return nil
+	}
+
+	forkOwner, _, forkOK := strings.Cut(forkRepository, "/")
+	baseOwner, _, baseOK := strings.Cut(base, "/")
+	if !forkOK || !baseOK || !strings.EqualFold(forkOwner, baseOwner) {
+		return nil
+	}
+
+	info, err := w.github.GetRepoForkInfo(target.GithubInstallationID.Int64, forkRepository)
+	if err != nil {
+		logger.Error(
+			"failed to read fork repository metadata",
+			"app_id", target.AppID,
+			"fork_repository", forkRepository,
+			"error", err.Error(),
+		)
+		return rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_FORK_REPOSITORY_NOT_RELATED,
+			"could not verify that %s is a fork of %s",
+			forkRepository, base,
+		)
+	}
+	if info == nil || !info.Fork ||
+		(!strings.EqualFold(info.ParentFullName, base) && !strings.EqualFold(info.SourceFullName, base)) {
+		return rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_FORK_REPOSITORY_NOT_RELATED,
+			"%s is not a fork of %s",
+			forkRepository, base,
+		)
+	}
+	return nil
+}
+
 // resolveGitSource resolves the app's repository connection and fills in the
 // commit metadata the caller did not supply.
 func (w *Workflow) resolveGitSource(
@@ -234,6 +278,16 @@ func (w *Workflow) resolveGitSource(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE,
 			"environment %q has no build settings", target.EnvironmentSlug,
 		)), nil
+	}
+
+	// A caller may name any repository as the build's fork. Only a repository
+	// in the app's connected repository's fork network may use the app's
+	// installation credential, so a caller-supplied repository that is not
+	// related is refused here rather than reaching the build.
+	if prNumber == 0 {
+		if rejection := w.forkRepositoryRejection(target, commit.ForkRepository); rejection != nil {
+			return newRejectedSource(rejection), nil
+		}
 	}
 
 	// A sha alone gets no default branch: it may not be on it, and sibling dedup
