@@ -21,7 +21,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
+  TablePager,
 } from "@unkey/ui";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { type SortFields, sortFields } from "./query-logs.schema";
@@ -143,13 +143,12 @@ export const RatelimitOverviewLogsTable = ({
           </EmptyState>
         }
       />
-      <PaginationFooter
+      <TablePager
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
-        itemLabel="rate limit identifiers"
         loading={isLoading}
         disabled={isNavigating}
       />

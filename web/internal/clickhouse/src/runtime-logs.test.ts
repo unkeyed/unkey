@@ -30,7 +30,7 @@ describe("getRuntimeLogs", () => {
       attributes: "tenant_id",
     });
 
-    expect(ch.queries).toHaveLength(2);
+    expect(ch.queries).toHaveLength(1);
     for (const query of ch.queries) {
       expect(query).toContain("lower(message) LIKE concat('%', lower({message: String}), '%')");
       expect(query).toContain(
@@ -54,7 +54,7 @@ describe("getRuntimeLogs", () => {
       attributeMatch: { path: 'request.custom"id', value: "token=xyz%_" },
     });
 
-    expect(ch.queries).toHaveLength(2);
+    expect(ch.queries).toHaveLength(1);
     for (const query of ch.queries) {
       expect(query).toContain(
         "lower(attributes_text) LIKE concat('%', lower({attributeMatchPathSearch: String}), '%')",

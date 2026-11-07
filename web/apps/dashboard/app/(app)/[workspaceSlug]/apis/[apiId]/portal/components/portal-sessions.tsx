@@ -71,6 +71,10 @@ const STATUS_LABEL: Record<V2PortalListSessionsSession["status"], string> = {
   active: "Signed in",
 };
 
+function groupsOf<Row>(page: { groups: Row[] }) {
+  return page.groups;
+}
+
 export function PortalSessions({ portalId, canRevoke }: { portalId: string; canRevoke: boolean }) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -145,7 +149,7 @@ function SessionsBody({
   onOpen: (group: SessionGroup) => void;
   onRevoke: (group: SessionGroup) => void;
 }) {
-  const list = useInfiniteList(query, (page) => page.groups);
+  const list = useInfiniteList(query, groupsOf);
 
   return match(list)
     .with({ status: "loading" }, () => <SessionsTableSkeleton />)

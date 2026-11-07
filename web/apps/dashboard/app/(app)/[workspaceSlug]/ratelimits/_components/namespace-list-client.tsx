@@ -12,11 +12,15 @@ import { useBatchRatelimitTimeseries } from "./hooks/use-batch-timeseries";
 import { NAMESPACE_TABLE, NamespaceCard, NamespaceRow } from "./list/namespace-list-item";
 import { NamespacesEmpty } from "./list/namespaces-empty";
 
+function namespacesOf<Row>(page: { namespaces: Row[] }) {
+  return page.namespaces;
+}
+
 export function NamespaceListClient() {
   const search = useListSearch();
   const { filters, updateFilters } = useFilters();
   const list = searchedListOf(
-    useInfiniteList(useNamespaces({ search, pageSize: GRID_PAGE_SIZE }), (page) => page.namespaces),
+    useInfiniteList(useNamespaces({ search, pageSize: GRID_PAGE_SIZE }), namespacesOf),
     search,
   );
 

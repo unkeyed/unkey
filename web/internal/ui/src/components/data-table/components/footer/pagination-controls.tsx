@@ -11,7 +11,15 @@ export type PaginationControlsProps = {
   onPrevious: () => void;
   onNext: () => void;
   className?: string;
+  tone?: PaginationTone;
   children?: ReactNode;
+};
+
+type PaginationTone = "muted" | "strong";
+
+const TONE_CLASS: Record<PaginationTone, string> = {
+  muted: "text-grayA-9 hover:text-grayA-11",
+  strong: "text-gray-12",
 };
 
 export function PaginationControls({
@@ -21,6 +29,7 @@ export function PaginationControls({
   onPrevious,
   onNext,
   className,
+  tone = "muted",
   children,
 }: PaginationControlsProps) {
   return (
@@ -31,7 +40,10 @@ export function PaginationControls({
         onClick={onPrevious}
         disabled={!hasPrevious}
         aria-label="Go to previous page"
-        className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80"
+        className={cn(
+          "border-none disabled-state:pointer-events-none disabled-state:opacity-80",
+          TONE_CLASS[tone],
+        )}
       >
         <IconChevronLeftOutline18 />
       </Button>
@@ -42,7 +54,10 @@ export function PaginationControls({
         onClick={onNext}
         disabled={!hasNext}
         aria-label="Go to next page"
-        className="border-none text-grayA-9 hover:text-grayA-11 disabled:pointer-events-none disabled:opacity-80"
+        className={cn(
+          "border-none disabled-state:pointer-events-none disabled-state:opacity-80",
+          TONE_CLASS[tone],
+        )}
       >
         <IconChevronRightOutline18 />
       </Button>

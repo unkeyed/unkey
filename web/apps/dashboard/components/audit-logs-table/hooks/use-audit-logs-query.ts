@@ -1,16 +1,13 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
-import {
-  PAGINATED_LIST_PREFETCH_OPTIONS,
-  PAGINATED_LIST_QUERY_OPTIONS,
-  computeTotalPages,
-  paginationFilterKey,
-  useFallbackTotalPages,
-  usePaginatedNavigation,
-  usePaginatedPage,
-} from "@/hooks/use-paginated-list-query";
+import { describeTimeWindow, timeValuesOf } from "@/components/logs/datetime/time-filters";
+import { useLoadMoreList } from "@/hooks/use-load-more-list";
 import { getTimestampFromRelative } from "@/lib/duration";
+import { trpcClient } from "@/lib/trpc/client";
 import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 import { useQueryTime } from "@/providers/query-time-provider";
+import { getQueryKey } from "@trpc/react-query";
+import type { inferRouterOutputs } from "@trpc/server";
 import {
   AUDIT_LOG_BUCKET_UNKEY_MUTATIONS,
   isDashboardAuditLogBucket,
@@ -21,16 +18,12 @@ import type { AuditLogsQueryPayload } from "../schema/audit-logs.schema";
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_SINCE = "12h";
 
-// Audit logs are paginated but not sortable, so this composes the shared
-// pagination primitives directly rather than usePaginatedListQuery (which owns
-// a URL `sort` param). The primitives own page state, the deep-link clamp, and
-// prefetch; the filter-to-payload mapping stays here.
+type AuditLogsPage = inferRouterOutputs<Router>["audit"]["logs"];
+
+const rowsOf = (response: AuditLogsPage) => response.auditLogs;
+
 export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
   const { filters } = useFilters();
-
-  const filtersKey = useMemo(() => paginationFilterKey(filters), [filters]);
-
-  const { page, setPage } = usePaginatedPage(filtersKey);
 
   // The shared query time is set when the dashboard loads, which can predate
   // this page on client-side navigation.
@@ -40,9 +33,8 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
 
   const queryParams = useMemo(() => {
     let since: string | null = null;
-    const params: AuditLogsQueryPayload = {
+    const params: Omit<AuditLogsQueryPayload, "page"> = {
       limit: pageSize,
-      page,
       startTime: undefined,
       endTime: undefined,
       events: { filters: [] },
@@ -102,52 +94,18 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     params.endTime ??= anchor;
 
     return params;
-  }, [filters, pageSize, page, anchor]);
+  }, [filters, pageSize, anchor]);
 
-  const utils = trpc.useUtils();
-
-  const { data, isLoading, isFetching } = trpc.audit.logs.useQuery(
-    queryParams,
-    PAGINATED_LIST_QUERY_OPTIONS,
-  );
-
-  // When the ClickHouse count query fails the tRPC handler returns `total:
-  // null`. Fall back to the proven-page count so the footer stays usable
-  // instead of collapsing to a single page.
-  const pageRowCount = data?.auditLogs.length ?? 0;
-  const knownTotal = data?.total ?? null;
-  const totalCount =
-    knownTotal !== null ? Math.max(0, knownTotal) : (page - 1) * pageSize + pageRowCount;
-  const fallbackTotalPages = useFallbackTotalPages({
-    isFetching,
-    hasData: data != null,
-    pageRowCount,
-    queryPage: page,
-    limit: pageSize,
-    resetKey: filtersKey,
-  });
-  const totalPages =
-    knownTotal !== null ? computeTotalPages(totalCount, pageSize) : fallbackTotalPages;
-
-  const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
-    data,
-    page,
-    totalPages,
-    setPage,
-    isLoading,
-    isFetching,
-    queryParams,
-    prefetch: (params) => utils.audit.logs.prefetch(params, PAGINATED_LIST_PREFETCH_OPTIONS),
+  const list = useLoadMoreList({
+    queryKey: getQueryKey(trpc.audit.logs, queryParams, "infinite"),
+    fetchPage: (page, signal) => trpcClient.audit.logs.query({ ...queryParams, page }, { signal }),
+    rowsOf,
+    pageSize,
   });
 
   return {
-    auditLogs: data?.auditLogs ?? [],
-    isLoading: isInitialLoading,
-    isNavigating,
-    page,
-    pageSize,
-    totalPages,
-    totalCount,
-    onPageChange,
+    table: list.table,
+    totalCount: list.totalCount,
+    timeWindowLabel: describeTimeWindow(timeValuesOf(filters), DEFAULT_SINCE),
   };
 }

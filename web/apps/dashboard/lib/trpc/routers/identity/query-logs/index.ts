@@ -4,7 +4,7 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_SOURCES } from "@unkey/clickhouse/src/verifications";
 import { z } from "zod";
-import { identityLogsPayload } from "./query-logs.schema";
+import { identityLogsCursor, identityLogsPayload } from "./query-logs.schema";
 import { transformIdentityLogsFilters } from "./utils";
 
 // Extended log type that includes key identification
@@ -34,9 +34,7 @@ export type IdentityLog = z.infer<typeof identityLog>;
 
 const identityLogsResponse = z.object({
   logs: z.array(identityLog),
-  hasMore: z.boolean(),
-  total: z.number(),
-  nextCursor: z.int().optional(),
+  nextCursor: identityLogsCursor.optional(),
 });
 
 type IdentityLogsResponse = z.infer<typeof identityLogsResponse>;
@@ -94,8 +92,6 @@ export const queryIdentityLogs = workspaceProcedure
       // Return empty response if identity has no keys
       return {
         logs: [],
-        total: 0,
-        hasMore: false,
         nextCursor: undefined,
       };
     }
@@ -107,14 +103,14 @@ export const queryIdentityLogs = workspaceProcedure
     // Query ClickHouse for aggregated logs
     const result = await clickhouse.api.identity.logs(transformedFilters);
 
-    if (result.logs.err) {
+    if (result.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching identity logs data from ClickHouse.",
       });
     }
 
-    const logs = result.logs.val || [];
+    const logs = result.val || [];
 
     // Enrich logs with key and API information
     const enrichedLogs: IdentityLog[] = logs.map((log) => {
@@ -128,13 +124,12 @@ export const queryIdentityLogs = workspaceProcedure
       };
     });
 
+    const lastLog = enrichedLogs.at(-1);
     const response: IdentityLogsResponse = {
       logs: enrichedLogs,
-      total: result.totalCount,
-      hasMore: enrichedLogs.length === input.limit,
       nextCursor:
-        enrichedLogs.length === input.limit
-          ? enrichedLogs[enrichedLogs.length - 1]?.time
+        lastLog && enrichedLogs.length === input.limit
+          ? { time: lastLog.time, requestId: lastLog.request_id }
           : undefined,
     };
 

@@ -197,12 +197,6 @@ export function getRequestLogs(ch: Querier) {
         pathFilter.operator === "contains" ? escapeLikePattern(pathFilter.value) : pathFilter.value;
     });
 
-    const totalQuery = ch.query({
-      query: `SELECT count(*) as total_count FROM ${TABLE} WHERE ${filterConditions}`,
-      params: queryParamsSchema,
-      schema: z.object({ total_count: z.number().int() }),
-    });
-
     // Offset pagination. `page` is 1-based; page 1 maps to offset 0.
     const offset = (args.page - 1) * args.limit;
 
@@ -231,7 +225,6 @@ export function getRequestLogs(ch: Querier) {
     });
 
     return {
-      totalQuery: totalQuery({ ...args, ...pathValues } as never),
       logsQuery: logsQuery({ ...args, ...pathValues, offset } as never),
     };
   };

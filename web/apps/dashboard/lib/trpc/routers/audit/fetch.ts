@@ -15,7 +15,6 @@ const MAX_LIMIT = 200;
 
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
-  total: z.number().nullable(),
 });
 
 type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
@@ -103,7 +102,6 @@ export const fetchAuditLog = workspaceProcedure
 
     return {
       auditLogs: items,
-      total: null,
     };
   });
 

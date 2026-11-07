@@ -50,7 +50,7 @@ export const queryRuntimeLogs = workspaceProcedure
       });
 
       if (instances.length === 0) {
-        return { logs: [], total: 0 };
+        return { logs: [] };
       }
 
       k8sPodNames = instances.map((inst) => inst.k8sName);
@@ -75,21 +75,18 @@ export const queryRuntimeLogs = workspaceProcedure
         .map((environment) => environment.id);
     }
 
-    const { logsQuery, totalQuery } = await clickhouse.runtimeLogs.logs(
-      {
-        ...transformedInputs,
-        k8sPodNames,
-        workspaceId: ctx.workspace.id,
-        projectId: project.id,
-        deploymentId: input.deploymentId,
-        appId: input.appId,
-      },
-      { includeTotal: input.includeTotal },
-    );
+    const { logsQuery } = await clickhouse.runtimeLogs.logs({
+      ...transformedInputs,
+      k8sPodNames,
+      workspaceId: ctx.workspace.id,
+      projectId: project.id,
+      deploymentId: input.deploymentId,
+      appId: input.appId,
+    });
 
-    const [logsResult, totalResult] = await Promise.all([logsQuery, totalQuery]);
+    const logsResult = await logsQuery;
 
-    if (logsResult.err || totalResult.err) {
+    if (logsResult.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching data from clickhouse.",
@@ -97,7 +94,6 @@ export const queryRuntimeLogs = workspaceProcedure
     }
 
     const chLogs = logsResult.val;
-    const total = totalResult.val;
 
     const unknownEntries = uniqueK8sRegionEntries(chLogs, knownK8sToInstanceId);
     const resolvedMapping = await resolveK8sNamesToInstanceIds(unknownEntries, ctx.workspace.id);
@@ -114,10 +110,7 @@ export const queryRuntimeLogs = workspaceProcedure
       attributes: log.attributes,
     }));
 
-    const response: RuntimeLogsResponseSchema = {
-      logs,
-      total,
-    };
+    const response: RuntimeLogsResponseSchema = { logs };
 
     return response;
   });

@@ -1,6 +1,6 @@
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { InfoTooltip } from "@unkey/ui";
-import { STATUS_STYLES } from "../utils/get-row-class";
+import { OUTCOME_STYLES } from "../utils/get-row-class";
 import {
   LOG_OUTCOME_DEFINITIONS,
   type LogOutcomeType,
@@ -29,8 +29,8 @@ export const OutcomeCell = ({ log, isSelected }: OutcomeCellProps) => {
           primary={{
             label: outcomeInfo.label,
             color: isSelected
-              ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.selected
-              : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.default,
+              ? OUTCOME_STYLES[getStatusType(outcomeInfo.type)].badge.selected
+              : OUTCOME_STYLES[getStatusType(outcomeInfo.type)].badge.default,
             icon: outcomeInfo.icon,
           }}
         />

@@ -1,3 +1,4 @@
+import type { TableLoadMoreProps } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 type ColumnWidth =
@@ -30,7 +31,6 @@ export interface TableConfig {
   rowHeight: number;
   loadingRows: number;
   overscan: number;
-  throttleDelay: number;
   headerHeight: number;
   tableLayout?: "fixed" | "auto";
 
@@ -43,27 +43,18 @@ export interface TableConfig {
 }
 
 export type VirtualTableProps<TTableData> = {
-  data: TTableData[];
-  realtimeData?: TTableData[];
+  data: readonly TTableData[];
+  realtimeData?: readonly TTableData[];
   columns: Column<TTableData>[];
   isLoading?: boolean;
   config?: Partial<TableConfig>;
   onRowClick?: (item: TTableData | null) => void;
-  onLoadMore?: () => void;
   emptyState?: React.ReactNode;
   keyExtractor: (item: TTableData) => string | number;
   rowClassName?: (item: TTableData) => string;
   selectedClassName?: (item: TTableData, isSelected: boolean) => string;
   selectedItem?: TTableData | null;
-  isFetchingNextPage?: boolean;
-  loadMoreFooterProps?: {
-    itemLabel?: string;
-    buttonText?: string;
-    countInfoText?: React.ReactNode;
-    headerContent?: React.ReactNode;
-    hasMore?: boolean;
-    hide?: boolean;
-  };
+  loadMore?: TableLoadMoreProps;
   renderSkeletonRow?: (props: {
     columns: Column<TTableData>[];
     rowHeight: number;

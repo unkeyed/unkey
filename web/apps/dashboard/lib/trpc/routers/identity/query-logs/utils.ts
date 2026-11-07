@@ -21,6 +21,7 @@ export interface IdentityLogsClickHouseParams {
     operator: "is";
   }> | null;
   cursorTime: number | null;
+  cursorRequestId: string | null;
 }
 
 export function transformIdentityLogsFilters(
@@ -48,6 +49,7 @@ export function transformIdentityLogsFilters(
       value: (typeof KEY_VERIFICATION_OUTCOMES)[number];
       operator: "is";
     }> | null,
-    cursorTime: input.cursor,
+    cursorTime: input.cursor?.time ?? null,
+    cursorRequestId: input.cursor?.requestId ?? null,
   };
 }

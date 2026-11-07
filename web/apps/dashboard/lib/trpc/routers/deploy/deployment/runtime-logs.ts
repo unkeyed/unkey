@@ -47,27 +47,23 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
       });
     }
 
-    // This view only renders a single page, so skip the count(*) query.
-    const { logsQuery } = await clickhouse.runtimeLogs.logs(
-      {
-        workspaceId: deployment.workspaceId,
-        projectId: deployment.projectId,
-        deploymentId: [deployment.id],
-        environmentId: [deployment.environmentId],
-        appId: [deployment.appId],
-        limit: input.limit,
-        startTime: deployment.createdAt,
-        endTime: Date.now(),
-        severity: [],
-        region: [],
-        message: null,
-        attributes: null,
-        attributeMatch: null,
-        k8sPodNames: [],
-        page: 1,
-      },
-      { includeTotal: false },
-    );
+    const { logsQuery } = await clickhouse.runtimeLogs.logs({
+      workspaceId: deployment.workspaceId,
+      projectId: deployment.projectId,
+      deploymentId: [deployment.id],
+      environmentId: [deployment.environmentId],
+      appId: [deployment.appId],
+      limit: input.limit,
+      startTime: deployment.createdAt,
+      endTime: Date.now(),
+      severity: [],
+      region: [],
+      message: null,
+      attributes: null,
+      attributeMatch: null,
+      k8sPodNames: [],
+      page: 1,
+    });
 
     const logsResult = await logsQuery;
     if (logsResult.err) {

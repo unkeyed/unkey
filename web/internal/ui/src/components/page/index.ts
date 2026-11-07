@@ -1,5 +1,6 @@
+export * from "./controls-slots";
 export * from "./page-body";
-export * from "./page-container";
+export { PageContainer } from "./page-container";
 export * from "./page-header";
 export * from "./secondary-nav";
 export { StickySlot } from "./sticky-slot";

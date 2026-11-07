@@ -1,18 +1,8 @@
 import { isCancelledError } from "@tanstack/react-query";
-import { useState } from "react";
+import { match } from "@unkey/match";
+import type { ListFooterState } from "@unkey/ui";
+import { useMemo, useState } from "react";
 import { type Failure, type Loadable, type QueryResult, fromQuery } from "./loadable";
-
-export type ListFooterState =
-  | { kind: "hidden" }
-  | { kind: "more"; onLoadMore: () => void }
-  | { kind: "loadingMore" }
-  | {
-      kind: "error";
-      reason: "refresh" | "loadMore";
-      error: unknown;
-      onRetry: () => void;
-      retrying: boolean;
-    };
 
 export type ListView<Row> =
   | { status: "loading" }
@@ -28,7 +18,7 @@ type ShownList<Row> = Extract<ListView<Row>, { status: "empty" | "ready" }>;
 
 export type NextPageAttempt =
   | { status: "idle" }
-  | { status: "loading" }
+  | { status: "loading"; dataUpdatedAt: number }
   | { status: "failed"; error: unknown; dataUpdatedAt: number };
 
 export type InfiniteQueryResult<Page> = QueryResult<{ pages: Page[] }> & {
@@ -41,6 +31,15 @@ export type InfiniteQueryResult<Page> = QueryResult<{ pages: Page[] }> & {
 
 const HIDDEN: ListFooterState = { kind: "hidden" };
 
+const NO_ROWS: readonly never[] = [];
+
+const NOTHING_SHOWN: ListTableState<never> = {
+  rows: NO_ROWS,
+  isLoading: false,
+  footer: HIDDEN,
+  failure: null,
+};
+
 export function listOf<Row>(rows: Loadable<readonly Row[]>): ListView<Row> {
   if (rows.status !== "ready") {
     return rows;
@@ -50,12 +49,12 @@ export function listOf<Row>(rows: Loadable<readonly Row[]>): ListView<Row> {
 
 export function infiniteListOf<Page, Row>({
   query,
-  rowsOf,
+  rows,
   attempt,
   loadMore,
 }: {
   query: InfiniteQueryResult<Page>;
-  rowsOf: (page: Page) => readonly Row[];
+  rows: readonly Row[];
   attempt: NextPageAttempt;
   loadMore: () => void;
 }): ListView<Row> {
@@ -63,39 +62,119 @@ export function infiniteListOf<Page, Row>({
   if (pages.status !== "ready") {
     return pages;
   }
-  const list = toListView(
-    pages.data.pages.flatMap(rowsOf),
-    infiniteFooterOf(query, attempt, loadMore, pages.stale),
-  );
+  const list = toListView(rows, infiniteFooterOf(query, attempt, loadMore, pages.stale));
   if (list.status === "empty" && query.isPreviousData) {
     return { status: "loading" };
   }
   return list;
 }
 
-export function attemptAfterRejection(error: unknown, dataUpdatedAt: number): NextPageAttempt {
-  return isCancelledError(error) ? { status: "idle" } : { status: "failed", error, dataUpdatedAt };
+export function attemptAfterRejection(cause: unknown, dataUpdatedAt: number): NextPageAttempt {
+  return isCancelledError(cause)
+    ? { status: "idle" }
+    : { status: "failed", error: cause, dataUpdatedAt };
+}
+
+function isNextPageLoading<Page>(query: InfiniteQueryResult<Page>, attempt: NextPageAttempt) {
+  return (
+    query.isFetchingNextPage ||
+    (attempt.status === "loading" && attempt.dataUpdatedAt === query.dataUpdatedAt)
+  );
 }
 
 function useNextPageAttempt<Page>(query: InfiniteQueryResult<Page>) {
   const [attempt, setAttempt] = useState<NextPageAttempt>({ status: "idle" });
   const loadMore = () => {
-    const { dataUpdatedAt } = query;
-    setAttempt({ status: "loading" });
+    if (isNextPageLoading(query, attempt)) {
+      return;
+    }
+    const started: NextPageAttempt = { status: "loading", dataUpdatedAt: query.dataUpdatedAt };
+    const settle = (next: NextPageAttempt) =>
+      setAttempt((current) => (current === started ? next : current));
+    setAttempt(started);
     query.fetchNextPage({ throwOnError: true }).then(
-      () => setAttempt({ status: "idle" }),
-      (error: unknown) => setAttempt(attemptAfterRejection(error, dataUpdatedAt)),
+      () => settle({ status: "idle" }),
+      (cause: unknown) => settle(attemptAfterRejection(cause, started.dataUpdatedAt)),
     );
   };
   return { attempt, loadMore };
 }
 
+export type ShownRows<Row> = {
+  idOf?: (row: Row) => string;
+  mapRows?: (rows: readonly Row[]) => readonly Row[];
+};
+
+export function uniqueRowsOf<Row>(rows: readonly Row[], idOf: (row: Row) => string): Row[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const id = idOf(row);
+    if (seen.has(id)) {
+      return false;
+    }
+    seen.add(id);
+    return true;
+  });
+}
+
 export function useInfiniteList<Page, Row>(
   query: InfiniteQueryResult<Page>,
   rowsOf: (page: Page) => readonly Row[],
+  { idOf, mapRows }: ShownRows<Row> = {},
 ): ListView<Row> {
   const { attempt, loadMore } = useNextPageAttempt(query);
-  return infiniteListOf({ query, rowsOf, attempt, loadMore });
+  const pages = query.data?.pages;
+  const rows = useMemo(() => {
+    if (!pages) {
+      return NO_ROWS;
+    }
+    const all = pages.flatMap(rowsOf);
+    const unique = idOf ? uniqueRowsOf(all, idOf) : all;
+    return mapRows ? mapRows(unique) : unique;
+  }, [pages, rowsOf, idOf, mapRows]);
+  return infiniteListOf({ query, rows, attempt, loadMore });
+}
+
+type ListTableState<Row> = {
+  rows: readonly Row[];
+  isLoading: boolean;
+  footer: ListFooterState;
+  failure: Failure | null;
+};
+
+export function tableStateOf<Row>(view: ListView<Row>): ListTableState<Row> {
+  return match(view)
+    .with({ status: "loading" }, () => ({ ...NOTHING_SHOWN, isLoading: true }))
+    .with({ status: "failed" }, ({ error, retry, retrying }) => ({
+      ...NOTHING_SHOWN,
+      failure: { error, retry, retrying },
+    }))
+    .with({ status: "empty" }, () => NOTHING_SHOWN)
+    .with({ status: "ready" }, ({ rows, footer }) => ({
+      rows,
+      isLoading: false,
+      footer,
+      failure:
+        rows.length === 0 && footer.kind === "error"
+          ? { error: footer.error, retry: footer.onRetry, retrying: footer.retrying }
+          : null,
+    }))
+    .exhaustive();
+}
+
+export function shownTotalOf({
+  loaded,
+  total,
+  hasMore,
+}: {
+  loaded: number;
+  total: number | null;
+  hasMore: boolean;
+}): number | null {
+  if (!hasMore) {
+    return loaded;
+  }
+  return total === null ? null : Math.max(total, loaded);
 }
 
 export function searchedListOf<View extends { status: string }>(
@@ -111,7 +190,10 @@ export function searchedListOf<View extends { status: string }>(
 export function usePageLimit(search: string, pageSize: number) {
   const [shown, setShown] = useState({ forSearch: search, limit: pageSize });
   const limit = shown.forSearch === search ? shown.limit : pageSize;
-  return { limit, loadMore: () => setShown({ forSearch: search, limit: limit + pageSize }) };
+  const loadMore = () => {
+    setShown({ forSearch: search, limit: limit + pageSize });
+  };
+  return { limit, loadMore };
 }
 
 export function shownListOf<Row>({
@@ -177,35 +259,31 @@ function infiniteFooterOf<Page>(
   loadMore: () => void,
   stale: Failure | null,
 ): ListFooterState {
+  if (query.isPreviousData) {
+    return HIDDEN;
+  }
+  const loadMoreError = (cause: unknown): ListFooterState => ({
+    kind: "error",
+    reason: "loadMore",
+    error: cause,
+    onRetry: loadMore,
+    retrying: false,
+  });
   if (attempt.status === "failed" && attempt.dataUpdatedAt === query.dataUpdatedAt) {
-    return {
-      kind: "error",
-      reason: "loadMore",
-      error: attempt.error,
-      onRetry: loadMore,
-      retrying: false,
-    };
+    return loadMoreError(attempt.error);
   }
+  const nextPageLoading = isNextPageLoading(query, attempt);
   // v4 sets isError before fetchNextPage rejects; without this a failed load-more flashes as a refresh error.
-  if (attempt.status === "loading" && !query.isFetchingNextPage && query.isError) {
-    return {
-      kind: "error",
-      reason: "loadMore",
-      error: query.error,
-      onRetry: loadMore,
-      retrying: false,
-    };
+  if (nextPageLoading && !query.isFetchingNextPage && query.isError) {
+    return loadMoreError(query.error);
   }
-  if (query.isFetchingNextPage) {
+  if (nextPageLoading) {
     return { kind: "loadingMore" };
   }
   if (stale) {
     return refreshError(stale);
   }
-  if (query.isPreviousData || !query.hasNextPage) {
-    return HIDDEN;
-  }
-  return { kind: "more", onLoadMore: loadMore };
+  return query.hasNextPage ? { kind: "more", onLoadMore: loadMore } : HIDDEN;
 }
 
 function refreshError({ error, retry, retrying }: Failure): ListFooterState {

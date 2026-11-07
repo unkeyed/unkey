@@ -40,7 +40,7 @@ describe("getRequestLogs", () => {
       ],
     });
 
-    expect(ch.queries).toHaveLength(2);
+    expect(ch.queries).toHaveLength(1);
     for (const query of ch.queries) {
       expect(query).toContain("app_id IN {appId: Array(String)}");
       expect(query).toContain("deployment_id IN {deploymentId: Array(String)}");
@@ -64,7 +64,7 @@ describe("getRequestLogs", () => {
 
     await getRequestLogs(ch)(baseRequest);
 
-    expect(ch.queries).toHaveLength(2);
+    expect(ch.queries).toHaveLength(1);
     for (const query of ch.queries) {
       expect(query).not.toContain("host IN");
       expect(query).not.toContain("request_id IN");

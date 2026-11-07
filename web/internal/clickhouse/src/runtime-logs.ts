@@ -45,7 +45,7 @@ export const runtimeLogsRequestSchema = z.object({
 
 export type RuntimeLogsRequest = z.infer<typeof runtimeLogsRequestSchema>;
 
-const runtimeLogsCountParamsSchema = runtimeLogsRequestSchema
+const runtimeLogsQueryParamsSchema = runtimeLogsRequestSchema
   .omit({ attributeMatch: true })
   .extend({
     attributeMatchPath: z.string(),
@@ -54,11 +54,8 @@ const runtimeLogsCountParamsSchema = runtimeLogsRequestSchema
     attributeMatchValue: z.string(),
     partitionStartTime: z.int(),
     partitionEndTime: z.int(),
+    offset: z.int(),
   });
-
-const runtimeLogsQueryParamsSchema = runtimeLogsCountParamsSchema.extend({
-  offset: z.int(),
-});
 
 export const runtimeLog = z.object({
   log_id: z.string(),
@@ -87,17 +84,8 @@ const runtimeLogRow = z.object({
   attributes_text: z.string().nullable(),
 });
 
-// `includeTotal` gates the count(*) query. Offset pagination needs a total to
-// render page counts, but callers that only read a single page (e.g. the
-// deployment-detail view) should pass `false` to skip the extra ClickHouse
-// round-trip.
-type RuntimeLogsOptions = {
-  includeTotal?: boolean;
-};
-
 export function getRuntimeLogs(ch: Querier) {
-  return async (args: RuntimeLogsRequest, options?: RuntimeLogsOptions) => {
-    const includeTotal = options?.includeTotal ?? true;
+  return async (args: RuntimeLogsRequest) => {
     const attributeMatchPathSearch = args.attributeMatch?.path
       .split(".")
       .filter((segment) => segment.length >= 3)
@@ -201,35 +189,11 @@ export function getRuntimeLogs(ch: Querier) {
       partitionEndTime,
     });
 
-    // Offset pagination needs a total to compute the page count, so callers that
-    // page (the default) count the filtered window. This is the count(*) the
-    // cursor-based design avoided; it's bounded by the same partition pruning and
-    // max_execution_time as the page query. Single-page callers pass
-    // includeTotal: false and skip the query entirely.
-    let totalResult: Promise<Result<number, QueryError>> = Promise.resolve(Ok(0));
-    if (includeTotal) {
-      const totalQuery = ch.query({
-        query: `
-        SELECT count(*) as total_count
-        FROM ${TABLE}
-        WHERE ${filterConditions}
-        SETTINGS
-          optimize_move_to_prewhere = 1,
-          max_execution_time = ${MAX_EXECUTION_TIME_SECONDS}`,
-        params: runtimeLogsCountParamsSchema,
-        schema: z.object({ total_count: z.int() }),
-      });
-      totalResult = totalQuery({ ...escapedArgs, partitionStartTime, partitionEndTime }).then(
-        (res) => (res.err ? Err(res.err) : Ok(res.val[0]?.total_count ?? 0)),
-      );
-    }
-
     return {
       logsQuery: rowsPromise.then(
         (res): Result<RuntimeLog[], QueryError> =>
           res.err ? Err(res.err) : Ok(res.val.map(toRuntimeLog)),
       ),
-      totalQuery: totalResult,
     };
   };
 }

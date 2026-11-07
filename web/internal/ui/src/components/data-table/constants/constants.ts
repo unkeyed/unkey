@@ -1,5 +1,7 @@
 import type { DataTableConfig } from "../types";
 
+export const EMPTY_ROWS: readonly never[] = [];
+
 export const DEFAULT_CONFIG: DataTableConfig = {
   rowHeight: 36,
   headerHeight: 40,
@@ -21,15 +23,12 @@ export type StatusStyle = {
   focusRing: string;
 };
 
-export const FOOTER_PANEL =
-  "w-[740px] bg-raised min-h-[60px] flex items-center justify-center rounded-xl shadow-floating mb-5";
-
 export const STATUS_STYLES: StatusStyle = {
-  base: "text-grayA-9",
-  hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-2",
-  selected: "text-gray-12 bg-grayA-2 hover:text-gray-12",
+  base: "text-gray-12",
+  hover: "hover:text-gray-12 hover:bg-grayA-3",
+  selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
   badge: {
-    default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
+    default: "bg-grayA-3 text-gray-12 group-hover:bg-grayA-5 border-transparent",
     selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
   },
   focusRing: "focus:ring-gray-7",

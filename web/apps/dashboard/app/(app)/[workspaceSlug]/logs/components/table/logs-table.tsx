@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyOrLoadError } from "@/components/load-error";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import type { Log } from "@/lib/api-request-logs";
@@ -18,6 +19,8 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
+  STATUS_STYLES,
+  type StatusStyle,
   TimestampInfo,
 } from "@unkey/ui";
 import { cn } from "cn";
@@ -26,28 +29,8 @@ import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { extractResponseField } from "../../utils";
 import { useLogsQuery } from "./hooks/use-logs-query";
 
-type StatusStyle = {
-  base: string;
-  hover: string;
-  selected: string;
-  badge: {
-    default: string;
-    selected: string;
-  };
-  focusRing: string;
-};
-
-const STATUS_STYLES = {
-  success: {
-    base: "text-grayA-9",
-    hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
-    selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
-    badge: {
-      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
-      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
-    },
-    focusRing: "focus:ring-gray-7",
-  },
+const RESPONSE_STATUS_STYLES = {
+  success: STATUS_STYLES,
   warning: {
     base: "text-warning-11 bg-warning-2",
     hover: "hover:bg-warning-3",
@@ -68,16 +51,16 @@ const STATUS_STYLES = {
     },
     focusRing: "focus:ring-error-7",
   },
-};
+} satisfies Record<"success" | "warning" | "error", StatusStyle>;
 
 const getStatusStyle = (status: number): StatusStyle => {
   if (status >= 500) {
-    return STATUS_STYLES.error;
+    return RESPONSE_STATUS_STYLES.error;
   }
   if (status >= 400) {
-    return STATUS_STYLES.warning;
+    return RESPONSE_STATUS_STYLES.warning;
   }
-  return STATUS_STYLES.success;
+  return RESPONSE_STATUS_STYLES.success;
 };
 
 const STATUS_ICON_STYLES = {
@@ -140,8 +123,7 @@ const additionalColumns: Column<Log>[] = [
 
 export const LogsTable = () => {
   const { displayProperties, setSelectedLog, selectedLog, isLive } = useLogsContext();
-  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore } =
-    useLogsQuery({ isLive });
+  const { realtimeLogs, table, totalCount } = useLogsQuery({ isLive });
 
   const getRowClassName = (log: Log) => {
     const style = getStatusStyle(log.response_status);
@@ -212,9 +194,7 @@ export const LogsTable = () => {
             <Badge
               className={cn(
                 "uppercase px-[6px] rounded-md font-mono whitespace-nowrap",
-                isSelected
-                  ? STATUS_STYLES.success.badge.selected
-                  : STATUS_STYLES.success.badge.default,
+                isSelected ? STATUS_STYLES.badge.selected : STATUS_STYLES.badge.default,
               )}
             >
               {log.method}
@@ -261,56 +241,48 @@ export const LogsTable = () => {
 
   return (
     <VirtualTable
-      data={historicalLogs}
+      data={table.rows}
       realtimeData={realtimeLogs}
-      isLoading={isLoading}
-      isFetchingNextPage={isLoadingMore}
-      onLoadMore={loadMore}
+      isLoading={table.isLoading}
       columns={visibleColumns}
       onRowClick={setSelectedLog}
       selectedItem={selectedLog}
       keyExtractor={(log) => log.request_id}
       rowClassName={getRowClassName}
       selectedClassName={getSelectedClassName}
-      loadMoreFooterProps={{
-        hide: isLoading,
-        buttonText: "Load more logs",
-        hasMore,
-        countInfoText: (
-          <div className="flex gap-2">
-            <span>Showing</span>{" "}
-            <span className="text-gray-12">
-              {new Intl.NumberFormat().format(historicalLogs.length)}
-            </span>
-            <span>requests</span>
-          </div>
-        ),
+      loadMore={{
+        state: table.footer,
+        totalCount,
+        singular: "request",
+        plural: "requests",
       }}
       emptyState={
-        <EmptyState frame="none">
-          <EmptyStateIcon>
-            <IconLayers3Outline18 />
-          </EmptyStateIcon>
-          <EmptyStateHeader>
-            <EmptyStateTitle>Logs</EmptyStateTitle>
-            <EmptyStateDescription>
-              Keep track of all activity within your workspace. We collect all API requests, giving
-              you a clear history to find problems or debug issues.
-            </EmptyStateDescription>
-          </EmptyStateHeader>
-          <EmptyStateActions>
-            <a
-              href="https://www.unkey.com/docs/introduction"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" size="sm">
-                <IconBookBookmarkOutline18 />
-                Documentation
-              </Button>
-            </a>
-          </EmptyStateActions>
-        </EmptyState>
+        <EmptyOrLoadError failure={table.failure} title="Could not load requests">
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconLayers3Outline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Logs</EmptyStateTitle>
+              <EmptyStateDescription>
+                Keep track of all activity within your workspace. We collect all API requests,
+                giving you a clear history to find problems or debug issues.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="sm">
+                  <IconBookBookmarkOutline18 />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        </EmptyOrLoadError>
       }
     />
   );

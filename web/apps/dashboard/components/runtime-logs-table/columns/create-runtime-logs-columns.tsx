@@ -67,7 +67,7 @@ export const createRuntimeLogsColumns = ({
     cell: ({ row }) => (
       <div className="flex items-center gap-1.5">
         <RegionFlag region={row.original.region} size="xs" shape="circle" />
-        <span className="font-mono text-xs text-gray-11">{row.original.region}</span>
+        <span className="font-mono text-xs">{row.original.region}</span>
       </div>
     ),
   },
@@ -112,9 +112,9 @@ export const createRuntimeLogsColumns = ({
       width: "auto",
     },
     cell: ({ row }) => {
-      let attrStr = row.original.attributes ? JSON.stringify(row.original.attributes) : "";
+      const attrStr = row.original.attributes ? JSON.stringify(row.original.attributes) : "";
       if (attrStr === "" || attrStr === "{}") {
-        attrStr = "—";
+        return <div className="font-mono text-xs text-grayA-11">—</div>;
       }
       return (
         <div className="font-mono truncate text-xs max-w-125" title={attrStr}>

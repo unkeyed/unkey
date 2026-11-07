@@ -1,8 +1,8 @@
 import type { SeparatorItem } from "../types";
 
 export const useTableData = <TTableData>(
-  realtimeData: TTableData[],
-  historicData: TTableData[],
+  realtimeData: readonly TTableData[],
+  historicData: readonly TTableData[],
 ) => {
   return {
     getItemAt: (index: number): TTableData | SeparatorItem => {

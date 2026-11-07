@@ -1,4 +1,5 @@
 "use client";
+import { EmptyOrLoadError } from "@/components/load-error";
 
 import {
   type EnrichedRatelimitLog,
@@ -18,7 +19,6 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
 } from "@unkey/ui";
 import { cn } from "cn";
 import { useCallback, useMemo } from "react";
@@ -26,19 +26,7 @@ import { useRatelimitLogsContext } from "../../context/logs";
 
 export const RatelimitLogsTable = () => {
   const { setSelectedLog, selectedLog, isLive, namespaceId } = useRatelimitLogsContext();
-  const {
-    realtimeLogs,
-    historicalLogs,
-    isLoading,
-    isNavigating,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    onPageChange,
-    sorting,
-    onSortingChange,
-  } = useRatelimitLogsQuery({
+  const { realtimeLogs, table, totalCount, sorting, onSortingChange } = useRatelimitLogsQuery({
     namespaceId,
     startPolling: isLive,
     pollIntervalMs: 2000,
@@ -79,11 +67,17 @@ export const RatelimitLogsTable = () => {
   return (
     <div className="flex flex-col md:flex-1">
       <DataTable
-        data={historicalLogs}
+        data={table.rows}
         realtimeData={realtimeLogs}
         columns={columns}
         getRowId={(log) => log.request_id}
-        isLoading={isLoading}
+        isLoading={table.isLoading}
+        loadMore={{
+          singular: "request",
+          plural: "requests",
+          state: table.footer,
+          totalCount,
+        }}
         renderSkeletonRow={renderRatelimitLogsSkeletonRow}
         onRowClick={setSelectedLog}
         selectedItem={selectedLog}
@@ -93,47 +87,42 @@ export const RatelimitLogsTable = () => {
         sorting={sorting}
         onSortingChange={onSortingChange}
         manualSorting
-        config={{ rowHeight: 26, layout: "classic", rowBorders: false, containerPadding: "px-2" }}
+        config={{
+          rowHeight: 26,
+          layout: "classic",
+          rowBorders: false,
+          containerPadding: "px-2",
+        }}
         emptyState={
-          <EmptyState frame="none">
-            <EmptyStateIcon>
-              <IconLayers3Outline18 />
-            </EmptyStateIcon>
-            <EmptyStateHeader>
-              <EmptyStateTitle>Logs</EmptyStateTitle>
-              <EmptyStateDescription>
-                No ratelimit logs yet. Once API requests start coming in, you'll see a detailed view
-                of your rate limits, including passed and blocked requests, across your API
-                endpoints.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-            <EmptyStateActions>
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="sm">
-                  <IconBookBookmarkOutline18 />
-                  Documentation
-                </Button>
-              </a>
-            </EmptyStateActions>
-          </EmptyState>
+          <EmptyOrLoadError failure={table.failure} title="Could not load ratelimit logs">
+            <EmptyState frame="none">
+              <EmptyStateIcon>
+                <IconLayers3Outline18 />
+              </EmptyStateIcon>
+              <EmptyStateHeader>
+                <EmptyStateTitle>Logs</EmptyStateTitle>
+                <EmptyStateDescription>
+                  No ratelimit logs yet. Once API requests start coming in, you'll see a detailed
+                  view of your rate limits, including passed and blocked requests, across your API
+                  endpoints.
+                </EmptyStateDescription>
+              </EmptyStateHeader>
+              <EmptyStateActions>
+                <a
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" size="sm">
+                    <IconBookBookmarkOutline18 />
+                    Documentation
+                  </Button>
+                </a>
+              </EmptyStateActions>
+            </EmptyState>
+          </EmptyOrLoadError>
         }
       />
-      {!isLive && (
-        <PaginationFooter
-          page={page}
-          pageSize={pageSize}
-          totalPages={totalPages}
-          totalCount={totalCount}
-          onPageChange={onPageChange}
-          itemLabel="ratelimit requests"
-          loading={isLoading}
-          disabled={isNavigating}
-        />
-      )}
     </div>
   );
 };

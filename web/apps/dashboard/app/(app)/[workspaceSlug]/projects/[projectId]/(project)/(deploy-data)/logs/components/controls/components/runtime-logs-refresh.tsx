@@ -1,21 +1,14 @@
 "use client";
 
 import { useRuntimeLogs } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/context/runtime-logs-provider";
+import { useAnchoredRefresh } from "@/hooks/use-anchored-refresh";
 import { trpc } from "@/lib/trpc/client";
+import { getQueryKey } from "@trpc/react-query";
 import { RefreshButton } from "@unkey/ui";
 
 export function RuntimeLogsRefresh() {
   const { isLive, toggleLive, refresh } = useRuntimeLogs();
-  const {
-    deploy: { runtimeLogs },
-  } = trpc.useUtils();
-
-  const handleRefresh = () => {
-    // Re-anchor the query window so newly arrived logs are included, then drop
-    // cached pages so they refetch against the new window.
-    refresh();
-    runtimeLogs.query.invalidate();
-  };
+  const handleRefresh = useAnchoredRefresh(refresh, [getQueryKey(trpc.deploy.runtimeLogs.query)]);
 
   return (
     <RefreshButton onRefresh={handleRefresh} isEnabled isLive={isLive} toggleLive={toggleLive} />

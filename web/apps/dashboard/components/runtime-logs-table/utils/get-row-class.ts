@@ -1,30 +1,11 @@
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
+import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
 import { cn } from "cn";
-
-type StatusStyle = {
-  base: string;
-  hover: string;
-  selected: string;
-  badge: {
-    default: string;
-    selected: string;
-  };
-  focusRing: string;
-};
 
 export type SeverityTone = "success" | "warning" | "error";
 
-const STATUS_STYLES: Record<SeverityTone, StatusStyle> = {
-  success: {
-    base: "text-grayA-9",
-    hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
-    selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
-    badge: {
-      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
-      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
-    },
-    focusRing: "focus:ring-gray-7",
-  },
+const SEVERITY_STYLES: Record<SeverityTone, StatusStyle> = {
+  success: STATUS_STYLES,
   warning: {
     base: "text-warning-11 bg-warning-2",
     hover: "hover:bg-warning-3",
@@ -59,7 +40,7 @@ export function severityTone(severity: string): SeverityTone {
 }
 
 export const getSeverityStyle = (severity: string): StatusStyle =>
-  STATUS_STYLES[severityTone(severity)];
+  SEVERITY_STYLES[severityTone(severity)];
 
 // Rows that predate log_id (or arrived from an old Vector during rollout) read
 // as an empty string. Keep content identity as a fallback until those rows expire.
@@ -77,7 +58,7 @@ export type RuntimeLogRow = RuntimeLog & { rowKey?: string };
 
 // Suffix duplicate legacy keys so byte-identical pre-log_id lines still get a
 // unique `rowKey` for DataTable getRowId.
-export const attachRowKeys = (logs: RuntimeLog[]): RuntimeLogRow[] => {
+export const attachRowKeys = (logs: readonly RuntimeLog[]): RuntimeLogRow[] => {
   const counts = new Map<string, number>();
   return logs.map((log) => {
     const base = getLogKey(log);

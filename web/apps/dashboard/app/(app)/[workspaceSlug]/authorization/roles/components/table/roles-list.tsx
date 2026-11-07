@@ -6,6 +6,7 @@ import {
 } from "@/components/roles-table";
 import { EditRole } from "@/components/roles-table/components/actions/components/edit-role";
 import { SelectionControls } from "@/components/roles-table/components/selection-controls";
+import { useViewSelection } from "@/hooks/use-view-selection";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { IconBookBookmarkOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
 import {
@@ -17,10 +18,10 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
+  TablePager,
   getSelectableRowClassName,
 } from "@unkey/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 export const RolesList = () => {
   const {
@@ -34,23 +35,16 @@ export const RolesList = () => {
     onPageChange,
     sorting,
     onSortingChange,
+    viewKey,
   } = useRolesListPaginated();
 
   const [selectedRole, setSelectedRole] = useState<RoleBasic | null>(null);
-  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
+  const {
+    selected: selectedRoles,
+    setSelected: setSelectedRoles,
+    toggle: toggleSelection,
+  } = useViewSelection(viewKey);
   const [hoveredRoleName, setHoveredRoleName] = useState<string | null>(null);
-
-  const toggleSelection = useCallback((roleId: string) => {
-    setSelectedRoles((prevSelected) => {
-      const newSelected = new Set(prevSelected);
-      if (newSelected.has(roleId)) {
-        newSelected.delete(roleId);
-      } else {
-        newSelected.add(roleId);
-      }
-      return newSelected;
-    });
-  }, []);
 
   const columns = useMemo(
     () =>
@@ -112,19 +106,16 @@ export const RolesList = () => {
           containerPadding: "px-0",
         }}
       />
-      <PaginationFooter
+      <TablePager
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
-        itemLabel="roles"
-        hide={isInitialLoading}
+        loading={isInitialLoading}
         disabled={isNavigating}
-        headerContent={
-          <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
-        }
       />
+      <SelectionControls selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles} />
       {selectedRole && (
         <EditRole
           role={selectedRole}

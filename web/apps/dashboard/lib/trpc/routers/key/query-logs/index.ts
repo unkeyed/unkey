@@ -9,7 +9,6 @@ import { transformKeyDetailsFilters } from "./utils";
 
 const keyDetailsLogsResponse = z.object({
   logs: z.array(z.custom<KeyDetailsLog>()),
-  total: z.number(),
 });
 type KeyDetailsLogsResponse = z.infer<typeof keyDetailsLogsResponse>;
 
@@ -48,18 +47,15 @@ export const queryKeyDetailsLogs = workspaceProcedure
     const transformedFilters = transformKeyDetailsFilters(input, ctx.workspace.id);
     const result = await clickhouse.api.key.logs(transformedFilters);
 
-    if (result.logs.err) {
+    if (result.err) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching key details data from ClickHouse.",
       });
     }
 
-    const logs = result.logs.val || [];
-
     const response: KeyDetailsLogsResponse = {
-      logs,
-      total: result.totalCount,
+      logs: result.val || [],
     };
 
     return response;

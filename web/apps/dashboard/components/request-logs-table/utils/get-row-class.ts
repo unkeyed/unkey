@@ -1,28 +1,9 @@
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
+import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
-type StatusStyle = {
-  base: string;
-  hover: string;
-  selected: string;
-  badge: {
-    default: string;
-    selected: string;
-  };
-  focusRing: string;
-};
-
-const STATUS_STYLES = {
-  success: {
-    base: "text-grayA-9",
-    hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
-    selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
-    badge: {
-      default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
-      selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
-    },
-    focusRing: "focus:ring-gray-7",
-  },
+const RESPONSE_STATUS_STYLES = {
+  success: STATUS_STYLES,
   info: {
     base: "text-info-11 bg-info-2",
     hover: "hover:bg-info-3",
@@ -53,19 +34,19 @@ const STATUS_STYLES = {
     },
     focusRing: "focus:ring-error-7",
   },
-};
+} satisfies Record<"success" | "info" | "warning" | "error", StatusStyle>;
 
 export const getStatusStyle = (status: number): StatusStyle => {
   if (!Number.isInteger(status) || status < 100 || status >= 500) {
-    return STATUS_STYLES.error;
+    return RESPONSE_STATUS_STYLES.error;
   }
   if (status >= 400) {
-    return STATUS_STYLES.warning;
+    return RESPONSE_STATUS_STYLES.warning;
   }
   if (status >= 300) {
-    return STATUS_STYLES.info;
+    return RESPONSE_STATUS_STYLES.info;
   }
-  return STATUS_STYLES.success;
+  return RESPONSE_STATUS_STYLES.success;
 };
 
 export const WARNING_ICON_STYLES = {

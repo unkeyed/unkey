@@ -1,9 +1,6 @@
 "use client";
-import { AnimatedCounter } from "@/components/api-keys-table/components/selection-controls";
-import { MotionProvider } from "@/components/motion-provider";
-import { IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
-import { Button, ConfirmPopover } from "@unkey/ui";
-import { AnimatePresence, m } from "framer-motion";
+import { IconTrashOutline18 } from "@unkey/icons";
+import { ConfirmPopover, SelectionBar, SelectionBarAction } from "@unkey/ui";
 import { useRef, useState } from "react";
 
 type TableDeleteSelectionControlsProps = {
@@ -17,77 +14,29 @@ type TableDeleteSelectionControlsProps = {
   plural: string;
 };
 
-// Shared selection bar for tables that support bulk-delete only. Renders the
-// selection count, a Delete button with confirm popover, and a clear-selection
-// X. Callers own the delete mutation and selection state.
-export const TableDeleteSelectionControls = ({
+export function TableDeleteSelectionControls({
   selectedCount,
   onClearSelection,
   onConfirmDelete,
   isDeleting,
   singular,
   plural,
-}: TableDeleteSelectionControlsProps) => {
+}: TableDeleteSelectionControlsProps) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <MotionProvider>
-      <AnimatePresence>
-        {selectedCount > 0 && (
-          <m.div
-            key="selection-controls"
-            className="border-b w-full overflow-hidden"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{
-              opacity: 1,
-              height: "auto",
-              transition: {
-                height: { duration: 0.3, ease: "easeOut" },
-                opacity: { duration: 0.3, ease: "easeOut" },
-              },
-            }}
-            exit={{
-              opacity: 0,
-              height: 0,
-              transition: {
-                opacity: { duration: 0.2, ease: "easeIn" },
-                height: { duration: 0.3, ease: "easeIn" },
-              },
-            }}
-          >
-            <div className="flex justify-between items-center w-full p-[18px]">
-              <div className="items-center flex gap-2">
-                <AnimatedCounter value={selectedCount} />
-                <div className="text-gray-9 text-sm leading-6">selected</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-sm"
-                  disabled={isDeleting}
-                  loading={isDeleting}
-                  onClick={() => setIsDeleteConfirmOpen(true)}
-                  ref={deleteButtonRef}
-                >
-                  <IconTrashOutline18 />
-                  Delete {plural}
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="[&_svg]:size-[14px] ml-3"
-                  onClick={onClearSelection}
-                  aria-label="Clear selection"
-                >
-                  <IconXmarkOutline18 />
-                </Button>
-              </div>
-            </div>
-          </m.div>
-        )}
-      </AnimatePresence>
+    <>
+      <SelectionBar count={selectedCount} onClear={onClearSelection}>
+        <SelectionBarAction
+          disabled={isDeleting}
+          loading={isDeleting}
+          onClick={() => setIsDeleteConfirmOpen(true)}
+          ref={deleteButtonRef}
+          icon={<IconTrashOutline18 />}
+          label={`Delete ${plural}`}
+        />
+      </SelectionBar>
 
       <ConfirmPopover
         isOpen={isDeleteConfirmOpen}
@@ -102,6 +51,6 @@ export const TableDeleteSelectionControls = ({
         cancelButtonText="Cancel"
         variant="danger"
       />
-    </MotionProvider>
+    </>
   );
-};
+}

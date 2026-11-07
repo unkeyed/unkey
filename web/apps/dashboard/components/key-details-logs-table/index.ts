@@ -4,15 +4,13 @@ export {
   getRowClassName,
   getStatusStyle,
   categorizeSeverity,
-  STATUS_STYLES,
+  OUTCOME_STYLES,
 } from "./utils/get-row-class";
-export type { StatusStyle } from "./utils/get-row-class";
 export { LOG_OUTCOME_DEFINITIONS, getStatusType } from "./utils/outcome-definitions";
 export type { LogOutcomeType, LogOutcomeInfo } from "./utils/outcome-definitions";
 export { StatusBadge } from "./components/status-badge";
 export { KeyDetailsDrawer } from "./components/key-details-drawer";
 export { OutcomeCell } from "./components/outcome-cell";
-export { KeyDetailsCountInfo } from "./components/key-details-count-info";
 export {
   useFetchRequestDetails,
   apiRequestDetailsQuery,

@@ -1,17 +1,12 @@
+import { useAnchoredRefresh } from "@/hooks/use-anchored-refresh";
 import { trpc } from "@/lib/trpc/client";
+import { getQueryKey } from "@trpc/react-query";
 import { RefreshButton } from "@unkey/ui";
 import { useRequestLogsContext } from "../../../context/request-logs-provider";
 
 export const RequestLogsRefresh = () => {
-  const { deploy } = trpc.useUtils();
   const { refresh } = useRequestLogsContext();
-
-  const handleRefresh = () => {
-    // Re-anchor the query window so newly arrived logs are included, then drop
-    // cached pages so they refetch against the new window.
-    refresh();
-    deploy.requestLogs.query.invalidate();
-  };
+  const handleRefresh = useAnchoredRefresh(refresh, [getQueryKey(trpc.deploy.requestLogs.query)]);
 
   return <RefreshButton onRefresh={handleRefresh} isEnabled />;
 };

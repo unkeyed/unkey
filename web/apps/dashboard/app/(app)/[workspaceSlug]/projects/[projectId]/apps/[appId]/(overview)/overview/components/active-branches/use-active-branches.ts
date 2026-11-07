@@ -5,6 +5,10 @@ import { useEffect, useRef } from "react";
 
 export const ACTIVE_BRANCHES_PAGE_SIZE = 10;
 
+function branchesOf<Row>(page: { branches: Row[] }) {
+  return page.branches;
+}
+
 export function useActiveBranches() {
   const { projectId, appId } = useAppScope();
   const trpcUtils = trpc.useUtils();
@@ -29,5 +33,5 @@ export function useActiveBranches() {
     }
   }, [recentStates, trpcUtils]);
 
-  return useInfiniteList(query, (page) => page.branches);
+  return useInfiniteList(query, branchesOf);
 }

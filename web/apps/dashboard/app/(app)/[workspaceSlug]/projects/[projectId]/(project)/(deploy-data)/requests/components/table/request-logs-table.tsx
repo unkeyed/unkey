@@ -1,4 +1,5 @@
 "use client";
+import { EmptyOrLoadError } from "@/components/load-error";
 
 import {
   createRequestLogsColumns,
@@ -16,24 +17,13 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
 } from "@unkey/ui";
 import { useMemo } from "react";
 import { useRequestLogsContext } from "../../context/request-logs-provider";
 
 export const RequestLogsTable = () => {
   const { setSelectedLog, selectedLog, isLive, refreshNonce } = useRequestLogsContext();
-  const {
-    realtimeLogs,
-    historicalLogs,
-    isLoading,
-    isNavigating,
-    totalCount,
-    page,
-    pageSize,
-    totalPages,
-    onPageChange,
-  } = useRequestLogsQuery({
+  const { realtimeLogs, table, totalCount } = useRequestLogsQuery({
     startPolling: isLive,
     pollIntervalMs: 2000,
     refreshNonce,
@@ -44,59 +34,58 @@ export const RequestLogsTable = () => {
   return (
     <div className="flex flex-col md:flex-1">
       <DataTable
-        data={historicalLogs}
+        data={table.rows}
         realtimeData={realtimeLogs}
         columns={columns}
         getRowId={(log) => log.request_id}
-        isLoading={isLoading}
+        isLoading={table.isLoading}
+        loadMore={{
+          singular: "request",
+          plural: "requests",
+          state: table.footer,
+          totalCount,
+        }}
         onRowClick={setSelectedLog}
         selectedItem={selectedLog}
         rowClassName={(log) => getRowClassName(log, selectedLog, isLive, realtimeLogs)}
         selectedClassName={getSelectedClassName}
         emptyState={
-          <EmptyState frame="none">
-            <EmptyStateIcon>
-              <IconArrowsOppositeDirectionYOutline18 />
-            </EmptyStateIcon>
-            <EmptyStateHeader>
-              <EmptyStateTitle>Logs</EmptyStateTitle>
-              <EmptyStateDescription>
-                Keep track of all activity within your workspace. We collect all API requests,
-                giving you a clear history to find problems or debug issues.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-            <EmptyStateActions>
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="sm">
-                  <IconBookBookmarkOutline18 />
-                  Documentation
-                </Button>
-              </a>
-            </EmptyStateActions>
-          </EmptyState>
+          <EmptyOrLoadError failure={table.failure} title="Could not load requests">
+            <EmptyState frame="none">
+              <EmptyStateIcon>
+                <IconArrowsOppositeDirectionYOutline18 />
+              </EmptyStateIcon>
+              <EmptyStateHeader>
+                <EmptyStateTitle>Logs</EmptyStateTitle>
+                <EmptyStateDescription>
+                  Keep track of all activity within your workspace. We collect all API requests,
+                  giving you a clear history to find problems or debug issues.
+                </EmptyStateDescription>
+              </EmptyStateHeader>
+              <EmptyStateActions>
+                <a
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" size="sm">
+                    <IconBookBookmarkOutline18 />
+                    Documentation
+                  </Button>
+                </a>
+              </EmptyStateActions>
+            </EmptyState>
+          </EmptyOrLoadError>
         }
         // VirtualTable defaulted to 26px dense rows and 50 loading rows; DataTable's
         // defaults (36px / 10) differ, so set them explicitly to preserve the layout.
-        config={{ rowHeight: 26, layout: "classic", rowBorders: false, loadingRows: 50 }}
+        config={{
+          rowHeight: 26,
+          layout: "classic",
+          rowBorders: false,
+          loadingRows: 50,
+        }}
       />
-      {/* Live mode is a streaming view of the newest logs (page 1 only), matching
-          the other live log tables — pagination is hidden while live. */}
-      {!isLive && (
-        <PaginationFooter
-          page={page}
-          pageSize={pageSize}
-          totalPages={totalPages}
-          totalCount={totalCount}
-          onPageChange={onPageChange}
-          itemLabel="requests"
-          loading={isLoading}
-          disabled={isNavigating}
-        />
-      )}
     </div>
   );
 };

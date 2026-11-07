@@ -6,6 +6,7 @@ import {
 } from "@/components/permissions-table";
 import { EditPermission } from "@/components/permissions-table/components/actions/components/edit-permission";
 import { SelectionControls } from "@/components/permissions-table/components/selection-controls";
+import { useViewSelection } from "@/hooks/use-view-selection";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { IconBookBookmarkOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
 import {
@@ -17,10 +18,10 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
-  PaginationFooter,
+  TablePager,
   getSelectableRowClassName,
 } from "@unkey/ui";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 export const PermissionsList = () => {
   const {
@@ -33,23 +34,16 @@ export const PermissionsList = () => {
     onPageChange,
     sorting,
     onSortingChange,
+    viewKey,
   } = usePermissionsListPaginated();
 
   const [selectedPermission, setSelectedPermission] = useState<Permission | null>(null);
-  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
+  const {
+    selected: selectedPermissions,
+    setSelected: setSelectedPermissions,
+    toggle: toggleSelection,
+  } = useViewSelection(viewKey);
   const [hoveredPermissionName, setHoveredPermissionName] = useState<string | null>(null);
-
-  const toggleSelection = useCallback((permissionId: string) => {
-    setSelectedPermissions((prevSelected) => {
-      const newSelected = new Set(prevSelected);
-      if (newSelected.has(permissionId)) {
-        newSelected.delete(permissionId);
-      } else {
-        newSelected.add(permissionId);
-      }
-      return newSelected;
-    });
-  }, []);
 
   const columns = useMemo(
     () =>
@@ -113,18 +107,16 @@ export const PermissionsList = () => {
           containerPadding: "px-0",
         }}
       />
-      <PaginationFooter
+      <TablePager
         page={page}
         pageSize={pageSize}
         totalPages={totalPages}
         totalCount={totalCount}
         onPageChange={onPageChange}
-        headerContent={
-          <SelectionControls
-            selectedPermissions={selectedPermissions}
-            setSelectedPermissions={setSelectedPermissions}
-          />
-        }
+      />
+      <SelectionControls
+        selectedPermissions={selectedPermissions}
+        setSelectedPermissions={setSelectedPermissions}
       />
       {selectedPermission && (
         <EditPermission

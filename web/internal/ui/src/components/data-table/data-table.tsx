@@ -6,15 +6,16 @@ import {
   type ReactNode,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { cn } from "../../lib/utils";
 import { StickySlot } from "../page/sticky-slot";
-import { LoadMoreFooter } from "./components/footer/load-more-footer";
+import { TableLoadMore } from "./components/footer/table-load-more";
 import { SkeletonRow } from "./components/rows/skeleton-row";
 import { DataTableEmptyState } from "./components/utils/empty-state";
 import { RealtimeSeparator } from "./components/utils/realtime-separator";
-import { DEFAULT_CONFIG } from "./constants/constants";
+import { DEFAULT_CONFIG, EMPTY_ROWS } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
 import { usePinnedTableHeader } from "./hooks/use-pinned-table-header";
 import { useRealtimeData } from "./hooks/use-realtime-data";
@@ -39,9 +40,9 @@ function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPa
 export function DataTable<TData>(props: DataTableProps<TData>) {
   const {
     data: historicData,
-    realtimeData = [],
+    realtimeData = EMPTY_ROWS,
     columns,
-    getRowId,
+    getRowId: getRowIdLatest,
     sorting,
     onSortingChange,
     rowSelection,
@@ -52,7 +53,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
     selectedItem,
     config: userConfig,
     emptyState,
-    loadMoreFooterProps,
+    loadMore,
     rowClassName,
     selectedClassName,
     enableKeyboardNav = true,
@@ -62,6 +63,10 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
     isLoading = false,
     renderSkeletonRow,
   } = props;
+
+  const getRowIdRef = useRef(getRowIdLatest);
+  getRowIdRef.current = getRowIdLatest;
+  const getRowId = useCallback((row: TData) => getRowIdRef.current(row), []);
 
   // Merge configs
   const config = useMemo(() => ({ ...DEFAULT_CONFIG, ...userConfig }), [userConfig]);
@@ -106,7 +111,6 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
       }
 
       if (event.key === "Escape") {
-        event.preventDefault();
         onRowClick?.(null);
         const activeElement = document.activeElement as HTMLElement;
         activeElement?.blur();
@@ -231,9 +235,10 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                     const rowId = tableRow.id;
                     const isSelected = selectedItem ? getRowId(selectedItem) === rowId : false;
                     const elements: ReactNode[] = [];
+                    const isRealtime = realtimeIds.has(rowId);
 
                     // Insert separator at boundary between realtime and historic items
-                    if (!separatorInserted && !realtimeIds.has(rowId)) {
+                    if (!separatorInserted && !isRealtime) {
                       separatorInserted = true;
                       elements.push(
                         <Fragment key="separator">
@@ -352,21 +357,15 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
                 })()}
           </tbody>
         </table>
+        {!isEmpty && loadMore ? (
+          <TableLoadMore {...loadMore} loadedCount={historicData.length} />
+        ) : null}
         {isEmpty && (
           <div className="flex-1 flex items-center justify-center">
             {emptyState ?? <DataTableEmptyState />}
           </div>
         )}
       </div>
-
-      {/* Legacy load more footer */}
-      {!isEmpty && loadMoreFooterProps && (
-        <LoadMoreFooter
-          {...loadMoreFooterProps}
-          totalVisible={tableDataHelper.data.length}
-          totalCount={tableDataHelper.getTotalLength()}
-        />
-      )}
     </div>
   );
 }

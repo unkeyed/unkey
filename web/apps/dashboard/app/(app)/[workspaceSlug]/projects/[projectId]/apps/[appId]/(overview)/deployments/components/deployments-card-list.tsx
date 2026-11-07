@@ -34,6 +34,10 @@ import { useFilters } from "../hooks/use-filters";
 import { DeploymentRow } from "./deployment-row";
 import { DeploymentsSkeleton } from "./deployments-skeleton";
 
+function rowsOf<Row>(page: { rows: Row[] }) {
+  return page.rows;
+}
+
 export function DeploymentsCardList() {
   const { filters, isFiltered, updateFilters } = useFilters();
   const { data: environments = [], isLoading: isEnvironmentsLoading } = useEnvironments();
@@ -70,7 +74,7 @@ function DeploymentsCardListResults({
   isFiltered: boolean;
   onClearFilters: () => void;
 }) {
-  const list = useInfiniteList(useDeploymentsPage(filter), (page) => page.rows);
+  const list = useInfiniteList(useDeploymentsPage(filter), rowsOf);
   const rows = list.status === "ready" ? list.rows : [];
   const { projectId } = useAppScope();
   const { data: environments = [] } = useEnvironments();

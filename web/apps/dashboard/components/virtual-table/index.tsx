@@ -1,18 +1,19 @@
+import { usePageVirtualizer } from "@/hooks/use-page-virtualizer";
 import {
   IconCaretDownOutline12,
   IconCaretExpandYOutline18,
   IconCaretUpOutline12,
   IconCircleCaretRightOutline18,
 } from "@unkey/icons";
-import { Skeleton, StickySlot, usePinnedTableHeader } from "@unkey/ui";
+import { Skeleton, StickySlot, TableLoadMore, usePinnedTableHeader } from "@unkey/ui";
 import { cn } from "cn";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { VirtualTableEmptyState } from "./components/empty-state";
-import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
-import { useVirtualData } from "./hooks/useVirtualData";
 import type { Column, SeparatorItem, SortDirection, VirtualTableProps } from "./types";
+
+const EMPTY_ROWS: readonly never[] = [];
 
 const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
   return columns.map((column) => {
@@ -35,19 +36,17 @@ const calculateTableLayout = <TTableData,>(columns: Column<TTableData>[]) => {
 export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
   const {
     data: historicData,
-    realtimeData = [],
+    realtimeData = EMPTY_ROWS,
     columns,
     isLoading = false,
     config: userConfig,
     onRowClick,
-    onLoadMore,
     emptyState,
     keyExtractor,
     rowClassName,
     selectedClassName,
     selectedItem,
-    isFetchingNextPage,
-    loadMoreFooterProps,
+    loadMore,
     renderSkeletonRow,
     onRowMouseEnter,
     onRowMouseLeave,
@@ -117,13 +116,14 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
     virtualizer,
     listRef,
     items: virtualItems,
-  } = useVirtualData({
-    totalDataLength: tableData.getTotalLength(),
-    isLoading,
-    config,
-    onLoadMore,
-    isFetchingNextPage,
-    getItemSize,
+  } = usePageVirtualizer<Element>({
+    count: isLoading ? config.loadingRows : tableData.getTotalLength(),
+    estimateSize: useCallback(
+      (index: number) => (getItemSize ? getItemSize(index) : config.rowHeight),
+      [config.rowHeight, getItemSize],
+    ),
+    overscan: config.overscan,
+    gap: 4,
   });
 
   const tableClassName = cn(
@@ -168,8 +168,6 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
                     key={column.key}
                     className={cn(
                       "text-sm font-medium text-gray-12 py-1 text-left relative",
-                      hasPadding &&
-                        "first:shadow-[-8px_0_0_var(--background-color-table-header)] last:shadow-[8px_0_0_var(--background-color-table-header)]",
                       column.headerClassName,
                       column.cellClassName,
                     )}
@@ -421,15 +419,7 @@ export function VirtualTable<TTableData>(props: VirtualTableProps<TTableData>) {
             {emptyState ?? <VirtualTableEmptyState />}
           </div>
         )}
-        {!isEmpty && loadMoreFooterProps && (
-          <LoadMoreFooter
-            {...loadMoreFooterProps}
-            onLoadMore={onLoadMore}
-            isFetchingNextPage={isFetchingNextPage}
-            totalVisible={virtualItems.length}
-            totalCount={tableData.getTotalLength()}
-          />
-        )}
+        {!isEmpty && loadMore && <TableLoadMore {...loadMore} loadedCount={historicData.length} />}
       </div>
     </div>
   );

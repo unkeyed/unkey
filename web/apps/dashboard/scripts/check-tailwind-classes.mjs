@@ -239,7 +239,7 @@ function cssEscape(token) {
   return token.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, (c) => `\\${c}`);
 }
 
-// Hand-authored rules in tailwind.css (e.g. .scrollbar-hide) never grow
+// Hand-authored rules in tailwind.css (e.g. .animate-fill-left) never grow
 // build(), so a verbatim selector match stands in. A token must also be found
 // by Tailwind's own scanner: one it cannot extract ships to production missing.
 let prevLen = result.build([]).length;

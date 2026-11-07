@@ -1,3 +1,4 @@
+import { Ok } from "@unkey/error";
 import { z } from "zod";
 import type { Querier } from "./client";
 import { type RequestDetailsRequest, requestDetailsRequestSchema } from "./frontline";
@@ -164,20 +165,6 @@ export function getKeyDetailsLogs(ch: Querier) {
       AND (${outcomeCondition})
     `;
 
-    // Total count query - counts all matching records without pagination
-    const totalQuery = ch.query({
-      query: `
-        SELECT
-          count(request_id) as total_count
-        FROM default.key_verifications_raw_v2
-        PREWHERE ${prewhereConditions}
-        WHERE ${whereConditions}`,
-      params: extendedParamsSchema,
-      schema: z.object({
-        total_count: z.int(),
-      }),
-    });
-
     const query = ch.query({
       query: `
       SELECT
@@ -192,7 +179,7 @@ export function getKeyDetailsLogs(ch: Querier) {
       WHERE ${whereConditions}
           -- Handle pagination using time as cursor
           ${cursorCondition}
-      ORDER BY time DESC
+      ORDER BY time DESC, request_id DESC
       LIMIT {limit: Int}
       ${useOffset ? "OFFSET {offset: Nullable(Int)}" : ""}
       `,
@@ -200,15 +187,7 @@ export function getKeyDetailsLogs(ch: Querier) {
       schema: keyDetailsLog,
     });
 
-    const [clickhouseResults, totalResults] = await Promise.all([
-      query(parameters),
-      totalQuery(parameters),
-    ]);
-
-    return {
-      logs: clickhouseResults,
-      totalCount: totalResults.val ? totalResults.val[0].total_count : 0,
-    };
+    return query(parameters);
   };
 }
 
@@ -236,6 +215,7 @@ export const identityLogsParams = z.object({
     )
     .nullable(),
   cursorTime: z.int().nullable(),
+  cursorRequestId: z.string().nullable(),
 });
 
 export const identityLog = z.object({
@@ -258,10 +238,7 @@ type ExtendedParamsIdentity = IdentityLogsParams & {
 export function getIdentityLogs(ch: Querier) {
   return async (args: IdentityLogsParams) => {
     if (!args.keyIds || args.keyIds.length === 0) {
-      return {
-        logs: { val: [] },
-        totalCount: 0,
-      };
+      return Ok([]);
     }
 
     const paramSchemaExtension: Record<string, z.ZodType> = {};
@@ -319,16 +296,10 @@ export function getIdentityLogs(ch: Querier) {
           .join(" OR ") || "TRUE"
       : "TRUE";
 
-    let cursorCondition: string;
-    if (args.cursorTime) {
-      cursorCondition = `
-        AND (time < {cursorTime: Nullable(UInt64)})
-        `;
-    } else {
-      cursorCondition = `
-      AND ({cursorTime: Nullable(UInt64)} IS NULL)
-      `;
-    }
+    const cursorCondition =
+      args.cursorTime !== null && args.cursorRequestId !== null
+        ? "AND (time, request_id) < ({cursorTime: UInt64}, {cursorRequestId: String})"
+        : "";
 
     const extendedParamsSchema = identityLogsParams.extend(paramSchemaExtension);
 
@@ -345,20 +316,6 @@ export function getIdentityLogs(ch: Querier) {
       AND (${outcomeCondition})
     `;
 
-    // Total count query
-    const totalQuery = ch.query({
-      query: `
-        SELECT
-          count(request_id) as total_count
-        FROM default.key_verifications_raw_v2
-        PREWHERE ${prewhereConditions}
-        WHERE ${whereConditions}`,
-      params: extendedParamsSchema,
-      schema: z.object({
-        total_count: z.int(),
-      }),
-    });
-
     const query = ch.query({
       query: `
       SELECT
@@ -373,22 +330,14 @@ export function getIdentityLogs(ch: Querier) {
       PREWHERE ${prewhereConditions}
       WHERE ${whereConditions}
           ${cursorCondition}
-      ORDER BY time DESC
+      ORDER BY time DESC, request_id DESC
       LIMIT {limit: Int}
       `,
       params: extendedParamsSchema,
       schema: identityLog,
     });
 
-    const [clickhouseResults, totalResults] = await Promise.all([
-      query(parameters),
-      totalQuery(parameters),
-    ]);
-
-    return {
-      logs: clickhouseResults,
-      totalCount: totalResults.val ? totalResults.val[0].total_count : 0,
-    };
+    return query(parameters);
   };
 }
 

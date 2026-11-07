@@ -1,4 +1,5 @@
 "use client";
+import { ControlsContainer } from "@/components/logs/controls-container";
 import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import {
   PageContainer,
@@ -28,6 +29,7 @@ export default function OverridePage(props: {
           <CopyableIDButton value={namespaceId} />
         </PageHeaderActions>
       </PageHeader>
+      <ControlsContainer />
       <OverridesTable namespaceId={namespaceId} />
     </PageContainer>
   );

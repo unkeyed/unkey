@@ -9,6 +9,9 @@ import {
   listOf,
   searchedListOf,
   shownListOf,
+  shownTotalOf,
+  tableStateOf,
+  uniqueRowsOf,
 } from "./list";
 import { type QueryResult, fromQuery } from "./loadable";
 
@@ -51,9 +54,10 @@ function view(
   attempt: NextPageAttempt = { status: "idle" },
   calls = recorder(),
 ): ListView<string> {
+  const query = infinite(overrides, calls);
   return infiniteListOf({
-    query: infinite(overrides, calls),
-    rowsOf: (page) => page.rows,
+    query,
+    rows: query.data?.pages.flatMap((page) => page.rows) ?? [],
     attempt,
     loadMore: calls.loadMore,
   });
@@ -275,7 +279,7 @@ describe("infiniteListOf", () => {
     expect(
       view(
         { data: pages(["a"]), hasNextPage: true, isFetchingNextPage: true },
-        { status: "loading" },
+        { status: "loading", dataUpdatedAt: 100 },
       ),
     ).toEqual({ status: "ready", rows: ["a"], footer: { kind: "loadingMore" } });
   });
@@ -347,7 +351,7 @@ describe("infiniteListOf", () => {
     const calls = recorder();
     const result = view(
       { data: pages(["a"]), hasNextPage: true, isError: true, error },
-      { status: "loading" },
+      { status: "loading", dataUpdatedAt: 100 },
       calls,
     );
     expect(result).toEqual({
@@ -369,7 +373,7 @@ describe("infiniteListOf", () => {
     expect(
       view(
         { data: pages(["a"]), hasNextPage: true, isFetchingNextPage: true, isError: true, error },
-        { status: "loading" },
+        { status: "loading", dataUpdatedAt: 100 },
       ),
     ).toEqual({ status: "ready", rows: ["a"], footer: { kind: "loadingMore" } });
   });
@@ -384,6 +388,85 @@ describe("infiniteListOf", () => {
       status: "ready",
       rows: ["a"],
       footer: { kind: "more", onLoadMore: expect.any(Function) },
+    });
+  });
+});
+
+describe("next-page attempt", () => {
+  test("a paused next-page load shows loading more", () => {
+    expect(
+      view({ data: pages(["a"]), hasNextPage: true }, { status: "loading", dataUpdatedAt: 100 }),
+    ).toEqual({ status: "ready", rows: ["a"], footer: { kind: "loadingMore" } });
+  });
+
+  test("a loading attempt from other data does not block the new list", () => {
+    expect(
+      view(
+        { data: pages(["b"]), hasNextPage: true, dataUpdatedAt: 200 },
+        { status: "loading", dataUpdatedAt: 100 },
+      ),
+    ).toEqual({
+      status: "ready",
+      rows: ["b"],
+      footer: { kind: "more", onLoadMore: expect.any(Function) },
+    });
+  });
+
+  test("a previous key's matching attempt does not show on the new key", () => {
+    expect(
+      view(
+        { data: pages(["a"]), hasNextPage: true, isPreviousData: true },
+        { status: "failed", error, dataUpdatedAt: 100 },
+      ),
+    ).toEqual({ status: "ready", rows: ["a"], footer: { kind: "hidden" } });
+    expect(
+      view(
+        { data: pages(["a"]), hasNextPage: true, isPreviousData: true },
+        { status: "loading", dataUpdatedAt: 100 },
+      ),
+    ).toEqual({ status: "ready", rows: ["a"], footer: { kind: "hidden" } });
+  });
+});
+
+describe("uniqueRowsOf", () => {
+  test("keeps the first row for each id across pages", () => {
+    const rows = [
+      { id: "a", page: 1 },
+      { id: "b", page: 1 },
+      { id: "b", page: 2 },
+      { id: "c", page: 2 },
+    ];
+    expect(uniqueRowsOf(rows, (row) => row.id)).toEqual([
+      { id: "a", page: 1 },
+      { id: "b", page: 1 },
+      { id: "c", page: 2 },
+    ]);
+  });
+});
+
+describe("shownTotalOf", () => {
+  test("no more pages shows the loaded count", () => {
+    expect(shownTotalOf({ loaded: 98, total: 120, hasMore: false })).toBe(98);
+  });
+
+  test("more pages show the larger of total and loaded", () => {
+    expect(shownTotalOf({ loaded: 60, total: 50, hasMore: true })).toBe(60);
+    expect(shownTotalOf({ loaded: 50, total: 120, hasMore: true })).toBe(120);
+  });
+
+  test("more pages with no total show no total", () => {
+    expect(shownTotalOf({ loaded: 50, total: null, hasMore: true })).toBeNull();
+  });
+});
+
+describe("tableStateOf", () => {
+  test("a first-load failure carries the retrying flag", () => {
+    const retry = () => {};
+    expect(tableStateOf({ status: "failed", error, retry, retrying: true })).toEqual({
+      rows: [],
+      isLoading: false,
+      footer: { kind: "hidden" },
+      failure: { error, retry, retrying: true },
     });
   });
 });
@@ -441,7 +524,7 @@ describe("searchedListOf", () => {
 });
 
 describe("shownListOf", () => {
-  const loadMore = () => {};
+  const loadMore = () => true;
   const startsWithA = (rows: readonly string[]) => rows.filter((row) => row.startsWith("a"));
 
   test("no rows at all is empty, even under a search", () => {

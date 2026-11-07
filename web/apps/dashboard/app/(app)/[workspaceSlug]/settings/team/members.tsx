@@ -4,7 +4,7 @@ import { ListPager } from "@/components/list-pager";
 import { LoadError } from "@/components/load-error";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
-import { type ListFooterState, listOf } from "@/lib/loadable/list";
+import { listOf } from "@/lib/loadable/list";
 import { fromQuery } from "@/lib/loadable/loadable";
 import { trpc } from "@/lib/trpc/client";
 import { match } from "@unkey/match";
@@ -17,6 +17,7 @@ import {
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateTitle,
+  type ListFooterState,
   Loading,
   toast,
 } from "@unkey/ui";

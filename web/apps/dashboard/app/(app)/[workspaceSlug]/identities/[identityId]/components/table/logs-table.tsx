@@ -1,11 +1,11 @@
 "use client";
 import {
-  STATUS_STYLES,
+  OUTCOME_STYLES,
   StatusBadge,
-  type StatusStyle,
   apiRequestDetailsQuery,
   categorizeSeverity,
 } from "@/components/key-details-logs-table";
+import { EmptyOrLoadError } from "@/components/load-error";
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
@@ -35,6 +35,7 @@ import {
   EmptyStateTitle,
   InfoHoverCard,
   InfoTooltip,
+  type StatusStyle,
   TimestampInfo,
 } from "@unkey/ui";
 import { cn } from "cn";
@@ -101,7 +102,7 @@ const LOG_OUTCOME_DEFINITIONS: Record<LogOutcomeType, LogOutcomeInfo> = {
   },
 };
 
-const getStatusType = (outcome: LogOutcomeType): keyof typeof STATUS_STYLES => {
+const getStatusType = (outcome: LogOutcomeType): keyof typeof OUTCOME_STYLES => {
   switch (outcome) {
     case "VALID":
       return "success";
@@ -121,7 +122,7 @@ const getStatusType = (outcome: LogOutcomeType): keyof typeof STATUS_STYLES => {
 
 export const getStatusStyle = (log: IdentityLog): StatusStyle => {
   const severity = categorizeSeverity(log.outcome);
-  return STATUS_STYLES[severity];
+  return OUTCOME_STYLES[severity];
 };
 
 type Props = {
@@ -132,12 +133,11 @@ type Props = {
 
 export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect }: Props) => {
   const { isLive } = useIdentityDetailsLogsContext();
-  const { realtimeLogs, historicalLogs, isLoading, isLoadingMore, loadMore, hasMore, totalCount } =
-    useIdentityLogsQuery({
-      identityId,
-      startPolling: isLive,
-      pollIntervalMs: 2000,
-    });
+  const { realtimeLogs, table, totalCount } = useIdentityLogsQuery({
+    identityId,
+    startPolling: isLive,
+    pollIntervalMs: 2000,
+  });
 
   const getRowClassName = (log: IdentityLog, selected: IdentityLog | null) => {
     const style = getStatusStyle(log);
@@ -238,8 +238,8 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                   primary={{
                     label: outcomeInfo.label,
                     color: isSelected
-                      ? STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.selected
-                      : STATUS_STYLES[getStatusType(outcomeInfo.type)].badge.default,
+                      ? OUTCOME_STYLES[getStatusType(outcomeInfo.type)].badge.selected
+                      : OUTCOME_STYLES[getStatusType(outcomeInfo.type)].badge.default,
                     icon: outcomeInfo.icon,
                   }}
                 />
@@ -341,7 +341,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                       className={cn(
                         "whitespace-nowrap max-w-[150px] truncate",
                         selectedLog?.request_id === log.request_id
-                          ? STATUS_STYLES.success.badge.selected
+                          ? OUTCOME_STYLES.success.badge.selected
                           : "",
                       )}
                     >
@@ -354,7 +354,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                   </InfoHoverCard>
                 ))
               ) : (
-                <span className="text-gray-8">—</span>
+                <span className="text-grayA-11">—</span>
               )}
               {log.tags && log.tags.length > 3 && (
                 <InfoHoverCard
@@ -402,7 +402,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                     className={cn(
                       "whitespace-nowrap",
                       selectedLog?.request_id === log.request_id
-                        ? STATUS_STYLES.success.badge.selected
+                        ? OUTCOME_STYLES.success.badge.selected
                         : "",
                     )}
                   >
@@ -420,11 +420,9 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
   return (
     <div className="flex flex-col md:flex-1">
       <VirtualTable
-        data={historicalLogs}
+        data={table.rows}
         realtimeData={realtimeLogs}
-        isLoading={isLoading}
-        isFetchingNextPage={isLoadingMore}
-        onLoadMore={loadMore}
+        isLoading={table.isLoading}
         columns={columns()}
         onRowClick={onLogSelect}
         onRowMouseEnter={handleRowHover}
@@ -432,47 +430,39 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
         selectedItem={selectedLog}
         keyExtractor={(log) => log.request_id}
         rowClassName={(log) => getRowClassName(log, selectedLog)}
-        loadMoreFooterProps={{
-          buttonText: "Load more logs",
-          hasMore,
-          hide: isLoading,
-          countInfoText: (
-            <div className="flex gap-2">
-              <span>Showing</span>{" "}
-              <span className="text-gray-12">
-                {new Intl.NumberFormat().format(historicalLogs.length)}
-              </span>
-              <span>of</span>{" "}
-              <span>{new Intl.NumberFormat().format(totalCount + realtimeLogs.length)}</span>
-              <span>requests</span>
-            </div>
-          ),
+        loadMore={{
+          state: table.footer,
+          totalCount,
+          singular: "request",
+          plural: "requests",
         }}
         emptyState={
-          <EmptyState frame="none">
-            <EmptyStateIcon>
-              <IconLayers3Outline18 />
-            </EmptyStateIcon>
-            <EmptyStateHeader>
-              <EmptyStateTitle>Identity Verification Logs</EmptyStateTitle>
-              <EmptyStateDescription>
-                No verification logs found for this identity. When API keys belonging to this
-                identity are used, details about each verification attempt will appear here.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-            <EmptyStateActions>
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="outline" size="sm">
-                  <IconBookBookmarkOutline18 />
-                  Documentation
-                </Button>
-              </a>
-            </EmptyStateActions>
-          </EmptyState>
+          <EmptyOrLoadError failure={table.failure} title="Could not load verification logs">
+            <EmptyState frame="none">
+              <EmptyStateIcon>
+                <IconLayers3Outline18 />
+              </EmptyStateIcon>
+              <EmptyStateHeader>
+                <EmptyStateTitle>Identity Verification Logs</EmptyStateTitle>
+                <EmptyStateDescription>
+                  No verification logs found for this identity. When API keys belonging to this
+                  identity are used, details about each verification attempt will appear here.
+                </EmptyStateDescription>
+              </EmptyStateHeader>
+              <EmptyStateActions>
+                <a
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" size="sm">
+                    <IconBookBookmarkOutline18 />
+                    Documentation
+                  </Button>
+                </a>
+              </EmptyStateActions>
+            </EmptyState>
+          </EmptyOrLoadError>
         }
       />
     </div>
