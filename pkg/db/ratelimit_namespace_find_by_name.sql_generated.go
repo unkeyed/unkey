@@ -7,10 +7,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const findRatelimitNamespaceByName = `-- name: FindRatelimitNamespaceByName :one
-SELECT ratelimit_namespaces.pk, ratelimit_namespaces.id, ratelimit_namespaces.workspace_id, ratelimit_namespaces.project_id, ratelimit_namespaces.name, ratelimit_namespaces.use_global_ratelimit, ratelimit_namespaces.created_at_m, ratelimit_namespaces.updated_at_m, ratelimit_namespaces.deleted_at_m FROM ` + "`" + `ratelimit_namespaces` + "`" + `
+SELECT ratelimit_namespaces.pk, ratelimit_namespaces.id, ratelimit_namespaces.workspace_id, ratelimit_namespaces.project_id, ratelimit_namespaces.name, ratelimit_namespaces.global_ratelimit_mode, ratelimit_namespaces.created_at_m, ratelimit_namespaces.updated_at_m, ratelimit_namespaces.deleted_at_m FROM ` + "`" + `ratelimit_namespaces` + "`" + `
 WHERE name = ?
 AND workspace_id = ?
 `
@@ -20,21 +21,33 @@ type FindRatelimitNamespaceByNameParams struct {
 	WorkspaceID string `db:"workspace_id"`
 }
 
+type FindRatelimitNamespaceByNameRow struct {
+	Pk                  uint64                                 `db:"pk"`
+	ID                  string                                 `db:"id"`
+	WorkspaceID         string                                 `db:"workspace_id"`
+	ProjectID           string                                 `db:"project_id"`
+	Name                string                                 `db:"name"`
+	GlobalRatelimitMode RatelimitNamespacesGlobalRatelimitMode `db:"global_ratelimit_mode"`
+	CreatedAtM          int64                                  `db:"created_at_m"`
+	UpdatedAtM          sql.NullInt64                          `db:"updated_at_m"`
+	DeletedAtM          sql.NullInt64                          `db:"deleted_at_m"`
+}
+
 // FindRatelimitNamespaceByName
 //
-//	SELECT ratelimit_namespaces.pk, ratelimit_namespaces.id, ratelimit_namespaces.workspace_id, ratelimit_namespaces.project_id, ratelimit_namespaces.name, ratelimit_namespaces.use_global_ratelimit, ratelimit_namespaces.created_at_m, ratelimit_namespaces.updated_at_m, ratelimit_namespaces.deleted_at_m FROM `ratelimit_namespaces`
+//	SELECT ratelimit_namespaces.pk, ratelimit_namespaces.id, ratelimit_namespaces.workspace_id, ratelimit_namespaces.project_id, ratelimit_namespaces.name, ratelimit_namespaces.global_ratelimit_mode, ratelimit_namespaces.created_at_m, ratelimit_namespaces.updated_at_m, ratelimit_namespaces.deleted_at_m FROM `ratelimit_namespaces`
 //	WHERE name = ?
 //	AND workspace_id = ?
-func (q *Queries) FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (RatelimitNamespace, error) {
+func (q *Queries) FindRatelimitNamespaceByName(ctx context.Context, db DBTX, arg FindRatelimitNamespaceByNameParams) (FindRatelimitNamespaceByNameRow, error) {
 	row := db.QueryRowContext(ctx, findRatelimitNamespaceByName, arg.Name, arg.WorkspaceID)
-	var i RatelimitNamespace
+	var i FindRatelimitNamespaceByNameRow
 	err := row.Scan(
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.Name,
-		&i.UseGlobalRatelimit,
+		&i.GlobalRatelimitMode,
 		&i.CreatedAtM,
 		&i.UpdatedAtM,
 		&i.DeletedAtM,

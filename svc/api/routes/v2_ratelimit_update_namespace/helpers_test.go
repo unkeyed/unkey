@@ -28,28 +28,22 @@ func newName() string {
 	return uid.New("email.outbound")
 }
 
-func seedNamespace(t *testing.T, h *testutil.Harness, workspaceID string) db.RatelimitNamespace {
+func seedNamespace(t *testing.T, h *testutil.Harness, workspaceID string) db.InsertRatelimitNamespaceParams {
 	t.Helper()
 	projectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), workspaceID)
 	require.NoError(t, err)
-	ns := db.RatelimitNamespace{
+	ns := db.InsertRatelimitNamespaceParams{
 		ID:          uid.New(uid.RatelimitNamespacePrefix),
 		WorkspaceID: workspaceID,
 		ProjectID:   projectID,
 		Name:        newName(),
-		CreatedAtM:  time.Now().UnixMilli(),
+		CreatedAt:   time.Now().UnixMilli(),
 	}
-	require.NoError(t, db.Query.InsertRatelimitNamespace(t.Context(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
-		ID:          ns.ID,
-		WorkspaceID: ns.WorkspaceID,
-		ProjectID:   ns.ProjectID,
-		Name:        ns.Name,
-		CreatedAt:   ns.CreatedAtM,
-	}))
+	require.NoError(t, db.Query.InsertRatelimitNamespace(t.Context(), h.DB.RW(), ns))
 	return ns
 }
 
-func findNamespace(t *testing.T, h *testutil.Harness, ns db.RatelimitNamespace) db.FindRatelimitNamespaceRow {
+func findNamespace(t *testing.T, h *testutil.Harness, ns db.InsertRatelimitNamespaceParams) db.FindRatelimitNamespaceRow {
 	t.Helper()
 	stored, err := db.Query.FindRatelimitNamespace(t.Context(), h.DB.RO(), db.FindRatelimitNamespaceParams{
 		WorkspaceID: ns.WorkspaceID,

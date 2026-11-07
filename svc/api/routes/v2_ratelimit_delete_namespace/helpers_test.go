@@ -24,27 +24,22 @@ func newRoute(h *testutil.Harness) *handler.Handler {
 	return route
 }
 
-func seedNamespace(t *testing.T, h *testutil.Harness, workspaceID string) db.RatelimitNamespace {
+func seedNamespace(t *testing.T, h *testutil.Harness, workspaceID string) db.InsertRatelimitNamespaceParams {
 	t.Helper()
 	projectID, err := projects.EnsureDefaultProject(t.Context(), h.DB.RW(), workspaceID)
 	require.NoError(t, err)
-	ns := db.RatelimitNamespace{
+	ns := db.InsertRatelimitNamespaceParams{
 		ID:          uid.New(uid.RatelimitNamespacePrefix),
 		WorkspaceID: workspaceID,
 		ProjectID:   projectID,
 		Name:        uid.New("email.outbound"),
-	}
-	require.NoError(t, db.Query.InsertRatelimitNamespace(t.Context(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
-		ID:          ns.ID,
-		WorkspaceID: ns.WorkspaceID,
-		ProjectID:   ns.ProjectID,
-		Name:        ns.Name,
 		CreatedAt:   time.Now().UnixMilli(),
-	}))
+	}
+	require.NoError(t, db.Query.InsertRatelimitNamespace(t.Context(), h.DB.RW(), ns))
 	return ns
 }
 
-func seedOverride(t *testing.T, h *testutil.Harness, ns db.RatelimitNamespace) string {
+func seedOverride(t *testing.T, h *testutil.Harness, ns db.InsertRatelimitNamespaceParams) string {
 	t.Helper()
 	id := uid.New(uid.RatelimitOverridePrefix)
 	require.NoError(t, db.Query.InsertRatelimitOverride(t.Context(), h.DB.RW(), db.InsertRatelimitOverrideParams{
@@ -59,7 +54,7 @@ func seedOverride(t *testing.T, h *testutil.Harness, ns db.RatelimitNamespace) s
 	return id
 }
 
-func isDeleted(t *testing.T, h *testutil.Harness, ns db.RatelimitNamespace) bool {
+func isDeleted(t *testing.T, h *testutil.Harness, ns db.InsertRatelimitNamespaceParams) bool {
 	t.Helper()
 	stored, err := db.Query.FindRatelimitNamespace(t.Context(), h.DB.RO(), db.FindRatelimitNamespaceParams{
 		WorkspaceID: ns.WorkspaceID,

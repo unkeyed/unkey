@@ -1314,6 +1314,49 @@ func (ns NullPortalDomainsVerificationStatus) Value() (driver.Value, error) {
 	return string(ns.PortalDomainsVerificationStatus), nil
 }
 
+type RatelimitNamespacesGlobalRatelimitMode string
+
+const (
+	RatelimitNamespacesGlobalRatelimitModeOff    RatelimitNamespacesGlobalRatelimitMode = "off"
+	RatelimitNamespacesGlobalRatelimitModeShadow RatelimitNamespacesGlobalRatelimitMode = "shadow"
+	RatelimitNamespacesGlobalRatelimitModeOn     RatelimitNamespacesGlobalRatelimitMode = "on"
+)
+
+func (e *RatelimitNamespacesGlobalRatelimitMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = RatelimitNamespacesGlobalRatelimitMode(s)
+	case string:
+		*e = RatelimitNamespacesGlobalRatelimitMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for RatelimitNamespacesGlobalRatelimitMode: %T", src)
+	}
+	return nil
+}
+
+type NullRatelimitNamespacesGlobalRatelimitMode struct {
+	RatelimitNamespacesGlobalRatelimitMode RatelimitNamespacesGlobalRatelimitMode
+	Valid                                  bool // Valid is true if RatelimitNamespacesGlobalRatelimitMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullRatelimitNamespacesGlobalRatelimitMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.RatelimitNamespacesGlobalRatelimitMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.RatelimitNamespacesGlobalRatelimitMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullRatelimitNamespacesGlobalRatelimitMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.RatelimitNamespacesGlobalRatelimitMode), nil
+}
+
 type UnkeyPrincipalPermissionsPrincipalType string
 
 const (
@@ -2077,15 +2120,16 @@ type RatelimitGlobalCounter struct {
 }
 
 type RatelimitNamespace struct {
-	Pk                 uint64        `db:"pk"`
-	ID                 string        `db:"id"`
-	WorkspaceID        string        `db:"workspace_id"`
-	ProjectID          string        `db:"project_id"`
-	Name               string        `db:"name"`
-	UseGlobalRatelimit bool          `db:"use_global_ratelimit"`
-	CreatedAtM         int64         `db:"created_at_m"`
-	UpdatedAtM         sql.NullInt64 `db:"updated_at_m"`
-	DeletedAtM         sql.NullInt64 `db:"deleted_at_m"`
+	Pk                  uint64                                 `db:"pk"`
+	ID                  string                                 `db:"id"`
+	WorkspaceID         string                                 `db:"workspace_id"`
+	ProjectID           string                                 `db:"project_id"`
+	Name                string                                 `db:"name"`
+	UseGlobalRatelimit  bool                                   `db:"use_global_ratelimit"`
+	GlobalRatelimitMode RatelimitNamespacesGlobalRatelimitMode `db:"global_ratelimit_mode"`
+	CreatedAtM          int64                                  `db:"created_at_m"`
+	UpdatedAtM          sql.NullInt64                          `db:"updated_at_m"`
+	DeletedAtM          sql.NullInt64                          `db:"deleted_at_m"`
 }
 
 type RatelimitOverride struct {
