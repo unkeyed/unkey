@@ -342,6 +342,13 @@ func (s *Server) handler(middlewares []Middleware, handle HandleFunc, streamRequ
 
 		err := handleFn(WithSession(r.Context(), sess), sess)
 		if err != nil {
+			// The chain returned an error after the response was already
+			// committed, so no error response can be sent. Abort the connection
+			// instead. net/http treats http.ErrAbortHandler as a deliberate abort
+			// and closes the connection without logging a panic.
+			if sess.Written() {
+				panic(http.ErrAbortHandler)
+			}
 			panic(err)
 		}
 	}
