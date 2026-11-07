@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // node is one step in the path tree: children for object members, elem for array
@@ -25,6 +27,10 @@ func (r *Redactor) add(path string) {
 
 	for _, segment := range strings.Split(path, ".") {
 		label, arrays := splitSegment(segment)
+
+		// Store names folded, because that is how a member is matched to a
+		// struct field and therefore how a caller can spell it in a body.
+		label = strings.Map(foldRune, label)
 
 		// A segment can be array steps alone, as in the leading "[]" of
 		// "[].key", where the body itself is an array.
@@ -78,6 +84,9 @@ func splitSegment(segment string) (string, int) {
 // path tree and have its own credential logged. Escapes are vanishingly rare in
 // practice, so they take a slower path that decodes first, and a name that will
 // not decode at all is treated as sensitive rather than guessed at.
+//
+// The same reasoning applies to case, which is why every name is folded before
+// it is matched: `{"Key":"..."}` binds to a `key` field, so it must redact too.
 func (r *Redactor) resolve(frames []frame, depth, untracked int, desynced bool, in []byte, nameStart, nameEnd int) *node {
 	raw := in[nameStart+1 : nameEnd-1]
 	if bytes.IndexByte(raw, '\\') < 0 {
@@ -102,12 +111,47 @@ func decodeName(token []byte) (string, bool) {
 	return name, true
 }
 
+// foldName maps a member name to the form the path tree stores. A name that is
+// already folded keeps the single-allocation lookup.
+func foldName(name []byte) string {
+	for _, c := range name {
+		if c >= 'A' && c <= 'Z' || c >= utf8.RuneSelf {
+			return strings.Map(foldRune, string(name))
+		}
+	}
+
+	return string(name)
+}
+
+// foldRune maps every rune in a case-folding set to one representative, so two
+// names fold equal exactly when encoding/json would bind one to the other. That
+// is wider than lower-casing: "ſ" binds to "s" but [strings.ToLower] keeps it.
+// Sets that contain an ASCII letter fold to its lower case, which keeps the
+// common names unchanged.
+func foldRune(r rune) rune {
+	for {
+		next := unicode.SimpleFold(r)
+		if next > r {
+			r = next
+
+			continue
+		}
+
+		if next < utf8.RuneSelf {
+			return unicode.ToLower(next)
+		}
+
+		return next
+	}
+}
+
 // lookup resolves an unescaped member name. While the scan is synchronized this
 // is an exact path match; once desynchronized it degrades to matching the name
-// alone. Taking []byte keeps the map lookup allocation-free.
+// alone.
 func (r *Redactor) lookup(frames []frame, depth, untracked int, desynced bool, name []byte) *node {
+	folded := foldName(name)
 	if desynced {
-		if _, sensitive := r.names[string(name)]; sensitive {
+		if _, sensitive := r.names[folded]; sensitive {
 			return redactAll
 		}
 
@@ -119,13 +163,14 @@ func (r *Redactor) lookup(frames []frame, depth, untracked int, desynced bool, n
 		return nil
 	}
 
-	return children[string(name)]
+	return children[folded]
 }
 
 // lookupString is [Redactor.lookup] for a name that had to be decoded.
 func (r *Redactor) lookupString(frames []frame, depth, untracked int, desynced bool, name string) *node {
+	folded := strings.Map(foldRune, name)
 	if desynced {
-		if _, sensitive := r.names[name]; sensitive {
+		if _, sensitive := r.names[folded]; sensitive {
 			return redactAll
 		}
 
@@ -137,7 +182,7 @@ func (r *Redactor) lookupString(frames []frame, depth, untracked int, desynced b
 		return nil
 	}
 
-	return children[name]
+	return children[folded]
 }
 
 // childrenAt returns the member names reachable at the current position, or nil

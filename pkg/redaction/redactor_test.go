@@ -125,6 +125,36 @@ func TestRedact(t *testing.T) {
 			want: `{"keyId":"key_123","apiKey":"visible","key_":"visible","valueOf":"visible"}`,
 		},
 		{
+			name: "capitalized member name binds to the same field",
+			in:   `{"Key":"` + secret + `"}`,
+			want: `{"Key":"[REDACTED]"}`,
+		},
+		{
+			name: "upper case member name binds to the same field",
+			in:   `{"KEY":"` + secret + `"}`,
+			want: `{"KEY":"[REDACTED]"}`,
+		},
+		{
+			name: "unicode case folding binds to the same field",
+			in:   `{"Key":"` + secret + `","ſessionId":"` + secret + `"}`,
+			want: `{"Key":"[REDACTED]","ſessionId":"[REDACTED]"}`,
+		},
+		{
+			name: "escaped unicode case folding binds to the same field",
+			in:   `{"\u212aey":"` + secret + `","\u017fessionId":"` + secret + `"}`,
+			want: `{"\u212aey":"[REDACTED]","\u017fessionId":"[REDACTED]"}`,
+		},
+		{
+			name: "folding does not reach a longer member name",
+			in:   `{"KeyId":"key_123","ApiKey":"visible"}`,
+			want: `{"KeyId":"key_123","ApiKey":"visible"}`,
+		},
+		{
+			name: "capitalized env var payload redacts inside the array",
+			in:   `{"Variables":[{"Key":"DATABASE_URL","Value":"` + secret + `"}]}`,
+			want: `{"Variables":[{"Key":"[REDACTED]","Value":"[REDACTED]"}]}`,
+		},
+		{
 			name: "the same name in value position is left alone",
 			in:   `{"name":"key","tags":["key","value"]}`,
 			want: `{"name":"key","tags":["key","value"]}`,
