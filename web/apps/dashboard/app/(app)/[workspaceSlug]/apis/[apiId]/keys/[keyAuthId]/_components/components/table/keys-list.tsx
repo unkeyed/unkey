@@ -5,6 +5,7 @@ import {
   renderApiKeySkeletonRow,
   useApiKeysListQuery,
 } from "@/components/api-keys-table";
+import { KeysUsageTimeseriesProvider } from "@/components/api-keys-table/components/bar-chart/use-fetch-timeseries";
 import { SelectionControls } from "@/components/api-keys-table/components/selection-controls";
 import { LoadError } from "@/components/load-error";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -50,6 +51,8 @@ export const KeysList = ({
     sorting,
     onSortingChange,
   } = useApiKeysListQuery({ keyAuthId: keyspaceId });
+
+  const keyIds = useMemo(() => keys.map((key) => key.id), [keys]);
 
   const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null);
   const [navigatingKeyId, setNavigatingKeyId] = useState<string | null>(null);
@@ -163,44 +166,46 @@ export const KeysList = ({
 
   return (
     <>
-      <DataTable
-        data={keys}
-        columns={columns}
-        getRowId={(key) => key.id}
-        isLoading={isInitialLoading}
-        onRowClick={handleRowClick}
-        selectedItem={selectedKey}
-        rowClassName={getRowClassNameMemoized}
-        renderSkeletonRow={renderApiKeySkeletonRow}
-        sorting={sorting}
-        onSortingChange={handleSortingChange}
-        config={TABLE_CONFIG}
-        emptyState={
-          <EmptyState frame="none">
-            <EmptyStateIcon>
-              <IconKeyOutline18 />
-            </EmptyStateIcon>
-            <EmptyStateHeader>
-              <EmptyStateTitle>No API Keys Found</EmptyStateTitle>
-              <EmptyStateDescription>
-                There are no API keys associated with this service yet. Create your first API key to
-                get started.
-              </EmptyStateDescription>
-            </EmptyStateHeader>
-            <EmptyStateActions>
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                <IconBookBookmarkOutline18 />
-                Learn about Keys
-              </a>
-            </EmptyStateActions>
-          </EmptyState>
-        }
-      />
+      <KeysUsageTimeseriesProvider keyAuthId={keyspaceId} keyIds={keyIds}>
+        <DataTable
+          data={keys}
+          columns={columns}
+          getRowId={(key) => key.id}
+          isLoading={isInitialLoading}
+          onRowClick={handleRowClick}
+          selectedItem={selectedKey}
+          rowClassName={getRowClassNameMemoized}
+          renderSkeletonRow={renderApiKeySkeletonRow}
+          sorting={sorting}
+          onSortingChange={handleSortingChange}
+          config={TABLE_CONFIG}
+          emptyState={
+            <EmptyState frame="none">
+              <EmptyStateIcon>
+                <IconKeyOutline18 />
+              </EmptyStateIcon>
+              <EmptyStateHeader>
+                <EmptyStateTitle>No API Keys Found</EmptyStateTitle>
+                <EmptyStateDescription>
+                  There are no API keys associated with this service yet. Create your first API key
+                  to get started.
+                </EmptyStateDescription>
+              </EmptyStateHeader>
+              <EmptyStateActions>
+                <a
+                  href="https://www.unkey.com/docs/introduction"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  <IconBookBookmarkOutline18 />
+                  Learn about Keys
+                </a>
+              </EmptyStateActions>
+            </EmptyState>
+          }
+        />
+      </KeysUsageTimeseriesProvider>
       <PaginationFooter
         mode="cursor"
         page={page}

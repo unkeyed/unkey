@@ -2,6 +2,7 @@ import { keysListQueryTimeseriesPayload } from "@/components/api-keys-table/comp
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";
 import { assertValidTimeRange } from "../../../utils/time-range";
 
 export const keyUsageTimeseries = workspaceProcedure
@@ -10,24 +11,28 @@ export const keyUsageTimeseries = workspaceProcedure
   .query(async ({ ctx, input }) => {
     assertValidTimeRange(input.startTime, input.endTime);
 
+    if (input.keyIds.length === 0) {
+      return { series: {} as Record<string, VerificationTimeseriesDataPoint[]> };
+    }
+
     try {
-      const result = await clickhouse.verifications.timeseries.perHour({
+      const rows = await clickhouse.verifications.timeseriesByKey.perHour({
         workspaceId: ctx.workspace.id,
-        endTime: input.endTime,
-        startTime: input.startTime,
         keyspaceId: input.keyAuthId,
-        keyId: input.keyId,
-        identities: null,
-        keyIds: null,
-        names: null,
-        tags: null,
-        outcomes: null,
+        keyIds: input.keyIds,
+        startTime: input.startTime,
+        endTime: input.endTime,
       });
 
-      // Empty result is valid - it just means no usage data
-      return {
-        timeseries: result || [],
-      };
+      const series: Record<string, VerificationTimeseriesDataPoint[]> = {};
+      for (const row of rows ?? []) {
+        const { keyId, ...point } = row;
+        const points = series[keyId] ?? [];
+        points.push(point);
+        series[keyId] = points;
+      }
+
+      return { series };
     } catch (error) {
       console.error("Error fetching timeseries data:", error);
       throw new TRPCError({

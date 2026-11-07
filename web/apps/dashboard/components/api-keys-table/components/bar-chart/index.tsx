@@ -12,7 +12,6 @@ type BarData = {
 };
 
 type VerificationBarChartProps = {
-  keyAuthId: string;
   keyId: string;
   activityTitle?: string;
   maxBars?: number;
@@ -23,13 +22,12 @@ const MAX_HEIGHT_BUFFER_FACTOR = 1.3;
 const MAX_BAR_HEIGHT = 28;
 
 export const VerificationBarChart = ({
-  keyAuthId,
   keyId,
   activityTitle = "API Key Activity",
   selected,
   maxBars = 30,
 }: VerificationBarChartProps) => {
-  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(keyAuthId, keyId);
+  const { timeseries, isLoading, isError } = useFetchVerificationTimeseries(keyId);
 
   const isEmpty = useMemo(
     () => timeseries.reduce((acc, crr) => acc + crr.total, 0) === 0,
