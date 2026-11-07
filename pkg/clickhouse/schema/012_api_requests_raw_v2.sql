@@ -33,6 +33,8 @@ CREATE TABLE api_requests_raw_v2 (
   ip_address String CODEC(ZSTD(3)),
   region LowCardinality (String) CODEC(ZSTD(3)),
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
+  INDEX idx_path path TYPE bloom_filter(0.01) GRANULARITY 1,
+  INDEX idx_path_text_search path TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1,
   -- inserted_at is not in the sorting key, but rows in a granule were
   -- inserted within seconds of each other, so a minmax index prunes almost
   -- every granule outside a log drain's insertion time window.
