@@ -3,16 +3,13 @@ package vaultreencryption
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/vaultreencryption/internal/db"
 )
 
 func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, error) {
-	rows, err := h.db.ListVaultEncryptedKeys(ctx, db.ListVaultEncryptedKeysParams{
+	rows, err := h.db.ListEncryptedKeys(ctx, db.ListEncryptedKeysParams{
 		AfterPk: after.Pk,
 		Limit:   batchSize,
 	})
@@ -22,41 +19,28 @@ func (h *Handler) encryptedKeys(ctx context.Context, after cursor) (cursor, erro
 	if len(rows) == 0 {
 		return cursor{Pk: 0}, nil
 	}
-	items := make(map[string]*vaultv1.DecryptRequest, len(rows))
-	for _, row := range rows {
-		items[strconv.FormatUint(row.Pk, 10)] = &vaultv1.DecryptRequest{
-			Keyring:   row.Keyring,
-			Encrypted: row.Ciphertext,
-		}
-	}
-	res, err := h.vault.ReEncryptBulk(ctx, &vaultv1.ReEncryptBulkRequest{Items: items})
-	if err != nil {
-		return after, fmt.Errorf("failed to re-encrypt rows")
-	}
 	for _, row := range rows {
 		if err := ctx.Err(); err != nil {
 			return after, err
 		}
-		item := res.GetItems()[strconv.FormatUint(row.Pk, 10)].GetSuccess()
-		if item == nil {
-			logger.Error("skipping row without a re-encrypted value", "table", "encrypted_keys", "pk", row.Pk)
-			continue
+		item, err := h.reencrypt(ctx, &vaultv1.DecryptRequest{
+			Keyring:   row.Keyring,
+			Encrypted: row.Ciphertext,
+		})
+		if err != nil {
+			if skipRow(ctx, "encrypted_keys", row.Pk, err) {
+				continue
+			}
+			return after, fmt.Errorf("failed to re-encrypt pk %d", row.Pk)
 		}
-		updated, err := h.db.UpdateVaultEncryptedKey(ctx, db.UpdateVaultEncryptedKeyParams{
+		updated, err := h.db.UpdateEncryptedKey(ctx, db.UpdateEncryptedKeyParams{
 			Pk:            row.Pk,
 			Keyring:       row.Keyring,
 			CiphertextOld: row.Ciphertext,
 			Ciphertext:    item.GetEncrypted(),
 			KeyID:         item.GetKeyId(),
 		})
-		outcome := "updated"
-		switch {
-		case err != nil:
-			outcome = "error"
-		case updated == 0:
-			outcome = "conflict"
-		}
-		metrics.VaultReEncryptionsDataTotal.WithLabelValues("encrypted_keys", outcome).Inc()
+		recordReEncryption("encrypted_keys", updated, err)
 		if err != nil {
 			return after, fmt.Errorf("failed to update pk %d", row.Pk)
 		}

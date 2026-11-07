@@ -26,7 +26,7 @@ func (s *Service) Decrypt(
 
 	res, err := s.decrypt(ctx, req.Msg)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, err
 	}
 	return connect.NewResponse(res), nil
 
@@ -41,17 +41,17 @@ func (s *Service) decrypt(
 
 	b, err := base64.StdEncoding.DecodeString(req.GetEncrypted())
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode encrypted data: %w", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to decode encrypted data: %w", err))
 	}
 	encrypted := vaultv1.Encrypted{} // nolint:exhaustruct
 	err = proto.Unmarshal(b, &encrypted)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal encrypted data: %w", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to unmarshal encrypted data: %w", err))
 	}
 
 	// Validate the encrypted message structure
 	if err := validateEncrypted(&encrypted); err != nil {
-		return nil, fmt.Errorf("invalid encrypted message: %w", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid encrypted message: %w", err))
 	}
 
 	keyring := req.GetKeyring()
@@ -69,12 +69,12 @@ func (s *Service) decrypt(
 		return cache.WriteValue
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get dek in keyring %s: %w", keyring, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get dek in keyring %s: %w", keyring, err))
 	}
 
 	plaintext, err := encryption.Decrypt(dek.GetKey(), encrypted.GetNonce(), encrypted.GetCiphertext())
 	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt ciphertext: %w", err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to decrypt ciphertext: %w", err))
 	}
 
 	return &vaultv1.DecryptResponse{

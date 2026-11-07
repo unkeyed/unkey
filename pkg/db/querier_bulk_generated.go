@@ -54,6 +54,7 @@ type BulkQuerier interface {
 	UpsertRegionWithCanSchedule(ctx context.Context, db DBTX, args []UpsertRegionWithCanScheduleParams) error
 	InsertRoles(ctx context.Context, db DBTX, args []InsertRoleParams) error
 	InsertRolePermissions(ctx context.Context, db DBTX, args []InsertRolePermissionParams) error
+	InsertSharedSecrets(ctx context.Context, db DBTX, args []InsertSharedSecretParams) error
 	InsertUnkeyPermissions(ctx context.Context, db DBTX, args []InsertUnkeyPermissionParams) error
 	InsertUnkeyRootKeys(ctx context.Context, db DBTX, args []InsertUnkeyRootKeyParams) error
 	UpsertWorkspaceBillingPlanOverride(ctx context.Context, db DBTX, args []UpsertWorkspaceBillingPlanOverrideParams) error
