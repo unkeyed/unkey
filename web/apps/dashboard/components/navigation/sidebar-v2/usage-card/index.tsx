@@ -1,6 +1,7 @@
 "use client";
 
 import { useSidebar } from "@/components/ui/sidebar";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "cn";
 import { UsagePanel } from "./usage-panel";
 import { useUsageSummary } from "./use-usage-summary";
@@ -8,9 +9,10 @@ import { useUsageSummary } from "./use-usage-summary";
 export function UsageCard() {
   const { state } = useSidebar();
   const summary = useUsageSummary();
+  const hydrated = useHydrated();
   const railed = state === "collapsed";
 
-  if (summary === null) {
+  if (!hydrated || summary === null) {
     return null;
   }
 
