@@ -18,6 +18,7 @@ type DeployRefPickerProps = {
   source: BranchSource | null;
   branches: BranchOption[];
   branchesLoading: boolean;
+  repositoryError?: string | null;
   refError?: string;
   environmentError?: string;
   onRefChange: (ref: string) => void;
@@ -31,6 +32,7 @@ export function DeployRefPicker({
   source,
   branches,
   branchesLoading,
+  repositoryError,
   refError,
   environmentError,
   onRefChange,
@@ -75,7 +77,7 @@ export function DeployRefPicker({
           description="Pick a branch, or paste a full commit SHA."
           descriptionPosition="label"
           className="w-full"
-          error={refError}
+          error={refError ?? repositoryError ?? undefined}
           options={items}
           value={value}
           onSelect={onRefChange}
@@ -86,7 +88,7 @@ export function DeployRefPicker({
           leftIcon={<IconCodeBranchOutline18 className="text-gray-11" />}
           placeholder={<span className="text-gray-9">Select a branch</span>}
           searchPlaceholder="Search branches…"
-          emptyMessage="No branches found."
+          emptyMessage={repositoryError ?? "No branches found."}
         />
         <div className="flex max-w-full flex-wrap gap-1.5">
           {quickPicks.map((pick) => (

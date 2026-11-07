@@ -42,8 +42,11 @@ export function BranchCombobox({
       }}
       onQueryChange={options.setQuery}
       loading={options.isLoading}
+      error={options.repositoryError ?? undefined}
       searchPlaceholder="Search branches..."
-      emptyMessage={options.isSearching ? "Searching..." : "No branches found."}
+      emptyMessage={
+        options.isSearching ? "Searching..." : (options.repositoryError ?? "No branches found.")
+      }
     />
   );
 }
@@ -87,5 +90,8 @@ function useBranchItems(projectId: string, connection: BranchConnection, branch:
     [options, repositoryDefault],
   );
 
-  return { items, setQuery, isSearching, isLoading: details.isLoading };
+  const repositoryError =
+    details.error?.data?.code === "PRECONDITION_FAILED" ? details.error.message : null;
+
+  return { items, setQuery, isSearching, repositoryError, isLoading: details.isLoading };
 }

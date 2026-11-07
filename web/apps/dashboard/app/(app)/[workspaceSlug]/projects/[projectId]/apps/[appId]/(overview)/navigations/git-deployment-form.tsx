@@ -91,11 +91,18 @@ export function GitDeploymentForm({ app, isOpen, onOpenChange }: GitDeploymentFo
     },
     {
       enabled: isOpen && Boolean(installationId) && Boolean(owner) && Boolean(repo),
-      onError: () => {
-        toast.error("Failed to load repository details");
+      onError: (error) => {
+        toast.error(
+          error.data?.code === "PRECONDITION_FAILED"
+            ? error.message
+            : "Failed to load repository details",
+        );
       },
     },
   );
+
+  const repositoryUnavailable =
+    repoDetails.error?.data?.code === "PRECONDITION_FAILED" ? repoDetails.error.message : null;
   const repoDetailsLoading = installations.isInitialLoading || repoDetails.isInitialLoading;
 
   const {
@@ -160,6 +167,7 @@ export function GitDeploymentForm({ app, isOpen, onOpenChange }: GitDeploymentFo
         source={installationId && owner && repo ? { projectId, installationId, owner, repo } : null}
         branches={repoDetails.data?.branches ?? []}
         branchesLoading={repoDetailsLoading}
+        repositoryError={repositoryUnavailable}
         refError={errors.ref?.message}
         environmentError={errors.environmentId?.message}
         onRefChange={(next) => {
