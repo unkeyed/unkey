@@ -101,6 +101,12 @@ func WithErrorHandling() zen.Middleware {
 			// convert it to an HTTP response and lose the details.
 			s.SetInternalError(fault.InternalMessage(err))
 
+			// The response was already committed, so a second response cannot
+			// be written. Return the error so the server aborts the connection.
+			if s.Written() {
+				return err
+			}
+
 			if routingErr, ok := errors.AsType[*zen.RoutingError](err); ok {
 				detail := "The requested endpoint does not exist."
 				if routingErr.Status == http.StatusMethodNotAllowed {

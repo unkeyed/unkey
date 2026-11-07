@@ -277,6 +277,13 @@ func (s *Session) StatusCode() int {
 	return 200
 }
 
+// Written reports whether the response status line and headers were sent.
+// Once this is true a second response must not be written.
+func (s *Session) Written() bool {
+	recorder, ok := s.w.(*statusRecorder)
+	return ok && recorder.written
+}
+
 // BindBody parses the request body as JSON into the provided destination struct.
 // The destination must be a pointer to a struct.
 //

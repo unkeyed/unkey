@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -415,4 +417,78 @@ func toInt64(v any) int64 {
 		return n
 	}
 	return -1
+}
+
+// contentLengthWriter mimics the parts of net/http's response writer that
+// matter for a committed response: it counts every byte handed to Write before
+// the underlying socket write runs, and rejects a write that would exceed the
+// declared Content-Length with http.ErrContentLength.
+type contentLengthWriter struct {
+	header   http.Header
+	status   int
+	declared int64
+	written  int64
+	writes   int
+	failNext error
+}
+
+func (w *contentLengthWriter) Header() http.Header { return w.header }
+
+func (w *contentLengthWriter) WriteHeader(code int) {
+	if w.status != 0 {
+		return
+	}
+	w.status = code
+	if raw := w.header.Get("Content-Length"); raw != "" {
+		if n, err := strconv.ParseInt(raw, 10, 64); err == nil {
+			w.declared = n
+		}
+	}
+}
+
+func (w *contentLengthWriter) Write(body []byte) (int, error) {
+	if w.status == 0 {
+		w.WriteHeader(http.StatusOK)
+	}
+	w.writes++
+	w.written += int64(len(body))
+	if w.declared > 0 && w.written > w.declared {
+		return 0, http.ErrContentLength
+	}
+	if w.failNext != nil {
+		err := w.failNext
+		w.failNext = nil
+		return 0, err
+	}
+	return len(body), nil
+}
+
+// TestErrorMiddleware_DoesNotWriteAfterResponseCommitted reproduces a slow
+// client on a compressed route. The compressed body declares a Content-Length,
+// then the socket write fails. The middleware must not attempt a second
+// response, which net/http rejects with http.ErrContentLength.
+func TestErrorMiddleware_DoesNotWriteAfterResponseCommitted(t *testing.T) {
+	socketErr := errors.New("write tcp 10.0.0.1:7070->10.0.0.2:5000: i/o timeout")
+
+	rec := &contentLengthWriter{header: http.Header{}}
+	req := httptest.NewRequest(http.MethodPost, "/v2/logs.listApiRequests", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	sess := &zen.Session{}
+	require.NoError(t, sess.Init(rec, req, 0))
+
+	body := []byte(`{"data":"` + strings.Repeat("a", 4096) + `"}`)
+	rec.failNext = socketErr
+
+	handler := func(_ context.Context, s *zen.Session) error {
+		s.AddHeader("Content-Type", "application/json")
+		return s.Send(http.StatusOK, body)
+	}
+
+	err := middleware.WithErrorHandling()(zen.WithCompression()(handler))(t.Context(), sess)
+
+	require.Error(t, err)
+	require.ErrorIs(t, err, socketErr)
+	require.Equal(t, http.StatusOK, rec.status)
+	require.Equal(t, 1, rec.writes, "must not write a second response after the first one committed")
 }
