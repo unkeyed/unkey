@@ -42,11 +42,13 @@ func PathsFromSpec(spec []byte) ([]string, error) {
 	}
 
 	w := &walker{
-		schemas:       mapAt(mapAt(doc, "components"), "schemas"),
-		found:         make(map[string]struct{}),
-		truncated:     make(map[string]struct{}),
-		annotated:     make(map[string]bool),
-		unaddressable: nil,
+		schemas:           mapAt(mapAt(doc, "components"), "schemas"),
+		found:             make(map[string]struct{}),
+		truncated:         make(map[string]struct{}),
+		annotated:         make(map[string]bool),
+		unaddressable:     nil,
+		inexpressible:     nil,
+		inexpressibleOpen: 0,
 	}
 
 	for _, item := range mapAt(doc, "paths") {
@@ -89,6 +91,14 @@ func PathsFromSpec(spec []byte) ([]string, error) {
 		return nil, fault.New("only a property can carry " + Extension + ", found it on: " + strings.Join(w.unaddressable, ", "))
 	}
 
+	// A member name the path grammar cannot carry would emit a path that never
+	// matches the body, leaving the annotated value unredacted.
+	if len(w.inexpressible) > 0 {
+		sort.Strings(w.inexpressible)
+
+		return nil, fault.New("property name cannot be expressed as a redaction path: " + strings.Join(w.inexpressible, ", "))
+	}
+
 	paths := make([]string, 0, len(w.found))
 	for p := range w.found {
 		paths = append(paths, p)
@@ -110,6 +120,16 @@ type walker struct {
 	// unaddressable collects annotations on schemas that are not properties, so
 	// they fail loudly instead of doing nothing.
 	unaddressable []string
+
+	// inexpressible collects annotated paths whose member names the path grammar
+	// cannot carry, which would otherwise silently never match.
+	inexpressible []string
+
+	// inexpressibleOpen counts the properties on the current descent whose names
+	// the path grammar cannot carry. The joined path cannot tell a literal "a[]"
+	// from the array step the walker appends, so names are checked as they are
+	// entered.
+	inexpressibleOpen int
 
 	// annotated memoizes whether a component's subtree contains an annotation.
 	annotated map[string]bool
@@ -139,11 +159,22 @@ func (w *walker) walk(schema map[string]any, path []string, visiting map[string]
 				annotatedHere = annotated(resolved)
 			}
 		}
+		inexpressible := !expressible(name)
+		if inexpressible {
+			w.inexpressibleOpen++
+		}
 		if annotatedHere {
-			w.found[strings.Join(extend(path, name), ".")] = struct{}{}
+			joined := strings.Join(extend(path, name), ".")
+			if w.inexpressibleOpen > 0 {
+				w.inexpressible = append(w.inexpressible, joined)
+			}
+			w.found[joined] = struct{}{}
 		}
 
 		w.walk(property, extend(path, name), visiting)
+		if inexpressible {
+			w.inexpressibleOpen--
+		}
 	}
 
 	// Array elements extend the last segment rather than adding one, so
@@ -306,6 +337,14 @@ func extend(path []string, segment string) []string {
 	out[len(path)] = segment
 
 	return out
+}
+
+// expressible reports whether a member name can be written in the grammar [New]
+// parses, which reserves '.' for nesting and '[]' for array steps. A member named
+// "a.b", "a[0]", or "a[]" would otherwise be read as two members or as an array
+// step, and an empty name as no member at all, so the path would never match.
+func expressible(name string) bool {
+	return name != "" && !strings.ContainsAny(name, ".[]")
 }
 
 // bodySchema extracts the JSON schema from a requestBody or response object.
