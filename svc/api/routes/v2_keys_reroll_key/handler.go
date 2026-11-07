@@ -130,6 +130,8 @@ func (h *Handler) RerollKey(
 	}
 
 	actor := auditactor.FromPrincipal(principal)
+	// This read only supplies keyspace settings, which a reroll never changes.
+	// Everything copied from the key itself is read again under the row lock.
 	keyData := db.ToKeyData(key)
 
 	length := 16
@@ -198,24 +200,62 @@ func (h *Handler) RerollKey(
 		// keys.id unique index can be recovered by regenerating the ID.
 		keyID = uid.New(uid.KeyPrefix)
 		return db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+			// Rerolls of one source key serialize on its row. The loser of a race
+			// wakes up after the winner commits, so the state copied below is the
+			// committed source state and never a pre-transaction replica read.
+			_, err := db.Query.LockKeyForUpdate(ctx, tx, req.KeyId)
+			if err != nil {
+				if db.IsNotFound(err) {
+					return errKeyNotFound()
+				}
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to lock key."),
+				)
+			}
+
+			lockedKey, err := db.Query.FindLiveKeyByID(ctx, tx, req.KeyId)
+			if err != nil {
+				if db.IsNotFound(err) {
+					return errKeyNotFound()
+				}
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to retrieve key."),
+				)
+			}
+
+			// A source key that is already expired was rotated by an earlier
+			// reroll or died on its own. Minting another key from it would copy
+			// the same remaining credits a second time, so refuse instead.
+			if lockedKey.KeyExpires.Valid && !lockedKey.KeyExpires.Time.After(time.Now()) {
+				return fault.New("key already expired",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Internal("source key expired before reroll"),
+					fault.Public("The key has already expired, so no new key was created. Reroll the replacement key instead."),
+				)
+			}
+
+			lockedKeyData := db.ToKeyData(lockedKey)
+
 			err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
 				ID:                 keyID,
-				KeySpaceID:         keyData.Key.KeyAuthID,
+				KeySpaceID:         lockedKeyData.Key.KeyAuthID,
 				Hash:               keyResult.Hash,
 				Prefix:             prefix,
 				Start:              keyResult.Start,
 				End:                keyResult.Key[len(keyResult.Key)-4:],
-				WorkspaceID:        keyData.Key.WorkspaceID,
-				ForWorkspaceID:     keyData.Key.ForWorkspaceID,
+				WorkspaceID:        lockedKeyData.Key.WorkspaceID,
+				ForWorkspaceID:     lockedKeyData.Key.ForWorkspaceID,
 				CreatedAtM:         now,
-				Enabled:            keyData.Key.Enabled,
-				RemainingRequests:  keyData.Key.RemainingRequests,
-				RefillDay:          keyData.Key.RefillDay,
-				RefillAmount:       keyData.Key.RefillAmount,
-				Name:               keyData.Key.Name,
-				IdentityID:         keyData.Key.IdentityID,
-				Meta:               keyData.Key.Meta,
-				Expires:            keyData.Key.Expires,
+				Enabled:            lockedKeyData.Key.Enabled,
+				RemainingRequests:  lockedKeyData.Key.RemainingRequests,
+				RefillDay:          lockedKeyData.Key.RefillDay,
+				RefillAmount:       lockedKeyData.Key.RefillAmount,
+				Name:               lockedKeyData.Key.Name,
+				IdentityID:         lockedKeyData.Key.IdentityID,
+				Meta:               lockedKeyData.Key.Meta,
+				Expires:            lockedKeyData.Key.Expires,
 				PendingMigrationID: sql.NullString{Valid: false, String: ""},
 			})
 			if err != nil {
@@ -241,17 +281,17 @@ func (h *Handler) RerollKey(
 				}
 			}
 
-			if len(keyData.Ratelimits) > 0 {
+			if len(lockedKeyData.Ratelimits) > 0 {
 				ratelimitsToInsert := make([]db.InsertKeyRatelimitParams, 0)
 
-				for _, ratelimit := range keyData.Ratelimits {
+				for _, ratelimit := range lockedKeyData.Ratelimits {
 					if ratelimit.IdentityID.Valid {
 						continue
 					}
 
 					ratelimitsToInsert = append(ratelimitsToInsert, db.InsertKeyRatelimitParams{
 						ID:          uid.New(uid.RatelimitPrefix),
-						WorkspaceID: keyData.Key.WorkspaceID,
+						WorkspaceID: lockedKeyData.Key.WorkspaceID,
 						KeyID:       sql.NullString{String: keyID, Valid: true},
 						Name:        ratelimit.Name,
 						Limit:       ratelimit.Limit,
@@ -273,11 +313,11 @@ func (h *Handler) RerollKey(
 				}
 			}
 
-			if len(keyData.Roles) > 0 {
-				rolesToInsert := make([]db.InsertKeyRoleParams, 0, len(keyData.Roles))
-				for _, role := range keyData.Roles {
+			if len(lockedKeyData.Roles) > 0 {
+				rolesToInsert := make([]db.InsertKeyRoleParams, 0, len(lockedKeyData.Roles))
+				for _, role := range lockedKeyData.Roles {
 					rolesToInsert = append(rolesToInsert, db.InsertKeyRoleParams{
-						WorkspaceID: keyData.Key.WorkspaceID,
+						WorkspaceID: lockedKeyData.Key.WorkspaceID,
 						KeyID:       keyID,
 						RoleID:      role.ID,
 						CreatedAtM:  now,
@@ -293,11 +333,11 @@ func (h *Handler) RerollKey(
 				}
 			}
 
-			if len(keyData.Permissions) > 0 {
-				permissionsToInsert := make([]db.InsertKeyPermissionParams, 0, len(keyData.Permissions))
-				for _, permission := range keyData.Permissions {
+			if len(lockedKeyData.Permissions) > 0 {
+				permissionsToInsert := make([]db.InsertKeyPermissionParams, 0, len(lockedKeyData.Permissions))
+				for _, permission := range lockedKeyData.Permissions {
 					permissionsToInsert = append(permissionsToInsert, db.InsertKeyPermissionParams{
-						WorkspaceID:  keyData.Key.WorkspaceID,
+						WorkspaceID:  lockedKeyData.Key.WorkspaceID,
 						KeyID:        keyID,
 						PermissionID: permission.ID,
 						CreatedAt:    now,
@@ -361,22 +401,22 @@ func (h *Handler) RerollKey(
 					{
 						Type:        auditlog.KeyTargetType,
 						ID:          keyID,
-						DisplayName: keyData.Key.Name.String,
-						Name:        keyData.Key.Name.String,
+						DisplayName: lockedKeyData.Key.Name.String,
+						Name:        lockedKeyData.Key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
 						Type:        auditlog.KeyTargetType,
 						ID:          req.KeyId,
-						DisplayName: keyData.Key.Name.String,
-						Name:        keyData.Key.Name.String,
+						DisplayName: lockedKeyData.Key.Name.String,
+						Name:        lockedKeyData.Key.Name.String,
 						Meta:        map[string]any{},
 					},
 					{
 						Type:        auditlog.APITargetType,
-						ID:          keyData.Api.ID,
-						DisplayName: keyData.Api.Name,
-						Name:        keyData.Api.Name,
+						ID:          lockedKeyData.Api.ID,
+						DisplayName: lockedKeyData.Api.Name,
+						Name:        lockedKeyData.Api.Name,
 						Meta:        map[string]any{},
 					},
 				},
@@ -407,6 +447,13 @@ func (h *Handler) RerollKey(
 			Key:   keyResult.Key,
 		},
 	})
+}
+
+func errKeyNotFound() error {
+	return fault.New("key not found",
+		fault.Code(codes.Data.Key.NotFound.URN()),
+		fault.Public("The specified key was not found."),
+	)
 }
 
 // rerollPermissionQuery builds the generic API permission requirement. Portal
