@@ -25,12 +25,7 @@ func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
 	c.runResyncLoop(ctx, 30*time.Second, func() {
 		logger.Info("running actual state resync")
 		c.forEachWorkload(ctx, func(ctx context.Context, w workload) {
-			status, err := c.buildDeploymentStatus(ctx, w)
-			if err != nil {
-				logger.Error("actual state resync: unable to build deployment status", "error", err.Error(), "workload", w.k8sName)
-				return
-			}
-			reported, err := c.reportIfChanged(ctx, status)
+			_, reported, err := c.reportIfChanged(ctx, w)
 			if err != nil {
 				logger.Error("actual state resync: unable to report deployment status", "error", err.Error(), "workload", w.k8sName)
 				return

@@ -278,6 +278,61 @@ func TestRetry_PostBodySurvivesDialRetry(t *testing.T) {
 	require.Equal(t, payload, receivedBody.Load().(string), "second instance must receive the original body intact")
 }
 
+// TestRetry_AllDialFailuresReloadInstances covers a replica that restarted
+// on a new IP while frontline still caches its old one: once every cached
+// address fails to dial, the same request reloads the instances and is
+// served by the new address instead of failing.
+func TestRetry_AllDialFailuresReloadInstances(t *testing.T) {
+	t.Parallel()
+
+	aliveAddr, stopAlive := startBackend(t, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "served-by-new-address")
+	})
+	t.Cleanup(stopAlive)
+
+	routes := &cachingRouter{
+		cached: localDecision(unreachableAddr(t), unreachableAddr(t)),
+		stored: localDecision(aliveAddr),
+	}
+	routes.cached.RemoteRegionAddress = ""
+	routes.stored.RemoteRegionAddress = ""
+	frontlineAddr, stop := startFrontlineWithRouter(t, routes, nil, false)
+	t.Cleanup(stop)
+
+	resp := mustGet(t, frontlineAddr)
+	defer func() { _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Equal(t, "served-by-new-address", string(body))
+}
+
+// cachingRouter serves cached until InvalidateInstances, then stored, like
+// the router's instance cache in front of the database.
+type cachingRouter struct {
+	mu          sync.Mutex
+	cached      router.RouteDecision
+	stored      router.RouteDecision
+	invalidated bool
+}
+
+func (r *cachingRouter) Route(_ context.Context, _ string, _ ...string) (router.RouteDecision, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.invalidated {
+		return r.stored, nil
+	}
+	return r.cached, nil
+}
+
+func (r *cachingRouter) ValidateHostname(_ context.Context, _ string) error { return nil }
+
+func (r *cachingRouter) InvalidateInstances(_ context.Context, _ string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.invalidated = true
+}
+
 // --- helpers ---
 
 // unreachableAddr returns an address that is guaranteed to refuse TCP

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"database/sql"
 	"fmt"
 	"sync"
 	"testing"
@@ -91,4 +92,65 @@ func TestReportDeploymentStatusConcurrentReportsForKnownInstances(t *testing.T) 
 		require.NoError(t, findErr)
 		require.Len(t, instances, instancesPerDep)
 	}
+}
+
+// A pod-watch report built before krane deleted a stopped workload can reach
+// ctrl after the Delete. It must not bring back running rows, because the
+// cluster reuses the pod IPs for other workloads.
+func TestReportDeploymentStatusLateUpdateAfterStopDoesNotRestoreInstances(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+
+	const bearer = "test-bearer"
+	clusterKey := &ctrlv1.ClusterKey{CellId: uid.DNS1035(12), Platform: "test", Region: uid.DNS1035(12)}
+	svc := h.ClusterService(clusterKey, bearer)
+
+	deployment := h.CreateDeployment(ctx, CreateDeploymentRequest{Region: clusterKey.GetRegion(), DesiredState: ""})
+	region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{Platform: "test", Name: clusterKey.GetRegion()})
+	require.NoError(t, err)
+
+	send := func(msg *ctrlv1.ReportDeploymentStatusRequest) {
+		t.Helper()
+		msg.Cluster = clusterKey
+		req := connect.NewRequest(msg)
+		req.Header().Set("Authorization", "Bearer "+bearer)
+		_, reportErr := svc.ReportDeploymentStatus(ctx, req)
+		require.NoError(t, reportErr)
+	}
+	runningUpdate := &ctrlv1.ReportDeploymentStatusRequest{
+		Change: &ctrlv1.ReportDeploymentStatusRequest_Update_{
+			Update: &ctrlv1.ReportDeploymentStatusRequest_Update{
+				K8SName: deployment.K8sName,
+				Instances: []*ctrlv1.ReportDeploymentStatusRequest_Update_Instance{{
+					K8SName:       uid.DNS1035(16),
+					Address:       "10.13.47.67:3001",
+					CpuMillicores: 250,
+					MemoryMib:     256,
+					Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_RUNNING,
+				}},
+			},
+		},
+	}
+
+	send(runningUpdate)
+	instances, err := h.DB.FindInstancesByDeploymentId(ctx, deployment.ID)
+	require.NoError(t, err)
+	require.Len(t, instances, 1)
+
+	require.NoError(t, h.DB.UpdateDeploymentTopologyDesiredStatus(ctx, db.UpdateDeploymentTopologyDesiredStatusParams{
+		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: h.Now()},
+		DeploymentID:  deployment.ID,
+		RegionID:      region.ID,
+	}))
+	send(&ctrlv1.ReportDeploymentStatusRequest{
+		Change: &ctrlv1.ReportDeploymentStatusRequest_Delete_{
+			Delete: &ctrlv1.ReportDeploymentStatusRequest_Delete{K8SName: deployment.K8sName},
+		},
+	})
+	send(runningUpdate)
+
+	instances, err = h.DB.FindInstancesByDeploymentId(ctx, deployment.ID)
+	require.NoError(t, err)
+	require.Empty(t, instances)
 }
