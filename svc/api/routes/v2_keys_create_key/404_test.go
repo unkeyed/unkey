@@ -10,7 +10,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -30,7 +33,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 
 	h.Register(route)
 
-	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, createAnyKeyPermission(h.Resources().UserWorkspace.ID))
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID, rbac.U(urn.New().Workspace(h.Resources().UserWorkspace.ID).Project("*").Keyspace("*").Key("*"), permissions.Write).Value)
 
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -68,7 +71,7 @@ func TestCreateKeyNotFound(t *testing.T) {
 		otherWorkspace := h.CreateWorkspace()
 
 		// Create root key for the other workspace with proper permissions
-		otherRootKey := h.CreateRootKey(otherWorkspace.ID, createAnyKeyPermission(otherWorkspace.ID))
+		otherRootKey := h.CreateRootKey(otherWorkspace.ID, rbac.U(urn.New().Workspace(otherWorkspace.ID).Project("*").Keyspace("*").Key("*"), permissions.Write).Value)
 
 		// But try to access API from user workspace
 		// First we need to create an API in user workspace
@@ -181,7 +184,7 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 		permissions []string
 	}{
 		{name: "no permissions", permissions: nil},
-		{name: "write permission for a different keyspace", permissions: []string{createKeyPermission(workspaceID, projectID, uid.New(uid.KeySpacePrefix))}},
+		{name: "write permission for a different keyspace", permissions: []string{rbac.U(urn.New().Workspace(workspaceID).Project(projectID).Keyspace(uid.New(uid.KeySpacePrefix)).Key("*"), permissions.Write).Value}},
 		{name: "unrelated permission", permissions: []string{"workspace.read"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -233,7 +236,7 @@ func TestCreateKeyOnDeletedApi(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "api.*.create_key"))},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, rbac.U(urn.New().Workspace(workspaceID).Project("*").Keyspace("*").Key("*"), permissions.Write).Value))},
 	}
 	now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 

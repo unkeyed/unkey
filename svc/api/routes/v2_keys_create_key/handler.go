@@ -128,28 +128,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// 3. Permission check. Creating a key is authorized against the keyspace
-	// because the key does not exist until after the operation succeeds. The
-	// tuple legs accept legacy API-scoped grants until those are migrated.
-	keyspaceURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String)
-	permissionQuery := rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
-			Action:       rbac.CreateKey,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateKey,
-		}),
-		rbac.U(
-			keyspaceURN.Key("*"),
-			permissions.Write,
-		),
-	)
+	// because the key does not exist until after the operation succeeds.
+	permissionQuery := rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write)
 	err = principal.Authorize(permissionQuery)
 	if err != nil {
-		return maskCreateKeyPermissions(err, principal.Permissions, permissionQuery, keyspaceURN)
+		return maskCreateKeyPermissions(err, principal.Permissions, permissionQuery, urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String))
 	}
 
 	// Portal sessions are scoped to a single external identity. Force the
@@ -220,25 +203,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		encryptQuery := rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.EncryptKey,
-			}),
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   api.ID,
-				Action:       rbac.EncryptKey,
-			}),
-			rbac.U(
-				keyspaceURN.Key("*"),
-				permissions.Write,
-			),
-		)
+		encryptQuery := rbac.U(urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String).Key("*"), permissions.Write)
 		err = principal.Authorize(encryptQuery)
 		if err != nil {
-			return maskCreateKeyPermissions(err, principal.Permissions, encryptQuery, keyspaceURN)
+			return maskCreateKeyPermissions(err, principal.Permissions, encryptQuery, urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpaceProjectID).Keyspace(api.KeyAuthID.String))
 		}
 
 		if !keySpace.StoreEncryptedKeys {

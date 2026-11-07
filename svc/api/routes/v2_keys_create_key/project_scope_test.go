@@ -11,7 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -69,11 +72,11 @@ func TestCreateKeyUsesKeyspaceProjectForURN(t *testing.T) {
 	}
 
 	t.Run("API project does not authorize the keyspace", func(t *testing.T) {
-		require.Equal(t, http.StatusNotFound, call(t, createKeyPermission(workspace.ID, apiProject.ID, keySpaceID)))
+		require.Equal(t, http.StatusNotFound, call(t, rbac.U(urn.New().Workspace(workspace.ID).Project(apiProject.ID).Keyspace(keySpaceID).Key("*"), permissions.Write).Value))
 	})
 
 	t.Run("keyspace project authorizes the keyspace", func(t *testing.T) {
-		require.Equal(t, http.StatusOK, call(t, createKeyPermission(workspace.ID, keyspaceProjectID, keySpaceID)))
+		require.Equal(t, http.StatusOK, call(t, rbac.U(urn.New().Workspace(workspace.ID).Project(keyspaceProjectID).Keyspace(keySpaceID).Key("*"), permissions.Write).Value))
 	})
 }
 
@@ -105,7 +108,7 @@ func TestCreateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission(workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String))
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(keyProject.ID).Keyspace(keyProjectAPI.KeyAuthID.String).Key("*"), permissions.Write).Value)
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
@@ -148,7 +151,7 @@ func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 		ExternalID:  externalID,
 	})
 
-	rootKey := h.CreateRootKey(workspace.ID, createKeyPermission(workspace.ID, keyProject.ID, keyProjectAPI.KeyAuthID.String))
+	rootKey := h.CreateRootKey(workspace.ID, rbac.U(urn.New().Workspace(workspace.ID).Project(keyProject.ID).Keyspace(keyProjectAPI.KeyAuthID.String).Key("*"), permissions.Write).Value)
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
