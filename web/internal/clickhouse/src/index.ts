@@ -127,6 +127,7 @@ import {
   getFourHourlyVerificationTimeseries,
   getGatewayRequestVerification,
   getHourlyIdentityTimeseries,
+  getHourlyKeysVerificationTimeseries,
   getHourlyVerificationTimeseries,
   getIdentityLogs,
   getKeyDetailsLogs,
@@ -193,6 +194,9 @@ export class ClickHouse {
   public get verifications() {
     return {
       latest: getLatestVerifications(this.querier),
+      timeseriesByKey: {
+        perHour: getHourlyKeysVerificationTimeseries(this.querier),
+      },
       timeseries: {
         // Minute-based granularity
         perMinute: getMinutelyVerificationTimeseries(this.querier),

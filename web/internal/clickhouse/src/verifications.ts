@@ -554,6 +554,17 @@ const MS_PER_INTERVAL_STEP: Record<string, number> = {
   MONTH: 2_592_000_000,
 };
 
+const VERIFICATION_TIMESERIES_Y = `map(
+      'total', SUM(count),
+      'valid', SUM(IF(outcome = 'VALID', count, 0)),
+      'rate_limited_count', SUM(IF(outcome = 'RATE_LIMITED', count, 0)),
+      'insufficient_permissions_count', SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0)),
+      'forbidden_count', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
+      'disabled_count', SUM(IF(outcome = 'DISABLED', count, 0)) ,
+      'expired_count',SUM(IF(outcome = 'EXPIRED', count, 0)) ,
+      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))
+      ) as y`;
+
 function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: string) {
   const intervalUnit = {
     MINUTE: "minute",
@@ -573,16 +584,7 @@ function createVerificationTimeseriesQuery(interval: TimeInterval, whereClause: 
   return `
     SELECT
       toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) as x,
-    map(
-      'total', SUM(count),
-      'valid', SUM(IF(outcome = 'VALID', count, 0)),
-      'rate_limited_count', SUM(IF(outcome = 'RATE_LIMITED', count, 0)),
-      'insufficient_permissions_count', SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0)),
-      'forbidden_count', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
-      'disabled_count', SUM(IF(outcome = 'DISABLED', count, 0)) ,
-      'expired_count',SUM(IF(outcome = 'EXPIRED', count, 0)) ,
-      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))
-      ) as y
+    ${VERIFICATION_TIMESERIES_Y}
     FROM ${interval.table}
     ${whereClause}
     GROUP BY x
@@ -969,16 +971,7 @@ function createIdentityTimeseriesQuery(interval: TimeInterval, whereClause: stri
   return `
     SELECT
       toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL ${interval.stepSize} ${intervalUnit}) AS DateTime64(3))) as x,
-    map(
-      'total', SUM(count),
-      'valid', SUM(IF(outcome = 'VALID', count, 0)),
-      'rate_limited_count', SUM(IF(outcome = 'RATE_LIMITED', count, 0)),
-      'insufficient_permissions_count', SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0)),
-      'forbidden_count', SUM(IF(outcome = 'FORBIDDEN', count, 0)),
-      'disabled_count', SUM(IF(outcome = 'DISABLED', count, 0)) ,
-      'expired_count',SUM(IF(outcome = 'EXPIRED', count, 0)) ,
-      'usage_exceeded_count', SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))
-      ) as y
+    ${VERIFICATION_TIMESERIES_Y}
     FROM ${interval.table}
     ${whereClause}
     GROUP BY x
@@ -1144,3 +1137,49 @@ export const getThreeDayIdentityTimeseries = createIdentityTimeseriesQuerier(INT
 export const getWeeklyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.week);
 export const getMonthlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.month);
 export const getQuarterlyIdentityTimeseries = createIdentityTimeseriesQuerier(INTERVALS.quarter);
+
+export const keysVerificationTimeseriesParams = z.object({
+  workspaceId: z.string(),
+  keyspaceId: z.string(),
+  keyIds: z.array(z.string()),
+  startTime: z.int(),
+  endTime: z.int(),
+});
+
+export const keysVerificationTimeseriesDataPoint = z.object({
+  keyId: z.string(),
+  x: z.int(),
+  y: verificationTimeseriesDataPoint.shape.y,
+});
+
+export type KeysVerificationTimeseriesDataPoint = z.infer<
+  typeof keysVerificationTimeseriesDataPoint
+>;
+export type KeysVerificationTimeseriesParams = z.infer<typeof keysVerificationTimeseriesParams>;
+
+function createKeysVerificationTimeseriesQuery() {
+  return `
+    SELECT
+      key_id as keyId,
+      toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL 1 hour) AS DateTime64(3))) as x,
+      ${VERIFICATION_TIMESERIES_Y}
+    FROM ${INTERVALS.hour.table}
+    WHERE workspace_id = {workspaceId: String}
+      AND key_space_id = {keyspaceId: String}
+      AND time >= fromUnixTimestamp64Milli({startTime: Int64})
+      AND time <= fromUnixTimestamp64Milli({endTime: Int64})
+      AND key_id IN {keyIds: Array(String)}
+    GROUP BY keyId, x
+    ORDER BY keyId ASC, x ASC`;
+}
+
+export const getHourlyKeysVerificationTimeseries =
+  (ch: Querier) => async (args: KeysVerificationTimeseriesParams) => {
+    const result = await ch.query({
+      query: createKeysVerificationTimeseriesQuery(),
+      params: keysVerificationTimeseriesParams,
+      schema: keysVerificationTimeseriesDataPoint,
+    })(args);
+
+    return result.val;
+  };
