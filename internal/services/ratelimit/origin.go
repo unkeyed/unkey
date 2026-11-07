@@ -61,6 +61,23 @@ const (
 	originBreakerMinRequests  = 20  // ...but only after a meaningful sample
 )
 
+// replayMaxAttempts bounds how often a single buffered increment is sent to
+// Redis before it is given up and counted as lost. The increment is the durable
+// record of quota a caller already consumed, so a transient Redis blip must not
+// discard it on the first error. Only failures that prove the increment never
+// reached Redis are retried; see replaySafeToRetry.
+const replayMaxAttempts = 4
+
+// replayTimeout bounds the total time spent retrying one increment so a sick
+// Redis cannot hold a replay worker indefinitely.
+const replayTimeout = 30 * time.Second
+
+// replayBaseBackoff and replayMaxBackoff shape the wait between attempts.
+const (
+	replayBaseBackoff = 250 * time.Millisecond
+	replayMaxBackoff  = 2 * time.Second
+)
+
 // fetchFromOrigin returns the current counter value from the origin. The call is
 // wrapped in the origin circuit breaker so that Redis outages fail fast instead
 // of stalling every request in strict mode. On any failure (circuit tripped,
@@ -110,12 +127,66 @@ func (s *service) replayRequests() {
 		if ptr == nil {
 			continue
 		}
-		err := s.syncWithOrigin(context.Background(), *ptr)
-		// Don't log breaker short-circuits (see fetchFromOrigin).
-		if err != nil && !isCircuitOpen(err) {
-			logger.Error("failed to replay request", "error", err.Error())
+		if err := s.replayWithRetry(context.Background(), *ptr); err != nil {
+			// Don't log breaker short-circuits (see fetchFromOrigin).
+			if !isCircuitOpen(err) {
+				logger.Error("failed to replay request", "error", err.Error())
+			}
 		}
 	}
+}
+
+// replayWithRetry pushes one buffered increment to Redis, retrying failed
+// attempts with backoff under a bounded budget. Consuming the buffer removes the
+// increment, so giving up on the first error would drop it permanently and let
+// other nodes in the region read a lower counter and admit traffic past the
+// configured limit. A change that keeps failing is counted as dropped.
+func (s *service) replayWithRetry(ctx context.Context, req RatelimitRequest) error {
+	ctx, cancel := context.WithTimeout(ctx, replayTimeout)
+	defer cancel()
+
+	var err error
+	for attempt := 1; attempt <= replayMaxAttempts; attempt++ {
+		err = s.syncWithOrigin(ctx, req)
+		if err == nil {
+			return nil
+		}
+		if attempt == replayMaxAttempts || ctx.Err() != nil || !replaySafeToRetry(err) {
+			break
+		}
+		select {
+		case <-ctx.Done():
+		case <-time.After(replayBackoff(attempt)):
+		}
+	}
+
+	metrics.RatelimitReplayDropped.Inc()
+	return err
+}
+
+// replaySafeToRetry reports whether a failed increment can be sent to Redis
+// again. The origin INCRBY is not idempotent, so an error that may already have
+// applied the increment must not be repeated: a second attempt would double
+// count the quota and make the limit block the caller early. Only a dial-phase
+// failure proves the command never reached Redis. A tripped breaker
+// short-circuits every call for its open window, so a retry cannot succeed and
+// would only hold the replay worker.
+func replaySafeToRetry(err error) bool {
+	if isCircuitOpen(err) {
+		return false
+	}
+	var opErr *net.OpError
+	return errors.As(err, &opErr) && opErr.Op == "dial"
+}
+
+// replayBackoff returns the wait before the next attempt, doubling each time up
+// to replayMaxBackoff.
+func replayBackoff(attempt int) time.Duration {
+	backoff := time.Duration(1<<uint(attempt-1)) * replayBaseBackoff
+	if backoff > replayMaxBackoff {
+		return replayMaxBackoff
+	}
+	return backoff
 }
 
 // syncWithOrigin pushes a local rate limit increment to Redis and CAS-merges

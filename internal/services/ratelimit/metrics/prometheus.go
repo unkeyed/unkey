@@ -198,6 +198,22 @@ var (
 		vec.Values("op", "fetch_cold", "fetch_stale", "fetch_strict", "sync"),
 	)
 
+	// RatelimitReplayDropped counts buffered increments given up after every
+	// replay attempt failed. A non-zero value means Redis undercounted those
+	// increments, so other nodes in the region can read a lower counter and
+	// admit traffic past the configured limit.
+	//
+	// Example usage:
+	//   metrics.RatelimitReplayDropped.Inc()
+	RatelimitReplayDropped = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "ratelimit",
+			Name:      "replay_dropped_total",
+			Help:      "Total number of buffered rate-limit increments dropped after all replay attempts failed.",
+		},
+	)
+
 	// RatelimitOriginErrors counts origin operations that returned an error
 	// (including circuit-breaker trips and hot-path timeouts).
 	//
