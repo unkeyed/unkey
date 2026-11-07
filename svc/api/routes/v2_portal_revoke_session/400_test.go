@@ -14,7 +14,7 @@ import (
 
 func TestRevokeSessionRejectsInvalidBody(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-invalid")

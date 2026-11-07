@@ -23,13 +23,11 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
 )
 
-const permission = "portal.*.create_portal_session"
-
 // The first call caches the session, so the rejection proves the revoke wrote
 // through the cache. The pending code stops redeeming too.
 func TestRevokeSessionStopsActiveAndPendingSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	endUserRoute := listKeys.New(h.DB)
@@ -64,7 +62,7 @@ func TestRevokeSessionStopsActiveAndPendingSessions(t *testing.T) {
 // Expired rows are neither counted nor touched.
 func TestRevokeSessionIgnoresExpiredSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-expired")
@@ -84,7 +82,7 @@ func TestRevokeSessionIgnoresExpiredSessions(t *testing.T) {
 // Other users on the portal, and this user on other portals, keep access.
 func TestRevokeSessionIsScopedToUserAndPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	target, mapping := seedPortal(t, h, workspace.ID, "revoke-target")
@@ -107,7 +105,7 @@ func TestRevokeSessionIsScopedToUserAndPortal(t *testing.T) {
 // Another workspace's session for the same external id is out of reach.
 func TestRevokeSessionLeavesOtherWorkspacesAlone(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 	foreign := h.CreateWorkspace()
 
@@ -125,7 +123,7 @@ func TestRevokeSessionLeavesOtherWorkspacesAlone(t *testing.T) {
 // revoked_at.
 func TestRevokeSessionIsIdempotent(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-twice")
@@ -160,7 +158,7 @@ func TestRevokeSessionIsIdempotent(t *testing.T) {
 // An end user with no sessions is not an error.
 func TestRevokeSessionWithNoSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, _ := seedPortal(t, h, workspace.ID, "revoke-empty")
@@ -174,7 +172,7 @@ func TestRevokeSessionWithNoSessions(t *testing.T) {
 // Revoking still works on a disabled portal.
 func TestRevokeSessionOnDisabledPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	mapping, projectID := h.SeedKeyspaceMapping(t, workspace.ID)
@@ -196,7 +194,7 @@ func TestRevokeSessionOnDisabledPortal(t *testing.T) {
 // The portal may be named by slug as well as by id.
 func TestRevokeSessionBySlug(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-by-slug")
@@ -211,7 +209,7 @@ func TestRevokeSessionBySlug(t *testing.T) {
 // The cache holds the revoked row, not an unrevoked copy.
 func TestRevokeSessionWritesRevokedStateToCache(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-cache")
@@ -231,7 +229,7 @@ func TestRevokeSessionWritesRevokedStateToCache(t *testing.T) {
 // revoked, not rows an earlier revoke already stamped with the same time.
 func TestRevokeSessionAtTheSameClockTick(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, mapping := seedPortal(t, h, workspace.ID, "revoke-same-tick")
@@ -265,7 +263,7 @@ func TestRevokeSessionAtTheSameClockTick(t *testing.T) {
 // More sessions than one batch holds are all revoked, one audit entry per batch.
 func TestRevokeSessionInBatches(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, _ := seedPortal(t, h, workspace.ID, "revoke-batches")
@@ -296,7 +294,7 @@ func TestRevokeSessionInBatches(t *testing.T) {
 // its created_at is later than the revoke's clock.
 func TestRevokeSessionTakesSessionsFromAnAheadClock(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route, headers := newRoute(t, h, permission)
+	route, headers := newRoute(t, h)
 	workspace := h.Resources().UserWorkspace
 
 	stored, _ := seedPortal(t, h, workspace.ID, "revoke-ahead-clock")

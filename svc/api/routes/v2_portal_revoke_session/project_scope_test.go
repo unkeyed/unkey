@@ -1,13 +1,15 @@
 package handler_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_revoke_session"
@@ -24,7 +26,7 @@ func TestRevokeSessionGrantIsScopedToProject(t *testing.T) {
 
 	otherProject := uid.New(uid.ProjectPrefix)
 	rootKey := h.CreateRootKey(workspace.ID,
-		fmt.Sprintf("unkey:v1:%s:projects/%s/portals/%s/sessions/*#write", workspace.ID, otherProject, stored.ID))
+		rbac.U(urn.New().Workspace(workspace.ID).Project(otherProject).Portal(stored.ID).Session("*"), permissions.Write).Value)
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, testutil.RootKeyHeaders(rootKey), request(stored.ID, "user_1"))
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
