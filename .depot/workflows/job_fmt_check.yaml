@@ -15,6 +15,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Format
         run: mise run fmt
+      # Scans TypeScript and SQL too, so it must run when the Go job is skipped.
+      - name: Reject all-column SQL queries
+        run: mise run lint-sql-wildcards
       - name: Check for drift
         run: |
           if ! git diff --exit-code; then
